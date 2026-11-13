@@ -286,7 +286,8 @@ export const toModelContent = (path: string, offset: number | undefined, output:
   const start = output.type === "text-page" ? output.offset : 1
   // Pages already join selected lines; a trailing newline represents a selected blank line.
   const text = output.type === "file" ? output.content.replace(/\n$/, "") : output.content
-  const lines = output.content === "" ? [] : text.split("\n")
+  const empty = output.type === "text-page" ? output.lineCount === 0 : output.content === ""
+  const lines = empty ? [] : text.split("\n")
   const content = [
     lines.length === 0 ? `Read file ${path}, 0 lines` : `Read file ${path}, lines ${start}-${start + lines.length - 1}`,
   ]

@@ -1041,6 +1041,7 @@ describe("ReadTool", () => {
       readResult = new ReadToolFileSystem.TextPage({
         type: "text-page",
         content: "hello",
+        lineCount: 1,
         mime: "text/plain",
         offset: 2,
         truncated: true,

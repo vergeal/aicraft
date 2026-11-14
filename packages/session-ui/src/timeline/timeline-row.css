@@ -1,0 +1,7 @@
+/*
+  The timeline measures rows while it scrolls. Containing layout and style keeps each measurement from
+  invalidating the whole timeline: a scroll costs one row's layout instead of the scroll container's.
+*/
+[data-timeline-row] {
+  contain: layout style;
+}

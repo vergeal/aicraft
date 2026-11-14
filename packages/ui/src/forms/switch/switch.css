@@ -98,11 +98,6 @@
     border-radius: 9999px;
   }
 
-  &:not([data-readonly]) [data-slot="switch-input"]:focus-visible ~ [data-slot="switch-control"] {
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: 1px;
-  }
-
   &[data-checked] [data-slot="switch-control"] {
     background:
       linear-gradient(180deg, var(--v2-alpha-light-0) 0%, var(--v2-alpha-light-10) 100%), var(--v2-background-bg-accent);

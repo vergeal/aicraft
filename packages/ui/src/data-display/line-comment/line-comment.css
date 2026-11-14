@@ -104,11 +104,6 @@
   outline: none;
 }
 
-[data-slot="line-comment-v2-overflow"]:focus-visible {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: 2px;
-}
-
 [data-slot="line-comment-v2-overflow"]:is(:hover, [data-state="hover"]) {
   background-color: var(--v2-overlay-simple-overlay-hover);
 }

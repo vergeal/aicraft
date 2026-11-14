@@ -3,13 +3,8 @@
   padding-inline-start: 10px;
 }
 
-/* The activity capsule's overlays and focus ring. */
+/* The activity capsule's overlays. */
 [data-slot="session-todo-pill"] {
-  &:focus-visible {
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: 2.5px;
-  }
-
   @media (hover: hover) {
     &:hover:not(:active, [data-expanded]) {
       background-image: linear-gradient(var(--v2-overlay-simple-overlay-hover), var(--v2-overlay-simple-overlay-hover));

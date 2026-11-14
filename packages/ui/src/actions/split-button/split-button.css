@@ -42,12 +42,6 @@
   background-color: var(--v2-overlay-simple-overlay-pressed);
 }
 
-[data-component="split-button-v2-action"]:is(:focus-visible, [data-focus]) {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: -2px;
-  z-index: 1;
-}
-
 [data-component="split-button-v2-action"]:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -64,12 +58,6 @@
 
 [data-component="split-button-v2-menu-trigger"]:is(:active, [data-pressed]):not(:disabled) {
   background-color: var(--v2-overlay-simple-overlay-pressed);
-}
-
-[data-component="split-button-v2-menu-trigger"]:is(:focus-visible, [data-focus]) {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: -2px;
-  z-index: 1;
 }
 
 [data-component="split-button-v2-menu-trigger"]:disabled {

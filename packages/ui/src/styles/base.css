@@ -454,3 +454,29 @@ input:where([type="button"], [type="reset"], [type="submit"]),
     --v2-material-surface-strong: var(--v2-material-surface-strong-opaque);
   }
 }
+
+/*
+  Product decision: controls do not draw a focus ring. Text fields keep theirs, because the caret alone does not say
+  which field has focus. `!important` is deliberate: each component states its ring with an equal or higher
+  specificity selector, and this is the single place that turns them off. Keyboard focus still moves; only the ring
+  is gone.
+*/
+:is(
+  button,
+  [data-component="button-v2"],
+  [data-component="icon-button-v2"],
+  [data-component="split-button-v2-action"],
+  [data-component="split-button-v2-menu-trigger"],
+  [role="button"],
+  [role="combobox"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="option"],
+  [role="tab"],
+  [role="switch"],
+  [role="checkbox"],
+  [role="radio"]
+):focus-visible {
+  outline: none !important;
+}

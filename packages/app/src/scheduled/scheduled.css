@@ -542,11 +542,6 @@
   background: var(--v2-background-bg-layer-03);
 }
 
-.scheduled-frequency-option:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--v2-focus-ring-color);
-}
-
 .scheduled-schedule-detail {
   display: flex;
   flex-direction: column;
@@ -615,12 +610,6 @@
 .scheduled-permission[data-selected] {
   background: var(--v2-background-bg-layer-03);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
-}
-
-.scheduled-project:focus-visible,
-.scheduled-permission:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--v2-focus-ring-color);
 }
 
 .scheduled-project-icon {

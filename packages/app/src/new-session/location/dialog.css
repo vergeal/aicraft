@@ -90,11 +90,6 @@
   cursor: pointer;
 }
 
-.new-session-location-back:focus-visible {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: 2px;
-}
-
 .new-session-location .palette-menu-row[data-size="compact"] {
   padding-inline: 6px;
 }

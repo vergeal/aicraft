@@ -228,10 +228,6 @@
   color: var(--v2-text-text-base);
 }
 
-.settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-slot="tabs-v2-trigger"]:focus-visible) {
-  box-shadow: inset 0 0 0 2px var(--v2-focus-ring-color);
-}
-
 @media (hover: hover) {
   .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover {
     background: var(--v2-overlay-simple-overlay-hover);
@@ -643,11 +639,6 @@
 .settings-back:focus-visible {
   background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-base);
-}
-
-.settings-back:focus-visible {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: 2px;
 }
 
 [dir="rtl"] .settings-back-icon {
@@ -1639,11 +1630,6 @@
   color: var(--v2-text-text-base);
 }
 
-.settings-models-group-trigger:focus-visible {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: 2px;
-}
-
 @media (hover: hover) {
   .settings-models-group-trigger:not(:disabled):hover {
     background-color: var(--v2-background-bg-layer-02);
@@ -1735,11 +1721,6 @@
   background: transparent;
   color: var(--v2-text-text-base);
   text-align: start;
-}
-
-.provider-model-group-trigger:focus-visible {
-  outline: 3px solid var(--v2-focus-ring-color);
-  outline-offset: -2px;
 }
 
 .provider-model-group-header:has(:focus-visible) {

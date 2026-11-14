@@ -97,13 +97,6 @@
       outline-color 170ms ease-out;
   }
 
-  &:where(:not([data-readonly]))
-    [data-slot="radio-v2-item-input"]:focus-visible
-    ~ [data-slot="radio-v2-item-control-stack"]
-    [data-slot="radio-v2-item-control"] {
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: 1px;
-  }
 
   &:where(:hover):where(:not([data-disabled], [data-readonly])):where(:not([data-checked]))
     [data-slot="radio-v2-item-control"] {

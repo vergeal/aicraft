@@ -19,11 +19,6 @@
     outline: none;
   }
 
-  [data-component="icon-button-v2"]:is(:focus-visible, [data-state="focus"]):not(:disabled) {
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: 2.5px;
-  }
-
   [data-component="icon-button-v2"][data-size="small"] {
     width: 20px;
     height: 20px;

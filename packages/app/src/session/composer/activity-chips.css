@@ -1,10 +1,5 @@
-/* The composer buttons' overlays and focus ring, with overlays layered over the capsule's own surface. */
+/* The composer buttons' overlays, layered over the capsule's own surface. */
 [data-slot="session-activity-chip"] {
-  &:focus-visible {
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: 2.5px;
-  }
-
   @media (hover: hover) {
     &:hover:not(:active, [data-expanded]) {
       background-image: linear-gradient(var(--v2-overlay-simple-overlay-hover), var(--v2-overlay-simple-overlay-hover));
@@ -47,12 +42,6 @@
   border-radius: 10px;
   background: var(--v2-material-surface-strong);
   text-align: start;
-
-  /* Match the queue panel's inset-ring pattern inside a clipped scrollport. */
-  :is([data-component="menu-v2-item"], [data-component="icon-button-v2"]):is(:focus-visible, [data-state="focus"]) {
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: -2px;
-  }
 
   /* The list's padding sits inside the scroller, so rows scroll to the panel's edge and the thumb overlays them. */
   > [data-component="menu-scroll"] > [data-scrollable] {

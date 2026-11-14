@@ -88,7 +88,6 @@
 
 [data-slot="segmented-control-v2-item"]:where(:focus-visible) {
   outline: none;
-  box-shadow: 0 0 0 3px var(--v2-focus-ring-color);
   z-index: 2;
 }
 

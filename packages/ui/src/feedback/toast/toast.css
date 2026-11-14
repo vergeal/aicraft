@@ -160,8 +160,6 @@
 
   > [data-close-button]:focus-visible {
     opacity: 1;
-    outline: 3px solid var(--v2-focus-ring-color);
-    outline-offset: 2px;
   }
 
   > [data-icon] > *,

@@ -67,15 +67,7 @@
     transform 90ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* A press should feel like the chip sinks under the cursor, then springs back. */
-[data-component="composer"]
-  [data-slot="composer-controls"]
-  :is([data-component="button-v2"], [data-component="icon-button-v2"]):active,
-[data-component="composer"]
-  [data-slot="composer-actions"]
-  :is([data-action="composer-model"], [data-action="composer-exit-shell"]):active {
-  transform: scale(0.96);
-}
+/* Presses keep their fill change; the old scale made every click flash by shrinking the control. */
 
 [data-component="composer"]
   [data-slot="composer-controls"]

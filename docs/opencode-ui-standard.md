@@ -2,16 +2,19 @@
 
 本文件是 app、desktop、ui、session-ui、gui-plugins 窗口界面的统一开发标准。
 
-它由两份来源合成：
+它由以下事实来源合成，任何数值都以代码为准：
 
-- `.opencode/skills/macos-ui-design/SKILL.md`：克制、结构优先、只读优先的 macOS 表达。
-- `~/agents/demo/scheduled-workbench-design.html`：定时任务工作台设计图，提供真实的密度、骨架尺寸、状态语言和工作流形态。
+- `packages/ui/src/styles/tokens/theme.css`：颜色、材质、字体、行高与阴影 token。
+- `packages/ui/src/styles/base.css`：全局重置、拖动区域、减透明降级。
+- `packages/ui/src` 下的共享组件及其 CSS（`navigation/menu`、`overlays/dialog`、`forms/*`、`actions/button`、`components/*`）。
+- 各包的 `AGENTS.md`：`packages/app/AGENTS.md` 与 `packages/ui/AGENTS.md` 的 Typography / Fonts / Scrolling / Loading Indicators / Suspense / Localization 章节。
+- `packages/app/src/shell/replica/replica.css` 与 `packages/session-ui/src` 的窗口骨架与时间线实测。
 
-两者冲突时按此顺序取舍：
+冲突时按此顺序取舍：
 
-1. 仓库既有 token 与共享组件（`packages/ui/src/styles/tokens/theme.css`、`packages/ui`）。
+1. 仓库 token 与共享组件。
 2. 本文件的尺寸与状态规则。
-3. 设计图的具体数值只作为参考；**颜色一律映射到 `--v2-*` token，不复制设计图里的 hex**。
+3. 两者都没有覆盖的设计细节按本文件新增规则，但必须能指出代码依据；**颜色一律映射到 `--v2-*` token，不写 hex**。
 
 ---
 
@@ -20,63 +23,63 @@
 一句话：**白底、细线、紧凑行、单层卡片、中性选中、一个强调色。**
 
 - 层级靠背景层、间距和 0.5px 分隔线建立，不靠渐变、玻璃拟态或大面积阴影。
-- 一屏只允许一个主操作：主操作用纯黑底 + 白字，其余操作一律灰白或无底色。
+- 一屏只允许一个主操作：主操作用 `contrast`（深墨底 + 亮字），其余操作一律灰白或无底色。
 - 选中态用中性灰，不用品牌蓝填充整行。
 - 卡片只抬升一层；卡片里再套卡片说明层级错了。
-- 信息密度偏紧凑（11–13px UI 文本），但正文描述保持可读行高。
+- 信息密度偏紧凑（13–15px UI 文本），但正文描述保持可读行高。
 - 只读优先：浏览、搜索、打开目录、重新扫描先做；启用、删除、写入放在确认之后。
 
-设计图原文的表述可以直接当成评审标准：*“管理页只回答三个问题——下次什么时候跑、上次结果如何、要不要改。”* 每个新页面都应能回答同样清晰的 2–3 个问题，回答不了就是信息没分层。
+评审时可以直接用这句话当标准：*“管理页只回答三个问题——下次什么时候跑、上次结果如何、要不要改。”* 每个新页面都应能回答同样清晰的 2–3 个问题，回答不了就是信息没分层。
 
 ---
 
-## 2. 颜色：设计图 → token 映射
+## 2. 颜色：token 映射
 
-设计图定义了一套灰阶 + 语义色，落地时必须换成仓库 token：
+颜色只走仓库 token，不引入第二套灰阶或语义色：
 
-| 设计图用途 | 设计图取值 | 仓库 token |
+| 用途 | 仓库 token | 说明 |
 | --- | --- | --- |
-| 页面底色 | `--bg: #ffffff` | `--v2-background-bg-base` |
-| 浅层分组 / 侧栏 | `--bg-deep: #fafafa` | `--v2-background-bg-deep` / `--v2-background-bg-layer-01` |
-| 行选中、次级表面 | `--layer-2: #f2f2f2` | `--v2-background-bg-layer-02` |
-| 更重的层 | `--layer-3: #e8e8e8` | `--v2-background-bg-layer-03` |
-| 主文本 | `--text: #161616` | `--v2-text-text-base` |
-| 描述文本 | `--muted: #5c5c5c` | `--v2-text-text-muted` |
-| 元信息 | `--faint: #808080` | `--v2-text-text-faint` |
-| 细分隔线 | `--border-soft` | `--v2-border-border-muted` |
-| 标准边框 | `--border` | `--v2-border-border-base` |
-| 强调边框 / 输入框 | `--border-strong` | `--v2-border-border-strong` |
-| 强调色 | `--accent: #3b5cf6` | `--v2-background-bg-accent` / `--v2-text-text-accent` / `--v2-icon-icon-accent` |
-| 强调弱底 | `--accent-weak` | `--v2-system-accent-soft`（或按语义新增 token） |
-| 成功 / 警告 / 危险 | green / yellow / red | `--v2-state-fg-success` / `--v2-state-fg-warning` / `--v2-state-fg-danger` |
-| 遮罩 | `rgba(20,20,20,.28)` | `--v2-overlay-simple-overlay-scrim` |
-| hover / pressed | 自定义 | `--v2-overlay-simple-overlay-hover` / `--v2-overlay-simple-overlay-pressed` |
-| 卡片阴影 | `--shadow-card` | `--v2-elevation-raised` |
-| 弹窗阴影 | `--shadow-modal` | `--v2-elevation-overlay` |
+| 页面底色 | `--v2-background-bg-base` | 浅色 `grey-50`，深色 `grey-1100` |
+| 浅层分组 / 侧栏 | `--v2-background-bg-deep` / `--v2-background-bg-layer-01` | `grey-100`；深色分别 `grey-1200` / `grey-1000` |
+| 行选中、次级表面 | `--v2-background-bg-layer-02` | `grey-200`；深色 `grey-900` |
+| 更重的层 | `--v2-background-bg-layer-03` | `grey-300`；深色 `grey-800` |
+| 主文本 | `--v2-text-text-base` | `grey-1100`；深色 `grey-100` |
+| 描述文本 | `--v2-text-text-muted` | `grey-700`；深色 `grey-500` |
+| 元信息 | `--v2-text-text-faint` | `grey-600`；深色仍是 `grey-600` |
+| 细分隔线 | `--v2-border-border-muted` | `alpha-dark-8`；深色 `alpha-light-8` |
+| 标准边框 | `--v2-border-border-base` | `alpha-dark-10`；深色 `alpha-light-10` |
+| 强调边框 / 输入框 | `--v2-border-border-strong` | `alpha-dark-20`；深色 `alpha-light-20` |
+| 强调色 | `--v2-system-accent`（经 `--v2-background-bg-accent` / `--v2-text-text-accent` / `--v2-icon-icon-accent` 引用） | 浅色 `#007aff`，深色 `#0a84ff`；不要在组件里写这两个 hex |
+| 强调弱底 | `--v2-system-accent-soft` | accent 16% 混合，只作弱底 |
+| 成功 / 警告 / 危险 / 信息 | `--v2-state-fg-*`（前景）、`--v2-state-bg-*`（底色）、`--v2-state-border-*`（边框） | 五档语义色，三组 token 配套使用 |
+| 遮罩 | `--v2-overlay-simple-overlay-scrim` | 浅色 `alpha-dark-40`，深色 `alpha-dark-60` |
+| hover / pressed | `--v2-overlay-simple-overlay-hover` / `--v2-overlay-simple-overlay-pressed` | hover 更浅，pressed 更深 |
+| 卡片 / 浮层 / 弹窗阴影 | `--v2-elevation-raised` / `--v2-elevation-floating` / `--v2-elevation-overlay` | 三档深度，不混用 |
 
 硬性规则：
 
 - 功能 CSS 里不写 hex、`rgb()`、`hsl()`。
 - 语义色只用 `--v2-state-fg-*` 做前景；状态底色需要新增 token 时先扩展主题，不要借邻近色。
 - 状态徽章（成功/警告/危险/中性）必须同时有前景色和可辨识的形状或文字，不能只靠颜色区分。
-- 选中不占用 accent；accent 只给主操作、链接、焦点环。
+- 列表行选中用中性灰（`--v2-background-bg-layer-02` 或侧栏的 `--color-selected`），不用 accent 填整行。accent 用于焦点环、开关、链接与主操作。
 
 ---
 
 ## 3. 字体与字号
 
-遵循 `packages/app/AGENTS.md` 的 Typography / Fonts 全节。
+遵循 `packages/app/AGENTS.md` 的 Typography / Fonts 全节。行高的实际取值以 `theme.css` 为准：`--line-height-tight: 14px`、`--line-height-compact: 18px`、`--line-height-base: 22px`。
 
 | 角色 | 规格 |
 | --- | --- |
-| 页面标题 | 20–21px，`-0.2 ~ -0.02em`，weight 600 |
-| 详情标题 | 16–17px，`-0.01em`，weight 600 |
-| 区块标题 | 12px，weight 600；分组标签 11px、大写、`--v2-text-text-faint` |
+| 页面/工作区标题 | 19px（`--font-size-workspace-title`） |
+| 详情标题 | 17px，`-0.13px`，weight 530（`[data-slot="dialog-title"]`） |
+| 区块标题 | 13px；分组标签 12px、`--v2-text-text-faint`（菜单组标签同样 12px） |
 | UI 正文 | 13px / `var(--line-height-compact)` |
+| 菜单行、搜索结果行 | 15px / `var(--line-height-compact)`，`-0.04px` |
 | 紧凑行文本 | 12–12.5px / `var(--line-height-compact)` |
-| 元信息 | 10.5–11px / `var(--line-height-compact)`，仅用于非操作信息 |
-| 描述正文 | 13px / `var(--line-height-base)` |
-| 代码、路径、日志 | `var(--font-family-mono)` 或 `var(--v2-font-family-code)` |
+| 元信息 | 12px / `var(--line-height-compact)`，仅用于非操作信息 |
+| 描述正文 | 15px / `var(--line-height-base)`（对话框描述）；设置行描述 12px |
+| 代码、路径、日志 | `var(--font-family-mono)` 或 `var(--v2-font-family-code)`，13px / weight 440 / `-0.04px` |
 
 - 禁止 `leading-none`、`line-height: 1`、13px 文字配 13px 行盒。
 - 不写字体族字面量；字体只来自 `--font-family-sans` / `--v2-font-family-sans` / `--font-family-mono` / `--v2-font-family-code`。
@@ -89,48 +92,56 @@
 
 ### 4.1 骨架尺寸
 
-设计图画板为 1180×760，对应一套稳定的三栏节奏，落地时沿用这些量级：
+窗口骨架来自 `packages/app/src/shell/replica/replica.css` 的 token 表，新页面沿用这些值而不是自行估算：
 
-| 元素 | 设计图 | 落地建议 |
-| --- | --- | --- |
-| 应用侧边栏 | 234px | 224–240px；设置页用现有 `--settings-sidebar` 264px / 220px |
-| 列表栏 | 332px | 300–360px |
-| 详情栏 | 自适应 | 最小可读宽度 420px |
-| 右检查器 | 232px | 260–460px，可折叠，空选中时不打开 |
-| 页面头部 | 22/24px 内边距 | sticky，44–48px 高 |
-| 工具栏 | 12px 24px | 与头部同宽，单行 |
-| 内容内边距 | 24–30px | 设置页 32px |
+| 元素 | 代码实际 |
+| --- | --- |
+| 窗口标题栏 | macOS 39px；Windows 32px（`--titlebar-height`，与 desktop `titleBarOverlay` 一致） |
+| 左侧图标导轨 | 46px（`--primary-rail-width`） |
+| 会话侧边栏 | 300px，可折叠（`--navigation-sidebar-width`） |
+| 侧栏头 / 行 / 项目行 | 49px / 29px / 30px（`--sidebar-header-height`、`--sidebar-row-height`、`--sidebar-project-row-height`） |
+| 会话内容宽度 | 650px（`--conversation-content-max-width`） |
+| 工作区内容宽度 | 820px（`--workspace-content-max-width`） |
+| 输入卡片 | 最大 650px 宽、88px 高、19px 圆角（`--composer-max-width`、`--composer-height`、`--composer-radius`） |
+| 设置侧栏 / 内容 | 264px / 最大 720px，内容内边距 32px（`--settings-sidebar-width`、`--settings-content-max`、`--settings-content-inset`） |
+| 设置导航项 / 设置行 | 30px / 最小 44px（`--settings-nav-item-height`、`--settings-row-min-height`） |
+| 对话框 | 默认 640×368；`large` 640×480；`x-large` min(100vw−32px, 880px) × min(100vh−92px, 600px) |
 
 - 主从分栏：左列表、右详情，各自独立滚动；不要合成单列长滚动。
 - 容器宽度优先于视口宽度：用 `@container` 在窄宽度收起侧栏/检查器，而不是把详情压到不可读。
-- 窄屏（< 760px）只保留“看结果 + 处理异常”；创建、改配置、看 diff 回到桌面端。
+- 窄屏断点为 767px（`@media (max-width: 767px)`）：侧栏与导轨隐藏，标题栏左侧让出；只保留“看结果 + 处理异常”。
 
 ### 4.2 间距
 
-只用 2 / 4 / 8 / 12 / 16 / 20 / 24 / 32。
+只用 2 / 4 / 6 / 8 / 10 / 12 / 16 / 20 / 24 / 32。
 
 - 行内元素 2–4px；相关控件 8px；区块之间 20–24px；页面内边距 32px。
-- 行高固定：导航/侧栏 30px、设置行 44px、菜单项 28px、按钮 30px（小号 26px）。
-- 分组标题 24px 高，11px 安静文本，不带图标、不带 accent。
+- 行高固定：侧栏会话行 29px、侧栏项目行 30px、设置导航项 30px、菜单项 28px、按钮 30px（小号 26px）。
+- 分组标题：侧栏分组 25px，菜单分组标签 28px，12px 安静文本，不带图标、不带 accent。
 
 ### 4.3 圆角
 
 | 表面 | 圆角 |
 | --- | --- |
-| 控件、菜单行 | 4px |
-| 菜单面板、分组列表 | 8px |
-| 卡片、面板、弹窗内块 | 9–10px |
-| 弹窗 | 12–13px |
-| 胶囊 / 状态徽章 | 9999px |
+| 标签 / 徽章（`data-component="tag"`） | 2px（`standard` 用 `--radius-xs`） |
+| 菜单行 | 4px |
+| 输入框、选择器 | 6px（`--radius-md`） |
+| 菜单面板、选择器面板 | 8px |
+| 卡片 | 6px（`--radius-md`）；设置卡片 10px（`--settings-card-radius`） |
+| 弹窗 | 12px |
+| 按钮、胶囊、搜索行 | 9999px |
+| Toast | 16px |
+| 输入卡片 | 14px；replica 工作台覆盖为 19px |
 
-一个表面只用一档圆角，不要在一个卡片里混 9px 和 16px。
+一个表面只用一档圆角，不要在一个卡片里混用两档。
 
 ### 4.4 分隔线与阴影
 
-- 分隔线统一 `0.5px`：`border-bottom: 0.5px solid var(--v2-border-border-base)`；“卡片轮廓”用 `box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted)`。
+- 分隔线统一 `0.5px`：`border-bottom: 0.5px solid var(--v2-border-border-base)`；“卡片轮廓”用 `box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted)`。需要 1px 的容器边（工作台面板）用 `--color-divider`。
 - 不要 1px 灰线 + 阴影同时用来伪造深度。
 - 阴影只给脱离页面的层：`raised` 面板、`floating` 菜单、`overlay` 弹窗。平铺的行和卡片不加投影。
-- 材质（模糊）只给浮动层：菜单用 `--v2-material-surface-strong` + `--v2-material-blur-thick`，轻浮层用 `--v2-material-surface` + `--v2-material-blur-regular`；必须提供 `*-opaque` 降级。
+- 浮层材质只有一套：菜单、popover、select、hover-card、context-menu、dialog、toast 全部用 `--v2-material-surface-strong` + `--v2-material-blur-thick`。实测取值：浅色 `grey-50` 72%、深色 `grey-1000` 80%；blur 为 `blur(30px) saturate(180%)`。`--v2-material-surface`（浅色 72%、深色 76%）是同一材质的弱档，当前没有组件在用，不要为它另造浮层。
+- 减透明降级由 `base.css` 的 `@media (prefers-reduced-transparency: reduce)` 统一完成：blur 置 `none`，两个 surface 切到各自的 `*-opaque`。组件不要再写第二套降级。
 - 内容面板和行永远不做毛玻璃。
 
 ---
@@ -139,8 +150,9 @@
 
 ### 5.1 按钮
 
-- 高度 30px，小号 26px，水平内边距 12px / 9px，胶囊形（圆角 9999px），字号 12.5px / 11.5px。
-- 配色按操作角色，不按文案：一组操作里只能有一个主操作，主操作用 `contrast`（纯黑底 + 白字），同组的取消、上一步、关闭、返回等次要操作用 `neutral`（灰白底 + 黑字）。
+- 高度 30px，小号 26px，大号 32px；水平内边距 12px / 9px / 14px；胶囊形（圆角 9999px）；字号 12.5px / 11.5px。
+- 配色按操作角色，不按文案：一组操作里只能有一个主操作，主操作用 `contrast`（`--v2-background-bg-contrast` 底 + `--v2-text-text-contrast` 字），同组的取消、上一步、关闭、返回等次要操作用 `neutral`（`--v2-grey-100` 纸底 + 深墨字，内描 0.5px 边）。深色模式自动反转这一对，语义不变。
+- 危险操作用 `danger`（纸底 + `--v2-state-fg-danger` 字），不要用纯黑主按钮表示删除；`ghost-danger` 只用于和其他 ghost 按钮并排的场景。
 - 主操作的判定是“用户在这一屏只会点的那一个”：保存、确认、创建、下一步、发送都属于主操作。判断不了就用灰白。
 - 工具栏、菜单栏这类纯入口按钮保持灰白或无底色；工具栏里只有当前选中的一项可以用黑底表示激活态。
 - 一个按钮组里不允许出现两个纯黑按钮。
@@ -150,61 +162,69 @@
 
 ### 5.2 列表行
 
-设计图的两种行：
+三种共享行，按用途选，不要另造尺寸：
 
-- **导航行**：30px 高，8px 水平内边距，7–8px 圆角；选中用 `--v2-background-bg-layer-02`（侧栏可用白底 + 0.5px 轮廓）。
-- **内容行（列表项）**：内边距 10–11px，圆角 9px；主标题 12.5px weight 550，副标题 11.5px muted，元信息 11px faint。
+- **侧栏导航行**（`[data-slot="replica-row"]`）：29px 高，8px 水平内边距，8px 圆角；hover 用 `--color-hover`，选中用 `--color-selected`（中性灰）。
+- **搜索结果行**（`.search-list-row`）：36px 高，9999px 胶囊，水平 8px，行内 gap 12px；文本 15px / `--line-height-compact`，标题 weight 530。选中与键盘焦点都用 `--v2-overlay-simple-overlay-hover`。
+- **菜单行**（`[data-component="menu-v2-item"]`）：28px 高，4px 圆角，`padding: 0 12px`（尾端 6px），行内 gap 8px；文本 15px。
 - 行内结构固定为：`图标 → 标题 + 状态点 → 副标题（频率/位置）→ 元信息（下次/计数）`。
-- 状态点 6px；有脉冲时用 3px 柔光环，不用动画数字。
-- 副标题与元信息之间用 3px 圆点分隔，不用竖线。
 - 长文本单行省略，`title` 保留全文。
+- 数字列（计数、耗时、时间）用 `font-variant-numeric: tabular-nums`，菜单行与 search-list 已默认开启。
 
 ### 5.3 状态徽章
 
-- 形状：高度 21px（列表内可 18px），水平 8px，9999px 胶囊，11px weight 550。
-- 语义：成功、警告、危险、中性、信息五档；对应 `--v2-state-fg-*`。
+共享徽章是 `data-component="tag"`（`packages/ui/src/data-display/badge`），不要另造胶囊：
+
+- 形状：16px 高、水平 4px、2px 圆角、12px weight 530、`line-height: 1`；`data-appearance="standard"` 为 18px 高、水平 6px、12px / `--line-height-large`。
+- 变体只有三类：默认（`--v2-background-bg-layer-02` 底 + 0.5px `border-base` + `--v2-text-text-muted` 字）、`accent`（accent 底 + contrast 字）、`subtle`（`layer-03` 底）。
+- 徽章没有 success/warning/danger 变体。状态色走 `--v2-state-fg-*` 的前景与 `--v2-state-bg-*` 的弱底，语义靠文字或图标表达。
 - 列表角标优先用“状态点 + 可选短徽章”；不要整行填色。
 - 状态必须同时体现在文字上，颜色只是辅助（色盲可读）。
 
 ### 5.4 卡片
 
-- 白底、0.5px 边框、9–10px 圆角、13–14px 内边距。
+共享卡片是 `data-component="card"`（`packages/ui/src/components/card.css`）：
+
+- 透明底、无边框、6px 圆角（`--radius-md`）；内边距 10px / 12px / 10px。
+- 左侧 2px 圆角色条（`::before`）标识卡片类型：默认 `--v2-icon-icon-base`，可通过 `--card-accent` 覆盖。
+- 标题行 gap 8px，标题图标 16px（`--card-icon`），标题 weight medium；描述用 `--v2-text-text-muted`，`pre-wrap` 换行。
 - 卡片之间 8–9px 间距，不要用大留白分隔同组卡片。
-- 卡片头：图标 22–25px 圆角方块 + 标题 12.5–13px weight 600 + 右侧时间/标签。
-- 卡片脚：与正文用 0.5px 分隔线隔开，放“打开 / 采纳 / 忽略”等轻量动作。
+- 设置页里的卡片用 10px 圆角（`--settings-card-radius`），与设置行 44px 的最小高度配套。
 - 新内容可以用 accent 弱边框提示一次，但不要给每张卡都上 accent。
 
 ### 5.5 输入框与编辑器
 
-- 单行输入高度 28–30px，圆角 7px，边框 `--v2-border-border-base`，底色可用 `--v2-background-bg-deep`。
-- 聚焦：3px `--v2-focus-ring-color`，1–2px offset；在溢出容器里被裁剪时改用 inset 2px 环。
-- 多行 composer 用 11–12px 圆角，内部结构固定为「内容区 + 工具条」；工具条与内容之间 0.5px 分隔线。
+- 单行文本框（`data-component="input"`）高 32px，6px 圆角，1px `--v2-border-border-base`，底色 `--input-base`；选择器（`select-v2`）高 28px（`small` 24px / `large` 32px），同 6px 圆角与 `--v2-elevation-input`。
+- 聚焦：文本框 3px `--v2-focus-ring-color` 环（25% 混合）+ 1px `--v2-border-border-focus`；选择器只换 `outline-color`；按钮用 3px outline + 1px offset。
+- 多行 composer 用 14px 圆角（replica 工作台覆盖为 19px），结构固定为「内容区 + 工具条」；内容区最小高度为两行 `--line-height-base` + 20px，卡片内边距 12px / 8px。工具条控件统一 28px 高、13px 文字、9999px 圆角。
 - 四种输入意图（普通、附件、斜杠命令、@ 提及）共用同一骨架，只换内容与浮层，不新增第二种输入组件。
 - 字数/上限计数只在接近上限时出现，用 muted 文本；超限用 `--v2-state-fg-danger`。
-- 不把模型/智能体选择藏进设置：它们是输入框上的可点开 chip。
+- 不把模型/智能体选择藏进设置：它们是输入框上的可点开 chip。可选 agent 多于一个时显示 agent chip（内置 Build / Plan 也算，见 `packages/app/src/providers/models/selection.tsx` 的 `agentsVisible`）。
 
 ### 5.6 弹窗
 
-- 遮罩用 scrim token，弹窗圆角 12–13px，overlay 阴影。
-- 结构：头部（标题 + 步骤指示）、正文、底部操作区（浅底 + 0.5px 分隔线）。
-- 底部主操作在右，最多一个 primary；“取消”永远存在且默认聚焦。
-- 步骤指示只用于真正的多步流程；当前步用实底数字，完成步用成功色对勾，未开始步用 faint。
-- 弹窗宽度 640–880px；正文单列，复杂内容用两栏 panel grid（1.35fr / 1fr）。
+- 遮罩用 `--v2-overlay-simple-overlay-scrim` + `blur(6px)`；弹窗圆角 12px，材质 `--v2-material-surface-strong` + `--v2-material-blur-thick`，阴影 `--v2-elevation-overlay`。
+- 尺寸：默认 640×368；`data-size="large"` 640×480；`data-size="x-large"` min(100vw−32px, 880px) × min(100vh−92px, 600px)；`data-fit` 时高度自适应。
+- 结构：头部（`dialog-header`，padding 16px，标题 17px weight 530，描述 15px muted，关闭按钮 20px）、正文（`dialog-body`，唯一滚动区）、底部操作区（`dialog-footer`，padding 16px、gap 8px、右对齐）。头部与底部都不加浅底或分隔线。
+- 底部主操作在右，最多一个 primary。
+- 内容复杂时正文可分两栏，但弹窗本身保持单列；不要把多步流程塞进一个弹窗。
 
 ### 5.7 菜单、命令面板、浮层
 
-- 菜单面板：2px 内边距、8px 圆角、floating 阴影/材质；行 28px、4px 圆角。
+- 菜单面板（`[data-component="menu-v2-content"]`）：2px 内边距、最小宽 160px、8px 圆角、`--v2-material-surface-strong` + `--v2-material-blur-thick`、`--v2-elevation-floating`，z-index 60；行 28px、4px 圆角。
+- 选择器面板复用菜单面板，但 `padding: 0`、最大宽 23rem；行仍按菜单行规格。
+- 菜单行 15px；快捷键 12px weight 530 faint；行尾徽章 16px 高、2px 圆角；分组标签 12px weight 530，行高 28px。
 - 当前值在行尾显示对勾；图标只用于消歧，不做装饰。
-- 命令面板宽度 640px，输入区 13px，分组标签 9.5–11px 大写 faint。
-- 列表滚动一律 `MenuScroll`（`@opencode/ui/menu-scroll`），内边距放 `viewportClass`，不要放面板上。
+- 命令面板（`packages/app/src/shell/commands/dialog.css`）宽 min(100vw−24px, 640px)，12px 圆角，输入 15px，结果行 13px。
+- 列表滚动一律 `MenuScroll`（`@opencode/ui/menu-scroll`）：内边距放 `viewportClass`，键盘滚动与定位用 `viewportRef`，行网格样式挂 `[data-slot="menu-scroll-content"]`。
 - 搜索结果为空时给一句话 + 一个动作，不放大插画。
 
 ### 5.8 时间线与消息
 
-- 用户消息右对齐，气泡底色 `--v2-background-bg-layer-02`，圆角 10px，最大宽度 520–560px。
-- 助手消息左侧头像 22px 圆角 7px，正文 12.5–13px / 1.7 行高。
-- 系统分隔行：11px faint，左右两侧细线，用于“本次运行 · 自动执行”一类标记。
-- 思考默认折叠成一行（11px faint，浅底，7px 圆角）。
+- 用户消息右对齐；气泡底色 `--v2-background-bg-layer-02`，内边距 8px 12px，圆角 14px；气泡最大宽度 `min(82%, 64ch)`；连续气泡相接的尾角收到 6px。附件卡与气泡同宽、6px 圆角、0.5px `border-base`。
+- 助手消息左对齐，消息内元素间距 10px；正文 13px / 1.65 行高，小标题 14px / 1.5 / weight 600。
+- 系统分隔行用 `TimelineSeparator`：32px 高，15px `--v2-text-text-faint`，文字两侧是渐变细线。
+- 思考默认折叠为一行标题（`reasoningDefaultOpen` 未开启）；展开正文 15px / `--line-height-base`，`--v2-text-text-muted`，不加底色或圆角。
 - 工具调用是带状态和耗时的卡片：头部（工具名 + 参数 code + 成功/耗时）、正文（结果摘要）、必要时 diff/终端块。
 - 结构化产出（报告、待办、风险）用消息内卡片，而不是另造“结果页”。
 - 流式中的“AI 正在工作”只用 `Spinner`；其他加载用 `Loader`。
@@ -223,15 +243,16 @@
 
 - 列表只做“目录”，详情只放事实与操作。
 - 详情头：标题 + 状态徽章 + 右上 2 个动作 + 溢出。
-- 事实区用 4 列 stat grid（每格 10–12px 内边距、9px 圆角、浅底）。
-- 最近记录固定 5 条：成功、跳过、重试都必须可见。
+- 事实区用 stat grid（浅底、`--radius-md` 圆角），列数按容器宽度定，不固定四列。
+- 最近记录按真实数据全量展示；需要截断时说明截断规则，不要写死条数。
 - 空状态保留列表，详情区给一句指令。
+- 扩展页的插件与技能来自统一的本地发现根：`~/.distribution/plugins/<id>/<version>/` 与 `~/.distribution/skills/<id>/`（`packages/core/src/plugin/local.ts`、`packages/core/src/skill/local.ts`，目录读取见 `packages/app/src/explore/catalog.ts`）。不要引用已废弃的 `~/.ocplugins-local`。
 
 ### 6.2 工作台（今天）
 
 - 顶部问候 + 一句话摘要。
 - 状态条：若干 chip，正常用中性，警告/危险用对应语义色。
-- 主体两栏（1.45fr / 1fr）：左“需要处理 / 进行中”，右“收件箱 / 最近会话”。
+- 主体按容器宽度分两栏：左“需要处理 / 进行中”，右“收件箱 / 最近会话”；窄容器收成一列。
 - 卡片直接给结论 + 下一步动作，点开才进会话。
 - 默认按未读优先，不制造额外通知。
 
@@ -251,23 +272,25 @@
 
 ### 6.5 设置
 
-- 左分类 196–264px，右内容自适应；两栏独立滚动。
-- 设置组用白底卡片 + 行分隔；行内“标签 92px + 值 + 控件”。
+- 页签以 `packages/app/src/settings/pages.ts` 为准：偏好设置、外观、通知、快捷键、项目、工作区、提供商、模型、扩展、服务器、实验、关于。没有“时间轴”和“界面布局”页签；时间线默认只用 `timelinePresets` 里的 `text-only` 预设。
+- 左分类 264px（`--settings-sidebar-width`），右内容最大 720px（`--settings-content-max`），两栏独立滚动。
+- 设置行最小 44px 高（`--settings-row-min-height`），结构是「左：标题 + 描述」/「右：控件」（`packages/app/src/settings/row.tsx`），不是固定宽度的标签列。
+- 设置首页整体居中于 1048px 布局；设置卡片 10px 圆角。
 - 强感知的全局设置（字体、主题、语言）单独成组。
 - 危险区放最后，带确认。
 
 ### 6.6 新建会话
 
-- 居中单列，最大宽度 660px。
+- 居中单列，输入卡片最大 650px（`--composer-max-width`），标题字标最大 660px。
 - 一个大输入框，下方直接给最近项目卡片，省掉“先选项目”。
 - 输入框内工具条放附件、模型、智能体；主发送按钮在右下。
 - 空状态不放大插画，只给输入框和最近项目。
 
 ### 6.7 窄屏
 
-- 只保留：看结果、处理异常、继续追问。
+- 767px 以下只保留：看结果、处理异常、继续追问。
 - 创建、批量操作、diff、设置退回桌面端。
-- 底部 tab bar 只放 3–5 个一级入口；当前项用文本色加重，不用填充块。
+- 底部导航只放一级入口；当前项用文本色加重，不用填充块。
 
 ---
 
@@ -299,11 +322,11 @@
 - 列表方向键移动、Enter 打开、Escape 关闭最上层浮层、焦点回到触发点。
 - 行、tab、菜单项、icon 按钮都必须有可见焦点环。
 - 选中行没有焦点指示就是缺陷。
-- `MenuScroll` 的 ref 用于键盘滚动定位。
+- `MenuScroll` 的 `viewportRef` 用于键盘滚动定位与 scroll-into-view。
 
 ### 7.4 动效
 
-- 控件状态 90–150ms ease-out；面板进入 180ms。
+- 控件状态 90–150ms ease-out；菜单进入 140ms、popover 150ms（同为 `cubic-bezier(0.22, 1, 0.36, 1)`）。
 - 同时尊重 `@media (prefers-reduced-motion: reduce)` 与 `:root[data-motion="reduce"]`。
 - 动效必须有目的（状态变化、空间关系），不做装饰性位移。
 
@@ -347,7 +370,8 @@
 - [ ] 颜色全部来自 `--v2-*`；没有 hex / `rgb()` / `hsl()`。
 - [ ] 字体来自 token；没有字面量字体族，没有新增 `@font-face`。
 - [ ] 13px 文本配 `var(--line-height-compact)`，正文配 `var(--line-height-base)`；无 `leading-none`。
-- [ ] 选中是中性灰，hover 更浅，焦点可见且与两者不同；accent 只给主操作和焦点。
+- [ ] 选中是中性灰，hover 更浅，焦点可见且与两者不同；accent 只给焦点环、开关、链接与主操作。
+- [ ] 浮层统一用 `--v2-material-surface-strong` + `--v2-material-blur-thick`，没有第二套模糊或自制降级。
 - [ ] 分隔线 0.5px；平铺行/卡片无阴影；阴影只给浮动层。
 - [ ] 一屏只有一个主操作；工具栏 icon 按钮不超过两个且都有标签。
 - [ ] 滚动容器符合规则（`data-scrollable` / `MenuScroll` / `ScrollView` 仅在时间线）。
@@ -370,7 +394,7 @@
 - 中性列表用饱和蓝填充选中行。
 - 内容面板做毛玻璃，或每张卡片都加模糊。
 - 平铺行上叠投影，再用 1px 灰线伪造层次。
-- 桌面面板里出现 16px 的“网页卡片”圆角。
+- 桌面面板里出现网页式的超大圆角卡片。
 - 满宽危险按钮，或把删除放在导航旁且不确认。
 - 硬编码中英文、字面量 `Inter` / `monospace`、裸 hex。
 - 13px 文字用 `leading-none`，或在截断行里固定 13px 行盒。

@@ -379,6 +379,9 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   font-weight: 400;
   line-height: 20px;
   white-space: nowrap;
+  /* A row's hover or width change otherwise invalidates the whole sidebar list; containing layout and style
+     keeps the recalculation inside the row. */
+  contain: layout style;
 }
 
 /* An installed plugin reads as a small block: mark, name and description. It keeps its own metrics because the

@@ -6,7 +6,8 @@ import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
 import { showToast } from "@/shell/notifications/toast"
-import { popularProviders, useProviders } from "@/providers/catalog/providers"
+import { useProviders } from "@/providers/catalog/providers"
+import { visibleProviders } from "@/providers/catalog/order"
 import { consoleProviderGroup } from "@/providers/catalog/console"
 import { useIntegrations } from "@/providers/catalog/integrations"
 import { createEffect, createMemo, createSignal, on, untrack, type Component, For, type JSX, Show } from "solid-js"
@@ -222,7 +223,7 @@ export const SettingsProviders: Component<{
       })
       .slice()
 
-    items.sort((a, b) => popularProviders.indexOf(a.id) - popularProviders.indexOf(b.id))
+    items.sort((a, b) => visibleProviders.indexOf(a.id) - visibleProviders.indexOf(b.id))
 
     return items
   })
@@ -595,10 +596,6 @@ export const SettingsProviders: Component<{
               )}
             </For>
           </SettingsList>
-
-          <button type="button" class="settings-providers-view-all" onClick={() => connect()}>
-            {language.t("dialog.provider.viewAll")}
-          </button>
         </div>
       </div>
     </>

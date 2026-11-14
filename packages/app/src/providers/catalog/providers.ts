@@ -7,13 +7,13 @@ import { Iterable, pipe } from "effect"
 import { createEffect, createMemo, type Accessor } from "solid-js"
 import type { ProviderListResponse } from "@/runtime/server/types"
 import { useIntegrations } from "./integrations"
-import { popularProviders } from "./order"
+import { visibleProviders } from "./order"
 
-export { popularProviders } from "./order"
+export { popularProviders, visibleProviders } from "./order"
 
 const emptyProviderCatalog: ProviderListResponse = { all: new Map(), connected: [], default: {} }
 
-const popularProviderSet = new Set(popularProviders)
+const visibleProviderSet = new Set(visibleProviders)
 
 // A cold Location lists its catalogs once its plugins activate, which can take longer than the server's 5 s wait.
 export const syncWhileBooting = <A>(load: () => Promise<A>) =>
@@ -67,7 +67,7 @@ export function useProviders(directory: Accessor<string | undefined>) {
     popular: () => {
       const catalog = integrations
         .list()
-        .filter((integration) => popularProviderSet.has(integration.id))
+        .filter((integration) => visibleProviderSet.has(integration.id))
         .map((integration) => ({ id: integration.id, name: integration.name }))
 
       const seen = new Set(catalog.map((integration) => integration.id))
@@ -75,7 +75,7 @@ export function useProviders(directory: Accessor<string | undefined>) {
       return pipe(
         providers().all,
         Iterable.map(([, p]) => p),
-        Iterable.filter((p) => popularProviderSet.has(p.id) && !seen.has(p.id)),
+        Iterable.filter((p) => visibleProviderSet.has(p.id) && !seen.has(p.id)),
         Iterable.map((p) => ({ id: p.id, name: p.name })),
         (v) => [...catalog, ...v],
       )

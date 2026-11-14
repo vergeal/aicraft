@@ -7,6 +7,7 @@ import { useServerSDK } from "@/runtime/server/client"
 import { useData, useServer } from "@/runtime/server/current"
 import { showToast } from "@/shell/notifications/toast"
 import { sessionHref } from "@/shell/routes/session"
+import { createWorktree } from "@/workspaces/create"
 import { useWorkspaceLocation } from "@/workspaces/location"
 
 /**
@@ -57,13 +58,14 @@ export function useSessionFork() {
 }
 
 /**
- * Forks a session after one of its replies: the new session keeps the history through that reply, opens, and leaves the
- * composer empty so the user continues from there.
+ * Forks a session after one of its replies into a fresh worktree: the new session keeps the history through that reply,
+ * opens in its own checkout, and leaves the composer empty so the user continues from there.
  */
 export function useSessionForkAfter() {
   const navigate = useNavigate()
   const data = useData()
   const serverSDK = useServerSDK()
+  const location = useWorkspaceLocation()
   const server = useServer()
   const language = useLanguage()
 
@@ -77,19 +79,27 @@ export function useSessionForkAfter() {
     // reply has no next message, and `through` copies the full history.
     const next = messages[position + 1]
 
-    return serverSDK.api.session
-      .fork(next ? { sessionID: input.sessionID, before: next.id } : { sessionID: input.sessionID })
-      .then((forked) => {
-        data.session.remember(forked)
-        navigate(sessionHref(server.key, forked.id))
+    try {
+      const forked = await serverSDK.api.session.fork(
+        next ? { sessionID: input.sessionID, before: next.id } : { sessionID: input.sessionID },
+      )
+      data.session.remember(forked)
 
-        return true
-      })
-      .catch((cause: unknown) => {
-        const message = cause instanceof Error ? cause.message : String(cause)
-        showToast({ title: language.t("common.requestFailed"), description: message })
+      const directory = location().directory
+      const root = data.location.info({ directory })?.project.canonical ?? directory
 
-        return false
-      })
+      // The fork starts in the project's own directory, then moves to a checkout of its own so the branch is separate.
+      const created = await createWorktree({ api: serverSDK.api, data, directory: root })
+      await serverSDK.api.session.move({ sessionID: forked.id, directory: created })
+
+      navigate(sessionHref(server.key, forked.id))
+
+      return true
+    } catch (cause: unknown) {
+      const message = cause instanceof Error ? cause.message : String(cause)
+      showToast({ title: language.t("common.requestFailed"), description: message })
+
+      return false
+    }
   }
 }

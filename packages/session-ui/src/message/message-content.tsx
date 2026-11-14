@@ -17,7 +17,7 @@ import { createMediaQuery } from "@solid-primitives/media"
 import { useData } from "../context"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { useI18n } from "@opencode/ui/context/i18n"
-import { hasMarkdownSyntax, Markdown } from "../components/markdown"
+import { Markdown } from "../components/markdown"
 import { linkSegments } from "../components/link-segments"
 import { LinkedText } from "../components/linked-text"
 import { sessionReferenceText, setupSessionLinks } from "../components/markdown-session-links"
@@ -725,19 +725,12 @@ export function CurrentUserMessageDisplay(props: {
             <Show
               when={props.fold}
               fallback={
-                <Show
-                  when={hasMarkdownSyntax(props.text)}
-                  fallback={
-                    <CurrentHighlightedText
-                      text={props.text}
-                      files={inlineFiles()}
-                      agents={agents()}
-                      skills={skills()}
-                    />
-                  }
-                >
-                  <Markdown text={props.text} cacheKey={`${props.message.id}:user`} />
-                </Show>
+                <CurrentHighlightedText
+                  text={props.text}
+                  files={inlineFiles()}
+                  agents={agents()}
+                  skills={skills()}
+                />
               }
             >
               <UserMessageFold
@@ -746,19 +739,7 @@ export function CurrentUserMessageDisplay(props: {
                 expanded={expanded()}
                 onExpandedChange={setExpanded}
               >
-                <Show
-                  when={hasMarkdownSyntax(props.text)}
-                  fallback={
-                    <CurrentHighlightedText
-                      text={props.text}
-                      files={inlineFiles()}
-                      agents={agents()}
-                      skills={skills()}
-                    />
-                  }
-                >
-                  <Markdown text={props.text} cacheKey={`${props.message.id}:user`} />
-                </Show>
+                <CurrentHighlightedText text={props.text} files={inlineFiles()} agents={agents()} skills={skills()} />
               </UserMessageFold>
             </Show>
             <Show when={comments().length > 0}>

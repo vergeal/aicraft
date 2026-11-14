@@ -7,6 +7,8 @@ import { Loader } from "@opencode/ui/loader"
 import { Switch } from "@opencode/ui/switch"
 import { TextInput } from "@opencode/ui/text-input"
 import { Textarea } from "@opencode/ui/textarea"
+import { MarkdownProvider } from "@opencode/session-ui/context/markdown"
+import { Markdown } from "@opencode/session-ui/markdown"
 import { getDirectory, getFilename } from "@opencode/util/path"
 import { For, Show, createEffect, createMemo, createResource, on, type Component } from "solid-js"
 import { createStore, produce } from "solid-js/store"
@@ -455,9 +457,7 @@ export const ExploreSkills: Component = () => {
                           <SkillCard
                             name={entry.title}
                             description={entry.description}
-                            addLabel={language.t("explore.skills.install")}
                             onOpen={() => selectCatalog(entry)}
-                            onAdd={() => installCatalog(entry)}
                           />
                         )}
                       </For>
@@ -519,14 +519,8 @@ export const ExploreSkills: Component = () => {
   )
 }
 
-/** One skill in the catalog grid: the row opens its page, the trailing plus installs it. */
-function SkillCard(props: {
-  name: string
-  description?: string
-  addLabel?: string
-  onOpen: () => void
-  onAdd?: () => void
-}) {
+/** One skill in the catalog grid: the whole row opens its page. */
+function SkillCard(props: { name: string; description?: string; onOpen: () => void }) {
   return (
     <div class="explore-catalog-card">
       <button type="button" class="explore-catalog-card-main" onClick={props.onOpen}>
@@ -540,20 +534,32 @@ function SkillCard(props: {
           </Show>
         </span>
       </button>
-      <Show when={props.onAdd}>
-        <button
-          type="button"
-          class="explore-catalog-card-add"
-          aria-label={props.addLabel}
-          title={props.addLabel}
-          onClick={() => props.onAdd?.()}
-        >
-          <Icon name="plus" />
-        </button>
-      </Show>
     </div>
   )
 }
+
+/** A SKILL.md body, rendered with the same Markdown surface the file browser uses for documents. */
+function SkillDocument(props: { text: string; cacheKey: string }) {
+  return (
+    <div
+      class="explore-skill-document-scroll"
+      data-document-surface-inset
+      data-document-surface-scrollport
+      data-scrollable
+    >
+      <div class="explore-skill-document-column">
+        <div class="explore-skill-document-surface" data-component="document-surface">
+          <div class="explore-skill-document-content" data-slot="artifact-markdown-content">
+            <MarkdownProvider>
+              <Markdown text={props.text} cacheKey={props.cacheKey} />
+            </MarkdownProvider>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 function SkillCrumbs(props: { current: string; onBack: () => void }) {
   const language = useLanguage()
@@ -585,88 +591,94 @@ function InstalledSkillDetail(props: {
   const platform = usePlatform()
 
   return (
-    <div class="explore-catalog-page" data-scrollable>
-      <div class="explore-page-inner">
-        <SkillCrumbs current={props.skill.name} onBack={props.onBack} />
+    <div class="explore-catalog-page explore-skill-detail" data-scrollable>
+      <div class="explore-skill-head">
+        <div class="explore-page-inner">
+          <SkillCrumbs current={props.skill.name} onBack={props.onBack} />
 
-        <div class="explore-catalog-page-body">
-          <header class="explore-catalog-hero">
-            <span class="explore-catalog-hero-icon">
-              <SkillIcon />
-            </span>
-            <div class="explore-catalog-hero-copy">
-              <h1 class="explore-catalog-hero-name">{props.skill.name}</h1>
-              <p class="explore-catalog-hero-meta">
-                <button
-                  type="button"
-                  class="explore-catalog-reference"
-                  title={language.t("settings.skills.copyReference")}
-                  onClick={props.onCopyReference}
-                >
-                  @{props.skill.id}
-                </button>
-                <span class="explore-catalog-path" dir="ltr" title={props.skill.path}>
-                  {props.skill.path}
-                </span>
-              </p>
-            </div>
-            <Show when={!isVirtual(props.skill)}>
-              <div class="explore-catalog-actions">
-                <Button
-                  size="small"
-                  variant="ghost-muted"
-                  icon="outline-code-brackets"
-                  disabled={!platform.openPath}
-                  onClick={props.onOpenEditor}
-                >
-                  {language.t("settings.skills.openEditor")}
-                </Button>
-                <Button
-                  size="small"
-                  variant="ghost-muted"
-                  icon="folder"
-                  disabled={!platform.revealPath && !platform.openPath}
-                  onClick={props.onReveal}
-                >
-                  {language.t("settings.skills.reveal")}
-                </Button>
-                <Button size="small" variant="ghost-danger" icon="trash" onClick={props.onRemove}>
-                  {language.t("explore.skills.remove")}
-                </Button>
+          <div class="explore-catalog-page-body">
+            <header class="explore-catalog-hero">
+              <span class="explore-catalog-hero-icon">
+                <SkillIcon />
+              </span>
+              <div class="explore-catalog-hero-copy">
+                <h1 class="explore-catalog-hero-name">{props.skill.name}</h1>
+                <p class="explore-catalog-hero-meta">
+                  <button
+                    type="button"
+                    class="explore-catalog-reference"
+                    title={language.t("settings.skills.copyReference")}
+                    onClick={props.onCopyReference}
+                  >
+                    @{props.skill.id}
+                  </button>
+                  <span class="explore-catalog-path" dir="ltr" title={props.skill.path}>
+                    {props.skill.path}
+                  </span>
+                </p>
               </div>
+              <Show when={!isVirtual(props.skill)}>
+                <div class="explore-catalog-actions">
+                  <Button
+                    size="small"
+                    variant="ghost-muted"
+                    icon="outline-code-brackets"
+                    disabled={!platform.openPath}
+                    onClick={props.onOpenEditor}
+                  >
+                    {language.t("settings.skills.openEditor")}
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="ghost-muted"
+                    icon="folder"
+                    disabled={!platform.revealPath && !platform.openPath}
+                    onClick={props.onReveal}
+                  >
+                    {language.t("settings.skills.reveal")}
+                  </Button>
+                  <Button size="small" variant="ghost-danger" icon="trash" onClick={props.onRemove}>
+                    {language.t("explore.skills.remove")}
+                  </Button>
+                </div>
+              </Show>
+            </header>
+
+            <Show when={props.skill.description}>
+              {(description) => <p class="explore-catalog-about">{description()}</p>}
             </Show>
-          </header>
 
-          <Show when={props.skill.description}>
-            {(description) => <p class="explore-catalog-about">{description()}</p>}
-          </Show>
-
-          <div class="explore-catalog-toggle">
-            <div class="explore-catalog-toggle-copy">
-              <span class="explore-catalog-toggle-title">{language.t("settings.skills.autoinvoke.title")}</span>
-              <p class="explore-catalog-toggle-description">
-                {language.t(
-                  isVirtual(props.skill)
-                    ? "settings.skills.autoinvoke.builtin"
-                    : "settings.skills.autoinvoke.description",
-                )}
-              </p>
+            <div class="explore-catalog-toggle">
+              <div class="explore-catalog-toggle-copy">
+                <span class="explore-catalog-toggle-title">{language.t("settings.skills.autoinvoke.title")}</span>
+                <p class="explore-catalog-toggle-description">
+                  {language.t(
+                    isVirtual(props.skill)
+                      ? "settings.skills.autoinvoke.builtin"
+                      : "settings.skills.autoinvoke.description",
+                  )}
+                </p>
+              </div>
+              <Switch
+                checked={props.autoinvoke}
+                disabled={isVirtual(props.skill) || props.toggling}
+                hideLabel
+                onChange={props.onToggle}
+              >
+                {language.t("settings.skills.autoinvoke.title")}
+              </Switch>
             </div>
-            <Switch
-              checked={props.autoinvoke}
-              disabled={isVirtual(props.skill) || props.toggling}
-              hideLabel
-              onChange={props.onToggle}
-            >
-              {language.t("settings.skills.autoinvoke.title")}
-            </Switch>
-          </div>
 
-          <Show when={!isVirtual(props.skill)}>
-            <p class="explore-note">{language.t("explore.skills.remove.hint")}</p>
-          </Show>
+            <Show when={!isVirtual(props.skill)}>
+              <p class="explore-note">{language.t("explore.skills.remove.hint")}</p>
+            </Show>
+
+            <h2 class="explore-catalog-section-title">{language.t("explore.skills.detail.instructions")}</h2>
+          </div>
         </div>
       </div>
+
+      <SkillDocument text={props.skill.content} cacheKey={`${props.skill.id}:${props.skill.path}`} />
     </div>
   )
 }
@@ -676,38 +688,37 @@ function CatalogSkillDetail(props: { entry: CatalogSkill; onBack: () => void; on
   const language = useLanguage()
 
   return (
-    <div class="explore-catalog-page" data-scrollable>
-      <div class="explore-page-inner">
-        <SkillCrumbs current={props.entry.title} onBack={props.onBack} />
+    <div class="explore-catalog-page explore-skill-detail" data-scrollable>
+      <div class="explore-skill-head">
+        <div class="explore-page-inner">
+          <SkillCrumbs current={props.entry.title} onBack={props.onBack} />
 
-        <div class="explore-catalog-page-body">
-          <header class="explore-catalog-hero">
-            <span class="explore-catalog-hero-icon">
-              <SkillIcon />
-            </span>
-            <div class="explore-catalog-hero-copy">
-              <h1 class="explore-catalog-hero-name">{props.entry.title}</h1>
-              <p class="explore-catalog-hero-meta">
-                <span class="explore-catalog-path" dir="ltr">
-                  {props.entry.id}
-                </span>
-              </p>
-            </div>
-            <Button variant="contrast" size="small" icon="plus" onClick={props.onInstall}>
-              {language.t("explore.skills.install")}
-            </Button>
-          </header>
+          <div class="explore-catalog-page-body">
+            <header class="explore-catalog-hero">
+              <span class="explore-catalog-hero-icon">
+                <SkillIcon />
+              </span>
+              <div class="explore-catalog-hero-copy">
+                <h1 class="explore-catalog-hero-name">{props.entry.title}</h1>
+                <p class="explore-catalog-hero-meta">
+                  <span class="explore-catalog-path" dir="ltr">
+                    {props.entry.id}
+                  </span>
+                </p>
+              </div>
+              <Button variant="contrast" size="small" icon="plus" onClick={props.onInstall}>
+                {language.t("explore.skills.install")}
+              </Button>
+            </header>
 
-          <p class="explore-catalog-about">{props.entry.description}</p>
+            <p class="explore-catalog-about">{props.entry.description}</p>
 
-          <section class="explore-catalog-section">
             <h2 class="explore-catalog-section-title">{language.t("explore.skills.detail.instructions")}</h2>
-            <pre class="explore-skill-preview" data-scrollable>
-              <code>{props.entry.instructions}</code>
-            </pre>
-          </section>
+          </div>
         </div>
       </div>
+
+      <SkillDocument text={props.entry.instructions} cacheKey={props.entry.id} />
     </div>
   )
 }

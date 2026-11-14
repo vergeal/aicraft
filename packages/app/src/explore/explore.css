@@ -462,38 +462,6 @@
   white-space: nowrap;
 }
 
-.explore-catalog-card-add {
-  display: flex;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--v2-icon-icon-secondary);
-  cursor: default;
-}
-
-.explore-catalog-card-add > svg {
-  width: 16px;
-  height: 16px;
-}
-
-@media (hover: hover) {
-  .explore-catalog-card-add:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
-    color: var(--v2-text-text-base);
-  }
-}
-
-.explore-catalog-card-add:focus-visible {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: -2px;
-}
-
 /* An installed catalog entry reports its state where the install button would be. */
 .explore-catalog-card-installed,
 .explore-catalog-hero-installed {
@@ -876,20 +844,53 @@
   gap: 6px;
 }
 
-/* The full SKILL.md a skill carries, so its instructions are readable before installing. */
-.explore-skill-preview {
-  max-height: 420px;
-  margin: 16px 0 0;
-  padding: 12px;
-  overflow: auto;
-  border-radius: 8px;
-  background: var(--v2-background-bg-layer-01);
-  color: var(--v2-text-text-base);
-  font-family: var(--v2-font-family-code);
-  font-size: 12px;
-  line-height: var(--line-height-compact);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+/* The skill page fixes its header and scrolls the SKILL.md in a full-width scrollport, so the scrollbar sits
+   on the panel edge while the document stays on the session reading measure. */
+.explore-skill-detail {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.explore-skill-head {
+  flex-shrink: 0;
+  /* The scrollport reserves its gutter even when empty; reserve the same on the header so both columns centre alike. */
+  padding-inline-end: var(--scrollbar-size, 8px);
+}
+
+.explore-skill-head .explore-catalog-page-body {
+  padding-block-end: 0;
+}
+
+.explore-skill-head .explore-catalog-section-title {
+  margin-top: 36px;
+}
+
+.explore-skill-document-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.explore-skill-document-column {
+  display: flex;
+  width: 100%;
+  max-width: var(--container-session, 840px);
+  min-height: 100%;
+  flex-direction: column;
+  margin-inline: auto;
+  padding: 16px 24px 24px;
+}
+
+.explore-skill-document-surface {
+  flex: 1;
+  padding: 32px 24px;
+}
+
+.explore-skill-document-content {
+  width: 100%;
+  max-width: 768px;
+  margin-inline: auto;
 }
 
 /* The autoinvoke switch sits in its own row under the introduction. */

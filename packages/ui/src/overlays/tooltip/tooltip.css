@@ -14,6 +14,10 @@
   align-items: center;
   padding: 5px 12px;
   gap: 6px;
+  max-width: min(320px, calc(100vw - 32px));
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
 
   /* macOS draws tooltips as a dark, slightly translucent bubble over the content, without a light
      surface behind them. That contrast is the whole point of the style. */
@@ -22,7 +26,8 @@
   box-shadow:
     0 4px 12px var(--v2-alpha-dark-20),
     0 0 0 0.5px var(--v2-alpha-light-16);
-  border-radius: 9999px;
+  /* A rounded bubble, not a capsule: long hints wrap inside a card corner instead of stretching into a pill. */
+  border-radius: var(--radius-lg);
 
   font-style: normal;
   font-weight: 530;
@@ -49,8 +54,8 @@
   max-width: 320px;
   padding: 8px 16px;
   border: none;
-  /* 18px reads as a pill on a single line and stays a rounded bubble when a long path wraps. */
-  border-radius: 18px;
+  /* 18px read as a pill on a single line; a card corner keeps the same bubble when a long path wraps. */
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--v2-grey-1200) 84%, transparent);
   backdrop-filter: var(--v2-material-blur-regular);
   color: var(--v2-grey-50);

@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-import { nextDesktopZoomLevel, type DesktopZoomLevel } from "@opencode/app/desktop-menu"
+import {
+  desktopZoomFactor,
+  desktopZoomLevelFactor,
+  nextDesktopZoomLevel,
+  type DesktopZoomLevel,
+} from "@opencode/app/desktop-menu"
 import { createSignal } from "solid-js"
 import { api } from "../api"
 
@@ -95,16 +100,17 @@ const setPinchZoomEnabled = (enabled: boolean) => {
 
 // Main saves the level and applies it to every window, then reports the new zoom back.
 const setZoomLevel = (level: DesktopZoomLevel) => {
-  requestedZoom = level
+  requestedZoom = desktopZoomFactor(level)
 
   return api.setZoomLevel(level)
 }
 
 const resetZoom = () => void setZoomLevel(1)
 
-const zoomIn = () => void setZoomLevel(nextDesktopZoomLevel(requestedZoom, "in"))
+// `requestedZoom` is the factor a pinch can leave off a level, so step in level space.
+const zoomIn = () => void setZoomLevel(nextDesktopZoomLevel(desktopZoomLevelFactor(requestedZoom), "in"))
 
-const zoomOut = () => void setZoomLevel(nextDesktopZoomLevel(requestedZoom, "out"))
+const zoomOut = () => void setZoomLevel(nextDesktopZoomLevel(desktopZoomLevelFactor(requestedZoom), "out"))
 
 const resetWheelPinch = () => {
   clearTimeout(wheelPinch?.timeout)

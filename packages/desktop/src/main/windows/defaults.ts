@@ -1,6 +1,6 @@
 import { resolveThemeVariant } from "@opencode/ui/theme/resolve"
 import type { DesktopTheme } from "@opencode/ui/theme/types"
-import { desktopZoomLevels } from "@opencode/app/desktop-menu"
+import { desktopZoomFactor, desktopZoomLevels } from "@opencode/app/desktop-menu"
 import { nativeTheme, type BrowserWindowConstructorOptions } from "electron"
 import { Predicate } from "effect"
 import oc2ThemeJson from "../../../../ui/src/theme/themes/oc-2.json"
@@ -46,16 +46,21 @@ export function storedZoomLevel() {
   return desktopZoomLevels.find((level) => level === stored) ?? 1
 }
 
-export function titlebarOverlay(mode: "light" | "dark" = tone(), zoom = 1) {
+// The web contents zoom factor that level renders at. Chrome sizing takes this factor, never the level.
+export function storedZoomFactor() {
+  return desktopZoomFactor(storedZoomLevel())
+}
+
+export function titlebarOverlay(mode: "light" | "dark" = tone(), factor = 1) {
   return {
     color: "#00000000",
     symbolColor: mode === "dark" ? "white" : "black",
-    height: Math.max(titlebarHeight, Math.round(titlebarHeight * zoom)),
+    height: Math.max(titlebarHeight, Math.round(titlebarHeight * factor)),
   }
 }
 
-// macOS and Windows hide the titlebar; Windows draws its window controls in an overlay sized to the zoom.
-export function platformFrame(mode: "light" | "dark", zoom: number) {
+// macOS and Windows hide the titlebar; Windows draws its window controls in an overlay sized to the zoom factor.
+export function platformFrame(mode: "light" | "dark", factor: number) {
   const frame: BrowserWindowConstructorOptions = {}
 
   if (process.platform === "darwin") {
@@ -71,7 +76,7 @@ export function platformFrame(mode: "light" | "dark", zoom: number) {
   if (process.platform === "win32") {
     frame.frame = false
     frame.titleBarStyle = "hidden"
-    frame.titleBarOverlay = titlebarOverlay(mode, zoom)
+    frame.titleBarOverlay = titlebarOverlay(mode, factor)
     // The replica shell is a square sheet on Windows, so Windows should not round the window underneath it.
     frame.roundedCorners = false
   }

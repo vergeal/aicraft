@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron"
-import { nextDesktopZoomLevel, type DesktopMenuAction } from "@opencode/app/desktop-menu"
+import { desktopZoomLevelFactor, nextDesktopZoomLevel, type DesktopMenuAction } from "@opencode/app/desktop-menu"
 import { setZoomLevel } from "../windows"
 
 export type DesktopMenuActionHandlers = Partial<{
@@ -61,11 +61,11 @@ export function runDesktopMenuAction(
 
       return
     case "view.zoomIn":
-      if (win) setZoomLevel(nextDesktopZoomLevel(win.webContents.getZoomFactor(), "in"))
+      if (win) setZoomLevel(nextDesktopZoomLevel(desktopZoomLevelFactor(win.webContents.getZoomFactor()), "in"))
 
       return
     case "view.zoomOut":
-      if (win) setZoomLevel(nextDesktopZoomLevel(win.webContents.getZoomFactor(), "out"))
+      if (win) setZoomLevel(nextDesktopZoomLevel(desktopZoomLevelFactor(win.webContents.getZoomFactor()), "out"))
 
       return
     case "view.toggleFullscreen":

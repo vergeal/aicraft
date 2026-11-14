@@ -1,5 +1,5 @@
 import { app, BrowserWindow, nativeImage, nativeTheme } from "electron"
-import type { DesktopZoomLevel } from "@opencode/app/desktop-menu"
+import { desktopZoomFactor, type DesktopZoomLevel } from "@opencode/app/desktop-menu"
 import type { Path } from "effect"
 import { type TitlebarTheme } from "../../shared/ipc-contract"
 import {
@@ -16,6 +16,7 @@ import {
   platformFrame,
   savedBackgroundColor,
   storedBackgroundColor,
+  storedZoomFactor,
   storedZoomLevel,
   titlebarOverlay,
   tone,
@@ -41,12 +42,14 @@ export function windowAppearance(path: Path.Path, paths: DesktopPaths.Resolved) 
     title: "OpenCode",
     icon: iconPath(path, paths),
     backgroundColor: translucentWindow() ? "#00000000" : (backgroundColor ?? storedBackgroundColor()),
-    ...platformFrame(tone(), storedZoomLevel()),
+    ...platformFrame(tone(), storedZoomFactor()),
     webPreferences: {
       preload: paths.preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // A window created after the first one boots at the saved level's factor, like the early window.
+      zoomFactor: storedZoomFactor(),
     },
   }
 }
@@ -103,7 +106,7 @@ export function setPinchZoomEnabled(enabled: boolean) {
     pinchZoomEnabled.set(win, enabled)
     emitIpcEvent(win.webContents, new WindowPinchZoomChanged({ enabled }))
 
-    if (!enabled) win.webContents.setZoomFactor(storedZoomLevel())
+    if (!enabled) win.webContents.setZoomFactor(storedZoomFactor())
     updateZoom(win)
   })
 }
@@ -116,14 +119,14 @@ export function getPinchZoomEnabled() {
 export function setZoomLevel(level: DesktopZoomLevel) {
   if (storedZoomLevel() !== level) getStore().set(ZOOM_LEVEL_KEY, level)
   BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.setZoomFactor(level)
+    win.webContents.setZoomFactor(desktopZoomFactor(level))
     updateZoom(win)
   })
 }
 
 export function wireZoom(win: BrowserWindow) {
   pinchZoomEnabled.set(win, getPinchZoomEnabled())
-  win.webContents.setZoomFactor(storedZoomLevel())
+  win.webContents.setZoomFactor(storedZoomFactor())
   updateTitlebar(win)
   win.webContents.on("zoom-changed", (event, direction) => {
     event.preventDefault()
@@ -136,7 +139,7 @@ export function wireZoom(win: BrowserWindow) {
       return
     }
 
-    win.webContents.setZoomFactor(storedZoomLevel())
+    win.webContents.setZoomFactor(storedZoomFactor())
     updateZoom(win)
   })
 }

@@ -64,6 +64,21 @@ export const desktopZoomLevels = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 
 
 export type DesktopZoomLevel = (typeof desktopZoomLevels)[number]
 
+// Every level renders `desktopZoomBase` larger than its number, so 100% is the size 110% used to be while the
+// Settings row and Zoom In / Zoom Out still read 100%. Main applies the scale to the web contents; the factors it
+// reports back already include it, so only this module converts between a level and a factor.
+export const desktopZoomBase = 1.1
+
+/** The web contents zoom factor a level renders at. */
+export function desktopZoomFactor(level: DesktopZoomLevel) {
+  return level * desktopZoomBase
+}
+
+/** A factor read back from the web contents, in the scale `nextDesktopZoomLevel` compares levels in. */
+export function desktopZoomLevelFactor(factor: number) {
+  return factor / desktopZoomBase
+}
+
 /** The level after `factor` in `direction`. A pinch can leave `factor` between two levels. */
 export function nextDesktopZoomLevel(factor: number, direction: "in" | "out"): DesktopZoomLevel {
   // Chromium stores zoom on a log scale, so a factor read back can be a hair off the level it was set to.

@@ -5,7 +5,12 @@ import { sidebarToggleCommand } from "@/shell/shell"
 import { previousSessionCommand, nextSessionCommand } from "@/shell/titlebar/tab-strip"
 import { goBackCommand, goForwardCommand, newTabCommand } from "@/shell/titlebar/titlebar"
 import { exportLogsCommand } from "./desktop"
-import { DESKTOP_MENU, nextDesktopZoomLevel } from "./desktop-menu"
+import {
+  DESKTOP_MENU,
+  desktopZoomFactor,
+  desktopZoomLevelFactor,
+  nextDesktopZoomLevel,
+} from "./desktop-menu"
 
 test("every desktop menu command is one its owner registers", () => {
   const registered = new Set([
@@ -45,4 +50,11 @@ test.each([
   { factor: 0.5, direction: "in", level: 0.67 },
 ] as const)("zooming $direction from $factor lands on $level", ({ factor, direction, level }) => {
   expect(nextDesktopZoomLevel(factor, direction)).toBe(level)
+})
+
+// Main applies the base to every level it renders, so a factor read back from the web contents is in a larger
+// scale than the levels. Stepping without undoing the base would skip the level right above 100%.
+test("stepping from a rendered factor is measured in level space", () => {
+  expect(nextDesktopZoomLevel(desktopZoomLevelFactor(desktopZoomFactor(1)), "in")).toBe(1.1)
+  expect(nextDesktopZoomLevel(desktopZoomLevelFactor(desktopZoomFactor(0.9)), "in")).toBe(1)
 })

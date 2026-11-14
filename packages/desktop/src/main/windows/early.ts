@@ -6,7 +6,7 @@ import { resolveExternalURL } from "../files/external-url"
 import { windowArguments } from "./bootstrap"
 import { WINDOW_IDS_KEY } from "../storage/keys"
 import { getStore } from "../storage/store"
-import { platformFrame, storedBackgroundColor, storedZoomLevel, tone } from "./defaults"
+import { platformFrame, storedBackgroundColor, storedZoomFactor, tone } from "./defaults"
 import {
   initialEarlyWindowState,
   isEarlyWindowClosed,
@@ -78,7 +78,8 @@ export function createEarlyWindow() {
   const root = path.dirname(fileURLToPath(import.meta.url))
   const file = path.join(app.getPath("userData"), windowStateFile(id))
   const state = resolveWindowState(readWindowState(file), { width: 1280, height: 800 }, displays)
-  const zoom = storedZoomLevel()
+  // The renderer boots at the saved level's factor, so it never paints at 100% and jumps to the level after.
+  const zoom = storedZoomFactor()
   const icons = app.isPackaged ? path.join(process.resourcesPath, "icons") : path.join(root, "../../resources/icons")
 
   // On Windows, maximize() on a hidden window shows it with SW_SHOWMAXIMIZED, so it never paints at

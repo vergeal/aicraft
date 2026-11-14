@@ -644,7 +644,7 @@
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-container"] {
-  background: var(--v2-background-bg-base);
+  background: var(--v2-material-surface-strong);
 }
 
 [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-body"] {

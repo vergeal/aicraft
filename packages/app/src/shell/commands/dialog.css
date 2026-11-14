@@ -7,7 +7,8 @@
   width: min(calc(100vw - 24px), 640px);
   height: min(calc(100vh - 96px), 480px);
   border-radius: 12px;
-  background: var(--v2-background-bg-base);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   box-shadow: var(--v2-elevation-floating);
 }
 
@@ -155,7 +156,8 @@
   min-height: 0;
   margin-top: max(48px, calc((100vh - 480px) / 2));
   border-radius: var(--command-palette-radius-panel);
-  background: var(--v2-background-bg-base);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   /* A sheet lifts off the page by its ring and a low shadow, not a heavy drop shadow. */
   box-shadow: var(--v2-elevation-floating);
 }

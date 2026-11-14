@@ -3,7 +3,7 @@
   min-width: 8rem;
   overflow: hidden;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs-border);
   background-clip: padding-box;
   background-color: var(--v2-material-surface-strong);

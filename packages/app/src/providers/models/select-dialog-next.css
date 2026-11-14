@@ -4,10 +4,10 @@
   width: min(calc(100vw - 24px), 480px);
   min-height: 0;
   border-radius: 10px;
-  background: var(--v2-background-bg-base);
-  /* The fill above is opaque, so the inherited 30px blur would only cost a backdrop resample on
-     every hover repaint. Dropping it keeps the dialog identical and the list smooth. */
-  backdrop-filter: none;
+  /* The same liquid-glass material as a menu, so a picker dialog floats over the page instead of punching a solid
+     hole in it. Rows and the search field keep their own opaque fills, so the list stays readable. */
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
 }
 
 .model-dialog-next {

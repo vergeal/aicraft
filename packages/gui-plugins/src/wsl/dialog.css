@@ -47,7 +47,8 @@
   max-width: calc(100vw - 32px);
   min-height: 264px;
   height: auto;
-  background: var(--v2-background-bg-layer-01);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   box-shadow: var(--v2-elevation-overlay);
   border-radius: 10px;
 }

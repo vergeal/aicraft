@@ -337,11 +337,13 @@
 
 /* Create dialog -------------------------------------------------------- */
 
-/* The dialog is one surface: every band uses the same fill, so header, form and footer read as one sheet. */
+/* The dialog is one glass surface: every band shares the container's material, so header, form and footer read as
+   one sheet floating over the page. */
 .scheduled-create-container[data-slot="dialog-container"] {
   width: min(calc(100vw - 32px), 640px);
   height: min(calc(100vh - 92px), 540px);
-  background: var(--v2-background-bg-layer-01);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
 }
 
 [data-component="dialog-v2"]

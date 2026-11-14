@@ -1,4 +1,6 @@
-/* Every pill in the composer lane shares one capsule: its surface, overlays, focus ring and touch size. */
+/* Every pill in the composer lane shares one capsule: its surface, overlays, focus ring and touch size.
+   The surface is the menu's liquid-glass material, so a pill floating over the timeline reads as an overlay
+   rather than a solid chip. */
 [data-composer-pill] {
   pointer-events: auto;
   display: flex;
@@ -11,7 +13,8 @@
   /* The elevation draws the hairline; a second border would double it. */
   border: 0.5px solid transparent;
   border-radius: 12px;
-  background: var(--v2-background-bg-base);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   box-shadow: var(--v2-elevation-raised);
   font-size: 15px;
   font-weight: 400;
@@ -20,10 +23,6 @@
   white-space: nowrap;
   color: var(--v2-text-text-base);
   outline: none;
-
-  [data-color-scheme="dark"] & {
-    background: var(--v2-background-bg-layer-01);
-  }
 
   &:focus-visible {
     outline: 2px solid var(--v2-border-border-focus);
@@ -44,13 +43,13 @@
     );
   }
 
-  /* While its popover is open, the pill steps onto the popover's layer. */
+  /* While its popover is open, the pill stays on the same glass and only takes the pressed overlay. */
   &[data-expanded] {
-    background: var(--v2-background-bg-layer-01);
-
-    [data-color-scheme="dark"] & {
-      background: var(--v2-background-bg-layer-02);
-    }
+    background-color: var(--v2-material-surface-strong);
+    background-image: linear-gradient(
+      var(--v2-overlay-simple-overlay-pressed),
+      var(--v2-overlay-simple-overlay-pressed)
+    );
   }
 
   /* The timeline's tail reserves this height (tailSize in timeline/virtualizer.tsx); change both together. */
@@ -59,12 +58,13 @@
   }
 }
 
-/* The popover a pill opens, just above it. */
+/* The popover a pill opens, just above it, in the menu's liquid-glass material. */
 [data-composer-pill-panel] {
   max-width: calc(100vw - 56px);
   border: 0.5px solid transparent;
   border-radius: 10px;
-  background: var(--v2-background-bg-layer-01);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   box-shadow: var(--v2-elevation-floating);
   outline: none;
   transform-origin: var(--kb-popover-content-transform-origin);

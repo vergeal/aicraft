@@ -15,7 +15,7 @@
   pointer-events: auto;
   background: var(--v2-material-surface-strong);
   backdrop-filter: var(--v2-material-blur-thick);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--v2-elevation-floating);
 }
 
@@ -270,9 +270,9 @@
   flex: none;
 }
 
-/* Options are compact chips, so the highlight reads as a capsule rather than a card corner. */
+/* Options highlight as the same rounded rectangle as a menu item, not a capsule. */
 [data-slot="select-v2-listbox"] [data-component="menu-v2-item"] {
-  border-radius: 9999px;
+  border-radius: var(--radius-sm);
   --menu-v2-fg: var(--v2-text-text-base);
   --menu-v2-fg-muted: var(--v2-text-text-faint);
   --menu-v2-fg-subtle: var(--v2-text-text-muted);

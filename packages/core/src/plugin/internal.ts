@@ -113,7 +113,7 @@ import { PlanPlugin } from "./plan.js"
 import { GoalPlugin } from "./goal.js"
 import { ModelsDevPlugin } from "./models-dev.js"
 import { McpCodeModeDefaultsPlugin } from "./mcp-codemode-defaults.js"
-import { providerPluginsFor } from "./provider.js"
+import { ProviderPlugins } from "./provider.js"
 import { DynamicProviderPlugin } from "./provider/dynamic.js"
 import { OpencodePlugin } from "./provider/opencode.js"
 import { WebSearchPlugins } from "./websearch/index.js"
@@ -250,7 +250,7 @@ export const requirements = LayerNode.group([
 
 export type InternalPlugin = Plugin<Requirements | Scope.Scope>
 
-const preStart = [
+const pre = [
   ToolInputRepairPlugin.Plugin,
   ConfigWorktreePlugin.Plugin,
   ConfigMcpPlugin.Plugin,
@@ -264,11 +264,7 @@ const preStart = [
   SkillPlugin.Plugin,
   VcsHgPlugin.Plugin,
   ModelsDevPlugin,
-] as const satisfies readonly InternalPlugin[]
-
-// Provider plugins sit between these two halves: the mainstream set always loads, and a dormant provider joins it
-// only when config, a stored credential, or the environment names it.
-const preEnd = [
+  ...ProviderPlugins,
   ...WebSearchPlugins,
   PatchTool.Plugin,
   // Render model prompts after the patch plugin selects the available editing tools.
@@ -331,16 +327,6 @@ export const guarded: ReadonlySet<string> = new Set([OpencodePlugin.id, ConfigPo
 export const list = Effect.fn("PluginInternal.list")(function* () {
   // Capture only services; activation supplies the child Scope and batching context.
   const context = Context.pick(...services)(yield* Effect.context<Requirements>())
-  const config = yield* Config.Service
-  const credentials = yield* Credential.Service
-  // A provider the user named anywhere is live: its config key, a stored credential, or its environment variable.
-  const named = new Set<string>([
-    ...config
-      .snapshot()
-      .flatMap((entry) => ("info" in entry ? Object.keys(entry.info.providers ?? {}) : [])),
-    ...(yield* credentials.all()).map((credential) => String(credential.integrationID)),
-  ])
-  const plugins = providerPluginsFor({ named, env: (name) => process.env[name] })
   const resolve = (plugins: readonly InternalPlugin[]) =>
     plugins.map(
       (plugin) =>
@@ -360,7 +346,7 @@ export const list = Effect.fn("PluginInternal.list")(function* () {
         }) satisfies Generation,
     )
   return {
-    pre: resolve([...preStart, ...plugins, ...preEnd]),
+    pre: resolve(pre),
     post: resolve(post),
   }
 })

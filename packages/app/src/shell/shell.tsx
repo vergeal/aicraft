@@ -120,6 +120,8 @@ function ReplicaLayer(props: ParentProps) {
   createEffect(() => {
     document.documentElement.dataset.replicaWindow =
       platform.platform === "desktop" && platform.os === "macos" ? "translucent" : "opaque"
+    // The frame height differs per OS, so the stylesheet sizes the window bar from the platform, not the viewport.
+    if (platform.platform === "desktop" && platform.os) document.documentElement.dataset.os = platform.os
   })
 
   const sidebarWidth = () => preferences.appearance.sidebarWidth()

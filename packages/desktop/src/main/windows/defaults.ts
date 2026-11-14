@@ -13,8 +13,8 @@ import { getStore } from "../storage/store"
 // SAFETY: oc-2.json is the bundled default theme, which the UI package loads as a DesktopTheme too.
 const oc2Theme = oc2ThemeJson as DesktopTheme
 
-// Match the renderer's 36px titlebar plus its former 8px content inset.
-export const titlebarHeight = 44
+// Windows draws a 32px caption, so the overlay is that tall and its controls line up with every other window.
+export const titlebarHeight = 32
 
 export function tone() {
   return nativeTheme.shouldUseDarkColors ? "dark" : "light"

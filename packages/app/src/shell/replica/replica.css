@@ -131,6 +131,12 @@
   --color-divider-glass: rgb(255 255 255 / 10%);
 }
 
+/* Windows draws a 32px caption, so its bar matches that instead of the taller macOS one and the window controls
+   in the overlay sit where every other window puts them. */
+html[data-os="windows"] [data-replica] {
+  --titlebar-height: max(32px, env(titlebar-area-height, 32px));
+}
+
 /* One titlebar split at the sidebar boundary: window controls on the left, conversation title on the right. */
 /* On macOS the window is a blurred material, so the page root gives up its opaque fill and the frame
    colour above sits directly on the desktop. Other platforms keep the painted root. */

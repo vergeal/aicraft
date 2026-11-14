@@ -568,6 +568,38 @@ it.effect("regenerates an existing title using the title agent", () =>
   }),
 )
 
+it.effect("keeps the fork suffix when a forked session regenerates its title", () =>
+  Effect.gen(function* () {
+    yield* enableTitleAgent
+    const parentID = Session.ID.make("ses_title_fork_parent")
+    const sessionID = Session.ID.make("ses_title_fork_child")
+    yield* insertSession(parentID, "Parent")
+    const { db } = yield* Database.Service
+    yield* db
+      .insert(SessionTable)
+      .values({
+        id: sessionID,
+        project_id: Project.ID.global,
+        slug: sessionID,
+        directory: "/project",
+        title: "Parent (fork #1)",
+        fork_session_id: parentID,
+        fork_boundary: { type: "through", messageID: SessionMessage.ID.make("msg_fork_boundary") },
+        time_created: 0,
+        version: "test",
+      })
+      .run()
+      .pipe(Effect.orDie)
+    yield* prompt(sessionID, "Investigate the login failure")
+
+    const title = yield* SessionTitle.Service
+    yield* title.generate(sessionID)
+
+    const store = yield* SessionStore.Service
+    expect((yield* store.get(sessionID))?.title).toBe("Generated Title (fork #1)")
+  }),
+)
+
 it.effect("bounds regeneration context while preserving the original request and recent conversation", () =>
   Effect.gen(function* () {
     yield* enableTitleAgent

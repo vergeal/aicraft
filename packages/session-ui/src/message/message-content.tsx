@@ -345,7 +345,10 @@ export function CurrentUserMessageDisplay(props: {
   const setExpanded = fold.setOpen
 
   const status = createMemo(() => props.actions?.pending?.status(props.message.id))
-  const pending = createMemo(() => status() !== undefined && status() !== "queued")
+  // Every undelivered input is pending: a queued one still waits for the turn to end, so it keeps the pending bubble
+  // and stays cancellable instead of looking sent.
+  const pending = createMemo(() => status() !== undefined)
+  const queued = createMemo(() => status() === "queued")
   const waiting = createMemo(() => status() === "steering" || status() === "stranded")
   // SAFETY: opted-in reads leave stored files as `media:` refs, a PromptAttachment variant the generated message type does not list.
   const files = createMemo(() => (props.message.files ?? []) as PromptAttachment[])
@@ -425,7 +428,7 @@ export function CurrentUserMessageDisplay(props: {
   // Delivery drops the Pending footer at once rather than fading it like the hover reveal.
   createEffect(
     on(
-      waiting,
+      () => waiting() || queued(),
       (now, before) => {
         if (now || !before || !root) return
         const element = root
@@ -479,18 +482,20 @@ export function CurrentUserMessageDisplay(props: {
     <span data-slot="user-message-actions">
       <Show when={props.actions?.pending}>
         <UserMessageTransition active={pending()}>
-          <MessageActionButton
-            icon="arrow-down-to-line"
-            size="small"
-            label={i18n.t("ui.message.moveToQueue")}
-            disabled={actionView().disabled.queue}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => {
-              event.stopPropagation()
-              request("queue")
-            }}
-            aria-label={i18n.t("ui.message.moveToQueue")}
-          />
+          <Show when={!queued()}>
+            <MessageActionButton
+              icon="arrow-down-to-line"
+              size="small"
+              label={i18n.t("ui.message.moveToQueue")}
+              disabled={actionView().disabled.queue}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={(event) => {
+                event.stopPropagation()
+                request("queue")
+              }}
+              aria-label={i18n.t("ui.message.moveToQueue")}
+            />
+          </Show>
           <MessageActionButton
             icon="outline-trash"
             size="small"
@@ -694,7 +699,7 @@ export function CurrentUserMessageDisplay(props: {
     <div
       ref={root}
       data-component="user-message"
-      data-pending={waiting() ? "true" : undefined}
+      data-pending={waiting() || queued() ? "true" : undefined}
       data-run-folded={folded() ? "" : undefined}
       data-run-meta-hidden={restingPose.meta === 0 ? "" : undefined}
       style={{
@@ -756,8 +761,10 @@ export function CurrentUserMessageDisplay(props: {
         <div data-slot="user-message-copy-wrapper">
           <span data-slot="user-message-meta-wrap">
             <span data-slot="user-message-meta">
-              <UserMessageTransition active={waiting()}>
-                <span data-slot="user-message-pending">{i18n.t("ui.message.pending")}</span>
+              <UserMessageTransition active={waiting() || queued()}>
+                <span data-slot="user-message-pending">
+                  {i18n.t(queued() ? "ui.message.queued" : "ui.message.pending")}
+                </span>
                 <Show when={metaLabels().length > 0}>
                   <span data-slot="user-message-meta-separator" aria-hidden="true">
                     {"\u00B7"}

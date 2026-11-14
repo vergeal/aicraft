@@ -214,22 +214,27 @@ function SessionQueueRow(props: { queue: SessionQueueView; id: string; index: nu
               </For>
             </button>
             <div class="flex min-w-0 items-center gap-4">
+              {/* The transcript shows the prompt, so the row is only its edit control. The hidden label keeps the row
+                  identifiable to assistive technology without printing the prompt twice. */}
               <button
                 type="button"
                 data-action="session-queue-edit"
-                dir="auto"
                 aria-disabled={entry().pending}
-                class="max-w-full min-w-0 self-start truncate rounded-[4px] text-start text-[13px] font-[400] leading-[var(--line-height-compact)]"
+                aria-label={language.t("session.queue.edit")}
+                aria-describedby={`${props.id}-prompt`}
+                class="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[4px] text-v2-text-text-base"
                 classList={{
                   "text-v2-text-text-faint": editing() || entry().pending,
                   "cursor-progress": entry().pending,
-                  "cursor-text text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover":
-                    !editing() && !entry().pending,
+                  "hover:bg-v2-overlay-simple-overlay-hover": !editing() && !entry().pending,
                 }}
                 onClick={() => props.queue.edit(props.id)}
               >
-                {entry().text ||
-                  (entry().attachments ? language.plural("session.queue.attachments", entry().attachments) : "")}
+                <Icon name="pencil-line" size="small" />
+                <span class="sr-only" id={`${props.id}-prompt`}>
+                  {entry().text ||
+                    (entry().attachments ? language.plural("session.queue.attachments", entry().attachments) : "")}
+                </span>
               </button>
               <Show when={entry().attachments && entry().text}>
                 <span class="shrink-0 whitespace-nowrap text-[13px] font-[400] leading-[var(--line-height-compact)] text-v2-text-text-muted">

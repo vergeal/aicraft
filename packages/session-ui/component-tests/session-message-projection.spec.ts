@@ -202,14 +202,15 @@ story("drops a pending footer at once on delivery with and without hover", async
   await expect(footer).toHaveCSS("opacity", "0")
 })
 
-story("marks pending metadata without badging delivered, starting, or queued prompts", async ({ mount, page }) => {
+story("marks pending metadata without badging delivered or starting prompts", async ({ mount, page }) => {
   const timeline = await mount("current-prompt-message--pending")
   const indicator = timeline.locator('[data-slot="user-message-meta"] [data-slot="user-message-pending"]')
   const text = timeline.locator('[data-slot="user-message-text"]')
 
   for (const status of ["steering", "stranded", "starting", "queued", "delivered"]) {
     await timeline.getByLabel("Delivery state").selectOption(status)
-    const pending = status === "steering" || status === "stranded"
+    // A queued prompt still waits for the turn to end, so it stays pending until it is delivered.
+    const pending = status !== "starting" && status !== "delivered"
 
     if (pending) await expect(indicator).toBeVisible()
 
@@ -229,6 +230,15 @@ story("marks pending metadata without badging delivered, starting, or queued pro
     await expect(text).toHaveCSS("color", colors.color)
     await expect(text).toHaveCSS("background-color", colors.background)
   }
+
+  // A queued prompt names its own state, and offers the actions that apply to it: delete, not move to queue.
+  await timeline.getByLabel("Delivery state").selectOption("queued")
+  await expect(indicator).toHaveText("Queued")
+  await expect(timeline.getByRole("button", { name: "Move to queue" })).toHaveCount(0)
+  await expect(timeline.getByRole("button", { name: "Delete", exact: true })).toBeVisible()
+  await timeline.getByLabel("Delivery state").selectOption("steering")
+  await expect(timeline.getByRole("button", { name: "Move to queue" })).toHaveCount(1)
+  await timeline.getByLabel("Delivery state").selectOption("delivered")
 
   await timeline.locator('[data-component="user-message"]').hover()
   await expect(timeline.locator('[data-slot="user-message-meta-item"]')).toHaveText([
@@ -275,7 +285,8 @@ story("marks pending metadata without badging delivered, starting, or queued pro
   await expect(timeline.getByText("notes.json", { exact: true })).toBeVisible()
   await expect(indicator).toBeVisible()
   await timeline.getByRole("button", { name: "Move to queue", exact: true }).click()
-  await expect(indicator).toBeHidden()
+  // Moving a steer to the queue keeps it pending under its own label.
+  await expect(indicator).toHaveText("Queued")
 })
 
 // Moved from packages/app/e2e/regression/session-timeline-collapse-state.spec.ts

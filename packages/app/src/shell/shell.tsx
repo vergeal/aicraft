@@ -135,8 +135,13 @@ function ReplicaLayer(props: ParentProps) {
 
   // Dragging writes the width straight to the root's CSS variable, coalesced to one write per frame, so pointer moves
   // never re-render the shell. The signal catches up once, when the pointer is released and the width is committed.
+  // Width changes rewrap every sidebar row and the timeline, so the drag rounds to 2px: a drag that has not moved far
+  // enough to change the rounded width writes nothing, halving the number of full reflows.
   const writeSidebarWidth = (width: number) => {
-    draggingWidth = width
+    const next = Math.round(width / 2) * 2
+
+    if (next === draggingWidth) return
+    draggingWidth = next
 
     if (frame) return
 

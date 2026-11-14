@@ -16,7 +16,7 @@
     --v2-material-blur-regular: blur(20px) saturate(180%);
     --v2-material-surface: color-mix(in srgb, var(--v2-grey-50) 72%, transparent);
     --v2-material-surface-opaque: var(--v2-grey-50);
-    --v2-material-surface-strong: color-mix(in srgb, var(--v2-grey-50) 88%, transparent);
+    --v2-material-surface-strong: color-mix(in srgb, var(--v2-grey-50) 72%, transparent);
     --v2-material-surface-strong-opaque: var(--v2-grey-50);
 
     /* ── Background ── */
@@ -418,7 +418,7 @@
     --v2-system-accent-hover: #409cff;
     --v2-material-surface: color-mix(in srgb, var(--v2-grey-1000) 76%, transparent);
     --v2-material-surface-opaque: var(--v2-grey-1000);
-    --v2-material-surface-strong: color-mix(in srgb, var(--v2-grey-1000) 90%, transparent);
+    --v2-material-surface-strong: color-mix(in srgb, var(--v2-grey-1000) 80%, transparent);
     --v2-material-surface-strong-opaque: var(--v2-grey-1000);
 
     --v2-background-bg-base: var(--v2-grey-1100);

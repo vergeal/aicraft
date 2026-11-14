@@ -66,6 +66,7 @@ export function host(overrides: Overrides = {}): Plugin.Context {
     provider: overrides.provider ?? {
       list: () => Effect.die("unused provider.list"),
       get: () => Effect.die("unused provider.get"),
+      models: () => Effect.die("unused provider.models"),
       transform: () => Effect.die("unused provider.transform"),
       reload: () => Effect.die("unused provider.reload"),
     },
@@ -294,6 +295,7 @@ export function providerHost(providers: Provider.Interface): Plugin.Context["pro
           ),
         ),
     reload: providers.reload,
+    models: () => Effect.die("unused provider.models"),
     transform: (callback) =>
       providers.transform((editor) =>
         callback({
@@ -317,6 +319,7 @@ export function providerHost(providers: Provider.Interface): Plugin.Context["pro
 export const noProviders: Plugin.Context["provider"] = {
   list: () => Effect.succeed(located([])),
   get: () => Effect.die("unused provider.get"),
+  models: () => Effect.die("unused provider.models"),
   transform: () => Effect.die("unused provider.transform"),
   reload: () => Effect.die("unused provider.reload"),
 }

@@ -2463,6 +2463,7 @@ export type ConfigEntry =
   | {
       type: "document"
       path?: AbsolutePath
+      writable?: boolean
       info: {
         $schema?: string
         shell?: string
@@ -4158,6 +4159,10 @@ export type ProviderGetInput = {
 
 export type ProviderGetOutput = { location: LocationPublicRef; data: ProviderInfo }
 
+export type ExperimentalProviderModelsInput = { readonly baseURL: string; readonly apiKey?: string | undefined }
+
+export type ExperimentalProviderModelsOutput = { data: Array<{ id: string; name?: string | undefined }> }["data"]
+
 export type IntegrationListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 
 export type IntegrationListOutput = { location: LocationPublicRef; data: Array<IntegrationInfo> }
@@ -5033,6 +5038,42 @@ export type ConfigShellsOutput = Array<ConfigShellOption>
 export type ExperimentalConfigUpdateInput = {
   readonly shell?: string | null | undefined
   readonly plugins?: ReadonlyArray<string> | undefined
+  readonly providers?:
+    | {
+        readonly [x: string]: {
+          readonly canonical?: string
+          readonly name?: string
+          readonly env?: ReadonlyArray<string>
+          readonly package?: string
+          readonly compatibility?: {
+            readonly reasoningField?: "reasoning" | "reasoning_content" | "reasoning_text" | (string & {})
+            readonly requireReasoning?: boolean
+            readonly maxTokensField?: "max_completion_tokens" | "max_tokens"
+            readonly requireFinishReason?: boolean
+            readonly requireAssistantAfterTool?: boolean
+            readonly supportsPromptCacheKey?: boolean
+            readonly streamUsage?: boolean
+            readonly cacheFormat?: "anthropic" | "alibaba"
+            readonly mediaInput?: "assets" | "state" | "root"
+          }
+          readonly settings?: {
+            readonly timeout?: number | false
+            readonly headerTimeout?: number | false
+            readonly chunkTimeout?: number | false
+            readonly compaction?: { readonly type: "summary" } | { readonly type: "native" }
+            readonly cache?: {
+              readonly ttl?: `${number}${"ms" | "s" | "m" | "h" | "d"}`
+              readonly warming?: boolean | { readonly interval?: "auto" | (string & {}); readonly duration?: string }
+            }
+            readonly transport?: "http" | "websocket"
+            readonly encoding?: "zstd" | "gzip" | "none"
+          } & { readonly [x: string]: JsonValue | null }
+          readonly headers?: { readonly [x: string]: string }
+          readonly body?: { readonly [x: string]: JsonValue }
+          readonly models?: { readonly [x: string]: JsonValue }
+        } | null
+      }
+    | undefined
 }
 
 export type ExperimentalConfigUpdateOutput = void
@@ -5198,6 +5239,12 @@ export type VoiceSessionInput = ExperimentalVoiceSessionInput
 
 /** @deprecated Use `ExperimentalVoiceSessionOutput`. Removed in the next minor. */
 export type VoiceSessionOutput = ExperimentalVoiceSessionOutput
+
+/** @deprecated Use `ExperimentalProviderModelsInput`. Removed in the next minor. */
+export type ProviderModelsInput = ExperimentalProviderModelsInput
+
+/** @deprecated Use `ExperimentalProviderModelsOutput`. Removed in the next minor. */
+export type ProviderModelsOutput = ExperimentalProviderModelsOutput
 
 /** @deprecated Use `ExperimentalIntegrationWellknownAddInput`. Removed in the next minor. */
 export type IntegrationWellknownAddInput = ExperimentalIntegrationWellknownAddInput

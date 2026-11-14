@@ -6,11 +6,14 @@ import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
 import { showToast } from "@/shell/notifications/toast"
+import { useQuery } from "@tanstack/solid-query"
+import { DialogCustomProvider, customProvidersFrom, type CustomProvider } from "./custom/dialog"
+import { DialogDeleteCustomProvider } from "./custom/delete-dialog"
 import { useProviders } from "@/providers/catalog/providers"
 import { visibleProviders } from "@/providers/catalog/order"
 import { consoleProviderGroup } from "@/providers/catalog/console"
 import { useIntegrations } from "@/providers/catalog/integrations"
-import { createEffect, createMemo, createSignal, on, untrack, type Component, For, type JSX, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, untrack, type Component, For, type JSX, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
@@ -71,6 +74,23 @@ export const SettingsProviders: Component<{
   })
 
   const [disconnects, setDisconnects] = createSignal(createProviderDisconnectState())
+
+  // Custom providers are the ones declared in the document the server would write; everything else in a
+  // configuration file stays read-only here.
+  const config = useQuery(() => ({
+    queryKey: [serverSdk.scope, "settings-provider-config", props.directory],
+    enabled: serverSdk.connection.status() === "connected",
+    queryFn: () =>
+      serverSdk.api.config.get({ location: props.directory ? { directory: props.directory } : undefined }),
+  }))
+
+  onCleanup(serverSdk.event.on("config.updated", () => void config.refetch()))
+
+  const custom = createMemo(() =>
+    customProvidersFrom(config.isPending || config.isError ? [] : (config.data ?? [])),
+  )
+
+  const customProvider = (id: string) => custom().find((item) => item.id === id)
 
   const dispatch = (event: ProviderDisconnectEvent) => {
     const result = transitionProviderDisconnect(untrack(disconnects), event)
@@ -227,6 +247,38 @@ export const SettingsProviders: Component<{
 
     return items
   })
+
+  const providerIDs = createMemo(() => [
+    ...connected().map((item) => item.id),
+    ...popular().map((item) => item.id),
+    ...custom().map((item) => item.id),
+  ])
+
+  const openCustom = (provider?: CustomProvider) => {
+    setState("held", available())
+    void dialog.show(
+      () => <DialogCustomProvider directory={props.directory} provider={provider} taken={providerIDs()} />,
+      () => {
+        setState("held", undefined)
+        void config.refetch()
+      },
+    )
+  }
+
+  const deleteCustom = (provider: CustomProvider) => {
+    setState("held", available())
+    void dialog.show(
+      () => (
+        <DialogDeleteCustomProvider
+          directory={props.directory}
+          providerID={provider.id}
+          name={provider.name}
+          onDeleted={() => void config.refetch()}
+        />
+      ),
+      () => setState("held", undefined),
+    )
+  }
 
   // Connection state comes from the integration list like the TUI: credential
   // connections mean an API key or an account login, env connections mean detected
@@ -452,18 +504,61 @@ export const SettingsProviders: Component<{
                           <Show
                             when={canManageAccounts(item)}
                             fallback={
-                              <Show
-                                when={canDisconnect(item)}
-                                fallback={
+                              <div class="settings-provider-actions">
+                                <Show when={customProvider(item.id)}>
+                                  {(provider) => (
+                                    <>
+                                      <Show when={!canDisconnect(item)}>
+                                        <Button
+                                          size="normal"
+                                          variant="neutral"
+                                          onClick={() => openCustom(provider())}
+                                        >
+                                          {language.t("settings.providers.custom.keyMissing")}
+                                        </Button>
+                                      </Show>
+                                      <Menu placement="bottom-end" gutter={6}>
+                                        <Menu.Trigger
+                                          as={IconButton}
+                                          variant="ghost-muted"
+                                          size="large"
+                                          icon={<Icon name="outline-dots" />}
+                                          aria-label={language.t("settings.providers.custom.title.edit")}
+                                        />
+                                        <Menu.Portal>
+                                          <Menu.Content>
+                                            <Menu.Item onSelect={() => openCustom(provider())}>
+                                              {language.t("settings.providers.custom.edit")}
+                                            </Menu.Item>
+                                            <Menu.Item onSelect={() => openCustom(provider())}>
+                                              {language.t("settings.providers.custom.keyReplace")}
+                                            </Menu.Item>
+                                            <Menu.Separator />
+                                            <Menu.Item
+                                              data-variant="critical"
+                                              onSelect={() => deleteCustom(provider())}
+                                            >
+                                              {language.t("settings.providers.custom.delete.menu")}
+                                            </Menu.Item>
+                                          </Menu.Content>
+                                        </Menu.Portal>
+                                      </Menu>
+                                    </>
+                                  )}
+                                </Show>
+                                <Show when={canDisconnect(item)}>
+                                  <Button size="normal" variant="ghost-muted" onClick={() => disconnect(item, item.name)}>
+                                    {language.t("common.disconnect")}
+                                  </Button>
+                                </Show>
+                                <Show when={!customProvider(item.id) && !canDisconnect(item)}>
                                   <span class="settings-provider-env-hint">
-                                    {language.t("settings.providers.connected.environmentDescription")}
+                                    {source(item) === "config"
+                                      ? language.t("settings.providers.custom.configured")
+                                      : language.t("settings.providers.connected.environmentDescription")}
                                   </span>
-                                }
-                              >
-                                <Button size="normal" variant="ghost-muted" onClick={() => disconnect(item, item.name)}>
-                                  {language.t("common.disconnect")}
-                                </Button>
-                              </Show>
+                                </Show>
+                              </div>
                             }
                           >
                             <Show when={activeProviderAccount(integration(item))?.status}>
@@ -565,6 +660,12 @@ export const SettingsProviders: Component<{
                 }}
               </For>
             </Show>
+            <div class="settings-provider-add-row" data-slot="settings-provider-add-row">
+              <button type="button" onClick={() => openCustom()}>
+                <Icon name="plus" size="small" />
+                <span>{language.t("settings.providers.custom.add")}</span>
+              </button>
+            </div>
           </SettingsList>
         </div>
 

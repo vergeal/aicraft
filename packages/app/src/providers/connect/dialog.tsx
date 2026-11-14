@@ -32,6 +32,7 @@ import { useData } from "@/runtime/server/current"
 import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useProviders } from "@/providers/catalog/providers"
+import { showsProvider, visibleProviders } from "@/providers/catalog/order"
 import { consoleProviderGroup, consoleProviderName } from "@/providers/catalog/console"
 import { useIntegrations } from "@/providers/catalog/integrations"
 import { ProviderModelGroup, ProviderModelIcon } from "@/providers/models/provider-group"
@@ -264,8 +265,6 @@ export const DialogConnectProvider: Component<{
 const CLAUDE_CODE_SETUP_URL = "https://code.claude.com/docs/en/setup"
 
 // The TUI's integration groups and order, with connected integrations pulled up into their own group first.
-const POPULAR = ["opencode", "opencode-go", "openai", "github-copilot", "anthropic", "google"]
-
 function ProviderPicker(props: { directory?: string; onSelect: (provider: string) => void; onPrepare?: () => void }) {
   const integrations = useIntegrations(() => props.directory)
   const language = useLanguage()
@@ -277,13 +276,15 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
     filter: "",
   })
 
-  // MCP servers are connected and managed from the MCP dialog, not here.
+  // MCP servers are connected and managed from the MCP dialog, not here. Only the offered providers are listed;
+  // anything else stays hidden unless it is already connected, which keeps every existing setup reachable.
   const all = createMemo(() => {
     const query = store.filter.trim().toLowerCase()
 
     return integrations
       .list()
       .filter((row) => row.metadata?.source !== "mcp")
+      .filter((row) => showsProvider(row.id, row.connections.length > 0))
       .filter((row) => !query || `${row.id} ${row.name}`.toLowerCase().includes(query))
   })
 
@@ -293,30 +294,21 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
       .toSorted((a, b) => a.name.localeCompare(b.name)),
   )
 
-  const unconnected = createMemo(() => all().filter((row) => row.connections.length === 0))
-
   const popular = createMemo(() =>
-    unconnected()
-      .filter((row) => POPULAR.includes(row.id))
-      .toSorted((a, b) => POPULAR.indexOf(a.id) - POPULAR.indexOf(b.id)),
-  )
-
-  const services = createMemo(() =>
-    unconnected()
-      .filter((row) => !POPULAR.includes(row.id))
-      .toSorted((a, b) => a.name.localeCompare(b.name)),
+    all()
+      .filter((row) => row.connections.length === 0)
+      .toSorted((a, b) => visibleProviders.indexOf(a.id) - visibleProviders.indexOf(b.id)),
   )
 
   const groups = () => [
     { title: language.t("dialog.provider.connected"), items: connected },
     { title: language.t("dialog.provider.group.popular"), items: popular },
-    { title: language.t("dialog.provider.group.services"), items: services },
   ]
 
   // An integration that only reads environment variables has nothing to connect from here.
   const disabled = (row: IntegrationInfo) => connectMethods(row).length === 0 && providerAccounts(row).length === 0
 
-  const rows = createMemo(() => [...connected(), ...popular(), ...services()].filter((row) => !disabled(row)))
+  const rows = createMemo(() => [...connected(), ...popular()].filter((row) => !disabled(row)))
 
   let picker: HTMLDivElement | undefined
   let search: HTMLInputElement | undefined

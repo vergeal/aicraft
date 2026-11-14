@@ -459,7 +459,14 @@ async function exec(
         Object.entries(environment).filter((entry): entry is [string, string] => entry[1] !== undefined),
       ),
     }
-    const proc = Bun.spawn([command, ...args], { stdout: "pipe", stderr: "pipe", ...(env ? { env } : {}) })
+    // A host without a console (the desktop app) would otherwise give every probe, venv and install its own console
+    // window. Hidden here rather than only on uv, because pip and the interpreter's build steps spawn in turn.
+    const proc = Bun.spawn([command, ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+      windowsHide: true,
+      ...(env ? { env } : {}),
+    })
     const [stdout, stderr, code] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),

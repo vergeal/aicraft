@@ -65,6 +65,17 @@
   --settings-nav-item-radius: 8px;
 }
 
+/* The header sits on the workbench surface, so it paints that surface instead of the page base. The page base is a
+   step lighter in both schemes, which showed as a raised band above the panel. It stays opaque so sticky scrolling
+   content cannot show through. */
+[data-replica] .settings-screen .settings-tab-header {
+  background: var(--color-main);
+}
+
+[data-replica] .settings-screen .settings-tab-header::before {
+  background: linear-gradient(to bottom, var(--color-main), transparent);
+}
+
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
 [data-replica] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
   color: var(--color-text-secondary);

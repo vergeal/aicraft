@@ -60,7 +60,7 @@ export function normalizeProviderList(
       canonical: provider.canonical,
       integrationID: provider.integrationID,
       name: provider.name,
-      source: "custom",
+      source: "other",
       env: [],
       options: provider.settings ?? {},
       models: {},

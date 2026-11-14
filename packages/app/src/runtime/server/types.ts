@@ -110,7 +110,8 @@ export type Provider = {
   /** Integration that connects this provider; differs from `id` for Console-managed providers. */
   integrationID?: string
   name: string
-  source: "env" | "config" | "custom" | "api"
+  /** Arbitrary strings are valid here; "other" is the fallback for a source this client does not know. */
+  source: "env" | "config" | "custom" | "api" | "other"
   env: string[]
   key?: string
   options: Record<string, unknown>

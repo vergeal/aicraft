@@ -202,13 +202,16 @@ function ComposerModelControl(props: {
                 <button
                   type="button"
                   data-slot="composer-model-row"
-                  class="flex h-7 w-full items-center justify-between gap-2 rounded-full px-1.5 text-start text-[13px] leading-5 transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+                  class="flex h-7 w-full items-center gap-2 rounded-full px-1.5 text-[13px] leading-5 transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
                   onClick={() => {
                     setStore("open", false)
                     open(1)
                   }}
                 >
-                  <span class="flex min-w-0 items-center">
+                  {/* Mirrors the chevron's width so the label centers in the button itself, not in the space left of
+                      the arrow. Without it the label sits 11px left of centre. */}
+                  <span aria-hidden="true" class="w-3.5 shrink-0" />
+                  <span class="flex min-w-0 flex-1 items-center justify-center">
                     <Show when={props.label.provider}>
                       {(name) => (
                         <>
@@ -217,7 +220,7 @@ function ComposerModelControl(props: {
                         </>
                       )}
                     </Show>
-                    <span class="truncate text-v2-text-text-base">{props.label.model}</span>
+                    <span class="min-w-0 truncate text-v2-text-text-base">{props.label.model}</span>
                   </span>
                   <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
                 </button>

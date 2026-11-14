@@ -31,7 +31,7 @@ const patch = (key: string, partIDs: string[], userMessageID = "user-1") =>
     userMessageID,
     group: {
       key,
-      type: "file",
+      type: "commands",
       refs: partIDs.map((partID) => ({ messageID: "assistant-1", partID })),
     } satisfies PartGroup,
     previousAssistantPart: false,
@@ -141,7 +141,7 @@ describe("reuseTimelineRows", () => {
       name: "preserves a patch group key when a member is appended",
       previous: [patch("patch:a", ["a"])],
       rows: [patch("patch:a", ["a", "b"])],
-      expected: ["assistant-part:file:patch:a"],
+      expected: ["assistant-part:commands:patch:a"],
       reused: [],
     },
     {
@@ -162,14 +162,14 @@ describe("reuseTimelineRows", () => {
       name: "preserves the file group identity when its first member becomes standalone",
       previous: [patch("part:a", ["a", "b"])],
       rows: [part("part:a", "a"), patch("part:b", ["b"])],
-      expected: ["assistant-part:part:part:a", "assistant-part:file:part:a"],
+      expected: ["assistant-part:part:part:a", "assistant-part:commands:part:a"],
       reused: [],
     },
     {
       name: "preserves the file group identity before a later standalone member",
       previous: [patch("part:a", ["a", "b"])],
       rows: [patch("part:b", ["b"]), part("part:a", "a")],
-      expected: ["assistant-part:file:part:a", "assistant-part:part:part:a"],
+      expected: ["assistant-part:commands:part:a", "assistant-part:part:part:a"],
       reused: [],
     },
     {

@@ -6,14 +6,16 @@ import type {
 } from "@opencode/client/promise"
 import { useI18n } from "@opencode/ui/context/i18n"
 import { SessionTurn } from "@opencode/util/session-turn"
-import { Option, Predicate, Schema } from "effect"
+import { Predicate } from "effect"
 import {
   For,
+  Index,
   Match,
   Show,
   Switch,
   createEffect,
   createMemo,
+  createSignal,
   onCleanup,
   untrack,
   type Accessor,
@@ -21,6 +23,7 @@ import {
 } from "solid-js"
 import { DiffChanges } from "@opencode/ui/diff-changes"
 import { Icon } from "@opencode/ui/icon"
+import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { enter, Spring, frameLoop, prefersReducedMotion } from "@opencode/ui/motion"
 import { springStyle } from "@opencode/ui/motion/solid"
 import { Dynamic } from "solid-js/web"
@@ -32,19 +35,22 @@ import { TimelineSeparator } from "../components/timeline-separator"
 import {
   SessionAssistantContent,
   SessionContextToolGroup,
-  SessionFileToolGroup,
-  SessionReadToolGroup,
   SessionShellMessage,
   SessionUserMessage,
   currentContentDefaultOpen,
 } from "../message/current-message"
-import { currentToolInput, currentToolMetadata } from "../message/current-tool-state"
+import {
+  currentToolError,
+  currentToolInput,
+  currentToolMetadata,
+  currentToolOutput,
+} from "../message/current-tool-state"
 import {
   AssistantReasoningContent,
   SessionCompactionMessage,
   SessionCompactionQueued,
 } from "../message/message-content"
-import { taskAgentName, ToolRegistry, type ContextGroupPart } from "../tools/tool-renderer"
+import { taskAgentName, ToolDisplay, ToolRegistry, type ContextGroupPart } from "../tools/tool-renderer"
 import { GenericTool } from "../components/basic-tool"
 import { SessionRetry } from "../components/session-retry"
 import { SessionError } from "../components/session-error"
@@ -66,8 +72,6 @@ const emptyAssistantMessages: SessionMessageAssistant[] = []
 
 // Past this many files, the rest of a turn's changes wait behind "Show all".
 const turnDiffFileLimit = 5
-
-const decodeMetadataFile = Schema.decodeUnknownOption(Schema.Struct({ file: Schema.String }))
 
 type Projection = ReturnType<typeof createReactiveTimelineProjection>
 
@@ -261,39 +265,45 @@ export function createSessionTimelineRowRenderer(input: {
   }
 
   const renderCommands = (group: Extract<PartGroup, { type: "commands" }>, onSizeChange?: () => void) => {
-    const items = createMemo(() => {
-      const contents = indexGroupContents(group.refs)
+    const contents = createMemo(() => indexGroupContents(group.refs))
 
-      return group.refs.flatMap((ref) => {
-        const content = contents.get(ref.messageID)?.get(ref.partID)
+    // Every item is the tool's own renderer, so a command keeps its output, an edit its diff and a read its file.
+    const items = createMemo(() =>
+      group.refs.flatMap((ref) => {
+        const content = contents().get(ref.messageID)?.get(ref.partID)
 
-        if (content?.type !== "tool") return []
-        const inputData = currentToolInput(content)
-        const meta = currentToolMetadata(content)
-        const command =
-          typeof inputData.command === "string"
-            ? inputData.command
-            : typeof inputData.code === "string"
-              ? inputData.code
-              : typeof inputData.path === "string"
-                ? inputData.path
-                : typeof meta.command === "string"
-                  ? meta.command
-                  : ""
-        const line = command.replace(/\r\n?/g, "\n").split("\n", 1)[0] ?? ""
-        const completed = content.time.completed
-        const start = content.time.ran ?? content.time.created
-        const duration = completed !== undefined ? Math.max(0, completed - start) : undefined
+        return content?.type === "tool" ? [{ ref, content }] : []
+      }),
+    )
 
-        return [{ id: ref.partID, line, duration }]
-      })
+    // A background shell reports `completed` while its metadata still says it is running.
+    const running = (tool: SessionMessageAssistant["content"][number]) => {
+      if (tool.type !== "tool") return false
+
+      return (
+        tool.state.status === "streaming" ||
+        tool.state.status === "running" ||
+        ("metadata" in tool.state && tool.state.metadata?.status === "running")
+      )
+    }
+
+    const live = createMemo(() => items().some((item) => running(item.content)))
+
+    // The entry opens itself while something runs, and stays open once it settles so the output stays in place.
+    const [openedLive, setOpenedLive] = createSignal(false)
+    createEffect(() => {
+      if (live()) setOpenedLive(true)
     })
 
     const disclosureKey = `commands:${group.key}`
-    const open = () => input.disclosure.value(disclosureKey) === true
+    const open = () => input.disclosure.value(disclosureKey) ?? (live() || openedLive())
 
     return (
-      <div data-component="commands-group" class="w-full min-w-0">
+      <div
+        data-component="commands-group"
+        data-timeline-part-ids={group.refs.map((ref) => ref.partID).join(",")}
+        class="w-full min-w-0"
+      >
         <button
           type="button"
           data-slot="commands-group-trigger"
@@ -305,7 +315,9 @@ export function createSessionTimelineRowRenderer(input: {
           }}
         >
           <Icon name="terminal" size="small" />
-          <span>{i18n.t("ui.messagePart.commands.label")}</span>
+          <span>
+            <TextShimmer text={i18n.t("ui.messagePart.commands.label")} active={live()} />
+          </span>
           {/* The disclosure arrow keeps its slot so revealing it never shifts the label. */}
           <span
             data-slot="commands-group-disclosure"
@@ -328,30 +340,39 @@ export function createSessionTimelineRowRenderer(input: {
         >
           <div class="min-h-0 overflow-hidden">
             <div data-slot="commands-group-list" class="mt-1 flex w-full min-w-0 flex-col gap-1 pl-5">
-              <For each={items()}>
-                {(item) => (
-                  <div
-                    data-slot="commands-group-item"
-                    class="flex w-full min-w-0 items-baseline gap-2 text-13-regular leading-text-compact"
-                  >
-                    <span data-slot="commands-group-prefix" class="shrink-0 text-v2-text-text-faint">
-                      {i18n.t("ui.messagePart.commands.item")}
-                    </span>
-                    <span
-                      data-slot="commands-group-line"
-                      class="min-w-0 flex-1 truncate text-v2-text-text-base font-mono"
-                      title={item.line}
-                    >
-                      {item.line}
-                    </span>
-                    <Show when={item.duration !== undefined}>
-                      <span data-slot="commands-group-duration" class="shrink-0 tabular-nums text-v2-text-text-faint">
-                        {formatCommandDuration(item.duration!)}
-                      </span>
-                    </Show>
-                  </div>
-                )}
-              </For>
+              {/* Positional identity keeps each tool's DOM while its output streams, and part IDs key the disclosure. */}
+              <Index each={items()}>
+                {(item) => {
+                  const tool = () => item().content
+                  const itemKey = () => `${disclosureKey}:tool:${item().ref.partID}`
+                  const itemRunning = () => running(tool())
+                  // A command opens itself while it runs and keeps its output in place once it settles.
+                  const [ranLive, setRanLive] = createSignal(false)
+                  createEffect(() => {
+                    if (itemRunning()) setRanLive(true)
+                  })
+
+                  return (
+                    <div data-slot="commands-group-item" data-timeline-part-id={item().ref.partID} class="min-w-0">
+                      <ToolDisplay
+                        id={item().ref.partID}
+                        tool={tool().name}
+                        input={currentToolInput(tool())}
+                        metadata={currentToolMetadata(tool())}
+                        output={currentToolOutput(tool())}
+                        error={currentToolError(tool())}
+                        status={tool().state.status}
+                        defaultOpen={contentDefaultOpen(tool()) || ranLive()}
+                        open={input.disclosure.value(itemKey())}
+                        onOpenChange={(open) => input.disclosure.set(itemKey(), open)}
+                        deferContent
+                        virtualizeDiff={false}
+                        onContentRendered={onSizeChange}
+                      />
+                    </div>
+                  )
+                }}
+              </Index>
             </div>
           </div>
         </div>
@@ -471,75 +492,6 @@ export function createSessionTimelineRowRenderer(input: {
     const group = row().group
 
     if (group.type === "commands") return renderCommands(group, onSizeChange)
-
-    if (group.type === "read") {
-      const tools = createMemo(() => {
-        const group = row().group
-
-        if (group.type !== "read") return []
-        const contents = indexGroupContents(group.refs)
-
-        return group.refs.flatMap((ref) => {
-          const content = contents.get(ref.messageID)?.get(ref.partID)
-
-          return content?.type === "tool" ? [content] : []
-        })
-      })
-
-      return (
-        <SessionReadToolGroup
-          tools={tools()}
-          open={input.disclosure.value(row().group.key)}
-          onOpenChange={(open) => input.disclosure.set(row().group.key, open)}
-          onSizeChange={onSizeChange}
-        />
-      )
-    }
-
-    if (row().group.type === "file") {
-      const tools = createMemo(() => {
-        const group = row().group
-
-        if (group.type !== "file") return []
-        const contents = indexGroupContents(group.refs)
-
-        return group.refs.flatMap((ref) => {
-          const content = contents.get(ref.messageID)?.get(ref.partID)
-
-          return content?.type === "tool" ? [content] : []
-        })
-      })
-
-      const firstPath = createMemo(() => {
-        const tool = tools()[0]
-
-        if (!tool || !("metadata" in tool.state)) return undefined
-        const files = tool.state.metadata?.files
-
-        if (!Array.isArray(files)) return undefined
-
-        return Option.getOrUndefined(decodeMetadataFile(files[0]))?.file
-      })
-
-      return (
-        <SessionFileToolGroup
-          tools={tools()}
-          fileOpen={(path) => {
-            const open = input.disclosure.value(`${row().group.key}:file:${path}`)
-
-            if (open !== undefined) return open
-
-            if (input.timelineDetail) return input.timelineDetail().edit.details === "expanded"
-
-            if (tools()[0]?.name !== "edit" || path !== firstPath()) return false
-
-            return input.disclosure.value(row().group.key) ?? input.editToolDefaultOpen()
-          }}
-          onFileOpenChange={(path, open) => input.disclosure.set(`${row().group.key}:file:${path}`, open)}
-          onSizeChange={onSizeChange}
-        />
-      )
-    }
 
     const ref = createMemo(() => {
       const group = row().group
@@ -1427,12 +1379,6 @@ export function createSessionTimelineRowRenderer(input: {
   }
 
   return { Row }
-}
-
-function formatCommandDuration(ms: number) {
-  if (ms < 1000) return `${Math.round(ms)}ms`
-  if (ms < 10000) return `${(ms / 1000).toFixed(1)}s`
-  return `${Math.round(ms / 1000)}s`
 }
 
 function capitalizeAgent(agent: string) {

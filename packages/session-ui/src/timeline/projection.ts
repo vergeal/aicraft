@@ -9,12 +9,7 @@ import type {
 } from "@opencode/client/promise"
 import { Effect, Option, Predicate, Schema } from "effect"
 import { createComputed, createMemo, createSignal, mapArray, type Accessor } from "solid-js"
-import {
-  currentContentDefaultOpen,
-  currentToolFailed,
-  currentToolGroupedRead,
-  currentToolHasLoadedFiles,
-} from "../message/current-tool-state"
+import { currentToolFailed } from "../message/current-tool-state"
 import { TimelineRow, type PartGroup, type PartRef, type TimelineRowMap } from "./timeline-row"
 import { timelineCategory, timelineNoticePlacement, timelineNoticeRequired, type TimelineDetail } from "./detail"
 import {
@@ -562,7 +557,7 @@ export namespace Timeline {
 
       const appendGroups = (items: typeof refs) => {
         let offset = 0
-        groupContent(items, shellToolDefaultOpen, editToolDefaultOpen, commentary, detail).forEach(
+        groupContent(items, commentary, detail).forEach(
           (group) => {
             const tool = group.type !== "part" || items[offset]?.content.type !== "text"
           offset += group.type === "part" ? 1 : group.refs.length
@@ -1037,13 +1032,11 @@ function renderable(content: Content, showReasoning: boolean, detail?: TimelineD
 
 function groupContent(
   items: { messageID: string; partID: string; content: Content }[],
-  shellToolDefaultOpen: boolean,
-  editToolDefaultOpen: boolean,
   commentary: ReadonlySet<Content>,
   detail?: TimelineDetail,
 ): PartGroup[] {
   const groups: PartGroup[] = []
-  let adjacent: { type: "commands" | "context" | "file" | "read"; refs: PartRef[]; tools: boolean } | undefined
+  let adjacent: { type: "commands" | "context"; refs: PartRef[]; tools: boolean } | undefined
 
   const flush = () => {
     const current = adjacent
@@ -1065,9 +1058,7 @@ function groupContent(
       key:
         current.type === "commands"
           ? `commands:${first.messageID}:${first.partID}`
-          : current.type !== "context"
-            ? `part:${first.messageID}:${first.partID}`
-            : `context:${first.messageID}:${first.partID}`,
+          : `context:${first.messageID}:${first.partID}`,
       refs: current.refs,
     })
     adjacent = undefined
@@ -1076,8 +1067,6 @@ function groupContent(
   items.forEach((item) => {
     const type = contentGroupType(
       item.content,
-      shellToolDefaultOpen,
-      editToolDefaultOpen,
       adjacent?.type === "context" && adjacent.tools,
       commentary,
       detail,
@@ -1106,79 +1095,56 @@ function groupContent(
 
 function contentGroupType(
   content: Content,
-  shellExpanded: boolean,
-  editExpanded: boolean,
   hasContextGroup: boolean,
   commentary: ReadonlySet<Content>,
   detail?: TimelineDetail,
 ) {
-  if (content.type === "tool") return toolGroupType(content, shellExpanded, editExpanded, hasContextGroup, detail)
+  if (content.type === "tool") return toolGroupType(content, hasContextGroup, detail)
 
   if (content.type === "text") return commentary.has(content) ? "context" : undefined
 
   return detail && detail.thinking.placement !== "grouped" ? undefined : "context"
 }
 
+// Read, editing and search calls share the command entry with shell calls, so a reader has one place for everything
+// that ran. Other tools keep their own grouping.
+const commandFamily = new Set(["read", "list", "glob", "grep", "websearch", "webfetch"])
+
 function toolGroupType(
   content: Extract<Content, { type: "tool" }>,
-  shellExpanded: boolean,
-  editExpanded: boolean,
   hasContextGroup: boolean,
   detail?: TimelineDetail,
 ) {
-  if (timelineCategory(content) === "shell" || content.name === "edit") {
-    // A background shell reports `completed` while its metadata still says it is running; keep that one live.
-    const running =
-      content.state.status === "running" ||
-      ("metadata" in content.state && content.state.metadata?.status === "running")
-    const completed = content.state.status === "completed" || content.state.status === "error"
-    const expanded =
-      content.name === "edit" ? false : detail ? detail.shell.details === "expanded" : shellExpanded
+  const category = timelineCategory(content)
 
-    // Completed commands collapse into the digest at their place in the transcript, live or settled, so the reader
-    // can see what ran between two commentary stages. The command still running keeps its own row.
-    if (completed && !running && !expanded) return "commands"
+  // Commands join the entry whenever they ran, live or settled, expanded or not. A failed read, edit or search keeps
+  // its own row so its error stays visible; a failed command joins the entry like the rest of its family.
+  if (category === "shell" || category === "edit" || commandFamily.has(content.name)) {
+    // A hidden category keeps its calls out of the entry; renderable already dropped the ones that did not fail.
+    if (detail?.[category!].placement === "hidden") return undefined
+
+    if (category === "shell" || !currentToolFailed(content)) return "commands"
   }
 
   if (detail) {
     if (content.name === "question" && !currentToolFailed(content)) return undefined
-    const category = timelineCategory(content)!
 
-    if (detail[category].placement === "grouped") return "context"
-
-    if (currentToolGroupedRead(content)) return "read"
-
-    if (currentToolFailed(content)) return undefined
-
-    if (content.name === "patch" || content.name === "edit" || content.name === "write") return "file"
-
-    return undefined
+    return detail[category!].placement === "grouped" ? "context" : undefined
   }
 
-  if (content.name === "question" || currentToolHasLoadedFiles(content)) return undefined
+  if (content.name === "question") return undefined
 
-  if (content.state.status === "error") {
-    if ((content.name === "shell" || content.name === "execute") && shellExpanded) return undefined
-
-    if ((content.name === "edit" || content.name === "write" || content.name === "patch") && editExpanded)
-      return undefined
-
-    return "context"
-  }
+  if (content.state.status === "error") return "context"
 
   if (
     !hasContextGroup &&
     (content.state.status !== "completed" ||
       ("metadata" in content.state && content.state.metadata?.status === "running")) &&
-    (content.name === "shell" || content.name === "execute" || content.name === "subagent")
+    content.name === "subagent"
   )
     return undefined
 
-  if (currentContentDefaultOpen(content, shellExpanded, editExpanded) !== true) return "context"
-
-  if (content.name === "patch" || content.name === "edit" || content.name === "write") return "file"
-
-  return undefined
+  return "context"
 }
 
 export function reasoningHeading(text: string): string | undefined {

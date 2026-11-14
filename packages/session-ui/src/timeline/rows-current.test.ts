@@ -304,7 +304,7 @@ describe("current session timeline rows", () => {
     ])
     expect(
       rows([thought, storyTool("read", "read", "running", { filePath: "package.json" })], true).map((row) => row._tag),
-    ).toEqual(["UserMessage", "AssistantPart"])
+    ).toEqual(["UserMessage", "AssistantPart", "AssistantPart"])
     expect(rows([thought], false).map((row) => row._tag)).toEqual(["UserMessage", "AssistantPart"])
 
     const failed = storyDocument([thought], true)
@@ -381,7 +381,7 @@ describe("current session timeline rows", () => {
     })
   })
 
-  test("uses the latest reasoning part and groups earlier thoughts with tools", () => {
+  test("uses the latest reasoning part and keeps earlier thoughts apart from commands", () => {
     const document = storyDocument(
       [
         { type: "reasoning", text: "Old thought", time: { created: 1, completed: 2 } },
@@ -392,11 +392,17 @@ describe("current session timeline rows", () => {
     )
 
     const result = Timeline.constructSessionMessageRows(document.messages, true, { type: "busy" })
-    expect(result.rows.map((row) => row._tag)).toEqual(["UserMessage", "AssistantPart", "Thinking"])
+    expect(result.rows.map((row) => row._tag)).toEqual([
+      "UserMessage",
+      "AssistantPart",
+      "AssistantPart",
+      "Thinking",
+    ])
     expect(result.rows[1]).toMatchObject({
-      group: { type: "context", refs: [{ partID: "msg_tool_projection_assistant:reasoning:0" }, { partID: "read" }] },
+      group: { type: "part", ref: { partID: "msg_tool_projection_assistant:reasoning:0" } },
     })
-    expect(result.rows[2]).toMatchObject({ ref: { partID: "msg_tool_projection_assistant:reasoning:1" } })
+    expect(result.rows[2]).toMatchObject({ group: { type: "commands", refs: [{ partID: "read" }] } })
+    expect(result.rows[3]).toMatchObject({ ref: { partID: "msg_tool_projection_assistant:reasoning:1" } })
   })
 
   test("keeps actual thinking with the active prompt above an undelivered prompt", () => {
@@ -531,7 +537,11 @@ describe("current session timeline rows", () => {
     expect(result.rows.map((row) => row._tag)).toEqual(["UserMessage", "Thinking", "Notice"])
   })
 
-  test.each(["shell", "execute", "subagent"])("does not hide active %s behind a preceding thought", (name) => {
+  test.each([
+    ["shell", ["part", "commands"]],
+    ["execute", ["part", "commands"]],
+    ["subagent", ["part", "part"]],
+  ] as const)("does not hide active %s behind a preceding thought", (name, types) => {
     const document = storyDocument(
       [
         { type: "reasoning", text: "Finished thought", time: { created: 1, completed: 2 } },
@@ -542,8 +552,7 @@ describe("current session timeline rows", () => {
 
     const result = Timeline.constructSessionMessageRows(document.messages, true, document.status)
     expect(result.rows.flatMap((row) => (Predicate.isTagged(row, "AssistantPart") ? [row.group.type] : []))).toEqual([
-      "part",
-      "part",
+      ...types,
     ])
   })
 
@@ -575,7 +584,7 @@ describe("current session timeline rows", () => {
 
     expect(rows.map(TimelineRow.key)).toEqual([
       "user-message:msg_user",
-      "assistant-part:context:context:msg_assistant:tool_read",
+      "assistant-part:commands:commands:msg_assistant:tool_read",
       "notice:msg_moved",
       "assistant-part:context:message:msg_skill",
     ])
@@ -637,17 +646,24 @@ describe("current session timeline rows", () => {
     if (id === "compact")
       expect(keys).toEqual([
         "user-message:msg_user",
-        "assistant-part:context:context:msg_before:msg_before_read",
+        "assistant-part:commands:commands:msg_before:msg_before_read",
         "notice:msg_agent",
         "notice:msg_shell",
-        "assistant-part:context:context:msg_after:msg_after_read",
+        "assistant-part:commands:commands:msg_after:msg_after_read",
       ])
   })
 
   test.each([
-    ["grouped", "assistant-part:context:context:msg_a1:msg_a1:text:0"],
-    ["hidden", "assistant-part:context:context:msg_a1:tool_read"],
-  ] as const)("%s commentary keeps the answer of each turn", (placement, group) => {
+    [
+      "grouped",
+      [
+        "assistant-part:context:context:msg_a1:msg_a1:text:0",
+        "assistant-part:commands:commands:msg_a1:tool_read",
+        "assistant-part:context:context:msg_a2:msg_a2:text:0",
+      ],
+    ],
+    ["hidden", ["assistant-part:commands:commands:msg_a1:tool_read"]],
+  ] as const)("%s commentary keeps the answer of each turn", (placement, groups) => {
     const step = (id: string, content: SessionMessageAssistant["content"]) =>
       ({
         id,
@@ -683,12 +699,12 @@ describe("current session timeline rows", () => {
     // The interrupted second turn has no answer, so its last commentary stays visible.
     expect(rows.map(TimelineRow.key)).toEqual([
       "user-message:msg_user",
-      group,
+      ...groups,
       "assistant-part:part:part:msg_a2:msg_a2:text:1",
       "turn-gap:msg_stop",
       "user-message:msg_stop",
       "assistant-part:part:part:msg_a3:msg_a3:text:0",
-      "assistant-part:context:context:msg_a3:tool_grep",
+      "assistant-part:commands:commands:msg_a3:tool_grep",
     ])
   })
 
@@ -836,7 +852,7 @@ describe("current session timeline rows", () => {
     expect(result.rows.map((row) => row._tag)).toEqual(["UserMessage", "AssistantPart"])
   })
 
-  test("keeps content IDs and groups adjacent context tools", () => {
+  test("keeps content IDs and groups adjacent reads and searches", () => {
     const source = [
       { id: "msg_user", type: "user", text: "inspect", time: { created: 1 } },
       {
@@ -886,8 +902,8 @@ describe("current session timeline rows", () => {
 
     expect(groups).toEqual([
       {
-        type: "context",
-        key: "context:msg_assistant:tool_read",
+        type: "commands",
+        key: "commands:msg_assistant:tool_read",
         refs: [
           { messageID: "msg_assistant", partID: "tool_read" },
           { messageID: "msg_assistant", partID: "tool_grep" },
@@ -901,7 +917,7 @@ describe("current session timeline rows", () => {
     ])
   })
 
-  test("keeps reads that load files outside context groups", () => {
+  test("keeps reads that load files in the commands entry with searches", () => {
     const read = {
       type: "tool",
       id: "tool_read",
@@ -941,25 +957,28 @@ describe("current session timeline rows", () => {
 
     expect(groups).toEqual([
       {
-        type: "part",
-        key: "part:msg_assistant:tool_read",
-        ref: { messageID: "msg_assistant", partID: "tool_read" },
-      },
-      {
-        type: "context",
-        key: "context:msg_assistant:tool_grep",
-        refs: [{ messageID: "msg_assistant", partID: "tool_grep" }],
+        type: "commands",
+        key: "commands:msg_assistant:tool_read",
+        refs: [
+          { messageID: "msg_assistant", partID: "tool_read" },
+          { messageID: "msg_assistant", partID: "tool_grep" },
+        ],
       },
     ])
   })
 
-  test("keeps context row keys unique when tool IDs repeat across assistant messages", () => {
-    const tool = (name: string) => ({
-      type: "tool" as const,
+  test("keeps command row keys unique when tool IDs repeat across assistant messages", () => {
+    const tool = (name: string): SessionMessageAssistantTool => ({
+      type: "tool",
       id: "tool_0",
       name,
-      state: { status: "running" as const, input: {}, metadata: {} },
-      time: { created: 2 },
+      state: {
+        status: "completed",
+        input: {},
+        content: [{ type: "text", text: "done" }],
+        metadata: {},
+      },
+      time: { created: 2, completed: 3 },
     })
 
     const assistant = (id: string, name: string) => ({
@@ -974,7 +993,14 @@ describe("current session timeline rows", () => {
     const source = [
       { id: "msg_user", type: "user", text: "inspect", time: { created: 1 } },
       assistant("msg_assistant_1", "read"),
-      assistant("msg_assistant_2", "execute"),
+      {
+        id: "msg_assistant_2",
+        type: "assistant" as const,
+        agent: "build",
+        model: { id: "model", providerID: "provider" },
+        content: [{ type: "text" as const, text: "Now searching." }],
+        time: { created: 2 },
+      },
       assistant("msg_assistant_3", "grep"),
     ] satisfies SessionMessageInfo[]
 
@@ -984,13 +1010,13 @@ describe("current session timeline rows", () => {
 
     expect(keys).toEqual([
       "user-message:msg_user",
-      "assistant-part:context:context:msg_assistant_1:tool_0",
-      "assistant-part:part:part:msg_assistant_2:tool_0",
-      "assistant-part:context:context:msg_assistant_3:tool_0",
+      "assistant-part:commands:commands:msg_assistant_1:tool_0",
+      "assistant-part:part:part:msg_assistant_2:msg_assistant_2:text:0",
+      "assistant-part:commands:commands:msg_assistant_3:tool_0",
     ])
   })
 
-  test("groups adjacent successful patches and leaves failed patches separate", () => {
+  test("keeps adjacent edits in the commands entry and a failed patch in its own group", () => {
     const source = [
       { id: "msg_user", type: "user", text: "edit", time: { created: 1 } },
       {
@@ -1073,21 +1099,21 @@ describe("current session timeline rows", () => {
 
     expect(groups).toEqual([
       {
-        type: "file",
-        key: "part:msg_assistant:tool_patch_1",
+        type: "commands",
+        key: "commands:msg_assistant:tool_patch_1",
         refs: [
           { messageID: "msg_assistant", partID: "tool_patch_1" },
           { messageID: "msg_assistant", partID: "tool_patch_2" },
         ],
       },
       {
-        type: "part",
-        key: "part:msg_assistant:tool_patch_failed",
-        ref: { messageID: "msg_assistant", partID: "tool_patch_failed" },
+        type: "context",
+        key: "context:msg_assistant:tool_patch_failed",
+        refs: [{ messageID: "msg_assistant", partID: "tool_patch_failed" }],
       },
       {
-        type: "file",
-        key: "part:msg_assistant:tool_patch_3",
+        type: "commands",
+        key: "commands:msg_assistant:tool_patch_3",
         refs: [
           { messageID: "msg_assistant", partID: "tool_patch_3" },
           { messageID: "msg_assistant", partID: "tool_edit_1" },
@@ -1143,35 +1169,19 @@ describe("current session timeline rows", () => {
       Predicate.isTagged(row, "AssistantPart") ? [row.group] : [],
     )
 
-    expect(groups.map((group) => group.type)).toEqual([
-      "commands",
-      "context",
-      "commands",
-      "context",
-      "part",
-      "commands",
-    ])
+    expect(groups.map((group) => group.type)).toEqual(["commands", "context", "commands", "part", "commands"])
     expect(groups[0]?.type === "commands" ? groups[0].refs.map((ref) => ref.partID) : []).toEqual(["tool_0"])
-    expect(groups[1]?.type === "context" ? groups[1].refs.map((ref) => ref.partID) : []).toEqual([
-      "tool_1",
-      "tool_2",
-    ])
+    expect(groups[1]?.type === "context" ? groups[1].refs.map((ref) => ref.partID) : []).toEqual(["tool_1"])
     expect(groups[2]?.type === "commands" ? groups[2].refs.map((ref) => ref.partID) : []).toEqual([
+      "tool_2",
       "tool_3",
       "tool_4",
-    ])
-    expect(groups[3]?.type === "context" ? groups[3].refs.map((ref) => ref.partID) : []).toEqual([
       "tool_5",
       "tool_6",
     ])
   })
 
-  test.each([
-    { shell: false, edit: false, types: ["commands", "context"] },
-    { shell: true, edit: false, types: ["part", "commands", "context"] },
-    { shell: false, edit: true, types: ["commands", "file", "context"] },
-    { shell: true, edit: true, types: ["part", "commands", "file", "context"] },
-  ])("keeps tools expanded by settings outside collapsed groups ($shell, $edit)", ({ shell, edit, types }) => {
+  test("keeps commands, edits and reads in one entry whatever the expansion settings say", () => {
     const source = [
       { id: "msg_user", type: "user", text: "work", time: { created: 1 } },
       {
@@ -1197,11 +1207,16 @@ describe("current session timeline rows", () => {
       },
     ] satisfies SessionMessageInfo[]
 
-    const rows = Timeline.constructSessionMessageRows(source, false, { type: "idle" }, undefined, shell, edit).rows
+    const types = (shell: boolean, edit: boolean) =>
+      Timeline.constructSessionMessageRows(source, false, { type: "idle" }, undefined, shell, edit).rows.flatMap(
+        (row) => (Predicate.isTagged(row, "AssistantPart") ? [row.group.type] : []),
+      )
 
-    expect(rows.flatMap((row) => (Predicate.isTagged(row, "AssistantPart") ? [row.group.type] : []))).toEqual([
-      ...types,
-    ])
+    // Expansion settings open tool bodies; they never split the entry.
+    expect(types(false, false)).toEqual(["commands"])
+    expect(types(true, false)).toEqual(["commands"])
+    expect(types(false, true)).toEqual(["commands"])
+    expect(types(true, true)).toEqual(["commands"])
   })
 
   test.each([
@@ -1209,13 +1224,21 @@ describe("current session timeline rows", () => {
       name: "default",
       grouped: false,
       groups: [
-        ["context", "read", "grep"],
+        ["commands", "read", "grep"],
         ["part", "agent_1"],
         ["part", "agent_2"],
-        ["context", "glob", "read_2"],
+        ["commands", "glob", "read_2"],
       ],
     },
-    { name: "opted in", grouped: true, groups: [["context", "read", "grep", "agent_1", "agent_2", "glob", "read_2"]] },
+    {
+      name: "opted in",
+      grouped: true,
+      groups: [
+        ["commands", "read", "grep"],
+        ["context", "agent_1", "agent_2"],
+        ["commands", "glob", "read_2"],
+      ],
+    },
   ])("gives each subagent its own row unless subagent grouping is enabled ($name)", (input) => {
     const compact = timelinePresets.find((preset) => preset.id === "compact")!.value
 
@@ -1251,7 +1274,7 @@ describe("current session timeline rows", () => {
     ).toEqual(input.groups.map((group) => [...group]))
   })
 
-  test("merges adjacent separate reads into one read row split by other parts", () => {
+  test("groups runs of reads and searches around the parts that split them", () => {
     const rows = Timeline.constructSessionMessageRows(
       storyDocument([
         storyTool("read_1", "read", "completed", { path: "src/a.ts" }),
@@ -1286,21 +1309,19 @@ describe("current session timeline rows", () => {
             ],
       ),
     ).toEqual([
-      ["read", "read_1", "read_2"],
+      ["commands", "read_1", "read_2"],
       ["part", "msg_tool_projection_assistant:reasoning:0"],
-      ["read", "read_3"],
-      ["part", "read_image"],
+      ["commands", "read_3", "read_image"],
+      // A failed read keeps its own row so its error stays visible.
       ["part", "read_failed"],
-      ["read", "read_4", "read_5"],
-      ["part", "glob"],
-      ["read", "read_6"],
+      ["commands", "read_4", "read_5", "glob", "read_6"],
     ])
   })
 
-  // Completed shell and execute calls become their own commands row, so only subagents stay in one group.
+  // Only subagents stay in one group throughout execution; commands share the ran-commands entry.
   test.each(["subagent"])("keeps %s in an existing group throughout execution", (name) => {
     const initial = createTimelineProjection({
-      sessionMessages: storyDocument([storyTool("earlier", "read", "completed", {})]).messages,
+      sessionMessages: storyDocument([storyTool("earlier", "subagent", "completed", {})]).messages,
       status: { type: "busy" },
       reasoningMode: "hidden",
     })
@@ -1316,7 +1337,7 @@ describe("current session timeline rows", () => {
     phases.reduce((previousRows, phase, index) => {
       const result = createTimelineProjection({
         sessionMessages: [
-          ...storyDocument([storyTool("earlier", "read", "completed", {})]).messages,
+          ...storyDocument([storyTool("earlier", "subagent", "completed", {})]).messages,
           ...storyDocument([
             storyTool("active", name, phase.status, {}, "metadata" in phase ? { metadata: phase.metadata } : {}),
           ])
@@ -1346,12 +1367,12 @@ describe("current session timeline rows", () => {
   })
 
   test.each([
-    { name: "shell", expanded: true, types: ["context", "part"] },
-    { name: "execute", expanded: true, types: ["context", "part"] },
-    { name: "subagent", expanded: true, types: ["context"] },
-    { name: "shell", separator: "text", types: ["context", "part", "part"] },
-    { name: "shell", separator: "reasoning", showReasoning: true, types: ["context"] },
-    { name: "shell", separator: "reasoning", showReasoning: false, types: ["context"] },
+    { name: "shell", expanded: true, types: ["commands"] },
+    { name: "execute", expanded: true, types: ["commands"] },
+    { name: "subagent", expanded: true, types: ["commands", "part"] },
+    { name: "shell", separator: "text", types: ["commands", "part", "commands"] },
+    { name: "shell", separator: "reasoning", showReasoning: true, types: ["commands", "part", "commands"] },
+    { name: "shell", separator: "reasoning", showReasoning: false, types: ["commands"] },
   ] as const)("respects active tool grouping boundaries: %j", (profile) => {
     const content = [
       storyTool("earlier", "read", "completed", {}),
@@ -1372,7 +1393,7 @@ describe("current session timeline rows", () => {
     ])
   })
 
-  test("keeps active and background work standalone and collapses a finished command while live", () => {
+  test("keeps a background agent standalone while its commands share one entry", () => {
     const source: SessionMessageInfo[] = [
       { id: "msg_user", type: "user", text: "work", time: { created: 1 } },
       {
@@ -1421,7 +1442,7 @@ describe("current session timeline rows", () => {
       Timeline.constructSessionMessageRows(source, false, { type: "busy" }).rows.flatMap((row) =>
         Predicate.isTagged(row, "AssistantPart") ? [row.group.type] : [],
       ),
-    ).toEqual(["part", "part", "commands"])
+    ).toEqual(["commands", "part", "commands"])
   })
 
   test("collapses commands between commentary while the turn is still live", () => {
@@ -1532,7 +1553,7 @@ describe("current session timeline rows", () => {
       Timeline.constructSessionMessageRows(source, false, { type: "idle" }, undefined, true).rows.flatMap((row) =>
         Predicate.isTagged(row, "AssistantPart") ? [row.group.type] : [],
       ),
-    ).toEqual(["context", "part"])
+    ).toEqual(["context", "commands"])
   })
 
   test("places a divider after interrupted output unless the turn compacts", () => {

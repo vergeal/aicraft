@@ -1019,6 +1019,12 @@ function renderable(content: Content, showReasoning: boolean, detail?: TimelineD
   if (content.type === "reasoning")
     return (detail ? detail.thinking.placement !== "hidden" : showReasoning) && !!content.text.trim()
 
+  // A hidden shell placement removes the command and its output from the transcript, failures included, and the row
+  // renderer hides it unconditionally. Checking this before the failure rule keeps a failed hidden shell out of the
+  // projection instead of projecting a row that draws nothing.
+  if (detail && content.type === "tool" && timelineCategory(content) === "shell" && detail.shell.placement === "hidden")
+    return false
+
   if (detail && currentToolFailed(content)) return true
 
   if (content.name === "todowrite") return false
@@ -1120,7 +1126,8 @@ function toolGroupType(
   // Commands join the entry whenever they ran, live or settled, expanded or not. A failed read, edit or search keeps
   // its own row so its error stays visible; a failed command joins the entry like the rest of its family.
   if (category === "shell" || category === "edit" || commandFamily.has(content.name)) {
-    // A hidden category keeps its calls out of the entry; renderable already dropped the ones that did not fail.
+    // A hidden category keeps its calls out of the entry. renderable already excluded everything it would hide,
+    // failures included.
     if (detail?.[category!].placement === "hidden") return undefined
 
     if (category === "shell" || !currentToolFailed(content)) return "commands"

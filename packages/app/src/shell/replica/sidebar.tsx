@@ -30,6 +30,9 @@ import { SessionSettingsDialog } from "@/session/settings-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
+import { showToast } from "@/shell/notifications/toast"
+import { sessionHref } from "@/shell/routes/session"
+import { createWorktree } from "@/workspaces/create"
 import { createSessionInbox, type InboxEntry, type InboxStatus } from "@/shell/titlebar/inbox-model"
 import { deliveryFrom, playDeliveryFlight, playUndoDrop } from "./envelope-flight"
 import { InboxNav } from "./sidebar-inbox"
@@ -158,7 +161,7 @@ function SessionRow(props: {
 
   const dialog = useDialog()
 
-  const tabs = useTabs()
+  const navigate = useNavigate()
 
   // The row is the sortable element itself: dnd-kit refuses a drag that starts on a row's own pressed
   // button when that button is only a descendant of a different element.
@@ -264,6 +267,31 @@ function SessionRow(props: {
       .catch(() => undefined)
   }
 
+  // A branch conversation starts in its own worktree of the project rather than on a draft page: the user asked for a
+  // separate checkout, so open a real session there and report a failed creation instead of leaving a blank draft.
+  const createBranch = async () => {
+    const entry = props.entry()
+    const directory = entry.session.location.directory
+    const root = entry.ctx.data.location.info({ directory })?.project.canonical ?? directory
+
+    try {
+      const created = await createWorktree({ api: entry.ctx.sdk.api, data: entry.ctx.data, directory: root })
+      const session = entry.ctx.data.session.create({
+        location: { directory: created },
+        model: entry.session.model,
+        agent: entry.session.agent,
+      })
+
+      await session.request
+      navigate(sessionHref(entry.server, session.id))
+    } catch (cause: unknown) {
+      showToast({
+        title: language.t("common.requestFailed"),
+        description: cause instanceof Error ? cause.message : String(cause),
+      })
+    }
+  }
+
   // Desktop draws the platform menu; only the web build needs the in-app one.
   const showNativeMenu = async (position: { x: number; y: number }) => {
     const show = platform.showContextMenu
@@ -328,8 +356,7 @@ function SessionRow(props: {
     else if (chosen === "sessionSettings")
       dialog.show(() => <SessionSettingsDialog server={entry.server} session={entry.session} />)
     else if (chosen === "projectSettings") openProjectSettings()
-    else if (chosen === "createBranch")
-      void tabs.newDraft({ server: entry.server, directory: entry.session.location.directory, worktree: "create" })
+    else if (chosen === "createBranch") void createBranch()
     else if (chosen === "delete") props.onDelete(props.entry())
   }
 

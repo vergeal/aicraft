@@ -4492,6 +4492,12 @@ export type SkillListInput = { readonly location?: { readonly directory?: string
 
 export type SkillListOutput = { location: LocationPublicRef; data: Array<SkillInfo> }
 
+export type ExperimentalSkillLocalInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+
+export type ExperimentalSkillLocalOutput = { location: LocationPublicRef; data: Array<SkillInfo> }
+
 export type RpcCallInput = {
   readonly rpcID: string
   readonly method: string
@@ -5246,6 +5252,12 @@ export type FileUnwatchInput = ExperimentalFileUnwatchInput
 
 /** @deprecated Use `ExperimentalFileUnwatchOutput`. Removed in the next minor. */
 export type FileUnwatchOutput = ExperimentalFileUnwatchOutput
+
+/** @deprecated Use `ExperimentalSkillLocalInput`. Removed in the next minor. */
+export type SkillLocalInput = ExperimentalSkillLocalInput
+
+/** @deprecated Use `ExperimentalSkillLocalOutput`. Removed in the next minor. */
+export type SkillLocalOutput = ExperimentalSkillLocalOutput
 
 /** @deprecated Use `ExperimentalMigrationV1StatusOutput`. Removed in the next minor. */
 export type MigrationV1StatusOutput = ExperimentalMigrationV1StatusOutput

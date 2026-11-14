@@ -2192,6 +2192,24 @@ export type SkillListOperation<E = never> = (input?: SkillListInput) => Effect.E
 
 export interface SkillApi<E = never> {
   readonly list: SkillListOperation<E>
+
+  /** @deprecated Use `client.experimental.skill.local`. Removed in the next minor. */
+  readonly local: ExperimentalSkillLocalOperation<E>
+}
+
+export type ExperimentalSkillLocalInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+export type ExperimentalSkillLocalOutput = {
+  readonly location: Location.PublicRef
+  readonly data: ReadonlyArray<Skill.Info>
+}
+export type ExperimentalSkillLocalOperation<E = never> = (
+  input?: ExperimentalSkillLocalInput,
+) => Effect.Effect<ExperimentalSkillLocalOutput, E>
+
+export interface ExperimentalSkillApi<E = never> {
+  readonly local: ExperimentalSkillLocalOperation<E>
 }
 
 export type RpcCallInput = {
@@ -3321,6 +3339,15 @@ export type FileUnwatchOutput = ExperimentalFileUnwatchOutput
 /** @deprecated Use `ExperimentalFileUnwatchOperation`. Removed in the next minor. */
 export type FileUnwatchOperation<E = never> = ExperimentalFileUnwatchOperation<E>
 
+/** @deprecated Use `ExperimentalSkillLocalInput`. Removed in the next minor. */
+export type SkillLocalInput = ExperimentalSkillLocalInput
+
+/** @deprecated Use `ExperimentalSkillLocalOutput`. Removed in the next minor. */
+export type SkillLocalOutput = ExperimentalSkillLocalOutput
+
+/** @deprecated Use `ExperimentalSkillLocalOperation`. Removed in the next minor. */
+export type SkillLocalOperation<E = never> = ExperimentalSkillLocalOperation<E>
+
 /** @deprecated Use `ExperimentalMigrationV1StatusOutput`. Removed in the next minor. */
 export type MigrationV1StatusOutput = ExperimentalMigrationV1StatusOutput
 
@@ -3424,6 +3451,7 @@ export interface AppApi<E = never> {
     readonly integration: ExperimentalIntegrationApi<E>
     readonly mcp: ExperimentalMcpApi<E>
     readonly file: ExperimentalFileApi<E>
+    readonly skill: ExperimentalSkillApi<E>
     readonly migration: ExperimentalMigrationApi<E>
     readonly usage: ExperimentalUsageApi<E>
     readonly config: ExperimentalConfigApi<E>

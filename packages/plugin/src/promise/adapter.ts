@@ -506,6 +506,7 @@ export function fromPromise(plugin: Plugin) {
           rpc: yield* rpcFromEffect(host.rpc, streams),
           skill: {
             list: adaptApiMethod(SkillEndpoints["skill.list"], host.skill.list),
+            local: adaptApiMethod(SkillEndpoints["skill.local"], host.skill.local),
             transform: transform(host.skill),
             reload: () => run(host.skill.reload()),
           },

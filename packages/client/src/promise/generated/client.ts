@@ -225,6 +225,8 @@ import type {
   CommandListOutput,
   SkillListInput,
   SkillListOutput,
+  ExperimentalSkillLocalInput,
+  ExperimentalSkillLocalOutput,
   RpcCallInput,
   RpcCallOutput,
   EventSubscribeInput,
@@ -1048,6 +1050,20 @@ export function make(options: ClientOptions) {
               successStatus: 204,
               declaredStatuses: [400, 401, 404],
               empty: true,
+            },
+            requestOptions,
+          ),
+      },
+      skill: {
+        local: (input?: ExperimentalSkillLocalInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalSkillLocalOutput>(
+            {
+              method: "GET",
+              path: `/api/experimental/skill/local`,
+              query: { location: input?.["location"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
             },
             requestOptions,
           ),
@@ -3011,6 +3027,11 @@ export function make(options: ClientOptions) {
       watch: client.experimental.file.watch,
       /** @deprecated Use `client.experimental.file.unwatch`. Removed in the next minor. */
       unwatch: client.experimental.file.unwatch,
+    },
+    skill: {
+      ...client.skill,
+      /** @deprecated Use `client.experimental.skill.local`. Removed in the next minor. */
+      local: client.experimental.skill.local,
     },
     /** @deprecated Use `client.experimental.migration`. Removed in the next minor. */
     migration: {

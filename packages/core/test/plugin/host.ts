@@ -149,6 +149,7 @@ export function host(overrides: Overrides = {}): Plugin.Context {
     },
     skill: overrides.skill ?? {
       list: () => Effect.die("unused skill.list"),
+      local: () => Effect.die("unused skill.local"),
       transform: () => Effect.die("unused skill.transform"),
       reload: () => Effect.die("unused skill.reload"),
     },

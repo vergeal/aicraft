@@ -227,6 +227,8 @@ import type {
   CommandListOutput,
   SkillListInput,
   SkillListOutput,
+  ExperimentalSkillLocalInput,
+  ExperimentalSkillLocalOutput,
   RpcCallInput,
   RpcCallOutput,
   EventSubscribeInput,
@@ -1518,6 +1520,13 @@ const EndpointSkillList = (raw: RawClient["server.skill"]) => (input?: SkillList
 
 const adaptGroupSkill = (raw: RawClient["server.skill"]) => ({ list: EndpointSkillList(raw) })
 
+const EndpointExperimentalSkillLocal = (raw: RawClient["server.skill"]) => (input?: ExperimentalSkillLocalInput) =>
+  preserveEffect<ExperimentalSkillLocalOutput>()(
+    raw["skill.local"]({ query: { location: input?.["location"] } }).pipe(Effect.mapError(mapClientError)),
+  )
+
+const adaptGroupExperimentalSkill = (raw: RawClient["server.skill"]) => ({ local: EndpointExperimentalSkillLocal(raw) })
+
 const EndpointRpcCall = (raw: RawClient["server.rpc"]) => (input: RpcCallInput) =>
   preserveEffect<RpcCallOutput>()(
     raw["rpc.call"]({
@@ -2143,6 +2152,7 @@ const adaptClient = (raw: RawClient) => {
       integration: adaptGroupExperimentalIntegration(raw["server.integration"]),
       mcp: adaptGroupExperimentalMcp(raw["server.mcp"]),
       file: adaptGroupExperimentalFile(raw["server.fs"]),
+      skill: adaptGroupExperimentalSkill(raw["server.skill"]),
       migration: adaptGroupExperimentalMigration(raw["server.migration"]),
       usage: adaptGroupExperimentalUsage(raw["server.usage"]),
       config: adaptGroupExperimentalConfig(raw["server.config"]),
@@ -2272,6 +2282,11 @@ const adaptClient = (raw: RawClient) => {
       watch: client.experimental.file.watch,
       /** @deprecated Use `client.experimental.file.unwatch`. Removed in the next minor. */
       unwatch: client.experimental.file.unwatch,
+    },
+    skill: {
+      ...client.skill,
+      /** @deprecated Use `client.experimental.skill.local`. Removed in the next minor. */
+      local: client.experimental.skill.local,
     },
     /** @deprecated Use `client.experimental.migration`. Removed in the next minor. */
     migration: {

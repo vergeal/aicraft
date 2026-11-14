@@ -116,7 +116,7 @@ export const ExploreSkills: Component = () => {
 
   const skills = installed.skills
 
-  const [catalog] = createResource(loadCatalog)
+  const [catalog] = createResource(() => loadCatalog(serverSdk))
 
   // Reading the resource before its first value would suspend the pane, so Discover stays empty until it lands.
   const catalogSkills = () => {

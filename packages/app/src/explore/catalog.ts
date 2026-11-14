@@ -1,9 +1,9 @@
 /**
  * The Explore catalog: the plugins and skills people publish for OpenCode, as the sidebar's "Discover" lists.
  *
- * Plugins come from the local discover directory (`~/.ocplugins-local/<id>/<version>/`), which stands in for a
- * registry until one exists: the server reads it and returns each id with its available versions. `loadCatalog`
- * keeps the bundled skills shelf, and `loadLocalCatalog` is the one seam that changes when a real registry lands.
+ * Plugins and skills come from the local discover root (`~/.distribution/`), which stands in for a registry until one
+ * exists: the server reads it and returns each plugin id with its available versions, and every skill directory with a
+ * `SKILL.md`. `loadLocalCatalog` is the one seam that changes when a real registry lands.
  */
 import type { PluginLocalEntry } from "@opencode/client/promise"
 
@@ -64,11 +64,31 @@ export type CatalogSource = {
   skills: readonly CatalogSkill[]
 }
 
-// Skills are built into the server, so nothing is bundled to install here.
-const skills: readonly CatalogSkill[] = []
+export type CatalogServer = {
+  api: {
+    experimental: {
+      plugin: { local: () => Promise<{ data: PluginLocalEntry[] }> }
+      skill: { local: () => Promise<{ data: readonly LocalSkill[] }> }
+    }
+  }
+}
 
-export function loadCatalog(): Promise<CatalogSource> {
-  return Promise.resolve({ plugins: [], skills })
+type LocalSkill = { id: string; name: string; description?: string; content: string }
+
+/**
+ * The skills shelf reads the local distribution directory, where each skill is a directory with a `SKILL.md`.
+ * Results are newest first by id, matching how the plugin shelf lists bundle versions.
+ */
+export function loadCatalog(server: CatalogServer): Promise<CatalogSource> {
+  return server.api.experimental.skill.local().then((result) => ({
+    plugins: [],
+    skills: result.data.map((skill) => ({
+      id: skill.id,
+      title: skill.name,
+      description: skill.description ?? "",
+      instructions: skill.content,
+    })),
+  }))
 }
 
 /**
@@ -104,7 +124,7 @@ export function loadLocalCatalog(server: {
           : {}),
       } satisfies CatalogPlugin
     }),
-    skills,
+    skills: [],
   }))
 }
 

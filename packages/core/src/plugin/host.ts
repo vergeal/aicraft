@@ -30,6 +30,7 @@ import { Reference } from "../reference.js"
 import { Rpc } from "../rpc.js"
 import { AbsolutePath, type DeepMutable } from "../schema.js"
 import { Skill } from "../skill.js"
+import { SkillLocal } from "../skill/local.js"
 import { Tool } from "../tool.js"
 import { Workspace } from "../workspace.js"
 import { Vcs } from "../vcs.js"
@@ -523,6 +524,7 @@ export const make = Effect.fn("PluginHost.make")(function* (
     },
     skill: {
       list: () => response(skill.list()),
+      local: () => response(Effect.promise(() => SkillLocal.list({ home: global.home }))),
       reload: skill.reload,
       transform: (callback) =>
         skill.transform((editor) => {

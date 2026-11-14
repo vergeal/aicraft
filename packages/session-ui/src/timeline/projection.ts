@@ -1126,7 +1126,8 @@ function toolGroupType(
   // Commands join the entry whenever they ran, live or settled, expanded or not. A failed read, edit or search keeps
   // its own row so its error stays visible; a failed command joins the entry like the rest of its family.
   if (category === "shell" || category === "edit" || commandFamily.has(content.name)) {
-    // A hidden category keeps its calls out of the entry; renderable already dropped the ones that did not fail.
+    // A hidden category keeps its calls out of the entry. renderable already excluded everything it would hide,
+    // failures included.
     if (detail?.[category!].placement === "hidden") return undefined
 
     if (category === "shell" || !currentToolFailed(content)) return "commands"

@@ -406,7 +406,13 @@ export function createSessionTimelineRowRenderer(input: {
           if (ref.messageID !== ref.partID || !message) return []
 
           if (message.type === "shell")
-            return [{ type: "shell", id: ref.partID, render: () => <Shell messageID={ref.messageID} grouped /> }]
+            return [
+              {
+                type: "shell",
+                id: ref.partID,
+                render: () => <Shell messageID={ref.messageID} grouped onSizeChange={onSizeChange} />,
+              },
+            ]
 
           if (message.type !== "assistant" && message.type !== "user")
             return [{ type: "notice", id: ref.partID, render: () => <Notice messageID={ref.messageID} grouped /> }]
@@ -952,7 +958,7 @@ export function createSessionTimelineRowRenderer(input: {
     )
   }
 
-  function Shell(props: { messageID: string; grouped?: boolean }) {
+  function Shell(props: { messageID: string; grouped?: boolean; onSizeChange?: () => void }) {
     const message = createMemo(() => {
       const value = input.projection.messageByID().get(props.messageID)
 
@@ -977,6 +983,7 @@ export function createSessionTimelineRowRenderer(input: {
               defaultOpen={defaultOpen()}
               open={input.disclosure.value(message().id) ?? (input.timelineDetail ? defaultOpen() : undefined)}
               onOpenChange={(open) => input.disclosure.set(message().id, open)}
+              onContentRendered={props.onSizeChange}
             />
           </div>
         )}

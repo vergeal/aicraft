@@ -2283,6 +2283,10 @@ ToolRegistry.register({
         hasContent
         compact
         allowOpenWhilePending
+        onOpenChange={(value) => {
+          props.onOpenChange?.(value)
+          props.onContentRendered?.()
+        }}
         trigger={(open) => (
           <div data-slot="basic-tool-tool-info-structured">
             <div data-slot="basic-tool-tool-info-main">
@@ -2316,6 +2320,7 @@ export function SessionShellMessage(props: {
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  onContentRendered?: () => void
 }) {
   const i18n = useI18n()
   const render = ToolRegistry.render("shell") ?? GenericTool
@@ -2348,7 +2353,10 @@ export function SessionShellMessage(props: {
         status={props.message.status === "running" ? "running" : "completed"}
         defaultOpen={props.defaultOpen}
         open={props.open}
-        onOpenChange={props.onOpenChange}
+        onOpenChange={(open) => {
+          props.onOpenChange?.(open)
+          props.onContentRendered?.()
+        }}
       />
       <Show when={error()}>
         {(error) => <ToolErrorCard tool="shell" error={error()} subtitle={props.message.command} />}

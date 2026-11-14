@@ -31,6 +31,7 @@ import type { SessionUserActions, SessionUserAttachmentReference, SessionUserCom
 import { useData } from "../context"
 import { useSources } from "../context/sources"
 import { turnSources } from "../sources/sources"
+import "./timeline-row.css"
 import { TimelineSeparator } from "../components/timeline-separator"
 import {
   SessionAssistantContent,

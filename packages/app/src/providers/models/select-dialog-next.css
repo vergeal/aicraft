@@ -92,7 +92,7 @@
     height: auto;
     padding-block: 16px 2px;
     padding-inline: 34px 6px;
-    background: var(--v2-background-bg-base);
+    background: var(--v2-material-surface-strong-opaque);
     color: var(--v2-text-text-faint);
     font-size: 13px;
     line-height: 18px;
@@ -105,21 +105,21 @@
       height: 16px;
       background: linear-gradient(
         180deg,
-        var(--v2-background-bg-base) 0%,
-        color-mix(in srgb, var(--v2-background-bg-base) 92.0456%, transparent) 7.93%,
-        color-mix(in srgb, var(--v2-background-bg-base) 84.9947%, transparent) 14.14%,
-        color-mix(in srgb, var(--v2-background-bg-base) 78.6813%, transparent) 19%,
-        color-mix(in srgb, var(--v2-background-bg-base) 72.9394%, transparent) 22.85%,
-        color-mix(in srgb, var(--v2-background-bg-base) 67.6028%, transparent) 26.05%,
-        color-mix(in srgb, var(--v2-background-bg-base) 62.5055%, transparent) 28.95%,
-        color-mix(in srgb, var(--v2-background-bg-base) 57.4815%, transparent) 31.91%,
-        color-mix(in srgb, var(--v2-background-bg-base) 52.3647%, transparent) 35.27%,
-        color-mix(in srgb, var(--v2-background-bg-base) 46.989%, transparent) 39.4%,
-        color-mix(in srgb, var(--v2-background-bg-base) 41.1884%, transparent) 44.65%,
-        color-mix(in srgb, var(--v2-background-bg-base) 34.7969%, transparent) 51.36%,
-        color-mix(in srgb, var(--v2-background-bg-base) 27.6484%, transparent) 59.9%,
-        color-mix(in srgb, var(--v2-background-bg-base) 19.5767%, transparent) 70.62%,
-        color-mix(in srgb, var(--v2-background-bg-base) 10.416%, transparent) 83.87%,
+        var(--v2-material-surface-strong-opaque) 0%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 92.0456%, transparent) 7.93%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 84.9947%, transparent) 14.14%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 78.6813%, transparent) 19%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 72.9394%, transparent) 22.85%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 67.6028%, transparent) 26.05%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 62.5055%, transparent) 28.95%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 57.4815%, transparent) 31.91%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 52.3647%, transparent) 35.27%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 46.989%, transparent) 39.4%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 41.1884%, transparent) 44.65%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 34.7969%, transparent) 51.36%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 27.6484%, transparent) 59.9%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 19.5767%, transparent) 70.62%,
+        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 10.416%, transparent) 83.87%,
         transparent 100%
       );
       content: "";

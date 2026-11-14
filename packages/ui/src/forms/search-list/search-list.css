@@ -1,3 +1,10 @@
+/* A dialog paints its surface with the strong material, so a list inside it cuts the same color out of that
+   surface. Page-level lists keep the page base; the opaque material token is also the reduced-transparency
+   fallback, so both paths stay identical. */
+[data-slot="dialog-container"] [data-component="search-list"] {
+  --search-list-surface: var(--v2-material-surface-strong-opaque);
+}
+
 [data-component="search-list"] {
   /* Sticky headers and the top fade paint this, so rows scroll under an opaque band. */
   --search-list-surface: var(--v2-background-bg-base);

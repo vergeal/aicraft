@@ -84,10 +84,17 @@ function physicalKey(event: Pick<KeyboardEvent, "key" | "code">) {
   return event.key
 }
 
-function signature(key: string, ctrl: boolean, meta: boolean, shift: boolean, alt: boolean) {
-  const mask = (ctrl ? 1 : 0) | (meta ? 2 : 0) | (shift ? 4 : 0) | (alt ? 8 : 0)
+// ⇧= types "+" on most layouts and "=" alone on others, so both spellings name the same key and Shift
+// does not tell them apart. Ctrl+= and Ctrl+Shift+= therefore press the same keybind.
+function keyIdentity(key: string) {
+  return key === "plus" ? "=" : key
+}
 
-  return `${key}:${mask}`
+function signature(key: string, ctrl: boolean, meta: boolean, shift: boolean, alt: boolean) {
+  const id = keyIdentity(key)
+  const mask = (ctrl ? 1 : 0) | (meta ? 2 : 0) | (shift && id !== "=" ? 4 : 0) | (alt ? 8 : 0)
+
+  return `${id}:${mask}`
 }
 
 function signatureFromEvent(event: KeyboardEvent) {
@@ -243,7 +250,7 @@ export function parseKeybind(config: string): Keybind[] {
   if (!config || config === "none") return []
 
   return config.split(",").map((combo) => {
-    const parts = combo.trim().toLowerCase().split("+")
+    const parts = keybindComboParts(combo.trim().toLowerCase())
 
     const keybind: Keybind = {
       key: "",
@@ -276,7 +283,7 @@ export function parseKeybind(config: string): Keybind[] {
           keybind.shift = true
           break
         default:
-          keybind.key = part
+          keybind.key = normalizeKey(part)
           break
       }
     }
@@ -285,14 +292,26 @@ export function parseKeybind(config: string): Keybind[] {
   })
 }
 
+// A combination ends with its key, so "Ctrl++" types the plus key: the trailing "+" is the key, not a
+// separator, and it must not leave an empty part that overwrites the key.
+function keybindComboParts(combo: string) {
+  const parts = combo.split("+")
+
+  if (parts[parts.length - 1] !== "") return parts
+
+  return [...parts.slice(0, -1).filter((part) => part !== ""), "+"]
+}
+
 export function matchKeybind(keybinds: Keybind[], event: KeyboardEvent): boolean {
-  const eventKey = keyFromKeyboardEvent(event)
+  const eventKey = keyIdentity(keyFromKeyboardEvent(event))
 
   for (const kb of keybinds) {
-    const keyMatch = kb.key === eventKey
+    const key = keyIdentity(kb.key)
+    const keyMatch = key === eventKey
     const ctrlMatch = kb.ctrl === (event.ctrlKey || false)
     const metaMatch = kb.meta === (event.metaKey || false)
-    const shiftMatch = kb.shift === (event.shiftKey || false)
+    // Shift only chooses "+" or "=" on the same key, so it does not distinguish a symbol keybind.
+    const shiftMatch = key === "=" || kb.shift === (event.shiftKey || false)
     const altMatch = kb.alt === (event.altKey || false)
 
     if (keyMatch && ctrlMatch && metaMatch && shiftMatch && altMatch) {

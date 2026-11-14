@@ -234,7 +234,8 @@ export const DESKTOP_MENU: DesktopMenu[] = [
         type: "item",
         labelKey: "desktop.menu.zoomIn",
         action: "view.zoomIn",
-        accelerator: { macos: "Cmd+=", windows: "Ctrl++" },
+        // "=" and the "+" typed with Shift name the same key, so this accepts Ctrl+= and Ctrl+Shift+=.
+        accelerator: { macos: "Cmd+=", windows: "Ctrl+=" },
       },
       {
         type: "item",

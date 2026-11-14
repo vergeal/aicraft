@@ -18,3 +18,16 @@ test("resolves Ctrl+Shift+W to close the window and leaves Ctrl+W to tabs", () =
 test.each(["v", "c", "x", "a", "A", "z", "y"])("leaves Ctrl+%s to the focused editor", (key) => {
   expect(windowsMenuAccelerator(new KeyboardEvent("keydown", { key, ctrlKey: true }))).toBeUndefined()
 })
+
+test("resolves zoom in from Ctrl+= and from the + that Shift+= types", () => {
+  expect(windowsMenuAccelerator(new KeyboardEvent("keydown", { key: "=", ctrlKey: true }))).toBe("view.zoomIn")
+  expect(
+    windowsMenuAccelerator(new KeyboardEvent("keydown", { key: "+", ctrlKey: true, shiftKey: true, code: "Equal" })),
+  ).toBe("view.zoomIn")
+  expect(windowsMenuAccelerator(new KeyboardEvent("keydown", { key: "=" }))).toBeUndefined()
+})
+
+test("keeps Ctrl+- and Ctrl+0 zooming out and resetting", () => {
+  expect(windowsMenuAccelerator(new KeyboardEvent("keydown", { key: "-", ctrlKey: true }))).toBe("view.zoomOut")
+  expect(windowsMenuAccelerator(new KeyboardEvent("keydown", { key: "0", ctrlKey: true }))).toBe("view.resetZoom")
+})

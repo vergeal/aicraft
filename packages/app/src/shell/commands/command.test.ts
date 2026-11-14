@@ -104,11 +104,23 @@ describe("command keybinds", () => {
     expect(parseKeybind("")).toEqual([])
   })
 
+  test("parseKeybind handles a key that is itself +", () => {
+    expect(parseKeybind("ctrl++")).toEqual([{ key: "plus", ctrl: true, meta: false, shift: false, alt: false }])
+    expect(parseKeybind("ctrl+shift++")[0]).toEqual({ key: "plus", ctrl: true, meta: false, shift: true, alt: false })
+    expect(parseKeybind("ctrl+=,ctrl++")).toHaveLength(2)
+  })
+
   // happy-dom never reports a Mac platform, so mod is Ctrl here.
   test.each([
     { config: "ctrl+comma", event: { key: ",", ctrlKey: true }, match: true },
     { config: "shift+plus", event: { key: "+", shiftKey: true }, match: true },
     { config: "meta+space", event: { key: " ", metaKey: true }, match: true },
+    // ⇧= types "+", so a "=" keybind accepts it and a "++" keybind accepts the unshifted key.
+    { config: "ctrl+=", event: { key: "=", ctrlKey: true }, match: true },
+    { config: "ctrl+=", event: { key: "+", code: "Equal", ctrlKey: true, shiftKey: true }, match: true },
+    { config: "ctrl++", event: { key: "+", code: "Equal", ctrlKey: true, shiftKey: true }, match: true },
+    { config: "ctrl++", event: { key: "=", ctrlKey: true }, match: true },
+    { config: "ctrl+=", event: { key: "=" }, match: false },
     { config: "ctrl+comma", event: { key: ",", ctrlKey: true, altKey: true }, match: false },
     { config: "mod+alt+[", event: { key: "[", ctrlKey: true, altKey: true }, match: true },
     { config: "mod+alt+]", event: { key: "]", ctrlKey: true, altKey: true }, match: true },

@@ -54,7 +54,7 @@ describe("settings search index", () => {
     expect(targets({})).not.toContain("settings-zoom")
     expect(targets({})).not.toContain("settings-experimental-browser")
     expect(targets({})).not.toContain("settings-show-project-icon")
-    expect(targets({})).toContain("settings-tab-layout")
+    expect(targets({})).not.toContain("settings-tab-layout")
     expect(targets({ desktop: true })).toContain("settings-pinch-zoom")
     expect(targets({ desktop: true })).toContain("settings-zoom")
     expect(targets({ browser: true })).not.toContain("settings-experimental-browser")
@@ -79,10 +79,7 @@ describe("settings search index", () => {
       tab: "experimental",
       target: "settings-new-question-ui",
     })
-    expect(rankSettings("capsule", items)[0].view).toMatchObject({
-      tab: "general",
-      target: "settings-background-activity",
-    })
+    expect(rankSettings("capsule", items)).toEqual([])
     expect(items.some((item) => item.view.target === "settings-project-startup")).toBe(false)
   })
 

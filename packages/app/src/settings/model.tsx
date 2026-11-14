@@ -334,7 +334,8 @@ export const settingsPersistence = Persistence.migrate(
 
 export const defaultSettings: Settings = {
   general: {
-    timelineDetail: { ...timelinePresets[2].value },
+    // The settings page no longer offers timeline detail presets; the timeline ships text only.
+    timelineDetail: { ...timelinePresets.find((preset) => preset.id === "text-only")!.value },
     showCustomAgents: false,
     showTurnDiffs: false,
     backgroundActivity: "left",

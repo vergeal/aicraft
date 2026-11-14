@@ -229,7 +229,7 @@ function selection(local: ReturnType<typeof useLocal>) {
 }
 
 test("restores durable agents even when the agent selector is hidden", () => {
-  const f = fixture({ session: durable("b", "high", "plan") })
+  const f = fixture({ session: durable("b", "high", "plan"), agents: [agent("plan")] })
   f.set("visible", false)
   const { local } = f.mount()
   expect(local.agent.visible()).toBe(false)

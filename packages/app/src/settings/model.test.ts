@@ -31,8 +31,9 @@ describe("settings timeline detail migration", () => {
     })
 
     expect(settings.general.timelineDetail).toEqual({
-      ...timelinePresets[2].value,
+      ...timelinePresets[4].value,
       shell: { placement: "separate", details: "expanded" },
+      edit: { placement: "grouped", details: "collapsed" },
       thinking: { placement: "separate", details: "expanded" },
     })
     expect(settings.appearance.fontSize).toBe(16)
@@ -94,7 +95,7 @@ describe("settings schema", () => {
   test("supplies the existing defaults for an empty document", () => {
     expect(decode({})).toEqual({
       general: {
-        timelineDetail: timelinePresets[2].value,
+        timelineDetail: timelinePresets[4].value,
         showCustomAgents: false,
         showTurnDiffs: false,
         backgroundActivity: "left",
@@ -156,7 +157,7 @@ describe("settings schema", () => {
     expect(settings.general).toMatchObject({
       showTerminal: true,
       autoSave: false,
-      timelineDetail: timelinePresets[2].value,
+      timelineDetail: timelinePresets[4].value,
       followUpBehavior: "queue",
       backgroundActivity: "left",
       timelineWidth: "comfortable",

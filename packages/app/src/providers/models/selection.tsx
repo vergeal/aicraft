@@ -106,7 +106,11 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       void syncWhileBooting(() => data.location.agent.sync({ directory })).catch(() => undefined)
     })
 
-    const agentsVisible = createMemo(() => settings.visibility.customAgents() || hasCustomAgent(list()))
+    // Built-in agents such as Build and Plan are switchable too, so more than one selectable agent shows the
+    // control even when the user has authored no custom agent and left the setting off.
+    const agentsVisible = createMemo(
+      () => settings.visibility.customAgents() || hasCustomAgent(list()) || list().length > 1,
+    )
     const connected = createMemo(() => new Set(providers.connected().map((item) => item.id)))
 
     const [saved, setSaved, , savedReady] = persisted(

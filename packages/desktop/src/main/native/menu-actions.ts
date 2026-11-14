@@ -49,7 +49,11 @@ export function runDesktopMenuAction(
 
       return
     case "view.toggleDevTools":
-      win?.webContents.toggleDevTools()
+      if (!win) return
+      // Windows paints its window controls over the whole window, so a docked DevTools loses the buttons
+      // in its top-right corner underneath them. Open it in its own window there instead.
+      if (win.webContents.isDevToolsOpened()) return win.webContents.closeDevTools()
+      win.webContents.openDevTools({ mode: process.platform === "win32" ? "detach" : "right" })
 
       return
     case "view.resetZoom":

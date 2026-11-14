@@ -54,6 +54,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
     let current = startSize
     let collapsed = false
     let moved = false
+    let ended = false
 
     document.body.style.userSelect = "none"
     document.body.style.overflow = "hidden"
@@ -89,12 +90,18 @@ export function ResizeHandle(props: ResizeHandleProps) {
     }
 
     const onMouseUp = () => {
+      if (ended) return
+      ended = true
+
       document.body.style.userSelect = ""
       document.body.style.overflow = ""
       document.body.style.cursor = ""
       handle?.removeAttribute("data-dragging")
       document.removeEventListener("mousemove", onMouseMove)
       document.removeEventListener("mouseup", onMouseUp)
+      handle?.removeEventListener("pointercancel", onMouseUp)
+      handle?.removeEventListener("lostpointercapture", onMouseUp)
+      window.removeEventListener("blur", onMouseUp)
 
       if (moved) onDraggingChange?.(false)
 
@@ -109,6 +116,11 @@ export function ResizeHandle(props: ResizeHandleProps) {
 
     document.addEventListener("mousemove", onMouseMove)
     document.addEventListener("mouseup", onMouseUp)
+    // A release the pointer never reports — the window loses focus, the pointer leaves the window, the capture is
+    // taken away — must still end the drag: callers derive state from it, and a drag left open would freeze them.
+    handle?.addEventListener("pointercancel", onMouseUp)
+    handle?.addEventListener("lostpointercapture", onMouseUp)
+    window.addEventListener("blur", onMouseUp)
   }
 
   // The handle holds the pointer until the button comes up, so hover stays on it rather than following the pointer

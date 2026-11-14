@@ -29,7 +29,16 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/SessionTitle") {}
 
-const truncate = (value: string) => (value.length <= MAX_LENGTH ? value : `${value.slice(0, MAX_LENGTH - 3)}...`)
+const truncate = (value: string, max = MAX_LENGTH) =>
+  value.length <= max ? value : `${value.slice(0, Math.max(0, max - 3))}...`
+// A fork keeps its `(fork #N)` suffix when the title is regenerated from the conversation, so forking the fork
+// again still sees the previous number and increments it instead of restarting at #1.
+const forkSuffix = / \(fork #\d+\)$/
+function withForkSuffix(session: SessionSchema.Info, base: string) {
+  if (!session.fork) return truncate(base)
+  const suffix = session.title?.match(forkSuffix)?.[0] ?? " (fork #1)"
+  return `${truncate(base, MAX_LENGTH - suffix.length)}${suffix}`
+}
 // Framing the input as text to name keeps models from answering or carrying out the request instead.
 const messagePrompt = (text: string) =>
   `Here is the first message of the conversation:\n\n<message>\n${text}\n</message>\n\nReply with only the title.`
@@ -137,15 +146,16 @@ export const layer = Layer.effect(
           ? yield* attempt({ session, agent: selection.agent, text, model: selection.primary })
           : undefined)
       if (!title) return
+      const next = withForkSuffix(session, title)
       const expectedSequence = (yield* Bus.latestSequence(db, sessionID)) + 1
       const current = yield* store.get(sessionID)
-      if (!current || current.title !== session.title || current.title === truncate(title)) return
+      if (!current || current.title !== session.title || current.title === next) return
       yield* bus
         .publish(
           SessionEvent.Renamed,
           {
             sessionID: session.id,
-            title: truncate(title),
+            title: next,
           },
           { commit: (sequence) => (sequence === expectedSequence ? Effect.void : Effect.die(titleChanged)) },
         )

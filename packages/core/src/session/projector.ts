@@ -56,11 +56,12 @@ const insertParts = (db: DatabaseService, rows: ReadonlyArray<typeof SessionPart
     { discard: true },
   )
 
-const forkTitle = (value?: string) => {
+const forkTitle = (value: string | undefined, ordinal: number) => {
   if (value === undefined) return
   const match = value.match(/^(.+) \(fork #(\d+)\)$/)
-  if (match) return `${match[1]} (fork #${Number.parseInt(match[2], 10) + 1})`
-  return `${value} (fork #1)`
+  const base = match ? match[1] : value
+  const previous = match ? Number.parseInt(match[2], 10) : 0
+  return `${base} (fork #${Math.max(previous + 1, ordinal)})`
 }
 
 function setSession(
@@ -129,6 +130,14 @@ const projectFork = Effect.fn("SessionProjector.projectFork")(function* (
     .get()
     .pipe(Effect.orDie)
   if (!parent) return yield* Effect.die(new Error(`Fork parent session not found: ${event.data.parentID}`))
+  // Forking the same parent twice must not produce two "#1" sessions, and forking a fork keeps climbing from the
+  // number in its title. The larger of the two decides the next ordinal.
+  const siblings = yield* db
+    .select({ value: sql<number>`count(*)` })
+    .from(SessionTable)
+    .where(eq(SessionTable.fork_session_id, parent.id))
+    .get()
+    .pipe(Effect.orDie)
   const boundary = yield* db
     .select({ seq: SessionMessageTable.seq })
     .from(SessionMessageTable)
@@ -171,7 +180,7 @@ const projectFork = Effect.fn("SessionProjector.projectFork")(function* (
       slug: Slug.create(),
       directory: parent.directory,
       path: parent.path,
-      title: forkTitle(parent.title ?? undefined),
+      title: forkTitle(parent.title ?? undefined, (siblings?.value ?? 0) + 1),
       agent: parent.agent,
       model: parent.model,
       metadata: parent.metadata,

@@ -634,6 +634,9 @@ describe("Session.create", () => {
 
       expect(forked).toMatchObject({ title: "Parent (fork #1)", fork: { sessionID: parent.id } })
       expect(forked.parentID).toBeUndefined()
+      // Forking the same parent again takes the next ordinal instead of repeating #1.
+      const forkedAgain = yield* session.fork({ sessionID: parent.id })
+      expect(forkedAgain).toMatchObject({ title: "Parent (fork #2)" })
       expect(forkContext).toMatchObject([Expected.user("First"), { type: "synthetic", text: "parent note" }])
       expect(forkContext.map((message) => message.id)).not.toEqual(parentContext.map((message) => message.id))
       expect(history).toHaveLength(1)

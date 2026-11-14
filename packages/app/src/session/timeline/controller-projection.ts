@@ -67,21 +67,16 @@ export function visibleTimelineMessages(
   pending: SessionInboxInfo[],
   revertMessageID?: string,
 ) {
-  const queued = new Set(
-    pending.flatMap((item) => (item.type === "user" && item.delivery === "queue" ? [item.id] : [])),
-  )
-
+  // Every undelivered input already has a transcript row: the data layer admits it optimistically and the server's
+  // echo upserts that row. A queued input waits at the end like a steer, so the active turn keeps its work above it,
+  // and delivery appends the same row there, which means showing it never reorders the transcript.
   const inputs = new Set(
-    pending.flatMap((item) =>
-      (item.type === "user" && item.delivery === "steer") || item.type === "synthetic" ? [item.id] : [],
-    ),
+    pending.flatMap((item) => (item.type === "user" || item.type === "synthetic" ? [item.id] : [])),
   )
 
-  if (queued.size === 0 && inputs.size === 0 && !revertMessageID) return messages
+  if (inputs.size === 0 && !revertMessageID) return messages
 
-  const visible = messages.filter(
-    (message) => !queued.has(message.id) && (!revertMessageID || message.id < revertMessageID),
-  )
+  const visible = messages.filter((message) => !revertMessageID || message.id < revertMessageID)
 
   if (inputs.size === 0) return visible
 

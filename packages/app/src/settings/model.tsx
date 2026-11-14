@@ -40,8 +40,13 @@ export const sansDefault = "Inter"
 
 export const terminalDefault = "IBM Plex Mono"
 
-const monoFallback =
-  '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+// The system's monospace face, without a bundled family in front: `system-ui` is proportional, so a code or terminal
+// role that resolves System needs this stack instead. Windows falls through to Consolas, Linux to Liberation Mono or
+// Courier New.
+const systemMono =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+
+const monoFallback = `"IBM Plex Mono", ${systemMono}`
 
 const sansFallback = '"Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
@@ -86,8 +91,8 @@ export function monoInput(font: string | undefined) {
 }
 
 /** The picker's System row stores the `system-ui` keyword; for a monospace role that means the system's mono face. */
-function monoStack(font: string | undefined, base: string) {
-  if (font?.trim() === "system-ui") return base
+function monoStack(font: string | undefined, base: string, system: string) {
+  if (font?.trim() === "system-ui") return system
 
   return stack(font, base)
 }
@@ -97,7 +102,9 @@ export function sansInput(font: string | undefined) {
 }
 
 export function monoFontFamily(font: string | undefined, macos = isMacOS()) {
-  return monoStack(font, macos ? monoMacFallback : monoBase)
+  const base = macos ? monoMacFallback : monoBase
+
+  return monoStack(font, base, macos ? base : systemMono)
 }
 
 export function sansFontFamily(font: string | undefined, macos = isMacOS()) {
@@ -105,7 +112,9 @@ export function sansFontFamily(font: string | undefined, macos = isMacOS()) {
 }
 
 export function terminalFontFamily(font: string | undefined, macos = isMacOS()) {
-  return monoStack(font, macos ? terminalMacFallback : terminalBase)
+  const base = macos ? terminalMacFallback : terminalBase
+
+  return monoStack(font, base, macos ? base : systemMono)
 }
 
 /** The family each Appearance row shows when the user has not chosen one; macOS defaults all three to System. */

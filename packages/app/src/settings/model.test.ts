@@ -233,6 +233,13 @@ test("every font role starts from the system face on macOS", () => {
   expect(monoFontFamily(undefined, false)).toStartWith('"IBM Plex Mono", ')
 })
 
+test("System resolves to the system's monospace face for code and terminal, not IBM Plex Mono", () => {
+  for (const family of [monoFontFamily("system-ui", false), terminalFontFamily("system-ui", false)]) {
+    expect(family).toStartWith("ui-monospace, ")
+    expect(family).not.toContain("IBM Plex Mono")
+  }
+})
+
 test.each([
   { name: "sans", family: sansFontFamily, font: undefined, prefix: '"Inter", ' },
   { name: "sans", family: sansFontFamily, font: "", prefix: '"Inter", ' },
@@ -263,10 +270,22 @@ test.each([
     prefix: '"Custom Mono", "IBM Plex Mono", ',
   },
   {
+    name: "mono",
+    family: (font: string | undefined) => monoFontFamily(font, false),
+    font: "system-ui",
+    prefix: "ui-monospace, ",
+  },
+  {
     name: "terminal",
     family: (font: string | undefined) => terminalFontFamily(font, false),
     font: undefined,
     prefix: '"IBM Plex Mono", ',
+  },
+  {
+    name: "terminal",
+    family: (font: string | undefined) => terminalFontFamily(font, false),
+    font: "system-ui",
+    prefix: "ui-monospace, ",
   },
 ])("$name font family for $font starts with $prefix", ({ family, font, prefix }) => {
   expect(family(font)).toStartWith(prefix)

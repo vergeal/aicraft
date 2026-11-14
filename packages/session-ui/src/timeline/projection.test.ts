@@ -14,6 +14,7 @@ import {
   TimelineRow,
   type PartGroup,
 } from "./projection"
+import { timelinePresets } from "./detail"
 
 const context = (key: string, partIDs: string[], identity: { userMessageID?: string; messageID?: string } = {}) =>
   new TimelineRow.AssistantPart({
@@ -385,6 +386,85 @@ describe("createTimelineProjection", () => {
     expect(second.rows).toBe(first.rows)
     expect(second.rows[0]).toBe(first.rows[0])
     expect(second.rows[1]).toBe(first.rows[1])
+  })
+
+  // A shell failure shows up as an error status or, for a finished command, a non-zero exit in metadata.
+  const hiddenShellRows = (state: SessionMessageAssistantTool["state"]) =>
+    createTimelineProjection({
+      sessionMessages: [
+        { id: "user-1", type: "user", text: "run it", time: { created: 1 } },
+        {
+          id: "assistant-1",
+          type: "assistant",
+          agent: "build",
+          model: { id: "model", providerID: "provider" },
+          content: [{ id: "shell-1", type: "tool", name: "shell", state, time: { created: 2 } }],
+          time: { created: 2, completed: 3 },
+        },
+      ] satisfies SessionMessageInfo[],
+      status: { type: "idle" },
+      reasoningMode: "full",
+      timelineDetail: timelinePresets.find((preset) => preset.id === "quiet")!.value,
+    })
+
+  test("skips a hidden shell that failed with an error status", () => {
+    // The row renderer hides a hidden shell unconditionally, failures included, so the projection must not emit it.
+    expect(
+      keys(
+        hiddenShellRows({
+          status: "error",
+          input: { command: "false" },
+          error: { type: "ToolError", message: "exit 1" },
+        }).rows,
+      ),
+    ).toEqual(["user-message:user-1"])
+  })
+
+  test("skips a hidden shell that finished with a non-zero exit", () => {
+    expect(
+      keys(
+        hiddenShellRows({
+          status: "completed",
+          input: { command: "false" },
+          content: [{ type: "text", text: "" }],
+          metadata: { exit: 1 },
+        }).rows,
+      ),
+    ).toEqual(["user-message:user-1"])
+  })
+
+  test("keeps a failed shell when its placement is visible", () => {
+    const messages = [
+      { id: "user-1", type: "user", text: "run it", time: { created: 1 } },
+      {
+        id: "assistant-1",
+        type: "assistant",
+        agent: "build",
+        model: { id: "model", providerID: "provider" },
+        content: [
+          {
+            id: "shell-1",
+            type: "tool",
+            name: "shell",
+            state: { status: "error", input: { command: "false" }, error: { type: "ToolError", message: "exit 1" } },
+            time: { created: 2 },
+          },
+        ],
+        time: { created: 2, completed: 3 },
+      },
+    ] satisfies SessionMessageInfo[]
+
+    const result = createTimelineProjection({
+      sessionMessages: messages,
+      status: { type: "idle" },
+      reasoningMode: "full",
+      timelineDetail: timelinePresets.find((preset) => preset.id === "everything")!.value,
+    })
+
+    const refs = result.rows.flatMap((row) =>
+      row._tag === "AssistantPart" ? (row.group.type === "part" ? [row.group.ref] : [...row.group.refs]) : [],
+    )
+    expect(refs).toContainEqual({ messageID: "assistant-1", partID: "shell-1" })
   })
 
   test("indexes a leading partial assistant turn under its projected turn ID", () => {

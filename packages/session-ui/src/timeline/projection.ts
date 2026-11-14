@@ -1019,6 +1019,12 @@ function renderable(content: Content, showReasoning: boolean, detail?: TimelineD
   if (content.type === "reasoning")
     return (detail ? detail.thinking.placement !== "hidden" : showReasoning) && !!content.text.trim()
 
+  // A hidden shell placement removes the command and its output from the transcript, failures included, and the row
+  // renderer hides it unconditionally. Checking this before the failure rule keeps a failed hidden shell out of the
+  // projection instead of projecting a row that draws nothing.
+  if (detail && content.type === "tool" && timelineCategory(content) === "shell" && detail.shell.placement === "hidden")
+    return false
+
   if (detail && currentToolFailed(content)) return true
 
   if (content.name === "todowrite") return false

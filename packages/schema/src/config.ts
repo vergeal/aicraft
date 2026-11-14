@@ -16,6 +16,7 @@ import { ConfigModel } from "./config/model.js"
 import { ConfigPlugin } from "./config/plugin.js"
 import { ConfigPolicy } from "./config/policy.js"
 import { ConfigProvider } from "./config/provider.js"
+import { ProviderCompatibility } from "./model-compatibility.js"
 import { ConfigReference } from "./config/reference.js"
 import { ConfigWebSearch } from "./config/websearch.js"
 import { ConfigToolOutput } from "./config/tool-output.js"
@@ -116,16 +117,42 @@ export class Info extends Schema.Class<Info>("Config.Info")({
   experimental: ConfigExperimental.Info.pipe(optional),
 }) {}
 
+/**
+ * A provider as a configuration patch writes it. The model table stays a JSON record here: it is validated when the
+ * document is decoded after the write, and typing it through `ConfigProvider.ModelConfig` would put branded model IDs
+ * into the generated client types, which carry plain strings.
+ */
+export const ProviderPatch = Schema.Struct({
+  canonical: Schema.String.pipe(optional),
+  name: Schema.String.pipe(optional),
+  env: Schema.Array(Schema.String).pipe(optional),
+  package: Schema.String.pipe(optional),
+  compatibility: ProviderCompatibility.pipe(optional),
+  ...ConfigProvider.Overlays,
+  models: Schema.Record(Schema.String, Schema.Unknown).pipe(optional),
+}).annotate({ identifier: "Config.Provider.Patch" })
+export interface ProviderPatch extends Schema.Schema.Type<typeof ProviderPatch> {}
+
 export const Patch = Schema.Struct({
   shell: Schema.NullOr(Schema.String).pipe(optional),
   /** Package names or local paths to enable. Existing entries are kept; a matching `-name` disable is removed. */
   plugins: Schema.Array(Schema.String).pipe(optional),
+  /**
+   * Provider overrides keyed by provider ID. `null` removes that provider; an object merges shallowly at provider
+   * level, so untouched `settings`, `headers`, `body` and `compatibility` are kept. `settings` merges one level
+   * deeper so an unrelated setting survives, while `models` replaces the whole table (the editor needs to remove
+   * models); a model sent as `{}` keeps the document's own entry for that ID. Only `providers.<id>` is rewritten, so
+   * a key entered in the UI stays in the credential store instead of being inlined into the document.
+   */
+  providers: Schema.Record(Schema.String, Schema.NullOr(ProviderPatch)).pipe(optional),
 }).annotate({ identifier: "Config.Patch" })
 export interface Patch extends Schema.Schema.Type<typeof Patch> {}
 
 export class Document extends Schema.Class<Document>("Config.Document")({
   type: Schema.Literal("document"),
   path: AbsolutePath.pipe(optional),
+  /** True for the document `Config.update` writes, so a client can tell editable entries from read-only ones. */
+  writable: Schema.Boolean.pipe(optional),
   info: Info,
 }) {}
 

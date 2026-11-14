@@ -1718,6 +1718,22 @@ export type ProviderGetOperation<E = never> = (input: ProviderGetInput) => Effec
 export interface ProviderApi<E = never> {
   readonly list: ProviderListOperation<E>
   readonly get: ProviderGetOperation<E>
+
+  /** @deprecated Use `client.experimental.provider.models`. Removed in the next minor. */
+  readonly models: ExperimentalProviderModelsOperation<E>
+}
+
+export type ExperimentalProviderModelsInput = { readonly baseURL: string; readonly apiKey?: string | undefined }
+export type ExperimentalProviderModelsOutput = ReadonlyArray<{
+  readonly id: string
+  readonly name?: string | undefined
+}>
+export type ExperimentalProviderModelsOperation<E = never> = (
+  input: ExperimentalProviderModelsInput,
+) => Effect.Effect<ExperimentalProviderModelsOutput, E>
+
+export interface ExperimentalProviderApi<E = never> {
+  readonly models: ExperimentalProviderModelsOperation<E>
 }
 
 export type IntegrationListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
@@ -2970,6 +2986,7 @@ export interface ConfigApi<E = never> {
 export type ExperimentalConfigUpdateInput = {
   readonly shell?: string | null | undefined
   readonly plugins?: ReadonlyArray<string> | undefined
+  readonly providers?: { readonly [x: string]: Config.ProviderPatch | null } | undefined
 }
 export type ExperimentalConfigUpdateOutput = void
 export type ExperimentalConfigUpdateOperation<E = never> = (
@@ -3267,6 +3284,15 @@ export type VoiceSessionOutput = ExperimentalVoiceSessionOutput
 /** @deprecated Use `ExperimentalVoiceSessionOperation`. Removed in the next minor. */
 export type VoiceSessionOperation<E = never> = ExperimentalVoiceSessionOperation<E>
 
+/** @deprecated Use `ExperimentalProviderModelsInput`. Removed in the next minor. */
+export type ProviderModelsInput = ExperimentalProviderModelsInput
+
+/** @deprecated Use `ExperimentalProviderModelsOutput`. Removed in the next minor. */
+export type ProviderModelsOutput = ExperimentalProviderModelsOutput
+
+/** @deprecated Use `ExperimentalProviderModelsOperation`. Removed in the next minor. */
+export type ProviderModelsOperation<E = never> = ExperimentalProviderModelsOperation<E>
+
 /** @deprecated Use `ExperimentalIntegrationWellknownAddInput`. Removed in the next minor. */
 export type IntegrationWellknownAddInput = ExperimentalIntegrationWellknownAddInput
 
@@ -3448,6 +3474,7 @@ export interface AppApi<E = never> {
     readonly session: ExperimentalSessionApi<E>
     readonly generate: ExperimentalGenerateApi<E>
     readonly voice: ExperimentalVoiceApi<E>
+    readonly provider: ExperimentalProviderApi<E>
     readonly integration: ExperimentalIntegrationApi<E>
     readonly mcp: ExperimentalMcpApi<E>
     readonly file: ExperimentalFileApi<E>

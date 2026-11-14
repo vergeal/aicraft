@@ -8,6 +8,7 @@ import { ServerConfig } from "@opencode/schema/mcp"
 import type { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { App } from "../app.js"
 import { Effect, Schema, Scope, Stream } from "effect"
+import { FetchHttpClient, HttpClient } from "effect/http"
 import { Global } from "@opencode/util/global"
 import { Agent } from "../agent.js"
 import { Artifact } from "../artifact.js"
@@ -26,6 +27,7 @@ import { Session } from "../session.js"
 import { InstructionEntry } from "../session/instruction-entry.js"
 import { PersistentPty } from "../persistent-pty.js"
 import { Provider } from "../provider.js"
+import { ProviderModels } from "../provider/models.js"
 import { Reference } from "../reference.js"
 import { Rpc } from "../rpc.js"
 import { AbsolutePath, type DeepMutable } from "../schema.js"
@@ -74,6 +76,8 @@ export const make = Effect.fn("PluginHost.make")(function* (
   const artifacts = yield* Artifact.Service
   const aisdk = yield* AISDK.Service
   const providers = yield* Provider.Service
+  // A probed endpoint is user-supplied, so it gets its own fetch client instead of the graph's transport.
+  const providerHTTP = yield* HttpClient.HttpClient.pipe(Effect.provide(FetchHttpClient.layer))
   const models = yield* Model.Service
   const commands = yield* Command.Service
   const bus = yield* Bus.Service
@@ -253,6 +257,7 @@ export const make = Effect.fn("PluginHost.make")(function* (
             ),
           ),
       reload: providers.reload,
+      models: (input) => ProviderModels.list(providerHTTP, input.baseURL, input.apiKey),
       transform: (callback) =>
         providers.transform((editor) => {
           callback({

@@ -144,6 +144,8 @@ import type {
   ProviderListOutput,
   ProviderGetInput,
   ProviderGetOutput,
+  ExperimentalProviderModelsInput,
+  ExperimentalProviderModelsOutput,
   IntegrationListInput,
   IntegrationListOutput,
   IntegrationGetInput,
@@ -1109,6 +1111,19 @@ const EndpointProviderGet = (raw: RawClient["server.provider"]) => (input: Provi
 const adaptGroupProvider = (raw: RawClient["server.provider"]) => ({
   list: EndpointProviderList(raw),
   get: EndpointProviderGet(raw),
+})
+
+const EndpointExperimentalProviderModels =
+  (raw: RawClient["server.provider"]) => (input: ExperimentalProviderModelsInput) =>
+    preserveEffect<ExperimentalProviderModelsOutput>()(
+      raw["provider.models"]({ payload: { baseURL: input["baseURL"], apiKey: input["apiKey"] } }).pipe(
+        Effect.mapError(mapClientError),
+        Effect.map((value) => value.data),
+      ),
+    )
+
+const adaptGroupExperimentalProvider = (raw: RawClient["server.provider"]) => ({
+  models: EndpointExperimentalProviderModels(raw),
 })
 
 const EndpointIntegrationList = (raw: RawClient["server.integration"]) => (input?: IntegrationListInput) =>
@@ -2077,9 +2092,9 @@ const adaptGroupConfig = (raw: RawClient["server.config"]) => ({
 
 const EndpointExperimentalConfigUpdate = (raw: RawClient["server.config"]) => (input?: ExperimentalConfigUpdateInput) =>
   preserveEffect<ExperimentalConfigUpdateOutput>()(
-    raw["config.update"]({ payload: { shell: input?.["shell"], plugins: input?.["plugins"] } }).pipe(
-      Effect.mapError(mapClientError),
-    ),
+    raw["config.update"]({
+      payload: { shell: input?.["shell"], plugins: input?.["plugins"], providers: input?.["providers"] },
+    }).pipe(Effect.mapError(mapClientError)),
   )
 
 const adaptGroupExperimentalConfig = (raw: RawClient["server.config"]) => ({
@@ -2149,6 +2164,7 @@ const adaptClient = (raw: RawClient) => {
       session: adaptGroupExperimentalSession(raw["server.session"]),
       generate: adaptGroupExperimentalGenerate(raw["server.generate"]),
       voice: adaptGroupExperimentalVoice(raw["server.voice"]),
+      provider: adaptGroupExperimentalProvider(raw["server.provider"]),
       integration: adaptGroupExperimentalIntegration(raw["server.integration"]),
       mcp: adaptGroupExperimentalMcp(raw["server.mcp"]),
       file: adaptGroupExperimentalFile(raw["server.fs"]),
@@ -2251,6 +2267,11 @@ const adaptClient = (raw: RawClient) => {
       models: client.experimental.voice.models,
       /** @deprecated Use `client.experimental.voice.session`. Removed in the next minor. */
       session: client.experimental.voice.session,
+    },
+    provider: {
+      ...client.provider,
+      /** @deprecated Use `client.experimental.provider.models`. Removed in the next minor. */
+      models: client.experimental.provider.models,
     },
     integration: {
       ...client.integration,

@@ -138,6 +138,8 @@ import type {
   ProviderListOutput,
   ProviderGetInput,
   ProviderGetOutput,
+  ExperimentalProviderModelsInput,
+  ExperimentalProviderModelsOutput,
   IntegrationListInput,
   IntegrationListOutput,
   IntegrationGetInput,
@@ -929,6 +931,20 @@ export function make(options: ClientOptions) {
             requestOptions,
           ).then((value) => value.data),
       },
+      provider: {
+        models: (input: ExperimentalProviderModelsInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalProviderModelsOutput }>(
+            {
+              method: "POST",
+              path: `/api/experimental/provider/models`,
+              body: { baseURL: input["baseURL"], apiKey: input["apiKey"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+      },
       integration: {
         wellknown: {
           add: (input: ExperimentalIntegrationWellknownAddInput, requestOptions?: RequestOptions) =>
@@ -1437,7 +1453,7 @@ export function make(options: ClientOptions) {
             {
               method: "PATCH",
               path: `/api/experimental/config`,
-              body: { shell: input?.["shell"], plugins: input?.["plugins"] },
+              body: { shell: input?.["shell"], plugins: input?.["plugins"], providers: input?.["providers"] },
               successStatus: 204,
               declaredStatuses: [400, 401, 404],
               empty: true,
@@ -2994,6 +3010,11 @@ export function make(options: ClientOptions) {
       models: client.experimental.voice.models,
       /** @deprecated Use `client.experimental.voice.session`. Removed in the next minor. */
       session: client.experimental.voice.session,
+    },
+    provider: {
+      ...client.provider,
+      /** @deprecated Use `client.experimental.provider.models`. Removed in the next minor. */
+      models: client.experimental.provider.models,
     },
     integration: {
       ...client.integration,

@@ -133,10 +133,8 @@ function ReplicaLayer(props: ParentProps) {
   let draggingWidth: number | undefined
   let frame = 0
 
-  // Dragging writes the width straight to the root's CSS variable, coalesced to one write per frame, so pointer moves
-  // never re-render the shell. The signal catches up once, when the pointer is released and the width is committed.
-  // Width changes rewrap every sidebar row and the timeline, so the drag rounds to 2px: a drag that has not moved far
-  // enough to change the rounded width writes nothing, halving the number of full reflows.
+  // Dragging writes the slot's own flex-basis, coalesced to one write per frame. The root variable is left alone:
+  // changing an inherited custom property invalidates the whole tree's style, which is the cost this avoids.
   const writeSidebarWidth = (width: number) => {
     const next = Math.round(width / 2) * 2
 
@@ -149,7 +147,8 @@ function ReplicaLayer(props: ParentProps) {
       frame = 0
 
       if (draggingWidth === undefined) return
-      root?.style.setProperty("--navigation-sidebar-width-current", showSidebar() ? `${draggingWidth}px` : "0px")
+      const slot = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar-slot"]')
+      if (slot) slot.style.flexBasis = showSidebar() ? `${draggingWidth}px` : "0px"
     })
   }
 
@@ -162,12 +161,45 @@ function ReplicaLayer(props: ParentProps) {
     const width = draggingWidth
     draggingWidth = undefined
 
+    // Commit first, then drop the dragging override: removing it while the root still held the old width would revert
+    // the column to that width for a frame.
     if (width !== undefined) preferences.appearance.setSidebarWidth(width)
+
+    const slot = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar-slot"]')
+    slot?.style.removeProperty("flex-basis")
+  }
+
+  // While the pointer drags, the two columns keep the content width they started with and only their visible box
+  // changes, so rows never rewrap mid-drag; the committed width is applied once on release. Each variable is written on
+  // the element that consumes it, not on the shell root: an inherited custom property invalidates the whole subtree.
+  const freezeColumns = () => {
+    const sidebar = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar"]')
+    const main = root?.querySelector<HTMLElement>('[data-slot="replica-main"]')
+    const titlebar = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar"]')
+    const titlebarLeft = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar-left"]')
+
+    if (sidebar) sidebar.style.setProperty("--drag-sidebar-width", `${sidebar.offsetWidth}px`)
+    if (main) main.style.setProperty("--drag-main-width", `${main.offsetWidth}px`)
+    if (titlebar && titlebarLeft) titlebar.style.setProperty("--drag-titlebar-left", `${titlebarLeft.offsetWidth}px`)
+  }
+
+  const releaseColumns = () => {
+    root?.querySelector<HTMLElement>('[data-slot="replica-sidebar"]')?.style.removeProperty("--drag-sidebar-width")
+    root?.querySelector<HTMLElement>('[data-slot="replica-main"]')?.style.removeProperty("--drag-main-width")
+    root?.querySelector<HTMLElement>('[data-slot="replica-titlebar"]')?.style.removeProperty("--drag-titlebar-left")
   }
 
   const onDraggingChange = (value: boolean) => {
     setResizing(value)
-    if (!value) commitSidebarWidth()
+
+    if (value) {
+      freezeColumns()
+
+      return
+    }
+
+    commitSidebarWidth()
+    releaseColumns()
   }
 
   onCleanup(() => {

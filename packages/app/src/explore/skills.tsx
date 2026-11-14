@@ -440,7 +440,7 @@ export const ExploreSkills: Component = () => {
           <Show
             when={installed.skillsLoaded()}
             fallback={
-              <div class="explore-loading" aria-busy="true">
+              <div class="explore-loading explore-loading-screen" aria-busy="true">
                 <Loader />
               </div>
             }

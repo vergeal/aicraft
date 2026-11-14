@@ -23,7 +23,7 @@ async function publish(input: {
   /** The server file the bundle ships by default; tests about legacy layouts replace it so no `main` exists. */
   readonly entryFile?: string
 }) {
-  const directory = path.join(input.home, ".ocplugins-local", String(input.manifest.id), String(input.manifest.version))
+  const directory = path.join(input.home, ".distribution", "plugins", String(input.manifest.id), String(input.manifest.version))
   await mkdir(directory, { recursive: true })
   const archive = new Bun.Archive({
     "ocplugin.json": JSON.stringify(input.manifest),

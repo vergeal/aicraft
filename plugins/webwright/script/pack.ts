@@ -14,7 +14,7 @@ const manifest = await Bun.file(join(root, "ocplugin.json")).json()
 // opening the archive and the installer finds the chosen version. `OCPLUGIN_OUT` keeps release builds elsewhere.
 const out = process.env.OCPLUGIN_OUT
   ? resolve(process.env.OCPLUGIN_OUT)
-  : join(homedir(), ".ocplugins-local", manifest.id, manifest.version)
+  : join(homedir(), ".distribution", "plugins", manifest.id, manifest.version)
 
 await mkdir(out, { recursive: true })
 

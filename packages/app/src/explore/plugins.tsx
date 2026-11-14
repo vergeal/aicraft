@@ -469,7 +469,7 @@ function CatalogPluginDetail(props: {
                   language.t("explore.plugins.install.integrated")
                 ) : (
                   <code dir="ltr">
-                    {props.entry.bundle ? `~/.ocplugins-local/${props.entry.id}` : props.entry.package}
+                    {props.entry.bundle ? `~/.distribution/plugins/${props.entry.id}` : props.entry.package}
                   </code>
                 )}
               </dd>

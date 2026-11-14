@@ -5,7 +5,7 @@
 
 查询脚本随包分发：`dbro.py` 和三个单库执行器都在 `assets/dbro` 内，安装后只读这个目录，不依赖任何本机工具目录。
 
-打出来的单文件在 `~/.ocplugins-local/changhong.dbro/<version>/`，安装后解包到
+打出来的单文件在 `~/.distribution/plugins/changhong.dbro/<version>/`，安装后解包到
 `~/.opencode/ocplugins/changhong.dbro/`。包内包含服务端入口 `server/main.ts`（构建后是 `dist/server/main.js`）、`dbro` 技能，以及 `assets/dbro` 下的
 `dbro.py` 和三个单库执行器。
 
@@ -84,7 +84,7 @@ python3 -m pip install pymysql psycopg2-binary
 
 ```sh
 bun run build   # dist/server/main.js + dist/assets/dbro + dist/skills
-bun run pack    # ~/.ocplugins-local/changhong.dbro/<version>/
+bun run pack    # ~/.distribution/plugins/changhong.dbro/<version>/
 ```
 
 `build` 是开发期步骤：从 `DBRO_TOOLS`（默认本机 `~/agents/tools`）复制 `dbro/dbro.py` 与三个执行器，并用

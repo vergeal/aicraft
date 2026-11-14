@@ -43,5 +43,5 @@ cd plugins/orchestrator
 bun test
 bun run typecheck
 bun run build   # dist/
-bun run pack    # ~/.ocplugins-local/changhong.orchestrator/<version>/
+bun run pack    # ~/.distribution/plugins/changhong.orchestrator/<version>/
 ```

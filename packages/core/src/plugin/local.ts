@@ -9,9 +9,9 @@ import path from "node:path"
 /**
  * The local discover directory mirrors what a registry would publish: one folder per plugin id, one folder per
  * version inside it, and the `.ocplugin` bundle in that version folder. The app lists it as the catalog, so this
- * machine can try the full install flow before a registry exists.
+ * machine can try the full install flow before a registry exists. Plugins and skills share one distribution root.
  */
-export const root = (home: string) => path.join(home, ".ocplugins-local")
+export const root = (home: string) => path.join(home, ".distribution", "plugins")
 
 /** Where installed bundles are unpacked, one directory per plugin id. */
 export const installRoot = (home: string) => path.join(home, ".opencode", "ocplugins")

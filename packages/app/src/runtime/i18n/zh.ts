@@ -595,6 +595,9 @@ export const dict = {
 
   "settings.models.title": "模型",
   "settings.models.description": "可在此处配置模型设置。",
+  "settings.models.count.one": "{{count}} 个模型",
+  "settings.models.count.other": "{{count}} 个模型",
+  "settings.models.current": "当前模型",
 
   "settings.permissions.tool.read.title": "读取",
   "settings.permissions.tool.read.description": "读取文件（匹配文件路径）",

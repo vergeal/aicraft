@@ -1,6 +1,7 @@
 import { useFilteredList } from "@opencode/ui/hooks"
 import { Switch } from "@opencode/ui/switch"
-import { type Component, createEffect, createMemo, For, type JSX, Show } from "solid-js"
+import { createResizeObserver } from "@solid-primitives/resize-observer"
+import { type Component, createEffect, createMemo, createSignal, For, type JSX, onMount, Show } from "solid-js"
 
 import { Schema } from "effect"
 import { Persistence } from "@/runtime/persistence/schema"
@@ -45,6 +46,19 @@ export const SettingsModels: Component<{
 
   const sections = new Map<string, HTMLElement>()
 
+  // The page header is sticky and opaque, so group headers pinned at 0 would stay hidden behind it. They pin just
+  // below its measured height instead of a fixed offset that drifts when the description wraps.
+  let body: HTMLDivElement | undefined
+  const [stickyTop, setStickyTop] = createSignal(0)
+  onMount(() => {
+    const header = body?.closest<HTMLElement>(".settings-panel")?.querySelector<HTMLElement>(".settings-tab-header")
+
+    if (!header) return
+    const sync = () => setStickyTop(header.getBoundingClientRect().height)
+    sync()
+    createResizeObserver(header, sync)
+  })
+
   const list = useFilteredList<ModelItem>({
     items: (_filter) => models.list(),
     key: (x) => `${x.provider.id}:${x.id}`,
@@ -88,7 +102,7 @@ export const SettingsModels: Component<{
             const key = { providerID: item.provider.id, modelID: item.id }
 
             return (
-              <SettingsRow title={item.name} description="">
+              <SettingsRow title={<span title={item.name}>{item.name}</span>} description="">
                 <div>
                   <Switch
                     checked={models.visible(key)}
@@ -159,7 +173,11 @@ export const SettingsModels: Component<{
         />
       </SettingsPageHeader>
 
-      <div class="settings-tab-body settings-models">
+      <div
+        ref={(element) => (body = element)}
+        class="settings-tab-body settings-models"
+        style={{ "--settings-models-sticky-top": `${stickyTop()}px` }}
+      >
         {/* `list` reads a synchronous array, so its own loading flag never shows. Wait for both provider catalogs
             instead, or the first paint reports "No model results" while they are still syncing. */}
         <Show

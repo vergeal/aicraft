@@ -1477,6 +1477,9 @@ export const dict = {
   "settings.models.description": "Choose which models appear in model picker",
   "settings.models.enableAll": "Enable all models",
   "settings.models.disableAll": "Disable all models",
+  "settings.models.count.one": "{{count}} model",
+  "settings.models.count.other": "{{count}} models",
+  "settings.models.current": "Current model",
 
   "settings.permissions.tool.read.title": "Read",
   "settings.permissions.tool.read.description": "Reading a file (matches the file path)",

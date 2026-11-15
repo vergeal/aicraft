@@ -3,6 +3,7 @@ import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@opencode/ui
 import { Icon } from "@opencode/ui/icon"
 import { Switch } from "@opencode/ui/switch"
 import { TextInput } from "@opencode/ui/text-input"
+import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { useFilteredList } from "@opencode/ui/hooks"
 import { createMemo, For, Show, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -75,30 +76,82 @@ export const DialogManageModels: Component = () => {
 
   function ModelRows(props: { items: ModelItem[] }) {
     const visible = (item: ModelItem) => local.model.visible({ modelID: item.id, providerID: item.provider.id })
+    const current = (item: ModelItem) => {
+      const selected = local.model.current()
+
+      return !!selected && selected.provider.id === item.provider.id && selected.id === item.id
+    }
+    // Rows live in one scroll viewport across every group, so the arrow keys move through the whole list, not a group.
+    const focusSibling = (row: HTMLElement, direction: 1 | -1) => {
+      const rows = Array.from(
+        row.closest(".settings-manage-models-viewport")?.querySelectorAll<HTMLElement>("[data-manage-model-row]") ?? [],
+      )
+      const index = rows.indexOf(row)
+
+      if (index === -1) return
+      rows[(index + direction + rows.length) % rows.length]?.focus()
+    }
 
     return (
       <div class="manage-models-rows">
         <For each={props.items}>
-          {(item) => (
-            <div
-              class="search-list-row"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => setModelVisibility(item, !visible(item))}
-            >
-              <div class="search-list-row-text">
-                <span class="search-list-title" data-weight="regular">
-                  {item.name}
-                </span>
-                {/* Rows from several providers share names, so the group header alone cannot tell them apart. */}
-                <span class="search-list-detail">{item.provider.name}</span>
+          {(item) => {
+            const checked = () => visible(item)
+
+            return (
+              <div
+                data-manage-model-row=""
+                role="switch"
+                aria-checked={checked()}
+                tabindex={0}
+                class="search-list-row"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => setModelVisibility(item, !checked())}
+                onKeyDown={(event) => {
+                  if (event.key === " " || event.key === "Enter") {
+                    event.preventDefault()
+                    setModelVisibility(item, !checked())
+
+                    return
+                  }
+
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault()
+                    focusSibling(event.currentTarget, 1)
+
+                    return
+                  }
+
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault()
+                    focusSibling(event.currentTarget, -1)
+                  }
+                }}
+              >
+                <div class="search-list-row-text">
+                  <span
+                    class="manage-model-current"
+                    title={current(item) ? language.t("settings.models.current") : undefined}
+                  >
+                    <Show when={current(item)}>
+                      <Icon name="check" size="small" />
+                    </Show>
+                  </span>
+                  <span class="search-list-title" data-weight="regular" title={item.name}>
+                    {item.name}
+                  </span>
+                  {/* Rows from several providers share names, so the group header alone cannot tell them apart. */}
+                  <span class="search-list-detail">{item.provider.name}</span>
+                </div>
+                {/* The row is the switch; the control is inert so it is neither a second tab stop nor a nested control. */}
+                <div class="search-list-trailing" inert aria-hidden="true">
+                  <Switch checked={checked()} onChange={(value) => setModelVisibility(item, value)} hideLabel>
+                    {item.name}
+                  </Switch>
+                </div>
               </div>
-              <div class="search-list-trailing" onClick={(event) => event.stopPropagation()}>
-                <Switch checked={visible(item)} onChange={(checked) => setModelVisibility(item, checked)} hideLabel>
-                  {item.name}
-                </Switch>
-              </div>
-            </div>
-          )}
+            )
+          }}
         </For>
       </div>
     )
@@ -137,8 +190,11 @@ export const DialogManageModels: Component = () => {
             onClearClick={() => list.clear()}
           />
         </div>
-        <div data-slot="manage-models-scroll" class="relative min-h-0 flex-1">
-          <div class="settings-panel settings-models">
+        <div data-slot="manage-models-scroll" class="relative flex min-h-0 flex-1 flex-col">
+          <MenuScroll
+            class="min-h-0 flex-1"
+            viewportClass="settings-panel settings-models settings-manage-models-viewport"
+          >
             <Show
               when={providers.ready()}
               fallback={
@@ -168,7 +224,6 @@ export const DialogManageModels: Component = () => {
                   onSetVisibility={setProviderVisibility}
                   action={(group) => (
                     <Switch
-                      class="me-6"
                       checked={providerVisible(group.category)}
                       onChange={(checked) => setProviderVisibility(group.category, checked)}
                       disabled={searching()}
@@ -181,7 +236,7 @@ export const DialogManageModels: Component = () => {
                 />
               </Show>
             </Show>
-          </div>
+          </MenuScroll>
         </div>
       </DialogBody>
     </Dialog>

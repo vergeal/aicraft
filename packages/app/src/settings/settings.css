@@ -3586,18 +3586,14 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid var(--v2-border-border-base);
+  /* A pill is the one shape in Settings that is not on the 6px control radius. */
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(255, 255, 255, 0.82);
+  background: var(--v2-overlay-simple-overlay-hover);
+  color: var(--v2-text-text-base);
   font-size: 12px;
   line-height: 18px;
   transition: background 120ms ease;
-}
-
-[data-color-scheme="light"] .settings-provider-custom-chip {
-  border-color: var(--v2-border-border-base);
-  background: rgba(0, 0, 0, 0.04);
 }
 
 .settings-provider-custom-chip > button {

@@ -2794,6 +2794,30 @@
   line-height: var(--line-height-compact);
 }
 
+/* A state the switch cannot show (not available here, or a reserved id): one reason line, not an error block. */
+.settings-extension-note {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  color: var(--v2-text-text-muted);
+}
+
+.settings-extension-note[data-tone="danger"] {
+  color: var(--v2-state-fg-danger);
+}
+
+/* The plugin list's loading, error and empty lines: text with an optional control, never an empty card. */
+.settings-extension-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  color: var(--v2-text-text-muted);
+}
+
 .settings-mcp-row .settings-extension-trailing {
   min-width: 0;
   align-items: center;

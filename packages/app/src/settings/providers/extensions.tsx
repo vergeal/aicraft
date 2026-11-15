@@ -4,6 +4,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { Button } from "@opencode/ui/button"
 import { Switch } from "@opencode/ui/switch"
 import { Tabs } from "@opencode/ui/tabs"
+import { Loader } from "@opencode/ui/loader"
 import { TruncatedText } from "@opencode/ui/truncated-text"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useData } from "@/runtime/server/current"
@@ -63,15 +64,14 @@ export const SettingsExtensions: Component<{
     toggleMcp.mutate(name)
   }
 
-  const [pluginList] = createResource(
+  const [pluginList, { refetch: refetchPlugins }] = createResource(
     () => serverSdk.connection.status() === "connected",
-    () =>
-      serverSdk.api.plugin
-        .list()
-        .then((result) => result.data)
-        .catch(() => []),
-    { initialValue: [] },
+    () => serverSdk.api.plugin.list().then((result) => result.data),
   )
+
+  // Reading .latest before the first result suspends, so the rows wait for a ready or refreshing list.
+  const loadedPlugins = () =>
+    pluginList.state === "ready" || pluginList.state === "refreshing" ? (pluginList.latest ?? []) : undefined
 
   // The desktop window runs the GUIs of its own server's plugins, so only that server's rows control them.
   const own = () => !!platform.plugins && ServerConnection.builtin(serverSdk.server)
@@ -191,7 +191,36 @@ export const SettingsExtensions: Component<{
                   {language.t("settings.extensions.manageConfig")}
                 </span>
               </div>
-              <ExtensionPlugins plugins={pluginList.latest ?? []} own={own()} />
+              <Show
+                when={loadedPlugins()}
+                fallback={
+                  <Show
+                    when={pluginList.error}
+                    fallback={
+                      <div class="settings-extension-state">
+                        <Loader />
+                        <span>{language.t("common.loading")}</span>
+                      </div>
+                    }
+                  >
+                    <div class="settings-extension-state">
+                      <span>{language.t("settings.plugins.loadFailed")}</span>
+                      <Button size="small" variant="ghost" onClick={() => void refetchPlugins()}>
+                        {language.t("common.retry")}
+                      </Button>
+                    </div>
+                  </Show>
+                }
+              >
+                {(plugins) => (
+                  <Show
+                    when={plugins().length > 0}
+                    fallback={<p class="settings-extension-state">{language.t("settings.plugins.empty")}</p>}
+                  >
+                    <ExtensionPlugins plugins={plugins()} own={own()} showSource />
+                  </Show>
+                )}
+              </Show>
             </div>
           </Tabs.Content>
         </Tabs>

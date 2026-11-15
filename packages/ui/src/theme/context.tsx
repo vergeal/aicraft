@@ -342,19 +342,21 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       props.onThemeApplied?.(store.mode, store.colorScheme)
     })
 
-    const setTheme = (id: string) => {
+    /** Resolves false and keeps the previous theme when the selection cannot be applied. */
+    const setTheme = async (id: string) => {
       const next = id
+      const previous = store.themeId
 
       if (!next) {
         console.warn(`Theme "${id}" not found`)
 
-        return
+        return false
       }
 
       if (next !== "oc-2" && !knownThemes().has(next) && !store.themes[next]) {
         console.warn(`Theme "${id}" not found`)
 
-        return
+        return false
       }
 
       setStore("themeId", next)
@@ -363,14 +365,25 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         write(STORAGE_KEYS.THEME_ID, next)
         clear()
 
-        return
+        return true
       }
 
-      void load(next).then((theme) => {
-        if (!theme || store.themeId !== next) return
-        cacheThemeVariants(theme, next)
-        write(STORAGE_KEYS.THEME_ID, next)
-      })
+      const theme = await load(next)
+
+      // A newer selection owns the slot by now, so this result no longer decides what shows.
+      if (store.themeId !== next) return true
+
+      // The theme never loaded: go back to the one on screen instead of leaving a name that did not apply.
+      if (!theme) {
+        setStore("themeId", previous)
+
+        return false
+      }
+
+      cacheThemeVariants(theme, next)
+      write(STORAGE_KEYS.THEME_ID, next)
+
+      return true
     }
 
     const setColorScheme = (scheme: ColorScheme) => {
@@ -443,7 +456,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       },
       commitPreview: () => {
         if (store.previewThemeId) {
-          setTheme(store.previewThemeId)
+          // The theme is already on screen from the preview; this only settles the selection.
+          void setTheme(store.previewThemeId)
         }
 
         if (store.previewScheme) {

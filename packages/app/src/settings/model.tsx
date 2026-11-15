@@ -192,7 +192,8 @@ const appearanceSchema = Persistence.struct({
   sidebarOpen: Persistence.optional(Schema.Boolean),
   // The width the user pinned by dragging the navigation edge. Absent means the default column width.
   sidebarWidth: Persistence.optional(Schema.Number),
-  reduceMotion: Schema.Literals(["system", "on", "off"]),
+  // "always" and "never" replaced the old "on" and "off", which `settingsPersistence` still reads.
+  reduceMotion: Schema.Literals(["system", "always", "never"]),
 })
 
 const permissionsSchema = Persistence.struct({
@@ -289,6 +290,14 @@ function legacyTimelineActivity(value: boolean | "hidden" | "compact" | "full" |
   } as const
 }
 
+// Reduce motion used to store "on" and "off", which read as the opposite of what they did.
+function legacyReduceMotion(value: unknown) {
+  if (value === "on") return "always"
+  if (value === "off") return "never"
+
+  return value
+}
+
 export const settingsPersistence = Persistence.migrate(
   settingsSchema,
   Persistence.legacy({
@@ -319,11 +328,16 @@ export const settingsPersistence = Persistence.migrate(
     Schema.decode({
       decode: SchemaGetter.transform((value) => {
         const general = value.general
+        const appearance = value.appearance
+        const mapped = Predicate.isObject(appearance)
+          ? { ...appearance, reduceMotion: legacyReduceMotion(appearance.reduceMotion) }
+          : appearance
+        const base = { ...value, appearance: mapped }
 
-        if (!general || general.timelineDetail !== undefined) return value
+        if (!general || general.timelineDetail !== undefined) return base
 
         return {
-          ...value,
+          ...base,
           general: {
             ...general,
             timelineDetail: {
@@ -389,12 +403,19 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       defaultSettings.general.showCustomAgents,
     )
 
+    const fontSize = withFallback(() => store.appearance?.fontSize, defaultSettings.appearance.fontSize)
+
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
       const mono = monoFontFamily(store.appearance?.mono)
       root.style.setProperty("--font-family-mono", mono)
       root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
+      // The shipped scale is 15/15/18px at the default size of 14, so every step scales from that anchor.
+      const px = (value: number) => `${Math.round(((value * fontSize()) / 14) * 100) / 100}px`
+      root.style.setProperty("--font-size-small", px(15))
+      root.style.setProperty("--font-size-base", px(15))
+      root.style.setProperty("--font-size-large", px(18))
       // Inline code can first appear during history backfill. Load its selected
       // face with the shell so that font discovery does not resize that mount.
       void document.fonts?.load(`400 13px ${mono}`).catch(() => undefined)
@@ -409,7 +430,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     // Motion styles key off this attribute instead of the media query so the setting can override the system.
     createEffect(() => {
       if (typeof document === "undefined") return
-      const reduce = reduceMotion() === "system" ? systemReducedMotion() : reduceMotion() === "on"
+      const reduce = reduceMotion() === "system" ? systemReducedMotion() : reduceMotion() === "always"
       document.documentElement.dataset.motion = reduce ? "reduce" : "full"
     })
 
@@ -491,7 +512,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         customAgents: showCustomAgents,
       },
       appearance: {
-        fontSize: withFallback(() => store.appearance?.fontSize, defaultSettings.appearance.fontSize),
+        fontSize,
         setFontSize(value: number) {
           setStore("appearance", "fontSize", value)
         },

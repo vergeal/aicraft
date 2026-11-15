@@ -13,9 +13,11 @@ const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark
 
 const reduceMotionOptions = [
   { value: "system" as const, label: "settings.appearance.row.reduceMotion.system" as const },
-  { value: "on" as const, label: "settings.appearance.row.reduceMotion.on" as const },
-  { value: "off" as const, label: "settings.appearance.row.reduceMotion.off" as const },
+  { value: "always" as const, label: "settings.appearance.row.reduceMotion.always" as const },
+  { value: "never" as const, label: "settings.appearance.row.reduceMotion.never" as const },
 ]
+
+const fontSizeOptions = [12, 13, 14, 16]
 
 const fontSettings = {
   ui: {
@@ -127,6 +129,22 @@ export const SettingsAppearance: Component = () => {
             <FontSetting kind="ui" fonts={appearance.fonts} />
             <FontSetting kind="code" fonts={appearance.fonts} />
             <FontSetting kind="terminal" fonts={appearance.fonts} />
+
+            <SettingsRow
+              title={language.t("settings.appearance.row.fontSize.title")}
+              description={language.t("settings.appearance.row.fontSize.description")}
+            >
+              <Select
+                data-action="settings-font-size"
+                options={fontSizeOptions}
+                current={appearance.fontSize.current()}
+                placement="bottom-end"
+                gutter={6}
+                value={(size) => String(size)}
+                label={(size) => String(size)}
+                onSelect={(size) => size && appearance.fontSize.select(size)}
+              />
+            </SettingsRow>
 
             <Show when={appearance.zoom.available()}>
               <SettingsRow

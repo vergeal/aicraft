@@ -1171,11 +1171,11 @@
 
 .settings-provider-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-block: var(--settings-list-row-padding, 10px);
+  gap: 12px;
+  min-width: 0;
+  min-height: 49px;
+  padding-block: 10px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
 }
 
@@ -1183,9 +1183,20 @@
   border-bottom: none;
 }
 
-[data-component="connected-providers-section"] .settings-provider-row {
-  min-height: 48px;
-  padding-block: 10px;
+@media (hover: hover) {
+  .settings-provider-row:hover {
+    background: rgba(255, 255, 255, 0.025);
+  }
+}
+
+.settings-provider-row button:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+}
+
+.settings-provider-row [disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
 }
 
 .settings-provider-console {
@@ -1200,9 +1211,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
-  padding-block: 10px;
+  gap: 12px;
+  min-height: 36px;
 }
 
 .settings-provider-console-summary {
@@ -1211,6 +1221,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 18px;
 }
 
 .settings-provider-console-toggle {
@@ -1220,18 +1233,18 @@
   gap: 2px;
   padding-inline: 4px;
   border: 0;
-  border-radius: 9999px;
+  border-radius: 6px;
   background: transparent;
   color: var(--v2-text-text-muted);
   font-size: 13px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
+  line-height: 18px;
   cursor: pointer;
 }
 
 @media (hover: hover) {
   .settings-provider-console-toggle:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
+    background: rgba(255, 255, 255, 0.08);
     color: var(--v2-text-text-base);
   }
 }
@@ -1249,54 +1262,56 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding-top: 6px;
   padding-bottom: 10px;
 }
 
+.settings-provider-console-list:empty {
+  display: none;
+}
+
 .settings-provider-console-separator {
-  height: 0.5px;
-  margin-bottom: 6px;
-  background: var(--v2-border-border-base);
+  height: 1px;
+  margin-block: 8px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .settings-provider-console-item {
   display: flex;
   width: 100%;
-  min-height: 24px;
+  min-height: 36px;
   align-items: center;
+  justify-content: space-between;
   gap: 2px;
-  padding-inline: 10px;
+  padding-inline: 8px;
   border: 0;
-  border-radius: 9999px;
+  border-radius: 6px;
   background: transparent;
-  color: var(--v2-text-text-base);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
+  line-height: 18px;
   text-align: start;
   cursor: pointer;
 }
 
 .settings-provider-console-item-chevron {
-  color: var(--v2-icon-icon-base);
-  opacity: 0;
+  color: inherit;
+}
+
+.settings-provider-console-item[aria-selected="true"] {
+  background: rgba(10, 132, 255, 0.1);
+  color: #0a84ff;
 }
 
 @media (hover: hover) {
   .settings-provider-console-item:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
-  }
-
-  .settings-provider-console-item:hover .settings-provider-console-item-chevron {
-    opacity: 1;
+    background: rgba(255, 255, 255, 0.06);
   }
 }
 
 .settings-provider-console-item:focus-visible {
-  background: var(--v2-overlay-simple-overlay-hover);
-}
-
-.settings-provider-console-item:focus-visible .settings-provider-console-item-chevron {
-  opacity: 1;
+  background: rgba(10, 132, 255, 0.1);
 }
 
 :root[data-motion="reduce"] {
@@ -1323,67 +1338,108 @@
   }
 }
 
-.settings-providers [data-component="provider-icon"] {
-  color: var(--v2-icon-icon-base);
+.settings-providers [data-component="provider-icon"],
+.settings-provider-icon {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  line-height: 18px;
 }
 
 .settings-provider-lead {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   min-width: 0;
-  flex: 1;
-  align-items: flex-start;
-  gap: var(--settings-list-icon-gap, 10px);
+  overflow: hidden;
+  border-radius: 7px;
+  background: #38383b;
 }
 
-.settings-provider-lead:not(:has(.settings-provider-copy)) {
-  align-items: center;
+/* The Console header keeps a full-width lead so its label sits beside the icon. */
+.settings-provider-console-header .settings-provider-lead {
+  width: auto;
+  height: auto;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 10px;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
 }
 
 .settings-provider-copy {
   display: flex;
-  min-width: 0;
   flex: 1;
+  min-width: 0;
   flex-direction: column;
-  gap: 6px;
+  justify-content: center;
+  gap: 3px;
 }
 
 .settings-provider-main {
   display: flex;
+  align-items: center;
   min-width: 0;
   flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
 }
 
 .settings-provider-name {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.92);
   font-size: 13px;
-  font-weight: 400;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-base);
+  font-weight: 500;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-provider-description {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.48);
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
-  color: var(--v2-text-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-provider-empty {
-  padding-block: var(--settings-list-row-padding, 10px);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.settings-provider-empty > div {
+  font-size: 15px;
+  line-height: 18px;
+}
+
+.settings-provider-empty > p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-provider-env-hint {
   padding-inline-end: 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-muted);
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.56);
   opacity: 0;
   transition: opacity 200ms ease;
   cursor: default;
@@ -1400,11 +1456,18 @@
   display: flex;
   min-width: 0;
   max-width: min(272px, 50%);
+  flex-shrink: 0;
   align-items: center;
+  gap: 8px;
 }
 
 .settings-provider-account-trigger {
   min-width: 0;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-provider-account-trigger > span {
@@ -1414,7 +1477,15 @@
   white-space: nowrap;
 }
 
+@media (hover: hover) {
+  .settings-provider-account-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
 .settings-provider-account-input {
+  width: 100%;
+  height: 32px;
   max-width: min(240px, 45%);
   font-size: 13px;
   font-weight: 400;
@@ -1422,19 +1493,62 @@
   color: var(--v2-text-text-base);
 }
 
+.settings-provider-account-input:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: 1px;
+}
+
+.settings-provider-account-input:disabled {
+  background: #242426;
+}
+
+/* The menu is placed by its popper, so only its surface and inner rhythm come from the spec. */
 .settings-provider-account-menu[data-component="menu-v2-content"] {
-  width: min(260px, calc(100vw - 32px));
+  width: min(240px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9px;
+  background: #303033;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
   overflow: visible;
 }
 
 .settings-provider-account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
   max-height: min(240px, calc(var(--kb-popper-content-available-height) - 120px));
   overflow-y: auto;
 }
 
+.settings-provider-account-list:empty {
+  display: none;
+}
+
+.settings-provider-account-list > button {
+  min-height: 32px;
+  padding-inline: 8px;
+  border-radius: 5px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+@media (hover: hover) {
+  .settings-provider-account-list > button:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
 .settings-provider-account-label {
+  display: block;
   min-width: 0;
+  margin-bottom: 6px;
   overflow: hidden;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1446,20 +1560,27 @@
 }
 
 .settings-providers-view-all {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
   margin-top: 20px;
-  padding: 0;
+  padding-inline: 10px;
   border: 0;
+  border-radius: 6px;
   background: transparent;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
+  line-height: 18px;
   color: var(--v2-text-text-accent);
   cursor: pointer;
   text-align: start;
 }
 
-.settings-providers-view-all:hover {
-  color: var(--v2-text-text-accent-hover);
+@media (hover: hover) {
+  .settings-providers-view-all:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--v2-text-text-accent-hover);
+  }
 }
 
 .settings-tab-header.settings-tab-header--stacked {
@@ -2483,7 +2604,15 @@
 [data-slot="settings-provider-add-row"] {
   display: flex;
   align-items: center;
-  padding-block: 6px;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0;
+  background: transparent;
 
   > button {
     display: flex;
@@ -2491,34 +2620,121 @@
     width: 100%;
     align-items: center;
     gap: 8px;
-    border: 1px dashed var(--v2-border-border-muted);
-    border-radius: var(--radius-md);
+    border: 0;
+    border-radius: 0;
     background: transparent;
-    padding-inline: 11px;
-    color: var(--v2-text-text-base);
+    padding-inline: 8px;
+    color: #0a84ff;
     font-size: 13px;
     font-weight: 400;
-    line-height: var(--line-height-compact);
-    letter-spacing: -0.04px;
+    line-height: 18px;
     text-align: start;
     cursor: pointer;
+  }
 
-    &:hover,
-    &:focus-visible {
-      border-color: var(--v2-border-border-strong);
-      background: var(--v2-overlay-simple-overlay-hover);
+  > button:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: -2px;
+  }
+
+  @media (hover: hover) {
+    > button:hover {
+      background: rgba(10, 132, 255, 0.08);
     }
   }
 }
 
-/* One primary control plus its overflow menu: the group never shrinks under the provider name, and the tighter 6px gap
-   separates the group from the 16px gap that holds the name. */
+/* One primary control plus its overflow menu: the group never shrinks under the provider name, and the 8px gap
+   separates the group from the 12px gap that holds the name. */
 .settings-provider-actions {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
+}
+
+/* The custom provider sheet: the container sizes itself from its content, the body owns the scroll, and the model
+   list scrolls inside its own 240px box, so the footer stays visible when the form grows or an error appears. */
+[data-component="dialog-v2"] .settings-provider-custom-dialog[data-slot="dialog-container"] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 640px;
+  max-width: calc(100vw - 48px);
+  height: auto;
+  min-height: 280px;
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  background: rgba(38, 38, 42, 0.78);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"] {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  overflow: hidden;
+}
+
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-header"] {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 19px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-body"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  padding: 18px 19px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-footer"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 19px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.settings-provider-custom-dialog button:focus-visible,
+.settings-provider-custom-dialog input:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+}
+
+.settings-provider-custom-dialog :disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
 }
 
 .settings-provider-custom-fields {
@@ -2528,9 +2744,29 @@
   padding: 0 2px 4px;
 }
 
+.settings-provider-custom-fields > [data-component="input"] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-provider-custom-fields [data-slot="input-label"] {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.settings-provider-custom-fields [data-slot="input-input"] {
+  width: 100%;
+  min-height: 34px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
 /* IDs, endpoints and model IDs read as code. The field root carries the class, the input inside it inherits it. */
 .settings-provider-custom-mono input {
   font-family: var(--font-family-mono);
+  font-size: 12px;
 }
 
 .settings-provider-custom-models {
@@ -2540,24 +2776,32 @@
   padding: 0 2px 4px;
 }
 
-/* The section head closes with the same 0.5px rule the settings spine uses, so the fetched list reads as its body. */
 .settings-provider-custom-models-header {
   display: flex;
-  min-height: 28px;
+  min-height: 32px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  gap: 12px;
   color: var(--v2-text-text-muted);
   font-size: 13px;
-  font-weight: 530;
-  line-height: var(--line-height-compact);
+  font-weight: 400;
+  line-height: 18px;
 }
 
+/* The viewport inside MenuScroll carries the 240px cap, so this box stays a plain frame. */
 .settings-provider-custom-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.settings-provider-custom-model-list:empty {
+  display: grid;
+  min-height: 64px;
 }
 
 .settings-provider-custom-model {
@@ -2566,16 +2810,35 @@
   align-items: center;
   gap: 8px;
   padding-inline: 8px;
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  line-height: 18px;
   cursor: default;
+}
+
+@media (hover: hover) {
+  .settings-provider-custom-model:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .settings-provider-custom-chip:hover {
+    background: rgba(10, 132, 255, 0.18);
+  }
+}
+
+.settings-provider-custom-model:has(input:checked) {
+  background: rgba(10, 132, 255, 0.12);
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.28);
 }
 
 .settings-provider-custom-model-id {
   min-width: 0;
   overflow: hidden;
-  color: var(--v2-text-text-base);
   font-family: var(--font-family-mono);
-  font-size: 13px;
-  line-height: var(--line-height-compact);
+  font-size: 12px;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2586,33 +2849,43 @@
   gap: 6px;
 }
 
+.settings-provider-custom-selected:empty {
+  display: none;
+}
+
 .settings-provider-custom-chip {
   display: inline-flex;
   max-width: 100%;
+  min-height: 24px;
   align-items: center;
   gap: 4px;
-  border-radius: 9999px;
-  padding: 2px 6px 2px 8px;
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  padding: 3px 8px;
+  border: 1px solid rgba(10, 132, 255, 0.25);
+  border-radius: 6px;
+  background: rgba(10, 132, 255, 0.12);
+  color: #75b5ff;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-provider-custom-chip > button {
   display: grid;
   place-items: center;
-  color: var(--v2-text-text-muted);
+  color: inherit;
 
   &:hover {
-    color: var(--v2-text-text-base);
+    color: rgba(255, 255, 255, 0.96);
   }
 }
 
 .settings-provider-custom-manual {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
 
-  /* The 26px small button centers on the 32px field beside it. */
   > [data-component="button-v2"] {
+    flex: none;
+    min-width: 64px;
     margin-block-start: 3px;
   }
 }
@@ -2620,22 +2893,28 @@
 /* Notes and errors sit in a flex gap, so their default paragraph margin would double the rhythm. */
 .settings-provider-custom-note {
   margin: 0;
-  color: var(--v2-text-text-muted);
-  font-size: 13px;
-  line-height: var(--line-height-compact);
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.settings-provider-custom-note:empty {
+  display: none;
 }
 
 .settings-provider-custom-error {
   margin: 0;
-  color: var(--v2-state-fg-danger);
-  font-size: 13px;
-  line-height: var(--line-height-compact);
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 90, 90, 0.24);
+  border-radius: 6px;
+  background: rgba(255, 90, 90, 0.08);
+  color: #ff8585;
+  font-size: 12px;
+  line-height: 18px;
 }
 
-.settings-provider-custom-dialog [data-slot="dialog-footer"] {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+.settings-provider-custom-error:empty {
+  display: none;
 }
 
 .settings-provider-custom-dialog [data-slot="dialog-footer"] .settings-provider-custom-error {

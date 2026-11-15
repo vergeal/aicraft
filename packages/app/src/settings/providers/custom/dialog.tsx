@@ -175,7 +175,7 @@ export function DialogCustomProvider(props: {
   ) => (key ? language.t(key) : undefined)
 
   return (
-    <Dialog class="settings-provider-custom-dialog">
+    <Dialog class="settings-provider-custom-dialog" containerClass="settings-provider-custom-dialog" variant="settings">
       <DialogHeader closeLabel={language.t("common.close")}>
         <DialogTitleGroup
           title={

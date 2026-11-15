@@ -495,7 +495,9 @@ export const SettingsProviders: Component<{
                         <div class="settings-provider-row group">
                           <div class="settings-provider-lead">
                             <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
+                          </div>
 
+                          <div class="settings-provider-copy">
                             <div class="settings-provider-main">
                               <span class="settings-provider-name truncate">{item.name}</span>
                               <Badge>{type(item)}</Badge>
@@ -679,18 +681,18 @@ export const SettingsProviders: Component<{
                 <div class="settings-provider-row">
                   <div class="settings-provider-lead">
                     <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
+                  </div>
 
-                    <div class="settings-provider-copy">
-                      <div class="settings-provider-main">
-                        <span class="settings-provider-name">{item.name}</span>
-                        <Show when={item.id === "opencode" || item.id === "opencode-go"}>
-                          <Badge>{language.t("dialog.provider.tag.recommended")}</Badge>
-                        </Show>
-                      </div>
-                      <Show when={note(item.id)}>
-                        {(key) => <p class="settings-provider-description">{language.t(key())}</p>}
+                  <div class="settings-provider-copy">
+                    <div class="settings-provider-main">
+                      <span class="settings-provider-name">{item.name}</span>
+                      <Show when={item.id === "opencode" || item.id === "opencode-go"}>
+                        <Badge>{language.t("dialog.provider.tag.recommended")}</Badge>
                       </Show>
                     </div>
+                    <Show when={note(item.id)}>
+                      {(key) => <p class="settings-provider-description">{language.t(key())}</p>}
+                    </Show>
                   </div>
                   <Button size="normal" variant="neutral" icon="plus" onClick={() => connect(item.id)}>
                     {language.t("common.connect")}

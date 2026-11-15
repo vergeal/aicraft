@@ -214,24 +214,27 @@ function SessionQueueRow(props: { queue: SessionQueueView; id: string; index: nu
               </For>
             </button>
             <div class="flex min-w-0 items-center gap-4">
-              {/* The transcript shows the prompt, so the row is only its edit control. The hidden label keeps the row
-                  identifiable to assistive technology without printing the prompt twice. */}
+              {/* The row shows the prompt it holds and doubles as its edit control: the transcript bubble is
+                  below the work it waits behind, often off screen, so a row without the text reads as empty. */}
               <button
                 type="button"
                 data-action="session-queue-edit"
                 aria-disabled={entry().pending}
                 aria-label={language.t("session.queue.edit")}
-                aria-describedby={`${props.id}-prompt`}
-                class="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[4px] text-v2-text-text-base"
+                dir="auto"
+                class="flex max-w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[4px] text-start"
                 classList={{
                   "text-v2-text-text-faint": editing() || entry().pending,
                   "cursor-progress": entry().pending,
-                  "hover:bg-v2-overlay-simple-overlay-hover": !editing() && !entry().pending,
+                  "text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover": !editing() && !entry().pending,
                 }}
                 onClick={() => props.queue.edit(props.id)}
               >
-                <Icon name="pencil-line" size="small" />
-                <span class="sr-only" id={`${props.id}-prompt`}>
+                <Icon name="pencil-line" size="small" class="shrink-0" />
+                <span
+                  data-slot="session-queue-row-label"
+                  class="min-w-0 truncate text-[13px] font-[400] leading-[var(--line-height-compact)]"
+                >
                   {entry().text ||
                     (entry().attachments ? language.plural("session.queue.attachments", entry().attachments) : "")}
                 </span>

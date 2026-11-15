@@ -1709,7 +1709,7 @@
   margin: 0;
   min-width: 0;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--v2-text-text-muted);
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
@@ -1776,7 +1776,7 @@
   justify-content: center;
   padding-inline: 5px;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-muted);
   font-size: 11px;
   font-weight: 500;
@@ -1830,7 +1830,7 @@
 
 .settings-provider-empty > p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--v2-text-text-muted);
   font-size: 12px;
   line-height: 18px;
 }
@@ -2639,7 +2639,7 @@
 
 .settings-servers-row {
   display: flex;
-  min-height: 64px;
+  min-height: 49px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -2927,7 +2927,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: var(--line-height-compact);
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 .settings-workspaces-meta-project {
@@ -2941,7 +2941,7 @@
   font-size: 13px;
   font-weight: 400;
   line-height: var(--line-height-compact);
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 /* The label is focusable so its tooltip works from the keyboard, which needs a visible focus ring. */
@@ -3000,7 +3000,7 @@
   flex-shrink: 0;
   font-size: 11px;
   line-height: 16px;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 .settings-workspaces-empty {
@@ -3099,14 +3099,14 @@
   min-height: 0;
   max-height: calc(100vh - 48px);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 15px;
-  background: rgba(38, 38, 42, 0.78);
-  backdrop-filter: blur(30px) saturate(1.8);
-  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid var(--settings-sheet-border);
+  border-radius: var(--settings-sheet-radius);
+  background: var(--settings-sheet-bg);
+  backdrop-filter: var(--settings-sheet-blur);
+  -webkit-backdrop-filter: var(--settings-sheet-blur);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 64px rgba(0, 0, 0, 0.42);
+    var(--settings-sheet-shadow);
 }
 
 /* The body owns the scroll, so the content shell only clips the header highlight. */
@@ -3203,7 +3203,10 @@
   width: min(280px, 100%);
 }
 
+/* The subtabs are a segmented control over one page, so the track hugs its pills instead of spanning the panel;
+   `.settings-extensions-tabs` (a filter over a list) keeps its own fixed width. */
 .settings-subtabs[data-component="tabs-v2"][data-variant="pill"] > [data-slot="tabs-v2-list"] {
+  width: fit-content;
   padding-inline: 0;
 }
 
@@ -3235,9 +3238,11 @@
   line-height: var(--line-height-compact);
 }
 
-/* A state the switch cannot show (not available here, or a reserved id): one reason line, not an error block. */
+/* A state the switch cannot show (not available here, or a reserved id): one reason line, not an error block.
+   12px matches every other note on the page; 11px read as a third, smaller tier under 13px rows. */
 .settings-extension-note {
-  font-size: 11px;
+  padding-block: 12px 0;
+  font-size: 12px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-muted);
@@ -3329,8 +3334,7 @@
 .settings-subtabs[data-component="tabs-v2"][data-variant="pill"]
   > [data-slot="tabs-v2-list"]
   [data-slot="tabs-v2-trigger-wrapper"] {
-  /* The pill tracks share the fixed list width instead of hugging their labels. */
-  flex: 1;
+  /* The list hugs its pills, so each pill takes its label's width instead of an equal share of the panel. */
   border-radius: 6px;
 }
 
@@ -3356,7 +3360,7 @@
   min-height: 44px;
   padding-block: 6px;
   border: 0;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-top: 0.5px solid var(--v2-border-border-muted);
   border-radius: 0;
   background: transparent;
 
@@ -3657,7 +3661,7 @@
 /* Notes and errors sit in a flex gap, so their default paragraph margin would double the rhythm. */
 .settings-provider-custom-note {
   margin: 0;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--v2-text-text-muted);
   font-size: 12px;
   line-height: 18px;
 }
@@ -3691,23 +3695,18 @@
   gap: 4px;
 }
 
+/* The inactive dots are a track, not a decoration: they need to read on both schemes. `overlay-pressed` (10% white
+   in dark, 8% black in light) is the nearest token to the 18%/16% pair this was drawn with; `overlay-hover` would
+   drop them 3-4x and nearly erase the track. */
 .settings-provider-custom-steps-dots > span {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--v2-overlay-simple-overlay-pressed);
 }
 
 .settings-provider-custom-steps-dots > span[data-active] {
-  background: #0a84ff;
-}
-
-[data-color-scheme="light"] .settings-provider-custom-steps-dots > span {
-  background: rgba(0, 0, 0, 0.16);
-}
-
-[data-color-scheme="light"] .settings-provider-custom-steps-dots > span[data-active] {
-  background: #0a84ff;
+  background: var(--v2-system-accent);
 }
 
 /* The count sits after the Models label; the auto end margin keeps Fetch models on the right edge. */
@@ -3839,11 +3838,6 @@
   color: var(--v2-text-text-base);
 }
 
-[data-color-scheme="light"] .settings-provider-description,
-[data-color-scheme="light"] .settings-provider-empty > p {
-  color: var(--v2-text-text-muted);
-}
-
 [data-color-scheme="light"] .settings-provider-empty,
 [data-color-scheme="light"] .settings-provider-env-hint {
   color: var(--v2-text-text-muted);
@@ -3886,9 +3880,10 @@
 [data-color-scheme="light"]
   [data-component="dialog-v2"]:has(.settings-server-dialog)
   > [data-slot="dialog-container"] {
-  border-color: rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.18);
+  /* Same sheet variables as the notices and delete dialogs, so the three 15px glass shells cannot drift apart. */
+  border-color: var(--settings-sheet-border);
+  background: var(--settings-sheet-bg);
+  box-shadow: var(--settings-sheet-shadow);
 }
 
 [data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-header"] {
@@ -3966,10 +3961,6 @@
   color: var(--v2-text-text-base);
 }
 
-[data-color-scheme="light"] .settings-provider-custom-note {
-  color: var(--v2-text-text-muted);
-}
-
 [data-color-scheme="light"] .settings-provider-custom-error {
   color: var(--v2-state-fg-danger);
 }
@@ -3978,4 +3969,48 @@
    only image on the page. */
 [data-color-scheme="light"] .settings-about-wordmark {
   opacity: 0.52;
+}
+
+/* ── Focus rings ──
+   `packages/ui/src/styles/base.css` turns focus outlines off with `outline: none !important` for every button-like
+   element, and nothing scoped here can beat `!important`. `box-shadow` is not silenced, so the settings surfaces
+   draw the ring that way and keyboard focus stays visible wherever base.css removed it. Elements that already show
+   a ring are excluded so this shell never stacks a second one:
+   - `[data-component="button-v2"]` — restores the same ring above, once.
+   - `[data-slot="switch-input"]` — a hidden input; the visible control carries the switch's own ring.
+   - `[data-slot="text-input-v2-input"]` — its `:focus-within` wrapper is the field's focus mark.
+   - `.settings-provider-account-input` — a native input, whose outline base.css never suppressed.
+   - `.settings-workspaces-active` — a focusable span that keeps its own outline.
+   - `.search-list-row` — draws the inset ring from `providers/models/manage.css`.
+   - `input[type="range"]` — a native slider, whose UA focus ring is not suppressed.
+   The trailing `:not()` keeps the selector above the `box-shadow: none` that `select-v2` states on `:focus-within`
+   at the same specificity, so a focused select cannot lose the ring to source order. */
+:is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"])
+  :is(
+    button,
+    [role="button"],
+    [role="combobox"],
+    [role="tab"],
+    [role="option"],
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="menuitemradio"],
+    a[href],
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex="-1"]),
+    [data-component="icon-button-v2"],
+    [data-component="split-button-v2-action"],
+    [data-component="split-button-v2-menu-trigger"]
+  ):not([data-disabled]):not(:disabled):not(
+    [data-component="button-v2"],
+    [data-slot="switch-input"],
+    [data-slot="text-input-v2-input"],
+    .settings-provider-account-input,
+    .settings-workspaces-active,
+    .search-list-row,
+    input[type="range"]
+  ):focus-visible {
+  box-shadow: var(--settings-focus-ring);
 }

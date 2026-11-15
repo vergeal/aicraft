@@ -1309,10 +1309,16 @@
   min-width: 0;
   min-height: 49px;
   padding-block: 10px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 .settings-provider-row:last-child {
+  border-bottom: none;
+}
+
+/* The add row draws its own top border, so the preceding block must not draw a second one. */
+.settings-provider-row:has(+ [data-slot="settings-provider-add-row"]),
+.settings-provider-console:has(+ [data-slot="settings-provider-add-row"]) {
   border-bottom: none;
 }
 
@@ -1333,7 +1339,7 @@
 }
 
 .settings-provider-console {
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 .settings-provider-console:last-child {

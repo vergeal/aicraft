@@ -6,13 +6,11 @@ export function providerAccounts(integration: IntegrationInfo | undefined) {
   return integration?.connections.filter((connection): connection is ProviderAccount => connection.type === "credential") ?? []
 }
 
-// Connections do not say which account is in use; the credential list does. Without that answer, the first account
-// stays the best guess and the menu still has something to select.
+// Connections do not say which account is in use; only the credential list answers that. Until it answers, no account
+// is marked active: a checkmark on a guess is worse than none, and a RadioGroup value nobody verified selects nothing.
 export function activeProviderAccount(
   integration: IntegrationInfo | undefined,
-  isActive?: (credentialID: string) => boolean,
+  isActive?: (credentialID: string) => boolean | undefined,
 ) {
-  const accounts = providerAccounts(integration)
-
-  return accounts.find((account) => isActive?.(account.id)) ?? accounts[0]
+  return providerAccounts(integration).find((account) => isActive?.(account.id) === true)
 }

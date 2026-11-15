@@ -13,10 +13,9 @@ import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { showToast } from "@/shell/notifications/toast"
 import type { ExperimentalConfigUpdateInput } from "@opencode/client/promise"
-import { baseURLError, idError, modelsError, providerConfig, type CustomProviderDraft } from "./draft"
+import { baseURLError, idError, providerConfig, type CustomProviderDraft } from "./draft"
 import {
   busy,
-  canContinue,
   canSubmit,
   closed,
   transition,
@@ -78,7 +77,10 @@ export function DialogCustomProvider(props: {
   }
   const step = () => {
     const current = state()
-    return current.type === "editing" ? current.step : "details"
+    if (current.type === "editing") return current.step
+    // A save owns the models step: falling back to "details" would make the footer render the fields step while the
+    // request still runs, which is the jump back this dialog used to show.
+    return "models"
   }
   const error = () => {
     const current = state()
@@ -148,8 +150,8 @@ export function DialogCustomProvider(props: {
   const set = (patch: Partial<CustomProviderDraft>) => dispatch({ type: "draft.changed", patch })
 
   const [manual, setManual] = createSignal("")
-  // A field only complains after the user leaves it: an empty form on open is not an error yet, and the Continue button
-  // is already disabled while the details are invalid, so it cannot be the moment the errors appear.
+  // A field only complains after the user leaves it, or when Continue cannot advance and says why: an empty form on open
+  // is not an error yet.
   const [touched, setTouched] = createStore({ id: false, baseURL: false })
   const models = createMemo(() => draft()?.models ?? [])
   const discovered = createMemo(() => {
@@ -171,9 +173,34 @@ export function DialogCustomProvider(props: {
     setManual("")
   }
 
+  const stepNumber = () => (step() === "models" ? 2 : 1)
+
+  // Continue stays enabled on an invalid form: it is the only way to reveal the field errors, which otherwise wait for a
+  // blur the user has no reason to perform. Clicking it marks every field as touched and puts the caret on the first
+  // one that still needs an answer.
+  const advance = () => {
+    const value = draft()
+    if (!value) return
+
+    const first = idError(value, props.taken, mode)
+      ? "settings-provider-custom-id"
+      : baseURLError(value)
+        ? "settings-provider-custom-base-url"
+        : undefined
+
+    if (!first) {
+      dispatch({ type: "step.next" })
+      return
+    }
+
+    setTouched({ id: true, baseURL: true })
+    document.getElementById(first)?.focus()
+  }
+
   // The validators return key names, so the field shows the message the specific failure asks for.
   const fieldError = (
     key:
+      | "settings.providers.custom.id.required"
       | "settings.providers.custom.id.invalid"
       | "settings.providers.custom.id.taken"
       | "settings.providers.custom.baseURL.invalid"
@@ -183,14 +210,37 @@ export function DialogCustomProvider(props: {
   return (
     <Dialog class="settings-provider-custom-dialog" containerClass="settings-provider-custom-dialog" variant="settings">
       <DialogHeader closeLabel={language.t("common.close")}>
-        <DialogTitleGroup
-          title={
-            mode === "edit"
-              ? language.t("settings.providers.custom.title.edit")
-              : language.t("settings.providers.custom.title.create")
-          }
-          description={language.t("settings.providers.custom.description")}
-        />
+        <div class="settings-provider-custom-heading">
+          <DialogTitleGroup
+            title={
+              mode === "edit"
+                ? language.t("settings.providers.custom.title.edit")
+                : language.t("settings.providers.custom.title.create")
+            }
+            description={
+              step() === "models"
+                ? language.t("settings.providers.custom.description.models")
+                : language.t("settings.providers.custom.description")
+            }
+          />
+          {/* Two dots and a count: the models step is a second screen, and the header says so before the body changes. */}
+          <div
+            class="settings-provider-custom-steps"
+            role="group"
+            aria-label={language.t("settings.providers.custom.steps.count", {
+              current: stepNumber(),
+              total: 2,
+            })}
+          >
+            <span class="settings-provider-custom-steps-dots" aria-hidden="true">
+              <span data-active={stepNumber() === 1 ? "" : undefined} />
+              <span data-active={stepNumber() === 2 ? "" : undefined} />
+            </span>
+            <span class="settings-provider-custom-steps-count">
+              {language.t("settings.providers.custom.steps.progress", { current: stepNumber(), total: 2 })}
+            </span>
+          </div>
+        </div>
       </DialogHeader>
       <DialogBody class="min-h-0 flex-1 overflow-y-auto" data-scrollable>
         <Show when={draft()}>
@@ -198,7 +248,14 @@ export function DialogCustomProvider(props: {
             <Show
               when={step() === "models"}
               fallback={
-                <div class="settings-provider-custom-fields">
+                <div
+                  class="settings-provider-custom-fields"
+                  onKeyDown={(event: KeyboardEvent) => {
+                    if (event.key !== "Enter" || event.isComposing) return
+                    event.preventDefault()
+                    advance()
+                  }}
+                >
                   <TextField
                     label={language.t("settings.providers.custom.name")}
                     placeholder={language.t("settings.providers.custom.name.placeholder")}
@@ -206,6 +263,7 @@ export function DialogCustomProvider(props: {
                     onInput={(event) => set({ name: event.currentTarget.value })}
                   />
                   <TextField
+                    id="settings-provider-custom-id"
                     label={language.t("settings.providers.custom.id")}
                     placeholder={language.t("settings.providers.custom.id.placeholder")}
                     description={language.t("settings.providers.custom.id.hint")}
@@ -218,6 +276,7 @@ export function DialogCustomProvider(props: {
                     onBlur={() => setTouched("id", true)}
                   />
                   <TextField
+                    id="settings-provider-custom-base-url"
                     label={language.t("settings.providers.custom.baseURL")}
                     placeholder={language.t("settings.providers.custom.baseURL.placeholder")}
                     error={touched.baseURL ? fieldError(baseURLError(value())) : undefined}
@@ -246,6 +305,13 @@ export function DialogCustomProvider(props: {
               <div class="settings-provider-custom-models">
                 <div class="settings-provider-custom-models-header">
                   <span>{language.t("settings.providers.custom.models")}</span>
+                  <Show when={models().length > 0}>
+                    <span class="settings-provider-custom-models-count">
+                      {language.plural("settings.providers.custom.models.count", models().length, {
+                        count: models().length,
+                      })}
+                    </span>
+                  </Show>
                   <Show when={discovery().type !== "loading"} fallback={<Loader class="size-4" />}>
                     <Button size="small" variant="ghost-muted" onClick={() => dispatch({ type: "discover.start" })}>
                       {language.t("settings.providers.custom.models.fetch")}
@@ -253,21 +319,21 @@ export function DialogCustomProvider(props: {
                   </Show>
                 </div>
                 <Show when={discovery().type === "failed"}>
-                  <p class="settings-provider-custom-note">
+                  <p class="settings-provider-custom-note" data-tone="danger">
                     {language.t("settings.providers.custom.models.fetchFailed")}
                   </p>
                 </Show>
                 <Show when={discovered().length > 0}>
-                  <MenuScroll class="settings-provider-custom-model-list" viewportClass="max-h-[240px]">
+                  <MenuScroll class="settings-provider-custom-model-list" viewportClass="max-h-[240px] pe-1">
                     <For each={discovered()}>
                       {(model) => (
-                        <label class="settings-provider-custom-model">
-                          <Checkbox
-                            checked={models().includes(model.id)}
-                            onChange={(checked) => toggleModel(model.id, checked)}
-                          />
+                        <Checkbox
+                          class="settings-provider-custom-model"
+                          checked={models().includes(model.id)}
+                          onChange={(checked) => toggleModel(model.id, checked)}
+                        >
                           <span class="settings-provider-custom-model-id">{model.name ?? model.id}</span>
-                        </label>
+                        </Checkbox>
                       )}
                     </For>
                   </MenuScroll>
@@ -310,19 +376,13 @@ export function DialogCustomProvider(props: {
                     icon="plus"
                     aria-label={language.t("settings.providers.custom.models.manual")}
                     onClick={addManual}
-                  />
+                  >
+                    {language.t("settings.providers.custom.models.manual.add")}
+                  </Button>
                 </div>
-                <Show when={modelsError(value())}>
-                  <p class="settings-provider-custom-error">
-                    {language.t("settings.providers.custom.models.required")}
-                  </p>
-                </Show>
-                <Show when={models().length > 0}>
-                  <p class="settings-provider-custom-note">
-                    {language.plural("settings.providers.custom.models.count", models().length, {
-                      count: models().length,
-                    })}
-                  </p>
+                {/* An empty selection is a neutral note, not an error: the user has not failed at anything yet. */}
+                <Show when={models().length === 0}>
+                  <p class="settings-provider-custom-note">{language.t("settings.providers.custom.models.empty")}</p>
                 </Show>
               </div>
             </Show>
@@ -330,12 +390,23 @@ export function DialogCustomProvider(props: {
         </Show>
       </DialogBody>
       <DialogFooter>
-        <Show when={error()}>{(message) => <p class="settings-provider-custom-error">{message()}</p>}</Show>
-        <Button size="normal" variant="ghost-muted" onClick={() => dialog.close()}>
+        <Show when={error()}>
+          {(message) => (
+            <p role="alert" class="settings-provider-custom-error">
+              {message()}
+            </p>
+          )}
+        </Show>
+        <Button size="normal" variant="ghost-muted" disabled={busy(state())} onClick={() => dialog.close()}>
           {language.t("common.cancel")}
         </Button>
         <Show when={step() === "models"}>
-          <Button size="normal" variant="ghost-muted" onClick={() => dispatch({ type: "step.back" })}>
+          <Button
+            size="normal"
+            variant="ghost-muted"
+            disabled={busy(state())}
+            onClick={() => dispatch({ type: "step.back" })}
+          >
             {language.t("settings.providers.custom.back")}
           </Button>
         </Show>
@@ -344,22 +415,20 @@ export function DialogCustomProvider(props: {
           fallback={
             <Button
               size="normal"
-              variant="neutral"
+              variant="submit"
               disabled={busy(state()) || !canSubmit(state(), context)}
               onClick={() => dispatch({ type: "submit.requested" })}
             >
+              <Show when={busy(state())}>
+                <Loader class="size-4" />
+              </Show>
               {mode === "edit"
                 ? language.t("settings.providers.custom.save")
                 : language.t("settings.providers.custom.create")}
             </Button>
           }
         >
-          <Button
-            size="normal"
-            variant="neutral"
-            disabled={!canContinue(state(), context)}
-            onClick={() => dispatch({ type: "step.next" })}
-          >
+          <Button size="normal" variant="submit" onClick={advance}>
             {language.t("settings.providers.custom.next")}
           </Button>
         </Show>

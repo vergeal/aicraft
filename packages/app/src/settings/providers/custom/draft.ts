@@ -35,7 +35,7 @@ export function providerConfig(draft: CustomProviderDraft, existing?: { models?:
 
 /** Field errors, as keys the dialog resolves through i18n. */
 export function idError(draft: CustomProviderDraft, taken: readonly string[], mode: "create" | "edit") {
-  if (!draft.id.trim()) return "settings.providers.custom.id.invalid" as const
+  if (!draft.id.trim()) return "settings.providers.custom.id.required" as const
   if (!PROVIDER_ID_PATTERN.test(draft.id)) return "settings.providers.custom.id.invalid" as const
   if (mode === "create" && taken.includes(draft.id)) return "settings.providers.custom.id.taken" as const
   return undefined

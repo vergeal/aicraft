@@ -5,6 +5,7 @@ import { isServiceUnavailableError } from "@opencode/client/promise"
 import { retry } from "@opencode/util/retry"
 import { Iterable, pipe } from "effect"
 import { createEffect, createMemo, type Accessor } from "solid-js"
+import { createStore } from "solid-js/store"
 import type { ProviderListResponse } from "@/runtime/server/types"
 import { useIntegrations } from "./integrations"
 import { visibleProviders } from "./order"
@@ -29,16 +30,30 @@ export function useProviders(directory: Accessor<string | undefined>) {
     return dir ? { directory: dir } : undefined
   }
 
+  // A failed catalog sync leaves both lists undefined, which reads exactly like "still loading". Keeping the failure
+  // lets the settings page stop the spinner and offer the sync again.
+  const [load, setLoad] = createStore<{ failed?: unknown }>({})
+
+  const sync = async () => {
+    const ref = location()
+
+    if (!ref) await data.location.syncInfo()
+    const resolved = ref ?? data.location.default()
+    await syncWhileBooting(() =>
+      Promise.all([data.location.provider.sync(resolved), data.location.model.sync(resolved)]),
+    )
+  }
+
+  const reload = () => {
+    setLoad("failed", undefined)
+
+    return sync().catch((cause: unknown) => setLoad("failed", cause))
+  }
+
   createEffect(() => {
     if (sdk.connection.status() !== "connected") return
-    const ref = location()
-    void (async () => {
-      if (!ref) await data.location.syncInfo()
-      const resolved = ref ?? data.location.default()
-      await syncWhileBooting(() =>
-        Promise.all([data.location.provider.sync(resolved), data.location.model.sync(resolved)]),
-      )
-    })().catch(() => undefined)
+    location()
+    void reload()
   })
   const integrations = useIntegrations(directory)
 
@@ -60,6 +75,9 @@ export function useProviders(directory: Accessor<string | undefined>) {
 
   return {
     ready,
+    // The catalog sync failed; `retry` runs it again.
+    error: () => load.failed,
+    retry: () => void reload(),
     all: () => providers().all,
     default: () => providers().default,
     // V2 servers list only available providers, so the connectable catalog

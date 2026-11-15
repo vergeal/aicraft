@@ -235,6 +235,7 @@ function RootSettings() {
 
   const groups = createMemo<SettingsNavGroup[]>(() => [
     {
+      label: language.t("settings.nav.group.server"),
       items: serverTabs.map((item) => ({
         ...item,
         label: language.t(item.label),
@@ -242,6 +243,7 @@ function RootSettings() {
       })),
     },
     {
+      label: language.t("settings.nav.group.app"),
       items: [
         ...rootClientTabs.map((item) => ({ ...item, label: language.t(item.label) })),
         ...pluginTabs(),
@@ -253,6 +255,7 @@ function RootSettings() {
       ],
     },
     {
+      label: language.t("settings.nav.group.about"),
       items: [
         ...pluginTabs("about"),
         ...(experimentalSettingsAvailable

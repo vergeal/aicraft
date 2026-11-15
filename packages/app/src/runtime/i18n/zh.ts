@@ -1024,6 +1024,9 @@ export const dict = {
   "settings.plugins.parts.note":
     '开关只关闭插件的桌面界面。在全局 opencode.json 的 plugins 中加入 "-<id>" 可关闭其服务器部分；在 cli.json 的 plugins 中加入 "-" 及其 TUI 插件 ID 可关闭其 TUI 部分。',
   "settings.tab.about": "关于",
+  "settings.nav.group.server": "服务端",
+  "settings.nav.group.app": "偏好",
+  "settings.nav.group.about": "关于",
   "settings.about.version": "版本 {{version}}",
   "settings.about.devVersion": "开发版",
   "settings.about.copyVersionFailed": "复制版本号失败",

@@ -1,7 +1,7 @@
 import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
 import { useLanguage } from "@/runtime/i18n/language"
-import { Match, Switch } from "solid-js"
+import { Match, Show, Switch } from "solid-js"
 import { selectServerIndicator, type ServerHealth } from "@/runtime/server/health-machine"
 
 export function ServerHealthIndicator(props: { health?: ServerHealth }) {
@@ -32,19 +32,25 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
         <div
           role="status"
           aria-label={label()}
+          title={label()}
           classList={{
-            "size-1.5 rounded-full shrink-0 my-[3.5px]": true,
+            "relative size-1.5 rounded-full shrink-0 my-[3.5px]": true,
             "bg-icon-success-base": indicator() === "healthy",
             "bg-icon-critical-base": indicator() === "unreachable",
-            "bg-v2-icon-icon-faint": indicator() === "unknown",
+            "border border-current bg-transparent text-v2-icon-icon-faint": indicator() === "unknown",
           }}
-        />
+        >
+          <Show when={indicator() === "unreachable"}>
+            <span class="absolute inset-x-px top-1/2 h-px -translate-y-1/2 rounded-full bg-v2-background-bg-base" />
+          </Show>
+        </div>
       }
     >
       <Match when={indicator() === "auth"}>
         <span
           role="status"
           aria-label={language.t("server.status.authentication")}
+          title={language.t("server.status.authentication")}
           class="inline-flex h-3.5 w-1.5 shrink-0 items-center justify-center text-v2-icon-icon-muted"
         >
           <Icon name="lock" size="small" class="shrink-0" />
@@ -54,6 +60,7 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
         <span
           role="status"
           aria-label={language.t("server.status.connecting")}
+          title={language.t("server.status.connecting")}
           class="inline-flex h-3.5 w-1.5 shrink-0 items-center justify-center text-v2-icon-icon-muted"
         >
           <Loader class="size-3 shrink-0" />
@@ -63,6 +70,7 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
         <span
           role="status"
           aria-label={language.t("server.status.incompatible")}
+          title={language.t("server.status.incompatible")}
           class="inline-flex h-3.5 w-1.5 shrink-0 items-center justify-center"
         >
           <Icon name="warning" size="small" class="shrink-0 text-icon-warning-base" />

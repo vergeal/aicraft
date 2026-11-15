@@ -2240,8 +2240,19 @@
   padding-block: 10px;
 }
 
-.settings-server-connection [data-component="settings-list"] {
-  padding-inline: 16px;
+/* The connection the settings screen is attached to gets a rail and a label, not just a shell action. */
+.settings-server-connection[data-current] {
+  position: relative;
+}
+
+.settings-server-connection[data-current]::before {
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--v2-text-text-accent);
+  content: "";
 }
 
 .settings-servers-row:not(:last-child) {
@@ -2276,19 +2287,46 @@
   gap: 4px;
 }
 
+.settings-servers-name-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
 .settings-servers-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   font-size: 13px;
   font-weight: 500;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-base);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-servers-current {
+  flex-shrink: 0;
+  padding-inline: 5px;
+  border-radius: 4px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
 }
 
 .settings-servers-meta {
-  overflow-wrap: anywhere;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   font-size: 12px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-tab-body.settings-workspaces {
@@ -2314,12 +2352,6 @@
 
 .settings-workspaces-delete-all {
   color: var(--v2-state-fg-danger);
-}
-
-.settings-workspaces-inventory {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .settings-workspaces-inventory [data-component="settings-list"] {
@@ -2442,7 +2474,7 @@
 }
 
 .settings-workspaces-path {
-  display: block;
+  display: flex;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -2452,16 +2484,28 @@
   font-weight: 400;
   line-height: var(--line-height-compact);
   letter-spacing: -0.04px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   padding: 0;
   text-align: left;
   cursor: default;
 }
 
+/* The directory shrinks first, so the file name the design emphasizes stays readable. */
+.settings-workspaces-path > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-workspaces-path-name {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  flex: none;
   color: var(--v2-text-text-base);
   font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-workspaces-meta {
@@ -2477,17 +2521,17 @@
   line-height: var(--line-height-compact);
 }
 
-.settings-workspaces-active,
-.settings-workspaces-more {
+.settings-workspaces-active {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
 }
 
-.settings-workspaces-active {
-  font-size: 13px;
+.settings-workspaces-more {
+  align-self: flex-start;
+  font-size: 12px;
   line-height: var(--line-height-compact);
 }
 
@@ -2547,7 +2591,7 @@
   line-height: 20px;
 }
 
-@media (max-width: 639px) {
+@container settings-panel (max-width: 520px) {
   .settings-workspaces-header {
     padding-top: 24px;
   }
@@ -2568,36 +2612,18 @@
   }
 
   .settings-workspaces-path {
+    flex-wrap: wrap;
     overflow: visible;
+    white-space: normal;
+  }
+
+  .settings-workspaces-path > span:first-child {
     text-overflow: clip;
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .settings-workspaces-active {
-    display: none;
-  }
-}
-
-@container settings-panel (max-width: 520px) {
-  .settings-workspaces-toolbar,
-  .settings-workspaces-main {
-    align-items: flex-start;
-  }
-
-  .settings-workspaces-toolbar {
-    flex-wrap: wrap;
-  }
-
-  .settings-workspaces-toolbar-actions {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-
-  .settings-workspaces-path {
-    overflow: visible;
-    text-overflow: clip;
+  .settings-workspaces-path-name {
     white-space: normal;
     overflow-wrap: anywhere;
   }

@@ -41,6 +41,9 @@ import { workspaceInventoryQuery } from "./queries"
 import { SettingsPageHeader } from "@/settings/page-header"
 import "@/settings/settings.css"
 
+/** Sessions shown in a card before the expand control appears. */
+const SESSION_PREVIEW = 5
+
 type Workspace = {
   directory: string
   project: Project
@@ -230,6 +233,7 @@ export const SettingsWorkspaces: Component<{
 
   const inspectionMessages = (result: WorkspaceDeleteInspection) => {
     const messages = [
+      result.active ? language.t("settings.workspaces.delete.blocked.active") : undefined,
       result.linked ? language.t("settings.workspaces.delete.blocked.linked") : undefined,
       result.dirty ? language.t("workspace.status.dirty") : undefined,
     ].filter((message): message is string => message !== undefined)
@@ -254,7 +258,14 @@ export const SettingsWorkspaces: Component<{
     try {
       const preflight = await inspect(workspace, context)
 
-      if (!force && (preflight.result.active || preflight.result.linked || preflight.result.dirty)) {
+      // An active worktree is never removed, even by the single-delete path that passes `force`.
+      if (preflight.result.active) {
+        blocked(preflight.result)
+
+        return
+      }
+
+      if (!force && (preflight.result.linked || preflight.result.dirty)) {
         blocked(preflight.result)
 
         return
@@ -471,6 +482,8 @@ export const SettingsWorkspaces: Component<{
                 const linked = () => workspaceSessions(workspace())
                 const key = () => String(pathKey(workspace().directory))
                 const deleting = () => store.deleting.includes(key())
+                const [sessionsExpanded, setSessionsExpanded] = createSignal(false)
+                const visibleSessions = () => (sessionsExpanded() ? linked() : linked().slice(0, SESSION_PREVIEW))
 
                 return (
                   <div class="settings-workspaces-row-motion" data-removing={store.removing.includes(key())}>
@@ -519,7 +532,7 @@ export const SettingsWorkspaces: Component<{
                       </div>
                       <Show when={linked().length > 0}>
                         <div class="settings-workspaces-sessions">
-                          <For each={linked()}>
+                          <For each={visibleSessions()}>
                             {(session) => (
                               <div class="settings-workspaces-session">
                                 <span>{sessionLabel(session)}</span>
@@ -529,6 +542,19 @@ export const SettingsWorkspaces: Component<{
                               </div>
                             )}
                           </For>
+                          <Show when={linked().length > SESSION_PREVIEW}>
+                            <Button
+                              type="button"
+                              size="small"
+                              variant="ghost-muted"
+                              class="settings-workspaces-more"
+                              onClick={() => setSessionsExpanded((value) => !value)}
+                            >
+                              {language.t(
+                                sessionsExpanded() ? "settings.workspaces.showLess" : "settings.workspaces.showMore",
+                              )}
+                            </Button>
+                          </Show>
                         </div>
                       </Show>
                     </div>
@@ -635,6 +661,8 @@ function DialogDeleteWorkspace(props: {
     return props.inspectionMessages(status.data.result)
   }
 
+  const active = () => status.data?.result.active === true
+
   const remove = () => {
     const deleting = props.onDelete()
     dialog.close()
@@ -666,7 +694,12 @@ function DialogDeleteWorkspace(props: {
         <Button type="button" variant="neutral" autofocus onClick={() => dialog.close()}>
           {language.t("common.cancel")}
         </Button>
-        <Button type="button" variant="danger" disabled={status.isPending || status.isError} onClick={remove}>
+        <Button
+          type="button"
+          variant="danger"
+          disabled={status.isPending || status.isError || active()}
+          onClick={remove}
+        >
           {language.t("workspace.delete.button")}
         </Button>
       </DialogFooter>

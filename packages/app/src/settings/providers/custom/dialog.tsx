@@ -7,6 +7,7 @@ import { Loader } from "@opencode/ui/loader"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { TextField } from "@opencode/ui/text-field"
 import { createMemo, createSignal, For, Show, untrack } from "solid-js"
+import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
@@ -147,6 +148,9 @@ export function DialogCustomProvider(props: {
   const set = (patch: Partial<CustomProviderDraft>) => dispatch({ type: "draft.changed", patch })
 
   const [manual, setManual] = createSignal("")
+  // A field only complains after the user leaves it: an empty form on open is not an error yet, and the Continue button
+  // is already disabled while the details are invalid, so it cannot be the moment the errors appear.
+  const [touched, setTouched] = createStore({ id: false, baseURL: false })
   const models = createMemo(() => draft()?.models ?? [])
   const discovered = createMemo(() => {
     const result = discovery()
@@ -205,19 +209,23 @@ export function DialogCustomProvider(props: {
                     label={language.t("settings.providers.custom.id")}
                     placeholder={language.t("settings.providers.custom.id.placeholder")}
                     description={language.t("settings.providers.custom.id.hint")}
-                    error={fieldError(idError(value(), props.taken, mode))}
+                    error={touched.id ? fieldError(idError(value(), props.taken, mode)) : undefined}
+                    validationState={touched.id && idError(value(), props.taken, mode) ? "invalid" : undefined}
                     value={value().id}
                     disabled={mode === "edit"}
                     class="settings-provider-custom-mono"
                     onInput={(event) => set({ id: event.currentTarget.value })}
+                    onBlur={() => setTouched("id", true)}
                   />
                   <TextField
                     label={language.t("settings.providers.custom.baseURL")}
                     placeholder={language.t("settings.providers.custom.baseURL.placeholder")}
-                    error={fieldError(baseURLError(value()))}
+                    error={touched.baseURL ? fieldError(baseURLError(value())) : undefined}
+                    validationState={touched.baseURL && baseURLError(value()) ? "invalid" : undefined}
                     value={value().baseURL}
                     class="settings-provider-custom-mono"
                     onInput={(event) => set({ baseURL: event.currentTarget.value })}
+                    onBlur={() => setTouched("baseURL", true)}
                   />
                   <TextField
                     label={language.t("settings.providers.custom.apiKey")}

@@ -3,6 +3,7 @@ import { Badge } from "@opencode/ui/badge"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
+import { Loader } from "@opencode/ui/loader"
 import { Menu } from "@opencode/ui/menu"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
 import { showToast } from "@/shell/notifications/toast"
@@ -13,7 +14,7 @@ import { useProviders } from "@/providers/catalog/providers"
 import { visibleProviders } from "@/providers/catalog/order"
 import { consoleProviderGroup } from "@/providers/catalog/console"
 import { useIntegrations } from "@/providers/catalog/integrations"
-import { createEffect, createMemo, createSignal, on, onCleanup, untrack, type Component, For, type JSX, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, untrack, type Component, For, Match, type JSX, Show, Switch } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
@@ -85,6 +86,16 @@ export const SettingsProviders: Component<{
   }))
 
   onCleanup(serverSdk.event.on("config.updated", () => void config.refetch()))
+
+  // The integration list carries the accounts but not which one is active, so the credential list supplies that bit.
+  const credentials = useQuery(() => ({
+    queryKey: [serverSdk.scope, "settings-provider-credentials"],
+    enabled: serverSdk.connection.status() === "connected",
+    queryFn: () => serverSdk.api.credential.list(),
+  }))
+
+  const isActiveCredential = (credentialID: string) =>
+    credentials.data?.some((entry) => entry.id === credentialID && entry.active) ?? false
 
   const custom = createMemo(() =>
     customProvidersFrom(config.isPending || config.isError ? [] : (config.data ?? [])),
@@ -179,7 +190,10 @@ export const SettingsProviders: Component<{
         void accountActions
           .refresh()
           .catch(() => undefined)
-          .finally(() => setState("held", undefined)),
+          .finally(() => {
+            void credentials.refetch()
+            setState("held", undefined)
+          }),
     )
   }
 
@@ -348,13 +362,14 @@ export const SettingsProviders: Component<{
   }
 
   const activate = async (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
-    if (activeProviderAccount(integration(provider))?.id === account.id) return
+    if (activeProviderAccount(integration(provider), isActiveCredential)?.id === account.id) return
     setState({ credentialID: account.id, held: available() })
     await accountActions.activate({
       integrationID: provider.integrationID ?? provider.id,
       provider: providerName,
       account,
     })
+    void credentials.refetch()
     setState({ credentialID: undefined, held: undefined })
   }
 
@@ -366,12 +381,13 @@ export const SettingsProviders: Component<{
       account,
       final: providerAccounts(integration(provider)).length === 1,
     })
+    void credentials.refetch()
     setState({ credentialID: undefined, held: undefined })
   }
 
   function AccountMenu(menuProps: { provider: ProviderItem; name?: string }) {
     const accounts = () => providerAccounts(integration(menuProps.provider))
-    const active = () => activeProviderAccount(integration(menuProps.provider))
+    const active = () => activeProviderAccount(integration(menuProps.provider), isActiveCredential)
     const name = () => menuProps.name ?? menuProps.provider.name
     const renaming = () => accounts().find((account) => account.id === state.renaming)
 
@@ -487,10 +503,29 @@ export const SettingsProviders: Component<{
         <div class="settings-section" data-component="connected-providers-section">
           <h3 class="settings-section-title">{language.t("settings.providers.section.connected")}</h3>
           <SettingsList variant="catalog">
-            <Show
-              when={displayed().length > 0}
-              fallback={<div class="settings-provider-empty">{language.t("settings.providers.connected.empty")}</div>}
-            >
+            <Switch>
+              <Match when={!providers.ready()}>
+                <div class="settings-models-status">
+                  <Loader class="size-4" />
+                  <span>
+                    {language.t("common.loading")}
+                    {language.t("common.loading.ellipsis")}
+                  </span>
+                </div>
+              </Match>
+              <Match when={config.isError}>
+                <div class="settings-models-status">
+                  <span>{language.t("common.requestFailed")}</span>
+                  <Button size="small" variant="neutral" onClick={() => void config.refetch()}>
+                    {language.t("common.retry")}
+                  </Button>
+                </div>
+              </Match>
+              <Match when={displayed().length === 0}>
+                <div class="settings-provider-empty">{language.t("settings.providers.connected.empty")}</div>
+              </Match>
+            </Switch>
+            <Show when={providers.ready() && !config.isError && displayed().length > 0}>
               <For each={displayed()}>
                 {(item) => {
                   const managedGroup = () => (consoleGroup()?.root.id === item.id ? consoleGroup() : undefined)
@@ -571,7 +606,7 @@ export const SettingsProviders: Component<{
                             }
                           >
                             <div class="settings-provider-actions">
-                              <Show when={activeProviderAccount(integration(item))?.status}>
+                              <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
                                 {(status) => (
                                   <Button
                                     size="normal"
@@ -685,7 +720,7 @@ export const SettingsProviders: Component<{
           <SettingsList variant="catalog">
             <For each={popular()}>
               {(item) => (
-                <div class="settings-provider-row">
+                <div class="settings-provider-row settings-provider-row--popular">
                   <div class="settings-provider-lead">
                     <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
                   </div>

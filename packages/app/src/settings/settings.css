@@ -80,10 +80,6 @@
   background: var(--color-main);
 }
 
-[data-replica] .settings-screen .settings-tab-header::before {
-  background: linear-gradient(to bottom, var(--color-main), transparent);
-}
-
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
 [data-replica] .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
   color: var(--color-text-secondary);
@@ -224,6 +220,7 @@
 }
 
 .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
+  position: relative;
   width: 100%;
   height: var(--settings-nav-item-height);
   flex-shrink: 0;
@@ -270,6 +267,19 @@
   color: var(--v2-text-text-base);
 }
 
+/* The pressed fill is only a 10% step, which reads as a hover on the dark surface. A 2px accent rail on the
+   leading edge gives the selection an anchor that survives both schemes without doubling the fill. */
+.settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])::before {
+  position: absolute;
+  inset-block: 6px;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--v2-text-text-accent);
+  content: "";
+  pointer-events: none;
+}
+
 .settings-nav-groups
   [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])
   [data-slot="tabs-v2-trigger"] {
@@ -306,10 +316,10 @@
   cursor: not-allowed;
 }
 
-/* The sidebar search is the nav's text input: 32px tall with a 6px radius. Scoped to the nav so the
-   page-level filter search keeps its own metrics. */
+/* The sidebar search is the nav's text input: it sits at the nav item's 30px metric so the search and the rows
+   below it share one rhythm. Scoped to the nav so the page-level filter search keeps its own metrics. */
 .settings-nav .settings-search [data-component="text-input-v2"] {
-  height: 32px;
+  height: 30px;
   border-radius: 6px;
 }
 
@@ -422,7 +432,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 32px;
+  gap: 24px;
   padding-block: 40px calc(40px + var(--settings-bottom-inset, 0px));
   color: var(--v2-text-text-muted);
   font-size: 13px;
@@ -436,6 +446,20 @@
   margin: 0;
 }
 
+/* The tagline is the page's own voice, so it sits at base color and 500; everything else stays in the muted
+   prose tier. The 12px tier below carries publication and product metadata. */
+.settings-about-content > p:not(.settings-about-faint) {
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-about-publication > p,
+.settings-about-details > p {
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .settings-about-intro,
 .settings-about-credits,
 .settings-about-publication,
@@ -445,7 +469,7 @@
 }
 
 .settings-about-intro {
-  gap: 12px;
+  gap: 8px;
 }
 
 .settings-about-version-line {
@@ -464,7 +488,7 @@
   margin-block: -2px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -479,7 +503,7 @@
   z-index: -1;
   inset-block: 0;
   inset-inline: -6px;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   content: "";
   transition: background-color 120ms ease;
@@ -503,21 +527,23 @@
 .settings-about-credits {
   gap: 4px;
   color: var(--v2-text-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: var(--line-height-compact);
 }
 
 .settings-about-publication,
 .settings-about-details {
-  gap: 16px;
+  gap: 8px;
 }
 
+/* 26px at the mark's 234:42 ratio. The old 0.2 opacity over a muted colour landed near 1.2:1, which read as an
+   empty gap rather than a wordmark. */
 .settings-about-wordmark {
-  width: 178px;
-  height: 32px;
+  width: 145px;
+  height: 26px;
   flex-shrink: 0;
-  opacity: 0.2;
-  color: var(--v2-text-text-muted);
+  opacity: 0.42;
+  color: var(--v2-text-text-base);
   fill: currentColor;
 }
 
@@ -527,11 +553,12 @@
 
 .settings-about-faint {
   color: var(--v2-text-text-faint);
+  font-size: 12px;
 }
 
 .settings-about-legal {
-  width: 109.2px;
-  height: 19.2px;
+  width: 109px;
+  height: 19px;
 }
 
 .settings-about-copyright {
@@ -547,8 +574,8 @@
 }
 
 .settings-about-anomaly-brush {
-  width: 126.72px;
-  height: 48.384px;
+  width: 127px;
+  height: 48px;
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -778,11 +805,11 @@
   transition: background-color 120ms ease-out;
 }
 
-/* The desktop sidebar renders the back control as a full-width 32px row; the mobile header keeps the
-   28px inline button so it still centers on the collapsed-sidebar toggle. */
+/* The desktop sidebar renders the back control as a full-width row on the toolbar metric; the mobile header
+   keeps the 28px inline button so it still centers on the collapsed-sidebar toggle. */
 .settings-nav > .settings-back {
   width: 100%;
-  height: 32px;
+  height: 28px;
 }
 
 .settings-back:hover,
@@ -862,17 +889,7 @@
   z-index: 10;
   padding: 32px var(--settings-content-inset, 32px) 8px;
   background: var(--v2-background-bg-base);
-  border-bottom: 1px solid transparent;
-}
-
-.settings-tab-header::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: 100%;
-  height: 16px;
-  background: linear-gradient(to bottom, var(--v2-background-bg-base), transparent);
-  pointer-events: none;
+  border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
 
 .settings-tab-header-row {
@@ -1250,6 +1267,14 @@
 
 :is([data-component="dialog-v2"][data-variant="settings"], .settings-screen) [data-component="select-v2"] {
   max-width: 100%;
+}
+
+/* A row's switch hit area is 28px; `appearance="small"` renders the select at 24px, so the two controls in the
+   same column sat on different baselines. The settings row owns the one metric here. */
+:is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
+  [data-slot="settings-row-control"]
+  [data-component="select-v2"] {
+  height: 28px;
 }
 
 :is([data-component="dialog-v2"][data-variant="settings"], .settings-screen) [data-component="button-v2"] {
@@ -2431,14 +2456,6 @@
   border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
-  transition: box-shadow 120ms ease-out;
-}
-
-@media (hover: hover) {
-  .settings-workspaces-row:hover {
-    background: var(--v2-background-bg-layer-02);
-    box-shadow: inset 0 0 0 1px var(--v2-border-border-strong);
-  }
 }
 
 .settings-workspaces-empty-motion {
@@ -2470,7 +2487,6 @@
     transition: none;
   }
 
-  .settings-workspaces-row,
   .settings-workspaces-empty-motion {
     transition: none;
   }
@@ -2512,20 +2528,34 @@
   min-width: 0;
 }
 
+/* The same directory renders in the delete dialog as code, so the settings row uses the code font at 12px
+   instead of inventing a second presentation for one value. */
 .settings-workspaces-path {
   display: flex;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   color: var(--v2-text-text-base);
-  font-family: inherit;
-  font-size: 13px;
+  font-family: var(--v2-font-family-code);
+  font-size: 12px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   letter-spacing: -0.04px;
   padding: 0;
   text-align: left;
   cursor: default;
+}
+
+/* A faint dot anchors the row before the path; long lists otherwise read as one grey block. */
+.settings-workspaces-path::before {
+  width: 4px;
+  height: 4px;
+  flex: none;
+  align-self: center;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  background: var(--v2-text-text-faint);
+  content: "";
 }
 
 /* The directory shrinks first, so the file name the design emphasizes stays readable. */

@@ -7,7 +7,7 @@ import { Persistence } from "@/runtime/persistence/schema"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useModels } from "@/providers/models/models"
 import { useServerSDK } from "@/runtime/server/client"
-import { popularProviders } from "@/providers/catalog/providers"
+import { popularProviders, useProviders } from "@/providers/catalog/providers"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
@@ -34,6 +34,8 @@ export const SettingsModels: Component<{
   const language = useLanguage()
   const models = useModels()
   const serverSdk = useServerSDK()
+  // Settings pages read the server-wide catalog, as the Providers page does with an undefined directory.
+  const providers = useProviders(() => undefined)
 
   const [store, setStore] = persisted(
     Persist.serverGlobal(serverSdk.scope, "settings-v2.models.providers"),
@@ -158,8 +160,10 @@ export const SettingsModels: Component<{
       </SettingsPageHeader>
 
       <div class="settings-tab-body settings-models">
+        {/* `list` reads a synchronous array, so its own loading flag never shows. Wait for both provider catalogs
+            instead, or the first paint reports "No model results" while they are still syncing. */}
         <Show
-          when={!list.grouped.loading}
+          when={providers.ready()}
           fallback={
             <div class="settings-models-status">
               {language.t("common.loading")}

@@ -98,6 +98,10 @@ function isModifier(key: string) {
 function recordKeybind(event: KeyboardEvent) {
   if (isModifier(event.key)) return
 
+  // Tab is the keyboard's own navigation key: recording it would both swallow the focus move and bind a key the user
+  // can never press inside a text field. The capture listener already prevents the default move.
+  if (event.key === "Tab") return
+
   const parts: string[] = []
 
   const mod = IS_MAC ? event.metaKey : event.ctrlKey
@@ -208,11 +212,32 @@ function groupedFor(list: Map<string, KeybindMeta>) {
   return out
 }
 
+/* The display form is glyphs on macOS (⌘⇧P) and localized words elsewhere, so a search for the key's own name
+   ("cmd", "command", "option") never matched. These aliases are searchable text only; the row still renders the
+   localized display form. */
+const KEY_SEARCH_ALIASES: Record<string, string> = {
+  mod: "cmd command ctrl control",
+  meta: "cmd command meta",
+  ctrl: "ctrl control",
+  alt: "option alt",
+  shift: "shift",
+}
+
+function searchAliases(config: string | undefined) {
+  if (!config) return ""
+
+  return config
+    .split(/[^a-z0-9]+/i)
+    .flatMap((part) => KEY_SEARCH_ALIASES[part.toLowerCase()] ?? [])
+    .join(" ")
+}
+
 function filteredFor(
   query: string,
   list: Map<string, KeybindMeta>,
   grouped: Map<KeybindGroup, string[]>,
   keybind: (id: string) => string,
+  aliases: (id: string) => string,
 ) {
   const value = query.toLowerCase().trim()
 
@@ -222,15 +247,19 @@ function filteredFor(
 
   for (const group of GROUPS) out.set(group, [])
 
-  const items = Array.from(list.entries()).map(([id, meta]) => ({
-    id,
-    title: meta.title,
-    group: meta.group,
-    keybind: keybind(id),
-  }))
+  const items = Array.from(list.entries()).map(([id, meta]) => {
+    const display = keybind(id)
+
+    return {
+      id,
+      title: meta.title,
+      group: meta.group,
+      search: `${display} ${aliases(id)}`,
+    }
+  })
 
   const results = fuzzysort.go(value, items, {
-    keys: ["title", "keybind"],
+    keys: ["title", "search"],
     threshold: -10000,
   })
 
@@ -397,7 +426,13 @@ export function createKeybindSettingsController(
     catalog: {
       groups: GROUPS,
       filtered: (query: string) =>
-        filteredFor(query, list(), grouped(), (id) => formatKeybind(effective(id) ?? "", language.t)),
+        filteredFor(
+          query,
+          list(),
+          grouped(),
+          (id) => formatKeybind(effective(id) ?? "", language.t),
+          (id) => searchAliases(effective(id)),
+        ),
       title,
       keybind: (id: string) => formatKeybind(effective(id) ?? "", language.t),
     },
@@ -497,7 +532,7 @@ function SettingsKeybindsView(props: {
                         const binding = () => props.keybind(id)
 
                         return (
-                          <div class="flex items-center justify-between gap-4 py-3 border-b border-v2-border-border-base last:border-none">
+                          <div class="flex items-center justify-between gap-4">
                             <span>{props.title(id)}</span>
                             <div class="flex items-center gap-1">
                               <Show when={props.active === id && binding()}>

@@ -424,6 +424,7 @@ export const dict = {
   "common.closeTab": "关闭标签页",
   "common.dismiss": "忽略",
   "common.requestFailed": "请求失败",
+  "common.retry": "重试",
   "common.moreOptions": "更多选项",
   "menu.group.open": "打开",
   "menu.group.organize": "整理",

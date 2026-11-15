@@ -1567,6 +1567,49 @@
   white-space: nowrap;
 }
 
+/* Design reads the provider type as a 20px chip, not the 16px compact tag: taller, a softer radius, a wider face and a
+   hairline that survives the card background. Scoped to this page; the global badge keeps its own metrics. */
+.settings-providers [data-component="tag"] {
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 10px;
+  font-weight: 450;
+  line-height: 16px;
+}
+
+/* The popular list keeps one line per provider: name, tag and note share the line, and a long note ends in an ellipsis
+   instead of pushing the row to two lines. */
+.settings-provider-row--popular {
+  min-height: 59px;
+}
+
+.settings-provider-row--popular .settings-provider-copy {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-provider-row--popular .settings-provider-main {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.settings-provider-row--popular .settings-provider-name {
+  flex: 0 1 auto;
+}
+
+.settings-provider-row--popular .settings-provider-description {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #898991;
+  font-size: 11px;
+  line-height: 18px;
+}
+
 .settings-provider-empty {
   display: flex;
   flex-direction: column;
@@ -2832,7 +2875,7 @@
   gap: 8px;
   width: 100%;
   min-height: 44px;
-  padding: 0;
+  padding-block: 6px;
   border: 0;
   border-top: 0.5px solid rgba(255, 255, 255, 0.07);
   border-radius: 0;
@@ -2840,20 +2883,20 @@
 
   > button {
     display: flex;
-    height: 44px;
+    height: 32px;
     width: calc(100% + 32px);
     align-items: center;
+    justify-content: center;
     gap: 8px;
     margin-inline: -16px;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.035);
     padding-inline: 16px;
-    color: #0a84ff;
-    font-size: 13px;
-    font-weight: 400;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    font-weight: 500;
     line-height: 18px;
-    text-align: start;
     cursor: pointer;
   }
 
@@ -2864,7 +2907,7 @@
 
   @media (hover: hover) {
     > button:hover {
-      background: rgba(10, 132, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
     }
   }
 }
@@ -3014,15 +3057,16 @@
   line-height: 18px;
 }
 
-/* The viewport inside MenuScroll carries the 240px cap, so this box stays a plain frame. */
+/* One inset panel, not a stack of cards: rows are separated by a hairline instead of a gap, and only the hovered row
+   takes a fill. The viewport inside MenuScroll still carries the 240px cap. */
 .settings-provider-custom-model-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.085);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(10, 10, 13, 0.24);
 }
 
 .settings-provider-custom-model {
@@ -3031,11 +3075,15 @@
   align-items: center;
   gap: 8px;
   padding-inline: 8px;
-  border-radius: 5px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
   line-height: 18px;
   cursor: default;
+  transition: background 120ms ease;
+}
+
+.settings-provider-custom-model + .settings-provider-custom-model {
+  border-top: 1px solid rgba(255, 255, 255, 0.035);
 }
 
 @media (hover: hover) {
@@ -3044,14 +3092,13 @@
   }
 
   .settings-provider-custom-chip:hover {
-    background: rgba(10, 132, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 
+/* Selection is one signal: the checkbox plus its ring. The fill and the lifted text fought it, so they are gone. */
 .settings-provider-custom-model:has(input:checked) {
-  background: rgba(10, 132, 255, 0.12);
-  color: rgba(255, 255, 255, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.45);
 }
 
 .settings-provider-custom-model-id {
@@ -3077,12 +3124,13 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 1px solid rgba(10, 132, 255, 0.25);
-  border-radius: 6px;
-  background: rgba(10, 132, 255, 0.12);
-  color: #75b5ff;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
   line-height: 18px;
+  transition: background 120ms ease;
 }
 
 .settings-provider-custom-chip > button {

@@ -2955,6 +2955,8 @@
 .settings-subtabs[data-component="tabs-v2"][data-variant="pill"]
   > [data-slot="tabs-v2-list"]
   [data-slot="tabs-v2-trigger-wrapper"] {
+  /* The pill tracks share the fixed list width instead of hugging their labels. */
+  flex: 1;
   border-radius: 6px;
 }
 

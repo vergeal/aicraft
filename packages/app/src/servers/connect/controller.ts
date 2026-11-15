@@ -9,6 +9,7 @@ import {
   selectServerConnectView,
   transitionServerConnect,
   type ServerConnectEffect,
+  type ServerConnectError,
   type ServerConnectEvent,
   type ServerConnectTarget,
   type ServerOriginal,
@@ -61,19 +62,20 @@ export function createServerConnectController(options: ServerConnectControllerOp
     }
 
     if (effect.type === "connect.http") {
-      const failed = () =>
-        dispatch({
-          type: "submit.failed",
-          attempt: effect.attempt,
-          error: { type: "connection-failed", url: effect.http.url },
-        })
+      const fail = (error: ServerConnectError) => dispatch({ type: "submit.failed", attempt: effect.attempt, error })
+      const unreachable = () => fail({ type: "connection-failed", url: effect.http.url })
 
       void Promise.try(() => check(effect.http)).then(
-        (result) =>
-          result.type === "healthy"
-            ? dispatch({ type: "submit.succeeded", attempt: effect.attempt, http: effect.http })
-            : failed(),
-        failed,
+        (result) => {
+          if (result.type === "healthy")
+            return dispatch({ type: "submit.succeeded", attempt: effect.attempt, http: effect.http })
+
+          // The server answered and refused the password, so the password field owns the message.
+          if (result.type === "unauthorized") return fail({ type: "unauthorized" })
+
+          unreachable()
+        },
+        unreachable,
       )
 
       return
@@ -134,10 +136,16 @@ export function createServerConnectController(options: ServerConnectControllerOp
     }
 
     const http = { url: redeemed.pairing.url, password }
+    const paired = await check(http)
 
-    if ((await check(http)).type === "healthy") return { type: "submit.succeeded", attempt: effect.attempt, http }
+    if (paired.type === "healthy") return { type: "submit.succeeded", attempt: effect.attempt, http }
 
-    return { type: "submit.failed", attempt: effect.attempt, error: { type: "connection-failed", url: http.url } }
+    return {
+      type: "submit.failed",
+      attempt: effect.attempt,
+      error:
+        paired.type === "unauthorized" ? { type: "unauthorized" } : { type: "connection-failed", url: http.url },
+    }
   }
 
   // Runs once the dialog is in the stack, so a server removed before then closes this dialog, not the one below.

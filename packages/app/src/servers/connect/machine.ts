@@ -39,6 +39,8 @@ export type ServerConnectError =
   | { readonly type: "address-invalid" }
   /** Already localized by `useRedeemPairing`. */
   | { readonly type: "redeem"; readonly message: string }
+  /** The server answered but rejected the credentials in this form. */
+  | { readonly type: "unauthorized" }
   | { readonly type: "connection-failed"; readonly url: string }
 
 export type ServerSaveAction =
@@ -163,6 +165,7 @@ export type ServerConnectErrorKey =
   | "server.connect.address.invalid"
   | "server.connect.mixedContent"
   | "server.connect.failed"
+  | "server.connect.unauthorized"
   | "dialog.server.add.error"
 
 export type ServerConnectErrorContext = {
@@ -181,13 +184,29 @@ export function formatServerConnectError(error: ServerConnectError, context: Ser
 
   if (error.type === "address-invalid") return context.t("server.connect.address.invalid")
 
+  if (error.type === "unauthorized") return context.t("server.connect.unauthorized")
+
   if (context.pageHref && isMixedContent(context.pageHref, error.url)) return context.t("server.connect.mixedContent")
 
   return context.t(context.surface === "screen" ? "server.connect.failed" : "dialog.server.add.error")
 }
 
+/** Which field a message belongs to: a rejected password marks the password, an unreachable server the address. */
+function errorField(error: ServerConnectError | undefined, method: ConnectMethod): ServerConnectField | undefined {
+  if (!error) return
+
+  if (error.type === "link-invalid" || error.type === "link-legacy") return "link"
+
+  if (error.type === "address-invalid") return "url"
+
+  if (error.type === "unauthorized") return method === "password" ? "password" : "link"
+
+  return method === "password" ? "url" : "link"
+}
+
 export function selectServerConnectView(state: ServerConnectState, context: ServerConnectErrorContext) {
   const primary = state.draft.method === "link" ? state.draft.link : state.draft.url
+  const error = state.status === "editing" ? state.error : undefined
 
   return {
     scanning: state.status === "scanning",
@@ -196,7 +215,9 @@ export function selectServerConnectView(state: ServerConnectState, context: Serv
     canSubmit: state.status === "editing" && primary.trim().length > 0,
     signedOut: state.target.kind === "edit" && state.target.original.unauthorized,
     draft: state.draft,
-    error: state.status === "editing" && state.error ? formatServerConnectError(state.error, context) : undefined,
+    error: error ? formatServerConnectError(error, context) : undefined,
+    /** The field the error belongs to, so a form can mark the one that failed instead of the first one. */
+    errorField: errorField(error, state.draft.method),
   }
 }
 

@@ -1892,6 +1892,8 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  border-inline: 0;
+  border-bottom: 0;
   border-top: 0.5px solid var(--v2-border-border-base);
 }
 
@@ -2077,6 +2079,8 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  border-inline: 0;
+  border-bottom: 0;
   border-top: 0.5px solid var(--v2-border-border-base);
 }
 
@@ -2175,6 +2179,9 @@
   flex-direction: column;
   gap: 0;
   padding-block: 0;
+  border: 0;
+  border-radius: 10px;
+  background: #292929;
 }
 
 .settings-shortcuts [data-component="settings-list"] > div {
@@ -2296,6 +2303,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 0;
+  border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;

@@ -129,7 +129,7 @@
   overflow: hidden;
   /* The sidebar is the one darker surface in Settings; no v2 token matches #1B1B1D (bg-deep is #161616). */
   background: #1B1B1D;
-  border-inline-end: 0.5px solid var(--v2-border-border-muted);
+  border-inline-end: 1px solid var(--v2-border-border-muted);
 }
 
 .settings-screen > .settings > .settings-content {
@@ -609,7 +609,7 @@
   padding: 16px;
   border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
 }
 
 /* The crate sections keep the flat section rhythm; only the crate list is a card. */
@@ -695,7 +695,7 @@
   padding: 0 16px;
   border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
   list-style: none;
 }
 
@@ -1080,13 +1080,15 @@
   gap: 10px;
 }
 
+/* A group header sits above the rows it names, so it carries more weight than a row title (13px/400) rather than
+   less, and it takes its colour from the palette instead of a hard-coded white. */
 .settings-section-title {
   margin: 0;
   padding: 0;
   font-size: 13px;
   font-weight: 600;
   line-height: var(--line-height-compact);
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--v2-text-text-base);
 }
 
 .settings-section-stack {
@@ -1104,14 +1106,17 @@
   min-width: 0;
   padding-inline: 16px;
   overflow: hidden;
-  border: 0.5px solid rgba(255, 255, 255, 0.07);
+  /* The card material is three layers, the way the v3 surfaces read: one 1px hairline stroke, a 145deg sheen over the
+     fill, and a 1px top highlight. A flat fill with a 0.5px outline had no depth and the outline vanished at 1x. */
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: var(--settings-card-radius, 10px);
-  background: #2b2b2e;
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.025);
+  background-color: #2b2b2e;
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 [data-component="settings-list"] > [data-component="settings-row"] {
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
 
 [data-component="settings-list"] > [data-component="settings-row"]:last-child {
@@ -1692,7 +1697,7 @@
   width: min(240px, calc(100vw - 32px));
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 9px;
+  border-radius: 8px;
   background: #303033;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
   overflow: visible;
@@ -1891,7 +1896,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 12px 14px;
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   transition:
@@ -2226,14 +2231,14 @@
   gap: 16px;
 }
 
+/* The keybind lists are ordinary cards now: they keep the shared card material instead of replacing it with a flat
+   fill and no stroke, so every list on the page reads as the same surface. */
 .settings-shortcuts [data-component="settings-list"] {
   display: flex;
   flex-direction: column;
   gap: 0;
   padding-block: 0;
-  border: 0;
   border-radius: 10px;
-  background: #292929;
 }
 
 .settings-shortcuts [data-component="settings-list"] > div {
@@ -2343,7 +2348,7 @@
 .settings-servers-current {
   flex-shrink: 0;
   padding-inline: 5px;
-  border-radius: 4px;
+  border-radius: 5px;
   background: var(--v2-background-bg-layer-02);
   color: var(--v2-text-text-muted);
   font-size: 11px;
@@ -2425,14 +2430,14 @@
   overflow: hidden;
   border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
   transition: box-shadow 120ms ease-out;
 }
 
 @media (hover: hover) {
   .settings-workspaces-row:hover {
     background: var(--v2-background-bg-layer-02);
-    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
+    box-shadow: inset 0 0 0 1px var(--v2-border-border-strong);
   }
 }
 
@@ -3239,4 +3244,204 @@
 .settings-provider-custom-dialog [data-slot="dialog-footer"] .settings-provider-custom-error {
   flex-basis: 100%;
   text-align: end;
+}
+
+/* ── Light scheme surfaces ──────────────────────────────────────────────────────────────────────────────────────
+   The chrome in this file was drawn against the v3 mock, so it hard-codes dark values: #1B1B1D and #2b2b2e fills,
+   white-alpha text, and a glass sheet at rgb(38 38 42). The palette defaults to light (`:root` is
+   `color-scheme: light`), and the theme applies `data-color-scheme="light"` explicitly whenever the resolved mode is
+   light, so without this block everyone on the light scheme got white text on a dark card, or dark text on #292929.
+
+   Every rule below is a colour-only counterpart of the original declaration, prefixed with the attribute selector so
+   it outranks the original without editing it. Structure, spacing and layout are deliberately untouched. */
+
+[data-color-scheme="light"] .settings-screen {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* The sidebar is the one recessed surface of Settings: one grey step below the white page, not a black panel. */
+[data-color-scheme="light"]
+  .settings-screen
+  > .settings[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
+  > .settings-sidebar {
+  background: var(--v2-background-bg-deep);
+}
+
+/* Cards: the dark fill and its white sheen become the layer-01 surface with a dark hairline; the card keeps its
+   edge from the border alone, so the dark-only top highlight is dropped. */
+[data-color-scheme="light"] [data-component="settings-list"] {
+  border-color: var(--v2-border-border-base);
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: none;
+}
+
+[data-color-scheme="light"] [data-slot="settings-row-title"] {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] [data-slot="settings-row-description"] {
+  color: var(--v2-text-text-muted);
+}
+
+/* Provider list and console. */
+[data-color-scheme="light"] .settings-provider-row,
+[data-color-scheme="light"] .settings-provider-console {
+  border-bottom-color: var(--v2-border-border-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-console-summary {
+  color: var(--v2-text-text-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-console-separator {
+  background: var(--v2-border-border-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-console-item {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] .settings-provider-icon {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] .settings-provider-lead {
+  background: var(--v2-background-bg-layer-02);
+}
+
+[data-color-scheme="light"] .settings-provider-name {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] .settings-provider-description,
+[data-color-scheme="light"] .settings-provider-empty > p {
+  color: var(--v2-text-text-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-empty,
+[data-color-scheme="light"] .settings-provider-env-hint {
+  color: var(--v2-text-text-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-account-input:disabled {
+  background: var(--v2-background-bg-layer-02);
+}
+
+[data-color-scheme="light"] .settings-provider-account-menu[data-component="menu-v2-content"] {
+  border-color: var(--v2-border-border-base);
+  background: var(--v2-background-bg-base);
+}
+
+/* Hover bands are white ink in dark, so light needs dark ink at the same strengths. */
+@media (hover: hover) {
+  [data-color-scheme="light"] .settings-provider-row:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+
+  [data-color-scheme="light"] .settings-provider-console-item:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+
+  [data-color-scheme="light"] .settings-provider-console-toggle:hover,
+  [data-color-scheme="light"] .settings-provider-account-trigger:hover {
+    background: var(--v2-overlay-simple-overlay-pressed);
+  }
+
+  [data-color-scheme="light"] .settings-providers-view-all:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+
+  [data-color-scheme="light"] .settings-provider-custom-model:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+/* Server dialog: the dark glass sheet turns into light glass with dark ink, keeping its blur and geometry. */
+[data-color-scheme="light"]
+  [data-component="dialog-v2"]:has(.settings-server-dialog)
+  > [data-slot="dialog-container"] {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.18);
+}
+
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-header"] {
+  border-bottom-color: var(--v2-border-border-muted);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.7);
+}
+
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-footer"] {
+  border-top-color: var(--v2-border-border-muted);
+}
+
+[data-color-scheme="light"] .settings-server-dialog-label {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-error {
+  color: var(--v2-state-fg-danger);
+}
+
+[data-color-scheme="light"] .settings-server-dialog-hint {
+  color: var(--v2-text-text-muted);
+}
+
+[data-color-scheme="light"] .settings-server-dialog-notice {
+  border-color: var(--v2-border-border-muted);
+  background: rgba(0, 0, 0, 0.035);
+  color: var(--v2-text-text-muted);
+}
+
+/* Custom provider sheet: same light glass as the server dialog. */
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog[data-slot="dialog-container"] {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-header"] {
+  border-bottom-color: var(--v2-border-border-muted);
+}
+
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-footer"] {
+  border-top-color: var(--v2-border-border-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-fields [data-slot="input-label"] {
+  color: var(--v2-text-text-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-model-list {
+  border-color: var(--v2-border-border-muted);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-model {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-model:has(input:checked) {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-chip {
+  color: var(--v2-text-text-code-accent);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-chip > button:hover {
+  color: var(--v2-text-text-base);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-note {
+  color: var(--v2-text-text-muted);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-error {
+  color: var(--v2-state-fg-danger);
 }

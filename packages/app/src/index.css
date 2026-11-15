@@ -420,20 +420,23 @@
     timeline-scope: --manage-models-scroll;
   }
 
+  /*
+   * The fade sits below the sticky bands instead of over them: at `top: 0` it painted a darker strip across the
+   * headers. Two bands can be pinned here (the Console section, then a Console provider group inside it), and each is
+   * 44px, so the band's lower edge is 88px down. Surface-strong matches the band, so the fade reads as the band
+   * thinning out rather than as a second color.
+   */
   [data-slot="manage-models-scroll"]::before {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
-    z-index: 10;
+    top: 88px;
+    z-index: 3;
     height: 16px;
+    background: linear-gradient(to bottom, var(--v2-material-surface-strong), transparent);
     pointer-events: none;
     visibility: hidden;
-  }
-
-  [data-slot="manage-models-scroll"]::before {
-    top: 0;
-    background: linear-gradient(to bottom, var(--v2-background-bg-base), transparent);
   }
 
   @supports (animation-timeline: --manage-models-scroll) and (timeline-scope: --manage-models-scroll) {

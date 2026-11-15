@@ -9,20 +9,26 @@
 
 /*
  * One scrolling list: MenuScroll hides the native scrollbar, so the rows keep the same end inset whether or not it
- * overflows. --manage-models-edge is the single right inset that the headers and row controls align to: the viewport
- * pads by it, and the group and row bodies pad 8px each, so both controls land 24px from the dialog edge.
+ * overflows. --manage-models-edge is the viewport's own inset, measured from the dialog edge. A direct provider's
+ * rows sit at edge + 8px (their own padding), so its header uses the same edge + 8px. Console provider rows add a
+ * group inset, and their header's actions inset matches that.
+ *
+ * The viewport keeps the settings-panel class for index.css's scroll timeline, and this three-class selector outranks
+ * the dialog's `.settings-panel` height so the panel never reasserts its own scroll box.
  */
-.settings-manage-models-dialog .settings-manage-models-viewport {
+.settings-manage-models-dialog .settings-panel.settings-models {
+  gap: 0;
+}
+
+.settings-manage-models-dialog .settings-panel.settings-models.settings-manage-models-viewport {
   --manage-models-edge: 8px;
   flex: 1;
   min-height: 0;
-  /* It keeps the settings-panel class so index.css can attach the scroll timeline; drop that rule's native gutter,
-     which would reserve the 8px the MenuScroll thumb now overlays. */
   height: auto;
   scrollbar-gutter: auto;
   padding: 0 var(--manage-models-edge) var(--manage-models-edge);
-  /* Keep a keyboard-focused row clear of the sticky group headers. */
-  scroll-padding-block-start: 48px;
+  /* Keep a keyboard-focused row clear of both sticky bands (Console header, then a Console provider group). */
+  scroll-padding-block-start: 88px;
 }
 
 .settings-manage-models-dialog .settings-models .settings-section {
@@ -35,7 +41,8 @@
 }
 
 .settings-manage-models-dialog .settings-models .settings-section + .settings-section {
-  border-top: 0.5px solid var(--v2-border-border-base);
+  /* A section boundary sits above the row underlines, so it is muted rather than the rows' base line. */
+  border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
 .settings-manage-models-dialog .provider-model-groups {
@@ -43,13 +50,17 @@
 }
 
 .settings-manage-models-dialog .provider-model-group-header {
-  padding: 4px;
+  padding: 4px 12px;
   border-radius: 0;
 }
 
-/* The bulk switch in a direct provider header lines up with the row switches: edge + 8px, matching their padding. */
+/*
+ * The bulk switch in a direct provider header lines up with that provider's rows: the viewport pads 8px and the header
+ * pads another 8px, matching each row's own 8px padding. Console provider headers are covered by the rule below.
+ */
 .settings-manage-models-dialog .settings-models-group-header {
-  padding-inline-end: calc(var(--manage-models-edge) + 8px);
+  padding-inline-end: var(--manage-models-edge);
+  border-radius: 0;
 }
 
 .settings-manage-models-dialog .provider-model-group-trigger {
@@ -97,6 +108,13 @@
   padding-inline: 8px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+/* The global reset removes every outline, so the row carries its own focus ring. Inset, so the row's 6px radius still
+   clips it and nothing bleeds into the sticky headers. */
+.manage-models-rows .search-list-row:focus-visible {
+  outline: none;
+  box-shadow: inset var(--settings-focus-ring);
 }
 
 /* Always rendered so every title aligns; the check marks the session's current model. */

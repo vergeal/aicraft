@@ -47,9 +47,10 @@ export const SettingsModels: Component<{
   const sections = new Map<string, HTMLElement>()
 
   // The page header is sticky and opaque, so group headers pinned at 0 would stay hidden behind it. They pin just
-  // below its measured height instead of a fixed offset that drifts when the description wraps.
+  // below its measured height instead of a fixed offset that drifts when the description wraps. Until the header is
+  // measured the variable stays unset, so a first paint never pins a header under the header.
   let body: HTMLDivElement | undefined
-  const [stickyTop, setStickyTop] = createSignal(0)
+  const [stickyTop, setStickyTop] = createSignal<number>()
   onMount(() => {
     const header = body?.closest<HTMLElement>(".settings-panel")?.querySelector<HTMLElement>(".settings-tab-header")
 
@@ -176,8 +177,11 @@ export const SettingsModels: Component<{
       <div
         ref={(element) => (body = element)}
         class="settings-tab-body settings-models"
-        style={{ "--settings-models-sticky-top": `${stickyTop()}px` }}
+        style={
+          stickyTop() === undefined ? undefined : { "--settings-models-sticky-top": `${stickyTop()}px` }
+        }
       >
+        <p class="settings-models-current-hint">{language.t("settings.models.currentHint")}</p>
         {/* `list` reads a synchronous array, so its own loading flag never shows. Wait for both provider catalogs
             instead, or the first paint reports "No model results" while they are still syncing. */}
         <Show

@@ -225,11 +225,18 @@
 
 /* Plugins: a full-width catalog grouped by category; opening one replaces it with that plugin's page. */
 
-/* Rows the settings extension list reuses, kept here because both surfaces share the same quiet row treatment. */
+/* Rows the settings extension list reuses, kept here because both surfaces share the same quiet row treatment.
+   The list card insets its rows by `padding-inline: 16px` (`[data-component="settings-list"]`), so the hover and
+   selected fills only reached the text run and stopped 16px short of the card on both sides. The row cancels that
+   inset and re-applies it as its own padding, which keeps the text where it was and lets the fill reach the card
+   edge, the same way `.settings-provider-row` bleeds. The fill is a band, not a chip, once it touches the edge, so
+   the 6px radius goes with it. */
 .explore-plugin-row {
-  width: 100%;
+  width: calc(100% + 32px);
+  margin-inline: -16px;
+  padding-inline: 16px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -237,11 +244,15 @@
   cursor: default;
 }
 
+/* The select is one half of a row: the lead bleeds to the card's left edge only, and stops before the actions. */
 .explore-plugin-select {
   flex: 1;
   min-width: 0;
+  align-self: stretch;
+  margin-inline-start: -16px;
+  padding-inline-start: 16px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   color: inherit;
   font: inherit;

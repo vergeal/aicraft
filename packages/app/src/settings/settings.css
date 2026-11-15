@@ -85,7 +85,7 @@
 }
 
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
-[data-replica] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
+[data-replica] .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
   color: var(--color-text-secondary);
 }
 
@@ -94,9 +94,21 @@
   color: var(--color-text-main);
 }
 
+[data-replica] .settings-nav-groups
+  [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])
+  [data-slot="tabs-v2-trigger"] {
+  color: var(--color-text-main);
+}
+
 @media (hover: hover) {
   [data-replica] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover {
     background: var(--color-hover);
+    color: var(--color-text-main);
+  }
+
+  [data-replica] .settings-nav-groups
+    [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover
+    [data-slot="tabs-v2-trigger"] {
     color: var(--color-text-main);
   }
 }
@@ -209,7 +221,7 @@
   }
 }
 
-.settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
+.settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
   width: 100%;
   height: var(--settings-nav-item-height);
   flex-shrink: 0;
@@ -218,7 +230,7 @@
   transition: background-color 120ms ease-out;
 }
 
-.settings-nav-groups [data-slot="tabs-v2-trigger"] {
+.settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger"] {
   width: 100%;
   height: 100%;
   min-height: 30px;
@@ -247,12 +259,18 @@
 .settings-nav-groups
   [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])
   [data-slot="tabs-v2-trigger"] {
-  font-weight: 600;
+  color: var(--v2-text-text-base);
 }
 
 @media (hover: hover) {
   .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover {
     background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-text-text-base);
+  }
+
+  .settings-nav-groups
+    [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover
+    [data-slot="tabs-v2-trigger"] {
     color: var(--v2-text-text-base);
   }
 }
@@ -763,11 +781,17 @@
 .settings-panel {
   display: flex;
   flex-direction: column;
+  /* Page panels do not scroll: .settings-content owns the page scrollbar, so it sits on the content
+     column's edge instead of the 720px panel. Dialog panels are their own scroll container because the
+     dialog body has a fixed height. */
+  user-select: none;
+  container: settings-panel / inline-size;
+}
+
+[data-component="dialog-v2"] .settings-panel {
   height: 100%;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  user-select: none;
-  container: settings-panel / inline-size;
 }
 
 .settings-panel > .settings-tab-header,

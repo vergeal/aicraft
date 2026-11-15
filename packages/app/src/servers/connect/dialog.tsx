@@ -113,7 +113,8 @@ export const DialogServer: Component<{
           }
         >
           <div class="flex w-full min-w-0 flex-col gap-4">
-            <Show when={view().signedOut && !view().error}>
+            {/* Context, not a result: keep the signed-out notice while an error explains what just failed. */}
+            <Show when={view().signedOut}>
               <p class="settings-server-dialog-notice" role="status">
                 <Icon name="lock" size="small" />
                 <span>{language.t("dialog.server.signedOut")}</span>
@@ -156,6 +157,9 @@ export const DialogServer: Component<{
                   type="text"
                   appearance="large"
                   class="!w-full self-stretch"
+                  dir="ltr"
+                  spellcheck={false}
+                  autocapitalize="off"
                   value={view().draft.url}
                   placeholder={language.t("dialog.server.add.placeholder")}
                   invalid={view().errorField === "url"}

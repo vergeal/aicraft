@@ -1,4 +1,4 @@
-import { Component, Show } from "solid-js"
+import { Component, For, Show } from "solid-js"
 import { Select } from "@opencode/ui/select"
 import { FontPicker } from "./font-picker"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -8,6 +8,7 @@ import { SettingsRow } from "@/settings/row"
 import { createAppearanceSettingsController, type AppearanceSettingsController } from "@/settings/general/controllers"
 import { SettingsPageHeader } from "@/settings/page-header"
 import "@/settings/settings.css"
+import "./appearance.css"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
 
@@ -81,6 +82,7 @@ export const SettingsAppearance: Component = () => {
 
       <div class="settings-tab-body">
         <div class="settings-section">
+          <h3 class="settings-section-title">{language.t("settings.appearance.section.theme")}</h3>
           <SettingsList>
             <SettingsRow
               title={language.t("settings.general.row.colorScheme.title")}
@@ -123,13 +125,38 @@ export const SettingsAppearance: Component = () => {
                 value={(option) => option.id}
                 label={(option) => option.name}
                 onSelect={appearance.theme.select}
+                // A name list says little; three swatches show what each theme looks like.
+                children={(option) => (
+                  <span class="settings-theme-option">
+                    <span class="settings-theme-option-name">{option.name}</span>
+                    <Show when={appearance.theme.swatches(option.id)}>
+                      {(colors) => (
+                        <span class="settings-theme-swatches" aria-hidden="true">
+                          <For each={colors()}>
+                            {(color) => <span class="settings-theme-swatch" style={{ background: color }} />}
+                          </For>
+                        </span>
+                      )}
+                    </Show>
+                  </span>
+                )}
               />
             </SettingsRow>
+          </SettingsList>
+        </div>
 
+        <div class="settings-section">
+          <h3 class="settings-section-title">{language.t("settings.appearance.section.fonts")}</h3>
+          <SettingsList>
             <FontSetting kind="ui" fonts={appearance.fonts} />
             <FontSetting kind="code" fonts={appearance.fonts} />
             <FontSetting kind="terminal" fonts={appearance.fonts} />
+          </SettingsList>
+        </div>
 
+        <div class="settings-section">
+          <h3 class="settings-section-title">{language.t("settings.appearance.section.display")}</h3>
+          <SettingsList>
             <SettingsRow
               title={language.t("settings.appearance.row.fontSize.title")}
               description={language.t("settings.appearance.row.fontSize.description")}

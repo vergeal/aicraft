@@ -28,8 +28,14 @@ export const SettingsServerGeneral: Component<{ entry: SettingsServer; onAddServ
       <SettingsServersHeader title={language.t("settings.section.server")} onAddServer={props.onAddServer} />
 
       <div class="settings-tab-body settings-tab-body--sectioned">
-        <section class="settings-section settings-server-connection" data-component="settings-server-connection">
-          <h3 class="settings-section-title">{language.t("settings.server.section.connection")}</h3>
+        <section
+          class="settings-section settings-server-connection"
+          data-component="settings-server-connection"
+          aria-labelledby="settings-server-connection-title"
+        >
+          <h3 id="settings-server-connection-title" class="settings-section-title">
+            {language.t("settings.server.section.connection")}
+          </h3>
           <SettingsList>
             <ServerConnectionRow entry={props.entry} />
           </SettingsList>
@@ -72,12 +78,16 @@ export const SettingsServerList: Component<{
               class="settings-section settings-server-connection"
               data-component="settings-server-connection"
               data-current={entry.key === props.selected ? "" : undefined}
+              aria-labelledby={`settings-server-${entry.key}`}
             >
-              <h3 class="settings-section-title">{entry.name}</h3>
+              <h3 id={`settings-server-${entry.key}`} class="settings-section-title">
+                {entry.name}
+              </h3>
               <SettingsList>
                 <ServerConnectionRow
                   entry={entry}
                   current={entry.key === props.selected}
+                  showName={false}
                   onServerChange={props.onServerChange}
                 />
                 <Show
@@ -119,6 +129,8 @@ function SettingsServersHeader(props: { title: string; onAddServer: () => void }
 function ServerConnectionRow(props: {
   entry: SettingsServer
   current?: boolean
+  /** The list card names the server in its own heading, so the row only repeats it for a single server. */
+  showName?: boolean
   onServerChange?: (server: ServerConnection.Any) => void
 }) {
   const dialog = useDialog()
@@ -144,14 +156,18 @@ function ServerConnectionRow(props: {
               <div class="settings-servers-lead">
                 <ServerHealthIndicator health={health()} />
                 <div class="settings-servers-copy">
-                  <div class="settings-servers-name-line">
-                    <bdi class="settings-servers-name" dir="auto" title={props.entry.name}>
-                      {props.entry.name}
-                    </bdi>
-                    <Show when={props.current}>
-                      <span class="settings-servers-current">{language.t("settings.servers.current")}</span>
-                    </Show>
-                  </div>
+                  <Show when={props.showName !== false || props.current}>
+                    <div class="settings-servers-name-line">
+                      <Show when={props.showName !== false}>
+                        <bdi class="settings-servers-name" dir="auto" title={props.entry.name}>
+                          {props.entry.name}
+                        </bdi>
+                      </Show>
+                      <Show when={props.current}>
+                        <span class="settings-servers-current">{language.t("settings.servers.current")}</span>
+                      </Show>
+                    </div>
+                  </Show>
                   <Show when={ServerConnection.http(server())?.url}>
                     {(url) => (
                       <bdi class="settings-servers-meta" dir="ltr" title={url()}>

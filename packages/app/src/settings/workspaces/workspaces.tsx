@@ -39,6 +39,7 @@ import { listAllSessions } from "@/session/list"
 import type { ServerScope } from "@/runtime/server/scope"
 import { workspaceInventoryQuery } from "./queries"
 import { SettingsPageHeader } from "@/settings/page-header"
+import { useSettingsSurface } from "@/settings/surface"
 import "@/settings/settings.css"
 
 /** Sessions shown in a card before the expand control appears. */
@@ -63,6 +64,7 @@ export const SettingsWorkspaces: Component<{
   const data = server.ctx.data
   const tabs = useTabs()
   const hostApis = useHostApis()
+  const surface = useSettingsSurface()
 
   const [store, setStore] = createStore<{
     project: string
@@ -474,6 +476,9 @@ export const SettingsWorkspaces: Component<{
                 >
                   <span class="settings-workspaces-empty-title">{language.t("settings.workspaces.empty")}</span>
                   <span>{language.t("settings.workspaces.empty.description")}</span>
+                  <Button size="small" variant="contrast" onClick={() => surface.open("projects")}>
+                    {language.t("settings.workspaces.empty.open")}
+                  </Button>
                 </Show>
               </div>
             </div>
@@ -516,6 +521,7 @@ export const SettingsWorkspaces: Component<{
                                   type="button"
                                   variant="ghost-muted"
                                   size="small"
+                                  class="settings-workspaces-delete"
                                   aria-label={language.t("workspace.delete.confirm", {
                                     name: getFilename(workspace().directory),
                                   })}
@@ -572,6 +578,9 @@ export const SettingsWorkspaces: Component<{
 function WorkspacePath(props: { directory: string }) {
   const [truncated, setTruncated] = createSignal(false)
   const name = () => getFilename(props.directory)
+  // The directory segment ellipsizes inside the row, so the row itself never overflows: measure that segment.
+  const measure = (element: HTMLElement) =>
+    createResizeObserver(element, () => setTruncated(element.scrollWidth > element.clientWidth))
 
   return (
     <Tooltip
@@ -581,13 +590,13 @@ function WorkspacePath(props: { directory: string }) {
       contentClass="max-w-[calc(100vw-32px)] break-all"
     >
       <span
-        ref={(element) => createResizeObserver(element, () => setTruncated(element.scrollWidth > element.clientWidth))}
         tabIndex={truncated() ? 0 : undefined}
         dir="ltr"
         aria-label={props.directory}
+        data-truncated={truncated() ? "true" : undefined}
         class="settings-workspaces-path"
       >
-        <span>{props.directory.slice(0, -name().length)}</span>
+        <span ref={measure}>{props.directory.slice(0, -name().length)}</span>
         <span class="settings-workspaces-path-name">{name()}</span>
       </span>
     </Tooltip>

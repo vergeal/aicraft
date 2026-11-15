@@ -1926,7 +1926,8 @@
 }
 
 .settings-models .settings-section > [data-component="settings-list"] {
-  padding-inline: 12px;
+  /* Model rows start where a group label does: 12px header padding + 4px trigger padding + 20px chevron + 8px gap. */
+  padding-inline: 44px 12px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -1939,18 +1940,20 @@
   padding-bottom: 12px;
 }
 
+/* One header for both tiers: the chevron leads, and the trigger keeps the same height and padding. Console groups
+   differ only by the indentation of their container. */
 .settings-models-group-header {
   display: flex;
   min-height: 44px;
   align-items: center;
-  padding: 8px 12px;
+  padding: 4px 12px;
 }
 
 .settings-models-group-trigger {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 28px;
+  height: 36px;
   padding: 4px 8px 4px 4px;
   border: 0;
   border-radius: 4px;
@@ -2009,10 +2012,6 @@
   gap: 8px;
 }
 
-.provider-model-group[data-expanded]:not(:last-child) {
-  margin-block-end: 4px;
-}
-
 .settings-models-console-groups {
   margin-inline-start: 14px;
   padding-inline-start: 16px;
@@ -2033,6 +2032,7 @@
   min-width: 0;
   min-height: 44px;
   align-items: center;
+  padding: 4px 12px;
   border-radius: 10px;
 }
 
@@ -2040,11 +2040,11 @@
   display: flex;
   min-width: 0;
   flex: 1;
-  min-height: 44px;
+  min-height: 36px;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
   border: 0;
   border-radius: 10px;
   background: transparent;
@@ -2084,8 +2084,10 @@
 }
 
 .provider-model-group-chevron {
+  order: -1;
   flex-shrink: 0;
-  margin-inline-start: -2px;
+  /* A 16px glyph in a 20px box leaves the same 8px gap to the provider icon as a direct provider's header. */
+  margin-inline: 2px;
   color: var(--v2-icon-icon-muted);
   transition: transform 150ms ease;
 }
@@ -2105,7 +2107,7 @@
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  padding-inline-end: 12px;
+  padding-inline-end: 0;
 }
 
 .provider-model-group-models {
@@ -2122,12 +2124,6 @@
   border-top: 0.5px solid var(--v2-border-border-base);
 }
 
-.provider-model-group:has(.provider-model-group-header :focus-visible)
-  .provider-model-group-models
-  > [data-component="settings-list"] {
-  border-top-color: transparent;
-}
-
 .provider-model-group:has(.provider-model-group-header :focus-visible) {
   outline: 0.5px solid var(--v2-border-border-muted);
   outline-offset: -0.5px;
@@ -2138,12 +2134,30 @@
     outline: 0.5px solid var(--v2-border-border-muted);
     outline-offset: -0.5px;
   }
+}
 
-  .provider-model-group:has(.provider-model-group-header:hover)
-    .provider-model-group-models
-    > [data-component="settings-list"] {
-    border-top-color: transparent;
-  }
+/* The manage dialog's panel is its own scroll container, so group headers pin while rows scroll under them. Sticky
+   needs an unclipped path to that scrollport, so the carded sections and nested groups drop their card clipping there. */
+.settings-manage-models-dialog .settings-models .settings-section[data-component="settings-models-provider"],
+.settings-manage-models-dialog .provider-model-group {
+  overflow: visible;
+}
+
+.settings-manage-models-dialog .settings-models-group-header,
+.settings-manage-models-dialog .provider-model-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Opaque, matching what each header sits on: a provider card, or the dialog surface for the Console section. */
+.settings-manage-models-dialog .provider-model-group-header,
+.settings-manage-models-dialog [data-component="settings-models-provider"] > .settings-models-group-header {
+  background-color: var(--v2-background-bg-layer-01);
+}
+
+.settings-manage-models-dialog [data-component="settings-models-console"] > .settings-models-group-header {
+  background-color: var(--v2-material-surface-strong);
 }
 
 .provider-model-groups--dialog {
@@ -2732,11 +2746,17 @@
   color: #d8d8dc;
 }
 
+/* The plugins page outside a dialog reuses this class, so the base rule keeps the theme color; the sheet's own
+   brighter red applies only inside it. */
 .settings-server-dialog-error {
   font-size: 12px;
   font-weight: 400;
   /* Pairing errors are full sentences that wrap. */
   line-height: 18px;
+  color: var(--v2-state-fg-danger);
+}
+
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-error {
   color: #ff6961;
 }
 

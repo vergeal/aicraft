@@ -13,6 +13,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { DialogConnectProvider } from "@/providers/connect/dialog"
 import { decode64 } from "@/runtime/persistence/base64"
 import { consoleModelGroup, ProviderModelSections } from "@/providers/models/provider-group"
+import { useProviders } from "@/providers/catalog/providers"
 import "@/settings/settings.css"
 import "@/shell/search-list.css"
 import "./manage.css"
@@ -25,6 +26,7 @@ export const DialogManageModels: Component = () => {
   const dialog = useDialog()
   const [store, setStore] = createStore<{ collapsed: Record<string, boolean> }>({ collapsed: {} })
   const directory = () => decode64(local.slug())
+  const providers = useProviders(directory)
 
   const handleConnectProvider = () => {
     void dialog.show(() => <DialogConnectProvider directory={directory()} />)
@@ -84,7 +86,11 @@ export const DialogManageModels: Component = () => {
               onClick={() => setModelVisibility(item, !visible(item))}
             >
               <div class="search-list-row-text">
-                <span class="search-list-title">{item.name}</span>
+                <span class="search-list-title" data-weight="regular">
+                  {item.name}
+                </span>
+                {/* Rows from several providers share names, so the group header alone cannot tell them apart. */}
+                <span class="search-list-detail">{item.provider.name}</span>
               </div>
               <div class="search-list-trailing" onClick={(event) => event.stopPropagation()}>
                 <Switch checked={visible(item)} onChange={(checked) => setModelVisibility(item, checked)} hideLabel>
@@ -134,7 +140,7 @@ export const DialogManageModels: Component = () => {
         <div data-slot="manage-models-scroll" class="relative min-h-0 flex-1">
           <div class="settings-panel settings-models">
             <Show
-              when={!list.grouped.loading}
+              when={providers.ready()}
               fallback={
                 <div class="settings-models-status">
                   {language.t("common.loading")}
@@ -165,6 +171,7 @@ export const DialogManageModels: Component = () => {
                       class="me-6"
                       checked={providerVisible(group.category)}
                       onChange={(checked) => setProviderVisibility(group.category, checked)}
+                      disabled={searching()}
                       hideLabel
                     >
                       {group.items[0].provider.name}

@@ -235,6 +235,7 @@ export function ProviderModelGroup(props: {
                   variant="ghost-muted"
                   size="small"
                   icon={<Icon name="outline-dots" />}
+                  disabled={props.disabled}
                   aria-label={language.t("common.moreOptions")}
                 />
                 <Menu.Portal>

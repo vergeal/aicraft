@@ -1965,39 +1965,41 @@
   justify-content: space-between;
   gap: 16px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  border: 1px solid var(--settings-card-border);
+  border-radius: var(--settings-card-radius, 10px);
+  background-color: var(--settings-card-bg);
+  background-image: var(--settings-card-gradient);
+  box-shadow: var(--settings-card-shadow);
   transition:
-    background-color 120ms,
+    border-color 120ms,
     box-shadow 120ms;
 }
 
 .settings-project-card:hover,
 .settings-project-card:focus-within,
 .settings-project-card[data-menu="true"] {
-  background: var(--v2-background-bg-layer-02);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
+  border-color: var(--v2-border-border-strong);
 }
 
 :root[data-motion="reduce"] .settings-project-card {
   transition: none;
 }
-.settings-models {
-  gap: 12px;
-}
 
+/* Section spacing comes from `.settings-tab-body`'s shared 20px, and the group gap below is the 8px from a header to
+   its card. The page does not restate either. */
 .settings-models .settings-section {
-  gap: 12px;
+  gap: 8px;
 }
 
 /* A provider section carries the card; its model list stays flush inside it. The card does not clip: group headers
    pin as sticky, and every child that could reach a corner is inset, so the rounded card edge still reads clean. */
 .settings-models .settings-section[data-component="settings-models-provider"] {
   overflow: visible;
-  border-radius: 10px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  border: 1px solid var(--settings-card-border);
+  border-radius: var(--settings-card-radius, 10px);
+  background-color: var(--settings-card-bg);
+  background-image: var(--settings-card-gradient);
+  box-shadow: var(--settings-card-shadow);
 }
 
 .settings-models .settings-section > [data-component="settings-list"] {
@@ -2133,9 +2135,11 @@
   min-width: 0;
   /* The header pins inside the card, so the card must not clip it. */
   overflow: visible;
-  border-radius: 10px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  border: 1px solid var(--settings-card-border);
+  border-radius: var(--settings-card-radius, 10px);
+  background-color: var(--settings-card-bg);
+  background-image: var(--settings-card-gradient);
+  box-shadow: var(--settings-card-shadow);
 }
 
 .provider-model-group-header {
@@ -2245,14 +2249,14 @@
 }
 
 .provider-model-group:has(.provider-model-group-header :focus-visible) {
-  outline: 0.5px solid var(--v2-border-border-muted);
-  outline-offset: -0.5px;
+  outline: 1px solid var(--v2-border-border-muted);
+  outline-offset: -1px;
 }
 
 @media (hover: hover) {
   .provider-model-group:has(.provider-model-group-header:hover) {
-    outline: 0.5px solid var(--v2-border-border-muted);
-    outline-offset: -0.5px;
+    outline: 1px solid var(--v2-border-border-muted);
+    outline-offset: -1px;
   }
 }
 
@@ -2287,8 +2291,11 @@
 .settings-manage-models-dialog .settings-models .settings-section[data-component="settings-models-provider"],
 .settings-manage-models-dialog .provider-model-group {
   overflow: visible;
+  /* The shared card frame stops here: the dialog is one list, so only the section hairline and row underlines remain. */
+  border: 0;
   border-radius: 0;
   background-color: transparent;
+  background-image: none;
   box-shadow: none;
 }
 

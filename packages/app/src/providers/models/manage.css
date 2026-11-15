@@ -114,7 +114,7 @@
    clips it and nothing bleeds into the sticky headers. */
 .manage-models-rows .search-list-row:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px var(--v2-system-accent);
+  box-shadow: inset var(--settings-focus-ring);
 }
 
 /* Always rendered so every title aligns; the check marks the session's current model. */

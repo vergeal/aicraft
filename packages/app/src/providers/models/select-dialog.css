@@ -118,17 +118,30 @@
   }
 
   /*
-   * The header bleeds across the list's 6px inset so rows scroll under an opaque band; its text lines up with the
-   * model names. It starts right under the divider, so it rests where it sticks.
+   * The header bleeds across the list's 6px inset so rows scroll under it, and it starts right under the divider, so
+   * it rests where it sticks. It shares the dialog container's material instead of the opaque token, so the band reads
+   * as the same glass rather than a solid strip. The label is centered by request, which gives up lining up with the
+   * model names below; symmetric inline padding keeps the optical center on the geometric one.
    */
   [data-component="search-list"] [data-slot="search-list-header"] {
     height: auto;
+    justify-content: center;
     padding-block: 16px 2px;
-    padding-inline: 34px 6px;
-    background: var(--v2-material-surface-strong-opaque);
+    padding-inline: 6px;
+    background: var(--v2-material-surface-strong);
     color: var(--v2-text-text-faint);
     font-size: 12px;
     line-height: 18px;
+
+    /*
+     * Surface-strong alone is translucent, so the stuck band blurs what scrolls beneath it: the blur, not an opaque
+     * fill, is what keeps those rows from reading as text through the band. A sliding header stays unblurred because
+     * it rises over the stuck label, and blurring there would smear that label instead of letting fadeHeaders() fade
+     * it out.
+     */
+    &[data-stuck] {
+      backdrop-filter: var(--v2-material-blur-thick);
+    }
 
     /* The home page's sticky header fade, faded in by how far rows have scrolled beneath the stuck header. */
     &::after {
@@ -138,21 +151,21 @@
       height: 16px;
       background: linear-gradient(
         180deg,
-        var(--v2-material-surface-strong-opaque) 0%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 92.0456%, transparent) 7.93%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 84.9947%, transparent) 14.14%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 78.6813%, transparent) 19%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 72.9394%, transparent) 22.85%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 67.6028%, transparent) 26.05%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 62.5055%, transparent) 28.95%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 57.4815%, transparent) 31.91%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 52.3647%, transparent) 35.27%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 46.989%, transparent) 39.4%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 41.1884%, transparent) 44.65%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 34.7969%, transparent) 51.36%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 27.6484%, transparent) 59.9%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 19.5767%, transparent) 70.62%,
-        color-mix(in srgb, var(--v2-material-surface-strong-opaque) 10.416%, transparent) 83.87%,
+        var(--v2-material-surface-strong) 0%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 92.0456%, transparent) 7.93%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 84.9947%, transparent) 14.14%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 78.6813%, transparent) 19%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 72.9394%, transparent) 22.85%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 67.6028%, transparent) 26.05%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 62.5055%, transparent) 28.95%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 57.4815%, transparent) 31.91%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 52.3647%, transparent) 35.27%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 46.989%, transparent) 39.4%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 41.1884%, transparent) 44.65%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 34.7969%, transparent) 51.36%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 27.6484%, transparent) 59.9%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 19.5767%, transparent) 70.62%,
+        color-mix(in srgb, var(--v2-material-surface-strong) 10.416%, transparent) 83.87%,
         transparent 100%
       );
       content: "";
@@ -162,14 +175,8 @@
 
     &[data-stuck]::after {
       opacity: var(--model-dialog-header-fade, 0);
-    }
-
-    /*
-     * A header sliding up over the stuck one paints only behind its own text, so its padding never covers the stuck
-     * label as it fades. Once stuck, it fills its whole band again to hide the rows scrolling beneath.
-     */
-    &:not([data-stuck]) {
-      background-clip: content-box;
+      /* The fade band covers the first 16px below the band, so it blurs them too; opacity hides the blur with it. */
+      backdrop-filter: var(--v2-material-blur-thick);
     }
   }
 

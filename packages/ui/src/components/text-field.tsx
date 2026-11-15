@@ -136,7 +136,9 @@ export function TextField(props: TextFieldProps) {
       <Show when={local.description}>
         <Kobalte.Description data-slot="input-description">{local.description}</Kobalte.Description>
       </Show>
-      <Kobalte.ErrorMessage data-slot="input-error">{local.error}</Kobalte.ErrorMessage>
+      <Kobalte.ErrorMessage data-slot="input-error" forceMount={!!local.error}>
+        {local.error}
+      </Kobalte.ErrorMessage>
     </Kobalte>
   )
 }

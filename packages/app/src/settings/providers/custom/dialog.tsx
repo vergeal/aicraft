@@ -44,6 +44,8 @@ export function DialogCustomProvider(props: {
   provider?: CustomProviderInfo
   /** Every provider ID the configuration already declares. */
   taken: readonly string[]
+  /** Opens with this field focused, so "Replace API key" lands on the key instead of the top of the form. */
+  focusField?: "apiKey"
 }) {
   const language = useLanguage()
   const dialog = useDialog()
@@ -220,6 +222,7 @@ export function DialogCustomProvider(props: {
                   <TextField
                     label={language.t("settings.providers.custom.apiKey")}
                     type="password"
+                    autofocus={props.focusField === "apiKey"}
                     placeholder={
                       mode === "edit"
                         ? language.t("settings.providers.custom.apiKey.keep")

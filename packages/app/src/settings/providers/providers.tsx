@@ -254,10 +254,17 @@ export const SettingsProviders: Component<{
     ...custom().map((item) => item.id),
   ])
 
-  const openCustom = (provider?: CustomProvider) => {
+  const openCustom = (provider?: CustomProvider, focusField?: "apiKey") => {
     setState("held", available())
     void dialog.show(
-      () => <DialogCustomProvider directory={props.directory} provider={provider} taken={providerIDs()} />,
+      () => (
+        <DialogCustomProvider
+          directory={props.directory}
+          provider={provider}
+          taken={providerIDs()}
+          focusField={focusField}
+        />
+      ),
       () => {
         setState("held", undefined)
         void config.refetch()
@@ -532,7 +539,7 @@ export const SettingsProviders: Component<{
                                             <Menu.Item onSelect={() => openCustom(provider())}>
                                               {language.t("settings.providers.custom.edit")}
                                             </Menu.Item>
-                                            <Menu.Item onSelect={() => openCustom(provider())}>
+                                            <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
                                               {language.t("settings.providers.custom.keyReplace")}
                                             </Menu.Item>
                                             <Menu.Separator />

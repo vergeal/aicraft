@@ -1,15 +1,40 @@
 @import "@opencode/ui/text-input.css";
 @import "@opencode/ui/button.css";
 
-/* One metric scale for the whole settings surface: 13px labels, 12px descriptions, 44px rows, 10px cards. */
+/* One metric scale for the whole settings surface: 13px labels, 12px descriptions, 44px rows, 10px cards.
+   Control heights are three tiers, not seven: a navigation row, a row control, and a form input. */
 :is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"]) {
   --settings-sidebar-width: 264px;
   --settings-content-max: 720px;
   --settings-content-inset: 32px;
-  --settings-nav-item-height: 30px;
+  --settings-nav: 30px;
+  --settings-nav-item-height: var(--settings-nav);
   --settings-nav-item-radius: 6px;
+  --settings-row-control: 28px;
+  --settings-input: 32px;
   --settings-row-min-height: 44px;
   --settings-card-radius: 10px;
+  /* One card material. Every list surface in Settings reads these four, so a scheme change happens in one place. */
+  --settings-card-bg: #2b2b2e;
+  /* 9% keeps the card's outer stroke above the 8% row hairline; at 7% the frame read weaker than the lines inside it. */
+  --settings-card-border: rgba(255, 255, 255, 0.09);
+  --settings-card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  --settings-card-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  /* The 45% focus ring token is below 3:1 on both schemes; settings draws its own ring at full accent. */
+  --settings-focus-ring: 0 0 0 2px var(--v2-system-accent);
+  --settings-focus-outline: 2px solid var(--v2-system-accent);
+}
+
+/* The glass sheets are a separate family: the notices and delete dialogs live outside .settings-screen, so their
+   material is defined once here instead of being copied per dialog. */
+:root {
+  --settings-sheet-radius: 15px;
+  --settings-sheet-bg: rgba(38, 38, 42, 0.78);
+  --settings-sheet-border: rgba(255, 255, 255, 0.12);
+  --settings-sheet-shadow: 0 20px 64px rgba(0, 0, 0, 0.42);
+  --settings-sheet-blur: blur(30px) saturate(1.8);
 }
 
 /* Settings copy reads at regular weight; shared components keep their own emphasis outside settings. */
@@ -123,8 +148,9 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  /* The sidebar is the one darker surface in Settings; no v2 token matches #1B1B1D (bg-deep is #161616). */
-  background: #1B1B1D;
+  /* The sidebar is the one recessed surface in Settings: a step below the #161616 page base, matching the depth the
+     light scheme gives it below white. #1B1B1D was lighter than the page it sat on. */
+  background: #131315;
   border-inline-end: 1px solid var(--v2-border-border-muted);
 }
 
@@ -134,9 +160,10 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  /* The content column owns its scrollbar; the shell itself never scrolls. */
+  /* The content column owns its scrollbar; the shell itself never scrolls. Reserving both edges keeps the column
+     centered on its axis whether or not the scrollbar is present, instead of shifting content 8px when it appears. */
   overflow: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
 }
 
 .settings-nav {
@@ -159,8 +186,8 @@
   gap: 12px;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Reserve the scrollbar's lane so a list that starts to overflow does not shift every row and icon. */
-  scrollbar-gutter: stable;
+  /* Reserve the scrollbar's lane on both edges so a list that starts to overflow does not shift every row and icon. */
+  scrollbar-gutter: stable both-edges;
   min-height: 0;
 }
 
@@ -260,15 +287,14 @@
   white-space: nowrap;
 }
 
-/* Selected row: a .10 fold of the surface tint plus 600 weight. overlay-pressed is alpha-light-10 in
-   dark (#ffffff1a) and alpha-dark-8 in light, so the selected fill follows the theme instead of a raw white. */
+/* Selected row: the same hover tint as an unselected row. The 2px accent rail below is the selection cue, so the
+   fill does not need to step up to overlay-pressed and double the signal in light. */
 .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) {
-  background: var(--v2-overlay-simple-overlay-pressed);
+  background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-base);
 }
 
-/* The pressed fill is only a 10% step, which reads as a hover on the dark surface. A 2px accent rail on the
-   leading edge gives the selection an anchor that survives both schemes without doubling the fill. */
+/* A filled row alone reads as a hover; the rail is the anchor that survives both schemes. */
 .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])::before {
   position: absolute;
   inset-block: 6px;
@@ -305,8 +331,7 @@
 }
 
 .settings-nav-groups [data-slot="tabs-v2-trigger"]:focus-visible {
-  /* Spec accent for the focus ring; v2-blue-500 (#7698fd) is not the settings accent (#0A84FF). */
-  outline: 2px solid #0A84FF;
+  outline: var(--settings-focus-outline);
   outline-offset: -2px;
 }
 
@@ -344,7 +369,7 @@
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 /* Each group carries a header, so the header names the boundary and the gap around it separates the groups. A
@@ -353,7 +378,8 @@
   padding-block-start: 12px;
 }
 
-/* A sidebar label, not a control: small, quiet, and only interactive when it carries an action. */
+/* A sidebar label, not a control: small, quiet, and only interactive when it carries an action. 11px/600 with wider
+   tracking reads as a section name above 13px/400 rows; faint was below 4.5:1 at this size. */
 .settings-nav-group-header {
   display: flex;
   height: 24px;
@@ -363,10 +389,10 @@
   gap: 8px;
   padding-inline: 8px;
   border-radius: 6px;
-  color: var(--v2-text-text-faint);
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   line-height: var(--line-height-compact);
 }
 
@@ -382,12 +408,13 @@
   background: var(--v2-overlay-simple-overlay-hover);
 }
 
+/* A header without an action is not a control, so only the variant that owns a button reacts to hover. */
 @media (hover: hover) {
-  .settings-nav-group-header:hover {
+  .settings-nav-group-header:has([data-component="icon-button-v2"]):hover {
     background: var(--v2-overlay-simple-overlay-hover);
   }
 
-  .settings-nav-group-header:hover [data-component="icon-button-v2"] {
+  .settings-nav-group-header:has([data-component="icon-button-v2"]):hover [data-component="icon-button-v2"] {
     opacity: 1;
   }
 }
@@ -458,6 +485,7 @@
 .settings-about-details > p {
   font-size: 12px;
   font-weight: 400;
+  line-height: var(--line-height-compact);
 }
 
 .settings-about-intro,
@@ -472,11 +500,13 @@
   gap: 8px;
 }
 
+/* The version button and the update link are two controls, so they take the control-to-control step rather than the
+   inline 8px that separates a label from its value. */
 .settings-about-version-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .settings-about-version {
@@ -509,10 +539,14 @@
   transition: background-color 120ms ease;
 }
 
-.settings-about-version:hover,
+.settings-about-version:hover {
+  color: var(--v2-text-text-base);
+}
+
 .settings-about-version:focus-visible {
   color: var(--v2-text-text-base);
-  outline: none;
+  outline: var(--settings-focus-outline);
+  outline-offset: 2px;
 }
 
 .settings-about-version:hover::before,
@@ -551,13 +585,16 @@
   opacity: 0.3;
 }
 
+/* Kept under its old class name: this line is the site link, not the copyright footer. Muted, not faint, because
+   faint sits at 3.8:1 and this is real text. */
 .settings-about-faint {
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   font-size: 12px;
+  line-height: var(--line-height-compact);
 }
 
 .settings-about-legal {
-  width: 109px;
+  width: 108px;
   height: 19px;
 }
 
@@ -567,10 +604,10 @@
   flex-shrink: 0;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  color: var(--v2-text-text-faint);
-  font-size: 11px;
-  line-height: 16px;
+  gap: 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: var(--line-height-compact);
 }
 
 .settings-about-anomaly-brush {
@@ -593,7 +630,8 @@
 }
 
 .settings-about-link {
-  padding: 0;
+  min-height: 24px;
+  padding: 3px 0;
   border: 0;
   background: none;
   color: var(--v2-text-text-muted);
@@ -608,6 +646,18 @@
 .settings-about-link:focus-visible {
   color: var(--v2-text-text-accent);
   text-decoration: underline;
+}
+
+/* The notices and delete sheets take the same 15px glass as the server and custom-provider sheets instead of
+   inheriting the shared dialog defaults. The values come from --settings-sheet-* so light can override them once. */
+[data-component="dialog-v2"]:has(.settings-notices) > [data-slot="dialog-container"],
+[data-component="dialog-v2"]:has(.settings-provider-custom-delete-dialog) > [data-slot="dialog-container"] {
+  border: 1px solid var(--settings-sheet-border);
+  border-radius: var(--settings-sheet-radius);
+  background: var(--settings-sheet-bg);
+  backdrop-filter: var(--settings-sheet-blur);
+  -webkit-backdrop-filter: var(--settings-sheet-blur);
+  box-shadow: var(--settings-sheet-shadow);
 }
 
 .settings-notices-scroll {
@@ -663,7 +713,7 @@
 }
 
 .settings-notice-heading span {
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   font-weight: 400;
 }
 
@@ -720,9 +770,11 @@
   flex-direction: column;
   margin: 8px 0 0;
   padding: 0 16px;
-  border-radius: 10px;
-  background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
+  border: 1px solid var(--settings-card-border);
+  border-radius: var(--settings-card-radius, 10px);
+  background-color: var(--settings-card-bg);
+  background-image: var(--settings-card-gradient);
+  box-shadow: var(--settings-card-shadow);
   list-style: none;
 }
 
@@ -752,7 +804,7 @@
 }
 
 .settings-crate-heading > span:first-child {
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 .settings-crate-heading a {
@@ -761,7 +813,7 @@
 
 .settings-crate-heading > span:last-child {
   flex-shrink: 0;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 .settings-crate-heading strong {
@@ -770,7 +822,7 @@
 }
 
 .settings-crate p {
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   font-size: 13px;
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -805,11 +857,11 @@
   transition: background-color 120ms ease-out;
 }
 
-/* The desktop sidebar renders the back control as a full-width row on the toolbar metric; the mobile header
-   keeps the 28px inline button so it still centers on the collapsed-sidebar toggle. */
+/* The desktop sidebar renders the back control as a full-width row on the same 30px metric as the navigation items
+   below it; the mobile header keeps the 28px inline button so it still centers on the collapsed-sidebar toggle. */
 .settings-nav > .settings-back {
   width: 100%;
-  height: 28px;
+  height: var(--settings-nav);
 }
 
 .settings-back:hover,
@@ -887,7 +939,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 32px var(--settings-content-inset, 32px) 8px;
+  padding: 16px var(--settings-content-inset, 32px) 8px;
   background: var(--v2-background-bg-base);
   border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
@@ -1072,7 +1124,8 @@
 .settings-tab-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  /* Sections are groups: 20px between them, 8px from a section title to its card. */
+  gap: 20px;
   width: 100%;
   padding: 12px var(--settings-content-inset) calc(80px + var(--settings-bottom-inset, 0px));
 }
@@ -1094,7 +1147,7 @@
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* A group header sits above the rows it names, so it carries more weight than a row title (13px/400) rather than
@@ -1113,7 +1166,7 @@
   width: 100%;
   flex-direction: column;
   min-width: 0;
-  gap: 12px;
+  gap: 20px;
 }
 
 [data-component="settings-list"] {
@@ -1123,21 +1176,28 @@
   min-width: 0;
   padding-inline: 16px;
   overflow: hidden;
-  /* The card material is three layers, the way the v3 surfaces read: one 1px hairline stroke, a 145deg sheen over the
-     fill, and a 1px top highlight. A flat fill with a 0.5px outline had no depth and the outline vanished at 1x. */
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  /* One card material for every list: a hairline stroke, a 145deg sheen over the fill and a top highlight, with an
+     outer drop so the card lifts off the page rather than only drawing an edge. */
+  border: 1px solid var(--settings-card-border);
   border-radius: var(--settings-card-radius, 10px);
-  background-color: #2b2b2e;
-  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background-color: var(--settings-card-bg);
+  background-image: var(--settings-card-gradient);
+  box-shadow: var(--settings-card-shadow);
 }
 
+/* The separator is drawn, not laid out: a 0.5px border adds half a pixel to every row, which is why a 59px row
+   measured 59.5px. Absolute positioning keeps the hairline without touching the row's box. */
 [data-component="settings-list"] > [data-component="settings-row"] {
-  border-bottom: 0.5px solid var(--v2-border-border-muted);
+  position: relative;
 }
 
-[data-component="settings-list"] > [data-component="settings-row"]:last-child {
-  border-bottom: 0;
+[data-component="settings-list"] > [data-component="settings-row"]:not(:last-child)::after {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 0.5px;
+  background: var(--v2-border-border-muted);
+  content: "";
 }
 
 [data-component="settings-list"][data-variant="catalog"] {
@@ -1190,7 +1250,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--v2-text-text-muted);
   overflow-wrap: anywhere;
 }
 
@@ -1200,27 +1260,39 @@
   justify-content: flex-end;
   gap: 8px;
   width: 100%;
-  min-height: 28px;
   flex-shrink: 0;
+}
+
+/* Scoped to Settings: the same slot is used by the provider dialog's 16px checkbox column, which must not grow. */
+:is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"])
+  [data-slot="settings-row-control"] {
+  min-height: var(--settings-row-control);
 }
 
 /* The :has() belongs on the control, not on its div. Chromium checks a div:has() subject against every div in the
    document and flags each one, then restyles a flagged div whenever an element is inserted anywhere beneath it, which
-   is every ancestor of a streaming answer. */
+   is every ancestor of a streaming answer. No padding here: the switch's real hit area is the ::after below, because
+   padding on this wrapper never forwarded the click to the switch. */
 [data-slot="settings-row-control"]:has(> div [data-component="switch"]) > div,
 [data-slot="settings-row-control"] > [data-component="switch"] {
   display: inline-flex;
   align-items: center;
-  padding: 4px;
 }
 
-[data-component="settings-list"][data-variant="catalog"]
-  [data-slot="settings-row-control"]:has(> div [data-component="switch"])
-  > div,
-[data-component="settings-list"][data-variant="catalog"]
-  [data-slot="settings-row-control"]
-  > [data-component="switch"] {
-  padding: 0;
+/* switch.css paints the control at 24x16. The settings row needs a 28x28 target, and the two missing vertical pixels
+   are more than the horizontal ones, so the pad is asymmetric: it grows the hit area without moving the switch. */
+:is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"])
+  [data-component="switch"]
+  [data-slot="switch-control"] {
+  position: relative;
+}
+
+:is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"])
+  [data-component="switch"]
+  [data-slot="switch-control"]::after {
+  position: absolute;
+  inset: -6px -2px;
+  content: "";
 }
 
 /* select.css sizes a standalone select's value at 15px. In a settings row the value faces a 13px label, so a larger
@@ -1240,13 +1312,13 @@
   [data-component="switch"][data-appearance="compact"]
   [data-slot="switch-input"]:focus-visible
   ~ [data-slot="switch-control"] {
-  outline: 3px solid var(--v2-focus-ring-color);
+  outline: var(--settings-focus-outline);
   outline-offset: 2px;
 }
 
 :is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
   [data-component="button-v2"]:focus-visible {
-  box-shadow: 0 0 0 3px var(--v2-focus-ring-color);
+  box-shadow: var(--settings-focus-ring);
 }
 
 @media (min-width: 640px) {
@@ -1269,12 +1341,12 @@
   max-width: 100%;
 }
 
-/* A row's switch hit area is 28px; `appearance="small"` renders the select at 24px, so the two controls in the
-   same column sat on different baselines. The settings row owns the one metric here. */
+/* An inline select renders at 24px, so it sat on a different baseline than the row's 28px switch. Both controls in
+   the row now read --settings-row-control. */
 :is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
   [data-slot="settings-row-control"]
-  [data-component="select-v2"] {
-  height: 28px;
+  [data-component="select-v2"][data-appearance="inline"] {
+  height: var(--settings-row-control);
 }
 
 :is([data-component="dialog-v2"][data-variant="settings"], .settings-screen) [data-component="button-v2"] {
@@ -1743,7 +1815,7 @@
 
 .settings-provider-account-input {
   width: 100%;
-  height: 32px;
+  height: var(--settings-input);
   max-width: min(240px, 45%);
   font-size: 13px;
   font-weight: 400;
@@ -1752,7 +1824,7 @@
 }
 
 .settings-provider-account-input:focus-visible {
-  outline: 2px solid #0a84ff;
+  outline: var(--settings-focus-outline);
   outline-offset: 1px;
 }
 
@@ -1851,27 +1923,22 @@
 .settings-tab-search {
   position: relative;
   display: flex;
-  width: calc(100% - 2px);
+  width: 100%;
   max-width: 360px;
-  min-height: 32px;
+  min-height: var(--settings-nav);
   align-items: center;
-  margin-inline: 1px;
 }
 
 .settings-tab-search [data-component="text-input-v2"] {
   width: 100%;
 }
 
-.settings-tab-search [data-slot="text-input-v2-input"] {
-  padding-inline-end: 28px;
-}
-
-/* Matches the sidebar search field's 32px box so the two search inputs read as one control. */
+/* Matches the sidebar search field's 30px box: both are page-level filters on the nav metric, not form inputs. */
 .settings-filter-search [data-component="text-input-v2"] {
-  height: 32px;
+  height: var(--settings-nav);
   border-radius: 6px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
   transition:
     background-color 120ms ease-out,
     box-shadow 120ms ease-out;
@@ -1883,8 +1950,8 @@
 
 .settings-filter-search [data-component="text-input-v2"]:focus-within:not([data-disabled]) {
   box-shadow:
-    inset 0 0 0 0.5px var(--v2-border-border-focus),
-    0 0 0 3px var(--v2-focus-ring-color);
+    inset 0 0 0 1px var(--v2-border-border-focus),
+    var(--settings-focus-ring);
 }
 
 .settings-filter-search [data-slot="text-input-v2-input"] {
@@ -2372,28 +2439,21 @@
   flex-shrink: 0;
 }
 
-/* The whole row starts a recording, so the command name is part of the hit area too. */
+/* The whole row starts a recording, so the command name is part of the hit area too. The card owns
+   overflow: hidden, so rows need no own first/last radius: giving them one made the first row rounded and the
+   second square. */
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row {
   cursor: pointer;
   transition: background-color 120ms ease;
 }
 
-.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:first-child {
-  border-start-start-radius: 10px;
-  border-start-end-radius: 10px;
-}
-
-.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:last-child {
-  border-end-start-radius: 10px;
-  border-end-end-radius: 10px;
-}
-
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:hover {
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--v2-overlay-simple-overlay-hover);
 }
 
+/* One hover layer: the row already reacts, and a second band on the key button made a single hover paint twice. */
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording] {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--v2-system-accent-soft);
 }
 
 .settings-shortcut-name {
@@ -2401,14 +2461,20 @@
   min-width: 0;
 }
 
-/* One fixed keys column keeps `Ctrl+K` and `Ctrl+Shift+P` on the same right edge. */
+/* A fixed keys column: both ends of the keys land on the same x across rows because the column is 112px wide, not
+   because each row reserves a minimum. Recording adds the Unbind button beside the capture, so that row's column
+   takes the wider 152px form instead of pushing the keys out of alignment. */
 .settings-shortcut-keys {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  min-width: 112px;
+  width: 112px;
   flex-shrink: 0;
+}
+
+.settings-shortcut-keys:has([data-expanded]) {
+  width: 152px;
 }
 
 .settings-shortcut-capture {
@@ -2432,27 +2498,24 @@
     box-shadow 120ms ease;
 }
 
-.settings-shortcut-capture:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
 .settings-shortcut-capture:focus-visible {
-  outline: 2px solid var(--v2-text-text-accent);
+  outline: var(--settings-focus-outline);
   outline-offset: 1px;
 }
 
-/* Recording is a state of the keys themselves, not only a change of text. */
+/* Recording is a state of the keys themselves, not only a change of text. The accent-soft fill follows the system
+   accent in both schemes; a white alpha did not. */
 .settings-shortcut-capture[data-expanded] {
-  background: rgba(10, 132, 255, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.55);
+  background: var(--v2-system-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v2-system-accent) 55%, transparent);
 }
 
 .settings-shortcut-capture[data-expanded]:hover {
-  background: rgba(10, 132, 255, 0.14);
+  background: color-mix(in srgb, var(--v2-system-accent) 24%, transparent);
 }
 
 .settings-shortcut-unassigned {
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 .settings-shortcut-press-keys {
@@ -3351,7 +3414,7 @@
 }
 
 .settings-provider-custom-model + .settings-provider-custom-model {
-  border-top: 1px solid rgba(255, 255, 255, 0.035);
+  border-top: 1px solid var(--v2-border-border-muted);
 }
 
 @media (hover: hover) {
@@ -3456,38 +3519,62 @@
    Every rule below is a colour-only counterpart of the original declaration, prefixed with the attribute selector so
    it outranks the original without editing it. Structure, spacing and layout are deliberately untouched. */
 
+/* The material variables get their light values in one place, so no rule below restates a fill or a shadow. */
+[data-color-scheme="light"] {
+  --settings-sheet-bg: rgba(255, 255, 255, 0.86);
+  --settings-sheet-border: rgba(0, 0, 0, 0.12);
+  --settings-sheet-shadow: 0 20px 64px rgba(0, 0, 0, 0.18);
+}
+
+[data-color-scheme="light"] :is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"]) {
+  --settings-card-bg: var(--v2-background-bg-layer-01);
+  --settings-card-border: var(--v2-border-border-base);
+  --settings-card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  --settings-card-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
 [data-color-scheme="light"] .settings-screen {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
-/* The sidebar is the one recessed surface of Settings: one grey step below the white page, not a black panel. */
+/* The sidebar is the one recessed surface of Settings: one grey step below the white page. bg-deep and layer-01
+   are both #fafafa in light, which made the sidebar, the page and the cards one flat field. */
 [data-color-scheme="light"]
   .settings-screen
   > .settings[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
   > .settings-sidebar {
-  background: var(--v2-background-bg-deep);
-}
-
-/* Cards: the dark fill and its white sheen become the layer-01 surface with a dark hairline; the card keeps its
-   edge from the border alone, so the dark-only top highlight is dropped. */
-[data-color-scheme="light"] [data-component="settings-list"] {
-  border-color: var(--v2-border-border-base);
-  background: var(--v2-background-bg-layer-01);
-  box-shadow: none;
+  background: var(--v2-background-bg-layer-02);
 }
 
 [data-color-scheme="light"] [data-slot="settings-row-title"] {
   color: var(--v2-text-text-base);
 }
 
-[data-color-scheme="light"] [data-slot="settings-row-description"] {
-  color: var(--v2-text-text-muted);
-}
-
 /* Provider list and console. */
 [data-color-scheme="light"] .settings-provider-row,
 [data-color-scheme="light"] .settings-provider-console {
   border-bottom-color: var(--v2-border-border-muted);
+}
+
+/* The add row's dark ink is white at 92% on a white-alpha fill, so in light it was white on white. */
+[data-color-scheme="light"] [data-slot="settings-provider-add-row"] > button {
+  color: var(--v2-text-text-muted);
+  border-color: var(--v2-border-border-base);
+  background: transparent;
+}
+
+@media (hover: hover) {
+  [data-color-scheme="light"] [data-slot="settings-provider-add-row"] > button:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* Tags carry a white-alpha stroke and fill in dark; both vanish on the light card. */
+[data-color-scheme="light"] .settings-providers [data-component="tag"] {
+  border-color: var(--v2-border-border-base);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 [data-color-scheme="light"] .settings-provider-console-summary {
@@ -3632,6 +3719,8 @@
 }
 
 [data-color-scheme="light"] .settings-provider-custom-chip {
+  border-color: var(--v2-border-border-base);
+  background: rgba(0, 0, 0, 0.04);
   color: var(--v2-text-text-code-accent);
 }
 
@@ -3645,4 +3734,10 @@
 
 [data-color-scheme="light"] .settings-provider-custom-error {
   color: var(--v2-state-fg-danger);
+}
+
+/* The wordmark needs more of the surface in light: .42 over #fafafa still reads as a ghost, and this mark is the
+   only image on the page. */
+[data-color-scheme="light"] .settings-about-wordmark {
+  opacity: 0.52;
 }

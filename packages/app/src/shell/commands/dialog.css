@@ -319,6 +319,14 @@
   }
 }
 
+/* The panel already paints the strong material behind the list, so a header that paints it again stacks a second
+   layer and reads brighter than the panel around it. Blurring what scrolls beneath the header keeps rows legible
+   without that extra tint. */
+[data-component="dialog-v2"]:has(.command-palette-compact) [data-slot="search-list-header"] {
+  background: transparent;
+  backdrop-filter: var(--v2-material-blur-thick);
+}
+
 @media (pointer: coarse) {
   .command-palette-compact [data-slot="search-list-row"],
   .command-palette-compact [data-slot="search-list-row"]:has(.command-palette-description),

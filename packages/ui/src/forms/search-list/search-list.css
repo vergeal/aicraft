@@ -1,8 +1,8 @@
-/* A dialog paints its surface with the strong material, so a list inside it cuts the same color out of that
-   surface. Page-level lists keep the page base; the opaque material token is also the reduced-transparency
-   fallback, so both paths stay identical. */
+/* A dialog paints the strong material, so a list inside it cuts that same translucent color out of the surface.
+   The opaque twin is what the token itself swaps in under reduced transparency, not a drop-in substitute: painting
+   it over glass reads as a brighter band than the panel around it. */
 [data-slot="dialog-container"] [data-component="search-list"] {
-  --search-list-surface: var(--v2-material-surface-strong-opaque);
+  --search-list-surface: var(--v2-material-surface-strong);
 }
 
 [data-component="search-list"] {

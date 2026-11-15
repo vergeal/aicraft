@@ -129,7 +129,7 @@
   overflow: hidden;
   /* The sidebar is the one darker surface in Settings; no v2 token matches #1B1B1D (bg-deep is #161616). */
   background: #1B1B1D;
-  border-inline-end: 1px solid rgba(255, 255, 255, .07);
+  border-inline-end: 0.5px solid var(--v2-border-border-muted);
 }
 
 .settings-screen > .settings > .settings-content {
@@ -160,9 +160,11 @@
   width: 100%;
   flex: 1;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Reserve the scrollbar's lane so a list that starts to overflow does not shift every row and icon. */
+  scrollbar-gutter: stable;
   min-height: 0;
 }
 
@@ -249,6 +251,18 @@
   cursor: pointer;
 }
 
+/* The label is a flex item of the trigger's content row, so the trigger's own ellipsis never reaches it. */
+.settings-nav-group [data-slot="tabs-v2-trigger-content"] {
+  min-width: 0;
+}
+
+.settings-nav-group .settings-nav-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Selected row: a .10 fold of the surface tint plus 600 weight. overlay-pressed is alpha-light-10 in
    dark (#ffffff1a) and alpha-dark-8 in light, so the selected fill follows the theme instead of a raw white. */
 .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) {
@@ -263,13 +277,18 @@
 }
 
 @media (hover: hover) {
-  .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover {
+  .settings-nav-groups
+    [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):not(
+      :has([data-slot="tabs-v2-trigger"]:disabled)
+    ):hover {
     background: var(--v2-overlay-simple-overlay-hover);
     color: var(--v2-text-text-base);
   }
 
   .settings-nav-groups
-    [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover
+    [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):not(
+      :has([data-slot="tabs-v2-trigger"]:disabled)
+    ):hover
     [data-slot="tabs-v2-trigger"] {
     color: var(--v2-text-text-base);
   }
@@ -281,7 +300,8 @@
   outline-offset: -2px;
 }
 
-.settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:disabled {
+/* The wrapper is a div, so `:disabled` never matches it; the trigger button carries the attribute. */
+.settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-slot="tabs-v2-trigger"]:disabled) {
   opacity: .38;
   cursor: not-allowed;
 }
@@ -315,6 +335,12 @@
   width: 100%;
   flex-direction: column;
   gap: 2px;
+}
+
+/* Groups carry no label yet, so a hairline draws the boundary the way the mobile menu's separators do. */
+.settings-nav-group + .settings-nav-group {
+  padding-block-start: 12px;
+  border-top: 0.5px solid var(--v2-border-border-base);
 }
 
 /* A sidebar label, not a control: small, quiet, and only interactive when it carries an action. */

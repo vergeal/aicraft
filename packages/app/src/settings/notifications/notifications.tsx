@@ -8,10 +8,18 @@ import { SettingsRow } from "@/settings/row"
 import {
   createSoundSettingsController,
   soundOptions,
+  type SoundSelectOption,
   type SoundSettingsController,
 } from "@/settings/general/controllers"
+import { SOUND_SERIES } from "@/shell/notifications/sound"
 import { SettingsPageHeader } from "@/settings/page-header"
 import "@/settings/settings.css"
+
+/** The numbered part of a sound id, so a row under its series label reads "01" rather than "Alert 01". */
+const number = (option: SoundSelectOption) => option.id.split("-").at(-1) ?? option.id
+
+const series = (option: SoundSelectOption) =>
+  SOUND_SERIES.find((entry) => option.id.startsWith(`${entry.prefix}-`))
 
 const soundSettings = {
   agent: {
@@ -51,7 +59,16 @@ const SoundSetting: Component<{
         current={props.channel.current()}
         value={(option) => option.id}
         label={(option) => language.t(option.label)}
-        onHighlight={props.channel.highlight}
+        groupBy={(option) => {
+          const entry = series(option)
+
+          return entry ? language.t(entry.label) : ""
+        }}
+        children={(option) => (
+          <span title={language.t(option.label)}>
+            {option.id === "none" ? language.t(option.label) : number(option)}
+          </span>
+        )}
         onSelect={props.channel.select}
         placement="bottom-end"
         gutter={6}

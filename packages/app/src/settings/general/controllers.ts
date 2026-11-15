@@ -88,7 +88,14 @@ export function createAppearanceSettingsController() {
     theme: {
       options: themes,
       current: createMemo(() => themes().find((option) => option.id === theme.themeId())),
-      select: (option: { id: string } | null) => option && theme.setTheme(option.id),
+      // The picker reads `themeId`, so a rejected selection snaps back to the theme still on screen.
+      select: async (option: { id: string } | null) => {
+        if (!option) return
+
+        if (await theme.setTheme(option.id)) return
+
+        showToast({ variant: "error", title: language.t("common.requestFailed") })
+      },
     },
     zoom: {
       available: () => platform.zoomLevel !== undefined,
@@ -100,6 +107,10 @@ export function createAppearanceSettingsController() {
     reduceMotion: {
       current: settings.appearance.reduceMotion,
       select: (value: ReduceMotion) => settings.appearance.setReduceMotion(value),
+    },
+    fontSize: {
+      current: settings.appearance.fontSize,
+      select: (value: number) => settings.appearance.setFontSize(value),
     },
     fonts: {
       ui: createMemo(() => ({
@@ -143,10 +154,6 @@ export function createSoundSettingsController() {
     current: createMemo(() =>
       enabled() ? (soundOptions.find((option) => option.id === current()) ?? noneSound) : noneSound,
     ),
-    highlight: (option: SoundSelectOption | undefined) => {
-      if (!option) return
-      preview.play(option.id === "none" ? undefined : option.id)
-    },
     select: (option: SoundSelectOption | null) => {
       if (!option) return
 

@@ -305,3 +305,8 @@
   svg {
   visibility: hidden;
 }
+
+/* The reduced-motion preference the app writes on :root drops the trigger's colour transition. */
+:root[data-motion="reduce"] [data-component="select-v2"] {
+  transition: none;
+}

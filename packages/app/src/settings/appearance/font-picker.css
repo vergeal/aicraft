@@ -87,6 +87,15 @@ button[data-component="font-picker"] svg {
   color: var(--v2-text-text-faint);
 }
 
+/* The input clears its own outline, so the keyboard ring is the only focus cue inside the popover. */
+[data-slot="font-picker-search"]:focus-visible {
+  box-shadow: 0 0 0 3px var(--v2-focus-ring-color);
+}
+
+:root[data-motion="reduce"] button[data-component="font-picker"] {
+  transition: none;
+}
+
 [data-slot="font-picker-list"] {
   display: flex;
   flex-direction: column;

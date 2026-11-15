@@ -60,6 +60,15 @@ export const SOUND_OPTIONS = [
   { id: "yup-06", label: "sound.option.yup06" },
 ] as const
 
+/** The timbre families the picker groups the numbered sounds under, in display order. */
+export const SOUND_SERIES = [
+  { prefix: "alert", label: "sound.series.alert" },
+  { prefix: "bip-bop", label: "sound.series.bipBop" },
+  { prefix: "staplebops", label: "sound.series.staplebops" },
+  { prefix: "nope", label: "sound.series.nope" },
+  { prefix: "yup", label: "sound.series.yup" },
+] as const
+
 type SoundOption = (typeof SOUND_OPTIONS)[number]
 
 type SoundID = SoundOption["id"]

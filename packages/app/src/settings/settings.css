@@ -1244,16 +1244,6 @@
     background: var(--v2-background-bg-base);
   }
 
-  .settings-mobile-nav::after {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    inset-block-start: 100%;
-    height: 1px;
-    background: var(--v2-background-bg-base);
-    pointer-events: none;
-  }
-
   .settings-mobile-nav .settings-back {
     flex-shrink: 0;
   }
@@ -1277,8 +1267,13 @@
     > .settings-sidebar {
     width: 100%;
     min-width: 0;
+    /* Stacked above the content column, the sidebar is a row of its own content height. The base
+       `height: 100%` would fill the whole column and squeeze .settings-content to zero height. */
+    height: auto;
     padding: 8px var(--settings-mobile-inner-inset, 16px);
     flex-shrink: 0;
+    /* The divider separates the two desktop columns; full width it would hang on the page edge. */
+    border-inline-end: 0;
   }
 
   .settings-nav {

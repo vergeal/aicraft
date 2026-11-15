@@ -260,7 +260,6 @@
   [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])
   [data-slot="tabs-v2-trigger"] {
   color: var(--v2-text-text-base);
-  font-weight: 600;
 }
 
 @media (hover: hover) {
@@ -782,11 +781,17 @@
 .settings-panel {
   display: flex;
   flex-direction: column;
+  /* Page panels do not scroll: .settings-content owns the page scrollbar, so it sits on the content
+     column's edge instead of the 720px panel. Dialog panels are their own scroll container because the
+     dialog body has a fixed height. */
+  user-select: none;
+  container: settings-panel / inline-size;
+}
+
+[data-component="dialog-v2"] .settings-panel {
   height: 100%;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  user-select: none;
-  container: settings-panel / inline-size;
 }
 
 .settings-panel > .settings-tab-header,

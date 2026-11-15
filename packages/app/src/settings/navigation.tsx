@@ -89,9 +89,13 @@ export function SettingsNavigation(props: {
                 <Menu.RadioGroup value={props.value} onChange={change}>
                   <For each={props.groups}>
                     {(group, index) => (
-                      <>
+                      <Menu.Group>
                         <Show when={index() > 0}>
                           <Menu.Separator />
+                        </Show>
+                        {/* The menu names each group, since its items mean different things in each one. */}
+                        <Show when={group.label}>
+                          {(label) => <Menu.GroupLabel>{label()}</Menu.GroupLabel>}
                         </Show>
                         <For each={group.items}>
                           {(item) => (
@@ -110,7 +114,7 @@ export function SettingsNavigation(props: {
                             </Menu.RadioItem>
                           )}
                         </For>
-                      </>
+                      </Menu.Group>
                     )}
                   </For>
                 </Menu.RadioGroup>
@@ -119,7 +123,7 @@ export function SettingsNavigation(props: {
           </Menu>
         </div>
       </div>
-      <aside class="settings-sidebar" data-searchable={searchable()}>
+      <aside class="settings-sidebar" data-searchable={searchable()} aria-label={language.t("settings.nav.label")}>
         <div class="settings-nav">
           <button type="button" class="settings-back" onClick={back}>
             <Icon name="arrow-left" size="small" class="settings-back-icon" />
@@ -132,9 +136,15 @@ export function SettingsNavigation(props: {
             <Tabs.List class="settings-nav-groups" data-scrollable>
               <For each={props.groups}>
                 {(group) => (
-                  <div class="settings-nav-group">
+                  <div class="settings-nav-group" role="presentation">
                     <Show when={group.label || group.action}>
-                      <div class="settings-nav-group-header" data-component="settings-nav-group-header">
+                      {/* Group names organize the list visually; they are not tabs, so they stay out of the
+                          tablist's reading order. */}
+                      <div
+                        class="settings-nav-group-header"
+                        data-component="settings-nav-group-header"
+                        aria-hidden="true"
+                      >
                         <span>{group.label}</span>
                         {group.action}
                       </div>

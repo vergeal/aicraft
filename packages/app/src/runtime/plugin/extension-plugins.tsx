@@ -4,7 +4,9 @@ import { createMemo, createSignal, createUniqueId, For, Show } from "solid-js"
 import { Badge } from "@opencode/ui/badge"
 import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
+import { Loader } from "@opencode/ui/loader"
 import { Switch } from "@opencode/ui/switch"
+import { TruncatedText } from "@opencode/ui/truncated-text"
 import { pluginLabel } from "@/providers/catalog/plugin"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
@@ -151,6 +153,9 @@ function OwnServerPlugins(props: {
   // Why the window entry or main's entry failed; either fails the plugin.
   const errorOf = (id: string, kind: "builtin" | "config") => host.failure(id)?.error ?? itemOf(id, kind)?.error
 
+  // The server reports plugins in discovery order; the page reads as an index, so sort by the name a user sees.
+  const listed = createMemo(() => props.plugins.toSorted((a, b) => pluginLabel(a).localeCompare(pluginLabel(b))))
+
   const failedBuiltins = createMemo(() =>
     host
       .definitions()
@@ -196,6 +201,14 @@ function OwnServerPlugins(props: {
     const state = () => (input.builtin ? "loaded" : kind(input.id))
     const part = input.builtin ? "builtin" : "config"
     const live = () => (state() === "loaded" ? input.id : undefined)
+    /** What this row's switch leaves running besides the desktop UI. */
+    const parts = () => {
+      const item = input.id ? itemOf(input.id, part) : undefined
+
+      return { server: item?.server, tui: item?.tui }
+    }
+    // Reload follows the id: a row main could not read still needs its retry.
+    const actionable = () => (input.id && (state() === "loaded" || state() === "unreadable") ? input.id : undefined)
     // The switch is controlled by the stored value, so a failed request rolls back on its own; these only keep a
     // second click from racing the first and put the reason on the row instead of only in a toast.
     const [saving, setSaving] = createSignal(false)
@@ -209,10 +222,7 @@ function OwnServerPlugins(props: {
       const work = next ? bridge?.manager.enable(id) : bridge?.manager.disable(id)
 
       void (work ?? Promise.resolve())
-        .catch((cause: unknown) => {
-          setFailure(reason(cause))
-          showToast({ variant: "error", title: reason(cause) })
-        })
+        .catch((cause: unknown) => setFailure(reason(cause)))
         .finally(() => setSaving(false))
     }
 
@@ -221,36 +231,33 @@ function OwnServerPlugins(props: {
         <Icon name="cube" class="text-v2-icon-icon-muted shrink-0" />
         <div class="flex min-w-0 flex-col gap-0.5">
           <div class="settings-provider-main">
-            <bdi dir="ltr" class="settings-extension-name truncate">
+            <bdi dir="auto" class="settings-extension-name truncate">
               {input.name}
             </bdi>
-            <Show when={live()}>
-              {(id) => (
-                <>
-                  <Show when={props.showSource && input.source}>{(source) => <PluginSource source={source()} />}</Show>
-                  <Show when={input.builtin}>
-                    <Badge>{language.t("settings.plugins.builtin")}</Badge>
-                  </Show>
-                  {/* The parts besides the desktop UI that this row's switch leaves running. */}
-                  <Show when={itemOf(id(), part)?.server}>
-                    <Badge>{language.t("settings.plugins.part.server")}</Badge>
-                  </Show>
-                  <Show when={itemOf(id(), part)?.tui}>
-                    <Badge>{language.t("settings.plugins.part.tui")}</Badge>
-                  </Show>
-                  <Show when={status(id(), part)}>
-                    {(label) => <span class="text-11-regular text-v2-text-text-muted">{label()}</span>}
-                  </Show>
-                </>
-              )}
+            <Show when={input.builtin}>
+              <Badge>{language.t("settings.plugins.builtin")}</Badge>
+            </Show>
+            <Show when={!input.builtin && props.showSource && input.source}>
+              {(source) => <PluginSource source={source()} />}
             </Show>
           </div>
-          <Show when={input.secondary}>
-            {(id) => (
-              <bdi dir="ltr" class="text-11-regular text-v2-text-text-muted truncate">
-                {id()}
-              </bdi>
-            )}
+          <Show when={input.secondary || parts().server || parts().tui}>
+            <div class="settings-provider-main text-11-regular text-v2-text-text-muted">
+              <Show when={input.secondary}>
+                {(id) => (
+                  <bdi dir="ltr" class="min-w-0">
+                    <TruncatedText text={id()} />
+                  </bdi>
+                )}
+              </Show>
+              {/* Quiet text instead of two more badges, so a row keeps one main badge at most. */}
+              <Show when={parts().server}>
+                <span>{language.t("settings.plugins.part.server")}</span>
+              </Show>
+              <Show when={parts().tui}>
+                <span>{language.t("settings.plugins.part.tui")}</span>
+              </Show>
+            </div>
           </Show>
           <Show when={live()}>
             {(id) => <Show when={errorOf(id(), part)}>{(error) => <PluginError error={error()} />}</Show>}
@@ -267,9 +274,6 @@ function OwnServerPlugins(props: {
             <span class="settings-extension-note" data-tone="danger">
               {language.t("settings.plugins.reserved")}
             </span>
-          </Show>
-          <Show when={saving()}>
-            <span class="text-11-regular text-v2-text-text-muted">{language.t("settings.plugins.toggle.pending")}</span>
           </Show>
           <Show when={failure()}>
             {(message) => (
@@ -294,22 +298,37 @@ function OwnServerPlugins(props: {
             {leadContent}
           </button>
         </Show>
-        <Show when={live()}>
+        <Show when={actionable()}>
           {(id) => (
-            <div class="settings-servers-actions">
-              <Button size="small" variant="ghost" onClick={() => reload(id())}>
+            <div class="settings-servers-actions" aria-busy={saving() ? "true" : undefined}>
+              {/* The state label lives in the trailing slot, so showing it never changes the row's height. */}
+              <Show when={state() === "loaded" ? status(id(), part) : undefined}>
+                {(label) => <span class="text-11-regular text-v2-text-text-muted">{label()}</span>}
+              </Show>
+              <Button size="small" variant="ghost" disabled={saving()} onClick={() => reload(id())}>
                 {language.t("settings.plugins.reload")}
               </Button>
               {/* A built-in always runs; it keeps the switch's width, so every Reload lines up. */}
-              <Show when={!input.builtin} fallback={<span class="w-6 shrink-0" aria-hidden="true" />}>
-                <Switch
-                  hideLabel
-                  checked={itemOf(id(), part)?.enabled ?? true}
-                  disabled={saving()}
-                  onChange={(next) => toggle(id(), next)}
+              <Show
+                when={!input.builtin && state() === "loaded"}
+                fallback={<span class="w-6 shrink-0" aria-hidden="true" />}
+              >
+                <Show
+                  when={!saving()}
+                  fallback={
+                    <span
+                      role="status"
+                      aria-label={language.t("settings.plugins.toggle.pending")}
+                      class="inline-flex size-6 shrink-0 items-center justify-center"
+                    >
+                      <Loader class="size-4" />
+                    </span>
+                  }
                 >
-                  {id()}
-                </Switch>
+                  <Switch hideLabel checked={itemOf(id(), part)?.enabled ?? true} onChange={(next) => toggle(id(), next)}>
+                    {id()}
+                  </Switch>
+                </Show>
               </Show>
             </div>
           )}
@@ -321,8 +340,18 @@ function OwnServerPlugins(props: {
   return (
     <>
       <SettingsList variant="catalog">
-        <For each={props.plugins}>
-          {(plugin) => row({ id: plugin.id, name: pluginLabel(plugin), source: plugin.source.type })}
+        <For each={listed()}>
+          {(plugin) => {
+            const name = pluginLabel(plugin)
+
+            return row({
+              id: plugin.id,
+              name,
+              // A row that already reads as its id does not repeat it underneath.
+              secondary: name === plugin.id ? undefined : plugin.id,
+              source: plugin.source.type,
+            })
+          }}
         </For>
         <For each={unnamed()}>
           {(id) => row({ id, name: language.t("settings.plugins.unknown"), secondary: id })}
@@ -346,7 +375,7 @@ function PluginError(props: { error: string }) {
 
   return (
     <div class="flex min-w-0 flex-col items-start gap-1">
-      <pre id={id} class="settings-server-dialog-error whitespace-pre-wrap">
+      <pre id={id} class="settings-server-dialog-error font-mono whitespace-pre-wrap [overflow-wrap:anywhere]">
         {open() || !more() ? props.error : message()}
       </pre>
       <Show when={more()}>

@@ -1,0 +1,28 @@
+/* A theme name list says little on its own, so each item carries three swatches of that theme's palette. */
+.settings-theme-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-theme-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-theme-swatches {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  margin-inline-start: auto;
+}
+
+.settings-theme-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}

@@ -88,6 +88,19 @@ export function createAppearanceSettingsController() {
     theme: {
       options: themes,
       current: createMemo(() => themes().find((option) => option.id === theme.themeId())),
+      /** Three colours that stand for a theme in the picker; undefined until its definition has loaded. */
+      swatches: (id: string) => {
+        const variant = theme.themes()[id]?.dark ?? theme.themes()[id]?.light
+
+        if (variant?.seeds) return [variant.seeds.neutral, variant.seeds.primary, variant.seeds.interactive]
+        if (!variant?.palette) return undefined
+
+        return [
+          variant.palette.neutral,
+          variant.palette.primary,
+          variant.palette.interactive ?? variant.palette.accent ?? variant.palette.primary,
+        ]
+      },
       // The picker reads `themeId`, so a rejected selection snaps back to the theme still on screen.
       select: async (option: { id: string } | null) => {
         if (!option) return
@@ -168,6 +181,8 @@ export function createSoundSettingsController() {
       set(option.id)
       preview.play(option.id)
     },
+    /** Replays the current sound without touching the stored value. */
+    preview: (id: string) => preview.play(id),
   })
 
   return {

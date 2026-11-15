@@ -166,6 +166,7 @@ export type ServerConnectErrorKey =
   | "server.connect.mixedContent"
   | "server.connect.failed"
   | "server.connect.unauthorized"
+  | "server.connect.unauthorizedLink"
   | "dialog.server.add.error"
 
 export type ServerConnectErrorContext = {
@@ -175,7 +176,11 @@ export type ServerConnectErrorContext = {
   readonly t: (key: ServerConnectErrorKey) => string
 }
 
-export function formatServerConnectError(error: ServerConnectError, context: ServerConnectErrorContext) {
+export function formatServerConnectError(
+  error: ServerConnectError,
+  context: ServerConnectErrorContext,
+  method: ConnectMethod = "link",
+) {
   if (error.type === "redeem") return error.message
 
   if (error.type === "link-invalid") return context.t("server.connect.link.invalid")
@@ -184,7 +189,9 @@ export function formatServerConnectError(error: ServerConnectError, context: Ser
 
   if (error.type === "address-invalid") return context.t("server.connect.address.invalid")
 
-  if (error.type === "unauthorized") return context.t("server.connect.unauthorized")
+  // A link exchanges for a token, so a rejected credential in link mode means the link went stale, not the password.
+  if (error.type === "unauthorized")
+    return context.t(method === "password" ? "server.connect.unauthorized" : "server.connect.unauthorizedLink")
 
   if (context.pageHref && isMixedContent(context.pageHref, error.url)) return context.t("server.connect.mixedContent")
 
@@ -195,7 +202,8 @@ export function formatServerConnectError(error: ServerConnectError, context: Ser
 function errorField(error: ServerConnectError | undefined, method: ConnectMethod): ServerConnectField | undefined {
   if (!error) return
 
-  if (error.type === "link-invalid" || error.type === "link-legacy") return "link"
+  // In password mode there is no link field, so a stale link has to land on the address the form actually shows.
+  if (error.type === "link-invalid" || error.type === "link-legacy") return method === "password" ? "url" : "link"
 
   if (error.type === "address-invalid") return "url"
 
@@ -215,7 +223,7 @@ export function selectServerConnectView(state: ServerConnectState, context: Serv
     canSubmit: state.status === "editing" && primary.trim().length > 0,
     signedOut: state.target.kind === "edit" && state.target.original.unauthorized,
     draft: state.draft,
-    error: error ? formatServerConnectError(error, context) : undefined,
+    error: error ? formatServerConnectError(error, context, state.draft.method) : undefined,
     /** The field the error belongs to, so a form can mark the one that failed instead of the first one. */
     errorField: errorField(error, state.draft.method),
   }

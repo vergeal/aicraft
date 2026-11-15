@@ -1,4 +1,7 @@
-import { Component } from "solid-js"
+import { Component, createSignal, Show } from "solid-js"
+import { Button } from "@opencode/ui/button"
+import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
 import { Select } from "@opencode/ui/select"
 import { Switch } from "@opencode/ui/switch"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -50,29 +53,45 @@ const SoundSetting: Component<{
 }> = (props) => {
   const language = useLanguage()
   const config = () => soundSettings[props.kind]
+  const current = () => props.channel.current()
 
   return (
     <SettingsRow title={language.t(config().title)} description={language.t(config().description)}>
-      <Select
-        data-action={config().action}
-        options={soundOptions}
-        current={props.channel.current()}
-        value={(option) => option.id}
-        label={(option) => language.t(option.label)}
-        groupBy={(option) => {
-          const entry = series(option)
+      <div class="settings-sounds-control">
+        <Select
+          data-action={config().action}
+          class="settings-sounds-select"
+          aria-label={language.t(config().title)}
+          options={soundOptions}
+          current={current()}
+          value={(option) => option.id}
+          label={(option) => language.t(option.label)}
+          groupBy={(option) => {
+            const entry = series(option)
 
-          return entry ? language.t(entry.label) : ""
-        }}
-        children={(option) => (
-          <span title={language.t(option.label)}>
-            {option.id === "none" ? language.t(option.label) : number(option)}
-          </span>
-        )}
-        onSelect={props.channel.select}
-        placement="bottom-end"
-        gutter={6}
-      />
+            return entry ? language.t(entry.label) : ""
+          }}
+          children={(option) => (
+            <span title={language.t(option.label)}>
+              {option.id === "none" ? language.t(option.label) : number(option)}
+            </span>
+          )}
+          onSelect={props.channel.select}
+          placement="bottom-end"
+          gutter={6}
+        />
+        {/* Choosing a sound plays it once; this replays the current one without changing the stored value. */}
+        <IconButton
+          type="button"
+          variant="ghost-muted"
+          size="small"
+          class="settings-sounds-preview"
+          aria-label={language.t("settings.general.sounds.preview")}
+          disabled={current().id === "none"}
+          icon={<Icon name="outline-wave-audio" size="small" />}
+          onClick={() => props.channel.preview(current().id)}
+        />
+      </div>
     </SettingsRow>
   )
 }
@@ -81,6 +100,15 @@ export const SettingsNotifications: Component = () => {
   const language = useLanguage()
   const settings = useSettings()
   const sounds = createSoundSettingsController()
+  // The OS gate behind every system notification: a switch that reads "on" still sends nothing while it is denied.
+  const [permission, setPermission] = createSignal<NotificationPermission | "unsupported">(
+    typeof Notification === "undefined" ? "unsupported" : Notification.permission,
+  )
+  const request = async () => {
+    if (typeof Notification === "undefined") return
+
+    setPermission(await Notification.requestPermission())
+  }
 
   return (
     <>
@@ -100,6 +128,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-agent">
                 <Switch
                   checked={settings.notifications.agent()}
+                  disabled={permission() === "unsupported"}
                   onChange={(checked) => settings.notifications.setAgent(checked)}
                 />
               </div>
@@ -112,6 +141,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-permissions">
                 <Switch
                   checked={settings.notifications.permissions()}
+                  disabled={permission() === "unsupported"}
                   onChange={(checked) => settings.notifications.setPermissions(checked)}
                 />
               </div>
@@ -123,12 +153,10 @@ export const SettingsNotifications: Component = () => {
             >
               <div data-action="settings-notifications-questions">
                 <Switch
-                  hideLabel
                   checked={settings.notifications.questions()}
+                  disabled={permission() === "unsupported"}
                   onChange={(checked) => settings.notifications.setQuestions(checked)}
-                >
-                  {language.t("settings.general.notifications.questions.title")}
-                </Switch>
+                />
               </div>
             </SettingsRow>
 
@@ -139,15 +167,35 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-errors">
                 <Switch
                   checked={settings.notifications.errors()}
+                  disabled={permission() === "unsupported"}
                   onChange={(checked) => settings.notifications.setErrors(checked)}
                 />
               </div>
             </SettingsRow>
           </SettingsList>
+          {/* The switches above say what the app would send; this says whether the OS lets it. */}
+          <Show when={permission() === "unsupported"}>
+            <p class="settings-notifications-note">{language.t("settings.notifications.unsupported")}</p>
+          </Show>
+          <Show when={permission() === "denied"}>
+            <p class="settings-notifications-note" role="status">
+              {language.t("settings.notifications.denied")}
+            </p>
+          </Show>
+          <Show when={permission() === "default"}>
+            <div class="settings-notifications-note" role="status">
+              <span>{language.t("settings.notifications.prompt")}</span>
+              <Button size="small" variant="ghost-muted" onClick={() => void request()}>
+                {language.t("settings.notifications.request")}
+              </Button>
+            </div>
+          </Show>
         </div>
 
         <div class="settings-section">
           <h3 class="settings-section-title">{language.t("settings.general.section.sounds")}</h3>
+          {/* Two groups share four event names; this says the sound group stands on its own. */}
+          <p class="settings-notifications-note">{language.t("settings.general.sounds.independent")}</p>
           <SettingsList>
             <SoundSetting kind="agent" channel={sounds.agent} />
             <SoundSetting kind="permissions" channel={sounds.permissions} />

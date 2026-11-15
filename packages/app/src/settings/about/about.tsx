@@ -2,6 +2,7 @@ import { createEffect, createResource, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Tooltip } from "@opencode/ui/tooltip"
+import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ExternalLink } from "@/runtime/platform/external-link"
@@ -124,7 +125,7 @@ export function SettingsAbout(props: { active: boolean }) {
           >
             <button
               type="button"
-              class="settings-about-version"
+              class="settings-about-version disabled:opacity-60"
               disabled={copy.pending}
               aria-label={language.t("settings.about.copyVersion", { version: version() })}
               onClick={() => void copyVersion()}
@@ -134,6 +135,8 @@ export function SettingsAbout(props: { active: boolean }) {
                   version: <bdi dir="ltr">{version()}</bdi>,
                 })}
               </span>
+              {/* Without a copy glyph the pill reads as static text rather than a button. */}
+              <Icon name="outline-copy" size="small" class="size-3 shrink-0 opacity-60" aria-hidden="true" />
             </button>
           </Tooltip>
           <Tooltip value={language.t("settings.about.checkUpdates")} placement="top">

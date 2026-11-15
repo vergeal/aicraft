@@ -37,7 +37,7 @@ import { PluginSettingsPages } from "@/runtime/plugin/settings-page-view"
 import "@/settings/settings.css"
 
 const rootClientTabs = [
-  { value: "general", icon: pageIcons.general, label: "settings.tab.preferences" },
+  { value: "general", icon: pageIcons.general, label: "settings.nav.general" },
   { value: "appearance", icon: pageIcons.appearance, label: "settings.general.section.appearance" },
   { value: "notifications", icon: pageIcons.notifications, label: "settings.tab.notifications" },
   { value: "shortcuts", icon: pageIcons.shortcuts, label: "settings.tab.shortcuts" },
@@ -64,7 +64,8 @@ const experimentalTab = [
   { value: "experimental", icon: pageIcons.experimental, label: "settings.tab.experimental" },
 ] as const
 
-const aboutTab = [{ value: "about", icon: pageIcons.about, label: "settings.tab.about" }] as const
+// Not "About": the group it sits in is already called that.
+const aboutTab = [{ value: "about", icon: pageIcons.about, label: "settings.nav.versionInfo" }] as const
 
 const nestedProjectTabs = [
   { value: "general", icon: pageIcons.projects, label: "settings.general.section.general" },
@@ -236,23 +237,23 @@ function RootSettings() {
   const groups = createMemo<SettingsNavGroup[]>(() => [
     {
       label: language.t("settings.nav.group.server"),
-      items: serverTabs.map((item) => ({
-        ...item,
-        label: language.t(item.label),
-        onPrefetch: item.value === "workspaces" ? prefetchWorkspaces : undefined,
-      })),
-    },
-    {
-      label: language.t("settings.nav.group.app"),
       items: [
-        ...rootClientTabs.map((item) => ({ ...item, label: language.t(item.label) })),
-        ...pluginTabs(),
+        // The server list belongs with the per-server pages it switches between, not under Preferences.
         {
           value: "servers",
           icon: pageIcons.servers,
           label: language.t(multiple() ? "settings.tab.servers" : pageLabels.servers),
         },
+        ...serverTabs.map((item) => ({
+          ...item,
+          label: language.t(item.label),
+          onPrefetch: item.value === "workspaces" ? prefetchWorkspaces : undefined,
+        })),
       ],
+    },
+    {
+      label: language.t("settings.nav.group.app"),
+      items: [...rootClientTabs.map((item) => ({ ...item, label: language.t(item.label) })), ...pluginTabs()],
     },
     {
       label: language.t("settings.nav.group.about"),

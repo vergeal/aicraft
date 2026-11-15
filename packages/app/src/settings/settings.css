@@ -2797,7 +2797,7 @@
   overflow: hidden;
   border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .settings-workspaces-empty-motion {
@@ -2870,8 +2870,8 @@
   min-width: 0;
 }
 
-/* The same directory renders in the delete dialog as code, so the settings row uses the code font at 12px
-   instead of inventing a second presentation for one value. */
+/* The same directory renders in the delete dialog as code, so the settings row uses the code font at 13px instead
+   of inventing a second presentation for one value. No letter-spacing: the dialog's `<code>` has none. */
 .settings-workspaces-path {
   display: flex;
   min-width: 0;
@@ -2879,10 +2879,9 @@
   overflow: hidden;
   color: var(--v2-text-text-base);
   font-family: var(--v2-font-family-code);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: var(--line-height-compact);
-  letter-spacing: -0.04px;
   padding: 0;
   text-align: left;
   cursor: default;
@@ -2906,6 +2905,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The ellipsis eats the trailing separator, so a truncated directory gets one before the name. */
+.settings-workspaces-path[data-truncated="true"] .settings-workspaces-path-name::before {
+  content: "\\";
 }
 
 .settings-workspaces-path-name {
@@ -2938,6 +2942,24 @@
   font-weight: 400;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
+}
+
+/* The label is focusable so its tooltip works from the keyboard, which needs a visible focus ring. */
+.settings-workspaces-active:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+/* A 28px hit area: the shared small icon button is 20px, too small for a destructive action in a dense row. */
+.settings-workspaces-delete {
+  width: 28px;
+  height: 28px;
+}
+
+.settings-workspaces-delete:hover,
+.settings-workspaces-delete:focus-visible {
+  color: var(--v2-state-fg-danger);
 }
 
 .settings-workspaces-more {
@@ -3002,6 +3024,27 @@
   line-height: 20px;
 }
 
+/* The notifications page: the OS permission note under its group, and the sound row's select plus preview button. */
+.settings-notifications-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+}
+
+.settings-sounds-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-sounds-select {
+  min-width: 128px;
+}
+
 @container settings-panel (max-width: 520px) {
   .settings-workspaces-header {
     padding-top: 24px;
@@ -3022,21 +3065,11 @@
     justify-content: space-between;
   }
 
+  /* Stay on one line: wrapping broke paths mid-segment and pushed the row's dot out of alignment. */
   .settings-workspaces-path {
-    flex-wrap: wrap;
-    overflow: visible;
-    white-space: normal;
-  }
-
-  .settings-workspaces-path > span:first-child {
-    text-overflow: clip;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .settings-workspaces-path-name {
-    white-space: normal;
-    overflow-wrap: anywhere;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
   .settings-workspaces-active {
@@ -3044,12 +3077,10 @@
   }
 }
 
+/* The shared dialog overlay already draws the scrim and the blur; a second one here doubled both. */
 [data-component="dialog-v2"]:has(.settings-server-dialog) {
   z-index: 100;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
 
 /* Dialog puts the `class` prop on `[data-slot="dialog-content"]`, not on the `dialog-v2` root, so the sheet is
@@ -3073,7 +3104,9 @@
   background: rgba(38, 38, 42, 0.78);
   backdrop-filter: blur(30px) saturate(1.8);
   -webkit-backdrop-filter: blur(30px) saturate(1.8);
-  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 64px rgba(0, 0, 0, 0.42);
 }
 
 /* The body owns the scroll, so the content shell only clips the header highlight. */

@@ -99,17 +99,21 @@ describe("visibleTimelineMessages", () => {
     })
   })
 
-  test("keeps an undelivered input below the work it waits behind", () => {
+  test("moves a queued input after existing work when changed to steer", () => {
     const source = [...messages.slice(0, 3), work]
-    const tail = ["msg_1", "msg_2", "msg_5", "msg_3"]
-    expect(visibleTimelineMessages(source, [steer]).map((message) => message.id)).toEqual(tail)
-    expect(
-      visibleTimelineMessages(source, [{ ...steer, delivery: "queue" }]).map((message) => message.id),
-    ).toEqual(tail)
-    // Delivery appends the row where the pending one already sat, so the transcript does not move.
+    expect(visibleTimelineMessages(source, [{ ...steer, delivery: "queue" }]).map((message) => message.id)).toEqual([
+      "msg_1",
+      "msg_2",
+      "msg_5",
+    ])
+    expect(visibleTimelineMessages(source, [steer]).map((message) => message.id)).toEqual([
+      "msg_1",
+      "msg_2",
+      "msg_5",
+      "msg_3",
+    ])
     const delivered = [messages[0], messages[1], work, messages[2]]
     expect(visibleTimelineMessages(delivered, [])).toBe(delivered)
-    expect(delivered.map((message) => message.id)).toEqual(tail)
   })
 
   test("preserves pending input order and excludes reverted steers", () => {
@@ -153,7 +157,7 @@ describe("visibleTimelineMessages", () => {
     ])
   })
 
-  test("shows a queued input while it waits instead of blanking until delivery", () => {
+  test("hides queued inputs until delivery", () => {
     const pending = [
       {
         id: "msg_3",
@@ -165,13 +169,7 @@ describe("visibleTimelineMessages", () => {
       },
     ] satisfies SessionInboxInfo[]
 
-    // The data layer admits the row optimistically, so it is in the transcript from submission; only the pending
-    // filter used to hide it until delivery.
-    expect(visibleTimelineMessages(messages.slice(0, 3), pending).map((message) => message.id)).toEqual([
-      "msg_1",
-      "msg_2",
-      "msg_3",
-    ])
+    expect(visibleTimelineMessages(messages, pending).map((message) => message.id)).toEqual(["msg_1", "msg_2", "msg_4"])
   })
 
   test("hides the staged revert boundary and later messages", () => {

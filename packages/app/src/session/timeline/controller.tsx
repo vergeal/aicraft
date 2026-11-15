@@ -112,8 +112,7 @@ export function createTimelineController(input: { session: TimelineSessionSource
   })
 
   // Inputs that wait behind the active turn. A starting steer opens the next turn instead, so the turn before it
-  // stays finished, as it will once the steer is delivered. A queued prompt waits for the turn to end, so it always
-  // sits below the work it queued behind.
+  // stays finished, as it will once the steer is delivered.
   const pendingInputIDs = createMemo(() => {
     const id = input.session.identity.sessionID()
 
@@ -121,9 +120,10 @@ export function createTimelineController(input: { session: TimelineSessionSource
 
     return new Set(
       pendingList().flatMap((item) =>
-        item.type === "synthetic" ||
         (item.type === "user" &&
-          (item.delivery === "queue" || data.session.pending.status(id, item.id) !== "starting"))
+          item.delivery === "steer" &&
+          data.session.pending.status(id, item.id) !== "starting") ||
+        item.type === "synthetic"
           ? [item.id]
           : [],
       ),

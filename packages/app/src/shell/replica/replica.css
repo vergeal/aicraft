@@ -333,8 +333,10 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   user-select: none;
 }
 
-/* The pointer drags the visible box only: each column keeps the content width it started with, so rows never
-   rewrap mid-drag, and the final width lands once on release. */
+/* The pointer drags the visible box only for the work area: its content keeps the width it started with, so the
+   session pane never reflows mid-drag and the final width lands once on release. The navigation column is the
+   exception and reflows live, because a frozen column read as a broken drag; its rows only recompute where they
+   truncate. */
 [data-replica][data-resizing] [data-slot="replica-sidebar-slot"] {
   overflow: hidden;
 }
@@ -349,13 +351,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
       var(--titlebar-left-min)
     )
     minmax(0, 1fr);
-}
-
-/* The column itself keeps filling the slot, so its surface still paints the full width; only its children hold the
-   width they started with. Freezing the column instead would leave the stretch uncovered and show a seam. */
-[data-replica][data-resizing] [data-slot="replica-sidebar"] > * {
-  width: var(--drag-sidebar-width, 100%);
-  min-width: 0;
 }
 
 [data-replica][data-resizing] [data-slot="replica-main"] {

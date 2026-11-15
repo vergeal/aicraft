@@ -26,51 +26,58 @@ export function ExtensionPlugins(props: {
   selected?: string
   onSelect?: (id: string) => void
 }) {
+  const language = useLanguage()
   const listed = () => props.plugins.filter((plugin) => plugin.source.type !== "builtin")
 
   return (
-    <Show
-      when={props.own}
-      fallback={
-        <SettingsList variant="catalog">
-          <For each={listed()}>
-            {(plugin) => {
-              const id = plugin.id ?? pluginLabel(plugin)
+    <>
+      <Show
+        when={props.own}
+        fallback={
+          <SettingsList variant="catalog">
+            <For each={listed()}>
+              {(plugin) => {
+                const id = plugin.id ?? pluginLabel(plugin)
 
-              const lead = (
-                <div class="settings-extension-lead">
-                  <Icon name="cube" class="text-v2-icon-icon-muted shrink-0" />
-                  <span class="settings-extension-name truncate">{pluginLabel(plugin)}</span>
-                  <Show when={props.showSource}>
-                    <PluginSource source={plugin.source.type} />
-                  </Show>
-                </div>
-              )
+                const lead = (
+                  <div class="settings-extension-lead">
+                    <Icon name="cube" class="text-v2-icon-icon-muted shrink-0" />
+                    <span class="settings-extension-name truncate">{pluginLabel(plugin)}</span>
+                    <Show when={props.showSource}>
+                      <PluginSource source={plugin.source.type} />
+                    </Show>
+                  </div>
+                )
 
-              return props.onSelect ? (
-                <button
-                  type="button"
-                  class="settings-extension-row explore-plugin-row"
-                  data-selected={props.selected === id ? "" : undefined}
-                  onClick={() => props.onSelect?.(id)}
-                >
-                  {lead}
-                </button>
-              ) : (
-                <div class="settings-extension-row">{lead}</div>
-              )
-            }}
-          </For>
-        </SettingsList>
-      }
-    >
-      <OwnServerPlugins
-        plugins={listed()}
-        showSource={props.showSource}
-        selected={props.selected}
-        onSelect={props.onSelect}
-      />
-    </Show>
+                return props.onSelect ? (
+                  <button
+                    type="button"
+                    class="settings-extension-row explore-plugin-row"
+                    data-selected={props.selected === id ? "" : undefined}
+                    onClick={() => props.onSelect?.(id)}
+                  >
+                    {lead}
+                  </button>
+                ) : (
+                  <div class="settings-extension-row">{lead}</div>
+                )
+              }}
+            </For>
+          </SettingsList>
+        }
+      >
+        <OwnServerPlugins
+          plugins={listed()}
+          showSource={props.showSource}
+          selected={props.selected}
+          onSelect={props.onSelect}
+        />
+      </Show>
+      {/* Built-ins always run and stay out of the rows, so the list says where they went instead. */}
+      <Show when={builtins.length > 0}>
+        <p class="settings-extension-state">{language.t("settings.plugins.builtin.note")}</p>
+      </Show>
+    </>
   )
 }
 
@@ -226,13 +233,17 @@ function OwnServerPlugins(props: {
             {(id) => <Show when={errorOf(id(), part)}>{(error) => <PluginError error={error()} />}</Show>}
           </Show>
           <Show when={state() === "unsupported"}>
-            <span class="text-11-regular text-v2-text-text-muted">{language.t("settings.plugins.unsupported")}</span>
+            <span class="settings-extension-note" data-tone="danger">
+              {language.t("settings.plugins.unsupported")}
+            </span>
           </Show>
           <Show when={state() === "unreadable" && input.id && itemOf(input.id, part)?.error}>
             {(error) => <PluginError error={error()} />}
           </Show>
           <Show when={state() === "reserved"}>
-            <span class="settings-server-dialog-error">{language.t("settings.plugins.reserved")}</span>
+            <span class="settings-extension-note" data-tone="danger">
+              {language.t("settings.plugins.reserved")}
+            </span>
           </Show>
         </div>
       </>

@@ -125,7 +125,7 @@ export function ReplicaRail() {
             data-replica-control
             aria-label={language.t("replica.rail.updates")}
             class="flex size-[30px] items-center justify-center rounded-[var(--radius-control)] text-[var(--color-accent-blue)] hover:bg-[var(--color-hover)]"
-            onClick={() => command.trigger("app.checkForUpdates")}
+            onClick={() => command.trigger("updater.check")}
           >
             <Icon name="rail-download" size="large" />
           </button>

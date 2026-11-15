@@ -5,6 +5,7 @@ import { Tooltip } from "@opencode/ui/tooltip"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ExternalLink } from "@/runtime/platform/external-link"
+import { useCommand } from "@/shell/commands/command"
 import { showToast } from "@/shell/notifications/toast"
 import legal from "./legal.svg"
 import anomalyBrush from "./anomaly-brush.svg"
@@ -36,9 +37,9 @@ export function SettingsAbout(props: { active: boolean }) {
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()
+  const command = useCommand()
   const [copy, setCopy] = createStore({ pending: false, copied: false, forceCopied: false })
   const version = () => platform.version ?? language.t("settings.about.devVersion")
-  const versionLabel = () => language.t("settings.about.version", { version: version() })
 
   const [otherContributors] = createResource(
     () => props.active || undefined,
@@ -63,7 +64,17 @@ export function SettingsAbout(props: { active: boolean }) {
 
     setCopy({ pending: true, copied: false, forceCopied: false })
 
-    await (platform.writeClipboardText?.(versionLabel()) ?? navigator.clipboard.writeText(versionLabel()))
+    // The clipboard copies the raw version, so it can be pasted into an issue as is. On a plain-HTTP LAN
+    // origin `navigator.clipboard` is undefined, so the write can be missing rather than failing; report
+    // that through the same toast. Wrapping the call keeps a synchronous throw inside the chain.
+    await Promise.resolve()
+      .then(() => {
+        const written = platform.writeClipboardText?.(version()) ?? navigator.clipboard?.writeText(version())
+
+        if (!written) throw new Error("clipboard unavailable")
+
+        return written
+      })
       .then(() => setCopy({ copied: true, forceCopied: true }))
       .catch(() =>
         showToast({
@@ -115,7 +126,7 @@ export function SettingsAbout(props: { active: boolean }) {
               type="button"
               class="settings-about-version"
               disabled={copy.pending}
-              aria-label={language.t(copy.copied ? "common.copied" : "ui.message.copy")}
+              aria-label={language.t("settings.about.copyVersion", { version: version() })}
               onClick={() => void copyVersion()}
             >
               <span>
@@ -123,6 +134,11 @@ export function SettingsAbout(props: { active: boolean }) {
                   version: <bdi dir="ltr">{version()}</bdi>,
                 })}
               </span>
+            </button>
+          </Tooltip>
+          <Tooltip value={language.t("settings.about.checkUpdates")} placement="top">
+            <button type="button" class="settings-about-link" onClick={() => command.trigger("updater.check")}>
+              {language.t("settings.about.checkUpdates")}
             </button>
           </Tooltip>
         </div>

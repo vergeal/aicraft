@@ -66,29 +66,6 @@ export default function DialogThirdPartyNotices() {
             <section class="settings-notice settings-crates">
               <h3 class="settings-notice-heading">{language.t("settings.about.notices.crates.title")}</h3>
               <p>{language.t("settings.about.notices.crates.description")}</p>
-              <ul class="settings-crate-list">
-                <For each={crateNotices.crates}>
-                  {(crate) => {
-                    const applied = new Set(crate.texts.map((id) => licenseOf.get(id)))
-
-                    return (
-                      <li class="settings-crate">
-                        <div class="settings-crate-heading">
-                          <span>
-                            <ExternalLink href={crate.repository}>{crate.name}</ExternalLink> {crate.version}
-                          </span>
-                          <span>
-                            <For each={crate.license.split(/([\s()]+)/)}>
-                              {(part) => (applied.has(part) ? <strong>{part}</strong> : part)}
-                            </For>
-                          </span>
-                        </div>
-                        <p>{crate.copyright.join("\n")}</p>
-                      </li>
-                    )
-                  }}
-                </For>
-              </ul>
               <h4>{language.t("settings.about.notices.crates.licenses")}</h4>
               <For each={texts}>
                 {(text) => (
@@ -104,6 +81,35 @@ export default function DialogThirdPartyNotices() {
                   </details>
                 )}
               </For>
+              {/* The crate rows are reference material: folded so the license texts above stay reachable. */}
+              <details>
+                <summary>
+                  {language.plural("settings.about.notices.crates.count", crateNotices.crates.length)}
+                </summary>
+                <ul class="settings-crate-list">
+                  <For each={crateNotices.crates}>
+                    {(crate) => {
+                      const applied = new Set(crate.texts.map((id) => licenseOf.get(id)))
+
+                      return (
+                        <li class="settings-crate">
+                          <div class="settings-crate-heading">
+                            <span>
+                              <ExternalLink href={crate.repository}>{crate.name}</ExternalLink> {crate.version}
+                            </span>
+                            <span>
+                              <For each={crate.license.split(/([\s()]+)/)}>
+                                {(part) => (applied.has(part) ? <strong>{part}</strong> : part)}
+                              </For>
+                            </span>
+                          </div>
+                          <p>{crate.copyright.join("\n")}</p>
+                        </li>
+                      )
+                    }}
+                  </For>
+                </ul>
+              </details>
             </section>
           </div>
         </div>

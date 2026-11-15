@@ -1098,11 +1098,6 @@
   padding-inline: 16px;
 }
 
-.settings-interface-feature [data-component="settings-list"] {
-  background-color: var(--v2-background-bg-base);
-  box-shadow: var(--v2-elevation-raised);
-}
-
 [data-component="settings-row"] {
   display: flex;
   flex-wrap: wrap;
@@ -1112,15 +1107,10 @@
   min-width: 0;
   min-height: var(--settings-row-min-height, 44px);
   padding-block: var(--settings-list-row-padding, 10px);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 [data-component="settings-row"][data-align="start"] {
   align-items: flex-start;
-}
-
-[data-component="settings-row"]:last-child {
-  border-bottom: none;
 }
 
 @media (min-width: 640px) {
@@ -1135,10 +1125,6 @@
   flex: 1;
   flex-direction: column;
   gap: 3px;
-}
-
-[data-slot="settings-row-copy"]:empty {
-  display: none;
 }
 
 [data-slot="settings-row-title"] {
@@ -1170,10 +1156,6 @@
   flex-shrink: 0;
 }
 
-[data-slot="settings-row-control"]:empty {
-  display: none;
-}
-
 /* The :has() belongs on the control, not on its div. Chromium checks a div:has() subject against every div in the
    document and flags each one, then restyles a flagged div whenever an element is inserted anywhere beneath it, which
    is every ancestor of a streaming answer. */
@@ -1191,6 +1173,32 @@
   [data-slot="settings-row-control"]
   > [data-component="switch"] {
   padding: 0;
+}
+
+/* select.css sizes a standalone select's value at 15px. In a settings row the value faces a 13px label, so a larger
+   value inverts the hierarchy. Keep the value on the row's compact metric; the 18px line height already matches. */
+:is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
+  [data-component="select-v2"]
+  [data-slot="select-v2-value-text"] {
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+/* base.css silences focus rings with `outline: none !important` for every button-like element, and a normal
+   declaration cannot beat that. Rings are restored here, inside settings only, which uses the compact switch: the
+   standard appearance draws its own ring, and the compact control keeps its elevation shadow, so the ring is an
+   outline on the control rather than a second shadow. */
+:is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
+  [data-component="switch"][data-appearance="compact"]
+  [data-slot="switch-input"]:focus-visible
+  ~ [data-slot="switch-control"] {
+  outline: 3px solid var(--v2-focus-ring-color);
+  outline-offset: 2px;
+}
+
+:is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
+  [data-component="button-v2"]:focus-visible {
+  box-shadow: 0 0 0 3px var(--v2-focus-ring-color);
 }
 
 @media (min-width: 640px) {
@@ -2205,7 +2213,7 @@
 
 .settings-shortcuts [data-component="settings-list"] > div {
   display: flex;
-  min-height: 52px;
+  min-height: var(--settings-row-min-height, 44px);
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -2218,12 +2226,18 @@
 }
 
 .settings-shortcuts [data-component="settings-list"] > div > span {
+  min-width: 0;
   font-weight: 400;
   font-size: 13px;
   line-height: var(--line-height-compact);
   letter-spacing: -0.04px;
   color: var(--v2-text-text-base);
   font-variation-settings: "slnt" 0;
+}
+
+/* The key buttons keep their size when a long command name meets them; the name above shrinks instead. */
+.settings-shortcuts [data-component="settings-list"] > div > div {
+  flex-shrink: 0;
 }
 
 .settings-servers-row {

@@ -790,7 +790,7 @@ test("shortcuts list Search sessions once and unbind a shortcut while recording 
 
   const binding = settings.locator('[data-keybind-id="settings.open"]')
   const unbind = settings.getByRole("button", { name: "Unbind", exact: true })
-  await expect(binding).toHaveText("Ctrl+,")
+  await expect(binding.locator('[data-slot="keybind-v2-label"]')).toHaveText(["Ctrl", ","])
   await expect(unbind).toHaveCount(0)
   await binding.click()
   await expect(binding).toHaveText("Press keys")
@@ -811,7 +811,9 @@ for (const own of [false, true]) {
 
     await settings.getByRole("tab", { name: "Shortcuts", exact: true }).click()
     await expect(settings.locator('[data-keybind-id="terminal.new"]')).toBeVisible()
-    await expect(settings.locator('[data-keybind-id="terminal.close"]')).toHaveText(own ? ["Ctrl+Alt+E"] : [])
+    await expect(
+      settings.locator('[data-keybind-id="terminal.close"] [data-slot="keybind-v2-label"]'),
+    ).toHaveText(own ? ["Ctrl", "Alt", "E"] : [])
   })
 }
 
@@ -822,7 +824,7 @@ test("the new session shortcut waits for a shortcut recording, then leaves setti
   await binding.click()
   await expect(binding).toHaveText("Press keys")
   await page.keyboard.press("Control+t")
-  await expect(binding).toHaveText("Ctrl+T")
+  await expect(binding.locator('[data-slot="keybind-v2-label"]')).toHaveText(["Ctrl", "T"])
   await expect(page).toHaveURL("/settings?tab=shortcuts")
   await expect(page.locator("[data-titlebar-tab]")).toHaveCount(0)
 

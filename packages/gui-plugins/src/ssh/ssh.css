@@ -10,7 +10,9 @@
 }
 
 /* Mirrors the app's server dialog in settings.css, which may not be loaded when the palette opens this one. Keep every
-   value identical: this stylesheet is injected into the head after the app's, so a stale value here wins. */
+   value identical: this stylesheet is injected into the head after the app's, so a stale value here wins. The copy
+   classes are scoped to the sheet as well: they are plain class names the app's Extensions page reuses, so a bare rule
+   here would repaint it. */
 [data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-container"] {
   position: relative;
   isolation: isolate;
@@ -67,7 +69,7 @@
   border-top: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
-.settings-server-dialog-label {
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-label {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -77,24 +79,24 @@
   color: #d8d8dc;
 }
 
-.settings-server-dialog-error {
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-error {
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
   color: #ff6961;
 }
 
-.settings-server-dialog-error:empty {
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-error:empty {
   display: none;
 }
 
-.settings-server-dialog-hint {
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-hint {
   font-size: 12px;
   line-height: 18px;
   color: #929298;
 }
 
-.settings-server-dialog-notice {
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-notice {
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -107,7 +109,7 @@
   color: #b8b8be;
 }
 
-.settings-server-dialog-notice [data-slot="icon-svg"] {
+[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-notice [data-slot="icon-svg"] {
   flex: none;
   margin-block: 2px;
   color: var(--v2-icon-icon-muted);

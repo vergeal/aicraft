@@ -347,10 +347,10 @@
   gap: 2px;
 }
 
-/* Groups carry no label yet, so a hairline draws the boundary the way the mobile menu's separators do. */
+/* Each group carries a header, so the header names the boundary and the gap around it separates the groups. A
+   hairline under a 24px label would draw the same boundary twice. */
 .settings-nav-group + .settings-nav-group {
   padding-block-start: 12px;
-  border-top: 0.5px solid var(--v2-border-border-base);
 }
 
 /* A sidebar label, not a control: small, quiet, and only interactive when it carries an action. */

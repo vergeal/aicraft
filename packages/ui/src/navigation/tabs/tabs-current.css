@@ -88,9 +88,10 @@
   margin: 0;
 }
 
-[data-component="tabs-v2"] [data-slot="tabs-v2-trigger-wrapper"]:disabled {
-  pointer-events: none;
+/* The wrapper is a div, so `:disabled` never matches it; the trigger button carries the attribute. */
+[data-component="tabs-v2"] [data-slot="tabs-v2-trigger-wrapper"]:has([data-slot="tabs-v2-trigger"]:disabled) {
   color: var(--v2-text-text-faint);
+  cursor: not-allowed;
 }
 
 [data-component="tabs-v2"][data-variant="normal"][data-orientation="horizontal"] [data-slot="tabs-v2-list"],

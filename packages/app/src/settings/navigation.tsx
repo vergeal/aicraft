@@ -151,7 +151,7 @@ export function SettingsNavigation(props: {
                           onFocus={() => !item.disabled && item.onPrefetch?.()}
                         >
                           <Icon name={item.icon} />
-                          {item.label}
+                          <span class="settings-nav-item-label">{item.label}</span>
                         </Tabs.Trigger>
                       )}
                     </For>

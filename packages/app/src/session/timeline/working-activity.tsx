@@ -148,13 +148,16 @@ function WorkingStepRow(props: { step: WorkingStep; onOpenFile: (path: string) =
       data-state={props.step.running ? "running" : "completed"}
       class="flex min-w-0 items-start gap-2 pb-2 pt-1 ps-0.5 text-[15px] leading-text-base text-v2-text-text-muted"
     >
-      <Icon
-        name={stepIcons[props.step.kind]}
-        size="small"
-        data-slot="session-working-icon"
-        data-state={props.step.running ? "running" : "completed"}
-        class="mt-0.5 shrink-0 text-v2-icon-icon-muted data-[state=running]:text-v2-icon-icon-accent"
-      />
+      {/* The icon centers on the label's line box. Its own size changes with the icon set, so a fixed
+          margin cannot hold it in place; the line-height box does. */}
+      <span class="flex h-[var(--line-height-base)] shrink-0 items-center">
+        <Icon
+          name={stepIcons[props.step.kind]}
+          size="small"
+          data-state={props.step.running ? "running" : "completed"}
+          class="text-v2-icon-icon-muted data-[state=running]:text-v2-icon-icon-accent"
+        />
+      </span>
       <WorkingStepText step={props.step} onOpenFile={props.onOpenFile} />
     </div>
   )

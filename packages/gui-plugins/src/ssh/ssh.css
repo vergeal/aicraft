@@ -13,7 +13,7 @@
    value identical: this stylesheet is injected into the head after the app's, so a stale value here wins. The copy
    classes are scoped to the sheet as well: they are plain class names the app's Extensions page reuses, so a bare rule
    here would repaint it. */
-[data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-container"] {
+[data-component="dialog-v2"]:has(.settings-server-dialog) > [data-slot="dialog-container"] {
   position: relative;
   isolation: isolate;
   display: flex;
@@ -33,14 +33,14 @@
   box-shadow: 0 20px 64px rgba(0, 0, 0, 0.42);
 }
 
-[data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-content"] {
+[data-component="dialog-v2"] [data-slot="dialog-content"].settings-server-dialog {
   align-items: stretch;
   width: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
-[data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-header"] {
+[data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-header"] {
   position: relative;
   z-index: 1;
   align-items: center;
@@ -50,7 +50,7 @@
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.15);
 }
 
-[data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-body"] {
+[data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-body"] {
   display: flex;
   width: 100%;
   min-width: 0;
@@ -61,7 +61,7 @@
   overflow-y: auto;
 }
 
-[data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-footer"] {
+[data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-footer"] {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;

@@ -25,7 +25,7 @@ export const DialogManageModels: Component = () => {
   const local = useLocal()
   const language = useLanguage()
   const dialog = useDialog()
-  const [store, setStore] = createStore<{ collapsed: Record<string, boolean> }>({ collapsed: {} })
+  const [store, setStore] = createStore<{ collapsed: Record<string, boolean>; active?: string }>({ collapsed: {} })
   const directory = () => decode64(local.slug())
   const providers = useProviders(directory)
 
@@ -81,15 +81,29 @@ export const DialogManageModels: Component = () => {
 
       return !!selected && selected.provider.id === item.provider.id && selected.id === item.id
     }
-    // Rows live in one scroll viewport across every group, so the arrow keys move through the whole list, not a group.
-    const focusSibling = (row: HTMLElement, direction: 1 | -1) => {
+    const key = (item: ModelItem) => `${item.provider.id}:${item.id}`
+    // One tab stop for the whole list: rows are reached with the arrow keys instead of Tab, so hundreds of models
+    // never stand between the list and the control after it.
+    const tabIndex = (item: ModelItem) => (store.active === undefined || store.active === key(item) ? 0 : -1)
+    const moveFocus = (row: HTMLElement, target: "next" | "previous" | "first" | "last") => {
       const rows = Array.from(
         row.closest(".settings-manage-models-viewport")?.querySelectorAll<HTMLElement>("[data-manage-model-row]") ?? [],
       )
       const index = rows.indexOf(row)
 
-      if (index === -1) return
-      rows[(index + direction + rows.length) % rows.length]?.focus()
+      if (index === -1 || rows.length === 0) return
+
+      // Clamp at both ends: a row keeps focus where it is instead of jumping to the opposite end of the list.
+      const next =
+        target === "first"
+          ? 0
+          : target === "last"
+            ? rows.length - 1
+            : target === "next"
+              ? Math.min(index + 1, rows.length - 1)
+              : Math.max(index - 1, 0)
+
+      rows[next]?.focus()
     }
 
     return (
@@ -101,11 +115,13 @@ export const DialogManageModels: Component = () => {
             return (
               <div
                 data-manage-model-row=""
-                role="switch"
+                role="checkbox"
                 aria-checked={checked()}
-                tabindex={0}
+                aria-current={current(item) ? "true" : undefined}
+                tabindex={tabIndex(item)}
                 class="search-list-row"
                 onMouseDown={(event) => event.preventDefault()}
+                onFocus={() => setStore("active", key(item))}
                 onClick={() => setModelVisibility(item, !checked())}
                 onKeyDown={(event) => {
                   if (event.key === " " || event.key === "Enter") {
@@ -115,17 +131,20 @@ export const DialogManageModels: Component = () => {
                     return
                   }
 
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault()
-                    focusSibling(event.currentTarget, 1)
+                  const target =
+                    event.key === "ArrowDown"
+                      ? "next"
+                      : event.key === "ArrowUp"
+                        ? "previous"
+                        : event.key === "Home"
+                          ? "first"
+                          : event.key === "End"
+                            ? "last"
+                            : undefined
 
-                    return
-                  }
-
-                  if (event.key === "ArrowUp") {
-                    event.preventDefault()
-                    focusSibling(event.currentTarget, -1)
-                  }
+                  if (!target) return
+                  event.preventDefault()
+                  moveFocus(event.currentTarget, target)
                 }}
               >
                 <div class="search-list-row-text">
@@ -143,7 +162,7 @@ export const DialogManageModels: Component = () => {
                   {/* Rows from several providers share names, so the group header alone cannot tell them apart. */}
                   <span class="search-list-detail">{item.provider.name}</span>
                 </div>
-                {/* The row is the switch; the control is inert so it is neither a second tab stop nor a nested control. */}
+                {/* The row is the checkbox; the control is inert so it is neither a second tab stop nor a nested control. */}
                 <div class="search-list-trailing" inert aria-hidden="true">
                   <Switch checked={checked()} onChange={(value) => setModelVisibility(item, value)} hideLabel>
                     {item.name}

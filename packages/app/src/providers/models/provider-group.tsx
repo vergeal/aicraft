@@ -99,6 +99,8 @@ export function ProviderModelSections<T extends ModelItem>(props: {
     id: string
     icon: JSX.Element
     title: JSX.Element
+    /** The title's plain text, for the native tooltip a truncated title needs. */
+    titleText: string
     badge?: string
     /** Omitted where the caller shows no model count, such as the connect dialog's provider list. */
     count?: number
@@ -118,7 +120,9 @@ export function ProviderModelSections<T extends ModelItem>(props: {
           </span>
           <span class="settings-models-group-label">
             {input.icon}
-            <bdi class="settings-models-group-title">{input.title}</bdi>
+            <bdi class="settings-models-group-title" title={input.titleText}>
+              {input.title}
+            </bdi>
             <Show when={input.badge}>{(badge) => <Badge>{badge()}</Badge>}</Show>
             <Show when={input.count}>
               {(count) => (
@@ -150,6 +154,7 @@ export function ProviderModelSections<T extends ModelItem>(props: {
                     id={group().category}
                     icon={<ProviderModelIcon provider={group().items[0].provider} class="shrink-0" />}
                     title={name(group())}
+                    titleText={name(group())}
                     count={group().items.length}
                     action={props.action?.(group())}
                   />
@@ -169,6 +174,7 @@ export function ProviderModelSections<T extends ModelItem>(props: {
                 id={CONSOLE_GROUP_KEY}
                 icon={<OpenCodeLogo class="size-4 shrink-0" />}
                 title={language.t("provider.connect.opencode.name")}
+                titleText={language.t("provider.connect.opencode.name")}
                 badge={managed().group.workspace}
                 count={managed().providers.reduce((total, group) => total + group.items.length, 0)}
               />
@@ -236,7 +242,9 @@ export function ProviderModelGroup(props: {
         >
           <span class="provider-model-group-label">
             <ProviderModelIcon provider={props.provider} class="shrink-0" />
-            <bdi class="provider-model-group-title">{props.name ?? props.provider.name}</bdi>
+            <bdi class="provider-model-group-title" title={props.name ?? props.provider.name}>
+              {props.name ?? props.provider.name}
+            </bdi>
             <Show when={props.count}>
               {(count) => (
                 <span class="provider-model-group-count">{language.plural("settings.models.count", count())}</span>

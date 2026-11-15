@@ -1331,16 +1331,21 @@
   }
 }
 
+/* The list insets its children by 16px, so the row pulls the same amount back and returns it as padding: the hover
+   fill and the divider reach the card edge while the content keeps its place. */
 .settings-provider-row {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
   min-height: 49px;
+  margin-inline: -16px;
+  padding-inline: 16px;
   padding-block: 10px;
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
+/* Live in the popular list, which has no add row after its last provider. */
 .settings-provider-row:last-child {
   border-bottom: none;
 }
@@ -1367,12 +1372,11 @@
   cursor: not-allowed;
 }
 
+/* Same inset as the row: the console's divider and hover band reach the card edge while its content keeps its place. */
 .settings-provider-console {
+  margin-inline: -16px;
+  padding-inline: 16px;
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
-}
-
-.settings-provider-console:last-child {
-  border-bottom: none;
 }
 
 .settings-provider-console-header {
@@ -1397,6 +1401,7 @@
 .settings-provider-console-toggle {
   display: flex;
   height: 28px;
+  flex: none;
   align-items: center;
   gap: 2px;
   padding-inline: 4px;
@@ -1407,6 +1412,7 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -1432,10 +1438,6 @@
   gap: 2px;
   padding-top: 6px;
   padding-bottom: 10px;
-}
-
-.settings-provider-console-list:empty {
-  display: none;
 }
 
 .settings-provider-console-separator {
@@ -1465,11 +1467,6 @@
 
 .settings-provider-console-item-chevron {
   color: inherit;
-}
-
-.settings-provider-console-item[aria-selected="true"] {
-  background: rgba(10, 132, 255, 0.1);
-  color: #0a84ff;
 }
 
 @media (hover: hover) {
@@ -1602,22 +1599,16 @@
   line-height: 18px;
 }
 
+/* Secondary text, always visible: the hint explains where the credential came from and a hover-only reveal hid it from
+   touch and keyboard users. The space was already reserved, so showing it moves nothing. */
 .settings-provider-env-hint {
   padding-inline-end: 12px;
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
   color: rgba(255, 255, 255, 0.56);
-  opacity: 0;
-  transition: opacity 200ms ease;
   cursor: default;
   white-space: nowrap;
-}
-
-/* Keyboard focus reaches the hint too, not only the pointer. */
-.group:hover .settings-provider-env-hint,
-.group:focus-within .settings-provider-env-hint {
-  opacity: 1;
 }
 
 .settings-provider-account-actions {
@@ -1690,32 +1681,26 @@
   overflow-y: auto;
 }
 
-.settings-provider-account-list:empty {
-  display: none;
-}
-
-.settings-provider-account-list > button {
-  min-height: 32px;
+/* The account rows are RadioItems: Kobalte renders them as a div carrying `data-component="menu-v2-item"`, so the
+   menu's own 28px/12px/15px rhythm is reset to the spec's 32px / 8px / 13px here. */
+.settings-provider-account-list [data-component="menu-v2-item"] {
+  height: 32px;
   padding-inline: 8px;
   border-radius: 5px;
-  text-align: left;
+}
+
+.settings-provider-account-list [data-component="menu-v2-item"] [data-slot="menu-v2-item-content"] {
   font-size: 13px;
   line-height: 18px;
 }
 
-@media (hover: hover) {
-  .settings-provider-account-list > button:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
-}
-
+/* The account name is the row's content, not a group label: it reads at the item's size and foreground. */
 .settings-provider-account-label {
   display: block;
   min-width: 0;
-  margin-bottom: 6px;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.52);
-  font-size: 12px;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2901,15 +2886,16 @@
    The editor row closes the connected list; the dialog styles below keep the two-step form on the settings spine. */
 
 /* The add row is a control, not a line of text. It follows the existing add-slot language (`.knowledge-card-add`): a
-   dashed muted outline that strengthens on hover, at the field radius so it matches the dialog's inputs. The 6px block
-   padding keeps the row in the same 48px band as the provider rows above it. */
+   dashed muted outline that strengthens on hover, at the field radius so it matches the dialog's inputs. It shares the
+   row band with the providers above it, and its inset mirrors `.settings-provider-row`, so the plus lines up with the
+   provider leads and the hover fill reaches the card edge. */
 [data-slot="settings-provider-add-row"] {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   border-top: 0.5px solid rgba(255, 255, 255, 0.07);
@@ -2918,14 +2904,15 @@
 
   > button {
     display: flex;
-    height: 36px;
-    width: 100%;
+    height: 44px;
+    width: calc(100% + 32px);
     align-items: center;
     gap: 8px;
+    margin-inline: -16px;
     border: 0;
     border-radius: 0;
     background: transparent;
-    padding-inline: 8px;
+    padding-inline: 16px;
     color: #0a84ff;
     font-size: 13px;
     font-weight: 400;
@@ -3060,13 +3047,14 @@
 
 .settings-provider-custom-fields [data-slot="input-input"] {
   width: 100%;
-  min-height: 34px;
+  min-height: 32px;
   font-size: 13px;
   line-height: 18px;
 }
 
-/* IDs, endpoints and model IDs read as code. The field root carries the class, the input inside it inherits it. */
-.settings-provider-custom-mono input {
+/* IDs, endpoints and model IDs read as code. TextField hands its class to the input itself, so the rule lands on the
+   element that carries the class, not on a descendant. */
+.settings-provider-custom-dialog .settings-provider-custom-mono {
   font-family: var(--font-family-mono);
   font-size: 12px;
 }
@@ -3099,11 +3087,6 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.12);
-}
-
-.settings-provider-custom-model-list:empty {
-  display: grid;
-  min-height: 64px;
 }
 
 .settings-provider-custom-model {
@@ -3151,10 +3134,6 @@
   gap: 6px;
 }
 
-.settings-provider-custom-selected:empty {
-  display: none;
-}
-
 .settings-provider-custom-chip {
   display: inline-flex;
   max-width: 100%;
@@ -3200,10 +3179,6 @@
   line-height: 18px;
 }
 
-.settings-provider-custom-note:empty {
-  display: none;
-}
-
 .settings-provider-custom-error {
   margin: 0;
   padding: 8px 10px;
@@ -3213,10 +3188,6 @@
   color: #ff8585;
   font-size: 12px;
   line-height: 18px;
-}
-
-.settings-provider-custom-error:empty {
-  display: none;
 }
 
 .settings-provider-custom-dialog [data-slot="dialog-footer"] .settings-provider-custom-error {

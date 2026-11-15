@@ -2265,6 +2265,93 @@
   flex-shrink: 0;
 }
 
+/* The whole row starts a recording, so the command name is part of the hit area too. */
+.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:first-child {
+  border-start-start-radius: 10px;
+  border-start-end-radius: 10px;
+}
+
+.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:last-child {
+  border-end-start-radius: 10px;
+  border-end-end-radius: 10px;
+}
+
+.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording] {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.settings-shortcut-name {
+  flex: 1;
+  min-width: 0;
+}
+
+/* One fixed keys column keeps `Ctrl+K` and `Ctrl+Shift+P` on the same right edge. */
+.settings-shortcut-keys {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 112px;
+  flex-shrink: 0;
+}
+
+.settings-shortcut-capture {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--v2-text-text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-variation-settings: "slnt" 0;
+  line-height: var(--line-height-compact);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.settings-shortcut-capture:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-shortcut-capture:focus-visible {
+  outline: 2px solid var(--v2-text-text-accent);
+  outline-offset: 1px;
+}
+
+/* Recording is a state of the keys themselves, not only a change of text. */
+.settings-shortcut-capture[data-expanded] {
+  background: rgba(10, 132, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.55);
+}
+
+.settings-shortcut-capture[data-expanded]:hover {
+  background: rgba(10, 132, 255, 0.14);
+}
+
+.settings-shortcut-unassigned {
+  color: var(--v2-text-text-faint);
+}
+
+.settings-shortcut-press-keys {
+  color: var(--v2-text-text-base);
+}
+
 .settings-servers-row {
   display: flex;
   min-height: 64px;

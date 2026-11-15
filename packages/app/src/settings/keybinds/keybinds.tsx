@@ -2,12 +2,14 @@ import { For, Show, createMemo, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { Button } from "@opencode/ui/button"
+import { Keybind } from "@opencode/ui/keybind"
 import { showToast } from "@/shell/notifications/toast"
 import fuzzysort from "fuzzysort"
 import { Predicate } from "effect"
 import {
   DEFAULT_PALETTE_KEYBIND,
   formatKeybind,
+  formatKeybindParts,
   keyFromKeyboardEvent,
   parseKeybind,
   useCommand,
@@ -435,6 +437,12 @@ export function createKeybindSettingsController(
         ),
       title,
       keybind: (id: string) => formatKeybind(effective(id) ?? "", language.t),
+      // `formatKeybind` keeps only the first combination; the list shows every one of them.
+      keybindCombos: (id: string) =>
+        (effective(id) ?? "")
+          .split(",")
+          .map((combo) => formatKeybindParts(combo, language.t))
+          .filter((parts) => parts.length > 0),
     },
     capture: {
       active: () => store.active,
@@ -473,7 +481,7 @@ export function SettingsKeybinds(props: { active?: boolean }) {
       groups={controller.catalog.groups}
       filtered={controller.catalog.filtered}
       title={controller.catalog.title}
-      keybind={controller.catalog.keybind}
+      combos={controller.catalog.keybindCombos}
       active={controller.capture.active()}
       onCapture={controller.capture.toggle}
       onUnbind={controller.capture.unbind}
@@ -488,7 +496,7 @@ function SettingsKeybindsView(props: {
   groups: KeybindGroup[]
   filtered: (query: string) => Map<KeybindGroup, string[]>
   title: (id: string) => string
-  keybind: (id: string) => string
+  combos: (id: string) => string[][]
   active: string | null
   onCapture: (id: string) => void
   onUnbind: (id: string) => void
@@ -529,37 +537,58 @@ function SettingsKeybindsView(props: {
                   <SettingsList>
                     <For each={filtered().get(group) ?? []}>
                       {(id) => {
-                        const binding = () => props.keybind(id)
+                        const combos = () => props.combos(id)
+                        const recording = () => props.active === id
 
                         return (
-                          <div class="flex items-center justify-between gap-4">
-                            <span>{props.title(id)}</span>
-                            <div class="flex items-center gap-1">
-                              <Show when={props.active === id && binding()}>
+                          <div
+                            class="settings-shortcut-row flex items-center justify-between gap-4"
+                            data-recording={recording() ? "" : undefined}
+                            onClick={() => props.onCapture(id)}
+                          >
+                            <span class="settings-shortcut-name">{props.title(id)}</span>
+                            <div class="settings-shortcut-keys">
+                              <Show when={recording() && combos().length > 0}>
                                 <Button
                                   type="button"
                                   size="small"
                                   variant="ghost-danger"
-                                  onClick={() => props.onUnbind(id)}
+                                  onClick={(event: MouseEvent) => {
+                                    event.stopPropagation()
+                                    props.onUnbind(id)
+                                  }}
                                 >
                                   {language.t("settings.shortcuts.unbind")}
                                 </Button>
                               </Show>
-                              <Button
+                              <button
                                 type="button"
-                                size="small"
-                                variant={binding() ? "ghost" : "ghost-muted"}
+                                class="settings-shortcut-capture"
                                 data-keybind-id={id}
-                                data-expanded={props.active === id ? "" : undefined}
-                                onClick={() => props.onCapture(id)}
+                                data-expanded={recording() ? "" : undefined}
                               >
                                 <Show
-                                  when={props.active === id}
-                                  fallback={binding() || language.t("settings.shortcuts.unassigned")}
+                                  when={recording()}
+                                  fallback={
+                                    <Show
+                                      when={combos().length > 0}
+                                      fallback={
+                                        <span class="settings-shortcut-unassigned">
+                                          {language.t("settings.shortcuts.unassigned")}
+                                        </span>
+                                      }
+                                    >
+                                      <For each={combos()}>
+                                        {(parts) => <Keybind keys={parts} variant="outline" />}
+                                      </For>
+                                    </Show>
+                                  }
                                 >
-                                  {language.t("settings.shortcuts.pressKeys")}
+                                  <span class="settings-shortcut-press-keys">
+                                    {language.t("settings.shortcuts.pressKeys")}
+                                  </span>
                                 </Show>
-                              </Button>
+                              </button>
                             </div>
                           </div>
                         )

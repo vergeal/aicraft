@@ -283,6 +283,8 @@
   width: min(var(--settings-content-max), 100%);
   min-width: 0;
   min-height: 100%;
+  /* The panel must grow with its content so the sticky header keeps sticking for the whole page. */
+  height: auto;
   margin-inline: auto;
   /* The panel no longer insets its pages: the header and body own their 32px padding. It also must not
      clip, so the content column is the one scroll container and the scrollbar sits on its edge. */

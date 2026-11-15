@@ -52,21 +52,21 @@ export function SettingsNavigation(props: {
     props.onChange(value)
   }
 
-  let root: HTMLDivElement | undefined
+  let content: HTMLDivElement | undefined
 
   // In the wide layout every page shares this scroller, so a newly opened page starts at its top. The scroll offset is
   // DOM state, and a page opens from tabs, search, links between pages and history, so this follows the selected page
-  // instead of one event handler.
+  // instead of one event handler. The scroller is .settings-content: .settings and .settings-screen clip their overflow.
   createEffect(
     on(
       () => props.value,
-      () => root?.scrollTo({ top: 0 }),
+      () => content?.scrollTo({ top: 0 }),
       { defer: true },
     ),
   )
 
   return (
-    <Tabs ref={root} orientation="vertical" variant="settings" value={props.value} onChange={change} class="settings">
+    <Tabs orientation="vertical" variant="settings" value={props.value} onChange={change} class="settings">
       <div class="settings-mobile-nav">
         <div class="flex min-w-0 items-center">
           {/* Starts after the shell's 8px inset and this row's 16px padding. Its 32px height makes the row 48px tall,
@@ -162,7 +162,7 @@ export function SettingsNavigation(props: {
           </Show>
         </div>
       </aside>
-      <div class="settings-content">
+      <div class="settings-content" data-scrollable ref={content}>
         <ErrorBoundary
           fallback={(error, reset) => {
             // Keep a failed page inside the content area; choosing another page renders it again.

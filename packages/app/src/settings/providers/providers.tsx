@@ -561,20 +561,22 @@ export const SettingsProviders: Component<{
                               </div>
                             }
                           >
-                            <Show when={activeProviderAccount(integration(item))?.status}>
-                              {(status) => (
-                                <Button
-                                  size="normal"
-                                  variant="ghost-muted"
-                                  class="text-[var(--v2-state-fg-warning)]"
-                                  title={status().message}
-                                  onClick={() => connect(item.id)}
-                                >
-                                  {language.t("dialog.provider.needsSignIn")}
-                                </Button>
-                              )}
-                            </Show>
-                            <AccountMenu provider={item} />
+                            <div class="settings-provider-actions">
+                              <Show when={activeProviderAccount(integration(item))?.status}>
+                                {(status) => (
+                                  <Button
+                                    size="normal"
+                                    variant="ghost-muted"
+                                    class="text-[var(--v2-state-fg-warning)]"
+                                    title={status().message}
+                                    onClick={() => connect(item.id)}
+                                  >
+                                    {language.t("dialog.provider.needsSignIn")}
+                                  </Button>
+                                )}
+                              </Show>
+                              <AccountMenu provider={item} />
+                            </div>
                           </Show>
                         </div>
                       }

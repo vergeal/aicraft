@@ -1387,9 +1387,12 @@
   opacity: 0;
   transition: opacity 200ms ease;
   cursor: default;
+  white-space: nowrap;
 }
 
-.group:hover .settings-provider-env-hint {
+/* Keyboard focus reaches the hint too, not only the pointer. */
+.group:hover .settings-provider-env-hint,
+.group:focus-within .settings-provider-env-hint {
   opacity: 1;
 }
 
@@ -2474,44 +2477,55 @@
 /* ── Custom providers ──
    The editor row closes the connected list; the dialog styles below keep the two-step form on the settings spine. */
 
+/* The add row is a control, not a line of text. It follows the existing add-slot language (`.knowledge-card-add`): a
+   dashed muted outline that strengthens on hover, at the field radius so it matches the dialog's inputs. The 6px block
+   padding keeps the row in the same 48px band as the provider rows above it. */
 [data-slot="settings-provider-add-row"] {
   display: flex;
-  height: 48px;
   align-items: center;
+  padding-block: 6px;
 
   > button {
     display: flex;
-    height: 100%;
+    height: 36px;
     width: 100%;
     align-items: center;
     gap: 8px;
-    border-radius: var(--radius-sm);
-    padding-inline: 12px;
-    color: var(--v2-text-text-muted);
+    border: 1px dashed var(--v2-border-border-muted);
+    border-radius: var(--radius-md);
+    background: transparent;
+    padding-inline: 11px;
+    color: var(--v2-text-text-base);
     font-size: 13px;
     font-weight: 400;
     line-height: var(--line-height-compact);
     letter-spacing: -0.04px;
     text-align: start;
+    cursor: pointer;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
+      border-color: var(--v2-border-border-strong);
       background: var(--v2-overlay-simple-overlay-hover);
-      color: var(--v2-text-text-base);
     }
   }
 }
 
+/* One primary control plus its overflow menu: the group never shrinks under the provider name, and the tighter 6px gap
+   separates the group from the 16px gap that holds the name. */
 .settings-provider-actions {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .settings-provider-custom-fields {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 4px 2px 8px;
+  gap: 16px;
+  padding: 0 2px 4px;
 }
 
 /* IDs, endpoints and model IDs read as code. The field root carries the class, the input inside it inherits it. */
@@ -2522,16 +2536,19 @@
 .settings-provider-custom-models {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 2px 2px 8px;
+  gap: 12px;
+  padding: 0 2px 4px;
 }
 
+/* The section head closes with the same 0.5px rule the settings spine uses, so the fetched list reads as its body. */
 .settings-provider-custom-models-header {
   display: flex;
   min-height: 28px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid var(--v2-border-border-base);
   color: var(--v2-text-text-muted);
   font-size: 13px;
   font-weight: 530;
@@ -2593,15 +2610,23 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
+
+  /* The 26px small button centers on the 32px field beside it. */
+  > [data-component="button-v2"] {
+    margin-block-start: 3px;
+  }
 }
 
+/* Notes and errors sit in a flex gap, so their default paragraph margin would double the rhythm. */
 .settings-provider-custom-note {
+  margin: 0;
   color: var(--v2-text-text-muted);
   font-size: 13px;
   line-height: var(--line-height-compact);
 }
 
 .settings-provider-custom-error {
+  margin: 0;
   color: var(--v2-state-fg-danger);
   font-size: 13px;
   line-height: var(--line-height-compact);

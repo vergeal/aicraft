@@ -18,7 +18,7 @@ export function AddServerMenu(props: { onAddServer: () => void; compact?: boolea
         <Show
           when={props.compact}
           fallback={
-            <Button variant="ghost-muted" icon="plus" onClick={props.onAddServer}>
+            <Button variant="contrast" icon="plus" onClick={props.onAddServer}>
               {language.t("dialog.server.add.button")}
             </Button>
           }
@@ -37,7 +37,7 @@ export function AddServerMenu(props: { onAddServer: () => void; compact?: boolea
         <Show
           when={props.compact}
           fallback={
-            <Menu.Trigger as={Button} variant="ghost-muted" icon="plus">
+            <Menu.Trigger as={Button} variant="contrast" icon="plus">
               {language.t("dialog.server.add.button")}
             </Menu.Trigger>
           }

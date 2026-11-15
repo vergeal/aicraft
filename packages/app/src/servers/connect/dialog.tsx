@@ -1,6 +1,7 @@
 import { Button } from "@opencode/ui/button"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
+import { Loader } from "@opencode/ui/loader"
 import { TextInput } from "@opencode/ui/text-input"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { type Component, Show, Suspense, createMemo, lazy, untrack } from "solid-js"
@@ -73,8 +74,9 @@ export const DialogServer: Component<{
   const title = () =>
     props.mode === "add" ? language.t("dialog.server.add.title") : language.t("dialog.server.edit.title")
 
-  const error = () => (
-    <Show when={view().error}>
+  // Rendered under the field the machine blamed, so a rejected password does not redden the address field.
+  const error = (field: ServerConnectField) => (
+    <Show when={view().errorField === field}>
       <span id="dialog-server-error" class="settings-server-dialog-error" role="alert">
         {view().error}
       </span>
@@ -94,7 +96,7 @@ export const DialogServer: Component<{
       <DialogHeader hideClose={true}>
         <DialogTitle>{title()}</DialogTitle>
       </DialogHeader>
-      <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2">
+      <DialogBody class="flex w-full min-w-0 flex-1 flex-col">
         <Show
           when={!view().scanning}
           fallback={
@@ -111,7 +113,7 @@ export const DialogServer: Component<{
           }
         >
           <div class="flex w-full min-w-0 flex-col gap-4">
-            <Show when={view().signedOut}>
+            <Show when={view().signedOut && !view().error}>
               <p class="settings-server-dialog-notice" role="status">
                 <Icon name="lock" size="small" />
                 <span>{language.t("dialog.server.signedOut")}</span>
@@ -134,14 +136,14 @@ export const DialogServer: Component<{
                     autocapitalize="off"
                     value={view().draft.link}
                     placeholder={language.t("server.connect.link.placeholder")}
-                    invalid={!!view().error}
+                    invalid={view().errorField === "link"}
                     disabled={view().disabled}
                     autofocus
-                    aria-describedby={view().error ? "dialog-server-error" : undefined}
+                    aria-describedby={view().errorField === "link" ? "dialog-server-error" : undefined}
                     onInput={(event) => change("link", event.currentTarget.value)}
                     onKeyDown={keyDown}
                   />
-                  {error()}
+                  {error("link")}
                 </div>
               }
             >
@@ -156,14 +158,14 @@ export const DialogServer: Component<{
                   class="!w-full self-stretch"
                   value={view().draft.url}
                   placeholder={language.t("dialog.server.add.placeholder")}
-                  invalid={!!view().error}
+                  invalid={view().errorField === "url"}
                   disabled={view().disabled}
                   autofocus
-                  aria-describedby={view().error ? "dialog-server-error" : undefined}
+                  aria-describedby={view().errorField === "url" ? "dialog-server-error" : undefined}
                   onInput={(event) => change("url", event.currentTarget.value)}
                   onKeyDown={keyDown}
                 />
-                {error()}
+                {error("url")}
               </div>
             </Show>
             <div class="flex w-full min-w-0 flex-col gap-2">
@@ -194,14 +196,20 @@ export const DialogServer: Component<{
                   class="!w-full self-stretch"
                   value={view().draft.password}
                   placeholder={language.t("dialog.server.add.passwordPlaceholder")}
+                  invalid={view().errorField === "password"}
                   disabled={view().disabled}
-                  aria-describedby="dialog-server-password-hint"
+                  aria-describedby={
+                    view().errorField === "password"
+                      ? "dialog-server-password-hint dialog-server-error"
+                      : "dialog-server-password-hint"
+                  }
                   onInput={(event) => change("password", event.currentTarget.value)}
                   onKeyDown={keyDown}
                 />
                 <span id="dialog-server-password-hint" class="settings-server-dialog-hint">
                   {language.t("server.connect.password.hint")}
                 </span>
+                {error("password")}
               </div>
             </Show>
             <Show when={view().draft.method === "link" && platform.platform === "web"}>
@@ -230,10 +238,14 @@ export const DialogServer: Component<{
       </DialogBody>
       <Show when={!view().scanning}>
         <DialogFooter>
-          <Button variant="neutral" disabled={view().disabled} onClick={() => dialog.close()}>
+          {/* Cancel stays live while connecting: closing disposes the attempt, which stops its timer. */}
+          <Button variant="neutral" onClick={() => dialog.close()}>
             {language.t("common.cancel")}
           </Button>
-          <Button variant="submit" disabled={view().disabled} onClick={submit}>
+          <Button variant="submit" disabled={view().disabled || !view().canSubmit} onClick={submit}>
+            <Show when={view().busy}>
+              <Loader class="size-3.5 shrink-0" />
+            </Show>
             {submitLabel()}
           </Button>
         </DialogFooter>

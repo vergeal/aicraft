@@ -33,16 +33,20 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
           role="status"
           aria-label={label()}
           title={label()}
-          classList={{
-            "relative size-1.5 rounded-full shrink-0 my-[3.5px]": true,
-            "bg-icon-success-base": indicator() === "healthy",
-            "bg-icon-critical-base": indicator() === "unreachable",
-            "border border-current bg-transparent text-v2-icon-icon-faint": indicator() === "unknown",
-          }}
+          class="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
         >
-          <Show when={indicator() === "unreachable"}>
-            <span class="absolute inset-x-px top-1/2 h-px -translate-y-1/2 rounded-full bg-v2-background-bg-base" />
-          </Show>
+          <span
+            classList={{
+              "relative size-1.5 rounded-full": true,
+              "bg-icon-success-base": indicator() === "healthy",
+              "bg-icon-critical-base": indicator() === "unreachable",
+              "border border-current bg-transparent text-v2-icon-icon-faint": indicator() === "unknown",
+            }}
+          >
+            <Show when={indicator() === "unreachable"}>
+              <span class="absolute inset-x-px top-1/2 h-px -translate-y-1/2 rounded-full bg-v2-background-bg-base" />
+            </Show>
+          </span>
         </div>
       }
     >
@@ -51,7 +55,7 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
           role="status"
           aria-label={language.t("server.status.authentication")}
           title={language.t("server.status.authentication")}
-          class="inline-flex h-3.5 w-1.5 shrink-0 items-center justify-center text-v2-icon-icon-muted"
+          class="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-v2-icon-icon-muted"
         >
           <Icon name="lock" size="small" class="shrink-0" />
         </span>
@@ -61,7 +65,7 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
           role="status"
           aria-label={language.t("server.status.connecting")}
           title={language.t("server.status.connecting")}
-          class="inline-flex h-3.5 w-1.5 shrink-0 items-center justify-center text-v2-icon-icon-muted"
+          class="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-v2-icon-icon-muted"
         >
           <Loader class="size-3 shrink-0" />
         </span>
@@ -71,7 +75,7 @@ export function ServerHealthIndicator(props: { health?: ServerHealth }) {
           role="status"
           aria-label={language.t("server.status.incompatible")}
           title={language.t("server.status.incompatible")}
-          class="inline-flex h-3.5 w-1.5 shrink-0 items-center justify-center"
+          class="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
         >
           <Icon name="warning" size="small" class="shrink-0 text-icon-warning-base" />
         </span>

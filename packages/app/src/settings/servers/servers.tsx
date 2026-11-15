@@ -72,8 +72,8 @@ export const SettingsServerList: Component<{
               class="settings-section settings-server-connection"
               data-component="settings-server-connection"
               data-current={entry.key === props.selected ? "" : undefined}
-              aria-label={entry.name}
             >
+              <h3 class="settings-section-title">{entry.name}</h3>
               <SettingsList>
                 <ServerConnectionRow
                   entry={entry}

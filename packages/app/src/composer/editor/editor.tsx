@@ -53,6 +53,9 @@ import "../attachments/attachments.css"
 import "./editor.css"
 import "@/shell/palette-menu.css"
 
+// Only the platform's own command modifier reaches the alternate delivery: Cmd on macOS, Ctrl elsewhere.
+const IS_MAC = typeof navigator !== "undefined" && /(Mac|iPod|iPhone|iPad)/.test(navigator.platform)
+
 const MobilePanelDrawer = lazy(async () => {
   const { MobilePanelDrawer } = await import("@/shell/mobile-panel-drawer")
 
@@ -405,7 +408,8 @@ export function ComposerEditor(props: ComposerEditorProps) {
                   return
                 }
 
-                const mod = event.metaKey || event.ctrlKey
+                // Cmd on macOS, Ctrl elsewhere: no other modifier may switch to the alternate delivery.
+                const mod = IS_MAC ? event.metaKey : event.ctrlKey
 
                 if (mod && event.key === "ArrowUp" && !event.shiftKey && !event.altKey) {
                   if (view.submit.queue?.editFirst()) event.preventDefault()
@@ -434,7 +438,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
 
                   if (event.repeat) return
                   // On touch, Cmd+Return is the touch bar's primary action, since plain Return cannot send.
-                  props.controller.submit(mod && !touch() ? { alternate: true } : undefined)
+                  props.controller.submit(mod && !event.altKey && !touch() ? { alternate: true } : undefined)
                 }
               }}
               // The editor holds one flat run of text, mentions and <br>s. A touch keyboard's Return arrives as a

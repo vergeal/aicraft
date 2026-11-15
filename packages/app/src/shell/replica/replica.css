@@ -339,8 +339,16 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   overflow: hidden;
 }
 
+/* The titlebar is the exception to that freeze: its left column follows the pointer so the title stays level with
+   the sidebar edge. The same max() as the resting rule keeps the rail offset and the 176px floor in CSS, so the drag
+   only writes a bare number. Without the live variable it falls back to the resting width instead of jumping. */
 [data-replica][data-resizing] [data-slot="replica-titlebar"] {
-  grid-template-columns: var(--drag-titlebar-left, var(--titlebar-left-min)) minmax(0, 1fr);
+  grid-template-columns:
+    max(
+      calc(var(--primary-rail-width) + var(--drag-sidebar-current, var(--navigation-sidebar-width-current))),
+      var(--titlebar-left-min)
+    )
+    minmax(0, 1fr);
 }
 
 /* The column itself keeps filling the slot, so its surface still paints the full width; only its children hold the

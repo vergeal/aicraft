@@ -24,8 +24,8 @@
     align-items: flex-start;
     width: 640px;
     height: auto;
-    min-height: 280px;
-    max-height: min(720px, calc(100vh - 48px));
+    min-height: 0;
+    max-height: calc(100vh - 48px);
     background: var(--v2-material-surface-strong);
     backdrop-filter: var(--v2-material-blur-thick);
     box-shadow: var(--v2-elevation-overlay);

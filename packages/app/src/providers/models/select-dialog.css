@@ -183,7 +183,8 @@
   [data-component="search-list"] [data-slot="search-list-row"] {
     justify-content: flex-start;
     gap: 6px;
-    height: 28px;
+    /* Matches the manage dialog's rows; the 36px scroll padding still clears the stuck 36px header. */
+    height: 36px;
     padding-inline: 6px 3px;
     border-radius: 6px;
     font-size: 15px;

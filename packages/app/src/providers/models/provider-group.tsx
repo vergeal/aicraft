@@ -95,7 +95,15 @@ export function ProviderModelSections<T extends ModelItem>(props: {
       ? language.t("provider.connect.opencode.freeName")
       : group.items[0].provider.name
 
-  function Header(input: { id: string; icon: JSX.Element; title: JSX.Element; badge?: string; action?: JSX.Element }) {
+  function Header(input: {
+    id: string
+    icon: JSX.Element
+    title: JSX.Element
+    badge?: string
+    /** Omitted where the caller shows no model count, such as the connect dialog's provider list. */
+    count?: number
+    action?: JSX.Element
+  }) {
     return (
       <h3 class="settings-models-group-header" classList={{ "justify-between": !!input.action }}>
         <button
@@ -112,6 +120,11 @@ export function ProviderModelSections<T extends ModelItem>(props: {
             {input.icon}
             <bdi class="settings-models-group-title">{input.title}</bdi>
             <Show when={input.badge}>{(badge) => <Badge>{badge()}</Badge>}</Show>
+            <Show when={input.count}>
+              {(count) => (
+                <span class="settings-models-group-count">{language.plural("settings.models.count", count())}</span>
+              )}
+            </Show>
           </span>
         </button>
         {input.action}
@@ -137,6 +150,7 @@ export function ProviderModelSections<T extends ModelItem>(props: {
                     id={group().category}
                     icon={<ProviderModelIcon provider={group().items[0].provider} class="shrink-0" />}
                     title={name(group())}
+                    count={group().items.length}
                     action={props.action?.(group())}
                   />
                   <Show when={props.expanded(group().category)}>{props.rows(group().items)}</Show>
@@ -156,6 +170,7 @@ export function ProviderModelSections<T extends ModelItem>(props: {
                 icon={<OpenCodeLogo class="size-4 shrink-0" />}
                 title={language.t("provider.connect.opencode.name")}
                 badge={managed().group.workspace}
+                count={managed().providers.reduce((total, group) => total + group.items.length, 0)}
               />
               <Show when={props.expanded(CONSOLE_GROUP_KEY)}>
                 <div class="provider-model-groups settings-models-console-groups">
@@ -165,6 +180,7 @@ export function ProviderModelSections<T extends ModelItem>(props: {
                         ref={(element) => props.ref?.(group.category, element)}
                         provider={group.items[0].provider}
                         name={consoleProviderName(managed().group, group.items[0].provider.name)}
+                        count={group.items.length}
                         expanded={props.expanded(group.category)}
                         disabled={props.disabled}
                         onSetVisibility={
@@ -191,6 +207,8 @@ export function ProviderModelSections<T extends ModelItem>(props: {
 export function ProviderModelGroup(props: {
   provider: ModelProvider
   name?: string
+  /** Omitted where the caller shows no model count, such as the connect dialog's provider list. */
+  count?: number
   expanded: boolean
   disabled?: boolean
   onSetVisibility?: (visible: boolean) => void
@@ -219,6 +237,11 @@ export function ProviderModelGroup(props: {
           <span class="provider-model-group-label">
             <ProviderModelIcon provider={props.provider} class="shrink-0" />
             <bdi class="provider-model-group-title">{props.name ?? props.provider.name}</bdi>
+            <Show when={props.count}>
+              {(count) => (
+                <span class="provider-model-group-count">{language.plural("settings.models.count", count())}</span>
+              )}
+            </Show>
             <Icon
               name="chevron-down"
               size="small"

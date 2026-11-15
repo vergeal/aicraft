@@ -71,10 +71,15 @@ export const SettingsServerList: Component<{
             <section
               class="settings-section settings-server-connection"
               data-component="settings-server-connection"
+              data-current={entry.key === props.selected ? "" : undefined}
               aria-label={entry.name}
             >
               <SettingsList>
-                <ServerConnectionRow entry={entry} onServerChange={props.onServerChange} />
+                <ServerConnectionRow
+                  entry={entry}
+                  current={entry.key === props.selected}
+                  onServerChange={props.onServerChange}
+                />
                 <Show
                   when={
                     entry.connection && !isServerFailed(controller.collection.health()[entry.key])
@@ -113,6 +118,7 @@ function SettingsServersHeader(props: { title: string; onAddServer: () => void }
 
 function ServerConnectionRow(props: {
   entry: SettingsServer
+  current?: boolean
   onServerChange?: (server: ServerConnection.Any) => void
 }) {
   const dialog = useDialog()
@@ -138,12 +144,21 @@ function ServerConnectionRow(props: {
               <div class="settings-servers-lead">
                 <ServerHealthIndicator health={health()} />
                 <div class="settings-servers-copy">
-                  <bdi class="settings-servers-name" dir="auto">
-                    {props.entry.name}
-                  </bdi>
-                  <bdi class="settings-servers-meta" dir="ltr">
-                    {ServerConnection.http(server())?.url}
-                  </bdi>
+                  <div class="settings-servers-name-line">
+                    <bdi class="settings-servers-name" dir="auto" title={props.entry.name}>
+                      {props.entry.name}
+                    </bdi>
+                    <Show when={props.current}>
+                      <span class="settings-servers-current">{language.t("settings.servers.current")}</span>
+                    </Show>
+                  </div>
+                  <Show when={ServerConnection.http(server())?.url}>
+                    {(url) => (
+                      <bdi class="settings-servers-meta" dir="ltr" title={url()}>
+                        {url()}
+                      </bdi>
+                    )}
+                  </Show>
                 </div>
               </div>
               <div class="settings-servers-actions">

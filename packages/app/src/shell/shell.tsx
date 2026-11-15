@@ -172,23 +172,21 @@ function ReplicaLayer(props: ParentProps) {
     slot?.style.removeProperty("flex-basis")
   }
 
-  // While the pointer drags, the two columns keep the content width they started with and only their visible box
-  // changes, so rows never rewrap mid-drag; the committed width is applied once on release. Each variable is written on
-  // the element that consumes it, not on the shell root: an inherited custom property invalidates the whole subtree.
-  // The titlebar is the one exception: its left column follows the drag so the title stays level with the sidebar edge.
+  // While the pointer drags, the work area keeps the content width it started with and only its visible box changes,
+  // so the session pane never reflows mid-drag and the committed width lands once on release. The navigation column
+  // reflows live instead: its rows only recompute where they truncate, and a frozen column read as a broken drag. The
+  // titlebar follows too, so its left edge stays level with the sidebar. Each variable is written on the element that
+  // consumes it, not on the shell root: an inherited custom property invalidates the whole subtree.
   const freezeColumns = () => {
-    const sidebar = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar"]')
     const main = root?.querySelector<HTMLElement>('[data-slot="replica-main"]')
     dragTitlebar = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar"]') ?? undefined
 
-    if (sidebar) sidebar.style.setProperty("--drag-sidebar-width", `${sidebar.offsetWidth}px`)
     if (main) main.style.setProperty("--drag-main-width", `${main.offsetWidth}px`)
     // Seeded with the width the resting stylesheet already gives the column, so the first move does not jump.
     dragTitlebar?.style.setProperty("--drag-sidebar-current", `${sidebarSize()}px`)
   }
 
   const releaseColumns = () => {
-    root?.querySelector<HTMLElement>('[data-slot="replica-sidebar"]')?.style.removeProperty("--drag-sidebar-width")
     root?.querySelector<HTMLElement>('[data-slot="replica-main"]')?.style.removeProperty("--drag-main-width")
     dragTitlebar?.style.removeProperty("--drag-sidebar-current")
     dragTitlebar = undefined

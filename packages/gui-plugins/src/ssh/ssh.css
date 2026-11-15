@@ -9,47 +9,106 @@
   user-select: text;
 }
 
-/* The same rules as the app's server dialog in settings.css, which may not be loaded when the palette opens this one. */
+/* Mirrors the app's server dialog in settings.css, which may not be loaded when the palette opens this one. Keep every
+   value identical: this stylesheet is injected into the head after the app's, so a stale value here wins. */
 [data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-container"] {
-  width: 480px;
-  max-width: calc(100vw - 32px);
-  height: auto;
-  border-radius: 8px;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  height: auto;
+  min-height: 0;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 15px;
+  background: rgba(38, 38, 42, 0.78);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.42);
 }
 
 [data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-content"] {
   align-items: stretch;
   width: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 [data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-header"] {
+  position: relative;
+  z-index: 1;
   align-items: center;
-  padding: 24px 24px 16px;
+  min-height: 56px;
+  padding: 16px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.15);
 }
 
 [data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-body"] {
   display: flex;
   width: 100%;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
   align-items: stretch;
+  padding: 16px;
+  overflow-y: auto;
 }
 
 [data-component="dialog-v2"].settings-server-dialog [data-slot="dialog-footer"] {
-  padding: 24px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 .settings-server-dialog-label {
-  font-size: 15px;
-  font-weight: 530;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-base);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: #d8d8dc;
 }
 
 .settings-server-dialog-error {
   font-size: 12px;
-  font-weight: 440;
-  line-height: 1;
-  color: var(--v2-state-fg-danger);
+  font-weight: 400;
+  line-height: 18px;
+  color: #ff6961;
+}
+
+.settings-server-dialog-error:empty {
+  display: none;
+}
+
+.settings-server-dialog-hint {
+  font-size: 12px;
+  line-height: 18px;
+  color: #929298;
+}
+
+.settings-server-dialog-notice {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  line-height: 18px;
+  color: #b8b8be;
+}
+
+.settings-server-dialog-notice [data-slot="icon-svg"] {
+  flex: none;
+  margin-block: 2px;
+  color: var(--v2-icon-icon-muted);
 }

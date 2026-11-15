@@ -1,6 +1,5 @@
 import { Button } from "@opencode/ui/button"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode/ui/dialog"
-import { Divider } from "@opencode/ui/divider"
 import { TextInput } from "@opencode/ui/text-input"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { uuid } from "@opencode/util/uuid"
@@ -132,7 +131,6 @@ export function DialogSsh(props: {
           {prompted().value || props.config ? plugin.t("connectTo", { host: sshName(state) }) : plugin.t("add")}
         </DialogTitle>
       </DialogHeader>
-      <Divider />
       <DialogBody class="flex w-full min-w-0 flex-1 flex-col px-4 pt-4 pb-2">
         <div class="flex w-full min-w-0 flex-col gap-6">
           <Show
@@ -222,7 +220,7 @@ export function DialogSsh(props: {
           </Show>
           <Show when={item()?.stage !== "incompatible" && error()}>
             {(error) => (
-              <span class="settings-server-dialog-error !leading-[var(--line-height-compact)]" role="alert">
+              <span class="settings-server-dialog-error" role="alert">
                 {error()}
               </span>
             )}

@@ -40,6 +40,27 @@ type ProviderSource = "env" | "api" | "account" | "config" | "custom"
 
 type ProviderItem = ReturnType<ReturnType<typeof useProviders>["connected"]>[number]
 
+/**
+ * A removal the list asks to confirm. Deleting a credential is the one action here that loses the user's data, so a
+ * single menu click never performs it.
+ */
+type PendingRemoval =
+  | {
+      readonly kind: "disconnect"
+      readonly providerID: string
+      readonly integrationID: string
+      readonly providerIDs: readonly string[]
+      readonly providerName: string
+    }
+  | {
+      readonly kind: "account"
+      readonly providerID: string
+      readonly integrationID: string
+      readonly providerName: string
+      readonly account: ProviderAccount
+      readonly final: boolean
+    }
+
 const PROVIDER_NOTES = [
   { match: (id: string) => id === "opencode", key: "dialog.provider.opencode.note" },
   { match: (id: string) => id === "opencode-go", key: "dialog.provider.opencodeGo.tagline" },
@@ -70,6 +91,7 @@ export const SettingsProviders: Component<{
     credentialID?: string
     renaming?: string
     held?: ProviderItem[]
+    confirming?: PendingRemoval
   }>({
     consoleExpanded: false,
   })
@@ -95,7 +117,11 @@ export const SettingsProviders: Component<{
   }))
 
   const isActiveCredential = (credentialID: string) =>
-    credentials.data?.some((entry) => entry.id === credentialID && entry.active) ?? false
+    credentials.data?.some((entry) => entry.id === credentialID && entry.active)
+
+  // The custom provider entries come from the configuration document, so nothing that edits them can work until it
+  // loads. Everything else on the page keeps rendering without it.
+  const configReady = () => !config.isPending && !config.isError
 
   const custom = createMemo(() =>
     customProvidersFrom(config.isPending || config.isError ? [] : (config.data ?? [])),
@@ -351,14 +377,63 @@ export const SettingsProviders: Component<{
 
   const note = (id: string) => PROVIDER_NOTES.find((item) => item.match(id))?.key
 
-  const disconnect = (item: ProviderItem, name: string) => {
+  const requestDisconnect = (item: ProviderItem, name: string) => {
     const group = consoleGroup()
-    dispatch({
-      type: "disconnect.requested",
-      providerIDs: group?.root.id === item.id ? group.providers.map((provider) => provider.id) : [item.id],
+    const providerIDs = group?.root.id === item.id ? group.providers.map((provider) => provider.id) : [item.id]
+
+    setState("confirming", {
+      kind: "disconnect",
+      providerID: item.id,
       integrationID: item.integrationID ?? item.id,
+      providerIDs,
       providerName: name,
     })
+  }
+
+  const requestRemoveAccount = (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
+    setState("confirming", {
+      kind: "account",
+      providerID: provider.id,
+      integrationID: provider.integrationID ?? provider.id,
+      providerName,
+      account,
+      final: providerAccounts(integration(provider)).length === 1,
+    })
+  }
+
+  const cancelRemoval = () => setState("confirming", undefined)
+
+  const confirmRemoval = () => {
+    const pending = state.confirming
+
+    if (!pending) return
+
+    setState("confirming", undefined)
+
+    if (pending.kind === "disconnect") {
+      dispatch({
+        type: "disconnect.requested",
+        providerIDs: [...pending.providerIDs],
+        integrationID: pending.integrationID,
+        providerName: pending.providerName,
+      })
+
+      return
+    }
+
+    void removeAccount(pending)
+  }
+
+  const removeAccount = async (removal: Extract<PendingRemoval, { kind: "account" }>) => {
+    setState({ credentialID: removal.account.id, held: available() })
+    await accountActions.remove({
+      integrationID: removal.integrationID,
+      provider: removal.providerName,
+      account: removal.account,
+      final: removal.final,
+    })
+    void credentials.refetch()
+    setState({ credentialID: undefined, held: undefined })
   }
 
   const activate = async (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
@@ -368,18 +443,6 @@ export const SettingsProviders: Component<{
       integrationID: provider.integrationID ?? provider.id,
       provider: providerName,
       account,
-    })
-    void credentials.refetch()
-    setState({ credentialID: undefined, held: undefined })
-  }
-
-  const remove = async (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
-    setState({ credentialID: account.id, held: available() })
-    await accountActions.remove({
-      integrationID: provider.integrationID ?? provider.id,
-      provider: providerName,
-      account,
-      final: providerAccounts(integration(provider)).length === 1,
     })
     void credentials.refetch()
     setState({ credentialID: undefined, held: undefined })
@@ -419,6 +482,9 @@ export const SettingsProviders: Component<{
     const accounts = () => menuProps.accounts
     const active = () => menuProps.active
     const name = () => menuProps.name
+    // The credential list decides which account is current. Before it answers the row still shows a name, but no
+    // account is selected and the account menu stays closed to actions.
+    const label = () => active()?.label ?? accounts()[0]?.label ?? name()
 
     return (
       <div class="settings-provider-account-actions">
@@ -430,7 +496,7 @@ export const SettingsProviders: Component<{
             class="settings-provider-account-trigger"
             aria-label={language.t("settings.providers.account.manage", { provider: name() })}
           >
-            <span>{active()?.label}</span>
+            <span>{label()}</span>
             <Icon name="chevron-down" size="small" />
           </Menu.Trigger>
           <Menu.Portal>
@@ -470,16 +536,19 @@ export const SettingsProviders: Component<{
             size="large"
             icon={<Icon name="outline-dots" />}
             disabled={state.credentialID !== undefined || !active()}
-            aria-label={language.t("dialog.provider.accounts.options", { account: active()?.label ?? "" })}
+            aria-label={language.t("dialog.provider.accounts.options", { account: label() })}
           />
           <Menu.Portal>
-            <Menu.Content onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}>
+            <Menu.Content
+              class="settings-provider-account-menu"
+              onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}
+            >
               <Menu.Item onSelect={() => setState("renaming", active()?.id)}>{language.t("common.rename")}</Menu.Item>
               <Menu.Item
                 onSelect={() => {
                   const account = active()
 
-                  if (account) void remove(menuProps.provider, name(), account)
+                  if (account) requestRemoveAccount(menuProps.provider, name(), account)
                 }}
               >
                 {language.t("dialog.provider.accounts.remove")}
@@ -491,6 +560,39 @@ export const SettingsProviders: Component<{
     )
   }
 
+  // The row keeps its layout and turns its action area into the question, the way the connect dialog's account list
+  // does. The sentence truncates rather than pushing the buttons out of the row.
+  function ConfirmRemoval(confirmProps: { pending: PendingRemoval }) {
+    const text = () => {
+      const pending = confirmProps.pending
+
+      if (pending.kind === "disconnect") return language.t("settings.providers.disconnect.confirm")
+
+      return pending.final
+        ? language.t("settings.providers.account.removeLast.confirm")
+        : language.t("settings.providers.account.remove.confirm", { account: pending.account.label })
+    }
+
+    return (
+      <div class="settings-provider-confirm">
+        <span role="alert" class="settings-provider-confirm-text">
+          {text()}
+        </span>
+        <Button size="small" variant="ghost-muted" onClick={cancelRemoval}>
+          {language.t("common.cancel")}
+        </Button>
+        <Button size="small" variant="neutral" onClick={confirmRemoval}>
+          {confirmProps.pending.kind === "disconnect"
+            ? language.t("common.disconnect")
+            : language.t("dialog.provider.accounts.remove")}
+        </Button>
+      </div>
+    )
+  }
+
+  const confirmingFor = (item: ProviderItem) =>
+    state.confirming?.providerID === item.id ? state.confirming : undefined
+
   return (
     <>
       <SettingsPageHeader
@@ -501,9 +603,24 @@ export const SettingsProviders: Component<{
 
       <div class="settings-tab-body settings-tab-body--sectioned settings-providers">
         <div class="settings-section" data-component="connected-providers-section">
-          <h3 class="settings-section-title">{language.t("settings.providers.section.connected")}</h3>
+          <h3 class="settings-section-title">
+            {language.t("settings.providers.section.connected")}
+            <Show when={providers.ready() && displayed().length > 0}>
+              <span class="settings-section-count">{displayed().length}</span>
+            </Show>
+          </h3>
           <SettingsList variant="catalog">
             <Switch>
+              {/* A failed catalog leaves the lists undefined forever, which used to read as "loading". The failure
+                  owns this branch so the retry is reachable. */}
+              <Match when={providers.error() !== undefined}>
+                <div class="settings-models-status">
+                  <span>{language.t("settings.providers.catalog.failed")}</span>
+                  <Button size="small" variant="neutral" onClick={() => providers.retry()}>
+                    {language.t("common.retry")}
+                  </Button>
+                </div>
+              </Match>
               <Match when={!providers.ready()}>
                 <div class="settings-models-status">
                   <Loader class="size-4" />
@@ -513,19 +630,11 @@ export const SettingsProviders: Component<{
                   </span>
                 </div>
               </Match>
-              <Match when={config.isError}>
-                <div class="settings-models-status">
-                  <span>{language.t("common.requestFailed")}</span>
-                  <Button size="small" variant="neutral" onClick={() => void config.refetch()}>
-                    {language.t("common.retry")}
-                  </Button>
-                </div>
-              </Match>
               <Match when={displayed().length === 0}>
                 <div class="settings-provider-empty">{language.t("settings.providers.connected.empty")}</div>
               </Match>
             </Switch>
-            <Show when={providers.ready() && !config.isError && displayed().length > 0}>
+            <Show when={providers.ready() && displayed().length > 0}>
               <For each={displayed()}>
                 {(item) => {
                   const managedGroup = () => (consoleGroup()?.root.id === item.id ? consoleGroup() : undefined)
@@ -548,79 +657,105 @@ export const SettingsProviders: Component<{
                           <Show
                             when={canManageAccounts(item)}
                             fallback={
-                              <div class="settings-provider-actions">
-                                <Show when={customProvider(item.id)}>
-                                  {(provider) => (
-                                    <>
-                                      <Show when={!canDisconnect(item)}>
-                                        <Button
-                                          size="normal"
-                                          variant="neutral"
-                                          onClick={() => openCustom(provider())}
-                                        >
-                                          {language.t("settings.providers.custom.keyMissing")}
-                                        </Button>
-                                      </Show>
-                                      <Menu placement="bottom-end" gutter={6}>
-                                        <Menu.Trigger
-                                          as={IconButton}
-                                          variant="ghost-muted"
-                                          size="large"
-                                          icon={<Icon name="outline-dots" />}
-                                          aria-label={language.t("settings.providers.custom.title.edit")}
-                                        />
-                                        <Menu.Portal>
-                                          <Menu.Content>
-                                            <Menu.Item onSelect={() => openCustom(provider())}>
-                                              {language.t("settings.providers.custom.edit")}
-                                            </Menu.Item>
-                                            <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
-                                              {language.t("settings.providers.custom.keyReplace")}
-                                            </Menu.Item>
-                                            <Menu.Separator />
-                                            <Menu.Item
-                                              data-variant="critical"
-                                              onSelect={() => deleteCustom(provider())}
+                              <Show
+                                when={confirmingFor(item)}
+                                fallback={
+                                  <div class="settings-provider-actions">
+                                    <Show when={customProvider(item.id)}>
+                                      {(provider) => (
+                                        <>
+                                          <Show when={!canDisconnect(item)}>
+                                            <Button
+                                              size="normal"
+                                              variant="neutral"
+                                              onClick={() => openCustom(provider())}
                                             >
-                                              {language.t("settings.providers.custom.delete.menu")}
-                                            </Menu.Item>
-                                          </Menu.Content>
-                                        </Menu.Portal>
-                                      </Menu>
-                                    </>
-                                  )}
-                                </Show>
-                                <Show when={canDisconnect(item)}>
-                                  <Button size="normal" variant="ghost-muted" onClick={() => disconnect(item, item.name)}>
-                                    {language.t("common.disconnect")}
-                                  </Button>
-                                </Show>
-                                <Show when={!customProvider(item.id) && !canDisconnect(item)}>
-                                  <span class="settings-provider-env-hint">
-                                    {source(item) === "config"
-                                      ? language.t("settings.providers.custom.configured")
-                                      : language.t("settings.providers.connected.environmentDescription")}
-                                  </span>
-                                </Show>
-                              </div>
+                                              {language.t("settings.providers.custom.keyMissing")}
+                                            </Button>
+                                          </Show>
+                                          <Menu placement="bottom-end" gutter={6}>
+                                            <Menu.Trigger
+                                              as={IconButton}
+                                              variant="ghost-muted"
+                                              size="large"
+                                              icon={<Icon name="outline-dots" />}
+                                              aria-label={language.t("settings.providers.custom.title.edit")}
+                                            />
+                                            <Menu.Portal>
+                                              <Menu.Content class="settings-provider-account-menu">
+                                                <Menu.Item onSelect={() => openCustom(provider())}>
+                                                  {language.t("settings.providers.custom.edit")}
+                                                </Menu.Item>
+                                                <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
+                                                  {language.t("settings.providers.custom.keyReplace")}
+                                                </Menu.Item>
+                                                <Menu.Separator />
+                                                <Menu.Item
+                                                  data-variant="critical"
+                                                  onSelect={() => deleteCustom(provider())}
+                                                >
+                                                  {language.t("settings.providers.custom.delete.menu")}
+                                                </Menu.Item>
+                                              </Menu.Content>
+                                            </Menu.Portal>
+                                          </Menu>
+                                        </>
+                                      )}
+                                    </Show>
+                                    <Show when={canDisconnect(item)}>
+                                      <Button
+                                        size="normal"
+                                        variant="ghost-muted"
+                                        onClick={() => requestDisconnect(item, item.name)}
+                                      >
+                                        {language.t("common.disconnect")}
+                                      </Button>
+                                    </Show>
+                                    {/* A custom provider without the configuration document cannot say where its
+                                        credential came from, so it shows no hint instead of the wrong one. */}
+                                    <Show
+                                      when={
+                                        !customProvider(item.id) &&
+                                        !canDisconnect(item) &&
+                                        (configReady() || source(item) !== "custom")
+                                      }
+                                    >
+                                      <span class="settings-provider-env-hint">
+                                        {source(item) === "config"
+                                          ? language.t("settings.providers.custom.configured")
+                                          : language.t("settings.providers.connected.environmentDescription")}
+                                      </span>
+                                    </Show>
+                                  </div>
+                                }
+                              >
+                                {(pending) => <ConfirmRemoval pending={pending()} />}
+                              </Show>
                             }
                           >
-                            <div class="settings-provider-actions">
-                              <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
-                                {(status) => (
-                                  <Button
-                                    size="normal"
-                                    variant="ghost-muted"
-                                    class="text-[var(--v2-state-fg-warning)]"
-                                    title={status().message}
-                                    onClick={() => connect(item.id)}
-                                  >
-                                    {language.t("dialog.provider.needsSignIn")}
-                                  </Button>
-                                )}
-                              </Show>
-                              <AccountMenu provider={item} />
-                            </div>
+                            <Show
+                              when={confirmingFor(item)}
+                              fallback={
+                                <div class="settings-provider-actions">
+                                  <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
+                                    {(status) => (
+                                      <Button
+                                        size="normal"
+                                        variant="ghost-muted"
+                                        class="text-[var(--v2-state-fg-warning)]"
+                                        title={status().message}
+                                        onClick={() => connect(item.id)}
+                                      >
+                                        {language.t("dialog.provider.needsSignIn")}
+                                      </Button>
+                                    )}
+                                  </Show>
+                                  <AccountMenu provider={item} />
+                                </div>
+                              }
+                            >
+                              {(pending) => <ConfirmRemoval pending={pending()} />}
+                            </Show>
                           </Show>
                         </div>
                       }
@@ -629,7 +764,9 @@ export const SettingsProviders: Component<{
                         <div class="settings-provider-console group">
                           <div class="settings-provider-console-header">
                             <div class="settings-provider-lead">
-                              <OpenCodeLogo class="settings-provider-icon size-4 shrink-0" />
+                              <span class="settings-provider-lead-icon">
+                                <OpenCodeLogo class="settings-provider-icon size-4 shrink-0" />
+                              </span>
                               <div class="settings-provider-console-summary">
                                 <div class="settings-provider-main">
                                   <span class="settings-provider-name truncate">
@@ -664,18 +801,27 @@ export const SettingsProviders: Component<{
                               </div>
                             </div>
                             <Show
-                              when={canManageAccounts(item)}
+                              when={confirmingFor(item)}
                               fallback={
-                                <Button
-                                  size="normal"
-                                  variant="ghost-muted"
-                                  onClick={() => disconnect(item, language.t("provider.connect.opencode.name"))}
+                                <Show
+                                  when={canManageAccounts(item)}
+                                  fallback={
+                                    <Button
+                                      size="normal"
+                                      variant="ghost-muted"
+                                      onClick={() =>
+                                        requestDisconnect(item, language.t("provider.connect.opencode.name"))
+                                      }
+                                    >
+                                      {language.t("common.disconnect")}
+                                    </Button>
+                                  }
                                 >
-                                  {language.t("common.disconnect")}
-                                </Button>
+                                  <AccountMenu provider={item} name={language.t("provider.connect.opencode.name")} />
+                                </Show>
                               }
                             >
-                              <AccountMenu provider={item} name={language.t("provider.connect.opencode.name")} />
+                              {(pending) => <ConfirmRemoval pending={pending()} />}
                             </Show>
                           </div>
                           <Show when={state.consoleExpanded}>
@@ -707,43 +853,63 @@ export const SettingsProviders: Component<{
               </For>
             </Show>
             <div class="settings-provider-add-row" data-slot="settings-provider-add-row">
-              <button type="button" onClick={() => openCustom()}>
-                <Icon name="plus" size="small" />
-                <span>{language.t("settings.providers.custom.add")}</span>
-              </button>
+              {/* Adding, editing and deleting a custom provider all read or write the configuration document, so
+                  without it the slot explains the failure and offers the refetch instead of opening a broken form. */}
+              <Show
+                when={config.isError}
+                fallback={
+                  <button type="button" onClick={() => openCustom()}>
+                    <Icon name="plus" size="small" />
+                    <span>{language.t("settings.providers.custom.add")}</span>
+                  </button>
+                }
+              >
+                <div class="settings-models-status">
+                  <span>{language.t("settings.providers.config.failed")}</span>
+                  <Button size="small" variant="neutral" onClick={() => void config.refetch()}>
+                    {language.t("common.retry")}
+                  </Button>
+                </div>
+              </Show>
             </div>
           </SettingsList>
         </div>
 
-        <div class="settings-section">
-          <h3 class="settings-section-title">{language.t("settings.providers.section.popular")}</h3>
-          <SettingsList variant="catalog">
-            <For each={popular()}>
-              {(item) => (
-                <div class="settings-provider-row settings-provider-row--popular">
-                  <div class="settings-provider-lead">
-                    <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
-                  </div>
+        {/* Every provider is connected: an empty Popular card would only be a blank panel under the list. */}
+        <Show when={popular().length > 0}>
+          <div class="settings-section">
+            <h3 class="settings-section-title">
+              {language.t("settings.providers.section.popular")}
+              <span class="settings-section-count">{popular().length}</span>
+            </h3>
+            <SettingsList variant="catalog">
+              <For each={popular()}>
+                {(item) => (
+                  <div class="settings-provider-row settings-provider-row--popular">
+                    <div class="settings-provider-lead">
+                      <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
+                    </div>
 
-                  <div class="settings-provider-copy">
-                    <div class="settings-provider-main">
-                      <span class="settings-provider-name">{item.name}</span>
-                      <Show when={item.id === "opencode" || item.id === "opencode-go"}>
-                        <Badge>{language.t("dialog.provider.tag.recommended")}</Badge>
+                    <div class="settings-provider-copy">
+                      <div class="settings-provider-main">
+                        <span class="settings-provider-name">{item.name}</span>
+                        <Show when={item.id === "opencode" || item.id === "opencode-go"}>
+                          <Badge variant="accent">{language.t("dialog.provider.tag.recommended")}</Badge>
+                        </Show>
+                      </div>
+                      <Show when={note(item.id)}>
+                        {(key) => <p class="settings-provider-description">{language.t(key())}</p>}
                       </Show>
                     </div>
-                    <Show when={note(item.id)}>
-                      {(key) => <p class="settings-provider-description">{language.t(key())}</p>}
-                    </Show>
+                    <Button size="normal" variant="neutral" icon="plus" onClick={() => connect(item.id)}>
+                      {language.t("common.connect")}
+                    </Button>
                   </div>
-                  <Button size="normal" variant="neutral" icon="plus" onClick={() => connect(item.id)}>
-                    {language.t("common.connect")}
-                  </Button>
-                </div>
-              )}
-            </For>
-          </SettingsList>
-        </div>
+                )}
+              </For>
+            </SettingsList>
+          </div>
+        </Show>
       </div>
     </>
   )

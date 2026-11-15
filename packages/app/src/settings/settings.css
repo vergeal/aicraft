@@ -1512,7 +1512,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 36px;
+  min-height: 49px;
+  padding-block: 10px;
 }
 
 .settings-provider-console-summary {
@@ -1571,6 +1572,7 @@
 .settings-provider-console-separator {
   height: 1px;
   margin-block: 8px;
+  margin-inline: -16px;
   background: rgba(255, 255, 255, 0.07);
 }
 
@@ -1663,6 +1665,18 @@
   background: transparent;
 }
 
+/* The icon keeps the 28px slot every other row gives its lead, so the console header lines up with the rows below. */
+.settings-provider-console-header .settings-provider-lead-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #38383b;
+}
+
 .settings-provider-copy {
   display: flex;
   flex: 1;
@@ -1705,7 +1719,7 @@
 
 /* Design reads the provider type as a 20px chip, not the 16px compact tag: taller, a softer radius, a wider face and a
    hairline that survives the card background. Scoped to this page; the global badge keeps its own metrics. */
-.settings-providers [data-component="tag"] {
+.settings-providers [data-component="tag"]:not([data-variant="accent"]) {
   height: 20px;
   padding: 0 6px;
   border: 1px solid rgba(255, 255, 255, 0.11);
@@ -1735,7 +1749,7 @@
 }
 
 .settings-provider-row--popular .settings-provider-name {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
 }
 
 .settings-provider-row--popular .settings-provider-description {
@@ -1746,14 +1760,65 @@
   line-height: 18px;
 }
 
+/* A section header names the group and counts it: the number is secondary to the label, so it takes the muted palette
+   and a compact pill instead of the title's weight. */
+.settings-section-title:has(.settings-section-count) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-section-count {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 5px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+[data-color-scheme="light"] .settings-section-count {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Deleting a credential is the one irreversible action on this page, so the row turns its action area into a question.
+   The sentence truncates, which keeps the two buttons inside the row at every width. */
+.settings-provider-confirm {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-provider-confirm-text {
+  min-width: 0;
+  overflow: hidden;
+  padding-inline-end: 4px;
+  color: var(--v2-state-fg-danger);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The three list states share one height: an empty, loading or failed list no longer jumps the card by 20-40px. */
 .settings-provider-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 160px;
-  padding: 24px;
+  min-height: 0;
+  padding-block: 48px;
+  padding-inline: 24px;
   text-align: center;
   color: rgba(255, 255, 255, 0.72);
 }
@@ -3262,16 +3327,19 @@
   border-radius: 0;
   background: transparent;
 
+  /* The button insets inside the card instead of pulling past it: the list's 10px corner used to clip 7px of its own
+     corners, which is why the control read as cut off. */
   > button {
     display: flex;
     height: 32px;
-    width: calc(100% + 32px);
+    width: calc(100% - 24px);
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin-inline: -16px;
+    margin-inline: 12px;
+    margin-block: 9px 11px;
     border: 1px solid rgba(255, 255, 255, 0.11);
-    border-radius: 7px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.035);
     padding-inline: 16px;
     color: rgba(255, 255, 255, 0.92);
@@ -3312,7 +3380,7 @@
   width: 640px;
   max-width: calc(100vw - 48px);
   height: auto;
-  min-height: 280px;
+  min-height: min(280px, calc(100vh - 48px));
   max-height: min(720px, calc(100vh - 48px));
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -3343,8 +3411,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 19px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 16px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
@@ -3359,7 +3427,7 @@
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  padding: 18px 19px;
+  padding: 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -3371,8 +3439,8 @@
   justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
-  padding: 12px 19px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 12px 16px 16px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
 }
 
 .settings-provider-custom-dialog button:focus-visible,
@@ -3381,16 +3449,21 @@
   outline-offset: 2px;
 }
 
-.settings-provider-custom-dialog :disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-}
+/* Disabled buttons keep the system's own 0.5 opacity; the local override dimmed them to 0.38 and made the footer's
+   primary action look broken next to every other dialog. */
 
 .settings-provider-custom-fields {
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 0 2px 4px;
+}
+
+/* The TextField's description slot had no styling here, so the ID and key hints rendered at the input's own size. */
+.settings-provider-custom-dialog [data-slot="input-description"] {
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-provider-custom-fields > [data-component="input"] {
@@ -3454,13 +3527,20 @@
   display: flex;
   min-height: 32px;
   align-items: center;
-  gap: 8px;
-  padding-inline: 8px;
+  gap: 10px;
+  padding-inline: 11px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
   line-height: 18px;
   cursor: default;
   transition: background 120ms ease;
+}
+
+/* The row's own box is the Checkbox root now, so the label's box has to take the rest of the line to keep the name
+   truncating instead of overflowing the row. */
+.settings-provider-custom-model [data-slot="checkbox-checkbox-content"] {
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-provider-custom-model + .settings-provider-custom-model {
@@ -3469,7 +3549,7 @@
 
 @media (hover: hover) {
   .settings-provider-custom-model:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.045);
   }
 
   .settings-provider-custom-chip:hover {
@@ -3477,12 +3557,13 @@
   }
 }
 
-/* Selection is one signal: the checkbox plus its ring. The fill and the lifted text fought it, so they are gone. */
+/* Selection is a quiet wash plus the checkbox: the ring drawn the row as an outline and read as an error state. */
 .settings-provider-custom-model:has(input:checked) {
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.45);
+  background: rgba(10, 132, 255, 0.08);
 }
 
 .settings-provider-custom-model-id {
+  display: block;
   min-width: 0;
   overflow: hidden;
   font-family: var(--font-family-mono);
@@ -3495,7 +3576,7 @@
 .settings-provider-custom-selected {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 7px;
 }
 
 .settings-provider-custom-chip {
@@ -3514,8 +3595,16 @@
   transition: background 120ms ease;
 }
 
+[data-color-scheme="light"] .settings-provider-custom-chip {
+  border-color: var(--v2-border-border-base);
+  background: rgba(0, 0, 0, 0.04);
+}
+
 .settings-provider-custom-chip > button {
   display: grid;
+  width: 20px;
+  height: 20px;
+  flex: none;
   place-items: center;
   color: inherit;
 
@@ -3542,6 +3631,76 @@
   color: rgba(255, 255, 255, 0.48);
   font-size: 12px;
   line-height: 18px;
+}
+
+/* A fetch that failed is an outcome, so it takes the danger tone; the note's neutral grey read like a hint. */
+.settings-provider-custom-note[data-tone="danger"] {
+  color: var(--v2-state-fg-danger);
+}
+
+/* The heading stacks the title group above the step indicator; the close button stays on the header's first line. */
+.settings-provider-custom-heading {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-provider-custom-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.settings-provider-custom-steps-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-provider-custom-steps-dots > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.settings-provider-custom-steps-dots > span[data-active] {
+  background: #0a84ff;
+}
+
+[data-color-scheme="light"] .settings-provider-custom-steps-dots > span {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+[data-color-scheme="light"] .settings-provider-custom-steps-dots > span[data-active] {
+  background: #0a84ff;
+}
+
+/* The count sits after the Models label; the auto end margin keeps Fetch models on the right edge. */
+.settings-provider-custom-models-count {
+  margin-inline-end: auto;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* A narrow sheet keeps Cancel and Back on one line and gives the primary action its own full-width row. */
+@media (max-width: 520px) {
+  [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-footer"] {
+    justify-content: space-between;
+  }
+
+  [data-component="dialog-v2"]
+    .settings-provider-custom-dialog
+    [data-slot="dialog-footer"]
+    > [data-component="button-v2"]:last-child {
+    flex: 1 1 100%;
+  }
 }
 
 .settings-provider-custom-error {

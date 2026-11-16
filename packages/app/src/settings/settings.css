@@ -20,7 +20,7 @@
   --settings-card-border: rgba(255, 255, 255, 0.09);
   --settings-card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
   --settings-card-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.025),
     0 2px 8px rgba(0, 0, 0, 0.08);
   /* The 45% focus ring token is below 3:1 on both schemes; settings draws its own ring at full accent. */
   --settings-focus-ring: 0 0 0 2px var(--v2-system-accent);
@@ -3848,7 +3848,7 @@
   --settings-card-border: var(--v2-border-border-base);
   --settings-card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
   --settings-card-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.025),
     0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -3866,7 +3866,7 @@
 }
 
 [data-color-scheme="light"] [data-slot="settings-row-title"] {
-  color: var(--v2-text-text-base);
+  color: var(--v2-text-text-muted);
 }
 
 /* A 0.5px line at 8% ink lands near 4% once the device halves it, so the header's hairline takes one step up in light. */

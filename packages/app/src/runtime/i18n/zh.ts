@@ -569,6 +569,7 @@ export const dict = {
   "settings.general.sounds.agent.description": "当智能体完成或需要注意时播放声音",
   "settings.general.sounds.independent": "即使关闭系统通知，音效仍会播放。",
   "settings.general.sounds.preview": "试听音效",
+  "settings.general.sounds.previewFor": "试听「{{name}}」音效",
   "settings.general.sounds.permissions.title": "权限",
   "settings.general.sounds.permissions.description": "当需要权限时播放声音",
   "settings.general.sounds.questions.title": "问题",

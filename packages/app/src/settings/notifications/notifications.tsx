@@ -89,7 +89,7 @@ const SoundSetting: Component<{
           variant="ghost-muted"
           size="large"
           class="settings-sounds-preview"
-          aria-label={language.t("settings.general.sounds.preview")}
+          aria-label={language.t("settings.general.sounds.previewFor", { name: language.t(config().title) })}
           disabled={current().id === "none"}
           icon={<Icon name="outline-wave-audio" size="small" />}
           onClick={() => props.channel.preview(current().id)}
@@ -115,12 +115,22 @@ export const SettingsNotifications: Component = () => {
   })
 
   // The permission can change outside this page, by another window or in the OS settings, so re-read it on return.
+  // `focus` covers the OS-settings round trip: an unfocused window keeps `visibilityState === "visible"`, so the
+  // visibility listener alone leaves a stale denied state behind. Both paths only read; only the button asks.
   onMount(() => {
-    makeEventListener(window, "visibilitychange", () => {
-      if (document.visibilityState !== "visible" || typeof Notification === "undefined") return
+    const refresh = () => {
+      if (typeof Notification === "undefined") return
 
       setState("permission", Notification.permission)
+    }
+
+    makeEventListener(window, "visibilitychange", () => {
+      if (document.visibilityState !== "visible") return
+
+      refresh()
     })
+
+    makeEventListener(window, "focus", refresh)
   })
 
   // The button disables while the browser prompt is open, and a request that fails is reported on its own line
@@ -156,7 +166,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-agent">
                 <Switch
                   checked={settings.notifications.agent()}
-                  disabled={state.permission === "unsupported"}
+                  disabled={state.permission === "unsupported" || state.permission === "denied"}
                   onChange={(checked) => settings.notifications.setAgent(checked)}
                 />
               </div>
@@ -169,7 +179,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-permissions">
                 <Switch
                   checked={settings.notifications.permissions()}
-                  disabled={state.permission === "unsupported"}
+                  disabled={state.permission === "unsupported" || state.permission === "denied"}
                   onChange={(checked) => settings.notifications.setPermissions(checked)}
                 />
               </div>
@@ -182,7 +192,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-questions">
                 <Switch
                   checked={settings.notifications.questions()}
-                  disabled={state.permission === "unsupported"}
+                  disabled={state.permission === "unsupported" || state.permission === "denied"}
                   onChange={(checked) => settings.notifications.setQuestions(checked)}
                 />
               </div>
@@ -195,7 +205,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-errors">
                 <Switch
                   checked={settings.notifications.errors()}
-                  disabled={state.permission === "unsupported"}
+                  disabled={state.permission === "unsupported" || state.permission === "denied"}
                   onChange={(checked) => settings.notifications.setErrors(checked)}
                 />
               </div>
@@ -210,7 +220,7 @@ export const SettingsNotifications: Component = () => {
               {language.t("settings.notifications.denied")}
             </p>
           </Show>
-          <Show when={state.permission === "default"}>
+          <Show when={state.permission === "default" && !state.requestFailed}>
             {/* The live region wraps the sentence, not the button: a status region is announced, not operated. */}
             <div class="settings-notifications-note">
               <span role="status">{language.t("settings.notifications.prompt")}</span>
@@ -225,7 +235,7 @@ export const SettingsNotifications: Component = () => {
               </Button>
             </div>
           </Show>
-          <Show when={state.requestFailed}>
+          <Show when={state.permission === "default" && state.requestFailed}>
             <p class="settings-notifications-note" role="alert">
               {language.t("settings.notifications.requestFailed")}
             </p>

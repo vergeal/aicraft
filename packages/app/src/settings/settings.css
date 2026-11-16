@@ -3262,7 +3262,7 @@
 
 .settings-extension-row {
   display: flex;
-  min-height: 48px;
+  min-height: 49px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;

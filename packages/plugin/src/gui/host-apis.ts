@@ -1950,6 +1950,13 @@ export interface UiSwitchProps {
   readonly description?: string
   /** The switch cannot be flipped. Defaults to false. */
   readonly disabled?: boolean
+  /**
+   * Applies the change and cannot be flipped while it is applying. Defaults to false.
+   *
+   * Disables the switch and marks it with `aria-busy` for the duration; it adds no spinner of its own, because the
+   * label sits inline and another node would change the switch's line height.
+   */
+  readonly busy?: boolean
 }
 
 /** Props of `Ui.TextInput`. */

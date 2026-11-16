@@ -117,8 +117,21 @@ export const ExploreSkills: Component = () => {
   })
 
   const skills = installed.skills
-  // A plugin's own skills are listed on that plugin's page, so the installed list only holds the user's skills.
-  const ownSkills = createMemo(() => skills().filter((skill) => !skill.plugin))
+  // A plugin lists the skills it contributes on its own page, so the installed list only holds the user's skills and
+  // the built-in parts that never appear on the Explore page.
+  const contributedSkills = createMemo(() => {
+    const ids = new Set<string>()
+
+    for (const plugin of installed.plugins()) {
+      if (plugin.id) ids.add(plugin.id)
+    }
+
+    return ids
+  })
+
+  const ownSkills = createMemo(() =>
+    skills().filter((skill) => !skill.plugin || !contributedSkills().has(skill.plugin)),
+  )
 
   const [catalog] = createResource(() => loadCatalog(serverSdk))
 

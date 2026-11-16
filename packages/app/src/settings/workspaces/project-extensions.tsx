@@ -280,14 +280,29 @@ export const ProjectSettingsExtensions: Component<{
     return pluginLabels(projectPluginList.latest ?? []).filter((name) => !shared.has(name))
   })
 
-  // A plugin's own skills are listed on the plugin's page, so the installed list only holds the user's skills.
-  const serverSkills = createMemo(() => (data.location.skill.list() ?? []).filter((item) => !item.plugin))
+  // A plugin lists the skills it contributes on its own page, so the installed list only holds the user's skills and
+  // the built-in parts that have no page to show them. Built-in skills such as the browser or orchestrator guidance
+  // stay listed, because their plugin never appears on the Explore page.
+  const contributedSkills = createMemo(() => {
+    const ids = new Set<string>()
+
+    for (const plugin of [...(globalPluginList.latest ?? []), ...(projectPluginList.latest ?? [])]) {
+      if (plugin.source.type === "builtin" || !plugin.id) continue
+      ids.add(plugin.id)
+    }
+
+    return ids
+  })
+
+  const listed = (item: { plugin?: string }) => !item.plugin || !contributedSkills().has(item.plugin)
+
+  const serverSkills = createMemo(() => (data.location.skill.list() ?? []).filter(listed))
 
   const projectSkills = createMemo(() => {
     const shared = new Set(serverSkills().map(skillKey))
 
     return (data.location.skill.list({ directory: directorySDK().directory }) ?? []).filter(
-      (item) => !shared.has(skillKey(item)) && !item.plugin,
+      (item) => !shared.has(skillKey(item)) && listed(item),
     )
   })
 

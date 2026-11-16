@@ -256,7 +256,7 @@ export const SettingsGeneral: Component = () => {
   return (
     <>
       <SettingsPageHeader
-        title={language.t("settings.tab.preferences")}
+        title={language.t("settings.nav.general")}
         description={language.t("settings.preferences.description")}
       />
       <div class="settings-tab-body settings-tab-body--sectioned">

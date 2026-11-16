@@ -138,14 +138,10 @@ export function SettingsNavigation(props: {
                 {(group) => (
                   <div class="settings-nav-group" role="presentation">
                     <Show when={group.label || group.action}>
-                      {/* Group names organize the list visually; they are not tabs, so they stay out of the
-                          tablist's reading order. */}
-                      <div
-                        class="settings-nav-group-header"
-                        data-component="settings-nav-group-header"
-                        aria-hidden="true"
-                      >
-                        <span>{group.label}</span>
+                      <div class="settings-nav-group-header" data-component="settings-nav-group-header">
+                        {/* Group names organize the list visually; they are not tabs, so the label stays out of the
+                            tablist's reading order. The optional action is a real control, so it does not. */}
+                        <span aria-hidden="true">{group.label}</span>
                         {group.action}
                       </div>
                     </Show>

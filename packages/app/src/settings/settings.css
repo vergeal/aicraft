@@ -287,10 +287,10 @@
   white-space: nowrap;
 }
 
-/* Selected row: the same hover tint as an unselected row. The 2px accent rail below is the selection cue, so the
-   fill does not need to step up to overlay-pressed and double the signal in light. */
+/* Selected row steps up from the unselected hover tint, so selection reads as a fill in both schemes and the 2px
+   accent rail below only anchors it. At overlay-hover the two states differed by the rail alone. */
 .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) {
-  background: var(--v2-overlay-simple-overlay-hover);
+  background: var(--v2-overlay-simple-overlay-pressed);
   color: var(--v2-text-text-base);
 }
 
@@ -867,10 +867,13 @@
 }
 
 /* The desktop sidebar renders the back control as a full-width row on the same 30px metric as the navigation items
-   below it; the mobile header keeps the 28px inline button so it still centers on the collapsed-sidebar toggle. */
+   below it; the mobile header keeps the 28px inline button so it still centers on the collapsed-sidebar toggle.
+   The nav list reserves the scrollbar's lane on both edges, so matching its inline margin keeps the same width and
+   the same left edge as the items instead of hanging 8px wider on each side. */
 .settings-nav > .settings-back {
   width: 100%;
   height: var(--settings-nav);
+  margin-inline: var(--scrollbar-size, 8px);
 }
 
 .settings-back:hover,
@@ -2565,11 +2568,6 @@
   font-variation-settings: "slnt" 0;
 }
 
-/* The key buttons keep their size when a long command name meets them; the name above shrinks instead. */
-.settings-shortcuts [data-component="settings-list"] > div > div {
-  flex-shrink: 0;
-}
-
 /* The whole row starts a recording, so the command name is part of the hit area too. The card owns
    overflow: hidden, so rows need no own first/last radius: giving them one made the first row rounded and the
    second square. */
@@ -2578,8 +2576,11 @@
   transition: background-color 120ms ease;
 }
 
-.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:hover {
-  background: var(--v2-overlay-simple-overlay-hover);
+/* Hover feedback is pointer-only: on touch it sticks to the row last tapped. */
+@media (hover: hover) {
+  .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
 }
 
 /* One hover layer: the row already reacts, and a second band on the key button made a single hover paint twice. */
@@ -2587,29 +2588,33 @@
   background: var(--v2-system-accent-soft);
 }
 
+/* A plugin's command title can be long; it truncates instead of wrapping the row past its 44px metric. */
 .settings-shortcut-name {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* A fixed keys column: both ends of the keys land on the same x across rows because the column is 112px wide, not
-   because each row reserves a minimum. Recording adds the Unbind button beside the capture, so that row's column
-   takes the wider 152px form instead of pushing the keys out of alignment. */
+/* The keys column is sized by its content, so a long chord no longer overflows to the left of a fixed 112px column,
+   and recording adds the Unbind button without narrowing the name by 40px. Every row's column still ends on the
+   row's right edge. The column may shrink to 112px, where the capture's keycaps wrap; the keycaps themselves keep
+   their own flex-shrink: 0, so a single cap is never squeezed. */
 .settings-shortcut-keys {
   display: flex;
+  min-width: 112px;
+  max-width: 100%;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  width: 112px;
-  flex-shrink: 0;
-}
-
-.settings-shortcut-keys:has([data-expanded]) {
-  width: 152px;
 }
 
 .settings-shortcut-capture {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
@@ -2662,7 +2667,9 @@
   padding-block: 10px;
 }
 
-/* The connection the settings screen is attached to gets a rail and a label, not just a shell action. */
+/* The connection the settings screen is attached to gets a rail and a label, not just a shell action. The rail
+   sits in the tab body's 32px inset, just outside the section: at inset-inline-start: 0 it drew over the first
+   character of the heading, and indenting the section instead would misalign this card against the others. */
 .settings-server-connection[data-current] {
   position: relative;
 }
@@ -2670,11 +2677,18 @@
 .settings-server-connection[data-current]::before {
   position: absolute;
   inset-block: 8px;
-  inset-inline-start: 0;
+  inset-inline-start: -8px;
   width: 2px;
   border-radius: 2px;
   background: var(--v2-text-text-accent);
   content: "";
+}
+
+/* A server name is user data, so a long one truncates like the row's own name rather than wrapping the heading. */
+.settings-server-connection .settings-section-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-servers-row:not(:last-child) {
@@ -2811,9 +2825,11 @@
   gap: 12px;
   padding: 14px 16px;
   overflow: hidden;
-  border-radius: 10px;
-  background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  border: 1px solid var(--settings-card-border);
+  border-radius: var(--settings-card-radius, 10px);
+  background-color: var(--settings-card-bg);
+  background-image: var(--settings-card-gradient);
+  box-shadow: var(--settings-card-shadow);
 }
 
 .settings-workspaces-empty-motion {
@@ -2923,9 +2939,11 @@
   white-space: nowrap;
 }
 
-/* The ellipsis eats the trailing separator, so a truncated directory gets one before the name. */
+/* The ellipsis eats the trailing separator, so a truncated directory gets one before the name. The separator is the
+   path's own, passed as data-separator: a CSS "\\" literal is a single backslash, which showed Windows paths on
+   every platform. */
 .settings-workspaces-path[data-truncated="true"] .settings-workspaces-path-name::before {
-  content: "\\";
+  content: attr(data-separator);
 }
 
 .settings-workspaces-path-name {

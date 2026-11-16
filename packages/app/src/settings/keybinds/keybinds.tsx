@@ -101,7 +101,7 @@ function recordKeybind(event: KeyboardEvent) {
   if (isModifier(event.key)) return
 
   // Tab is the keyboard's own navigation key: recording it would both swallow the focus move and bind a key the user
-  // can never press inside a text field. The capture listener already prevents the default move.
+  // can never press inside a text field. The capture listener lets it through and stops recording instead.
   if (event.key === "Tab") return
 
   const parts: string[] = []
@@ -364,6 +364,14 @@ export function createKeybindSettingsController(
 
     if (!id) return
 
+    // Tab belongs to the keyboard, not the recorder: it leaves the row instead of binding, and `recordKeybind`
+    // never binds it. Swallowing it trapped keyboard users in the recorder with only Escape to get out.
+    if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      stop()
+
+      return
+    }
+
     event.preventDefault()
     event.stopPropagation()
     event.stopImmediatePropagation()
@@ -432,7 +440,11 @@ export function createKeybindSettingsController(
           query,
           list(),
           grouped(),
-          (id) => formatKeybind(effective(id) ?? "", language.t),
+          (id) =>
+            (effective(id) ?? "")
+              .split(",")
+              .map((combo) => formatKeybind(combo, language.t))
+              .join(" "),
           (id) => searchAliases(effective(id)),
         ),
       title,
@@ -566,6 +578,8 @@ function SettingsKeybindsView(props: {
                                 class="settings-shortcut-capture"
                                 data-keybind-id={id}
                                 data-expanded={recording() ? "" : undefined}
+                                aria-label={language.t("settings.shortcuts.capture", { name: props.title(id) })}
+                                aria-pressed={recording()}
                               >
                                 <Show
                                   when={recording()}

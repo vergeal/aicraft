@@ -43,8 +43,10 @@ export const SettingsServerGeneral: Component<{ entry: SettingsServer; onAddServ
 
         <Show when={props.entry.connection && !isServerFailed(health()) ? props.entry.connection : undefined} keyed>
           {(server) => (
-            <section class="settings-section">
-              <h3 class="settings-section-title">{language.t("settings.tab.preferences")}</h3>
+            <section class="settings-section" aria-labelledby="settings-server-preferences-title">
+              <h3 id="settings-server-preferences-title" class="settings-section-title">
+                {language.t("settings.tab.preferences")}
+              </h3>
               <SettingsList>
                 <ServerShell server={server} />
               </SettingsList>
@@ -80,7 +82,12 @@ export const SettingsServerList: Component<{
               data-current={entry.key === props.selected ? "" : undefined}
               aria-labelledby={`settings-server-${entry.key}`}
             >
-              <h3 id={`settings-server-${entry.key}`} class="settings-section-title">
+              <h3
+                id={`settings-server-${entry.key}`}
+                class="settings-section-title"
+                dir="auto"
+                title={entry.name}
+              >
                 {entry.name}
               </h3>
               <SettingsList>

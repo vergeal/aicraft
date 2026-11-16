@@ -18,7 +18,7 @@ export const pageIcons = {
 } as const satisfies Record<SettingsRootTab, IconProps["name"]>
 
 export const pageLabels = {
-  general: "settings.tab.preferences",
+  general: "settings.nav.general",
   appearance: "settings.general.section.appearance",
   notifications: "settings.tab.notifications",
   shortcuts: "settings.shortcuts.title",

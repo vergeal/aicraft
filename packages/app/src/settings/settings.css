@@ -1432,6 +1432,12 @@
     padding: 0;
   }
 
+  /* The scrollbar lane is desktop-only: full width there is no lane to reserve, and the 8px margin would
+     push the search 8px past the back button in the mobile nav. */
+  .settings-nav .settings-search {
+    margin-inline: 0;
+  }
+
   .settings-nav > .settings-back,
   .settings-sidebar .settings-nav-groups[data-slot="tabs-v2-list"] {
     display: none;
@@ -2207,8 +2213,8 @@
 }
 
 /* A collapsed card ends at its header, so the header also carries the card's bottom corners; otherwise its square
-   fill overhangs the card's rounded edge. */
-.settings-models
+   fill overhangs the card's rounded edge. Scoped to the settings page: the manage dialog keeps its square header. */
+.settings-tab-body.settings-models
   .settings-section[data-component="settings-models-provider"]:not([data-expanded])
   > .settings-models-group-header {
   border-radius: var(--settings-card-radius, 10px);
@@ -2274,12 +2280,13 @@
   white-space: nowrap;
 }
 
-/* A step below the group title in size and ink: the count is metadata, and at the title's 12px/muted it read as part
-   of the label. `text-faint` is a step lighter than `muted` in both schemes, so the count recedes in light and dark. */
+/* A step below the group title in size and weight: the count is metadata. It stays on the muted ink because faint at
+   11px falls under the 4.5:1 contrast a small text needs on both schemes, and 11px/400 still separates it from the
+   12px/550 title. */
 .settings-models-group-count,
 .provider-model-group-count {
   flex-shrink: 0;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   font-size: 11px;
   font-weight: 400;
   line-height: var(--line-height-compact);
@@ -2322,8 +2329,11 @@
 }
 
 /* Same step as the top-level header: a collapsed group ends at its header, so the header also carries the card's
-   bottom corners instead of leaving its square fill over the rounded edge. */
-.provider-model-group:not([data-expanded]) > .provider-model-group-header {
+   bottom corners instead of leaving its square fill over the rounded edge. Scoped to the settings page: the manage and
+   connect dialogs keep the base radius, so their header reads the same expanded and collapsed. */
+.settings-tab-body.settings-models
+  .provider-model-group:not([data-expanded])
+  > .provider-model-group-header {
   border-radius: var(--settings-card-radius, 10px);
 }
 
@@ -3899,8 +3909,9 @@
   gap: 4px;
   padding: 3px 8px;
   border: 1px solid var(--v2-border-border-base);
-  /* A pill is the one shape in Settings that is not on the 6px control radius. */
-  border-radius: 999px;
+  /* The design's own chip radius; the pill was an R3 deviation. Colour and size stay as they are: the design's
+     11px accent-on-14%-accent chip only reaches ~3.3:1, and 24px keeps a usable hit area. */
+  border-radius: 5px;
   background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-base);
   font-size: 12px;
@@ -4102,7 +4113,7 @@
 }
 
 [data-color-scheme="light"] [data-slot="settings-row-title"] {
-  color: var(--v2-text-text-muted);
+  color: var(--v2-text-text-base);
 }
 
 /* A 0.5px line at 8% ink lands near 4% once the device halves it, so the header's hairline takes one step up in light. */
@@ -4240,10 +4251,6 @@
 /* Custom provider sheet: the container reads `--settings-sheet-*` directly, so the light scheme needs no copy here. */
 [data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
   color: var(--v2-text-text-base);
-}
-
-[data-color-scheme="light"] .settings-provider-custom-fields [data-slot="input-label"] {
-  color: var(--v2-text-text-muted);
 }
 
 [data-color-scheme="light"] .settings-provider-custom-model {

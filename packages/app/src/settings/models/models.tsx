@@ -111,8 +111,11 @@ export const SettingsModels: Component<{
                     ref={(element) => {
                       // Only a truncated name needs the native tooltip; a short one would pop a redundant title, and
                       // the row's accessible name already comes from `aria-labelledby`.
+                      // The ellipsis lives on the title slot, not on this inline box: an inline element has no layout
+                      // box, so both clientWidth and scrollWidth read zero and no name would ever get a tooltip.
                       requestAnimationFrame(() => {
-                        element.title = element.scrollWidth > element.clientWidth ? item.name : ""
+                        const target = element.parentElement ?? element
+                        target.title = target.scrollWidth > target.clientWidth ? item.name : ""
                       })
                     }}
                   >

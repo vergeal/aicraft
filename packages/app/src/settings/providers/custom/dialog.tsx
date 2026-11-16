@@ -308,11 +308,11 @@ export function DialogCustomProvider(props: {
               <section class="settings-provider-custom-section">
                 <div class="settings-provider-custom-section-head">
                   <h2 class="settings-provider-custom-section-title">{language.t("settings.providers.custom.models")}</h2>
-                  <Show when={discovered().length > 0}>
+                  <Show when={discovered().length > 0 || models().length > 0}>
                     <span class="settings-provider-custom-section-count">
                       {language.t("settings.providers.custom.models.summary", {
                         selected: models().length,
-                        total: discovered().length,
+                        total: new Set([...discovered().map((model) => model.id), ...models()]).size,
                       })}
                     </span>
                   </Show>

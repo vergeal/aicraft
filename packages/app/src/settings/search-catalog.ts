@@ -20,7 +20,7 @@ export const clientSettings: Entry<SettingsRootTab>[] = [
   { tab: "appearance", label: "settings.general.section.appearance" },
   { tab: "notifications", label: "settings.tab.notifications" },
   { tab: "shortcuts", label: "settings.shortcuts.title", keywords: "keybind keyboard hotkey" },
-  { tab: "about", label: "settings.nav.versionInfo", keywords: "version license credits 关于 版本 许可 致谢" },
+  { tab: "about", label: "settings.nav.versionInfo", keywords: "about version license credits 关于 版本 许可 致谢" },
   { tab: "experimental", label: "settings.tab.experimental", keywords: "experiments preview beta" },
   { tab: "general", label: "settings.general.row.language.title", target: "settings-language" },
   {
@@ -66,7 +66,6 @@ export const clientSettings: Entry<SettingsRootTab>[] = [
     tab: "general",
     label: "settings.general.row.showCustomAgents.title",
     target: "settings-show-custom-agents",
-    section: "settings.general.section.general",
   },
   {
     tab: "experimental",

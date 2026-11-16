@@ -35,7 +35,7 @@ export type CatalogPlugin = {
    * A single-file `.craf` bundle. There is no package to fetch and no config entry to write: the host unpacks the
    * file into `~/.opencode/ocplugins/<id>/`, so the card shows the bundle instead of offering a package install.
    */
-  bundle?: { file: string; format: "agp" }
+  bundle?: { file: string; format: "craf" }
   /** The version shown on the install card. */
   version?: string
   /** Every version available in the local discover directory, newest first. */
@@ -109,7 +109,7 @@ export function loadLocalCatalog(server: {
         description: entry.display?.description ?? "",
         package: entry.id,
         repository: "",
-        bundle: { file: newest?.file ?? `${entry.id}.craf`, format: "agp" as const },
+        bundle: { file: newest?.file ?? `${entry.id}.craf`, format: "craf" as const },
         ...(newest ? { version: newest.version } : {}),
         versions: entry.versions,
         ...(entry.display?.tools ? { tools: entry.display.tools } : {}),

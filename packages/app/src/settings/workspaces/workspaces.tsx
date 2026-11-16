@@ -576,11 +576,15 @@ export const SettingsWorkspaces: Component<{
 }
 
 function WorkspacePath(props: { directory: string }) {
-  const [truncated, setTruncated] = createSignal(false)
+  const [directoryTruncated, setDirectoryTruncated] = createSignal(false)
+  const [nameTruncated, setNameTruncated] = createSignal(false)
+  const truncated = () => directoryTruncated() || nameTruncated()
   const name = () => getFilename(props.directory)
-  // The directory segment ellipsizes inside the row, so the row itself never overflows: measure that segment.
-  const measure = (element: HTMLElement) =>
-    createResizeObserver(element, () => setTruncated(element.scrollWidth > element.clientWidth))
+  // The inserted separator is the path's own, so a Windows path keeps "\" and a POSIX one "/".
+  const separator = () => (props.directory.includes("\\") ? "\\" : "/")
+  // Both segments ellipsize inside the row, so measure each: a long file name alone still truncates the path.
+  const measure = (set: (value: boolean) => void) => (element: HTMLElement) =>
+    createResizeObserver(element, () => set(element.scrollWidth > element.clientWidth))
 
   return (
     <Tooltip
@@ -596,8 +600,14 @@ function WorkspacePath(props: { directory: string }) {
         data-truncated={truncated() ? "true" : undefined}
         class="settings-workspaces-path"
       >
-        <span ref={measure}>{props.directory.slice(0, -name().length)}</span>
-        <span class="settings-workspaces-path-name">{name()}</span>
+        <span ref={measure(setDirectoryTruncated)}>{props.directory.slice(0, -name().length)}</span>
+        <span
+          ref={measure(setNameTruncated)}
+          data-separator={separator()}
+          class="settings-workspaces-path-name"
+        >
+          {name()}
+        </span>
       </span>
     </Tooltip>
   )
@@ -689,7 +699,7 @@ function DialogDeleteWorkspace(props: {
                 <span class="text-11-regular text-v2-text-text-faint">
                   {language.t(status.isPending ? "workspace.status.checking" : "workspace.delete.location")}
                 </span>
-                <code class="block w-fit max-w-full rounded-[4px] bg-v2-background-bg-layer-02 px-2 py-1 font-mono text-[12px] font-normal leading-[var(--line-height-compact)] text-v2-text-text-base break-all">
+                <code class="block w-fit max-w-full rounded-[4px] bg-v2-background-bg-layer-02 px-2 py-1 font-mono text-[13px] font-normal leading-[var(--line-height-compact)] text-v2-text-text-base break-all">
                   {props.workspace.directory}
                 </code>
               </div>

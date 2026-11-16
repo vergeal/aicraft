@@ -432,7 +432,11 @@ export function createKeybindSettingsController(
           query,
           list(),
           grouped(),
-          (id) => formatKeybind(effective(id) ?? "", language.t),
+          (id) =>
+            (effective(id) ?? "")
+              .split(",")
+              .map((combo) => formatKeybind(combo, language.t))
+              .join(" "),
           (id) => searchAliases(effective(id)),
         ),
       title,

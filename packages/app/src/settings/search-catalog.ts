@@ -16,7 +16,7 @@ type Entry<Tab> = {
 }
 
 export const clientSettings: Entry<SettingsRootTab>[] = [
-  { tab: "general", label: "settings.tab.preferences" },
+  { tab: "general", label: "settings.nav.general" },
   { tab: "appearance", label: "settings.general.section.appearance" },
   { tab: "notifications", label: "settings.tab.notifications" },
   { tab: "shortcuts", label: "settings.shortcuts.title", keywords: "keybind keyboard hotkey" },

@@ -587,6 +587,8 @@ export const dict = {
   "settings.shortcuts.unassigned": "未设置",
   "settings.shortcuts.pressKeys": "按下按键",
   "settings.shortcuts.capture": "录制「{{name}}」的快捷键",
+  "settings.shortcuts.capture.current": "为 {{name}} 录制快捷键。当前：{{keys}}。",
+  "settings.shortcuts.capture.recording": "请按下要设置的快捷键：{{name}}",
   "settings.shortcuts.unbind": "取消绑定",
   "settings.shortcuts.search.placeholder": "搜索快捷键",
   "settings.shortcuts.group.general": "通用",

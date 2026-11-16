@@ -2213,8 +2213,8 @@
 }
 
 /* A collapsed card ends at its header, so the header also carries the card's bottom corners; otherwise its square
-   fill overhangs the card's rounded edge. */
-.settings-models
+   fill overhangs the card's rounded edge. Scoped to the settings page: the manage dialog keeps its square header. */
+.settings-tab-body.settings-models
   .settings-section[data-component="settings-models-provider"]:not([data-expanded])
   > .settings-models-group-header {
   border-radius: var(--settings-card-radius, 10px);

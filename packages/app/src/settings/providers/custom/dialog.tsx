@@ -86,9 +86,11 @@ export function DialogCustomProvider(props: {
     const current = state()
     return current.type === "editing" ? current.error : undefined
   }
+  // A save keeps what discovery already fetched: the model list stays on screen while the request runs instead of
+  // collapsing to the empty state and jumping the sheet's height.
   const discovery = () => {
     const current = state()
-    return current.type === "editing" ? current.discovery : ({ type: "idle" } as const)
+    return current.type === "editing" || current.type === "saving" ? current.discovery : ({ type: "idle" } as const)
   }
 
   const run = (effect: CustomProviderEffect) => {
@@ -356,6 +358,12 @@ export function DialogCustomProvider(props: {
                     </For>
                   </div>
                 </Show>
+                {/* An empty selection is a neutral note, not an error: the user has not failed at anything yet. It sits
+                    directly under the list it describes, not under the manual field, where it read as a caption for
+                    "Add model ID". */}
+                <Show when={models().length === 0}>
+                  <p class="settings-provider-custom-note">{language.t("settings.providers.custom.models.empty")}</p>
+                </Show>
                 <div class="settings-provider-custom-manual">
                   <TextField
                     hideLabel
@@ -380,10 +388,6 @@ export function DialogCustomProvider(props: {
                     {language.t("settings.providers.custom.models.manual.add")}
                   </Button>
                 </div>
-                {/* An empty selection is a neutral note, not an error: the user has not failed at anything yet. */}
-                <Show when={models().length === 0}>
-                  <p class="settings-provider-custom-note">{language.t("settings.providers.custom.models.empty")}</p>
-                </Show>
               </div>
             </Show>
           )}
@@ -397,7 +401,9 @@ export function DialogCustomProvider(props: {
             </p>
           )}
         </Show>
-        <Button size="normal" variant="ghost-muted" disabled={busy(state())} onClick={() => dialog.close()}>
+        {/* Cancel never waits on the request: the machine closes from any state, and a save that lands afterwards
+            refreshes the list through the server's `config.updated` event. */}
+        <Button size="normal" variant="ghost-muted" onClick={() => dialog.close()}>
           {language.t("common.cancel")}
         </Button>
         <Show when={step() === "models"}>

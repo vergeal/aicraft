@@ -5,6 +5,7 @@ import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Loader } from "@opencode/ui/loader"
 import { Menu } from "@opencode/ui/menu"
+import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
 import { showToast } from "@/shell/notifications/toast"
 import { useQuery } from "@tanstack/solid-query"
@@ -509,23 +510,28 @@ export const SettingsProviders: Component<{
             <Menu.Content class="settings-provider-account-menu" onEscapeKeyDown={(event) => event.stopPropagation()}>
               <Menu.Group>
                 <Menu.GroupLabel>{language.t("settings.providers.account.group")}</Menu.GroupLabel>
-                <Menu.RadioGroup
-                  class="settings-provider-account-list"
-                  value={active()?.id}
-                  onChange={(credentialID) => {
-                    const account = accounts().find((item) => item.id === credentialID)
-
-                    if (account) void activate(menuProps.provider, name(), account)
-                  }}
+                <MenuScroll
+                  class="settings-provider-account-scroll"
+                  viewportClass="settings-provider-account-viewport"
                 >
-                  <For each={accounts()}>
-                    {(account) => (
-                      <Menu.RadioItem value={account.id} closeOnSelect disabled={state.credentialID !== undefined}>
-                        <span class="settings-provider-account-label">{account.label}</span>
-                      </Menu.RadioItem>
-                    )}
-                  </For>
-                </Menu.RadioGroup>
+                  <Menu.RadioGroup
+                    class="settings-provider-account-list"
+                    value={active()?.id}
+                    onChange={(credentialID) => {
+                      const account = accounts().find((item) => item.id === credentialID)
+
+                      if (account) void activate(menuProps.provider, name(), account)
+                    }}
+                  >
+                    <For each={accounts()}>
+                      {(account) => (
+                        <Menu.RadioItem value={account.id} closeOnSelect disabled={state.credentialID !== undefined}>
+                          <span class="settings-provider-account-label">{account.label}</span>
+                        </Menu.RadioItem>
+                      )}
+                    </For>
+                  </Menu.RadioGroup>
+                </MenuScroll>
               </Menu.Group>
               <Menu.Separator />
               <Menu.Item disabled={state.credentialID !== undefined} onSelect={() => connect(menuProps.provider.id)}>

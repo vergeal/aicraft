@@ -3912,13 +3912,6 @@
   line-height: 16px;
 }
 
-/* The same line doubles as the models field's error when everything else in the form is already valid. The field
-   errors live inside TextField's own error slot, which cannot be reached from here, so the hint keeps its metrics and
-   only takes the danger ink. */
-.settings-provider-custom-hint[data-tone="danger"] {
-  color: var(--v2-state-fg-danger);
-}
-
 .settings-provider-custom-empty {
   margin: 0;
   padding: 22px 12px;

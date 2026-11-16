@@ -421,18 +421,13 @@ export function DialogCustomProvider(props: {
                     </Button>
                   </div>
                 </div>
-                <Show
-                  when={modelsError(value()) && detailsValid(value(), props.taken, mode)}
-                  fallback={
-                    <p class="settings-provider-custom-hint">{language.t("settings.providers.custom.models.hint")}</p>
-                  }
-                >
-                  {/* The disabled primary action explains itself only once the rest of the form is valid, so an empty
-                      new dialog does not open on a red line. */}
-                  <p class="settings-provider-custom-hint" data-tone="danger">
-                    {language.t("settings.providers.custom.models.required")}
-                  </p>
-                </Show>
+                <p class="settings-provider-custom-hint">
+                  {language.t(
+                    detailsValid(value(), props.taken, mode) && modelsError(value())
+                      ? "settings.providers.custom.models.required"
+                      : "settings.providers.custom.models.hint",
+                  )}
+                </p>
               </section>
             </>
           )}

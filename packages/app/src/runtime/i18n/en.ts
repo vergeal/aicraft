@@ -1490,6 +1490,13 @@ export const dict = {
   "settings.providers.custom.models.hint":
     "Selected models appear in the model picker. If fetching fails, add IDs by hand.",
   "settings.providers.custom.models.fetchFailed": "Could not list models from this endpoint. Add them manually.",
+  "settings.providers.custom.models.failed.auth": "The API key is invalid or expired. Check the key and try again.",
+  "settings.providers.custom.models.failed.address":
+    "This endpoint did not return a model list. Check the URL: OpenAI-compatible endpoints usually end with /v1.",
+  "settings.providers.custom.models.failed.timeout": "The request timed out. Check the endpoint URL and try again.",
+  "settings.providers.custom.models.failed.connection":
+    "Could not connect to this endpoint. Check the URL and that the server is reachable.",
+  "settings.providers.custom.models.keyPending": "Reading the stored key…",
   "settings.providers.custom.models.manual": "Add model ID",
   "settings.providers.custom.models.manual.add": "Add",
   "settings.providers.custom.models.required": "Add at least one model.",

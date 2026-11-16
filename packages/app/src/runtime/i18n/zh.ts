@@ -656,6 +656,12 @@ export const dict = {
   "settings.providers.custom.models.noMatch": "没有匹配的模型。可以手动输入模型 ID。",
   "settings.providers.custom.models.hint": "勾选的模型会出现在模型选择器里。拉取失败也可以手动填写。",
   "settings.providers.custom.models.fetchFailed": "无法从该端点列出模型。请手动添加。",
+  "settings.providers.custom.models.failed.auth": "API 密钥无效或已过期，请检查密钥后重试。",
+  "settings.providers.custom.models.failed.address":
+    "该地址没有返回模型列表。请检查地址，OpenAI 兼容接口通常以 /v1 结尾。",
+  "settings.providers.custom.models.failed.timeout": "请求超时，请检查接口地址后重试。",
+  "settings.providers.custom.models.failed.connection": "无法连接该地址，请检查地址以及服务器是否可达。",
+  "settings.providers.custom.models.keyPending": "正在读取已保存的密钥…",
   "settings.providers.custom.models.manual": "添加模型 ID",
   "settings.providers.custom.models.manual.add": "添加",
   "settings.providers.custom.models.required": "请至少添加一个模型。",

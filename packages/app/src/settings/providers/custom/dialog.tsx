@@ -6,6 +6,7 @@ import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { TextField } from "@opencode/ui/text-field"
+import { Predicate } from "effect"
 import { createMemo, createSignal, For, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -47,6 +48,11 @@ export function DialogCustomProvider(props: {
    * unchanged field keeps the stored key on save. It is never written into the draft or shown in the field.
    */
   existingApiKey?: string
+  /**
+   * True while the credential list that supplies `existingApiKey` is still loading. Discovery would otherwise go out
+   * without the stored key and come back as an invalid key, which is the wrong thing to tell the user.
+   */
+  existingKeyLoading?: boolean
   /** Every provider ID the configuration already declares. */
   taken: readonly string[]
   /** Opens with this field focused, so "Replace API key" lands on the key instead of the top of the form. */
@@ -94,6 +100,10 @@ export function DialogCustomProvider(props: {
   // The machine only records that discovery failed; the reason belongs to the request that produced it.
   const [discoveryError, setDiscoveryError] = createStore<{ message?: string }>({})
 
+  // An edit borrows the stored key for discovery, so a fetch started before that key loads would go out anonymous and
+  // be reported as a bad key. A key the user already typed needs no wait.
+  const keyPending = () => mode === "edit" && props.existingKeyLoading === true && !draft()?.apiKey
+
   const run = (effect: CustomProviderEffect) => {
     if (effect.type === "discover.run") {
       const attempt = effect.attempt
@@ -102,7 +112,7 @@ export function DialogCustomProvider(props: {
         .models({ baseURL: effect.baseURL, apiKey: effect.apiKey ?? props.existingApiKey })
         .then((models) => dispatch({ type: "discover.succeeded", attempt, models }))
         .catch((cause: unknown) => {
-          setDiscoveryError("message", formatServerError(cause, language.t))
+          setDiscoveryError("message", discoveryFailure(cause, language))
           dispatch({ type: "discover.failed", attempt })
         })
       return
@@ -340,7 +350,7 @@ export function DialogCustomProvider(props: {
                       size="small"
                       variant="outline"
                       class="settings-provider-custom-fetch"
-                      disabled={discovery().type === "loading"}
+                      disabled={discovery().type === "loading" || keyPending()}
                       onClick={() => dispatch({ type: "discover.start" })}
                     >
                       <Show when={discovery().type === "loading"} fallback={<Icon name="refresh" size="small" />}>
@@ -353,6 +363,11 @@ export function DialogCustomProvider(props: {
                           : language.t("settings.providers.custom.models.fetch")}
                     </Button>
                   </div>
+                  <Show when={keyPending()}>
+                    <p class="settings-provider-custom-empty">
+                      {language.t("settings.providers.custom.models.keyPending")}
+                    </p>
+                  </Show>
                   <Show when={discovery().type === "failed"}>
                     <p class="settings-provider-custom-alert" role="alert">
                       <Icon name="circle-exclamation" size="small" />
@@ -441,6 +456,23 @@ export function DialogCustomProvider(props: {
       </DialogFooter>
     </Dialog>
   )
+}
+
+/**
+ * The server names which kind of discovery failure it hit, so the dialog can say the same thing in the user's
+ * language instead of showing the English message the route carries for other clients. A cause without a known kind
+ * keeps that message, then the dialog's own line.
+ */
+function discoveryFailure(cause: unknown, language: ReturnType<typeof useLanguage>) {
+  if (Predicate.hasProperty(cause, "kind") && Predicate.isString(cause.kind)) {
+    if (cause.kind === "provider.models.auth") return language.t("settings.providers.custom.models.failed.auth")
+    if (cause.kind === "provider.models.address") return language.t("settings.providers.custom.models.failed.address")
+    if (cause.kind === "provider.models.timeout") return language.t("settings.providers.custom.models.failed.timeout")
+    if (cause.kind === "provider.models.connection")
+      return language.t("settings.providers.custom.models.failed.connection")
+  }
+
+  return formatServerError(cause, language.t, language.t("settings.providers.custom.models.fetchFailed"))
 }
 
 /**

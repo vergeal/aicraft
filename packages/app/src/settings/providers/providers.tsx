@@ -319,6 +319,8 @@ export const SettingsProviders: Component<{
           directory={props.directory}
           provider={provider}
           existingApiKey={existingApiKey(provider)}
+          // Discovery borrows the stored key on edit, so it has to wait for the list that supplies it.
+          existingKeyLoading={!credentials.data}
           taken={providerIDs()}
           focusField={focusField}
         />

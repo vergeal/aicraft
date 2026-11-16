@@ -14,7 +14,7 @@ import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { showToast } from "@/shell/notifications/toast"
 import type { ExperimentalConfigUpdateInput } from "@opencode/client/promise"
-import { baseURLError, idError, providerConfig, type CustomProviderDraft } from "./draft"
+import { baseURLError, detailsValid, idError, modelsError, providerConfig, type CustomProviderDraft } from "./draft"
 import {
   busy,
   canSubmit,
@@ -421,7 +421,18 @@ export function DialogCustomProvider(props: {
                     </Button>
                   </div>
                 </div>
-                <p class="settings-provider-custom-hint">{language.t("settings.providers.custom.models.hint")}</p>
+                <Show
+                  when={modelsError(value()) && detailsValid(value(), props.taken, mode)}
+                  fallback={
+                    <p class="settings-provider-custom-hint">{language.t("settings.providers.custom.models.hint")}</p>
+                  }
+                >
+                  {/* The disabled primary action explains itself only once the rest of the form is valid, so an empty
+                      new dialog does not open on a red line. */}
+                  <p class="settings-provider-custom-hint" data-tone="danger">
+                    {language.t("settings.providers.custom.models.required")}
+                  </p>
+                </Show>
               </section>
             </>
           )}

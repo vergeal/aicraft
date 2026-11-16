@@ -33,7 +33,7 @@ import { useLayout } from "@/shell/state/layout"
 import { showToast } from "@/shell/notifications/toast"
 import { sessionHref } from "@/shell/routes/session"
 import { createWorktree } from "@/workspaces/create"
-import { createSessionInbox, type InboxEntry, type InboxStatus } from "@/shell/titlebar/inbox-model"
+import { createSessionInbox, inboxArchived, type InboxEntry, type InboxStatus } from "@/shell/titlebar/inbox-model"
 import { deliveryFrom, playDeliveryFlight, playUndoDrop } from "./envelope-flight"
 import { InboxNav } from "./sidebar-inbox"
 import { ExploreNav } from "./sidebar-explore"
@@ -147,6 +147,7 @@ function SessionRow(props: {
   group: string
   index: number
   onOpen: (entry: InboxEntry) => void
+  onArchive: (entry: InboxEntry) => void
   onDelete: (entry: InboxEntry) => void
 }) {
   const language = useLanguage()
@@ -336,13 +337,14 @@ function SessionRow(props: {
         // Placeholder until a session can open in a second window.
         { id: "openInNewWindow", label: language.t("common.openInNewWindow"), icon: "newWindow", enabled: false },
         { type: "separator" },
-        // Placeholder until the session archive API is available from the client.
         {
           id: "archive",
-          label: language.t("common.archive"),
+          label:
+            session.time.archived !== undefined
+              ? language.t("common.unarchive")
+              : language.t("common.archive"),
           accelerator: "Shift+CmdOrCtrl+A",
           icon: "archive",
-          enabled: false,
         },
         { type: "separator" },
         { id: "delete", label: `${language.t("common.delete")}…`, icon: "delete" },
@@ -357,6 +359,7 @@ function SessionRow(props: {
       dialog.show(() => <SessionSettingsDialog server={entry.server} session={entry.session} />)
     else if (chosen === "projectSettings") openProjectSettings()
     else if (chosen === "createBranch") void createBranch()
+    else if (chosen === "archive") props.onArchive(entry)
     else if (chosen === "delete") props.onDelete(props.entry())
   }
 
@@ -465,6 +468,11 @@ function SessionRow(props: {
               {pins.isPinned(props.entry().session.id) ? language.t("common.unpin") : language.t("common.pin")}
             </Menu.Item>
             <Menu.Item onSelect={startRename}>{language.t("common.rename")}</Menu.Item>
+            <Menu.Item onSelect={() => props.onArchive(props.entry())}>
+              {props.entry().session.time.archived !== undefined
+                ? language.t("common.unarchive")
+                : language.t("common.archive")}
+            </Menu.Item>
           </Menu.Group>
           <Menu.Separator />
           <Menu.Group>
@@ -605,7 +613,7 @@ function ConversationNav() {
     return pins.ids().flatMap((id) => {
       const entry = byID.get(id)
 
-      return entry ? [entry] : []
+      return entry && !inboxArchived(entry) ? [entry] : []
     })
   })
 
@@ -613,7 +621,10 @@ function ConversationNav() {
   // order, so sending a message never reorders the list under the pointer.
   const recent = createMemo(() => {
     const pinnedIDs = new Set(pins.ids())
-    const list = inbox.entries().filter((entry) => !pinnedIDs.has(entry.session.id))
+    // Archiving keeps the session in the local store, so the row has to leave the list here as well as from the index.
+    const list = inbox
+      .entries()
+      .filter((entry) => !pinnedIDs.has(entry.session.id) && !inboxArchived(entry))
     const byID = new Map(list.map((entry) => [entry.session.id, entry]))
     const ranked = new Set(order.recent)
     const fresh = list
@@ -671,6 +682,16 @@ function ConversationNav() {
     const directory = entry.ctx.projects.forSession(entry.session)?.worktree ?? entry.session.location.directory
     inbox.open(entry)
     entry.ctx.projects.touch(directory)
+  }
+
+  const archive = (entry: InboxEntry) => {
+    if (inboxArchived(entry)) {
+      void inbox.unarchive(entry)
+
+      return
+    }
+
+    void inbox.archive(entry)
   }
 
   const confirmDelete = (entry: InboxEntry) => {
@@ -805,6 +826,7 @@ function ConversationNav() {
                       group={PINNED_GROUP}
                       index={pinned().findIndex((item) => item.key === entry().key)}
                       onOpen={open}
+                      onArchive={archive}
                       onDelete={confirmDelete}
                     />
                   )}
@@ -825,6 +847,7 @@ function ConversationNav() {
                       group={RECENT_GROUP}
                       index={recent().findIndex((item) => item.key === entry().key)}
                       onOpen={open}
+                      onArchive={archive}
                       onDelete={confirmDelete}
                     />
                   )}

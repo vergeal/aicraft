@@ -788,6 +788,7 @@ export const dict = {
   "common.export": "Export",
   "common.reset": "Reset",
   "common.archive": "Archive",
+  "common.unarchive": "Unarchive",
   "common.markUnread": "Mark as Unread",
   "common.copy": "Copy",
   "common.openInNewWindow": "Open in New Window",

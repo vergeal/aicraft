@@ -39,6 +39,7 @@ export function HomeSessions(props: {
           onCreateSession={props.sessions.session.create}
           onOpenSession={props.sessions.session.open}
           onArchiveSession={props.sessions.session.archive}
+          onUnarchiveSession={props.sessions.session.unarchive}
           onRenameSession={props.sessions.session.rename}
           onSessionSettings={props.sessions.session.settings}
           onExportSession={props.sessions.session.export}

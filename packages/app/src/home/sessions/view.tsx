@@ -88,6 +88,7 @@ export type HomeSessionsViewProps = {
   onCreateSession: () => void
   onOpenSession: (session: SessionInfo, options?: OpenSessionOptions) => void
   onArchiveSession: (session: SessionInfo) => Promise<void>
+  onUnarchiveSession: (session: SessionInfo) => Promise<void>
   onRenameSession: (server: ServerConnection.Key, session: SessionInfo, title: string) => Promise<boolean>
   onSessionSettings: (server: ServerConnection.Key, session: SessionInfo) => void
   onExportSession: (server: ServerConnection.Key, session: SessionInfo) => Promise<void>
@@ -707,6 +708,13 @@ function HomeSessionRow(
           label: props.isPinned(session) ? props.language.t("common.unpin") : props.language.t("common.pin"),
         },
         { id: "rename", label: props.language.t("common.rename") },
+        {
+          id: "archive",
+          label:
+            session.time.archived !== undefined
+              ? props.language.t("common.unarchive")
+              : props.language.t("common.archive"),
+        },
         { type: "separator" },
         { id: "copyID", label: props.language.t("command.session.copyID") },
         { id: "export", label: `${props.language.t("common.export")}…` },
@@ -722,6 +730,10 @@ function HomeSessionRow(
     if (chosen === "open") props.onOpenSession(session)
     else if (chosen === "pin") props.onTogglePin(session)
     else if (chosen === "rename") openEditor()
+    else if (chosen === "archive")
+      void (session.time.archived !== undefined
+        ? props.onUnarchiveSession(session)
+        : props.onArchiveSession(session))
     else if (chosen === "copyID") void copySessionID(session.id)
     else if (chosen === "export") void props.onExportSession(props.server, session)
     else if (chosen === "settings") props.onSessionSettings(props.server, session)
@@ -978,6 +990,17 @@ function HomeSessionRow(
                   : props.language.t("common.pin")}
               </Menu.Item>
               <Menu.Item onSelect={openEditor}>{props.language.t("common.rename")}</Menu.Item>
+              <Menu.Item
+                onSelect={() =>
+                  void (props.record.session.time.archived !== undefined
+                    ? props.onUnarchiveSession(props.record.session)
+                    : props.onArchiveSession(props.record.session))
+                }
+              >
+                {props.record.session.time.archived !== undefined
+                  ? props.language.t("common.unarchive")
+                  : props.language.t("common.archive")}
+              </Menu.Item>
             </Menu.Group>
             <Menu.Separator />
             <Menu.Group>

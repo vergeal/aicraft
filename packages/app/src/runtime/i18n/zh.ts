@@ -444,6 +444,7 @@ export const dict = {
   "common.export": "导出",
   "common.reset": "重置",
   "common.archive": "归档",
+  "common.unarchive": "取消归档",
   "common.markUnread": "标记为未读",
   "common.copy": "复制",
   "common.openInNewWindow": "在新窗口中打开",

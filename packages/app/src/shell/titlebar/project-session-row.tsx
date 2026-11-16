@@ -77,6 +77,34 @@ export function ProjectSessionRow(props: {
       })
   }
 
+  const archive = () => {
+    const current = ctx()
+
+    if (!current) return
+    const archived = props.session.time.archived !== undefined
+    const conn = connection()
+
+    void current.sdk.api.session
+      .update({ sessionID: props.session.id, archived: !archived })
+      .then(() => {
+        // Archiving removes the session from Home and closes its tab; unarchiving only brings it back to Home.
+        if (!archived)
+          notifySessionTabsRemoved({
+            server: props.server,
+            directory: props.session.location.directory,
+            sessionIDs: [props.session.id],
+          })
+        void current.data.session.sync(props.session.id).catch(() => undefined)
+        void queryClient.invalidateQueries({ queryKey: ["home-sessions", conn], exact: true })
+      })
+      .catch((cause) => {
+        showToast({
+          title: language.t("common.requestFailed"),
+          description: errorMessage(cause, language.t("common.requestFailed")),
+        })
+      })
+  }
+
   function DeleteDialog() {
     const confirm = () => {
       const current = ctx()
@@ -191,6 +219,11 @@ export function ProjectSessionRow(props: {
               onSelect={() => dialog.show(() => <RenameDialog title={sessionLabel(props.session)} onRename={rename} />)}
             >
               {language.t("common.rename")}
+            </Menu.Item>
+            <Menu.Item disabled={!ctx()} onSelect={archive}>
+              {props.session.time.archived !== undefined
+                ? language.t("common.unarchive")
+                : language.t("common.archive")}
             </Menu.Item>
           </Menu.Group>
           <Menu.Separator />

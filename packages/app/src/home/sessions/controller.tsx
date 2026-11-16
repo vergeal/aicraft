@@ -429,6 +429,25 @@ export function createHomeSessionsController(home: HomeController) {
         })
       },
       rename,
+      unarchive: async (session: SessionInfo) => {
+        const conn = home.server.focused()
+        const ctx = home.server.focusedContext()
+
+        if (!conn || !ctx) return
+        await ctx.sdk.api.session
+          .update({ sessionID: session.id, archived: false })
+          .then(() => {
+            // Archiving pruned the cached page, so reload it instead of waiting for `staleTime` to expire.
+            void queryClient.invalidateQueries({ queryKey: ["home-sessions", conn], exact: true })
+            void ctx.data.session.sync(session.id).catch(() => {})
+          })
+          .catch((cause) =>
+            showToast({
+              title: language.t("common.requestFailed"),
+              description: errorMessage(cause, language.t("common.requestFailed")),
+            }),
+          )
+      },
       export: exportSession,
       pin: {
         isPinned: (session: SessionInfo) => pins.isPinned(session.id),

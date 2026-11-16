@@ -1,4 +1,6 @@
+import { Button } from "@opencode/ui/button"
 import { useFilteredList } from "@opencode/ui/hooks"
+import { Loader } from "@opencode/ui/loader"
 import { Switch } from "@opencode/ui/switch"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { type Component, createEffect, createMemo, createSignal, For, type JSX, onMount, Show } from "solid-js"
@@ -181,41 +183,56 @@ export const SettingsModels: Component<{
           stickyTop() === undefined ? undefined : { "--settings-models-sticky-top": `${stickyTop()}px` }
         }
       >
-        <p class="settings-models-current-hint">{language.t("settings.models.currentHint")}</p>
         {/* `list` reads a synchronous array, so its own loading flag never shows. Wait for both provider catalogs
-            instead, or the first paint reports "No model results" while they are still syncing. */}
+            instead, or the first paint reports "No model results" while they are still syncing. A failed sync leaves
+            both lists undefined for good, so the failure owns this branch and keeps the retry reachable. */}
         <Show
-          when={providers.ready()}
+          when={providers.error() === undefined}
           fallback={
             <div class="settings-models-status">
-              {language.t("common.loading")}
-              {language.t("common.loading.ellipsis")}
+              <span>{language.t("settings.providers.catalog.failed")}</span>
+              <Button size="small" variant="neutral" onClick={() => providers.retry()}>
+                {language.t("common.retry")}
+              </Button>
             </div>
           }
         >
           <Show
-            when={list.flat().length > 0}
+            when={providers.ready()}
             fallback={
-              <Show
-                when={list.filter()}
-                fallback={<div class="settings-models-status">{language.t("dialog.model.empty")}</div>}
-              >
-                <div class="settings-tab-search-empty">
-                  <SettingsSearchEmpty query={list.filter()} />
-                </div>
-              </Show>
+              <div class="settings-models-status">
+                <Loader class="size-4" />
+                <span>
+                  {language.t("common.loading")}
+                  {language.t("common.loading.ellipsis")}
+                </span>
+              </div>
             }
           >
-            <ProviderModelSections
-              groups={list.grouped.latest}
-              managed={managed()}
-              expanded={expanded}
-              disabled={searching()}
-              onExpandedChange={(key, value) => setStore("collapsed", key, !value)}
-              onSetVisibility={setProviderVisibility}
-              ref={(providerID, element) => sections.set(providerID, element)}
-              rows={(items) => <ModelRows items={items} />}
-            />
+            <Show
+              when={list.flat().length > 0}
+              fallback={
+                <Show
+                  when={list.filter()}
+                  fallback={<div class="settings-models-status">{language.t("dialog.model.empty")}</div>}
+                >
+                  <div class="settings-tab-search-empty">
+                    <SettingsSearchEmpty query={list.filter()} />
+                  </div>
+                </Show>
+              }
+            >
+              <ProviderModelSections
+                groups={list.grouped.latest}
+                managed={managed()}
+                expanded={expanded}
+                disabled={searching()}
+                onExpandedChange={(key, value) => setStore("collapsed", key, !value)}
+                onSetVisibility={setProviderVisibility}
+                ref={(providerID, element) => sections.set(providerID, element)}
+                rows={(items) => <ModelRows items={items} />}
+              />
+            </Show>
           </Show>
         </Show>
       </div>

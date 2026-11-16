@@ -2149,6 +2149,14 @@
   padding-bottom: 12px;
 }
 
+/* A collapsed card ends at its header, so the header also carries the card's bottom corners; otherwise its square
+   fill overhangs the card's rounded edge. */
+.settings-models
+  .settings-section[data-component="settings-models-provider"]:not([data-expanded])
+  > .settings-models-group-header {
+  border-radius: var(--settings-card-radius, 10px);
+}
+
 /* One header for both tiers: the chevron leads, and the trigger keeps the same height and padding. Console groups
    differ only by the indentation of their container. */
 .settings-models-group-header {
@@ -2160,28 +2168,6 @@
   padding: 4px 12px;
   /* The header is the top of its provider card, so it shares the card's top corners. */
   border-radius: 10px 10px 0 0;
-}
-
-.settings-models-group-trigger {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  height: 36px;
-  padding: 4px 8px 4px 4px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--v2-text-text-base);
-  text-align: start;
-}
-
-@media (hover: hover) {
-  .settings-models-group-trigger:not(:disabled):hover {
-    background-color: var(--v2-background-bg-layer-02);
-  }
 }
 
 .settings-models-group-trigger:disabled {
@@ -2241,15 +2227,6 @@
   white-space: nowrap;
 }
 
-/* The page cannot mark the active model itself (no session model scope here), so it says where the mark lives. */
-.settings-models-current-hint {
-  margin: 0;
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: var(--line-height-compact);
-}
-
 .provider-model-groups {
   display: flex;
   min-width: 0;
@@ -2284,28 +2261,33 @@
   border-radius: 10px;
 }
 
+/* Both tiers use the same trigger: one height, radius and padding, so a Console group differs only by the indentation
+   of its container. base.css silences button outlines, so the focus ring is the settings shadow, as on the rows. */
+.settings-models-group-trigger,
 .provider-model-group-trigger {
   display: flex;
   min-width: 0;
   flex: 1;
-  min-height: 36px;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  height: 36px;
   padding: 4px 8px 4px 4px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 4px;
   background: transparent;
   color: var(--v2-text-text-base);
   text-align: start;
 }
 
-.provider-model-group-header:has(:focus-visible) {
-  background-color: var(--v2-background-bg-layer-02);
+.provider-model-group-trigger:focus-visible,
+.settings-models-group-trigger:focus-visible {
+  box-shadow: var(--settings-focus-ring);
 }
 
 @media (hover: hover) {
-  .provider-model-group-header:has(.provider-model-group-trigger:not(:disabled)):hover {
+  .settings-models-group-trigger:not(:disabled):hover,
+  .provider-model-group-trigger:not(:disabled):hover {
     background-color: var(--v2-background-bg-layer-02);
   }
 }
@@ -2380,18 +2362,6 @@
   border-top: 0.5px solid var(--v2-border-border-base);
 }
 
-.provider-model-group:has(.provider-model-group-header :focus-visible) {
-  outline: 1px solid var(--v2-border-border-muted);
-  outline-offset: -1px;
-}
-
-@media (hover: hover) {
-  .provider-model-group:has(.provider-model-group-header:hover) {
-    outline: 1px solid var(--v2-border-border-muted);
-    outline-offset: -1px;
-  }
-}
-
 /* Settings page: group headers pin under the page header while their section scrolls. The offset is the header's
    measured height, so a header is never left hidden behind the opaque page header. */
 .settings-tab-body.settings-models .settings-models-group-header {
@@ -2408,9 +2378,12 @@
   z-index: 1;
 }
 
+/* The pinned band carries the fill of the card it heads, so a header scrolling over its own card never shows a second
+   shade: `--settings-card-bg` is the card in both schemes, while layer-01 is a different gray in dark. The Console
+   section is not a card (each provider inside it is), so its band keeps the page fill. */
 .settings-tab-body.settings-models [data-component="settings-models-provider"] > .settings-models-group-header,
 .settings-tab-body.settings-models .provider-model-group-header {
-  background-color: var(--v2-background-bg-layer-01);
+  background-color: var(--settings-card-bg);
 }
 
 .settings-tab-body.settings-models [data-component="settings-models-console"] > .settings-models-group-header {
@@ -2431,11 +2404,13 @@
   box-shadow: none;
 }
 
+/* The panel behind these headers is already surface-strong, so the band adds no second fill of the same color: it
+   keeps only the blur that separates a scrolled row from the header above it. */
 .settings-manage-models-dialog .settings-models-group-header {
   position: sticky;
   top: 0;
   z-index: 2;
-  background-color: var(--v2-material-surface-strong);
+  background-color: transparent;
   backdrop-filter: var(--v2-material-blur-thick);
 }
 
@@ -2445,7 +2420,7 @@
   position: sticky;
   top: 44px;
   z-index: 1;
-  background-color: var(--v2-material-surface-strong);
+  background-color: transparent;
   backdrop-filter: var(--v2-material-blur-thick);
 }
 

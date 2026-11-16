@@ -679,7 +679,6 @@ export const dict = {
   "settings.models.count.one": "{{count}} 个模型",
   "settings.models.count.other": "{{count}} 个模型",
   "settings.models.current": "当前模型",
-  "settings.models.currentHint": "当前会话正在使用的模型会在「管理模型」中标出。",
 
   "settings.permissions.tool.read.title": "读取",
   "settings.permissions.tool.read.description": "读取文件（匹配文件路径）",

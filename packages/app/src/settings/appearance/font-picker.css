@@ -81,7 +81,7 @@ button[data-component="font-picker"] svg {
 }
 
 [data-slot="font-picker-search"]::placeholder {
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }
 
 /* The input clears its own outline, so the keyboard ring is the only focus cue inside the popover. */
@@ -132,7 +132,7 @@ button[data-component="font-picker"] svg {
   padding-inline: 5px;
   border-radius: 3px;
   background: var(--v2-background-bg-layer-01);
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   font-family: var(--font-family-sans);
   font-size: 10px;
   line-height: 16px;
@@ -146,5 +146,5 @@ button[data-component="font-picker"] svg {
 
 [data-slot="font-picker-empty"] {
   padding: 10px 8px;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
 }

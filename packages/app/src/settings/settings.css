@@ -2274,11 +2274,13 @@
   white-space: nowrap;
 }
 
+/* A step below the group title in size and ink: the count is metadata, and at the title's 12px/muted it read as part
+   of the label. `text-faint` is a step lighter than `muted` in both schemes, so the count recedes in light and dark. */
 .settings-models-group-count,
 .provider-model-group-count {
   flex-shrink: 0;
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   white-space: nowrap;
@@ -2315,7 +2317,14 @@
   min-height: 44px;
   align-items: center;
   padding: 4px 12px;
-  border-radius: 10px;
+  /* The header tops its group card, so it takes the card's top corners; the list below squares them off. */
+  border-radius: 10px 10px 0 0;
+}
+
+/* Same step as the top-level header: a collapsed group ends at its header, so the header also carries the card's
+   bottom corners instead of leaving its square fill over the rounded edge. */
+.provider-model-group:not([data-expanded]) > .provider-model-group-header {
+  border-radius: var(--settings-card-radius, 10px);
 }
 
 /* Both tiers use the same trigger: one height, radius and padding, so a Console group differs only by the indentation
@@ -2443,12 +2452,33 @@
   z-index: 1;
 }
 
+/* The pinned band carries the hairline that used to be the first row's top border, so the edge stays visible while the
+   rows scroll under it. Conditional on `[data-expanded]`: a collapsed band ends the card, and an inner bottom line
+   there would cut across the rounded corner. The Console band is excluded: no list follows it directly. */
+.settings-tab-body.settings-models
+  .settings-section[data-component="settings-models-provider"][data-expanded]
+  > .settings-models-group-header,
+.settings-tab-body.settings-models .provider-model-group[data-expanded] > .provider-model-group-header {
+  border-bottom: 0.5px solid var(--v2-border-border-base);
+}
+
+/* With the band drawing that line, the list drops its own top border so no state shows two hairlines. Scoped to the
+   settings page: the manage and connect dialogs keep their header-less border, which is the only edge they have. */
+.settings-tab-body.settings-models
+  .settings-section[data-component="settings-models-provider"]
+  > [data-component="settings-list"],
+.settings-tab-body.settings-models .provider-model-group-models > [data-component="settings-list"] {
+  border-top: 0;
+}
+
 /* The pinned band carries the fill of the card it heads, so a header scrolling over its own card never shows a second
    shade: `--settings-card-bg` is the card in both schemes, while layer-01 is a different gray in dark. The Console
    section is not a card (each provider inside it is), so its band keeps the page fill. */
 .settings-tab-body.settings-models [data-component="settings-models-provider"] > .settings-models-group-header,
 .settings-tab-body.settings-models .provider-model-group-header {
   background-color: var(--settings-card-bg);
+  /* Same gradient as the card the band heads: without it the pinned header reads as a flat substitute for the card. */
+  background-image: var(--settings-card-gradient);
 }
 
 .settings-tab-body.settings-models [data-component="settings-models-console"] > .settings-models-group-header {
@@ -3405,7 +3435,9 @@
   justify-content: flex-start;
   gap: 8px;
   width: 100%;
-  min-height: 44px;
+  /* The idle band is 64px: a 36px button plus its 8px block margins. A failed config leaves one 18px line, so the
+     row holds the same height in both states instead of collapsing and shifting the list below it. */
+  min-height: 64px;
   padding-block: 6px;
   border: 0;
   border-top: 0.5px solid var(--v2-border-border-muted);

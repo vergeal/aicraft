@@ -220,10 +220,17 @@ export const SettingsNotifications: Component = () => {
               {language.t("settings.notifications.denied")}
             </p>
           </Show>
-          <Show when={state.permission === "default" && !state.requestFailed}>
-            {/* The live region wraps the sentence, not the button: a status region is announced, not operated. */}
+          <Show when={state.permission === "default"}>
+            {/* The live region wraps the sentence, not the button: a status region is announced, not operated.
+                A failed request keeps the button so the user can ask again; clearing `requestFailed` happens only
+                inside `request`, so hiding the button would leave the failure line with no way out. */}
             <div class="settings-notifications-note">
-              <span role="status">{language.t("settings.notifications.prompt")}</span>
+              <Show
+                when={!state.requestFailed}
+                fallback={<span role="alert">{language.t("settings.notifications.requestFailed")}</span>}
+              >
+                <span role="status">{language.t("settings.notifications.prompt")}</span>
+              </Show>
               <Button
                 size="small"
                 variant="ghost-muted"
@@ -234,11 +241,6 @@ export const SettingsNotifications: Component = () => {
                 {language.t("settings.notifications.request")}
               </Button>
             </div>
-          </Show>
-          <Show when={state.permission === "default" && state.requestFailed}>
-            <p class="settings-notifications-note" role="alert">
-              {language.t("settings.notifications.requestFailed")}
-            </p>
           </Show>
         </div>
 

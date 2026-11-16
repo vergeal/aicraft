@@ -105,7 +105,22 @@ export const SettingsModels: Component<{
             const key = { providerID: item.provider.id, modelID: item.id }
 
             return (
-              <SettingsRow title={<span title={item.name}>{item.name}</span>} description="">
+              <SettingsRow
+                title={
+                  <span
+                    ref={(element) => {
+                      // Only a truncated name needs the native tooltip; a short one would pop a redundant title, and
+                      // the row's accessible name already comes from `aria-labelledby`.
+                      requestAnimationFrame(() => {
+                        element.title = element.scrollWidth > element.clientWidth ? item.name : ""
+                      })
+                    }}
+                  >
+                    {item.name}
+                  </span>
+                }
+                description=""
+              >
                 <div>
                   <Switch
                     checked={models.visible(key)}

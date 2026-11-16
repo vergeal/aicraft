@@ -4250,10 +4250,6 @@
   color: var(--v2-text-text-base);
 }
 
-[data-color-scheme="light"] .settings-provider-custom-fields [data-slot="input-label"] {
-  color: var(--v2-text-text-muted);
-}
-
 [data-color-scheme="light"] .settings-provider-custom-model {
   color: var(--v2-text-text-base);
 }

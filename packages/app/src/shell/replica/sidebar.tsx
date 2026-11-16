@@ -343,7 +343,6 @@ function SessionRow(props: {
             session.time.archived !== undefined
               ? language.t("common.unarchive")
               : language.t("common.archive"),
-          accelerator: "Shift+CmdOrCtrl+A",
           icon: "archive",
         },
         { type: "separator" },

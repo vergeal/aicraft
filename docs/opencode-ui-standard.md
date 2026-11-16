@@ -218,6 +218,7 @@
 - 命令面板（`packages/app/src/shell/commands/dialog.css`）宽 min(100vw−24px, 640px)，12px 圆角，输入 15px，结果行 13px。
 - 列表滚动一律 `MenuScroll`（`@opencode/ui/menu-scroll`）：内边距放 `viewportClass`，键盘滚动与定位用 `viewportRef`，行网格样式挂 `[data-slot="menu-scroll-content"]`。
 - 搜索结果为空时给一句话 + 一个动作，不放大插画。
+- 同一个动作在所有会话菜单里都要一致：会话行的归档项在 Home 列表、replica 侧栏、titlebar 侧栏与收件箱都提供，文案随会话是否已归档切换成「归档 / 取消归档」，不要用禁用占位项代替。
 
 ### 5.8 时间线与消息
 

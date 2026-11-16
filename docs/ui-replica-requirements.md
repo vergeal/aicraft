@@ -221,6 +221,10 @@ font-family: var(--font-family-sans, var(--font-family-ui));
 - 分区：`SECTION` 13px/500 + `mb-1`；`LIST` 行间距 2px。置顶区仅在存在置顶会话时渲染。
 - 会话行 `ROW`：29px、圆角 8px、`px-2`、14px/20px，图标 `bubble-5` 16px；`data-state="pressed"` 用 `--color-selected`；行尾按状态显示 6px 圆点或 `ActivityRing`。
 - 行交互：单击打开；双击标题就地重命名（Enter 保存、Escape 取消）；右键走原生菜单（`platform.showContextMenu`），Web 用应用内菜单。
+- 会话菜单的归档项按 `session.time.archived` 切换：未归档显示「归档」，已归档显示「取消归档」（`common.archive` / `common.unarchive`，英文 `Archive` / `Unarchive`，中文「归档」/「取消归档」）。原生菜单带 `Shift+CmdOrCtrl+A` 作为展示用 accelerator，它只是菜单标注，不是全局快捷键。
+- 归档后会话从 Home 列表消失；取消归档立即重新拉取被归档剔除的 Home 缓存页，列表里马上回来，不用等缓存过期。
+- 归档后的行立即离开置顶区与最近列表。归档只改会话状态，本地 store 仍保留该会话，所以两个列表都要按 `inboxArchived(entry)` 过滤，不能只靠索引层剔除。
+- 归档同时关闭该会话的标签页；取消归档只让它回到 Home 列表与侧栏，不重新打开标签页。
 - 滚动条：`scrollbar-width: thin`，`scrollbar-color: var(--color-border) transparent`（与 `packages/app/AGENTS.md` 的 Scrolling 规则存在冲突，见第 11 节待确认项）。
 
 ### 6.4 欢迎页
@@ -286,6 +290,8 @@ font-family: var(--font-family-sans, var(--font-family-ui));
 
 - 侧栏项目/会话来自真实数据，不是硬编码。
 - 「新聊天」能创建草稿；会话行可打开、可双击重命名。
+- Home 行有内联归档按钮，三处会话菜单（Home 行、replica 侧栏、titlebar 侧栏）也都有归档项，收件箱原有入口不变。
+- 会话行菜单可归档：行从置顶与最近列表消失、标签页关闭；在归档会话对话框取消归档后重新出现。
 - 侧栏开关（`mod+shift+b` 与窗口条按钮）联动窗口条列宽与侧栏宽度过渡。
 - rail 六个入口可点击，激活态用 `data-state="pressed"`。
 - 长项目名、长会话名截断而不撑破侧栏。

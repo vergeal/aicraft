@@ -405,7 +405,7 @@ export function DialogCustomProvider(props: {
                       class="settings-provider-custom-mono"
                       onInput={(event) => setManual(event.currentTarget.value)}
                       onKeyDown={(event: KeyboardEvent) => {
-                        if (event.key !== "Enter") return
+                        if (event.key !== "Enter" || event.isComposing) return
                         event.preventDefault()
                         addManual()
                       }}

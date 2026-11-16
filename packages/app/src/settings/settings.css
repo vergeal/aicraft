@@ -348,6 +348,11 @@
   border-radius: 6px;
 }
 
+/* The search and the back button sit inside the nav list's reserved scrollbar lane, so the three share one column. */
+.settings-nav .settings-search {
+  margin-inline: var(--scrollbar-size, 8px);
+}
+
 :root[data-motion="reduce"] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
   transition: none;
 }
@@ -871,7 +876,7 @@
    The nav list reserves the scrollbar's lane on both edges, so matching its inline margin keeps the same width and
    the same left edge as the items instead of hanging 8px wider on each side. */
 .settings-nav > .settings-back {
-  width: 100%;
+  width: auto;
   height: var(--settings-nav);
   margin-inline: var(--scrollbar-size, 8px);
 }

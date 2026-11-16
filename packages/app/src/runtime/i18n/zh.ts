@@ -784,6 +784,7 @@ export const dict = {
   "settings.notifications.denied": "OpenCode 的系统通知已被阻止。请在系统设置中允许。",
   "settings.notifications.prompt": "OpenCode 尚未获得显示系统通知的权限。",
   "settings.notifications.request": "允许通知",
+  "settings.notifications.requestFailed": "OpenCode 无法请求通知权限。请在系统设置中允许通知。",
   "settings.shortcuts.description": "自定义常用操作的快捷键",
   "settings.servers.description": "管理服务器连接",
   "settings.servers.current": "当前",

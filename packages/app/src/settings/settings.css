@@ -515,6 +515,7 @@
   display: inline-flex;
   min-height: 24px;
   align-items: center;
+  gap: 6px;
   margin-block: -2px;
   padding: 0;
   border: 0;
@@ -610,10 +611,18 @@
   line-height: var(--line-height-compact);
 }
 
+/* The brush SVG is one path filled at 20% opacity, so it works as a mask: the element's own colour supplies the ink
+   and the theme's text base keeps the mark readable on both schemes. */
 .settings-about-anomaly-brush {
+  display: block;
   width: 127px;
   height: 48px;
   flex-shrink: 0;
+  background-color: var(--v2-text-text-base);
+  mask-image: url("./about/anomaly-brush.svg");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
   pointer-events: none;
 }
 
@@ -673,7 +682,8 @@
   width: 100%;
   flex-direction: column;
   gap: 16px;
-  padding: 0 20px 20px;
+  /* The dialog header insets its own copy by 16px; the list lines up with it instead of starting 4px further in. */
+  padding: 0 16px 16px;
   color: var(--v2-text-text-muted);
   font-size: 13px;
   line-height: var(--line-height-base);
@@ -770,11 +780,10 @@
   flex-direction: column;
   margin: 8px 0 0;
   padding: 0 16px;
-  border: 1px solid var(--settings-card-border);
-  border-radius: var(--settings-card-radius, 10px);
-  background-color: var(--settings-card-bg);
-  background-image: var(--settings-card-gradient);
-  box-shadow: var(--settings-card-shadow);
+  /* One card material in this sheet: the same layer and inset hairline as the notice cards above it. */
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
   list-style: none;
 }
 
@@ -939,7 +948,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 16px var(--settings-content-inset, 32px) 8px;
+  /* The divider carries the same 12px the tab body opens with, so the header reads the same on both sides. */
+  padding: 16px var(--settings-content-inset, 32px) 12px;
   background: var(--v2-background-bg-base);
   border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
@@ -1394,10 +1404,6 @@
     --settings-content-inset: 16px;
   }
 
-  .settings-screen .settings-tab-header {
-    padding-top: 12px;
-  }
-
   .settings-screen
     > .settings[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
     > .settings-sidebar {
@@ -1430,6 +1436,11 @@
   .settings-search [data-slot="text-input-v2-input"] {
     font-size: 18px;
   }
+
+  /* A 13px filter zooms the page when it takes focus on iOS, so the page-level filter uses the 16px input floor. */
+  .settings-filter-search [data-slot="text-input-v2-input"] {
+    font-size: 16px;
+  }
 }
 
 @container settings-panel (max-width: 520px) {
@@ -1456,6 +1467,11 @@
 
   [data-slot="settings-row-control"] {
     width: 100%;
+  }
+
+  /* Same 16px floor as the page filter on a phone-width screen. */
+  .settings-filter-search [data-slot="text-input-v2-input"] {
+    font-size: 16px;
   }
 }
 
@@ -3024,13 +3040,14 @@
   line-height: 20px;
 }
 
-/* The notifications page: the OS permission note under its group, and the sound row's select plus preview button. */
+/* The notifications page: the OS permission note under its group, and the sound row's select plus preview button.
+   A step above the 12px row descriptions, so a group note reads as a note rather than as another row's detail. */
 .settings-notifications-note {
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--v2-text-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: var(--line-height-compact);
 }
@@ -3199,12 +3216,7 @@
   color: var(--v2-icon-icon-muted);
 }
 
-.settings-extensions-tabs[data-component="tabs-v2"][data-variant="pill"] > [data-slot="tabs-v2-list"] {
-  width: min(280px, 100%);
-}
-
-/* The subtabs are a segmented control over one page, so the track hugs its pills instead of spanning the panel;
-   `.settings-extensions-tabs` (a filter over a list) keeps its own fixed width. */
+/* The subtabs are a segmented control over one page, so the track hugs its pills instead of spanning the panel. */
 .settings-subtabs[data-component="tabs-v2"][data-variant="pill"] > [data-slot="tabs-v2-list"] {
   width: fit-content;
   padding-inline: 0;
@@ -3239,9 +3251,9 @@
 }
 
 /* A state the switch cannot show (not available here, or a reserved id): one reason line, not an error block.
-   12px matches every other note on the page; 11px read as a third, smaller tier under 13px rows. */
+   12px matches every other note on the page. The row's own 10px padding carries the gap between the name and this
+   line; a block padding here grew every two-line row past the 48px metric. */
 .settings-extension-note {
-  padding-block: 12px 0;
   font-size: 12px;
   font-weight: 400;
   line-height: var(--line-height-compact);
@@ -3288,9 +3300,11 @@
   color: var(--v2-text-text-muted);
 }
 
-/* A quiet toggle under a plugin's error, its label lined up with the error text above it. */
+/* A quiet toggle under a plugin's error, its label lined up with the error text above it. The 24px box is the
+   smallest target this page uses (Button's own `small` is 26px), so the extra 4px stays inside error rows only;
+   an `::after` inset would keep 20px but would overlap the error text, where a drag to select text becomes a toggle. */
 .settings-plugin-error-toggle[data-component="button-v2"][data-size="small"] {
-  height: 20px;
+  height: 24px;
   margin-inline-start: -5px;
   padding-inline: 5px;
   font-size: 12px;
@@ -3787,6 +3801,11 @@
 
 [data-color-scheme="light"] [data-slot="settings-row-title"] {
   color: var(--v2-text-text-base);
+}
+
+/* A 0.5px line at 8% ink lands near 4% once the device halves it, so the header's hairline takes one step up in light. */
+[data-color-scheme="light"] .settings-tab-header {
+  border-bottom-color: var(--v2-border-border-base);
 }
 
 /* Provider list and console. */

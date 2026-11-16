@@ -4,7 +4,6 @@ import { createMemo, createSignal, createUniqueId, For, Show } from "solid-js"
 import { Badge } from "@opencode/ui/badge"
 import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
-import { Loader } from "@opencode/ui/loader"
 import { Switch } from "@opencode/ui/switch"
 import { TruncatedText } from "@opencode/ui/truncated-text"
 import { pluginLabel } from "@/providers/catalog/plugin"
@@ -30,6 +29,8 @@ export function ExtensionPlugins(props: {
 }) {
   const language = useLanguage()
   const listed = () => props.plugins.filter((plugin) => plugin.source.type !== "builtin")
+  // The server reports plugins in discovery order; this list reads as an index too, so sort by the visible name.
+  const sorted = createMemo(() => listed().toSorted((a, b) => pluginLabel(a).localeCompare(pluginLabel(b))))
 
   return (
     <>
@@ -37,17 +38,32 @@ export function ExtensionPlugins(props: {
         when={props.own}
         fallback={
           <SettingsList variant="catalog">
-            <For each={listed()}>
+            <For each={sorted()}>
               {(plugin) => {
-                const id = plugin.id ?? pluginLabel(plugin)
+                const name = pluginLabel(plugin)
+                const id = plugin.id ?? name
 
                 const lead = (
                   <div class="settings-extension-lead">
                     <Icon name="cube" class="text-v2-icon-icon-muted shrink-0" />
-                    <span class="settings-extension-name truncate">{pluginLabel(plugin)}</span>
-                    <Show when={props.showSource}>
-                      <PluginSource source={plugin.source.type} />
-                    </Show>
+                    <div class="flex min-w-0 flex-col gap-0.5">
+                      <div class="settings-provider-main">
+                        <TruncatedText text={name} class="settings-extension-name" />
+                        <Show when={props.showSource}>
+                          <PluginSource source={plugin.source.type} />
+                        </Show>
+                      </div>
+                      {/* A name that already reads as its id does not repeat it underneath. */}
+                      <Show when={plugin.id && plugin.id !== name ? plugin.id : undefined}>
+                        {(secondary) => (
+                          <div class="settings-provider-main text-12-regular text-v2-text-text-muted">
+                            <bdi dir="ltr" class="min-w-0">
+                              <TruncatedText text={secondary()} />
+                            </bdi>
+                          </div>
+                        )}
+                      </Show>
+                    </div>
                   </div>
                 )
 
@@ -242,7 +258,7 @@ function OwnServerPlugins(props: {
             </Show>
           </div>
           <Show when={input.secondary || parts().server || parts().tui}>
-            <div class="settings-provider-main text-11-regular text-v2-text-text-muted">
+            <div class="settings-provider-main text-12-regular text-v2-text-text-muted">
               <Show when={input.secondary}>
                 {(id) => (
                   <bdi dir="ltr" class="min-w-0">
@@ -303,7 +319,7 @@ function OwnServerPlugins(props: {
             <div class="settings-servers-actions" aria-busy={saving() ? "true" : undefined}>
               {/* The state label lives in the trailing slot, so showing it never changes the row's height. */}
               <Show when={state() === "loaded" ? status(id(), part) : undefined}>
-                {(label) => <span class="text-11-regular text-v2-text-text-muted">{label()}</span>}
+                {(label) => <span class="text-12-regular text-v2-text-text-muted">{label()}</span>}
               </Show>
               <Button size="small" variant="ghost" disabled={saving()} onClick={() => reload(id())}>
                 {language.t("settings.plugins.reload")}
@@ -313,22 +329,19 @@ function OwnServerPlugins(props: {
                 when={!input.builtin && state() === "loaded"}
                 fallback={<span class="w-6 shrink-0" aria-hidden="true" />}
               >
-                <Show
-                  when={!saving()}
-                  fallback={
-                    <span
-                      role="status"
-                      aria-label={language.t("settings.plugins.toggle.pending")}
-                      class="inline-flex size-6 shrink-0 items-center justify-center"
-                    >
-                      <Loader class="size-4" />
-                    </span>
-                  }
+                {/* Kept mounted while a toggle saves: replacing it with a spinner unmounted the control and dropped
+                    focus out of the row. The pending state is the native `disabled` (Kobalte forwards it to the input
+                    and switch.css paints `[data-disabled]`), so the node and the row's layout stay put; the brief
+                    blur of the focused switch is a known trade-off of this state, not a missed fix. The actions
+                    wrapper above also carries `aria-busy`, and Reload is disabled for the same span. */}
+                <Switch
+                  hideLabel
+                  checked={itemOf(id(), part)?.enabled ?? true}
+                  disabled={saving()}
+                  onChange={(next) => toggle(id(), next)}
                 >
-                  <Switch hideLabel checked={itemOf(id(), part)?.enabled ?? true} onChange={(next) => toggle(id(), next)}>
-                    {id()}
-                  </Switch>
-                </Show>
+                  {id()}
+                </Switch>
               </Show>
             </div>
           )}
@@ -359,7 +372,7 @@ function OwnServerPlugins(props: {
         <For each={failedBuiltins()}>{(id) => row({ id, name: id, builtin: true, source: "builtin" })}</For>
       </SettingsList>
       <Show when={host.installed().some((item) => !item.builtin)}>
-        <p class="text-11-regular text-v2-text-text-muted">{language.t("settings.plugins.parts.note")}</p>
+        <p class="text-12-regular text-v2-text-text-muted">{language.t("settings.plugins.parts.note")}</p>
       </Show>
     </>
   )

@@ -1,4 +1,6 @@
-import { Component, createSignal, Show } from "solid-js"
+import { Component, onMount, Show } from "solid-js"
+import { createStore } from "solid-js/store"
+import { makeEventListener } from "@solid-primitives/event-listener"
 import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
@@ -80,11 +82,12 @@ const SoundSetting: Component<{
           placement="bottom-end"
           gutter={6}
         />
-        {/* Choosing a sound plays it once; this replays the current one without changing the stored value. */}
+        {/* Choosing a sound plays it once; this replays the current one without changing the stored value.
+            `large` is the 28px control, so the button matches the 28px select beside it. */}
         <IconButton
           type="button"
           variant="ghost-muted"
-          size="small"
+          size="large"
           class="settings-sounds-preview"
           aria-label={language.t("settings.general.sounds.preview")}
           disabled={current().id === "none"}
@@ -101,13 +104,38 @@ export const SettingsNotifications: Component = () => {
   const settings = useSettings()
   const sounds = createSoundSettingsController()
   // The OS gate behind every system notification: a switch that reads "on" still sends nothing while it is denied.
-  const [permission, setPermission] = createSignal<NotificationPermission | "unsupported">(
-    typeof Notification === "undefined" ? "unsupported" : Notification.permission,
-  )
-  const request = async () => {
-    if (typeof Notification === "undefined") return
+  const [state, setState] = createStore<{
+    permission: NotificationPermission | "unsupported"
+    requesting: boolean
+    requestFailed: boolean
+  }>({
+    permission: typeof Notification === "undefined" ? "unsupported" : Notification.permission,
+    requesting: false,
+    requestFailed: false,
+  })
 
-    setPermission(await Notification.requestPermission())
+  // The permission can change outside this page, by another window or in the OS settings, so re-read it on return.
+  onMount(() => {
+    makeEventListener(window, "visibilitychange", () => {
+      if (document.visibilityState !== "visible" || typeof Notification === "undefined") return
+
+      setState("permission", Notification.permission)
+    })
+  })
+
+  // The button disables while the browser prompt is open, and a request that fails is reported on its own line
+  // rather than reading as a refusal.
+  const request = () => {
+    if (state.requesting || typeof Notification === "undefined") return
+
+    setState({ requesting: true, requestFailed: false })
+    void Promise.resolve()
+      .then(() => Notification.requestPermission())
+      .then(
+        (result) => setState("permission", result),
+        () => setState("requestFailed", true),
+      )
+      .finally(() => setState("requesting", false))
   }
 
   return (
@@ -128,7 +156,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-agent">
                 <Switch
                   checked={settings.notifications.agent()}
-                  disabled={permission() === "unsupported"}
+                  disabled={state.permission === "unsupported"}
                   onChange={(checked) => settings.notifications.setAgent(checked)}
                 />
               </div>
@@ -141,7 +169,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-permissions">
                 <Switch
                   checked={settings.notifications.permissions()}
-                  disabled={permission() === "unsupported"}
+                  disabled={state.permission === "unsupported"}
                   onChange={(checked) => settings.notifications.setPermissions(checked)}
                 />
               </div>
@@ -154,7 +182,7 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-questions">
                 <Switch
                   checked={settings.notifications.questions()}
-                  disabled={permission() === "unsupported"}
+                  disabled={state.permission === "unsupported"}
                   onChange={(checked) => settings.notifications.setQuestions(checked)}
                 />
               </div>
@@ -167,28 +195,40 @@ export const SettingsNotifications: Component = () => {
               <div data-action="settings-notifications-errors">
                 <Switch
                   checked={settings.notifications.errors()}
-                  disabled={permission() === "unsupported"}
+                  disabled={state.permission === "unsupported"}
                   onChange={(checked) => settings.notifications.setErrors(checked)}
                 />
               </div>
             </SettingsRow>
           </SettingsList>
           {/* The switches above say what the app would send; this says whether the OS lets it. */}
-          <Show when={permission() === "unsupported"}>
+          <Show when={state.permission === "unsupported"}>
             <p class="settings-notifications-note">{language.t("settings.notifications.unsupported")}</p>
           </Show>
-          <Show when={permission() === "denied"}>
+          <Show when={state.permission === "denied"}>
             <p class="settings-notifications-note" role="status">
               {language.t("settings.notifications.denied")}
             </p>
           </Show>
-          <Show when={permission() === "default"}>
-            <div class="settings-notifications-note" role="status">
-              <span>{language.t("settings.notifications.prompt")}</span>
-              <Button size="small" variant="ghost-muted" onClick={() => void request()}>
+          <Show when={state.permission === "default"}>
+            {/* The live region wraps the sentence, not the button: a status region is announced, not operated. */}
+            <div class="settings-notifications-note">
+              <span role="status">{language.t("settings.notifications.prompt")}</span>
+              <Button
+                size="small"
+                variant="ghost-muted"
+                disabled={state.requesting}
+                aria-busy={state.requesting}
+                onClick={request}
+              >
                 {language.t("settings.notifications.request")}
               </Button>
             </div>
+          </Show>
+          <Show when={state.requestFailed}>
+            <p class="settings-notifications-note" role="alert">
+              {language.t("settings.notifications.requestFailed")}
+            </p>
           </Show>
         </div>
 

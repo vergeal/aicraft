@@ -990,6 +990,7 @@ export const dict = {
   "settings.notifications.denied": "System notifications are blocked for OpenCode. Allow them in your system settings.",
   "settings.notifications.prompt": "OpenCode does not have permission to show system notifications yet.",
   "settings.notifications.request": "Allow notifications",
+  "settings.notifications.requestFailed": "OpenCode could not ask for notification permission. Allow notifications in your system settings.",
   "settings.shortcuts.description": "Customize shortcuts for common actions",
   "settings.servers.description": "Manage server connections",
   "settings.servers.current": "Current",

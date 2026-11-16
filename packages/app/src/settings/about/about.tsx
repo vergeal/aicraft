@@ -9,7 +9,6 @@ import { ExternalLink } from "@/runtime/platform/external-link"
 import { useCommand } from "@/shell/commands/command"
 import { showToast } from "@/shell/notifications/toast"
 import legal from "./legal.svg"
-import anomalyBrush from "./anomaly-brush.svg"
 import { AnimatedWordmark } from "./animated-wordmark"
 import { FALLBACK_OTHER_CONTRIBUTORS, loadOtherContributorCount } from "./contributors"
 
@@ -185,7 +184,8 @@ export function SettingsAbout(props: { active: boolean }) {
       <img class="settings-about-legal" src={legal} alt="" />
       <div class="settings-about-copyright">
         <p>{language.t("settings.about.copyright")}</p>
-        <img class="settings-about-anomaly-brush" src={anomalyBrush} alt="" />
+        {/* Masked rather than drawn: the brush's own ink is a fixed grey, which reads on one scheme only. */}
+        <span class="settings-about-anomaly-brush" aria-hidden="true" />
       </div>
     </div>
   )

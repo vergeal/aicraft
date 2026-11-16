@@ -58,20 +58,28 @@ export const ProviderHandler = HttpApiBuilder.group(Api, "server.provider", (han
 const endpointMessage =
   "This endpoint did not return a model list. Check the URL: OpenAI-compatible endpoints usually end with /v1."
 
-// A bad key, a URL that is not a model list and a slow host need different fixes, so the failure keeps them apart.
-// Anything else keeps the generic text.
+// A bad key, a URL that is not a model list and an unreachable host need different fixes, so the failure keeps them
+// apart. Anything else keeps the generic text.
 function modelsFailure(cause: unknown) {
+  // `Effect.timeout` fails with `Cause.TimeoutError`, which is not an HTTP client error.
   if (Predicate.isTagged(cause, "TimeoutError")) return "The request timed out. Check the endpoint URL and try again."
 
-  if (HttpClientError.isHttpClientError(cause)) {
-    const status = cause.response?.status
+  const reason = HttpClientError.isHttpClientError(cause) ? cause.reason : undefined
+
+  if (reason?._tag === "StatusCodeError") {
+    const status = reason.response.status
     if (status === 401 || status === 403) return "The API key is invalid or expired. Check the key and try again."
-    // A 200 that failed to decode is HTML or another body that is not the `{ data: [...] }` contract.
-    if (status === 404 || status === 200) return endpointMessage
+    if (status === 404) return endpointMessage
   }
 
-  // `schemaBodyJson` rejects a non-JSON body with a `SchemaError` rather than a response error.
+  // A `DecodeError` or an empty body arrives with status 200, so the status cannot tell it apart from a good response:
+  // the body was HTML or another shape that is not the `{ data: [...] }` contract. `schemaBodyJson` reports a non-JSON
+  // body as a `SchemaError` instead of an HTTP client error.
+  if (reason?._tag === "DecodeError" || reason?._tag === "EmptyBodyError") return endpointMessage
   if (Predicate.isTagged(cause, "SchemaError")) return endpointMessage
+
+  if (reason?._tag === "TransportError" || reason?._tag === "InvalidUrlError")
+    return "Could not connect to this endpoint. Check the URL and that the server is reachable."
 
   const detail = Predicate.isObject(cause) && Predicate.isString(cause.message) ? `: ${cause.message}` : ""
   return `Could not list models from this endpoint${detail}`

@@ -1,4 +1,4 @@
-import { detailsValid, draftValid, emptyDraft, type CustomProviderDraft } from "./draft"
+import { draftValid, emptyDraft, type CustomProviderDraft } from "./draft"
 
 export type DiscoveryModel = { readonly id: string; readonly name?: string }
 
@@ -12,8 +12,8 @@ export type CustomProviderMode = "create" | "edit"
 
 /**
  * The custom-provider editor and its delete confirmation as one lifecycle. The state is the single source of truth:
- * the dialog's step, its busy flags, its error line and its button labels all read from here rather than from
- * component-local flags.
+ * the dialog's busy flags, its error line and its button labels all read from here rather than from component-local
+ * flags.
  */
 export type CustomProviderState =
   | { readonly type: "closed" }
@@ -21,7 +21,6 @@ export type CustomProviderState =
       readonly type: "editing"
       readonly attempt: number
       readonly mode: CustomProviderMode
-      readonly step: "details" | "models"
       readonly draft: CustomProviderDraft
       readonly discovery: Discovery
       /** A request failed; the message stays above the footer until the next attempt. */
@@ -47,8 +46,6 @@ export type CustomProviderEvent =
     }
   | { readonly type: "close" }
   | { readonly type: "draft.changed"; readonly patch: Partial<CustomProviderDraft> }
-  | { readonly type: "step.next" }
-  | { readonly type: "step.back" }
   | { readonly type: "discover.start" }
   | { readonly type: "discover.succeeded"; readonly attempt: number; readonly models: readonly DiscoveryModel[] }
   | { readonly type: "discover.failed"; readonly attempt: number }
@@ -106,7 +103,6 @@ export function transition(
           type: "editing",
           attempt: event.attempt,
           mode: "create",
-          step: "details",
           draft: emptyDraft(),
           discovery: { type: "idle" },
         },
@@ -118,7 +114,6 @@ export function transition(
           type: "editing",
           attempt: event.attempt,
           mode: "edit",
-          step: "details",
           draft: {
             id: event.provider.id,
             name: event.provider.name ?? event.provider.id,
@@ -172,15 +167,6 @@ export function transition(
       if (event.type === "discover.succeeded")
         return { state: { ...state, discovery: { type: "ready", models: event.models } }, effects: none }
       if (event.type === "discover.failed") return { state: { ...state, discovery: { type: "failed" } }, effects: none }
-      if (event.type === "step.next") {
-        if (state.step === "models") return unchanged(state)
-        if (!detailsValid(state.draft, context.taken, state.mode)) return unchanged(state)
-        return { state: { ...state, step: "models", error: undefined }, effects: none }
-      }
-      if (event.type === "step.back") {
-        if (state.step === "details") return unchanged(state)
-        return { state: { ...state, step: "details", discovery: { type: "idle" }, error: undefined }, effects: none }
-      }
       if (event.type === "submit.requested") {
         if (!draftValid(state.draft, context.taken, state.mode)) return unchanged(state)
         // Entering `saving` here, before the first await, is what stops a second Enter from creating two providers.
@@ -207,9 +193,7 @@ export function transition(
             type: "editing",
             attempt: state.attempt,
             mode: state.mode,
-            // A failed save leaves the user where the failing request started: the models step, with the list the
-            // request never replaced.
-            step: "models",
+            // A failed save leaves the form as the user left it, with the model list the request never replaced.
             draft: state.draft,
             discovery: state.discovery,
             error: event.message,
@@ -249,11 +233,6 @@ export function busy(state: CustomProviderState) {
   return state.type === "saving" || state.type === "deleting"
 }
 
-/** Whether the details step may advance, including the field errors the dialog shows. */
-export function canContinue(state: CustomProviderState, context: CustomProviderContext) {
-  return state.type === "editing" && state.step === "details" && detailsValid(state.draft, context.taken, state.mode)
-}
-
 export function canSubmit(state: CustomProviderState, context: CustomProviderContext) {
-  return state.type === "editing" && state.step === "models" && draftValid(state.draft, context.taken, state.mode)
+  return state.type === "editing" && draftValid(state.draft, context.taken, state.mode)
 }

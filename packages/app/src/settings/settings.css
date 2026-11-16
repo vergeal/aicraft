@@ -2329,8 +2329,11 @@
 }
 
 /* Same step as the top-level header: a collapsed group ends at its header, so the header also carries the card's
-   bottom corners instead of leaving its square fill over the rounded edge. */
-.provider-model-group:not([data-expanded]) > .provider-model-group-header {
+   bottom corners instead of leaving its square fill over the rounded edge. Scoped to the settings page: the manage and
+   connect dialogs keep the base radius, so their header reads the same expanded and collapsed. */
+.settings-tab-body.settings-models
+  .provider-model-group:not([data-expanded])
+  > .provider-model-group-header {
   border-radius: var(--settings-card-radius, 10px);
 }
 

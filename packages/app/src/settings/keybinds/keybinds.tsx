@@ -455,6 +455,12 @@ export function createKeybindSettingsController(
           .split(",")
           .map((combo) => formatKeybindParts(combo, language.t))
           .filter((parts) => parts.length > 0),
+      keybindText: (id: string) =>
+        (effective(id) ?? "")
+          .split(",")
+          .map((combo) => formatKeybind(combo, language.t))
+          .filter(Boolean)
+          .join(", "),
     },
     capture: {
       active: () => store.active,
@@ -494,6 +500,7 @@ export function SettingsKeybinds(props: { active?: boolean }) {
       filtered={controller.catalog.filtered}
       title={controller.catalog.title}
       combos={controller.catalog.keybindCombos}
+      keybindText={controller.catalog.keybindText}
       active={controller.capture.active()}
       onCapture={controller.capture.toggle}
       onUnbind={controller.capture.unbind}
@@ -509,6 +516,7 @@ function SettingsKeybindsView(props: {
   filtered: (query: string) => Map<KeybindGroup, string[]>
   title: (id: string) => string
   combos: (id: string) => string[][]
+  keybindText: (id: string) => string
   active: string | null
   onCapture: (id: string) => void
   onUnbind: (id: string) => void
@@ -578,8 +586,16 @@ function SettingsKeybindsView(props: {
                                 class="settings-shortcut-capture"
                                 data-keybind-id={id}
                                 data-expanded={recording() ? "" : undefined}
-                                aria-label={language.t("settings.shortcuts.capture", { name: props.title(id) })}
-                                aria-pressed={recording()}
+                                aria-label={
+                                  recording()
+                                    ? language.t("settings.shortcuts.capture.recording", {
+                                        name: props.title(id),
+                                      })
+                                    : language.t("settings.shortcuts.capture.current", {
+                                        name: props.title(id),
+                                        keys: props.keybindText(id) || language.t("settings.shortcuts.unassigned"),
+                                      })
+                                }
                               >
                                 <Show
                                   when={recording()}

@@ -90,7 +90,7 @@ export function createAppearanceSettingsController() {
       current: createMemo(() => themes().find((option) => option.id === theme.themeId())),
       /** Three colours that stand for a theme in the picker; undefined until its definition has loaded. */
       swatches: (id: string) => {
-        const variant = theme.themes()[id]?.dark ?? theme.themes()[id]?.light
+        const variant = theme.themes()[id]?.[theme.mode()] ?? theme.themes()[id]?.light
 
         if (variant?.seeds) return [variant.seeds.neutral, variant.seeds.primary, variant.seeds.interactive]
         if (!variant?.palette) return undefined

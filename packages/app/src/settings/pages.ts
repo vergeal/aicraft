@@ -29,5 +29,5 @@ export const pageLabels = {
   extensions: "settings.tab.extensions",
   servers: "settings.section.server",
   experimental: "settings.tab.experimental",
-  about: "settings.tab.about",
+  about: "settings.nav.versionInfo",
 } as const satisfies Record<SettingsRootTab, Parameters<ReturnType<typeof useLanguage>["t"]>[0]>

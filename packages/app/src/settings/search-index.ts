@@ -40,11 +40,13 @@ export function settingsSearchIndex(input: {
   ) => {
     const page =
       !server && view.tab === "general" && view.target
-        ? `${input.translate(pageLabels.general)} / ${input.translate(entry.section ?? "settings.general.section.general")}`
+        ? entry.section
+          ? `${input.translate(pageLabels.general)} / ${input.translate(entry.section)}`
+          : input.translate(pageLabels.general)
         : input.translate(
             entry.section ??
               (view.type !== "root" && view.tab === "general"
-                ? "settings.general.section.general"
+                ? pageLabels.general
                 : view.tab === "servers" && multiple
                   ? "settings.tab.servers"
                   : pageLabels[view.tab]),
@@ -105,14 +107,15 @@ export function settingsSearchIndex(input: {
     if (setting.page === "servers") return
 
     if (setting.page === "general") {
-      const section = setting.section ? input.translate("settings.general.section.general") : setting.title
+      // Rows placed in the general section have no section heading of their own left to name.
+      const subpage = setting.section ? undefined : setting.title
 
       return setting.entries?.forEach((entry) =>
         addPlugin(
           item,
           entry,
           { type: "root", tab: "general", target: entry.id },
-          `${input.translate(pageLabels.general)} / ${section}`,
+          subpage ? `${input.translate(pageLabels.general)} / ${subpage}` : input.translate(pageLabels.general),
           "",
         ),
       )

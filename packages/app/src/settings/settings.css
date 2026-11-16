@@ -2274,12 +2274,13 @@
   white-space: nowrap;
 }
 
-/* A step below the group title in size and ink: the count is metadata, and at the title's 12px/muted it read as part
-   of the label. `text-faint` is a step lighter than `muted` in both schemes, so the count recedes in light and dark. */
+/* A step below the group title in size and weight: the count is metadata. It stays on the muted ink because faint at
+   11px falls under the 4.5:1 contrast a small text needs on both schemes, and 11px/400 still separates it from the
+   12px/550 title. */
 .settings-models-group-count,
 .provider-model-group-count {
   flex-shrink: 0;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-text-text-muted);
   font-size: 11px;
   font-weight: 400;
   line-height: var(--line-height-compact);
@@ -4102,7 +4103,7 @@
 }
 
 [data-color-scheme="light"] [data-slot="settings-row-title"] {
-  color: var(--v2-text-text-muted);
+  color: var(--v2-text-text-base);
 }
 
 /* A 0.5px line at 8% ink lands near 4% once the device halves it, so the header's hairline takes one step up in light. */

@@ -1396,7 +1396,6 @@ export const dict = {
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.independent": "Sounds play even when system notifications are off.",
-  "settings.general.sounds.preview": "Preview sound",
   "settings.general.sounds.previewFor": "Preview the {{name}} sound",
   "settings.general.sounds.agent.description": "Play sound when the agent is complete or needs attention",
   "settings.general.sounds.permissions.title": "Permissions",

@@ -88,7 +88,6 @@ const SoundSetting: Component<{
           type="button"
           variant="ghost-muted"
           size="large"
-          class="settings-sounds-preview"
           aria-label={language.t("settings.general.sounds.previewFor", { name: language.t(config().title) })}
           disabled={current().id === "none"}
           icon={<Icon name="outline-wave-audio" size="small" />}
@@ -122,6 +121,10 @@ export const SettingsNotifications: Component = () => {
       if (typeof Notification === "undefined") return
 
       setState("permission", Notification.permission)
+      // The failure line only means something while the permission is still `default`. Once the OS grants it
+      // and the user later revokes it back to `default`, leaving the flag set would show a failure note for a
+      // request that did not fail this time.
+      if (Notification.permission !== "default") setState("requestFailed", false)
     }
 
     makeEventListener(window, "visibilitychange", () => {

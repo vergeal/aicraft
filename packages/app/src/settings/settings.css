@@ -2362,19 +2362,27 @@
   border-top: 0.5px solid var(--v2-border-border-base);
 }
 
+/* models.tsx writes the page header's measured height here, and CSS defines the same property as `auto` for the frame
+   before that lands (or for a header it never finds): with no inset a band simply scrolls, instead of pinning at 0
+   behind the opaque page header, which shares this scrollport at z-index 10. */
+.settings-tab-body.settings-models {
+  --settings-models-sticky-top: auto;
+}
+
 /* Settings page: group headers pin under the page header while their section scrolls. The offset is the header's
    measured height, so a header is never left hidden behind the opaque page header. */
 .settings-tab-body.settings-models .settings-models-group-header {
   position: sticky;
-  top: var(--settings-models-sticky-top, 0px);
+  top: var(--settings-models-sticky-top);
   z-index: 2;
 }
 
 /* A Console provider group pins below its Console header's 44px band instead of taking the same offset and covering
-   that header. The lower z-index keeps it beneath the parent while both are stuck. */
+   that header. The lower z-index keeps it beneath the parent while both are stuck. Until the measured offset lands,
+   `calc(auto + 44px)` is invalid at computed-value time and the inset stays `auto`, so this band also just scrolls. */
 .settings-tab-body.settings-models .provider-model-group-header {
   position: sticky;
-  top: calc(var(--settings-models-sticky-top, 0px) + 44px);
+  top: calc(var(--settings-models-sticky-top) + 44px);
   z-index: 1;
 }
 

@@ -49,8 +49,8 @@ export const SettingsModels: Component<{
   const sections = new Map<string, HTMLElement>()
 
   // The page header is sticky and opaque, so group headers pinned at 0 would stay hidden behind it. They pin just
-  // below its measured height instead of a fixed offset that drifts when the description wraps. Until the header is
-  // measured the variable stays unset, so a first paint never pins a header under the header.
+  // below its measured height instead of a fixed offset that drifts when the description wraps. CSS keeps `top` at
+  // `auto` until this value lands (`onMount` runs before the first paint), so no band ever pins behind the header.
   let body: HTMLDivElement | undefined
   const [stickyTop, setStickyTop] = createSignal<number>()
   onMount(() => {

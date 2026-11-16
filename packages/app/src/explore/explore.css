@@ -871,6 +871,9 @@
 .explore-skill-detail {
   display: flex;
   flex-direction: column;
+  /* The scrollport runs to the panel edge so its scrollbar sits there; the page still keeps its bottom inset
+     under the document surface instead of letting the SKILL.md panel end flush with the window. */
+  padding-block-end: 16px;
   overflow: hidden;
 }
 

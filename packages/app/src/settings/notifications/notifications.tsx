@@ -122,6 +122,10 @@ export const SettingsNotifications: Component = () => {
       if (typeof Notification === "undefined") return
 
       setState("permission", Notification.permission)
+      // The failure line only means something while the permission is still `default`. Once the OS grants it
+      // and the user later revokes it back to `default`, leaving the flag set would show a failure note for a
+      // request that did not fail this time.
+      if (Notification.permission !== "default") setState("requestFailed", false)
     }
 
     makeEventListener(window, "visibilitychange", () => {

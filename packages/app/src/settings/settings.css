@@ -1445,8 +1445,9 @@
     font-size: 18px;
   }
 
-  /* A 13px filter zooms the page when it takes focus on iOS, so the page-level filter uses the 16px input floor. */
-  .settings-filter-search [data-slot="text-input-v2-input"] {
+  /* A 13px filter zooms the page when it takes focus on iOS, so the page-level filter uses the 16px input floor.
+     The prefix raises this above the base 13px rule further down the file; same specificity without it loses. */
+  .settings-screen .settings-filter-search [data-slot="text-input-v2-input"] {
     font-size: 16px;
   }
 }
@@ -1478,7 +1479,7 @@
   }
 
   /* Same 16px floor as the page filter on a phone-width screen. */
-  .settings-filter-search [data-slot="text-input-v2-input"] {
+  .settings-screen .settings-filter-search [data-slot="text-input-v2-input"] {
     font-size: 16px;
   }
 }

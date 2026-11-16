@@ -78,14 +78,11 @@ async function readVersion(directory: string, version: string): Promise<Found | 
 }
 
 /**
- * A pack writes a `manifest.json` next to the bundle, so listing a directory never opens a multi-megabyte archive.
- * A bundle copied in by hand has no sidecar; reading its own `ocplugin.json` is the fallback that still lets it show.
+ * The manifest travels inside the archive, so listing a version opens it. A bundle is self-contained on purpose:
+ * the version directory holds one `.craf` and nothing else. Opening a large bundle (webwright ships its Playwright
+ * driver) is the accepted cost of keeping the distribution directory clean.
  */
 async function readManifest(file: string): Promise<Manifest | undefined> {
-  const sidecar = await Bun.file(path.join(path.dirname(file), "manifest.json"))
-    .json()
-    .catch(() => undefined)
-  if (isManifest(sidecar)) return sidecar
   const archive = new Bun.Archive(new Uint8Array(await readFile(file)))
   const declared = (await archive.files()).get("ocplugin.json")
   if (!declared) return undefined

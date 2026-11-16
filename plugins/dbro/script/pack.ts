@@ -10,8 +10,9 @@ import { join, posix, resolve } from "node:path"
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
 const manifest = await Bun.file(join(root, "ocplugin.json")).json()
-// Packs land in the local discover directory, under the plugin id and version, so the app can list them without
-// opening the archive and the installer finds the chosen version. `OCPLUGIN_OUT` keeps release builds elsewhere.
+// Packs land in the local discover directory, under the plugin id and version, one single-file bundle per version.
+// The manifest travels inside the archive, so listing a version opens it; `OCPLUGIN_OUT` keeps release builds
+// elsewhere.
 const out = process.env.OCPLUGIN_OUT
   ? resolve(process.env.OCPLUGIN_OUT)
   : join(homedir(), ".distribution", "plugins", manifest.id, manifest.version)
@@ -42,8 +43,6 @@ const tar = concat([
 const archive = join(out, `${manifest.id}-${manifest.version}.craf`)
 await rm(archive, { force: true })
 await Bun.write(archive, Bun.gzipSync(tar, { level: 9 }))
-// The sidecar describes the same bundle without its archive, so the catalog can read display data cheaply.
-await Bun.write(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n")
 
 console.log(`packed ${archive} (${entries.length} entries, ${(tar.byteLength / 1024 / 1024).toFixed(1)} MiB of tar)`)
 

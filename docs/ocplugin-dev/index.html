@@ -1480,9 +1480,6 @@ await mkdir(out, { recursive: true })
 const archive = join(out, `${manifest.id}-${manifest.version}.craf`)
 await Bun.Archive.write(archive, files, { compress: "gzip", level: 9 })
 
-// 插件目录读取的侧车清单，不必解压
-await Bun.write(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n")
-
 console.log(`packed ${archive}`)</code></pre>
 
       <p>执行：</p>
@@ -1512,8 +1509,8 @@ console.log(`packed ${archive}`)</code></pre>
           <td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.craf</code>。</td>
         </tr>
         <tr>
-          <td>侧车清单</td>
-          <td>同目录 <code>manifest.json</code>（不含 <code>files</code>），供插件目录快速读取。</td>
+          <td>单文件</td>
+          <td>每个版本目录只留一个 <code>.craf</code>，清单随包内的 <code>ocplugin.json</code> 分发，不另写侧车文件。</td>
         </tr>
         <tr>
           <td>压缩</td>
@@ -3188,7 +3185,7 @@ ctx.add(InboxContent, {
         <tr><td><code>~/.opencode/logs/plugin/&lt;id&gt;.log</code></td><td>插件日志（<code>ctx.paths.log</code>），卸载后保留。</td></tr>
         <tr><td><code>~/.opencode/secrets.key</code></td><td>加密凭据的主密钥，首次使用生成，权限 <code>0600</code>。</td></tr>
         <tr><td><code>~/.opencode/secrets/&lt;id&gt;.json</code></td><td>加密后的凭据密文，权限 <code>0600</code>。</td></tr>
-        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：<code>&lt;id&gt;-&lt;version&gt;.craf</code> 与侧车 <code>manifest.json</code>；探索页从这里列出可安装版本。</td></tr>
+        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：每个版本只有一个 <code>&lt;id&gt;-&lt;version&gt;.craf</code>（清单在包内）；探索页从这里列出可安装版本。</td></tr>
         <tr><td><code>&lt;project&gt;/.opencode/plugins/</code></td><td>项目级插件目录。</td></tr>
         <tr><td><code>opencode.json</code> 的 <code>plugins</code></td><td>显式声明插件包或本地目录。</td></tr>
         <tr><td><code>~/.config/opencode/opencode.json</code></td><td>全局配置，可写插件 options。</td></tr>

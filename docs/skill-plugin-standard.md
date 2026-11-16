@@ -419,7 +419,7 @@ README.md                # 可选
 建议在包内提供两个脚本：
 
 1. `build`：`bun build <入口> --target=bun --format=esm --outfile dist/server/index.js`，`--external` 取 `ocplugin.json` 的 `externals` 与 `node:*`；原样拷贝 `skills/`、`assets/`、`README.md`、`package.json`、`ocplugin.json` 到 `dist/`。
-2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.craf`，并在同一目录写一份 `manifest.json`（`ocplugin.json` 原样副本，不含 `files`）供探索页读取展示信息；如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
+2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.craf`；清单随包内的 `ocplugin.json` 分发，不另写侧车文件，如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
 
 产物即分发单元，不再走 npm 发布，也不进 `packages/*/dist/npm`。
 
@@ -429,8 +429,7 @@ README.md                # 可选
 ~/.distribution/plugins/
   <id>/
     <version>/
-      <id>-<version>.craf        # 插件包
-      manifest.json             # 展示信息，不随包分发
+      <id>-<version>.craf        # 插件包，清单在包内
 ```
 
 - 探索页按 `id` 聚合、按版本从新到旧列出；同一个插件的多个版本并存，安装时可选择版本。

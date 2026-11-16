@@ -2646,7 +2646,9 @@
   padding-block: 10px;
 }
 
-/* The connection the settings screen is attached to gets a rail and a label, not just a shell action. */
+/* The connection the settings screen is attached to gets a rail and a label, not just a shell action. The rail
+   sits in the tab body's 32px inset, just outside the section: at inset-inline-start: 0 it drew over the first
+   character of the heading, and indenting the section instead would misalign this card against the others. */
 .settings-server-connection[data-current] {
   position: relative;
 }
@@ -2654,11 +2656,18 @@
 .settings-server-connection[data-current]::before {
   position: absolute;
   inset-block: 8px;
-  inset-inline-start: 0;
+  inset-inline-start: -8px;
   width: 2px;
   border-radius: 2px;
   background: var(--v2-text-text-accent);
   content: "";
+}
+
+/* A server name is user data, so a long one truncates like the row's own name rather than wrapping the heading. */
+.settings-server-connection .settings-section-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-servers-row:not(:last-child) {

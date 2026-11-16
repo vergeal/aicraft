@@ -56,7 +56,7 @@ export function ExtensionPlugins(props: {
                       {/* A name that already reads as its id does not repeat it underneath. */}
                       <Show when={plugin.id && plugin.id !== name ? plugin.id : undefined}>
                         {(secondary) => (
-                          <div class="settings-provider-main text-12-regular text-v2-text-text-muted">
+                          <div class="settings-provider-main settings-extension-note">
                             <bdi dir="ltr" class="min-w-0">
                               <TruncatedText text={secondary()} />
                             </bdi>
@@ -93,7 +93,7 @@ export function ExtensionPlugins(props: {
       </Show>
       {/* Built-ins always run and stay out of the rows, so the list says where they went instead. */}
       <Show when={builtins.length > 0}>
-        <p class="settings-extension-state">{language.t("settings.plugins.builtin.note")}</p>
+        <p class="settings-extension-note">{language.t("settings.plugins.builtin.note")}</p>
       </Show>
     </>
   )
@@ -198,13 +198,7 @@ function OwnServerPlugins(props: {
       : language.t("common.requestFailed")
 
   const run = (work: Promise<void> | undefined) =>
-    void work?.catch((cause: unknown) => showToast({ variant: "error", title: reason(cause) }))
-
-  // Main entries reload through the manager; the renderer entry reloads here.
-  const reload = (id: string) => {
-    host.reload(id)
-    run(bridge?.manager.reload(id))
-  }
+    (work ?? Promise.resolve()).catch((cause: unknown) => showToast({ variant: "error", title: reason(cause) }))
 
   const row = (input: {
     id: string | undefined
@@ -229,6 +223,9 @@ function OwnServerPlugins(props: {
     // second click from racing the first and put the reason on the row instead of only in a toast.
     const [saving, setSaving] = createSignal(false)
     const [failure, setFailure] = createSignal<string | undefined>()
+    // Reload is its own busy state, separate from a toggle's: only the Reload button reports it, and the switch
+    // beside it stays flippable. The id says which row is reloading, so a second click cannot start a second reload.
+    const [reloading, setReloading] = createSignal<string | undefined>()
 
     const toggle = (id: string, next: boolean) => {
       if (saving()) return
@@ -240,6 +237,15 @@ function OwnServerPlugins(props: {
       void (work ?? Promise.resolve())
         .catch((cause: unknown) => setFailure(reason(cause)))
         .finally(() => setSaving(false))
+    }
+
+    // Main entries reload through the manager; the renderer entry reloads here.
+    const reload = (id: string) => {
+      if (reloading() !== undefined) return
+
+      setReloading(id)
+      host.reload(id)
+      void run(bridge?.manager.reload(id)).finally(() => setReloading(undefined))
     }
 
     const leadContent = (
@@ -258,7 +264,7 @@ function OwnServerPlugins(props: {
             </Show>
           </div>
           <Show when={input.secondary || parts().server || parts().tui}>
-            <div class="settings-provider-main text-12-regular text-v2-text-text-muted">
+            <div class="settings-provider-main settings-extension-note">
               <Show when={input.secondary}>
                 {(id) => (
                   <bdi dir="ltr" class="min-w-0">
@@ -316,12 +322,17 @@ function OwnServerPlugins(props: {
         </Show>
         <Show when={actionable()}>
           {(id) => (
-            <div class="settings-servers-actions" aria-busy={saving() ? "true" : undefined}>
+            <div class="settings-servers-actions" aria-busy={saving() || reloading() ? "true" : undefined}>
               {/* The state label lives in the trailing slot, so showing it never changes the row's height. */}
               <Show when={state() === "loaded" ? status(id(), part) : undefined}>
-                {(label) => <span class="text-12-regular text-v2-text-text-muted">{label()}</span>}
+                {(label) => <span class="settings-extension-note">{label()}</span>}
               </Show>
-              <Button size="small" variant="ghost" disabled={saving()} onClick={() => reload(id())}>
+              <Button
+                size="small"
+                variant="ghost"
+                disabled={saving() || reloading() !== undefined}
+                onClick={() => reload(id())}
+              >
                 {language.t("settings.plugins.reload")}
               </Button>
               {/* A built-in always runs; it keeps the switch's width, so every Reload lines up. */}
@@ -372,7 +383,7 @@ function OwnServerPlugins(props: {
         <For each={failedBuiltins()}>{(id) => row({ id, name: id, builtin: true, source: "builtin" })}</For>
       </SettingsList>
       <Show when={host.installed().some((item) => !item.builtin)}>
-        <p class="text-12-regular text-v2-text-text-muted">{language.t("settings.plugins.parts.note")}</p>
+        <p class="settings-extension-note">{language.t("settings.plugins.parts.note")}</p>
       </Show>
     </>
   )

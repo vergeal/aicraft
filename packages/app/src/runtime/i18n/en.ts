@@ -1418,7 +1418,7 @@ export const dict = {
   "settings.shortcuts.unassigned": "Unassigned",
   "settings.shortcuts.pressKeys": "Press keys",
   "settings.shortcuts.capture": "Record shortcut for {{name}}",
-  "settings.shortcuts.capture.current": "Record shortcut for {{name}}. Current: {{keys}}.",
+  "settings.shortcuts.capture.current": "Record shortcut for {{name}}. Current: {{keys}}",
   "settings.shortcuts.capture.recording": "Press keys to set the shortcut for {{name}}",
   "settings.shortcuts.unbind": "Unbind",
   "settings.shortcuts.search.placeholder": "Search shortcuts",

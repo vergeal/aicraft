@@ -168,9 +168,10 @@ export const ui: Ui = {
     <Switch
       checked={props.checked}
       onChange={(checked) => props.onChange(checked)}
-      disabled={props.disabled}
+      disabled={props.disabled || props.busy}
       hideLabel={props.hideLabel}
       description={props.description}
+      aria-busy={props.busy || undefined}
     >
       {props.label}
     </Switch>

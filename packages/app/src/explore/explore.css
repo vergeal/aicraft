@@ -871,9 +871,6 @@
 .explore-skill-detail {
   display: flex;
   flex-direction: column;
-  /* The scrollport runs to the panel edge so its scrollbar sits there; the page still keeps its bottom inset
-     under the document surface instead of letting the SKILL.md panel end flush with the window. */
-  padding-block-end: 16px;
   overflow: hidden;
 }
 
@@ -904,7 +901,9 @@
   min-height: 100%;
   flex-direction: column;
   margin-inline: auto;
-  padding: 16px 24px 24px;
+  /* The scrollport runs to the panel edge so its scrollbar sits there; the document surface keeps its own bottom
+     inset here, so the SKILL.md panel does not end flush with the window. */
+  padding: 16px 24px 40px;
 }
 
 .explore-skill-document-surface {

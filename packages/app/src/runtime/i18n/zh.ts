@@ -665,6 +665,7 @@ export const dict = {
     "这会从配置中移除 providers.{{provider}}，并删除为其保存的 API 密钥。",
   "settings.providers.custom.delete.confirm": "删除提供商",
   "settings.providers.custom.configured": "已在配置中配置",
+  "settings.providers.custom.readOnly": "已在只读配置中配置",
   "settings.providers.custom.keyMissing": "添加 API 密钥",
   "settings.providers.custom.keyReplace": "替换 API 密钥",
   "settings.providers.custom.toast.created.title": "已添加 {{provider}}",

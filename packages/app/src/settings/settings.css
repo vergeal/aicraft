@@ -3300,9 +3300,11 @@
   color: var(--v2-text-text-muted);
 }
 
-/* A quiet toggle under a plugin's error, its label lined up with the error text above it. */
+/* A quiet toggle under a plugin's error, its label lined up with the error text above it. The 24px box is the
+   smallest target this page uses (Button's own `small` is 26px), so the extra 4px stays inside error rows only;
+   an `::after` inset would keep 20px but would overlap the error text, where a drag to select text becomes a toggle. */
 .settings-plugin-error-toggle[data-component="button-v2"][data-size="small"] {
-  height: 20px;
+  height: 24px;
   margin-inline-start: -5px;
   padding-inline: 5px;
   font-size: 12px;

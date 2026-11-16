@@ -1645,6 +1645,13 @@
   .settings-provider-row {
     flex-wrap: wrap;
   }
+
+  /* The action strip now leads with the custom menu, so up to three controls can exceed the row. They wrap inside the
+     strip instead of pushing it past the panel edge; `flex: none` still keeps the strip from being squeezed. */
+  .settings-provider-actions {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 /* The provider sprite is monochrome, so every brand mark draws in one ink; per-brand tinted tiles are a design item we

@@ -671,113 +671,112 @@ export const SettingsProviders: Component<{
                             </div>
                           </div>
                           <Show
-                            when={canManageAccounts(item)}
+                            when={confirmingFor(item)}
                             fallback={
-                              <Show
-                                when={confirmingFor(item)}
-                                fallback={
-                                  <div class="settings-provider-actions">
-                                    <Show when={customProvider(item.id)}>
-                                      {(provider) => (
-                                        <>
-                                          <Show when={!canDisconnect(item)}>
-                                            <Button
-                                              size="normal"
-                                              variant="neutral"
-                                              onClick={() => openCustom(provider())}
+                              <div class="settings-provider-actions">
+                                {/* The custom menu leads wherever the provider is editable. A credential (an API key
+                                    counts) used to route the row into the account branch, which dropped the only
+                                    baseURL/model/key/delete entry the user had: the better configured the provider, the
+                                    less of it could be changed. */}
+                                <Show when={customProvider(item.id)}>
+                                  {(provider) => (
+                                    <>
+                                      <Menu placement="bottom-end" gutter={6}>
+                                        <Menu.Trigger
+                                          as={IconButton}
+                                          variant="ghost-muted"
+                                          size="large"
+                                          icon={<Icon name="outline-dots" />}
+                                          aria-label={language.t("settings.providers.custom.title.edit")}
+                                        />
+                                        <Menu.Portal>
+                                          <Menu.Content class="settings-provider-account-menu">
+                                            <Menu.Item onSelect={() => openCustom(provider())}>
+                                              {language.t("settings.providers.custom.edit")}
+                                            </Menu.Item>
+                                            <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
+                                              {language.t("settings.providers.custom.keyReplace")}
+                                            </Menu.Item>
+                                            <Menu.Separator />
+                                            <Menu.Item
+                                              data-variant="critical"
+                                              onSelect={() => deleteCustom(provider())}
                                             >
-                                              {language.t("settings.providers.custom.keyMissing")}
-                                            </Button>
-                                          </Show>
-                                          <Menu placement="bottom-end" gutter={6}>
-                                            <Menu.Trigger
-                                              as={IconButton}
-                                              variant="ghost-muted"
-                                              size="large"
-                                              icon={<Icon name="outline-dots" />}
-                                              aria-label={language.t("settings.providers.custom.title.edit")}
-                                            />
-                                            <Menu.Portal>
-                                              <Menu.Content class="settings-provider-account-menu">
-                                                <Menu.Item onSelect={() => openCustom(provider())}>
-                                                  {language.t("settings.providers.custom.edit")}
-                                                </Menu.Item>
-                                                <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
-                                                  {language.t("settings.providers.custom.keyReplace")}
-                                                </Menu.Item>
-                                                <Menu.Separator />
-                                                <Menu.Item
-                                                  data-variant="critical"
-                                                  onSelect={() => deleteCustom(provider())}
-                                                >
-                                                  {language.t("settings.providers.custom.delete.menu")}
-                                                </Menu.Item>
-                                              </Menu.Content>
-                                            </Menu.Portal>
-                                          </Menu>
-                                        </>
+                                              {language.t("settings.providers.custom.delete.menu")}
+                                            </Menu.Item>
+                                          </Menu.Content>
+                                        </Menu.Portal>
+                                      </Menu>
+                                      <Show when={!canDisconnect(item)}>
+                                        <Button
+                                          size="normal"
+                                          variant="neutral"
+                                          onClick={() => openCustom(provider())}
+                                        >
+                                          {language.t("settings.providers.custom.keyMissing")}
+                                        </Button>
+                                      </Show>
+                                    </>
+                                  )}
+                                </Show>
+                                <Show
+                                  when={canManageAccounts(item)}
+                                  fallback={
+                                    <>
+                                      <Show when={canDisconnect(item)}>
+                                        <Button
+                                          size="normal"
+                                          variant="ghost-muted"
+                                          onClick={() => requestDisconnect(item, item.name)}
+                                        >
+                                          {language.t("common.disconnect")}
+                                        </Button>
+                                      </Show>
+                                      {/* A custom provider without the configuration document cannot say where its
+                                          credential came from, so it shows no hint instead of the wrong one. */}
+                                      <Show when={!customProvider(item.id) && readOnly().has(item.id)}>
+                                        <span class="settings-provider-env-hint">
+                                          {language.t("settings.providers.custom.readOnly")}
+                                        </span>
+                                      </Show>
+                                      <Show
+                                        when={
+                                          !customProvider(item.id) &&
+                                          !readOnly().has(item.id) &&
+                                          !canDisconnect(item) &&
+                                          (configReady() || source(item) !== "custom")
+                                        }
+                                      >
+                                        <span class="settings-provider-env-hint">
+                                          {source(item) === "config"
+                                            ? language.t("settings.providers.custom.configured")
+                                            : language.t("settings.providers.connected.environmentDescription")}
+                                        </span>
+                                      </Show>
+                                    </>
+                                  }
+                                >
+                                  <>
+                                    <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
+                                      {(status) => (
+                                        <Button
+                                          size="normal"
+                                          variant="ghost-muted"
+                                          class="text-[var(--v2-state-fg-warning)]"
+                                          title={status().message}
+                                          onClick={() => connect(item.id)}
+                                        >
+                                          {language.t("dialog.provider.needsSignIn")}
+                                        </Button>
                                       )}
                                     </Show>
-                                    <Show when={canDisconnect(item)}>
-                                      <Button
-                                        size="normal"
-                                        variant="ghost-muted"
-                                        onClick={() => requestDisconnect(item, item.name)}
-                                      >
-                                        {language.t("common.disconnect")}
-                                      </Button>
-                                    </Show>
-                                    {/* A custom provider without the configuration document cannot say where its
-                                        credential came from, so it shows no hint instead of the wrong one. */}
-                                    <Show when={!customProvider(item.id) && readOnly().has(item.id)}>
-                                      <span class="settings-provider-env-hint">
-                                        {language.t("settings.providers.custom.readOnly")}
-                                      </span>
-                                    </Show>
-                                    <Show
-                                      when={
-                                        !customProvider(item.id) &&
-                                        !readOnly().has(item.id) &&
-                                        !canDisconnect(item) &&
-                                        (configReady() || source(item) !== "custom")
-                                      }
-                                    >
-                                      <span class="settings-provider-env-hint">
-                                        {source(item) === "config"
-                                          ? language.t("settings.providers.custom.configured")
-                                          : language.t("settings.providers.connected.environmentDescription")}
-                                      </span>
-                                    </Show>
-                                  </div>
-                                }
-                              >
-                                {(pending) => <ConfirmRemoval pending={pending()} />}
-                              </Show>
+                                    <AccountMenu provider={item} />
+                                  </>
+                                </Show>
+                              </div>
                             }
                           >
-                            <Show
-                              when={confirmingFor(item)}
-                              fallback={
-                                <div class="settings-provider-actions">
-                                  <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
-                                    {(status) => (
-                                      <Button
-                                        size="normal"
-                                        variant="ghost-muted"
-                                        class="text-[var(--v2-state-fg-warning)]"
-                                        title={status().message}
-                                        onClick={() => connect(item.id)}
-                                      >
-                                        {language.t("dialog.provider.needsSignIn")}
-                                      </Button>
-                                    )}
-                                  </Show>
-                                  <AccountMenu provider={item} />
-                                </div>
-                              }
-                            >
-                              {(pending) => <ConfirmRemoval pending={pending()} />}
-                            </Show>
+                            {(pending) => <ConfirmRemoval pending={pending()} />}
                           </Show>
                         </div>
                       }

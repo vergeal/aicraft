@@ -88,7 +88,6 @@ const SoundSetting: Component<{
           type="button"
           variant="ghost-muted"
           size="large"
-          class="settings-sounds-preview"
           aria-label={language.t("settings.general.sounds.previewFor", { name: language.t(config().title) })}
           disabled={current().id === "none"}
           icon={<Icon name="outline-wave-audio" size="small" />}

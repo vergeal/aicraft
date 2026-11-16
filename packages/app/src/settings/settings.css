@@ -1432,6 +1432,12 @@
     padding: 0;
   }
 
+  /* The scrollbar lane is desktop-only: full width there is no lane to reserve, and the 8px margin would
+     push the search 8px past the back button in the mobile nav. */
+  .settings-nav .settings-search {
+    margin-inline: 0;
+  }
+
   .settings-nav > .settings-back,
   .settings-sidebar .settings-nav-groups[data-slot="tabs-v2-list"] {
     display: none;
@@ -3900,8 +3906,9 @@
   gap: 4px;
   padding: 3px 8px;
   border: 1px solid var(--v2-border-border-base);
-  /* A pill is the one shape in Settings that is not on the 6px control radius. */
-  border-radius: 999px;
+  /* The design's own chip radius; the pill was an R3 deviation. Colour and size stay as they are: the design's
+     11px accent-on-14%-accent chip only reaches ~3.3:1, and 24px keeps a usable hit area. */
+  border-radius: 5px;
   background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-base);
   font-size: 12px;

@@ -2572,9 +2572,13 @@
   background: var(--v2-system-accent-soft);
 }
 
+/* A plugin's command title can be long; it truncates instead of wrapping the row past its 44px metric. */
 .settings-shortcut-name {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The keys column is sized by its content, so a long chord no longer overflows to the left of a fixed 112px column,

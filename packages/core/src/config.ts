@@ -560,7 +560,7 @@ export const layer = (options?: Options) =>
           // would silently do nothing. `canonical` and `compatibility` have no v1 field and are left out.
           const mergeLegacyProvider = (base: unknown, patch: ProviderPatch) => {
             const raw = object(base)
-            const { package: pkg, settings, headers, body, models, ...rest } = patch
+            const { package: pkg, settings, headers, body, models, canonical, compatibility, ...rest } = patch
             const baseURL = object(settings).baseURL
             const overlay =
               settings === undefined && headers === undefined && body === undefined

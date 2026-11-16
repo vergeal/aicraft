@@ -489,6 +489,8 @@ export function customProvidersFrom(entries: readonly unknown[]) {
 /** Providers a document declares but the editor cannot change: a project file, a managed policy. */
 export function readOnlyProvidersFrom(entries: readonly unknown[]) {
   return new Set(
+    // SAFETY: `entries` is the `config.get` JSON view of `Config.Entry[]`; only the document fields read here exist on
+    // it, and a directory entry simply has neither `writable` nor `info.providers`.
     (entries as Array<{ type?: string; writable?: boolean; info?: { providers?: Record<string, unknown> } }>).flatMap(
       (entry) => (entry.type !== "document" || entry.writable ? [] : Object.keys(entry.info?.providers ?? {})),
     ),

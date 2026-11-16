@@ -12,6 +12,7 @@ import { Watcher } from "./filesystem/watcher.js"
 import { FSUtil } from "@opencode/util/fs-util"
 import { Global } from "@opencode/util/global"
 import { Location } from "./location.js"
+import { Provider } from "./provider.js"
 import { AbsolutePath } from "./schema.js"
 import { ConfigVariable } from "./config/variable.js"
 import { ConfigNormalize } from "./config/normalize.js"
@@ -469,102 +470,182 @@ export const layer = (options?: Options) =>
       )
       yield* reloadLock.withPermit(reconcile(initial))
 
-      // The one file update() writes, resolved the same way in both places so a client's `writable` marker cannot
-      // drift from the document a patch actually lands in. Only the global directory is eligible: the system
+      // The global files update() may write, resolved the same way in both places so a client's `writable` marker
+      // cannot drift from the document a patch actually lands in. Only the global directory is eligible: the system
       // directory (e.g. %ProgramData%\opencode) is not the user's to rewrite.
       const writeTarget = Effect.fnUntraced(function* () {
         const directory = initial.global ?? AbsolutePath.make(globalService.config)
-        const existing = (yield* Effect.filter(
+        const existing = yield* Effect.filter(
           ConfigDiscovery.names.map((name) => path.join(directory, name)),
           fs.isFile,
-        )).at(-1)
+        )
         return { directory, existing }
       })
 
+      const object = (value: unknown) =>
+        value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+
+      // JSONC parsing returns undefined for malformed input instead of throwing, so a broken file simply has no
+      // settings to merge into.
+      const documentSettings = (value: string) => object(parse(value, [], { allowTrailingComma: true }))
+
+      // The key a provider is declared under: v2 `providers`, or the v1 singular `provider` a migrated file may keep.
+      const providerSectionKey = (value: string, id: string) => {
+        const parsed = documentSettings(value)
+        for (const key of ["providers", "provider"] as const) {
+          if (Object.hasOwn(object(parsed[key]), id)) return key
+        }
+        return undefined
+      }
+
+      // Where a provider that is new to this file goes: the section the file already uses, so a v1 document never
+      // grows a second `providers` key beside its `provider`.
+      const providerSection = (value: string) => {
+        const parsed = documentSettings(value)
+        for (const key of ["providers", "provider"] as const) {
+          const section = parsed[key]
+          if (section && typeof section === "object" && !Array.isArray(section)) return key
+        }
+        return "providers" as const
+      }
+
+      const providerEntry = (value: string, id: string) => {
+        const key = providerSectionKey(value, id)
+        return key === undefined ? undefined : object(documentSettings(value)[key])[id]
+      }
+
       const update = Effect.fn("Config.update")(
         function* (patch: Patch) {
+          // Every global document is writable, so one patch can touch several files: each provider lands in the file
+          // that already declares it. Plugins, shell and a provider with no home yet go to the default target.
           const target = yield* writeTarget()
-          const filepath = target.existing ?? path.join(target.directory, "opencode.jsonc")
-          const text = (yield* fs.readFileStringSafe(filepath)) ?? "{}\n"
-          const updated = yield* Effect.try({
-            try: () => {
-              const formattingOptions = { tabSize: 2, insertSpaces: true }
-              const settings = (value: string) => {
-                const parsed: unknown = parse(value, [], { allowTrailingComma: true })
-                return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-                  ? (parsed as Record<string, unknown>)
-                  : {}
+          const fallback = target.existing.at(-1) ?? path.join(target.directory, "opencode.jsonc")
+          const files = [...new Set([...target.existing, fallback])]
+          const texts = new Map(
+            yield* Effect.forEach(files, (file) =>
+              fs.readFileStringSafe(file).pipe(Effect.map((text) => [file, text ?? "{}\n"] as const)),
+            ),
+          )
+          const home = (id: string) =>
+            files.find((file) => providerSectionKey(texts.get(file) ?? "{}\n", id) !== undefined) ?? fallback
+          const assigned = new Map(
+            files.map((file) => [file, Object.keys(patch.providers ?? {}).filter((id) => home(id) === file)]),
+          )
+
+          // A model sent as `{}` keeps the document's own entry, which preserves its raw configuration instead of
+          // re-encoding a decoded one.
+          const mergeModels = (raw: Record<string, unknown>, models: Readonly<Record<string, unknown>>) =>
+            Object.fromEntries(
+              Object.entries(models).map(([id, entry]) => [
+                id,
+                Object.keys(object(entry)).length === 0 && object(raw.models)[id] !== undefined
+                  ? object(raw.models)[id]
+                  : entry,
+              ]),
+            )
+          // Provider-level shallow merge. Settings merge one level deeper so an unrelated setting the editor never
+          // shows survives.
+          const mergeProvider = (base: unknown, patch: ProviderPatch) => {
+            const raw = object(base)
+            const models = patch.models === undefined ? raw.models : mergeModels(raw, patch.models)
+            return {
+              ...raw,
+              ...patch,
+              settings: { ...object(raw.settings), ...object(patch.settings) },
+              ...(models === undefined ? {} : { models }),
+            }
+          }
+          // A v1 `provider` entry names the same things differently: `npm` for the package and `options` for the
+          // settings overlays. Writing the current names there parses but is dropped by the v1 decoder, so the edit
+          // would silently do nothing. `canonical` and `compatibility` have no v1 field and are left out.
+          const mergeLegacyProvider = (base: unknown, patch: ProviderPatch) => {
+            const raw = object(base)
+            const { package: pkg, settings, headers, body, models, ...rest } = patch
+            const baseURL = object(settings).baseURL
+            const overlay =
+              settings === undefined && headers === undefined && body === undefined
+                ? undefined
+                : {
+                    ...object(raw.options),
+                    ...object(settings),
+                    ...(headers === undefined ? {} : { headers }),
+                    ...(body === undefined ? {} : { body }),
+                  }
+            return {
+              ...raw,
+              ...rest,
+              ...(pkg === undefined || Object.hasOwn(raw, "npm") ? {} : { npm: Provider.packageName(pkg) }),
+              // v1 reads the overlays out of `options` and lets `api` override its base URL, so both stay in step.
+              ...(overlay === undefined ? {} : { options: overlay }),
+              ...(baseURL === undefined || !Object.hasOwn(raw, "api") ? {} : { api: baseURL }),
+              ...(models === undefined ? {} : { models: mergeModels(raw, models) }),
+            }
+          }
+          // Encoded, so an omitted optional field cannot reach the document as `null` or as an explicit
+          // `undefined` value.
+          const encoded = (value: ProviderPatch) => encodeProviderPatch(value)
+
+          const render = (text: string, ids: string[], primary: boolean) => {
+            const formattingOptions = { tabSize: 2, insertSpaces: true }
+            let current = text
+            if (primary && patch.plugins !== undefined && patch.plugins.length > 0) {
+              const parsed = documentSettings(current)
+              const legacy = Array.isArray(parsed.plugin) ? parsed.plugin : []
+              const declared = Array.isArray(parsed.plugins) ? parsed.plugins : []
+              const existing = [...legacy, ...declared].filter((item): item is string => typeof item === "string")
+              const added = new Set(patch.plugins)
+              // Installing also lifts a former `-name` disable, so the user gets the plugin they just asked for.
+              const merged = [...new Set([...existing, ...patch.plugins])].filter(
+                (item) => !(item.startsWith("-") && added.has(item.slice(1))),
+              )
+              current = applyEdits(current, modify(current, ["plugins"], merged, { formattingOptions }))
+              if (legacy.length > 0) {
+                current = applyEdits(current, modify(current, ["plugin"], undefined, { formattingOptions }))
               }
-              const provider = (value: string, id: string) => {
-                const providers = settings(value).providers
-                if (!providers || typeof providers !== "object" || Array.isArray(providers)) return undefined
-                const entry = (providers as Record<string, unknown>)[id]
-                return entry && typeof entry === "object" && !Array.isArray(entry)
-                  ? (entry as Record<string, unknown>)
-                  : undefined
-              }
-              const object = (value: unknown) =>
-                value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
-              // Provider-level shallow merge. Settings merge one level deeper so an unrelated setting the editor
-              // never shows survives. A model sent as `{}` keeps the document's own model entry, which preserves
-              // its raw configuration instead of re-encoding a decoded one.
-              const mergeProvider = (base: Record<string, unknown> | undefined, patch: ProviderPatch) => {
-                const raw = object(base)
-                const models =
-                  patch.models === undefined
-                    ? raw.models
-                    : Object.fromEntries(
-                        Object.entries(patch.models).map(([id, entry]) => [
-                          id,
-                          Object.keys(object(entry)).length === 0 && object(raw.models)[id] !== undefined
-                            ? object(raw.models)[id]
-                            : entry,
-                        ]),
-                      )
-                return {
-                  ...raw,
-                  ...patch,
-                  settings: { ...object(raw.settings), ...object(patch.settings) },
-                  ...(models === undefined ? {} : { models }),
-                }
-              }
-              // Encoded, so an omitted optional field cannot reach the document as `null` or as an explicit
-              // `undefined` value.
-              const encoded = (value: ProviderPatch) => encodeProviderPatch(value)
-              let current = text
-              if (patch.plugins !== undefined && patch.plugins.length > 0) {
-                const parsed = settings(current)
-                const legacy = Array.isArray(parsed.plugin) ? parsed.plugin : []
-                const declared = Array.isArray(parsed.plugins) ? parsed.plugins : []
-                const existing = [...legacy, ...declared].filter((item): item is string => typeof item === "string")
-                const added = new Set(patch.plugins)
-                // Installing also lifts a former `-name` disable, so the user gets the plugin they just asked for.
-                const merged = [...new Set([...existing, ...patch.plugins])].filter(
-                  (item) => !(item.startsWith("-") && added.has(item.slice(1))),
-                )
-                current = applyEdits(current, modify(current, ["plugins"], merged, { formattingOptions }))
-                if (legacy.length > 0) {
-                  current = applyEdits(current, modify(current, ["plugin"], undefined, { formattingOptions }))
-                }
-              }
-              if (patch.shell !== undefined) {
-                current = applyEdits(
-                  current,
-                  modify(current, ["shell"], patch.shell ?? undefined, { formattingOptions }),
-                )
-              }
-              // One provider key at a time, so a provider edit never rewrites the rest of the document. The merge
-              // base is the file's own JSONC node, not the decoded Info: `{file:…}` and `{env:…}` substitutions
-              // happen before parsing, so merging the resolved Info would write a secret into the document.
-              for (const [id, value] of Object.entries(patch.providers ?? {})) {
-                const merged = value === null ? undefined : mergeProvider(provider(current, id), encoded(value))
-                current = applyEdits(current, modify(current, ["providers", id], merged, { formattingOptions }))
-              }
-              return current
-            },
-            catch: (cause) => new FSUtil.FileSystemError({ method: "config.update", cause }),
+            }
+            if (primary && patch.shell !== undefined) {
+              current = applyEdits(
+                current,
+                modify(current, ["shell"], patch.shell ?? undefined, { formattingOptions }),
+              )
+            }
+            // One provider key at a time, so a provider edit never rewrites the rest of the document. The merge base
+            // is the file's own JSONC node, not the decoded Info: `{file:…}` and `{env:…}` substitutions happen
+            // before parsing, so merging the resolved Info would write a secret into the document.
+            for (const id of ids) {
+              const value = (patch.providers ?? {})[id] ?? null
+              // Follow the key the file already uses, so a v1 `provider` document never grows a `providers` copy.
+              const key = providerSectionKey(current, id) ?? providerSection(current)
+              const merged =
+                value === null
+                  ? undefined
+                  : key === "provider"
+                    ? mergeLegacyProvider(providerEntry(current, id), encoded(value))
+                    : mergeProvider(providerEntry(current, id), encoded(value))
+              current = applyEdits(current, modify(current, [key, id], merged, { formattingOptions }))
+            }
+            return current
+          }
+
+          // A file is only rewritten when the patch changes something in it, so an untouched document keeps its bytes
+          // and does not trigger a reload.
+          const touches = (patch.plugins?.length ?? 0) > 0 || patch.shell !== undefined
+          const writes = files.flatMap((file) => {
+            const ids = assigned.get(file) ?? []
+            const primary = file === fallback
+            return ids.length === 0 && !(primary && touches)
+              ? []
+              : [{ file, text: texts.get(file) ?? "{}\n", ids, primary }]
           })
-          yield* fs.writeWithDirs(filepath, updated.endsWith("\n") ? updated : `${updated}\n`)
+          yield* Effect.forEach(writes, (write) =>
+            Effect.gen(function* () {
+              const updated = yield* Effect.try({
+                try: () => render(write.text, write.ids, write.primary),
+                catch: (cause) => new FSUtil.FileSystemError({ method: "config.update", cause }),
+              })
+              yield* fs.writeWithDirs(write.file, updated.endsWith("\n") ? updated : `${updated}\n`)
+            }),
+          )
           yield* requestReload
         },
         (effect) => updateLock.withPermit(effect),
@@ -572,12 +653,12 @@ export const layer = (options?: Options) =>
 
       return Service.of({
         entries: Effect.fnUntraced(function* () {
-          // Mark the document update() would write. A provider the UI can edit is one declared in that file;
+          // Mark every document update() may write. A provider the UI can edit is one declared in a global document;
           // anything else (a project file, a managed policy) is read-only for the editor.
           const target = (yield* writeTarget()).existing
-          if (target === undefined) return configs
+          if (target.length === 0) return configs
           return configs.map((entry) =>
-            entry.type === "document" && entry.path === target
+            entry.type === "document" && entry.path !== undefined && target.includes(entry.path)
               ? new Document({ type: "document", path: entry.path, writable: true, info: entry.info })
               : entry,
           )

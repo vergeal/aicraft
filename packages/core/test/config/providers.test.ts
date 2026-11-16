@@ -216,7 +216,7 @@ describe("Config.update providers", () => {
     ),
   )
 
-  it.live("marks only the document update would write as writable", () =>
+  it.live("marks every global document as writable and the project document as read-only", () =>
     Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
@@ -225,16 +225,114 @@ describe("Config.update providers", () => {
           await fs.mkdir(global, { recursive: true })
           await fs.mkdir(project, { recursive: true })
           await fs.writeFile(path.join(global, "opencode.json"), JSON.stringify({ shell: "zsh" }))
+          await fs.writeFile(path.join(global, "opencode.jsonc"), JSON.stringify({ shell: "fish" }))
           await fs.writeFile(path.join(project, "opencode.json"), JSON.stringify({ shell: "bash" }))
         }).pipe(
           Effect.andThen(
             Effect.gen(function* () {
               const config = yield* Config.Service
-              // The global document wins the write target; the project document is read-only for the editor.
+              // A provider may live in either global document, so both stay editable; the project one is read-only.
               const writable = (yield* config.entries()).filter(
                 (entry): entry is Document => entry.type === "document" && entry.writable === true,
               )
-              expect(writable.map((entry) => entry.path)).toEqual([AbsolutePath.make(path.join(global, "opencode.json"))])
+              expect(writable.map((entry) => entry.path)).toEqual([
+                AbsolutePath.make(path.join(global, "opencode.json")),
+                AbsolutePath.make(path.join(global, "opencode.jsonc")),
+              ])
+            }).pipe(Effect.provide(layer(project, global))),
+          ),
+        )
+      }),
+    ),
+  )
+
+  it.live("writes a provider back to the file that declares it", () =>
+    Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
+      Effect.flatMap((tmp) => {
+        const global = path.join(tmp.path, "global")
+        const project = path.join(tmp.path, "project")
+        const json = path.join(global, "opencode.json")
+        const jsonc = path.join(global, "opencode.jsonc")
+        const jsoncText = `{
+  // untouched
+  "disabled_providers": ["hxnewapi"],
+  "providers": { "beta": { "name": "Beta" } }
+}
+`
+        return Effect.promise(async () => {
+          await fs.mkdir(global, { recursive: true })
+          await fs.mkdir(project, { recursive: true })
+          await fs.writeFile(
+            json,
+            JSON.stringify({
+              providers: { alpha: { name: "Alpha", settings: { baseURL: "https://old.example/v1" } } },
+            }),
+          )
+          await fs.writeFile(jsonc, jsoncText)
+        }).pipe(
+          Effect.andThen(
+            Effect.gen(function* () {
+              const config = yield* Config.Service
+              yield* config.update!({ providers: { alpha: { settings: { baseURL: "https://new.example/v1" } } } })
+
+              const written = readDocument(yield* Effect.promise(() => fs.readFile(json, "utf8")))
+              expect((written.providers as Record<string, Record<string, unknown>>).alpha.settings).toEqual({
+                baseURL: "https://new.example/v1",
+              })
+              // The document that does not declare `alpha` is left byte-for-byte alone, so it cannot gain a copy.
+              expect(yield* Effect.promise(() => fs.readFile(jsonc, "utf8"))).toBe(jsoncText)
+            }).pipe(Effect.provide(layer(project, global))),
+          ),
+        )
+      }),
+    ),
+  )
+
+  it.live("keeps a v1 provider under its own key and dialect", () =>
+    Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
+      Effect.flatMap((tmp) => {
+        const global = path.join(tmp.path, "global")
+        const project = path.join(tmp.path, "project")
+        const file = path.join(global, "opencode.json")
+        return Effect.promise(async () => {
+          await fs.mkdir(global, { recursive: true })
+          await fs.mkdir(project, { recursive: true })
+          await fs.writeFile(
+            file,
+            JSON.stringify({
+              provider: {
+                newapi: {
+                  npm: "@ai-sdk/openai-compatible",
+                  name: "NewAPI",
+                  options: { baseURL: "https://old.example/v1", apiKey: "secret" },
+                  models: { deepseek: { name: "deepseek" } },
+                },
+              },
+            }),
+          )
+        }).pipe(
+          Effect.andThen(
+            Effect.gen(function* () {
+              const config = yield* Config.Service
+              yield* config.update!({
+                providers: {
+                  newapi: {
+                    name: "NewAPI",
+                    package: "@opencode/ai/providers/openai-compatible",
+                    settings: { baseURL: "https://new.example/v1" },
+                    models: { deepseek: {} },
+                  },
+                },
+              })
+
+              const document = readDocument(yield* Effect.promise(() => fs.readFile(file, "utf8")))
+              // A v1 document keeps its singular key: adding `providers` would define the provider twice.
+              expect(Object.hasOwn(document, "providers")).toBe(false)
+              const newapi = (document.provider as Record<string, Record<string, unknown>>).newapi
+              // v1 reads the endpoint out of `options`, so a `settings` key there would be dropped and the edit lost.
+              expect(newapi.options).toEqual({ baseURL: "https://new.example/v1", apiKey: "secret" })
+              expect(newapi.npm).toBe("@ai-sdk/openai-compatible")
+              expect(newapi.models).toEqual({ deepseek: { name: "deepseek" } })
             }).pipe(Effect.provide(layer(project, global))),
           ),
         )

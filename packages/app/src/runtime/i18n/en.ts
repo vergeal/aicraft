@@ -1496,6 +1496,7 @@ export const dict = {
     "This removes providers.{{provider}} from your configuration and deletes the API key stored for it.",
   "settings.providers.custom.delete.confirm": "Delete provider",
   "settings.providers.custom.configured": "Configured in your configuration",
+  "settings.providers.custom.readOnly": "Declared in a read-only configuration",
   "settings.providers.custom.keyMissing": "Add API key",
   "settings.providers.custom.keyReplace": "Replace API key",
   "settings.providers.custom.toast.created.title": "{{provider}} added",

@@ -1620,7 +1620,7 @@
 }
 
 .settings-provider-console-item:focus-visible {
-  background: rgba(10, 132, 255, 0.1);
+  background: color-mix(in srgb, var(--v2-system-accent) 12%, transparent);
 }
 
 :root[data-motion="reduce"] {
@@ -1770,9 +1770,10 @@
   line-height: 16px;
 }
 
-/* The lifted ink is drawn for the dark card; on the light card the accent at full strength is what reads. */
+/* The lifted ink is drawn for the dark card; the light card keeps the accent but darkens it, because full-strength
+   accent ink on the 9% accent wash only reaches ~3.4:1. 80% accent mixed with black lands near 4.9:1. */
 [data-color-scheme="light"] .settings-providers [data-component="tag"][data-variant="accent"] {
-  color: var(--v2-system-accent);
+  color: color-mix(in srgb, var(--v2-system-accent) 80%, black);
 }
 
 /* The popular list keeps one line per provider: name, tag and note share the line, and a long note ends in an ellipsis
@@ -1800,7 +1801,7 @@
 .settings-provider-row--popular .settings-provider-description {
   flex: 1 1 auto;
   min-width: 0;
-  color: #898991;
+  color: var(--v2-text-text-muted);
   font-size: 11px;
   line-height: 18px;
 }
@@ -1938,17 +1939,15 @@
 }
 
 .settings-provider-account-input:disabled {
-  background: #242426;
+  background: var(--v2-background-bg-layer-02);
 }
 
-/* The menu is placed by its popper, so only its surface and inner rhythm come from the spec. */
+/* The menu is placed by its popper, so only the width and inner rhythm come from here; the surface comes from the
+   shared glass menu. */
 .settings-provider-account-menu[data-component="menu-v2-content"] {
   width: min(240px, calc(100vw - 32px));
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
-  background: #303033;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
   overflow: visible;
 }
 
@@ -3204,21 +3203,16 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
-  color: #d8d8dc;
+  color: var(--v2-text-text-base);
 }
 
-/* The plugins page outside a dialog reuses this class, so the base rule keeps the theme color; the sheet's own
-   brighter red applies only inside it. */
+/* The plugins page outside a dialog reuses this class, so the theme color has to hold in both places. */
 .settings-server-dialog-error {
   font-size: 12px;
   font-weight: 400;
   /* Pairing errors are full sentences that wrap. */
   line-height: 18px;
   color: var(--v2-state-fg-danger);
-}
-
-[data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-error {
-  color: #ff6961;
 }
 
 .settings-server-dialog-error:empty {
@@ -3228,7 +3222,7 @@
 .settings-server-dialog-hint {
   font-size: 12px;
   line-height: 18px;
-  color: #929298;
+  color: var(--v2-text-text-muted);
 }
 
 .settings-server-dialog-notice {
@@ -3363,7 +3357,7 @@
 
 .settings-extension-heading,
 .settings-extension-name {
-  color: var(--text-strong);
+  color: var(--v2-text-text-base);
 }
 
 .settings-extension-link[href] {
@@ -3944,11 +3938,6 @@
   background: var(--v2-background-bg-layer-02);
 }
 
-[data-color-scheme="light"] .settings-provider-account-menu[data-component="menu-v2-content"] {
-  border-color: var(--v2-border-border-base);
-  background: var(--v2-background-bg-base);
-}
-
 /* Hover bands are white ink in dark, so light needs dark ink at the same strengths. */
 @media (hover: hover) {
   [data-color-scheme="light"] .settings-provider-row:hover {
@@ -3994,10 +3983,6 @@
 
 [data-color-scheme="light"] .settings-server-dialog-label {
   color: var(--v2-text-text-base);
-}
-
-[data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog .settings-server-dialog-error {
-  color: var(--v2-state-fg-danger);
 }
 
 [data-color-scheme="light"] .settings-server-dialog-hint {

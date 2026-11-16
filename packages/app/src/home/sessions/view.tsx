@@ -34,7 +34,7 @@ import {
   type OpenSessionOptions,
 } from "./controller"
 
-const SHOW_HOME_SESSION_ARCHIVE = false
+const SHOW_HOME_SESSION_ARCHIVE = true
 
 const HOME_SECTION_LABEL = "text-[11px] leading-4 font-semibold uppercase tracking-[0.05em] text-v2-text-text-faint"
 

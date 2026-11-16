@@ -349,6 +349,9 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
       [archivedAt === undefined ? "inbox-sessions" : "inbox-archived-sessions", entry.conn],
       (current) => current && [session, ...current],
     )
+    // Home keeps its own index, so archiving from any other list has to prune it and unarchiving has to reload the
+    // page that archiving took the session out of.
+    void queryClient.invalidateQueries({ queryKey: ["home-sessions", entry.conn], exact: true })
   }
 
   // The pending request anywhere in the session's family, for views that answer it inline.

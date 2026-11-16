@@ -329,8 +329,11 @@ function OwnServerPlugins(props: {
                 when={!input.builtin && state() === "loaded"}
                 fallback={<span class="w-6 shrink-0" aria-hidden="true" />}
               >
-                {/* Kept mounted while a toggle saves: replacing it with a spinner dropped focus out of the row.
-                    The actions wrapper above carries `aria-busy`, and Reload is disabled for the same span. */}
+                {/* Kept mounted while a toggle saves: replacing it with a spinner unmounted the control and dropped
+                    focus out of the row. The pending state is the native `disabled` (Kobalte forwards it to the input
+                    and switch.css paints `[data-disabled]`), so the node and the row's layout stay put; the brief
+                    blur of the focused switch is a known trade-off of this state, not a missed fix. The actions
+                    wrapper above also carries `aria-busy`, and Reload is disabled for the same span. */}
                 <Switch
                   hideLabel
                   checked={itemOf(id(), part)?.enabled ?? true}

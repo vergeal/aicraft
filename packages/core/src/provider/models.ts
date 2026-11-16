@@ -29,7 +29,7 @@ export const list = Effect.fn("ProviderModels.list")(function* (
     : HttpClientRequest.get(`${baseURL.replace(/\/+$/, "")}/models`)
   const response = yield* HttpClient.filterStatusOk(http)
     .execute(request)
-    .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(Response)), Effect.timeout("3 seconds"))
+    .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(Response)), Effect.timeout("8 seconds"))
 
   return response.data.flatMap((raw) => {
     const entry = Option.getOrUndefined(decodeEntry(raw))

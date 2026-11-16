@@ -120,6 +120,16 @@ export const SettingsProviders: Component<{
   const isActiveCredential = (credentialID: string) =>
     credentials.data?.some((entry) => entry.id === credentialID && entry.active)
 
+  // Discovery borrows the key the provider already stores while the key field stays empty, the same way saving an
+  // unchanged field keeps it. The copy never reaches the form or the configuration document.
+  const existingApiKey = (provider?: CustomProvider) => {
+    if (!provider) return
+    const entry = credentials.data?.find(
+      (credential) => credential.integrationID === provider.id && credential.active,
+    )
+    if (entry?.value.type === "key") return entry.value.key
+  }
+
   // The custom provider entries come from the configuration document, so nothing that edits them can work until it
   // loads. Everything else on the page keeps rendering without it.
   const configReady = () => !config.isPending && !config.isError
@@ -308,6 +318,7 @@ export const SettingsProviders: Component<{
         <DialogCustomProvider
           directory={props.directory}
           provider={provider}
+          existingApiKey={existingApiKey(provider)}
           taken={providerIDs()}
           focusField={focusField}
         />

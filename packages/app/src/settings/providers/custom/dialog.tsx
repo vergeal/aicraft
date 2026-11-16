@@ -42,6 +42,11 @@ export function DialogCustomProvider(props: {
   directory?: string
   /** Omitted for a new provider. */
   provider?: CustomProviderInfo
+  /**
+   * The key an edited provider already stores. Discovery borrows it while the key field stays empty, the same way an
+   * unchanged field keeps the stored key on save. It is never written into the draft or shown in the field.
+   */
+  existingApiKey?: string
   /** Every provider ID the configuration already declares. */
   taken: readonly string[]
   /** Opens with this field focused, so "Replace API key" lands on the key instead of the top of the form. */
@@ -93,13 +98,20 @@ export function DialogCustomProvider(props: {
     return current.type === "editing" || current.type === "saving" ? current.discovery : ({ type: "idle" } as const)
   }
 
+  // The machine only records that discovery failed; the reason belongs to the request that produced it.
+  const [discoveryError, setDiscoveryError] = createStore<{ message?: string }>({})
+
   const run = (effect: CustomProviderEffect) => {
     if (effect.type === "discover.run") {
       const attempt = effect.attempt
+      setDiscoveryError("message", undefined)
       void server.api.experimental.provider
-        .models({ baseURL: effect.baseURL, apiKey: effect.apiKey })
+        .models({ baseURL: effect.baseURL, apiKey: effect.apiKey ?? props.existingApiKey })
         .then((models) => dispatch({ type: "discover.succeeded", attempt, models }))
-        .catch(() => dispatch({ type: "discover.failed", attempt }))
+        .catch((cause: unknown) => {
+          setDiscoveryError("message", formatServerError(cause, language.t))
+          dispatch({ type: "discover.failed", attempt })
+        })
       return
     }
 
@@ -322,7 +334,7 @@ export function DialogCustomProvider(props: {
                 </div>
                 <Show when={discovery().type === "failed"}>
                   <p class="settings-provider-custom-note" data-tone="danger">
-                    {language.t("settings.providers.custom.models.fetchFailed")}
+                    {discoveryError.message ?? language.t("settings.providers.custom.models.fetchFailed")}
                   </p>
                 </Show>
                 <Show when={discovered().length > 0}>

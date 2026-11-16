@@ -1,6 +1,7 @@
 import { Button } from "@opencode/ui/button"
 import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
+import { Loader } from "@opencode/ui/loader"
 import { Switch } from "@opencode/ui/switch"
 import { TextInput } from "@opencode/ui/text-input"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
@@ -13,13 +14,15 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { DialogConnectProvider } from "@/providers/connect/dialog"
 import { decode64 } from "@/runtime/persistence/base64"
-import { consoleModelGroup, ProviderModelSections } from "@/providers/models/provider-group"
+import { CONSOLE_GROUP_KEY, consoleModelGroup, ProviderModelSections } from "@/providers/models/provider-group"
 import { useProviders } from "@/providers/catalog/providers"
 import "@/settings/settings.css"
 import "@/shell/search-list.css"
 import "./manage.css"
 
 type ModelItem = ReturnType<ReturnType<typeof useLocal>["model"]["list"]>[number]
+
+const modelKey = (item: ModelItem) => `${item.provider.id}:${item.id}`
 
 export const DialogManageModels: Component = () => {
   const local = useLocal()
@@ -50,7 +53,7 @@ export const DialogManageModels: Component = () => {
 
   const list = useFilteredList<ModelItem>({
     items: () => local.model.list(),
-    key: (x) => `${x.provider.id}:${x.id}`,
+    key: modelKey,
     filterKeys: ["provider.name", "name", "id"],
     sortBy: (a, b) => a.name.localeCompare(b.name),
     groupBy: (x) => x.provider.id,
@@ -74,6 +77,25 @@ export const DialogManageModels: Component = () => {
   const searching = () => list.filter().length > 0
   const expanded = (key: string) => searching() || !store.collapsed[key]
 
+  // Rows share a single tab stop. They render in group order, and a Console provider group renders only while the
+  // Console section above it is open, so these are exactly the rows Tab can reach.
+  const renderedKeys = createMemo(() => {
+    const consoleOpen = expanded(CONSOLE_GROUP_KEY)
+    const nested = new Set(managed()?.providers.map((group) => group.id) ?? [])
+
+    return list.grouped.latest
+      .filter((group) => expanded(group.category) && (consoleOpen || !nested.has(group.category)))
+      .flatMap((group) => group.items.map(modelKey))
+  })
+
+  // A focused row can leave the list (a search, or its group collapsing), so the stop falls back to the first row still
+  // rendered instead of leaving every row at -1 and stranding the list outside the tab order.
+  const tabStop = createMemo(() => {
+    const active = store.active
+
+    return active !== undefined && renderedKeys().includes(active) ? active : renderedKeys()[0]
+  })
+
   function ModelRows(props: { items: ModelItem[] }) {
     const visible = (item: ModelItem) => local.model.visible({ modelID: item.id, providerID: item.provider.id })
     const current = (item: ModelItem) => {
@@ -81,10 +103,9 @@ export const DialogManageModels: Component = () => {
 
       return !!selected && selected.provider.id === item.provider.id && selected.id === item.id
     }
-    const key = (item: ModelItem) => `${item.provider.id}:${item.id}`
     // One tab stop for the whole list: rows are reached with the arrow keys instead of Tab, so hundreds of models
     // never stand between the list and the control after it.
-    const tabIndex = (item: ModelItem) => (store.active === undefined || store.active === key(item) ? 0 : -1)
+    const tabIndex = (item: ModelItem) => (tabStop() === modelKey(item) ? 0 : -1)
     const moveFocus = (row: HTMLElement, target: "next" | "previous" | "first" | "last") => {
       const rows = Array.from(
         row.closest(".settings-manage-models-viewport")?.querySelectorAll<HTMLElement>("[data-manage-model-row]") ?? [],
@@ -107,7 +128,7 @@ export const DialogManageModels: Component = () => {
     }
 
     return (
-      <div class="manage-models-rows">
+      <div class="manage-models-rows" role="group" aria-label={props.items[0].provider.name}>
         <For each={props.items}>
           {(item) => {
             const checked = () => visible(item)
@@ -115,13 +136,13 @@ export const DialogManageModels: Component = () => {
             return (
               <div
                 data-manage-model-row=""
-                role="checkbox"
+                role="switch"
                 aria-checked={checked()}
                 aria-current={current(item) ? "true" : undefined}
                 tabindex={tabIndex(item)}
                 class="search-list-row"
                 onMouseDown={(event) => event.preventDefault()}
-                onFocus={() => setStore("active", key(item))}
+                onFocus={() => setStore("active", modelKey(item))}
                 onClick={() => setModelVisibility(item, !checked())}
                 onKeyDown={(event) => {
                   if (event.key === " " || event.key === "Enter") {
@@ -162,7 +183,7 @@ export const DialogManageModels: Component = () => {
                   {/* Rows from several providers share names, so the group header alone cannot tell them apart. */}
                   <span class="search-list-detail">{item.provider.name}</span>
                 </div>
-                {/* The row is the checkbox; the control is inert so it is neither a second tab stop nor a nested control. */}
+                {/* The row is the switch; the control is inert so it is neither a second tab stop nor a nested control. */}
                 <div class="search-list-trailing" inert aria-hidden="true">
                   <Switch checked={checked()} onChange={(value) => setModelVisibility(item, value)} hideLabel>
                     {item.name}
@@ -209,50 +230,65 @@ export const DialogManageModels: Component = () => {
             onClearClick={() => list.clear()}
           />
         </div>
-        <div data-slot="manage-models-scroll" class="relative flex min-h-0 flex-1 flex-col">
+        <div class="relative flex min-h-0 flex-1 flex-col">
           <MenuScroll
             class="min-h-0 flex-1"
             viewportClass="settings-panel settings-models settings-manage-models-viewport"
           >
             <Show
-              when={providers.ready()}
+              when={providers.error() === undefined}
               fallback={
                 <div class="settings-models-status">
-                  {language.t("common.loading")}
-                  {language.t("common.loading.ellipsis")}
+                  <span>{language.t("settings.providers.catalog.failed")}</span>
+                  <Button size="small" variant="neutral" onClick={() => providers.retry()}>
+                    {language.t("common.retry")}
+                  </Button>
                 </div>
               }
             >
               <Show
-                when={list.flat().length > 0}
+                when={providers.ready()}
                 fallback={
                   <div class="settings-models-status">
-                    <span>{language.t("dialog.model.empty")}</span>
-                    <Show when={list.filter()}>
-                      <span class="settings-models-status-filter">&quot;{list.filter()}&quot;</span>
-                    </Show>
+                    <Loader class="size-4" />
+                    <span>
+                      {language.t("common.loading")}
+                      {language.t("common.loading.ellipsis")}
+                    </span>
                   </div>
                 }
               >
-                <ProviderModelSections
-                  groups={list.grouped.latest}
-                  managed={managed()}
-                  expanded={expanded}
-                  disabled={searching()}
-                  onExpandedChange={(key, value) => setStore("collapsed", key, !value)}
-                  onSetVisibility={setProviderVisibility}
-                  action={(group) => (
-                    <Switch
-                      checked={providerVisible(group.category)}
-                      onChange={(checked) => setProviderVisibility(group.category, checked)}
-                      disabled={searching()}
-                      hideLabel
-                    >
-                      {group.items[0].provider.name}
-                    </Switch>
-                  )}
-                  rows={(items) => <ModelRows items={items} />}
-                />
+                <Show
+                  when={list.flat().length > 0}
+                  fallback={
+                    <div class="settings-models-status">
+                      <span>{language.t("dialog.model.empty")}</span>
+                      <Show when={list.filter()}>
+                        <span class="settings-models-status-filter">&quot;{list.filter()}&quot;</span>
+                      </Show>
+                    </div>
+                  }
+                >
+                  <ProviderModelSections
+                    groups={list.grouped.latest}
+                    managed={managed()}
+                    expanded={expanded}
+                    disabled={searching()}
+                    onExpandedChange={(key, value) => setStore("collapsed", key, !value)}
+                    onSetVisibility={setProviderVisibility}
+                    action={(group) => (
+                      <Switch
+                        checked={providerVisible(group.category)}
+                        onChange={(checked) => setProviderVisibility(group.category, checked)}
+                        disabled={searching()}
+                        hideLabel
+                      >
+                        {group.items[0].provider.name}
+                      </Switch>
+                    )}
+                    rows={(items) => <ModelRows items={items} />}
+                  />
+                </Show>
               </Show>
             </Show>
           </MenuScroll>

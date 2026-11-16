@@ -1513,7 +1513,6 @@ export const dict = {
   "settings.models.count.one": "{{count}} model",
   "settings.models.count.other": "{{count}} models",
   "settings.models.current": "Current model",
-  "settings.models.currentHint": "Your session's current model is marked in Manage models.",
 
   "settings.permissions.tool.read.title": "Read",
   "settings.permissions.tool.read.description": "Reading a file (matches the file path)",

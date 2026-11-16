@@ -4,6 +4,9 @@
 }
 
 [data-component="dialog-v2"]:has(.settings-manage-models-dialog) [data-slot="dialog-container"] {
+  /* The dialog's base size is a fixed 640px; keep it from overflowing a narrow viewport. This beats the
+     `[data-size="large"]` rule it inherits. */
+  width: min(calc(100vw - 24px), 640px);
   border-radius: 12px;
 }
 
@@ -13,8 +16,8 @@
  * rows sit at edge + 8px (their own padding), so its header uses the same edge + 8px. Console provider rows add a
  * group inset, and their header's actions inset matches that.
  *
- * The viewport keeps the settings-panel class for index.css's scroll timeline, and this three-class selector outranks
- * the dialog's `.settings-panel` height so the panel never reasserts its own scroll box.
+ * The viewport keeps the settings-panel class for the settings metrics, and this three-class selector outranks the
+ * dialog's `.settings-panel` height so the panel never reasserts its own scroll box.
  */
 .settings-manage-models-dialog .settings-panel.settings-models {
   gap: 0;
@@ -27,8 +30,16 @@
   height: auto;
   scrollbar-gutter: auto;
   padding: 0 var(--manage-models-edge) var(--manage-models-edge);
-  /* Keep a keyboard-focused row clear of both sticky bands (Console header, then a Console provider group). */
-  scroll-padding-block-start: 88px;
+}
+
+/* A keyboard reveal clears only the bands it actually scrolls under: one 44px header, or two inside the Console
+   section (its header, then the provider group's). The row keeps the base 8px end inset. */
+.settings-manage-models-dialog .manage-models-rows .search-list-row {
+  scroll-margin-block-start: 44px;
+}
+
+.settings-manage-models-dialog .provider-model-group-models .manage-models-rows .search-list-row {
+  scroll-margin-block-start: 88px;
 }
 
 .settings-manage-models-dialog .settings-models .settings-section {
@@ -63,15 +74,10 @@
   border-radius: 0;
 }
 
+/* The group trigger is the same control as a direct provider's; only its end padding differs, to clear the row of
+   actions pinned over the header. */
 .settings-manage-models-dialog .provider-model-group-trigger {
-  min-height: 36px;
-  padding-block: 0;
-  padding-inline: 12px 40px;
-  border-radius: 6px;
-}
-
-.settings-manage-models-dialog .provider-model-group-header:has(:focus-visible) .provider-model-group-trigger {
-  background: var(--v2-overlay-simple-overlay-hover);
+  padding-inline-end: 40px;
 }
 
 .settings-manage-models-dialog .provider-model-group-actions {
@@ -80,12 +86,6 @@
   inset-inline-end: 16px;
   padding: 0;
   transform: translateY(-50%);
-}
-
-@media (hover: hover) {
-  .settings-manage-models-dialog .provider-model-group-header:hover .provider-model-group-trigger:not(:disabled) {
-    background: var(--v2-overlay-simple-overlay-hover);
-  }
 }
 
 .settings-manage-models-dialog .provider-model-group-models {
@@ -108,6 +108,15 @@
   padding-inline: 8px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+/* A direct provider's header runs chevron, provider icon, then its name, so the row starts where that name does: the
+   check column then sits under the provider icon. Console rows already line up inside their own group. */
+.settings-manage-models-dialog
+  .settings-section[data-component="settings-models-provider"]
+  > .manage-models-rows
+  .search-list-row {
+  padding-inline-start: 44px;
 }
 
 /* The global reset removes every outline, so the row carries its own focus ring. Inset, so the row's 6px radius still

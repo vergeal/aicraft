@@ -25,6 +25,7 @@
 - `skills` 配置项支持两种写法：数组 `["路径或 URL", ...]`，或对象 `{ "paths": [...], "urls": [...] }`。
 - `skills` 配置项支持 `~/` 展开；相对路径相对当前工作目录；`http(s)` 链接会被拉取后当作目录源。
 - 所有来源解析成 `Skill.Info` 后按 `id` 合并，后加载的同名技能覆盖先加载的。
+- `Skill.Info` 带可选的 `plugin` 字段，记录贡献该技能的插件 id（如 `changhong.dbro`、`opencode.skill`）。探索页与设置里的「已安装」技能列表据此把插件带入的技能归到插件自己的详情页，只保留用户自己写的技能与不上探索页的内置技能。
 
 ### 1.2 目录形态
 
@@ -240,6 +241,7 @@ export default Plugin.define({
 
 - `display.name` / `display.description` 是用户看到的文案，必须是面向用户的语言，不要写包名和内部术语。
 - `display.skills` 必须与插件实际通过 `skill.transform` 注册的技能一致；`display.tools` 写工具名前缀或完整名。
+- `display.skills` 是插件详情页 Skills 分区的兜底：运行时按 `skill.plugin === plugin.id` 取到的技能优先，插件尚未注册任何技能（例如加载失败）时才回退到清单声明。
 - 只有**产品级**内部插件才声明 `display`。负责系统装配的内置插件（模型、权限、MCP 配置等）保持不声明，避免探索页被内部实现淹没。
 - 没有 `display` 的插件在探索页的「已安装」里不出现，但仍然参与插件加载。
 - 外部 npm 插件同样可以声明 `display`；它和内部插件走同一条 `Plugin.Info.display` 通道。
@@ -284,7 +286,7 @@ export default Plugin.define({
 #### 组合包红线
 
 - 技能 id 全局唯一。多个插件注册同一个 id 时，后注册的覆盖先注册的，插件作者应给技能 id 加稳定前缀。
-- 插件包里的 `skills/` 目录**当前不会被自动发现**，必须由入口调用 `skill.transform` 注册；`display.skills` 只是展示，不代表自动加载。
+- 插件包里的 `skills/` 目录**当前不会被自动发现**，必须由入口调用 `skill.transform` 注册；`display.skills` 只是展示兜底，不代表自动加载，也不决定插件页列出哪些技能（运行时注册的技能优先）。
 - 插件不得在模块顶层执行 I/O；所有注册与副作用放在 `effect` / `setup` 里。
 - `display` 是展示契约，不是权限或加载契约。隐藏它不会禁用插件，声明它也不会额外加载任何东西。
 

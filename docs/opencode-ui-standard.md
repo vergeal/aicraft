@@ -248,6 +248,7 @@
 - 最近记录按真实数据全量展示；需要截断时说明截断规则，不要写死条数。
 - 空状态保留列表，详情区给一句指令。
 - 扩展页的插件与技能来自统一的本地发现根：`~/.distribution/plugins/<id>/<version>/` 与 `~/.distribution/skills/<id>/`（`packages/core/src/plugin/local.ts`、`packages/core/src/skill/local.ts`，目录读取见 `packages/app/src/explore/catalog.ts`）。不要引用已废弃的 `~/.ocplugins-local`。
+- 技能页的「已安装」只列用户自己写的技能与内置技能（内置插件不上探索页，技能要留在这里可读）；本机安装插件带入的技能归到该插件详情页的 Skills 分区，不混进用户的技能列表。同一规则适用于设置里的工作区技能列表。
 
 ### 6.2 工作台（今天）
 

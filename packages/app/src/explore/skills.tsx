@@ -117,6 +117,8 @@ export const ExploreSkills: Component = () => {
   })
 
   const skills = installed.skills
+  // A plugin's own skills are listed on that plugin's page, so the installed list only holds the user's skills.
+  const ownSkills = createMemo(() => skills().filter((skill) => !skill.plugin))
 
   const [catalog] = createResource(() => loadCatalog(serverSdk))
 
@@ -138,7 +140,7 @@ export const ExploreSkills: Component = () => {
   })
 
   // The navigation column owns the installed selection; the list and the detail page only read it.
-  const selected = createMemo(() => skills().find((skill) => skill.id === layout.destination.explore.selected()))
+  const selected = createMemo(() => ownSkills().find((skill) => skill.id === layout.destination.explore.selected()))
 
   const catalogEntry = createMemo(() =>
     catalogSkills().find((entry) => entry.id === layout.destination.explore.catalog()),
@@ -153,7 +155,7 @@ export const ExploreSkills: Component = () => {
   const installedGroups = createMemo(() => {
     const group = (titleKey: string, virtual: boolean) => ({
       titleKey,
-      items: skills().filter(
+      items: ownSkills().filter(
         (skill) => isVirtual(skill) === virtual && matches(`${skill.name}\n${skill.description}\n${skill.id}`),
       ),
     })

@@ -536,7 +536,9 @@ export const make = Effect.fn("PluginHost.make")(function* (
           callback({
             list: () => mutable(editor.list()),
             get: editor.get,
-            add: (value) => editor.add(Schema.decodeUnknownSync(Skill.Info)(value)),
+            // A plugin's own skills keep the plugin id, so the app can list them on the plugin page instead of
+            // among the user's installed skills.
+            add: (value) => editor.add(Schema.decodeUnknownSync(Skill.Info)({ ...value, plugin: pluginID })),
             update: editor.update,
             remove: editor.remove,
           })

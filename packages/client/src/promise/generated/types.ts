@@ -547,6 +547,7 @@ export type SkillInfo = {
   autoinvoke?: boolean
   path: AbsolutePath
   content: string
+  plugin?: string
 }
 
 export type SessionInboxSynthetic = {

@@ -1,4 +1,5 @@
 import type { PluginInfo } from "@opencode/client"
+import type { SkillInfo } from "@opencode/client/promise"
 import { Button } from "@opencode/ui/button"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Progress } from "@opencode/ui/progress"
@@ -120,6 +121,7 @@ export function ExplorePlugins() {
   return (
     <ExplorePluginsView
       installed={installed.plugins()}
+      skills={installed.skills()}
       catalog={catalogPlugins()}
       selected={selected()}
       catalogEntry={catalogEntry()}
@@ -143,6 +145,8 @@ export function ExplorePlugins() {
 export function ExplorePluginsView(props: {
   /** Plugins this project already loads, so the column and cards can mark an entry installed. */
   installed?: readonly PluginInfo[]
+  /** Every skill this project knows, so a plugin's page can list the ones it contributes. */
+  skills?: readonly SkillInfo[]
   /** Publishable plugins from the catalog. */
   catalog?: readonly CatalogPlugin[]
   /** The installed plugin the navigation column opened. */
@@ -292,6 +296,7 @@ export function ExplorePluginsView(props: {
         {(plugin) => (
           <PluginDetail
             plugin={plugin()}
+            skills={props.skills}
             onBack={props.onBack}
             onUninstall={props.onUninstall}
             onRetried={props.onRefresh}
@@ -502,6 +507,8 @@ function CatalogPluginDetail(props: {
 /** An installed plugin's page: how it loads, whether it is healthy, and where its module lives. */
 function PluginDetail(props: {
   plugin: PluginInfo
+  /** Every known skill; the ones carrying this plugin's id are what the plugin contributes at runtime. */
+  skills?: readonly SkillInfo[]
   onBack: () => void
   onUninstall?: (plugin: PluginInfo) => void
   onRetried?: () => void
@@ -509,6 +516,18 @@ function PluginDetail(props: {
   const language = useLanguage()
 
   const failed = () => (props.plugin.state.status === "failed" ? props.plugin.state : undefined)
+
+  // The runtime list is the source of truth (a plugin may register skills its manifest never declares); the
+  // manifest's own skills stand in while the plugin has not registered any, such as after a failed load.
+  const contributedSkills = (): ReadonlyArray<{ id: string; name: string; description?: string }> => {
+    const runtime = props.plugin.id
+      ? (props.skills ?? []).filter((skill) => skill.plugin === props.plugin.id)
+      : []
+
+    if (runtime.length > 0) return runtime
+
+    return props.plugin.display?.skills ?? []
+  }
 
   return (
     <div class="explore-catalog-page" data-scrollable>
@@ -586,7 +605,7 @@ function PluginDetail(props: {
             {(description) => <p class="explore-catalog-about">{description()}</p>}
           </Show>
 
-          <Show when={props.plugin.display?.skills?.length}>
+          <Show when={contributedSkills().length}>
             {(count) => (
               <section class="explore-catalog-section">
                 <h2 class="explore-catalog-section-title">
@@ -594,7 +613,7 @@ function PluginDetail(props: {
                   <span class="explore-catalog-section-count">{count()}</span>
                 </h2>
                 <ul class="explore-catalog-list">
-                  <For each={props.plugin.display?.skills}>
+                  <For each={contributedSkills()}>
                     {(skill) => (
                       <li class="explore-catalog-list-row explore-catalog-skill">
                         <span class="explore-catalog-list-icon">

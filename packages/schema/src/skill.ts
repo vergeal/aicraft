@@ -31,6 +31,8 @@ export const Info = Schema.Struct({
   autoinvoke: Schema.Boolean.pipe(optional),
   path: AbsolutePath,
   content: Schema.String,
+  /** The plugin that contributed this skill; absent for the user's own skills. */
+  plugin: Schema.String.pipe(optional),
 }).annotate({ identifier: "Skill.Info" })
 
 const Updated = ephemeral({ type: "skill.updated", schema: {} })

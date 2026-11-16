@@ -280,13 +280,14 @@ export const ProjectSettingsExtensions: Component<{
     return pluginLabels(projectPluginList.latest ?? []).filter((name) => !shared.has(name))
   })
 
-  const serverSkills = createMemo(() => data.location.skill.list() ?? [])
+  // A plugin's own skills are listed on the plugin's page, so the installed list only holds the user's skills.
+  const serverSkills = createMemo(() => (data.location.skill.list() ?? []).filter((item) => !item.plugin))
 
   const projectSkills = createMemo(() => {
     const shared = new Set(serverSkills().map(skillKey))
 
     return (data.location.skill.list({ directory: directorySDK().directory }) ?? []).filter(
-      (item) => !shared.has(skillKey(item)),
+      (item) => !shared.has(skillKey(item)) && !item.plugin,
     )
   })
 

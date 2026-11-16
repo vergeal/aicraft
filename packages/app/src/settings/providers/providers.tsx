@@ -8,7 +8,7 @@ import { Menu } from "@opencode/ui/menu"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
 import { showToast } from "@/shell/notifications/toast"
 import { useQuery } from "@tanstack/solid-query"
-import { DialogCustomProvider, customProvidersFrom, type CustomProvider } from "./custom/dialog"
+import { DialogCustomProvider, customProvidersFrom, readOnlyProvidersFrom, type CustomProvider } from "./custom/dialog"
 import { DialogDeleteCustomProvider } from "./custom/delete-dialog"
 import { useProviders } from "@/providers/catalog/providers"
 import { visibleProviders } from "@/providers/catalog/order"
@@ -128,6 +128,12 @@ export const SettingsProviders: Component<{
   )
 
   const customProvider = (id: string) => custom().find((item) => item.id === id)
+
+  // A provider the page cannot edit because only a read-only document declares it still gets a row, so it says why
+  // instead of simply losing its actions.
+  const readOnly = createMemo(() =>
+    readOnlyProvidersFrom(config.isPending || config.isError ? [] : (config.data ?? [])),
+  )
 
   const dispatch = (event: ProviderDisconnectEvent) => {
     const result = transitionProviderDisconnect(untrack(disconnects), event)
@@ -713,9 +719,15 @@ export const SettingsProviders: Component<{
                                     </Show>
                                     {/* A custom provider without the configuration document cannot say where its
                                         credential came from, so it shows no hint instead of the wrong one. */}
+                                    <Show when={!customProvider(item.id) && readOnly().has(item.id)}>
+                                      <span class="settings-provider-env-hint">
+                                        {language.t("settings.providers.custom.readOnly")}
+                                      </span>
+                                    </Show>
                                     <Show
                                       when={
                                         !customProvider(item.id) &&
+                                        !readOnly().has(item.id) &&
                                         !canDisconnect(item) &&
                                         (configReady() || source(item) !== "custom")
                                       }

@@ -791,7 +791,7 @@ export const dict = {
   "settings.appearance.font.system": "系统",
   "settings.notifications.description": "选择接收通知和播放声音的时机",
   "settings.notifications.unsupported": "此环境不支持系统通知。",
-  "settings.notifications.denied": "OpenCode 的系统通知已被阻止。请在系统设置中允许。",
+  "settings.notifications.denied": "OpenCode 的系统通知已被阻止。请在系统设置中允许通知。",
   "settings.notifications.prompt": "OpenCode 尚未获得显示系统通知的权限。",
   "settings.notifications.request": "允许通知",
   "settings.notifications.requestFailed": "OpenCode 无法请求通知权限。请在系统设置中允许通知。",

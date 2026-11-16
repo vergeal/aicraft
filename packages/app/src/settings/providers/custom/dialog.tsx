@@ -6,6 +6,7 @@ import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { TextField } from "@opencode/ui/text-field"
+import { Predicate } from "effect"
 import { createMemo, createSignal, For, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -13,7 +14,7 @@ import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { showToast } from "@/shell/notifications/toast"
 import type { ExperimentalConfigUpdateInput } from "@opencode/client/promise"
-import { baseURLError, idError, providerConfig, type CustomProviderDraft } from "./draft"
+import { baseURLError, detailsValid, idError, modelsError, providerConfig, type CustomProviderDraft } from "./draft"
 import {
   busy,
   canSubmit,
@@ -42,6 +43,16 @@ export function DialogCustomProvider(props: {
   directory?: string
   /** Omitted for a new provider. */
   provider?: CustomProviderInfo
+  /**
+   * The key an edited provider already stores. Discovery borrows it while the key field stays empty, the same way an
+   * unchanged field keeps the stored key on save. It is never written into the draft or shown in the field.
+   */
+  existingApiKey?: string
+  /**
+   * True while the credential list that supplies `existingApiKey` is still loading. Discovery would otherwise go out
+   * without the stored key and come back as an invalid key, which is the wrong thing to tell the user.
+   */
+  existingKeyLoading?: boolean
   /** Every provider ID the configuration already declares. */
   taken: readonly string[]
   /** Opens with this field focused, so "Replace API key" lands on the key instead of the top of the form. */
@@ -75,13 +86,6 @@ export function DialogCustomProvider(props: {
     const current = state()
     return current.type === "editing" || current.type === "saving" ? current.draft : undefined
   }
-  const step = () => {
-    const current = state()
-    if (current.type === "editing") return current.step
-    // A save owns the models step: falling back to "details" would make the footer render the fields step while the
-    // request still runs, which is the jump back this dialog used to show.
-    return "models"
-  }
   const error = () => {
     const current = state()
     return current.type === "editing" ? current.error : undefined
@@ -93,13 +97,24 @@ export function DialogCustomProvider(props: {
     return current.type === "editing" || current.type === "saving" ? current.discovery : ({ type: "idle" } as const)
   }
 
+  // The machine only records that discovery failed; the reason belongs to the request that produced it.
+  const [discoveryError, setDiscoveryError] = createStore<{ message?: string }>({})
+
+  // An edit borrows the stored key for discovery, so a fetch started before that key loads would go out anonymous and
+  // be reported as a bad key. A key the user already typed needs no wait.
+  const keyPending = () => mode === "edit" && props.existingKeyLoading === true && !draft()?.apiKey
+
   const run = (effect: CustomProviderEffect) => {
     if (effect.type === "discover.run") {
       const attempt = effect.attempt
+      setDiscoveryError("message", undefined)
       void server.api.experimental.provider
-        .models({ baseURL: effect.baseURL, apiKey: effect.apiKey })
+        .models({ baseURL: effect.baseURL, apiKey: effect.apiKey ?? props.existingApiKey })
         .then((models) => dispatch({ type: "discover.succeeded", attempt, models }))
-        .catch(() => dispatch({ type: "discover.failed", attempt }))
+        .catch((cause: unknown) => {
+          setDiscoveryError("message", discoveryFailure(cause, language))
+          dispatch({ type: "discover.failed", attempt })
+        })
       return
     }
 
@@ -152,13 +167,22 @@ export function DialogCustomProvider(props: {
   const set = (patch: Partial<CustomProviderDraft>) => dispatch({ type: "draft.changed", patch })
 
   const [manual, setManual] = createSignal("")
-  // A field only complains after the user leaves it, or when Continue cannot advance and says why: an empty form on open
-  // is not an error yet.
+  // A field only complains after the user leaves it: an empty form on open is not an error yet.
   const [touched, setTouched] = createStore({ id: false, baseURL: false })
   const models = createMemo(() => draft()?.models ?? [])
   const discovered = createMemo(() => {
     const result = discovery()
     return result.type === "ready" ? result.models : []
+  })
+
+  // The search only narrows what the endpoint returned; it never hides a selection the user already made.
+  const [query, setQuery] = createSignal("")
+  const visible = createMemo(() => {
+    const needle = query().trim().toLowerCase()
+    if (!needle) return discovered()
+    return discovered().filter(
+      (model) => model.id.toLowerCase().includes(needle) || model.name?.toLowerCase().includes(needle),
+    )
   })
 
   const toggleModel = (id: string, checked: boolean) => {
@@ -175,30 +199,6 @@ export function DialogCustomProvider(props: {
     setManual("")
   }
 
-  const stepNumber = () => (step() === "models" ? 2 : 1)
-
-  // Continue stays enabled on an invalid form: it is the only way to reveal the field errors, which otherwise wait for a
-  // blur the user has no reason to perform. Clicking it marks every field as touched and puts the caret on the first
-  // one that still needs an answer.
-  const advance = () => {
-    const value = draft()
-    if (!value) return
-
-    const first = idError(value, props.taken, mode)
-      ? "settings-provider-custom-id"
-      : baseURLError(value)
-        ? "settings-provider-custom-base-url"
-        : undefined
-
-    if (!first) {
-      dispatch({ type: "step.next" })
-      return
-    }
-
-    setTouched({ id: true, baseURL: true })
-    document.getElementById(first)?.focus()
-  }
-
   // The validators return key names, so the field shows the message the specific failure asks for.
   const fieldError = (
     key:
@@ -212,6 +212,11 @@ export function DialogCustomProvider(props: {
   return (
     <Dialog class="settings-provider-custom-dialog" containerClass="settings-provider-custom-dialog" variant="settings">
       <DialogHeader closeLabel={language.t("common.close")}>
+        <span class="settings-provider-custom-mark" aria-hidden="true">
+          <Show when={mode === "edit"} fallback={<Icon name="plus" size="small" />}>
+            {props.provider?.name?.trim().charAt(0).toUpperCase()}
+          </Show>
+        </span>
         <div class="settings-provider-custom-heading">
           <DialogTitleGroup
             title={
@@ -219,68 +224,60 @@ export function DialogCustomProvider(props: {
                 ? language.t("settings.providers.custom.title.edit")
                 : language.t("settings.providers.custom.title.create")
             }
-            description={
-              step() === "models"
-                ? language.t("settings.providers.custom.description.models")
-                : language.t("settings.providers.custom.description")
-            }
+            description={language.t("settings.providers.custom.description")}
           />
-          {/* Two dots and a count: the models step is a second screen, and the header says so before the body changes. */}
-          <div
-            class="settings-provider-custom-steps"
-            role="group"
-            aria-label={language.t("settings.providers.custom.steps.count", {
-              current: stepNumber(),
-              total: 2,
-            })}
-          >
-            <span class="settings-provider-custom-steps-dots" aria-hidden="true">
-              <span data-active={stepNumber() === 1 ? "" : undefined} />
-              <span data-active={stepNumber() === 2 ? "" : undefined} />
-            </span>
-            <span class="settings-provider-custom-steps-count">
-              {language.t("settings.providers.custom.steps.progress", { current: stepNumber(), total: 2 })}
-            </span>
-          </div>
         </div>
       </DialogHeader>
       <DialogBody class="min-h-0 flex-1 overflow-y-auto" data-scrollable>
         <Show when={draft()}>
           {(value) => (
-            <Show
-              when={step() === "models"}
-              fallback={
+            <>
+              <section class="settings-provider-custom-section">
+                <div class="settings-provider-custom-section-head">
+                  <h2 class="settings-provider-custom-section-title">
+                    {language.t("settings.providers.custom.section.details")}
+                  </h2>
+                </div>
                 <div
                   class="settings-provider-custom-fields"
                   onKeyDown={(event: KeyboardEvent) => {
                     if (event.key !== "Enter" || event.isComposing) return
+                    // One screen has one action: Enter submits the form the footer's button submits.
+                    if (!canSubmit(state(), context)) return
                     event.preventDefault()
-                    advance()
+                    dispatch({ type: "submit.requested" })
                   }}
                 >
-                  <TextField
-                    label={language.t("settings.providers.custom.name")}
-                    placeholder={language.t("settings.providers.custom.name.placeholder")}
-                    value={value().name}
-                    onInput={(event) => set({ name: event.currentTarget.value })}
-                  />
-                  <TextField
-                    id="settings-provider-custom-id"
-                    label={language.t("settings.providers.custom.id")}
-                    placeholder={language.t("settings.providers.custom.id.placeholder")}
-                    description={language.t("settings.providers.custom.id.hint")}
-                    error={touched.id ? fieldError(idError(value(), props.taken, mode)) : undefined}
-                    validationState={touched.id && idError(value(), props.taken, mode) ? "invalid" : undefined}
-                    value={value().id}
-                    disabled={mode === "edit"}
-                    class="settings-provider-custom-mono"
-                    onInput={(event) => set({ id: event.currentTarget.value })}
-                    onBlur={() => setTouched("id", true)}
-                  />
+                  <div class="settings-provider-custom-grid">
+                    <TextField
+                      label={language.t("settings.providers.custom.name")}
+                      placeholder={language.t("settings.providers.custom.name.placeholder")}
+                      value={value().name}
+                      onInput={(event) => set({ name: event.currentTarget.value })}
+                    />
+                    <TextField
+                      id="settings-provider-custom-id"
+                      label={language.t("settings.providers.custom.id")}
+                      placeholder={language.t("settings.providers.custom.id.placeholder")}
+                      description={
+                        mode === "edit"
+                          ? language.t("settings.providers.custom.id.locked")
+                          : language.t("settings.providers.custom.id.hint")
+                      }
+                      error={touched.id ? fieldError(idError(value(), props.taken, mode)) : undefined}
+                      validationState={touched.id && idError(value(), props.taken, mode) ? "invalid" : undefined}
+                      value={value().id}
+                      readOnly={mode === "edit"}
+                      class="settings-provider-custom-mono"
+                      onInput={(event) => set({ id: event.currentTarget.value })}
+                      onBlur={() => setTouched("id", true)}
+                    />
+                  </div>
                   <TextField
                     id="settings-provider-custom-base-url"
                     label={language.t("settings.providers.custom.baseURL")}
                     placeholder={language.t("settings.providers.custom.baseURL.placeholder")}
+                    description={language.t("settings.providers.custom.baseURL.hint")}
                     error={touched.baseURL ? fieldError(baseURLError(value())) : undefined}
                     validationState={touched.baseURL && baseURLError(value()) ? "invalid" : undefined}
                     value={value().baseURL}
@@ -297,99 +294,142 @@ export function DialogCustomProvider(props: {
                         ? language.t("settings.providers.custom.apiKey.keep")
                         : language.t("settings.providers.custom.apiKey.placeholder")
                     }
-                    description={language.t("settings.providers.custom.apiKey.hint")}
+                    description={
+                      mode === "edit"
+                        ? language.t("settings.providers.custom.apiKey.hint.edit")
+                        : language.t("settings.providers.custom.apiKey.hint")
+                    }
                     value={value().apiKey}
                     onInput={(event) => set({ apiKey: event.currentTarget.value })}
                   />
                 </div>
-              }
-            >
-              <div class="settings-provider-custom-models">
-                <div class="settings-provider-custom-models-header">
-                  <span>{language.t("settings.providers.custom.models")}</span>
-                  <Show when={models().length > 0}>
-                    <span class="settings-provider-custom-models-count">
-                      {language.plural("settings.providers.custom.models.count", models().length, {
-                        count: models().length,
+              </section>
+
+              <section class="settings-provider-custom-section">
+                <div class="settings-provider-custom-section-head">
+                  <h2 class="settings-provider-custom-section-title">{language.t("settings.providers.custom.models")}</h2>
+                  <Show when={discovered().length > 0}>
+                    <span class="settings-provider-custom-section-count">
+                      {language.t("settings.providers.custom.models.summary", {
+                        selected: models().length,
+                        total: discovered().length,
                       })}
                     </span>
                   </Show>
-                  <Show when={discovery().type !== "loading"} fallback={<Loader class="size-4" />}>
-                    <Button size="small" variant="ghost-muted" onClick={() => dispatch({ type: "discover.start" })}>
-                      {language.t("settings.providers.custom.models.fetch")}
-                    </Button>
+                </div>
+                <div class="settings-provider-custom-models">
+                  <Show when={models().length > 0}>
+                    <div class="settings-provider-custom-selected">
+                      <For each={models()}>
+                        {(id) => (
+                          <span class="settings-provider-custom-chip">
+                            <span class="settings-provider-custom-model-id">{id}</span>
+                            <button
+                              type="button"
+                              aria-label={language.t("settings.providers.custom.models.remove")}
+                              onClick={() => toggleModel(id, false)}
+                            >
+                              <Icon name="outline-xmark" size="small" />
+                            </button>
+                          </span>
+                        )}
+                      </For>
+                    </div>
                   </Show>
-                </div>
-                <Show when={discovery().type === "failed"}>
-                  <p class="settings-provider-custom-note" data-tone="danger">
-                    {language.t("settings.providers.custom.models.fetchFailed")}
-                  </p>
-                </Show>
-                <Show when={discovered().length > 0}>
-                  <MenuScroll class="settings-provider-custom-model-list" viewportClass="max-h-[240px] pe-1">
-                    <For each={discovered()}>
-                      {(model) => (
-                        <Checkbox
-                          class="settings-provider-custom-model"
-                          checked={models().includes(model.id)}
-                          onChange={(checked) => toggleModel(model.id, checked)}
-                        >
-                          <span class="settings-provider-custom-model-id">{model.name ?? model.id}</span>
-                        </Checkbox>
-                      )}
-                    </For>
-                  </MenuScroll>
-                </Show>
-                <Show when={models().length > 0}>
-                  <div class="settings-provider-custom-selected">
-                    <For each={models()}>
-                      {(id) => (
-                        <span class="settings-provider-custom-chip">
-                          <span class="settings-provider-custom-model-id">{id}</span>
-                          <button
-                            type="button"
-                            aria-label={language.t("settings.providers.custom.models.remove")}
-                            onClick={() => toggleModel(id, false)}
-                          >
-                            <Icon name="outline-xmark" size="small" />
-                          </button>
-                        </span>
-                      )}
-                    </For>
+                  <div class="settings-provider-custom-toolbar">
+                    <div class="settings-provider-custom-search">
+                      <TextField
+                        hideLabel
+                        label={language.t("settings.providers.custom.models.search")}
+                        placeholder={language.t("settings.providers.custom.models.search")}
+                        value={query()}
+                        onInput={(event) => setQuery(event.currentTarget.value)}
+                      />
+                    </div>
+                    <Button
+                      size="small"
+                      variant="outline"
+                      class="settings-provider-custom-fetch"
+                      disabled={discovery().type === "loading" || keyPending()}
+                      onClick={() => dispatch({ type: "discover.start" })}
+                    >
+                      <Show when={discovery().type === "loading"} fallback={<Icon name="refresh" size="small" />}>
+                        <span class="settings-provider-custom-spinner" aria-hidden="true" />
+                      </Show>
+                      {discovery().type === "loading"
+                        ? language.t("settings.providers.custom.models.fetching")
+                        : discovered().length > 0
+                          ? language.t("settings.providers.custom.models.refetch")
+                          : language.t("settings.providers.custom.models.fetch")}
+                    </Button>
                   </div>
-                </Show>
-                {/* An empty selection is a neutral note, not an error: the user has not failed at anything yet. It sits
-                    directly under the list it describes, not under the manual field, where it read as a caption for
-                    "Add model ID". */}
-                <Show when={models().length === 0}>
-                  <p class="settings-provider-custom-note">{language.t("settings.providers.custom.models.empty")}</p>
-                </Show>
-                <div class="settings-provider-custom-manual">
-                  <TextField
-                    hideLabel
-                    label={language.t("settings.providers.custom.models.manual")}
-                    placeholder={language.t("settings.providers.custom.models.manual")}
-                    value={manual()}
-                    class="settings-provider-custom-mono"
-                    onInput={(event) => setManual(event.currentTarget.value)}
-                    onKeyDown={(event: KeyboardEvent) => {
-                      if (event.key !== "Enter") return
-                      event.preventDefault()
-                      addManual()
-                    }}
-                  />
-                  <Button
-                    size="small"
-                    variant="ghost-muted"
-                    icon="plus"
-                    aria-label={language.t("settings.providers.custom.models.manual")}
-                    onClick={addManual}
-                  >
-                    {language.t("settings.providers.custom.models.manual.add")}
-                  </Button>
+                  <Show when={keyPending()}>
+                    <p class="settings-provider-custom-empty">
+                      {language.t("settings.providers.custom.models.keyPending")}
+                    </p>
+                  </Show>
+                  <Show when={discovery().type === "failed"}>
+                    <p class="settings-provider-custom-alert" role="alert">
+                      <Icon name="circle-exclamation" size="small" />
+                      <span>
+                        {discoveryError.message ?? language.t("settings.providers.custom.models.fetchFailed")}
+                      </span>
+                    </p>
+                  </Show>
+                  <Show when={visible().length > 0}>
+                    <MenuScroll class="settings-provider-custom-model-list" viewportClass="max-h-[208px] p-1.5">
+                      <For each={visible()}>
+                        {(model) => (
+                          <Checkbox
+                            class="settings-provider-custom-model"
+                            checked={models().includes(model.id)}
+                            onChange={(checked) => toggleModel(model.id, checked)}
+                          >
+                            <span class="settings-provider-custom-model-id">{model.name ?? model.id}</span>
+                          </Checkbox>
+                        )}
+                      </For>
+                    </MenuScroll>
+                  </Show>
+                  <Show when={discovered().length > 0 && visible().length === 0}>
+                    <p class="settings-provider-custom-empty">
+                      {language.t("settings.providers.custom.models.noMatch")}
+                    </p>
+                  </Show>
+                  <div class="settings-provider-custom-manual">
+                    <TextField
+                      hideLabel
+                      label={language.t("settings.providers.custom.models.manual")}
+                      placeholder={language.t("settings.providers.custom.models.manual")}
+                      value={manual()}
+                      class="settings-provider-custom-mono"
+                      onInput={(event) => setManual(event.currentTarget.value)}
+                      onKeyDown={(event: KeyboardEvent) => {
+                        if (event.key !== "Enter") return
+                        event.preventDefault()
+                        addManual()
+                      }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outline"
+                      class="settings-provider-custom-add"
+                      aria-label={language.t("settings.providers.custom.models.manual")}
+                      onClick={addManual}
+                    >
+                      {language.t("settings.providers.custom.models.manual.add")}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </Show>
+                <p class="settings-provider-custom-hint">
+                  {language.t(
+                    detailsValid(value(), props.taken, mode) && modelsError(value())
+                      ? "settings.providers.custom.models.required"
+                      : "settings.providers.custom.models.hint",
+                  )}
+                </p>
+              </section>
+            </>
           )}
         </Show>
       </DialogBody>
@@ -403,44 +443,42 @@ export function DialogCustomProvider(props: {
         </Show>
         {/* Cancel never waits on the request: the machine closes from any state, and a save that lands afterwards
             refreshes the list through the server's `config.updated` event. */}
-        <Button size="normal" variant="ghost-muted" onClick={() => dialog.close()}>
+        <Button size="normal" variant="outline" onClick={() => dialog.close()}>
           {language.t("common.cancel")}
         </Button>
-        <Show when={step() === "models"}>
-          <Button
-            size="normal"
-            variant="ghost-muted"
-            disabled={busy(state())}
-            onClick={() => dispatch({ type: "step.back" })}
-          >
-            {language.t("settings.providers.custom.back")}
-          </Button>
-        </Show>
-        <Show
-          when={step() === "details"}
-          fallback={
-            <Button
-              size="normal"
-              variant="submit"
-              disabled={busy(state()) || !canSubmit(state(), context)}
-              onClick={() => dispatch({ type: "submit.requested" })}
-            >
-              <Show when={busy(state())}>
-                <Loader class="size-4" />
-              </Show>
-              {mode === "edit"
-                ? language.t("settings.providers.custom.save")
-                : language.t("settings.providers.custom.create")}
-            </Button>
-          }
+        <Button
+          size="normal"
+          variant="submit"
+          disabled={busy(state()) || !canSubmit(state(), context)}
+          onClick={() => dispatch({ type: "submit.requested" })}
         >
-          <Button size="normal" variant="submit" onClick={advance}>
-            {language.t("settings.providers.custom.next")}
-          </Button>
-        </Show>
+          <Show when={busy(state())}>
+            <Loader class="size-4" />
+          </Show>
+          {mode === "edit"
+            ? language.t("settings.providers.custom.save")
+            : language.t("settings.providers.custom.create")}
+        </Button>
       </DialogFooter>
     </Dialog>
   )
+}
+
+/**
+ * The server names which kind of discovery failure it hit, so the dialog can say the same thing in the user's
+ * language instead of showing the English message the route carries for other clients. A cause without a known kind
+ * keeps that message, then the dialog's own line.
+ */
+function discoveryFailure(cause: unknown, language: ReturnType<typeof useLanguage>) {
+  if (Predicate.hasProperty(cause, "kind") && Predicate.isString(cause.kind)) {
+    if (cause.kind === "provider.models.auth") return language.t("settings.providers.custom.models.failed.auth")
+    if (cause.kind === "provider.models.address") return language.t("settings.providers.custom.models.failed.address")
+    if (cause.kind === "provider.models.timeout") return language.t("settings.providers.custom.models.failed.timeout")
+    if (cause.kind === "provider.models.connection")
+      return language.t("settings.providers.custom.models.failed.connection")
+  }
+
+  return formatServerError(cause, language.t, language.t("settings.providers.custom.models.fetchFailed"))
 }
 
 /**

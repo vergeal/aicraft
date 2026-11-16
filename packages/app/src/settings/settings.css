@@ -3518,13 +3518,14 @@
   gap: 8px;
 }
 
-/* The custom provider sheet: the container sizes itself from its content, the body owns the scroll, and the model
-   list scrolls inside its own 240px box, so the footer stays visible when the form grows or an error appears. */
+/* The custom provider sheet: one screen of details and models. The container sizes itself from its content, the body
+   owns the scroll, and the model list scrolls inside its own 208px box, so the footer stays visible when the form grows
+   or a fetch fails. */
 [data-component="dialog-v2"] .settings-provider-custom-dialog[data-slot="dialog-container"] {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: 640px;
+  width: 600px;
   max-width: calc(100vw - 48px);
   height: auto;
   min-height: min(280px, calc(100vh - 48px));
@@ -3542,7 +3543,7 @@
     var(--settings-sheet-shadow);
 }
 
-[data-component="dialog-v2"]
+[data-component="dialog-v2"][data-variant="settings"]
   .settings-provider-custom-dialog[data-slot="dialog-container"]
   [data-slot="dialog-content"] {
   display: flex;
@@ -3555,126 +3556,289 @@
   overflow: hidden;
 }
 
-[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-header"] {
+/* The dialog primitives style their own header, body and footer at five nested attribute selectors, so these rules
+   repeat the same chain plus the sheet's class to outrank them rather than relying on stylesheet order. */
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"]
+  [data-slot="dialog-header"] {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 20px 24px 16px;
   border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
 
-[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
+/* The close button needs no adjustment, but the title group must sit after the mark and before it. */
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"]
+  [data-slot="dialog-header"]
+  [data-slot="dialog-title-group"] {
+  gap: 2px;
+}
+
+/* The mark names the dialog before the title does: ＋ for a new provider, the provider's own initial when editing. */
+.settings-provider-custom-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  margin-top: 1px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--v2-system-accent) 32%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--v2-system-accent) 14%, transparent);
+  color: var(--v2-system-accent);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"]
+  [data-slot="dialog-header"]
+  [data-slot="dialog-title"] {
   margin: 0;
-  color: rgba(255, 255, 255, 0.96);
+  color: var(--v2-text-text-base);
   font-size: 15px;
   font-weight: 600;
+  line-height: 22px;
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"]
+  [data-slot="dialog-header"]
+  [data-slot="dialog-description"] {
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
   line-height: 18px;
 }
 
-[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-body"] {
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"]
+  [data-slot="dialog-body"] {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  padding: 16px;
+  padding: 4px 24px 20px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-[data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-footer"] {
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog[data-slot="dialog-container"]
+  [data-slot="dialog-content"]
+  [data-slot="dialog-footer"] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
-  padding: 12px 16px 16px;
+  padding: 14px 24px 18px;
   border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
-/* Disabled buttons keep the system's own 0.5 opacity; the local override dimmed them to 0.38 and made the footer's
-   primary action look broken next to every other dialog. */
+/* One screen, two sections: each section opens with 18px above its title, so the body's 4px padding keeps the first
+   title clear of the header divider and the second section starts 18px below the first. */
+.settings-provider-custom-section {
+  padding-top: 18px;
+}
+
+.settings-provider-custom-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.settings-provider-custom-section-title {
+  margin: 0;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.settings-provider-custom-section-count {
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
 
 .settings-provider-custom-fields {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 0 2px 4px;
+  gap: 12px;
 }
 
-/* The TextField's description slot had no styling here, so the ID and key hints rendered at the input's own size. */
-.settings-provider-custom-dialog [data-slot="input-description"] {
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
-  line-height: 18px;
+.settings-provider-custom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
-.settings-provider-custom-fields > [data-component="input"] {
+/* Every field is one column: label, control, hint, 6px apart. The `dialog-v2` prefix outranks the shared input styles,
+   which set their own height and surface at three attribute selectors. */
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-component="input"] {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 6px;
-}
-
-.settings-provider-custom-fields [data-slot="input-label"] {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.settings-provider-custom-fields [data-slot="input-input"] {
   width: 100%;
-  min-height: 32px;
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-component="input"]
+  [data-slot="input-label"] {
+  color: var(--v2-text-text-base);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+/* The design's control is a translucent 30px field on the glass sheet, so the field tokens replace the opaque input
+   surface the shared component ships with. */
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-component="input"]
+  [data-slot="input-wrapper"] {
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 6px;
+  background: var(--v2-overlay-simple-overlay-hover);
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-component="input"]
+  [data-slot="input-input"] {
+  width: 100%;
+  /* The wrapper draws the 1px border, so a 28px input renders as the design's 30px control. */
+  height: 28px;
+  padding: 0 10px;
   font-size: 13px;
   line-height: 18px;
 }
 
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-component="input"]
+  [data-slot="input-description"] {
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* A read-only ID is an answer, not an editable field: dashed border, no fill, muted ink. */
+.settings-provider-custom-dialog
+  [data-component="input"]:has([data-slot="input-input"][readonly])
+  [data-slot="input-wrapper"] {
+  border-style: dashed;
+  background: transparent;
+}
+
+.settings-provider-custom-dialog
+  [data-component="input"]:has([data-slot="input-input"][readonly])
+  [data-slot="input-input"] {
+  color: var(--v2-text-text-muted);
+}
+
 /* IDs, endpoints and model IDs read as code. TextField hands its class to the input itself, so the rule lands on the
-   element that carries the class, not on a descendant. */
-.settings-provider-custom-dialog .settings-provider-custom-mono {
+   element that carries the class; it names the shared selectors to outrank their sans face. */
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-component="input"]
+  [data-slot="input-input"].settings-provider-custom-mono {
   font-family: var(--font-family-mono);
   font-size: 12px;
 }
 
+/* One card holds everything about models: chips, toolbar, failure, list and the manual row. Its children are separated
+   by a hairline instead of a gap, so the card reads as one panel. */
 .settings-provider-custom-models {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 0 2px 4px;
+  overflow: hidden;
+  border: 1px solid var(--settings-card-border);
+  border-radius: 10px;
+  background: var(--settings-card-bg);
 }
 
-.settings-provider-custom-models-header {
+.settings-provider-custom-models > :not(:last-child, .settings-provider-custom-alert) {
+  border-bottom: 1px solid var(--v2-border-border-base);
+}
+
+.settings-provider-custom-toolbar {
   display: flex;
-  min-height: 32px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--v2-text-text-muted);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 18px;
+  gap: 8px;
+  padding: 10px;
 }
 
-/* One inset panel, not a stack of cards: rows are separated by a hairline instead of a gap, and only the hovered row
-   takes a fill. The viewport inside MenuScroll still carries the 240px cap. */
+/* The search and fetch controls sit one step below the form's 30px fields; 28px keeps the toolbar compact. */
+.settings-provider-custom-search {
+  flex: 1;
+  min-width: 0;
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  .settings-provider-custom-search
+  [data-component="input"]
+  [data-slot="input-input"] {
+  height: 26px;
+  font-size: 12px;
+}
+
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-component="button-v2"].settings-provider-custom-fetch,
+[data-component="dialog-v2"] .settings-provider-custom-dialog [data-component="button-v2"].settings-provider-custom-add {
+  flex: none;
+  height: 28px;
+}
+
+/* A fetch in flight swaps the refresh glyph for a 1.5px ring at the same size, so the button keeps its width. */
+.settings-provider-custom-spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 1.5px solid color-mix(in srgb, var(--v2-text-text-base) 28%, transparent);
+  border-top-color: var(--v2-text-text-base);
+  border-radius: 50%;
+  animation: settings-provider-custom-spin 700ms linear infinite;
+}
+
+@keyframes settings-provider-custom-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The list is the card's middle band, so it draws no border of its own; rows are separated by a hairline and only the
+   hovered row takes a fill. The viewport inside MenuScroll carries the 208px cap and the 6px inset. */
 .settings-provider-custom-model-list {
   display: flex;
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.085);
-  border-radius: 8px;
-  background: rgba(10, 10, 13, 0.24);
 }
 
 /* The row is the Checkbox root, so the shared `[data-component="checkbox"]` gap (12px) is a live competitor at equal
    specificity; naming both here keeps the row's own 10px independent of stylesheet order. */
 [data-component="checkbox"].settings-provider-custom-model {
   display: flex;
-  min-height: 32px;
+  height: 32px;
   align-items: center;
   gap: 10px;
-  padding-inline: 11px;
-  color: rgba(255, 255, 255, 0.82);
+  padding-inline: 8px;
+  color: var(--v2-text-text-base);
   font-size: 12px;
   line-height: 18px;
   cursor: default;
@@ -3696,17 +3860,17 @@
 
 @media (hover: hover) {
   .settings-provider-custom-model:hover {
-    background: rgba(255, 255, 255, 0.045);
+    background: var(--v2-overlay-simple-overlay-hover);
   }
 
   .settings-provider-custom-chip:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--v2-overlay-simple-overlay-pressed);
   }
 }
 
 /* Selection is a quiet wash plus the checkbox: the ring drawn the row as an outline and read as an error state. */
 .settings-provider-custom-model:has(input:checked) {
-  background: rgba(10, 132, 255, 0.08);
+  background: color-mix(in srgb, var(--v2-system-accent) 8%, transparent);
 }
 
 .settings-provider-custom-model-id {
@@ -3723,7 +3887,8 @@
 .settings-provider-custom-selected {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
+  padding: 10px;
 }
 
 .settings-provider-custom-chip {
@@ -3752,92 +3917,91 @@
   color: inherit;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.96);
+    color: var(--v2-text-text-base);
   }
 }
 
 .settings-provider-custom-manual {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
+  padding: 10px;
 
   > [data-component="button-v2"] {
     flex: none;
     min-width: 64px;
-    margin-block-start: 3px;
   }
 }
 
-/* Notes and errors sit in a flex gap, so their default paragraph margin would double the rhythm. */
-.settings-provider-custom-note {
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  .settings-provider-custom-manual
+  [data-component="input"]
+  [data-slot="input-input"] {
+  height: 26px;
+  font-size: 12px;
+}
+
+/* The hint under the card explains what a selection does; the empty state replaces the list when a search matches
+   nothing, and both are quiet grey rather than an outcome colour. */
+.settings-provider-custom-hint {
+  margin: 6px 0 0;
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.settings-provider-custom-empty {
   margin: 0;
+  padding: 22px 12px;
   color: var(--v2-text-text-muted);
   font-size: 12px;
   line-height: 18px;
+  text-align: center;
 }
 
-/* A fetch that failed is an outcome, so it takes the danger tone; the note's neutral grey read like a hint. */
-.settings-provider-custom-note[data-tone="danger"] {
+/* A failed fetch is an outcome: danger ink at the design's 12% wash and 32% stroke, so light gets the light ink. */
+.settings-provider-custom-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--v2-state-fg-danger) 32%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--v2-state-fg-danger) 12%, transparent);
   color: var(--v2-state-fg-danger);
+  font-size: 11px;
+  line-height: 16px;
 }
 
-/* The heading stacks the title group above the step indicator; the close button stays on the header's first line. */
+/* The mark, the title group and the close button share the header's first line; only the title group flexes. */
 .settings-provider-custom-heading {
   display: flex;
   flex: 1;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
 }
 
-.settings-provider-custom-steps {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--v2-text-text-muted);
-  font-size: 11px;
-  line-height: 18px;
-}
-
-.settings-provider-custom-steps-dots {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* The inactive dots are a track, not a decoration: they need to read on both schemes. `overlay-pressed` is 10% white in
-   dark (#37373a on the sheet) and 8% black in light, which all but erased the track against the v3 baseline #64646c;
-   the mid grey of the palette holds that value on both schemes without a scheme-specific override. */
-.settings-provider-custom-steps-dots > span {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--v2-grey-700);
-}
-
-.settings-provider-custom-steps-dots > span[data-active] {
-  background: var(--v2-system-accent);
-}
-
-/* The count sits after the Models label; the auto end margin keeps Fetch models on the right edge. */
-.settings-provider-custom-models-count {
-  margin-inline-end: auto;
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-/* A narrow sheet keeps Cancel and Back on one line and gives the primary action its own full-width row. */
-@media (max-width: 520px) {
-  [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-footer"] {
-    justify-content: space-between;
+/* The sheet keeps its two-column field grid until there is not enough room for a readable pair. */
+@media (max-width: 560px) {
+  .settings-provider-custom-grid {
+    grid-template-columns: 1fr;
   }
 
   [data-component="dialog-v2"]
-    .settings-provider-custom-dialog
-    [data-slot="dialog-footer"]
-    > [data-component="button-v2"]:last-child {
-    flex: 1 1 100%;
+    .settings-provider-custom-dialog[data-slot="dialog-container"]
+    [data-slot="dialog-content"]
+    [data-slot="dialog-header"],
+  [data-component="dialog-v2"]
+    .settings-provider-custom-dialog[data-slot="dialog-container"]
+    [data-slot="dialog-content"]
+    [data-slot="dialog-body"],
+  [data-component="dialog-v2"]
+    .settings-provider-custom-dialog[data-slot="dialog-container"]
+    [data-slot="dialog-content"]
+    [data-slot="dialog-footer"] {
+    padding-inline: 16px;
   }
 }
 
@@ -3857,6 +4021,46 @@
 .settings-provider-custom-dialog [data-slot="dialog-footer"] .settings-provider-custom-error {
   flex-basis: 100%;
   text-align: end;
+}
+
+/* The footer's two controls are 28px, one step below the shared 30px normal size, matching the sheet's compact rows.
+   The primary action is the accent fill the design draws; the shared submit variant is the neutral key and would read
+   as a second Cancel here. */
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-slot="dialog-footer"]
+  > [data-component="button-v2"] {
+  height: 28px;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-slot="dialog-footer"]
+  > [data-component="button-v2"][data-variant="submit"] {
+  background-color: var(--v2-system-accent);
+  background-image: none;
+  color: var(--v2-text-text-contrast);
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  [data-component="dialog-v2"]
+    .settings-provider-custom-dialog
+    [data-slot="dialog-footer"]
+    > [data-component="button-v2"][data-variant="submit"]:hover:not(:disabled) {
+    background-color: var(--v2-system-accent-hover);
+    background-image: none;
+  }
+}
+
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-slot="dialog-footer"]
+  > [data-component="button-v2"][data-variant="submit"]:disabled {
+  background-color: color-mix(in srgb, var(--v2-system-accent) 38%, transparent);
+  color: color-mix(in srgb, var(--v2-text-text-contrast) 62%, transparent);
 }
 
 /* ── Light scheme surfaces ──────────────────────────────────────────────────────────────────────────────────────
@@ -4042,22 +4246,19 @@
   color: var(--v2-text-text-muted);
 }
 
-[data-color-scheme="light"] .settings-provider-custom-model-list {
-  border-color: var(--v2-border-border-muted);
-  background: rgba(0, 0, 0, 0.04);
-}
-
 [data-color-scheme="light"] .settings-provider-custom-model {
   color: var(--v2-text-text-base);
 }
 
 [data-color-scheme="light"] .settings-provider-custom-model:has(input:checked) {
+  /* The dark scheme's 8% wash all but disappears on the light card, so light takes the accent's own soft layer. The
+     checkbox stays the primary signal; this only makes the row read as selected. */
+  background: var(--v2-system-accent-soft);
   color: var(--v2-text-text-base);
 }
 
 [data-color-scheme="light"] .settings-provider-custom-chip {
   border-color: var(--v2-border-border-base);
-  background: rgba(0, 0, 0, 0.04);
   color: var(--v2-text-text-code-accent);
 }
 

@@ -16,15 +16,14 @@ function open(attempt = 1) {
   return transition(closed, { type: "open.create", attempt }, context).state
 }
 
-function atModels(state: CustomProviderState = open()) {
-  const changed = transition(state, { type: "draft.changed", patch: draft }, context).state
-  return transition(changed, { type: "step.next" }, context).state
+function filled(state: CustomProviderState = open()) {
+  return transition(state, { type: "draft.changed", patch: draft }, context).state
 }
 
 describe("custom provider machine", () => {
   test("creates a provider and closes after a successful save", () => {
-    const ready = atModels()
-    expect(ready).toMatchObject({ type: "editing", step: "models", draft: { id: "my-gateway" } })
+    const ready = filled()
+    expect(ready).toMatchObject({ type: "editing", draft: { id: "my-gateway" } })
 
     const submitted = transition(ready, { type: "submit.requested" }, context)
     expect(submitted.state).toMatchObject({ type: "saving", attempt: 1 })
@@ -36,21 +35,17 @@ describe("custom provider machine", () => {
   })
 
   test("ignores a second submit while saving", () => {
-    const submitted = transition(atModels(), { type: "submit.requested" }, context)
+    const submitted = transition(filled(), { type: "submit.requested" }, context)
 
     // The state left `editing` before the request ran, so a repeated Enter or click finds nothing to start.
     expect(transition(submitted.state, { type: "submit.requested" }, context)).toEqual({
       state: submitted.state,
       effects: [],
     })
-    expect(transition(submitted.state, { type: "step.back" }, context)).toEqual({
-      state: submitted.state,
-      effects: [],
-    })
   })
 
-  test("returns to the models step with the failure above the footer", () => {
-    const submitted = transition(atModels(), { type: "submit.requested" }, context)
+  test("keeps the form open with the failure above the footer", () => {
+    const submitted = transition(filled(), { type: "submit.requested" }, context)
     const failed = transition(
       submitted.state,
       { type: "submit.failed", attempt: 1, message: "Provider request failed" },
@@ -59,7 +54,6 @@ describe("custom provider machine", () => {
 
     expect(failed.state).toMatchObject({
       type: "editing",
-      step: "models",
       error: "Provider request failed",
       draft: { id: "my-gateway" },
     })
@@ -80,7 +74,7 @@ describe("custom provider machine", () => {
 
   test("keeps the fetched models through a save", () => {
     const discovered = transition(
-      atModels(),
+      filled(),
       { type: "discover.succeeded", attempt: 1, models: [{ id: "gpt-4o" }] },
       context,
     ).state
@@ -90,6 +84,25 @@ describe("custom provider machine", () => {
 
     const failed = transition(saving, { type: "submit.failed", attempt: 1, message: "nope" }, context).state
     expect(failed).toMatchObject({ type: "editing", discovery: { type: "ready", models: [{ id: "gpt-4o" }] } })
+  })
+
+  test("refuses to submit while the form is invalid", () => {
+    const invalidDetails = transition(
+      open(),
+      { type: "draft.changed", patch: { ...draft, id: "Bad ID", baseURL: "nope" } },
+      context,
+    ).state
+    expect(transition(invalidDetails, { type: "submit.requested" }, context)).toEqual({
+      state: invalidDetails,
+      effects: [],
+    })
+
+    // The single screen accepts one form, so a missing model is rejected by the same submit guard as the details.
+    const noModels = transition(filled(), { type: "draft.changed", patch: { models: [] } }, context).state
+    expect(transition(noModels, { type: "submit.requested" }, context)).toEqual({ state: noModels, effects: [] })
+
+    const taken = transition(open(), { type: "draft.changed", patch: { ...draft, id: "hongxincy" } }, context).state
+    expect(transition(taken, { type: "submit.requested" }, context)).toEqual({ state: taken, effects: [] })
   })
 
   test("confirms deletion before running it", () => {
@@ -125,15 +138,5 @@ describe("custom provider machine", () => {
     const failed = transition(deleting, { type: "delete.failed", attempt: 1, message: "no" }, context)
 
     expect(failed.state).toMatchObject({ type: "confirmingDelete", providerID: "hongxincy" })
-  })
-
-  test("refuses to advance with an invalid id or endpoint", () => {
-    const state = transition(open(), { type: "draft.changed", patch: { id: "Bad ID", baseURL: "nope" } }, context).state
-    expect(transition(state, { type: "step.next" }, context).state).toBe(state)
-
-    const taken = transition(open(), { type: "draft.changed", patch: { id: "hongxincy" } }, context).state
-    expect(transition(taken, { type: "draft.changed", patch: draft }, context).state).toMatchObject({
-      draft: { id: "my-gateway" },
-    })
   })
 })

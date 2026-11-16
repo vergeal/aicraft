@@ -234,7 +234,7 @@ export default Plugin.define({
 })
 ```
 
-产品能力不要为此新增内置插件：浏览器能力现在就是一个 `.ocplugin`（第三章），`display` 由包内 `ocplugin.json` 派生，安装与否都与 Core 解耦。
+产品能力不要为此新增内置插件：浏览器能力现在就是一个 `.agp`（第三章），`display` 由包内 `ocplugin.json` 派生，安装与否都与 Core 解耦。
 
 规则：
 
@@ -266,7 +266,7 @@ export default Plugin.define({
 4. 插件加载，执行入口里的 `tool.transform` / `skill.transform` / `mcp.transform`；
 5. `plugin.updated` 与 `skill.updated` 推送，探索页刷新。
 
-`.ocplugin` 是例外：它不写 `plugins`，而是解包到 `~/.opencode/ocplugins/<id>/`，由目录自动发现生效，见 3.7。
+`.agp` 是例外：它不写 `plugins`，而是解包到 `~/.opencode/ocplugins/<id>/`，由目录自动发现生效，见 3.7。
 
 技能注册必须绑定在插件的 activation scope 上（`ctx.skill.transform` 天然如此），插件卸载或重载时自动移除。插件加载失败时不得留下任何能力注册。
 
@@ -291,21 +291,21 @@ export default Plugin.define({
 #### 现有案例
 
 - `packages/plugin-browser`：桌面浏览器插件，通过 CDP/proxy 控制浏览器，作为内置插件编译进 Core，注册 `browser.*` 工具与 `browser` 技能。
-- `plugins/webwright`（`opencode.webwright`）：独立的 `.ocplugin` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
+- `plugins/webwright`（`opencode.webwright`）：独立的 `.agp` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
 
 ---
 
-## 三、插件组合包（`.ocplugin`）
+## 三、插件组合包（`.agp`）
 
 **Status: 规范已定义，实现进行中。** 本章是组合包格式与安装契约的权威定义；标注「待实现」的条目尚未落到代码。
 
 ### 3.1 定位
 
-`.ocplugin` 是一个**单文件、离线可安装、自包含**的插件组合包：
+`.agp` 是一个**单文件、离线可安装、自包含**的插件组合包：
 
 - 一个文件就是完整插件：入口、技能、图标、资源全在里面，不依赖 npm 下载，不执行安装脚本。
 - 解包后就是一个**标准插件目录**，第二节的入口解析、`display`、`skills` 注册规则全部照常适用。宿主因此不需要新的插件运行时。
-- 与内部插件（`packages/plugin-*`，编译进 Core）的区别只有分发方式：`.ocplugin` 是可移动的独立产物，安装不改 `plugins` 配置，删除即卸载。
+- 与内部插件（`packages/plugin-*`，编译进 Core）的区别只有分发方式：`.agp` 是可移动的独立产物，安装不改 `plugins` 配置，删除即卸载。
 
 ### 3.2 容器格式
 
@@ -313,7 +313,7 @@ export default Plugin.define({
 | --------- | ----------------------------------------------------------------------- |
 | 容器      | tar                                                                     |
 | 压缩      | gzip                                                                    |
-| 扩展名    | `.ocplugin`                                                             |
+| 扩展名    | `.agp`                                                                  |
 | 打包/解包 | `Bun.Archive`（运行时原生，零额外依赖）                                 |
 | 路径字符  | UTF-8，统一用 `/` 分隔，不得以 `/` 开头                                 |
 | 禁止项    | 绝对路径、`..`、符号链接、设备与管道文件、`node_modules/`、安装脚本字段 |
@@ -419,17 +419,17 @@ README.md                # 可选
 建议在包内提供两个脚本：
 
 1. `build`：`bun build <入口> --target=bun --format=esm --outfile dist/server/index.js`，`--external` 取 `ocplugin.json` 的 `externals` 与 `node:*`；原样拷贝 `skills/`、`assets/`、`README.md`、`package.json`、`ocplugin.json` 到 `dist/`。
-2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.ocplugins-local/<id>/<version>/<id>-<version>.ocplugin`，并在同一目录写一份 `manifest.json`（`ocplugin.json` 原样副本，不含 `files`）供探索页读取展示信息；如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
+2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.agp`，并在同一目录写一份 `manifest.json`（`ocplugin.json` 原样副本，不含 `files`）供探索页读取展示信息；如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
 
 产物即分发单元，不再走 npm 发布，也不进 `packages/*/dist/npm`。
 
-`~/.ocplugins-local` 是**插件本地探索发现目录**，目录结构模拟一个插件仓库：
+`~/.distribution/plugins` 是**插件本地探索发现目录**，目录结构模拟一个插件仓库：
 
 ```
-~/.ocplugins-local/
+~/.distribution/plugins/
   <id>/
     <version>/
-      <id>-<version>.ocplugin   # 插件包
+      <id>-<version>.agp        # 插件包
       manifest.json             # 展示信息，不随包分发
 ```
 
@@ -446,7 +446,7 @@ README.md                # 可选
 
 安装步骤（原子、可回滚）：
 
-1. 在 `~/.ocplugins-local/<id>/<version>/` 取请求版本的 `.ocplugin`；未指定版本时取最新，找不到时回退到桌面、下载目录与当前目录。读取归档，校验 `apiVersion`、`id`、`version`、`requires.opencode`、`entry` 是否存在且位于包内。
+1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.agp`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.opencode`、`entry` 是否存在且位于包内。
 2. 拒绝路径穿越、绝对路径、符号链接、超大文件；校验 `files` 中的 sha256（若声明）。
 3. 解包到同级的临时目录 `.<id>.tmp-<random>`。
 4. 按 3.5 生成 `externals` shim。
@@ -486,9 +486,9 @@ README.md                # 可选
 ## 六、当前缺口
 
 - 没有 CLI 子命令用于校验技能/插件目录或列出已加载插件，只能看服务端接口与日志。
-- `.ocplugin` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
+- `.agp` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
 - 插件包内的 `skills/` 目录不会被自动发现；组合包里的技能必须由入口代码注册，`display.skills` 只是展示。
-- 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.ocplugin` 通过包内 `ocplugin.json` 解决了这一点（3.8），但要等安装器与探索页接线。
+- 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.agp` 通过包内 `ocplugin.json` 解决了这一点（3.8），但要等安装器与探索页接线。
 - `AGENTS.md` 的测试小节与 `docs/opencode-ui-standard.md` 仍引用已删除的 `.opencode/skills/*`，与本文描述的实际发现规则不一致。
 
 ## 七、事实来源

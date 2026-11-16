@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenCode .ocplugin 开发手册</title>
+    <title>OpenCode .agp 插件开发手册</title>
     <style>
       * {
         box-sizing: border-box;
@@ -429,7 +429,7 @@
       </nav>
       <main class="page">
       <header class="masthead">
-        <h1>.ocplugin 插件开发手册</h1>
+        <h1>.agp 插件开发手册</h1>
         <p class="subtitle">从空白目录到可安装的单文件插件</p>
         <p class="meta">
           适用于 OpenCode 2.2.x · 桌面版 · Bun 1.3 以上 &nbsp;|&nbsp; 本文档为纯静态 HTML，无脚本、无外部资源
@@ -441,7 +441,7 @@
       <h2 id="s1">1. 简介与名词</h2>
 
       <p>
-        <b>.ocplugin</b> 是 OpenCode 的单文件插件格式。一个文件里包含服务端入口、可选的界面入口、技能正文和随包数据。
+        <b>.agp</b> 是 OpenCode 的单文件插件格式。一个文件里包含服务端入口、可选的界面入口、技能正文和随包数据。
         用户安装后，它被解包成普通插件目录，由宿主自动发现、加载和热更新。
       </p>
 
@@ -715,8 +715,8 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p>
         判定条件是 <b><code>D:\</code> 存在且可写</b>（<code>accessSync("D:\\", W_OK)</code>）：只读盘、光驱不会被采用。
         非 Windows 平台不看这个条件，四个目录都在 <code>~/.opencode</code> 下，行为与之前完全相同。
-        <code>~/.opencode/ocplugins</code>、<code>~/.ocplugins-local</code>、<code>secrets/</code>、<code>secrets.key</code>
-        的位置也没有变化。
+        <code>~/.opencode/ocplugins</code>、<code>~/.distribution/plugins</code>、<code>secrets/</code>、
+        <code>secrets.key</code> 的位置也没有变化。
       </p>
       <p><b>换盘之后</b></p>
       <ul>
@@ -957,7 +957,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         <tr>
           <td><code>script/pack.ts</code></td>
           <td>开发者</td>
-          <td>把 <code>dist/</code> 打成 <code>.ocplugin</code>，写入校验和。</td>
+          <td>把 <code>dist/</code> 打成 <code>.agp</code>，写入校验和。</td>
         </tr>
         <tr>
           <td><code>dist/</code></td>
@@ -1422,11 +1422,12 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
       <h3 id="s3-1">3.1 包格式</h3>
 
       <p>
-        <code>.ocplugin</code> 是 gzip 压缩的 tar 包。根目录必须有 <code>ocplugin.json</code>，且清单里带
-        <code>files</code> 校验和。
+        <code>.agp</code> 是 gzip 压缩的 tar 包。根目录必须有 <code>ocplugin.json</code>，且清单里带
+        <code>files</code> 校验和。宿主<b>只认 <code>.agp</code></b>：发现目录与安装查找都按这个扩展名，
+        没有 <code>.ocplugin</code> 回退，旧包需要重新打包。
       </p>
 
-      <pre>opencode.echo-0.1.0.ocplugin  (gzip tar)
+      <pre>opencode.echo-0.1.0.agp  (gzip tar)
 ├── ocplugin.json     &lt;- 带 files[].sha256
 ├── package.json
 ├── server/main.js
@@ -1473,10 +1474,10 @@ files["ocplugin.json"] = new TextEncoder().encode(
   JSON.stringify({ ...manifest, files: checks }, null, 2) + "\n",
 )
 
-const out = join(homedir(), ".ocplugins-local", manifest.id, manifest.version)
+const out = join(homedir(), ".distribution", "plugins", manifest.id, manifest.version)
 await mkdir(out, { recursive: true })
 
-const archive = join(out, `${manifest.id}-${manifest.version}.ocplugin`)
+const archive = join(out, `${manifest.id}-${manifest.version}.agp`)
 await Bun.Archive.write(archive, files, { compress: "gzip", level: 9 })
 
 // 插件目录读取的侧车清单，不必解压
@@ -1508,7 +1509,7 @@ console.log(`packed ${archive}`)</code></pre>
         </tr>
         <tr>
           <td>输出位置</td>
-          <td><code>~/.ocplugins-local/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.ocplugin</code>。</td>
+          <td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.agp</code>。</td>
         </tr>
         <tr>
           <td>侧车清单</td>
@@ -1529,7 +1530,7 @@ console.log(`packed ${archive}`)</code></pre>
       <ol class="steps">
         <li>
           <h3>放入待安装目录</h3>
-          <p>把 <code>.ocplugin</code> 放到 <code>~/.ocplugins-local/&lt;id&gt;/&lt;version&gt;/</code>。</p>
+          <p>把 <code>.agp</code> 放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>。</p>
         </li>
         <li>
           <h3>在应用中安装</h3>
@@ -1702,7 +1703,7 @@ Content-Type: application/json
         </tr>
         <tr>
           <td>单文件</td>
-          <td>把 <code>.ocplugin</code> 发给对方，放进 <code>~/.ocplugins-local/&lt;id&gt;/&lt;version&gt;/</code> 后安装。</td>
+          <td>把 <code>.agp</code> 发给对方，放进 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code> 后安装。</td>
           <td>手动试用、离线环境</td>
         </tr>
         <tr>
@@ -1724,7 +1725,7 @@ Content-Type: application/json
 
       <div class="warn">
         <b>安全提示：</b>安装器只做 sha256 完整性校验，没有签名与来源验证。不要把来源不明的
-        <code>.ocplugin</code> 放进安装目录——它会在服务进程和桌面窗口里执行任意代码。
+        <code>.agp</code> 放进安装目录——它会在服务进程和桌面窗口里执行任意代码。
       </div>
 
       <h2 id="s4">4. API 参考</h2>
@@ -3166,7 +3167,7 @@ ctx.add(InboxContent, {
         <tr><td>This bundle is damaged: &lt;path&gt; does not match its checksum.</td><td>打包后文件被改动，或校验和生成有误。重新打包。</td></tr>
         <tr><td>This bundle is &lt;id&gt;, not &lt;requested id&gt;.</td><td>清单 id 与安装请求不一致。</td></tr>
         <tr><td>This bundle is version X, not Y.</td><td>清单版本与请求版本不一致。</td></tr>
-        <tr><td>No &lt;id&gt; bundle was found in ...</td><td>没有放到 <code>~/.ocplugins-local/&lt;id&gt;/&lt;version&gt;/</code>。</td></tr>
+        <tr><td>No &lt;id&gt; bundle was found in ...</td><td>没有放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>，或那里的文件不是 <code>.agp</code>。</td></tr>
         <tr><td>This plugin bundle has an invalid runtime: python must be a version constraint and dependencies a list of package specs.</td><td><code>runtime</code> 结构不对：<code>python</code> 必须是版本约束字符串，<code>dependencies</code> 必须是字符串数组。见 <a href="#s2-1">2.1</a>。</td></tr>
         <tr><td>Plugin entrypoint not found: &lt;target&gt;</td><td>解包目录缺少可用入口。先看 <code>ocplugin.json</code> 的 <code>entry</code>，再确认对应文件按 <a href="#s2-0">2.0</a> 的扩展名顺序确实存在。</td></tr>
         <tr><td>A plugin's ./gui-experimental bundle must default-export a Plugin.define</td><td>界面入口没有默认导出 <code>Plugin.define</code>。</td></tr>
@@ -3187,7 +3188,7 @@ ctx.add(InboxContent, {
         <tr><td><code>~/.opencode/logs/plugin/&lt;id&gt;.log</code></td><td>插件日志（<code>ctx.paths.log</code>），卸载后保留。</td></tr>
         <tr><td><code>~/.opencode/secrets.key</code></td><td>加密凭据的主密钥，首次使用生成，权限 <code>0600</code>。</td></tr>
         <tr><td><code>~/.opencode/secrets/&lt;id&gt;.json</code></td><td>加密后的凭据密文，权限 <code>0600</code>。</td></tr>
-        <tr><td><code>~/.ocplugins-local/&lt;id&gt;/&lt;version&gt;/</code></td><td>待安装包与侧车清单；插件目录从这里读取条目。</td></tr>
+        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：<code>&lt;id&gt;-&lt;version&gt;.agp</code> 与侧车 <code>manifest.json</code>；探索页从这里列出可安装版本。</td></tr>
         <tr><td><code>&lt;project&gt;/.opencode/plugins/</code></td><td>项目级插件目录。</td></tr>
         <tr><td><code>opencode.json</code> 的 <code>plugins</code></td><td>显式声明插件包或本地目录。</td></tr>
         <tr><td><code>~/.config/opencode/opencode.json</code></td><td>全局配置，可写插件 options。</td></tr>
@@ -3342,7 +3343,7 @@ ctx.add(InboxContent, {
       </p>
 
       <p class="footer">
-        本文档描述 <code>.ocplugin</code> 格式 <code>apiVersion 1</code>。实现依据：
+        本文档描述 <code>.agp</code> 格式 <code>apiVersion 1</code>。实现依据：
         <code>packages/core/src/plugin/{bundle,local,module}.ts</code>、
         <code>packages/plugin/src/{host,gui/*,promise/*,effect/*}.ts</code>、
         <code>packages/schema/src/{session-event,session-status-event,event-manifest}.ts</code>、

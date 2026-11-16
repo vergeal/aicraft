@@ -37,112 +37,38 @@
   }
 }
 
-[data-component="dialog-v2"]:has(.model-dialog) [data-slot="dialog-container"] {
-  width: min(calc(100vw - 24px), 480px);
-  min-height: 0;
-  border-radius: 12px;
-}
-
+/*
+ * The palette's container, search field, row metrics and header come from the compact block in
+ * `shell/commands/dialog.css`, which this file loads after. Repeating a visual rule here would therefore win and drift
+ * away from it, so only what the model list adds on top lives in this block.
+ */
 .model-dialog {
-  /* The inset lives on the field and the rows, so the scroll area and its scrollbar reach the dialog's edges. */
-  [data-component="search-list"] {
-    padding-top: 6px;
-  }
-
-  [data-component="search-list"] [data-slot="search-list-search"] {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 0 6px;
-
-    /* Full width across the list's padding, and a hairline on any display. */
-    &::after {
-      height: 1px;
-      margin-inline: -6px;
-      background: var(--v2-border-border-muted);
-      content: "";
-      transform: scaleY(0.5);
-    }
-  }
-
-  [data-component="search-list"] [data-slot="search-list-search"] [data-component="text-input-v2"],
-  [data-component="search-list"]
-    [data-slot="search-list-search"]
-    [data-component="text-input-v2"]:where(:hover, :focus-within):not([data-disabled], [data-invalid]) {
-    height: 28px;
-    padding-inline-end: 2px;
-    border-radius: 0;
-    background: transparent;
-  }
-
-  /* The 24px buttons sit 2px from every edge of the 28px row. */
-  [data-component="search-list"] [data-slot="text-input-v2-trailing"] {
-    margin-inline-end: 0;
-
-    [data-component="icon-button-v2"] [data-slot="icon-svg"] {
-      color: var(--v2-icon-icon-muted);
-    }
-  }
-
-  /* Like a model row: 6px inset, a 16px icon slot and a 6px gap, so the query starts where the model names do. */
-  [data-component="search-list"] [data-slot="search-list-search"] [data-slot="text-input-v2-value"] {
-    gap: 6px;
-  }
-
-  [data-component="search-list"] [data-slot="search-list-search"] [data-slot="text-input-v2-leading-icon"] {
-    width: 22px;
-    padding-inline-start: 6px;
-  }
-
-  /* The stuck header's gradient replaces it; the list measures sections for it, and here they have no box. */
+  /*
+   * Sections have no box (see below), so the list cannot measure them for its own top fade; the header draws that
+   * instead.
+   */
   [data-component="search-list"] [data-slot="search-list-fade"] {
     display: none;
   }
 
-  /* Arrow keys keep the active row clear of the stuck header. */
-  [data-component="search-list"] [data-slot="search-list-scroll"] {
-    scroll-padding-top: 36px;
-  }
-
-  [data-component="search-list"] [data-slot="search-list-results"] {
-    gap: 4px;
-    padding: 0 6px 6px;
-  }
-
   /*
    * Without a box, a section no longer bounds its header, so every header sticks for the whole list and the next one
-   * slides over it, as on the home page, instead of pushing it away.
+   * slides over it, as on the home page, instead of pushing it away. Losing the section box also loses its row gap, so
+   * the results box carries it.
    */
   [data-component="search-list"] [data-slot="search-list-section"] {
     display: contents;
   }
 
+  [data-component="search-list"] [data-slot="search-list-results"] {
+    gap: 4px;
+  }
+
   /*
-   * The header bleeds across the list's 6px inset so rows scroll under it, and it starts right under the divider, so
-   * it rests where it sticks. It shares the dialog container's material instead of the opaque token, so the band reads
-   * as the same glass rather than a solid strip. The label is centered by request, which gives up lining up with the
-   * model names below; symmetric inline padding keeps the optical center on the geometric one.
+   * The compact block owns the header's typography, padding and material. The model list only adds the fade, since
+   * `display: contents` leaves the shared list nothing to measure for its own top fade.
    */
   [data-component="search-list"] [data-slot="search-list-header"] {
-    height: auto;
-    justify-content: center;
-    padding-block: 16px 2px;
-    padding-inline: 6px;
-    background: var(--v2-material-surface-strong);
-    color: var(--v2-text-text-faint);
-    font-size: 12px;
-    line-height: 18px;
-
-    /*
-     * Surface-strong alone is translucent, so the stuck band blurs what scrolls beneath it: the blur, not an opaque
-     * fill, is what keeps those rows from reading as text through the band. A sliding header stays unblurred because
-     * it rises over the stuck label, and blurring there would smear that label instead of letting fadeHeaders() fade
-     * it out.
-     */
-    &[data-stuck] {
-      backdrop-filter: var(--v2-material-blur-thick);
-    }
-
     /* The home page's sticky header fade, faded in by how far rows have scrolled beneath the stuck header. */
     &::after {
       position: absolute;
@@ -183,12 +109,9 @@
   [data-component="search-list"] [data-slot="search-list-row"] {
     justify-content: flex-start;
     gap: 6px;
-    /* The shared row baseline is already 36px, which the 36px scroll padding clears a stuck header with. */
-    padding-inline: 6px 3px;
-    border-radius: 6px;
     font-size: 15px;
     font-weight: 400;
-    line-height: var(--line-height-base);
+    line-height: var(--line-height-compact);
     letter-spacing: -0.04px;
   }
 
@@ -244,11 +167,6 @@
       gap: 6px;
     }
   }
-}
-
-/* Outranks the list's dark-scheme highlight, which uses a lighter alpha. */
-[data-component="dialog-v2"] .model-dialog [data-component="search-list"] [data-slot="search-list-row"][data-active] {
-  background: var(--v2-overlay-simple-overlay-hover);
 }
 
 [data-component="menu-v2-content"][data-slot="model-dialog-flyout"] {

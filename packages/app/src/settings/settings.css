@@ -1509,11 +1509,6 @@
   }
 }
 
-.settings-provider-row button:focus-visible {
-  outline: 2px solid #0a84ff;
-  outline-offset: 2px;
-}
-
 .settings-provider-row [disabled] {
   opacity: 0.38;
   cursor: not-allowed;
@@ -1652,9 +1647,12 @@
   }
 }
 
+/* The provider sprite is monochrome, so every brand mark draws in one ink; per-brand tinted tiles are a design item we
+   are not inventing here. What this file can guarantee is legibility on the neutral surface, so the ink and its tile
+   follow the scheme's tokens instead of a white alpha and a hard-coded fill. */
 .settings-providers [data-component="provider-icon"],
 .settings-provider-icon {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--v2-icon-icon-base);
   font-size: 13px;
   line-height: 18px;
 }
@@ -1669,7 +1667,7 @@
   min-width: 0;
   overflow: hidden;
   border-radius: 7px;
-  background: #38383b;
+  background: var(--v2-background-bg-layer-02);
 }
 
 /* The Console header keeps a full-width lead so its label sits beside the icon. */
@@ -1693,7 +1691,7 @@
   place-items: center;
   overflow: hidden;
   border-radius: 7px;
-  background: #38383b;
+  background: var(--v2-background-bg-layer-02);
 }
 
 .settings-provider-copy {
@@ -1747,6 +1745,27 @@
   font-size: 10px;
   font-weight: 450;
   line-height: 16px;
+}
+
+/* The accent chip reads as a tinted outline, not the global solid fill: v3 wants a 20% accent stroke over a 9% accent
+   wash with light-blue ink, at the same 20px face as the other chips. This selector (0,3,0) has to clear the shared
+   accent rule in badge.css (0,2,0), which paints the tag solid and zeroes its border. `#75baff` is the accent lifted
+   toward white for the dark card: 56% accent + 44% white resolves to it exactly from #0a84ff, so no bare hex. */
+.settings-providers [data-component="tag"][data-variant="accent"] {
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--v2-system-accent) 20%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--v2-system-accent) 9%, transparent);
+  color: color-mix(in srgb, var(--v2-system-accent) 56%, white);
+  font-size: 10px;
+  font-weight: 450;
+  line-height: 16px;
+}
+
+/* The lifted ink is drawn for the dark card; on the light card the accent at full strength is what reads. */
+[data-color-scheme="light"] .settings-providers [data-component="tag"][data-variant="accent"] {
+  color: var(--v2-system-accent);
 }
 
 /* The popular list keeps one line per provider: name, tag and note share the line, and a long note ends in an ellipsis
@@ -1828,29 +1847,28 @@
   white-space: nowrap;
 }
 
-/* The three list states share one height: an empty, loading or failed list no longer jumps the card by 20-40px. */
+/* The three connected-list states share one height, so the card no longer jumps 20-30px between empty, loading and
+   failed. The failed state is the tallest (it also holds a retry button), and that natural height becomes the floor
+   every state centres inside. Scoped to the providers page: `.settings-models-status` is shared with the models page. */
+.settings-providers .settings-models-status,
+.settings-provider-empty {
+  min-height: 144px;
+  padding-block: 0;
+}
+
 .settings-provider-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 0;
-  padding-block: 48px;
   padding-inline: 24px;
   text-align: center;
   color: rgba(255, 255, 255, 0.72);
 }
 
-.settings-provider-empty > div {
+.settings-provider-empty > span {
   font-size: 15px;
-  line-height: 18px;
-}
-
-.settings-provider-empty > p {
-  margin: 0;
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
   line-height: 18px;
 }
 
@@ -1927,13 +1945,21 @@
   overflow: visible;
 }
 
+.settings-provider-account-scroll {
+  margin-top: 6px;
+}
+
+/* The list scrolls inside MenuScroll, whose thumb is drawn over the content instead of taking width: the native bar
+   used to shave 8px off the rows at the inline end, so their highlight stopped short of the group label and the
+   "Add account" row under them. */
+.settings-provider-account-viewport {
+  max-height: min(240px, calc(var(--kb-popper-content-available-height) - 120px));
+}
+
 .settings-provider-account-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 6px;
-  max-height: min(240px, calc(var(--kb-popper-content-available-height) - 120px));
-  overflow-y: auto;
 }
 
 /* The account rows are RadioItems: Kobalte renders them as a div carrying `data-component="menu-v2-item"`, so the
@@ -3383,27 +3409,25 @@
      corners, which is why the control read as cut off. */
   > button {
     display: flex;
-    height: 32px;
+    height: 36px;
     width: calc(100% - 24px);
     align-items: center;
     justify-content: center;
     gap: 8px;
     margin-inline: 12px;
-    margin-block: 9px 11px;
+    margin-block: 8px;
     border: 1px solid rgba(255, 255, 255, 0.11);
-    border-radius: 8px;
+    border-radius: 7px;
     background: rgba(255, 255, 255, 0.035);
     padding-inline: 16px;
-    color: rgba(255, 255, 255, 0.92);
+    /* v3 draws this control at 36px with a 7px radius and a #c5c5cc label: 34% base ink over the muted ink resolves to
+       it from the palette, so the rule also stays readable on the light card instead of the white alpha it replaced.
+       The 8px block margins keep the add row at its 64px band. */
+    color: color-mix(in srgb, var(--v2-text-text-base) 34%, var(--v2-text-text-muted));
     font-size: 12px;
     font-weight: 500;
     line-height: 18px;
     cursor: pointer;
-  }
-
-  > button:focus-visible {
-    outline: 2px solid #0a84ff;
-    outline-offset: -2px;
   }
 
   @media (hover: hover) {
@@ -3411,6 +3435,38 @@
       background: rgba(255, 255, 255, 0.06);
     }
   }
+}
+
+/* The add slot's failure is one line inside the row, not the list's 48px status block: reusing that block turned the
+   64px slot into ~150px and pushed the row it explains off the card edge. */
+.settings-provider-add-error {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-inline: 12px;
+  color: var(--v2-state-fg-danger);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The provider actions are pills in the design, not the shared neutral button: 28px tall, 6px radius, a 5.5% white wash
+   under a 10% stroke. Scoped to the provider page, so button.css keeps its neutral face everywhere else (the account
+   menus live in a portal outside this subtree and keep the shared one). */
+.settings-providers [data-component="button-v2"][data-variant="neutral"] {
+  height: 28px;
+  min-height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: none;
+}
+
+[data-color-scheme="light"] .settings-providers [data-component="button-v2"][data-variant="neutral"] {
+  border-color: var(--v2-border-border-base);
+  background: rgba(0, 0, 0, 0.045);
 }
 
 /* One primary control plus its overflow menu: the group never shrinks under the provider name, and the 8px gap
@@ -3435,14 +3491,16 @@
   min-height: min(280px, calc(100vh - 48px));
   max-height: min(720px, calc(100vh - 48px));
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 15px;
-  background: rgba(38, 38, 42, 0.78);
-  backdrop-filter: blur(30px) saturate(1.8);
-  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid var(--settings-sheet-border);
+  border-radius: var(--settings-sheet-radius);
+  background: var(--settings-sheet-bg);
+  backdrop-filter: var(--settings-sheet-blur);
+  -webkit-backdrop-filter: var(--settings-sheet-blur);
+  /* The same glass as the server sheet. The inset is the highlight both share; the light scheme needs no override
+     because every value here resolves from the scheme's `--settings-sheet-*` variables. */
   box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--settings-sheet-shadow);
 }
 
 [data-component="dialog-v2"]
@@ -3464,7 +3522,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
 
 [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
@@ -3492,13 +3550,7 @@
   gap: 8px;
   flex-shrink: 0;
   padding: 12px 16px 16px;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
-}
-
-.settings-provider-custom-dialog button:focus-visible,
-.settings-provider-custom-dialog input:focus-visible {
-  outline: 2px solid #0a84ff;
-  outline-offset: 2px;
+  border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
 /* Disabled buttons keep the system's own 0.5 opacity; the local override dimmed them to 0.38 and made the footer's
@@ -3575,7 +3627,9 @@
   background: rgba(10, 10, 13, 0.24);
 }
 
-.settings-provider-custom-model {
+/* The row is the Checkbox root, so the shared `[data-component="checkbox"]` gap (12px) is a live competitor at equal
+   specificity; naming both here keeps the row's own 10px independent of stylesheet order. */
+[data-component="checkbox"].settings-provider-custom-model {
   display: flex;
   min-height: 32px;
   align-items: center;
@@ -3595,8 +3649,10 @@
   min-width: 0;
 }
 
+/* Row separators are the file's hairline, the same one the inset panels elsewhere in settings draw: 0.5px, not the 1px
+   rule this row had. */
 .settings-provider-custom-model + .settings-provider-custom-model {
-  border-top: 1px solid var(--v2-border-border-muted);
+  border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
 @media (hover: hover) {
@@ -3710,14 +3766,14 @@
   gap: 4px;
 }
 
-/* The inactive dots are a track, not a decoration: they need to read on both schemes. `overlay-pressed` (10% white
-   in dark, 8% black in light) is the nearest token to the 18%/16% pair this was drawn with; `overlay-hover` would
-   drop them 3-4x and nearly erase the track. */
+/* The inactive dots are a track, not a decoration: they need to read on both schemes. `overlay-pressed` is 10% white in
+   dark (#37373a on the sheet) and 8% black in light, which all but erased the track against the v3 baseline #64646c;
+   the mid grey of the palette holds that value on both schemes without a scheme-specific override. */
 .settings-provider-custom-steps-dots > span {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--v2-overlay-simple-overlay-pressed);
+  background: var(--v2-grey-700);
 }
 
 .settings-provider-custom-steps-dots > span[data-active] {
@@ -3746,13 +3802,15 @@
   }
 }
 
+/* An outcome message wears the danger role, like every other red in settings; the stroke and wash are that ink at the
+   alphas this block was drawn with, so light gets the light ink instead of a third hard-coded red. */
 .settings-provider-custom-error {
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 90, 90, 0.24);
+  border: 1px solid color-mix(in srgb, var(--v2-state-fg-danger) 24%, transparent);
   border-radius: 6px;
-  background: rgba(255, 90, 90, 0.08);
-  color: #ff8585;
+  background: color-mix(in srgb, var(--v2-state-fg-danger) 8%, transparent);
+  color: var(--v2-state-fg-danger);
   font-size: 12px;
   line-height: 18px;
 }
@@ -3828,8 +3886,9 @@
   }
 }
 
-/* Tags carry a white-alpha stroke and fill in dark; both vanish on the light card. */
-[data-color-scheme="light"] .settings-providers [data-component="tag"] {
+/* Tags carry a white-alpha stroke and fill in dark; both vanish on the light card. The accent chip is excluded: it is
+   an accent-ink outline over an accent wash (rule above the light block), and this selector outranks it. */
+[data-color-scheme="light"] .settings-providers [data-component="tag"]:not([data-variant="accent"]) {
   border-color: var(--v2-border-border-base);
   background: rgba(0, 0, 0, 0.04);
 }
@@ -3851,6 +3910,17 @@
 }
 
 [data-color-scheme="light"] .settings-provider-lead {
+  background: var(--v2-background-bg-layer-02);
+}
+
+/* The console header's lead is a transparent strip holding its own 28px icon tile, so the row lead's light fill must
+   not reach it; without this the header sat on a grey band while its rows stayed on the card. The tile itself swaps to
+   the same light layer the row leads use. */
+[data-color-scheme="light"] .settings-provider-console-header .settings-provider-lead {
+  background: transparent;
+}
+
+[data-color-scheme="light"] .settings-provider-console-header .settings-provider-lead-icon {
   background: var(--v2-background-bg-layer-02);
 }
 
@@ -3933,25 +4003,9 @@
   color: var(--v2-text-text-muted);
 }
 
-/* Custom provider sheet: same light glass as the server dialog. */
-[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog[data-slot="dialog-container"] {
-  border-color: rgba(0, 0, 0, 0.12);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-header"] {
-  border-bottom-color: var(--v2-border-border-muted);
-}
-
+/* Custom provider sheet: the container reads `--settings-sheet-*` directly, so the light scheme needs no copy here. */
 [data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-title"] {
   color: var(--v2-text-text-base);
-}
-
-[data-color-scheme="light"] [data-component="dialog-v2"] .settings-provider-custom-dialog [data-slot="dialog-footer"] {
-  border-top-color: var(--v2-border-border-muted);
 }
 
 [data-color-scheme="light"] .settings-provider-custom-fields [data-slot="input-label"] {
@@ -3999,6 +4053,8 @@
    - `[data-component="button-v2"]` — restores the same ring above, once.
    - `[data-slot="switch-input"]` — a hidden input; the visible control carries the switch's own ring.
    - `[data-slot="text-input-v2-input"]` — its `:focus-within` wrapper is the field's focus mark.
+   - `[data-slot="input-input"]` — the same deal for `TextField`: its `[data-slot="input-wrapper"]` draws the ring on
+     `:focus-within`, and the input itself states `outline: none`.
    - `.settings-provider-account-input` — a native input, whose outline base.css never suppressed.
    - `.settings-workspaces-active` — a focusable span that keeps its own outline.
    - `.search-list-row` — draws the inset ring from `providers/models/manage.css`.
@@ -4027,6 +4083,7 @@
     [data-component="button-v2"],
     [data-slot="switch-input"],
     [data-slot="text-input-v2-input"],
+    [data-slot="input-input"],
     .settings-provider-account-input,
     .settings-workspaces-active,
     .search-list-row,

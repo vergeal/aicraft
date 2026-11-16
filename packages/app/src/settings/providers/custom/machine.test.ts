@@ -78,6 +78,20 @@ describe("custom provider machine", () => {
     })
   })
 
+  test("keeps the fetched models through a save", () => {
+    const discovered = transition(
+      atModels(),
+      { type: "discover.succeeded", attempt: 1, models: [{ id: "gpt-4o" }] },
+      context,
+    ).state
+
+    const saving = transition(discovered, { type: "submit.requested" }, context).state
+    expect(saving).toMatchObject({ type: "saving", discovery: { type: "ready" } })
+
+    const failed = transition(saving, { type: "submit.failed", attempt: 1, message: "nope" }, context).state
+    expect(failed).toMatchObject({ type: "editing", discovery: { type: "ready", models: [{ id: "gpt-4o" }] } })
+  })
+
   test("confirms deletion before running it", () => {
     const confirming = transition(
       closed,

@@ -32,6 +32,8 @@ export type CustomProviderState =
       readonly attempt: number
       readonly mode: CustomProviderMode
       readonly draft: CustomProviderDraft
+      /** Carried through the request so the model list, and the sheet's height, survive it. */
+      readonly discovery: Discovery
     }
   | { readonly type: "confirmingDelete"; readonly attempt: number; readonly providerID: string; readonly name: string }
   | { readonly type: "deleting"; readonly attempt: number; readonly providerID: string; readonly name: string }
@@ -183,7 +185,13 @@ export function transition(
         if (!draftValid(state.draft, context.taken, state.mode)) return unchanged(state)
         // Entering `saving` here, before the first await, is what stops a second Enter from creating two providers.
         return {
-          state: { type: "saving", attempt: state.attempt, mode: state.mode, draft: state.draft },
+          state: {
+            type: "saving",
+            attempt: state.attempt,
+            mode: state.mode,
+            draft: state.draft,
+            discovery: state.discovery,
+          },
           effects: [{ type: "save.run", attempt: state.attempt, mode: state.mode, draft: state.draft }],
         }
       }
@@ -199,10 +207,11 @@ export function transition(
             type: "editing",
             attempt: state.attempt,
             mode: state.mode,
-            // A failed save leaves the user where the failing request started: the models step.
+            // A failed save leaves the user where the failing request started: the models step, with the list the
+            // request never replaced.
             step: "models",
             draft: state.draft,
-            discovery: { type: "idle" },
+            discovery: state.discovery,
             error: event.message,
           },
           effects: none,

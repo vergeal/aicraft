@@ -1,11 +1,11 @@
 # Webwright
 
-`@opencode/plugin-webwright` is the `.ocplugin` bundle that gives the agent `webwright.*` tools. It drives a dedicated
+`@opencode/plugin-webwright` is the `.agp` bundle that gives the agent `webwright.*` tools. It drives a dedicated
 Playwright browser instead of an extension, so nothing has to be installed into the user's own browser. The built-in
 `browser` plugin keeps its own `browser.*` namespace for the desktop browser; this package never claims it.
 
 The bundle ships as one file:
-`~/.distribution/plugins/changhong.webwright/<version>/changhong.webwright-<version>.ocplugin`. It contains the server entry,
+`~/.distribution/plugins/changhong.webwright/<version>/changhong.webwright-<version>.agp`. It contains the server entry,
 the `webwright` skill, and the Playwright driver under `assets/playwright-core`. Installing unpacks it into
 `~/.opencode/ocplugins/changhong.webwright/`; removing that directory uninstalls it.
 

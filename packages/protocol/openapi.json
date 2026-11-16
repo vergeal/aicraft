@@ -1047,7 +1047,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Find a local .ocplugin bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
+        "description": "Experimental: may change without compatibility guarantees. Find a local .agp bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
         "summary": "Install a plugin bundle",
         "requestBody": {
           "content": {
@@ -1170,7 +1170,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Remove an installed .ocplugin bundle's directory so the host unloads it.",
+        "description": "Experimental: may change without compatibility guarantees. Remove an installed .agp bundle's directory so the host unloads it.",
         "summary": "Uninstall a plugin bundle",
         "requestBody": {
           "content": {
@@ -6806,6 +6806,112 @@
         "summary": "Get provider"
       }
     },
+    "/api/experimental/provider/models": {
+      "post": {
+        "tags": ["provider"],
+        "operationId": "experimental.provider.models",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": ["id"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["data"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "LocationNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Experimental: may change without compatibility guarantees. Reads GET {baseURL}/models with the given key so a client can offer the endpoint's models while adding a custom provider.",
+        "summary": "List models from an OpenAI-compatible endpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseURL": {
+                    "type": "string"
+                  },
+                  "apiKey": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["baseURL"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
     "/api/integration": {
       "get": {
         "tags": ["integration"],
@@ -10876,6 +10982,95 @@
         },
         "description": "Retrieve currently registered skills.",
         "summary": "List skills"
+      }
+    },
+    "/api/experimental/skill/local": {
+      "get": {
+        "tags": ["skill"],
+        "operationId": "experimental.skill.local",
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "required": false,
+            "style": "deepObject",
+            "explode": true
+          }
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "location": {
+                      "$ref": "#/components/schemas/Location.PublicRef"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Skill.Info"
+                      }
+                    }
+                  },
+                  "required": ["location", "data"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "LocationNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Experimental: may change without compatibility guarantees. List every skill in the local discover directory, parsed from its SKILL.md.",
+        "summary": "List local skill bundles"
       }
     },
     "/api/rpc/{rpcID}/{method}": {
@@ -17478,6 +17673,9 @@
           "path": {
             "$ref": "#/components/schemas/AbsolutePath"
           },
+          "writable": {
+            "type": "boolean"
+          },
           "info": {
             "$ref": "#/components/schemas/Config.InfoEncoded"
           }
@@ -18315,6 +18513,19 @@
             "items": {
               "type": "string"
             }
+          },
+          "providers": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Config.Provider.Patch"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
           }
         },
         "additionalProperties": false
@@ -18330,6 +18541,45 @@
           }
         },
         "required": ["package"],
+        "additionalProperties": false
+      },
+      "Config.Provider.Patch": {
+        "type": "object",
+        "properties": {
+          "canonical": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "env": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "package": {
+            "type": "string"
+          },
+          "compatibility": {
+            "$ref": "#/components/schemas/Provider.Compatibility"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/Config.Provider.Settings"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "body": {
+            "type": "object"
+          },
+          "models": {
+            "type": "object"
+          }
+        },
         "additionalProperties": false
       },
       "Config.Provider.Settings": {
@@ -26566,6 +26816,9 @@
             "$ref": "#/components/schemas/AbsolutePath"
           },
           "content": {
+            "type": "string"
+          },
+          "plugin": {
             "type": "string"
           }
         },

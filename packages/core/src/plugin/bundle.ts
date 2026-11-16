@@ -34,7 +34,7 @@ type Manifest = {
 }
 
 /**
- * Installs a `.ocplugin` bundle that already exists on this machine, so the app can offer one button instead of
+ * Installs an `.agp` bundle that already exists on this machine, so the app can offer one button instead of
  * explaining the container format. Versions live under the local discover directory, and the chosen one is verified
  * and unpacked into `~/.opencode/ocplugins/<id>/`, where plugin discovery picks it up.
  */
@@ -122,7 +122,7 @@ async function find(input: { id: string; version?: string; config: string; cwd: 
   for (const folder of folders) {
     const names = await readdir(folder).catch(() => [])
     for (const name of names) {
-      if (!name.startsWith(input.id) || !name.endsWith(".ocplugin")) continue
+      if (!name.startsWith(input.id) || !name.endsWith(".agp")) continue
       const info = await stat(path.join(folder, name)).catch(() => undefined)
       if (info?.isFile()) candidates.push({ file: path.join(folder, name), mtime: info.mtimeMs })
     }
@@ -145,7 +145,7 @@ async function findLocal(input: { id: string; version?: string; home: string }) 
   const version = input.version ?? names.at(-1)
   if (!version) return undefined
   const files = await readdir(path.join(directory, version)).catch(() => [])
-  const file = files.find((name) => name.endsWith(".ocplugin"))
+  const file = files.find((name) => name.endsWith(".agp"))
   return file ? path.join(directory, version, file) : undefined
 }
 

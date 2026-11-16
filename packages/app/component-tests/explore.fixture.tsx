@@ -39,7 +39,7 @@ const sample: CatalogPlugin[] = [
   },
 ]
 
-/** A discoverable bundle: it ships as one `.ocplugin` file, so the card shows the bundle instead of a package. */
+/** A discoverable bundle: it ships as one `.agp` file, so the card shows the bundle instead of a package. */
 export const webwrightCatalog: CatalogPlugin[] = [
   {
     id: "opencode.webwright",
@@ -49,7 +49,7 @@ export const webwrightCatalog: CatalogPlugin[] = [
     description: "让 AI 直接操作浏览器：打开网页、点击、填表、抓取内容。",
     package: "opencode.webwright",
     repository: "https://github.com/anomalyco/opencode/tree/dev/plugins/webwright",
-    bundle: { file: "opencode.webwright-2.2.5.ocplugin", format: "ocplugin" },
+    bundle: { file: "opencode.webwright-2.2.5.agp", format: "agp" },
     skills: [{ name: "Webwright", description: "用 webwright.* 工具操作专用浏览器。" }],
   },
 ]

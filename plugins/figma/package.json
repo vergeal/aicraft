@@ -25,6 +25,8 @@
     "skills-source.json"
   ],
   "scripts": {
+    "build": "bun run script/build.ts",
+    "pack": "bun run script/pack.ts",
     "typecheck": "bun check --no-script",
     "typecheck:tsc": "tsc --noEmit",
     "sync:skills": "bun run script/sync-skills.ts"

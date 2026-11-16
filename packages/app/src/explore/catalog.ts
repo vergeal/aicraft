@@ -32,10 +32,10 @@ export type CatalogPlugin = {
    */
   integrated?: boolean
   /**
-   * A single-file `.ocplugin` bundle. There is no package to fetch and no config entry to write: the host unpacks the
+   * A single-file `.agp` bundle. There is no package to fetch and no config entry to write: the host unpacks the
    * file into `~/.opencode/ocplugins/<id>/`, so the card shows the bundle instead of offering a package install.
    */
-  bundle?: { file: string; format: "ocplugin" }
+  bundle?: { file: string; format: "agp" }
   /** The version shown on the install card. */
   version?: string
   /** Every version available in the local discover directory, newest first. */
@@ -109,7 +109,7 @@ export function loadLocalCatalog(server: {
         description: entry.display?.description ?? "",
         package: entry.id,
         repository: "",
-        bundle: { file: newest?.file ?? `${entry.id}.ocplugin`, format: "ocplugin" as const },
+        bundle: { file: newest?.file ?? `${entry.id}.agp`, format: "agp" as const },
         ...(newest ? { version: newest.version } : {}),
         versions: entry.versions,
         ...(entry.display?.tools ? { tools: entry.display.tools } : {}),

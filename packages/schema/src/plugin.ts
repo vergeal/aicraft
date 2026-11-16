@@ -125,7 +125,7 @@ export const LocalEntry = Schema.Struct({
   versions: Schema.Array(
     Schema.Struct({
       version: Schema.String,
-      /** The `.ocplugin` file name inside the version's directory. */
+      /** The `.agp` file name inside the version's directory. */
       file: Schema.String,
     }),
   ),

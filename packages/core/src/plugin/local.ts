@@ -8,7 +8,7 @@ import path from "node:path"
 
 /**
  * The local discover directory mirrors what a registry would publish: one folder per plugin id, one folder per
- * version inside it, and the `.ocplugin` bundle in that version folder. The app lists it as the catalog, so this
+ * version inside it, and the `.agp` bundle in that version folder. The app lists it as the catalog, so this
  * machine can try the full install flow before a registry exists. Plugins and skills share one distribution root.
  */
 export const root = (home: string) => path.join(home, ".distribution", "plugins")
@@ -72,7 +72,7 @@ async function read(directory: string, id: string): Promise<Plugin.LocalEntry | 
 async function readVersion(directory: string, version: string): Promise<Found | undefined> {
   const folder = path.join(directory, version)
   const files = await readdir(folder).catch(() => [])
-  const file = files.find((name) => name.endsWith(".ocplugin"))
+  const file = files.find((name) => name.endsWith(".agp"))
   if (!file) return undefined
   return { version, file, manifest: await readManifest(path.join(folder, file)) }
 }

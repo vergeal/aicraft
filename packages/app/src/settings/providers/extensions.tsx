@@ -101,10 +101,10 @@ export const SettingsExtensions: Component<{
           <Tabs.Content value="mcps">
             <div class="settings-section">
               <div class="flex items-center justify-between">
-                <span class="settings-extension-heading text-13-medium">
+                <span class="settings-extension-heading">
                   {language.t("settings.extensions.availableAll")}
                 </span>
-                <span class="text-13-regular text-v2-text-text-muted">
+                <span class="settings-extension-note">
                   {language.t("settings.extensions.manageConfig")}
                 </span>
               </div>
@@ -184,10 +184,10 @@ export const SettingsExtensions: Component<{
           <Tabs.Content value="plugins">
             <div class="settings-section">
               <div class="flex items-center justify-between">
-                <span class="settings-extension-heading text-13-medium">
+                <span class="settings-extension-heading">
                   {language.t("settings.extensions.availableAll")}
                 </span>
-                <span class="text-13-regular text-v2-text-text-muted">
+                <span class="settings-extension-note">
                   {language.t("settings.extensions.manageConfig")}
                 </span>
               </div>

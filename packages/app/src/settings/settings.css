@@ -3401,6 +3401,12 @@
   line-height: var(--line-height-compact);
 }
 
+.settings-extension-heading {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+}
+
 .settings-extension-heading,
 .settings-extension-name {
   color: var(--v2-text-text-base);

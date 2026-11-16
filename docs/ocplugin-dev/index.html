@@ -1513,6 +1513,13 @@ console.log(`packed ${archive}`)</code></pre>
           <td>每个版本目录只留一个 <code>.craf</code>，清单随包内的 <code>ocplugin.json</code> 分发，不另写侧车文件。</td>
         </tr>
         <tr>
+          <td>列举代价</td>
+          <td>
+            探索页列出某个版本就要打开包读 <code>ocplugin.json</code>，没有侧车可跳过解压。
+            大包（<code>webwright</code> 带 Playwright 驱动）首次列举会稍慢，这是为保持目录干净接受的代价。
+          </td>
+        </tr>
+        <tr>
           <td>压缩</td>
           <td>gzip，压缩级别 9。</td>
         </tr>

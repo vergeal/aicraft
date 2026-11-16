@@ -489,19 +489,21 @@ export const SettingsProviders: Component<{
     const accounts = () => menuProps.accounts
     const active = () => menuProps.active
     const name = () => menuProps.name
-    // The credential list decides which account is current. Before it answers the row still shows a name, but no
-    // account is selected and the account menu stays closed to actions.
-    const label = () => active()?.label ?? accounts()[0]?.label ?? name()
+    // The same source the menu's radio group reads: only the credential list may name the current account. Guessing
+    // `accounts()[0]` before it answers put a name in the trigger with no matching selected row in the menu.
+    const label = () => active()?.label ?? name()
 
     return (
       <div class="settings-provider-account-actions">
         <Menu placement="bottom-end" gutter={6}>
+          {/* The visible text is the account name, so the accessible name has to start with it (WCAG 2.5.3); the
+              provider is only extra context for screen readers. */}
           <Menu.Trigger
             as={Button}
             size="normal"
             variant="ghost-muted"
             class="settings-provider-account-trigger"
-            aria-label={language.t("settings.providers.account.manage", { provider: name() })}
+            aria-label={`${label()}, ${language.t("settings.providers.account.manage", { provider: name() })}`}
           >
             <span>{label()}</span>
             <Icon name="chevron-down" size="small" />
@@ -643,7 +645,9 @@ export const SettingsProviders: Component<{
                 </div>
               </Match>
               <Match when={displayed().length === 0}>
-                <div class="settings-provider-empty">{language.t("settings.providers.connected.empty")}</div>
+                <div class="settings-provider-empty">
+                  <span>{language.t("settings.providers.connected.empty")}</span>
+                </div>
               </Match>
             </Switch>
             <Show when={providers.ready() && displayed().length > 0}>
@@ -882,7 +886,7 @@ export const SettingsProviders: Component<{
                   </button>
                 }
               >
-                <div class="settings-models-status">
+                <div class="settings-provider-add-error">
                   <span>{language.t("settings.providers.config.failed")}</span>
                   <Button size="small" variant="neutral" onClick={() => void config.refetch()}>
                     {language.t("common.retry")}

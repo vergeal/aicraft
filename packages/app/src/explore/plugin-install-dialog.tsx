@@ -22,7 +22,7 @@ export function PluginInstallDialog(props: {
   package?: string
   name?: string
   integrated?: boolean
-  /** A `.agp` bundle: the host unpacks the file itself, so there is no package to write into the config. */
+  /** A `.craf` bundle: the host unpacks the file itself, so there is no package to write into the config. */
   bundle?: { file: string; format: "agp" }
   /** Plugin id a bundle install targets. */
   id?: string

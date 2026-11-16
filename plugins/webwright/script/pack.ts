@@ -4,7 +4,7 @@ import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join, posix, resolve } from "node:path"
 
-// `.agp` is a gzipped tar with sorted paths and a zero mtime, so the same build produces the same file and
+// `.craf` is a gzipped tar with sorted paths and a zero mtime, so the same build produces the same file and
 // sha256. Bun.Archive stamps entry mtimes from the moment it writes, which breaks that guarantee on the write path;
 // it stays the read path for the installer.
 const root = join(import.meta.dir, "..")
@@ -18,7 +18,7 @@ const out = process.env.OCPLUGIN_OUT
 
 await mkdir(out, { recursive: true })
 
-// A pack made before the output moved to `~/.agps` left its archive inside `dist/plugins`; never read it back.
+// A pack made before the output moved to `~/.opencode/ocplugins` left its archive inside `dist/plugins`; never read it back.
 const paths = (await walk(dist))
   .filter((path) => path !== "ocplugin.json" && !path.startsWith("plugins/"))
   .sort(compare)
@@ -39,7 +39,7 @@ const tar = concat([
   zeroBlock(),
   zeroBlock(),
 ])
-const archive = join(out, `${manifest.id}-${manifest.version}.agp`)
+const archive = join(out, `${manifest.id}-${manifest.version}.craf`)
 await rm(archive, { force: true })
 await Bun.write(archive, Bun.gzipSync(tar, { level: 9 }))
 // The sidecar describes the same bundle without its archive, so the catalog can read display data cheaply.
@@ -58,7 +58,7 @@ async function walk(directory: string, prefix = ""): Promise<string[]> {
       const path = posix.join(prefix, child.name)
       if (child.isDirectory()) return walk(join(directory, child.name), path)
       const info = await stat(join(directory, child.name))
-      if (!info.isFile()) throw new Error(`.agp cannot contain ${path}: only regular files are allowed`)
+      if (!info.isFile()) throw new Error(`.craf cannot contain ${path}: only regular files are allowed`)
       return [path]
     }),
   )
@@ -119,5 +119,5 @@ function split(path: string) {
     if (encoder.encode(prefix).byteLength <= 155 && encoder.encode(name).byteLength <= 100)
       return [name, prefix] as const
   }
-  throw new Error(`.agp path is too long for tar: ${path}`)
+  throw new Error(`.craf path is too long for tar: ${path}`)
 }

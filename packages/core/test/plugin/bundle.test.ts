@@ -30,7 +30,7 @@ async function publish(input: {
     [input.entryFile ?? "server/main.js"]: "export default { id: 'test.bundle', effect: () => {} }",
     ...input.files,
   })
-  await writeFile(path.join(directory, "bundle.agp"), await archive.bytes())
+  await writeFile(path.join(directory, "bundle.craf"), await archive.bytes())
 }
 
 const install = (input: {

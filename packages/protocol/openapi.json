@@ -1047,7 +1047,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Find a local .agp bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
+        "description": "Experimental: may change without compatibility guarantees. Find a local .craf bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
         "summary": "Install a plugin bundle",
         "requestBody": {
           "content": {
@@ -1170,7 +1170,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Remove an installed .agp bundle's directory so the host unloads it.",
+        "description": "Experimental: may change without compatibility guarantees. Remove an installed .craf bundle's directory so the host unloads it.",
         "summary": "Uninstall a plugin bundle",
         "requestBody": {
           "content": {

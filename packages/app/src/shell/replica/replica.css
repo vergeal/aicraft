@@ -138,8 +138,8 @@ html[data-os="windows"] [data-replica] {
 }
 
 /* One titlebar split at the sidebar boundary: window controls on the left, conversation title on the right. */
-/* On macOS the window is a blurred material, so the page root gives up its opaque fill and the frame
-   colour above sits directly on the desktop. Other platforms keep the painted root. */
+/* Desktop windows sit on a system material — vibrancy, acrylic, or the Linux compositor's blur — so the page root
+   gives up its opaque fill and the frame colour above sits directly on the desktop. Web keeps the painted root. */
 html[data-replica-window="translucent"]:has([data-replica]),
 html[data-replica-window="translucent"] #root:has([data-replica]) {
   /* The theme paints the root from an inline style, so only an important rule clears it. */
@@ -149,6 +149,21 @@ html[data-replica-window="translucent"] #root:has([data-replica]) {
 /* The frame keeps the single chrome tint so the whole window is one sheet of glass; the columns and the title bar
    sit on that tint instead of washing it a second time. The workbench still gives up its fill, because everything
    inside it is either the opaque conversation or the navigation column's own tint. */
+/* Over the vibrancy material these tints are the only paint between the desktop and the chrome, so they run lighter
+   than the opaque platforms' 62%: at 62% the sheet read as plain grey and the wallpaper's light no longer moved
+   through the window. Dark mode keeps a heavier column than frame, because a 45% column washes out over a bright
+   desktop, but 90% had hidden the material entirely. */
+html[data-replica-window="translucent"] [data-replica] {
+  --color-titlebar: rgb(246 246 246 / 45%);
+  --color-rail: rgb(246 246 246 / 40%);
+}
+
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
+  --color-titlebar: rgb(8 8 8 / 45%);
+  --color-rail: rgb(8 8 8 / 45%);
+  --color-navigation: rgb(21 21 21 / 65%);
+}
+
 html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
 html[data-replica-window="translucent"] [data-slot="replica-rail"],
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
@@ -163,9 +178,10 @@ html[data-replica-window="translucent"] [data-slot="replica-workbench"] {
 
 /* The navigation column reads a step above the rail: both ride the window's single tint, so the sidebar adds a thin
    white wash instead of a second opaque sheet. The wash stays inside the workbench's rounded cutout, so the corner
-   arcs still resolve to the window tint instead of to a lighter square. */
+   arcs still resolve to the window tint instead of to a lighter square. It stays at 4%: the 10% wash was a second
+   white layer over an already light tint, and the column ended up indistinguishable from the opaque work area. */
 html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
-  background: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
 }
 
 /* Dark mode needs a deeper navigation surface. The shell carries it, the title bar keeps its own lighter tint, and
@@ -175,7 +191,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica]
   background: transparent;
 }
 
-/* The title bar's 62% tint meets the navigation's 90% at a hard horizontal seam. The ramp lives in the bar's last
+/* The title bar's lighter frame tint meets the navigation surface at a hard horizontal seam. The ramp lives in the bar's last
    10px so the shell below stays one flat colour: the workbench's rounded cutout takes its colour from the shell's
    top edge, and a gradient there would lighten the cutout into a wedge along the arc. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {

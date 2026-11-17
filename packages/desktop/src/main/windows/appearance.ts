@@ -15,7 +15,6 @@ import { getStore } from "../storage/store"
 import {
   platformFrame,
   savedBackgroundColor,
-  storedBackgroundColor,
   storedZoomFactor,
   storedZoomLevel,
   titlebarOverlay,
@@ -28,11 +27,6 @@ const pinchZoomEnabled = new WeakMap<BrowserWindow, boolean>()
 
 const maxZoomLevel = 10
 
-/** macOS windows sit on a blurred material; the other platforms paint an opaque theme colour. */
-function translucentWindow() {
-  return process.platform === "darwin"
-}
-
 const minZoomLevel = 0.2
 
 let backgroundColor: string | undefined
@@ -41,7 +35,9 @@ export function windowAppearance(path: Path.Path, paths: DesktopPaths.Resolved) 
   return {
     title: "OpenCode",
     icon: iconPath(path, paths),
-    backgroundColor: translucentWindow() ? "#00000000" : (backgroundColor ?? storedBackgroundColor()),
+    // Every platform keeps the window transparent so the replica chrome draws over the system material: macOS
+    // vibrancy, Windows acrylic, and on Linux the compositor's own blur.
+    backgroundColor: "#00000000",
     ...platformFrame(tone(), storedZoomFactor()),
     webPreferences: {
       preload: paths.preloadPath,
@@ -66,13 +62,9 @@ export function setBackgroundColor(color: string) {
   // settings file on each set, so only persist a change.
   if (getBackgroundColor() !== color) getStore().set(BACKGROUND_COLOR_KEY, color)
   backgroundColor = color
-  // macOS keeps the window transparent so the vibrancy layer shows through the replica chrome.
-  if (translucentWindow()) return
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.setBackgroundColor(color)
-
-    if (process.platform === "darwin") win.invalidateShadow()
-  })
+  // Every window stays transparent so the system material shows through the replica chrome, so the reported colour
+  // is kept for the next opaque fallback (reduced transparency, or a window the renderer never painted) rather than
+  // painted onto the frame now.
 }
 
 export function getBackgroundColor() {

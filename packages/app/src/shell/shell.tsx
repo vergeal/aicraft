@@ -115,11 +115,11 @@ function ReplicaLayer(props: ParentProps) {
 
   // The v6 column is 300px until dragging pins an explicit width, so the resize handle starts from the width
   // the sidebar is really laid out at instead of snapping to another value on the first move.
-  // The macOS window sits on a blurred material, so the page root drops its opaque theme fill and the
-  // translucent frame shows the desktop instead. Other platforms keep the painted background.
+  // Every desktop window sits on a system material, so the page root drops its opaque theme fill and the translucent
+  // frame shows the desktop instead: macOS vibrancy, Windows acrylic, and the compositor's blur on Linux. Web keeps
+  // the painted background, because a browser tab has no material behind it.
   createEffect(() => {
-    document.documentElement.dataset.replicaWindow =
-      platform.platform === "desktop" && platform.os === "macos" ? "translucent" : "opaque"
+    document.documentElement.dataset.replicaWindow = platform.platform === "desktop" ? "translucent" : "opaque"
     // The frame height differs per OS, so the stylesheet sizes the window bar from the platform, not the viewport.
     if (platform.platform === "desktop" && platform.os) document.documentElement.dataset.os = platform.os
   })

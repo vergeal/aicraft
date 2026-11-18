@@ -348,7 +348,7 @@ const icons = {
   },
   "answer-thinking": {
     viewBox: "0 0 14 14",
-    body: `<path d="M4.6 6a2.4 2.4 0 0 1 4.8 0c0 1-.5 1.7-1.2 2.2v1.2H5.8V8.2c-.7-.5-1.2-1.2-1.2-2.2ZM6.2 11h1.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<ellipse cx="7" cy="7" rx="5.4" ry="1.8" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="5.4" ry="1.8" transform="rotate(60 7 7)" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="5.4" ry="1.8" transform="rotate(-60 7 7)" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="1" fill="currentColor"/>`,
   },
   "answer-console": {
     viewBox: "0 0 14 14",

@@ -311,8 +311,8 @@ function RunningStatus(props: { elapsedMs?: number }) {
       class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[12px] leading-text-base"
     >
       <div class="flex min-w-0 items-center gap-2" style={{ color: "var(--answer-ink-secondary)" }}>
-        <span class="grid size-[14px] shrink-0 place-items-center [&_svg]:size-[14px]">
-          <Spinner width={14} height={14} />
+        <span class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
+          <Spinner width={14} height={14} class="size-[14px]" />
         </span>
         <span class="min-w-0 shrink-0 overflow-hidden">
           <TextShimmer text={label()} active />
@@ -809,8 +809,8 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
       expanded={expanded()}
       leading={
         <Show when={streaming()} fallback={<FlowIcon name="answer-thinking" />}>
-          <span data-slot="answer-reasoning-spinner" class="grid size-[14px] shrink-0 place-items-center [&_svg]:size-[14px]">
-            <Spinner width={14} height={14} />
+          <span data-slot="answer-reasoning-spinner" class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
+            <Spinner width={14} height={14} class="size-[14px]" />
           </span>
         </Show>
       }
@@ -868,8 +868,8 @@ function ToolRow(props: { tool: Extract<NodePayload, { kind: "tool" }>["tool"] }
       expanded={expanded()}
       leading={
         <Show when={running()} fallback={<FlowIcon name={ACTIVITY_ICONS[toolActivity(props.tool.name)]} />}>
-          <span class="flex h-[24px] shrink-0 items-center">
-            <Spinner width={14} height={14} />
+          <span data-slot="answer-tool-spinner" class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
+            <Spinner width={14} height={14} class="size-[14px]" />
           </span>
         </Show>
       }

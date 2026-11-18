@@ -348,7 +348,7 @@ const icons = {
   },
   "answer-thinking": {
     viewBox: "0 0 14 14",
-    body: `<ellipse cx="7" cy="7" rx="5.4" ry="1.8" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="5.4" ry="1.8" transform="rotate(60 7 7)" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="5.4" ry="1.8" transform="rotate(-60 7 7)" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="1" fill="currentColor"/>`,
+    body: `<ellipse cx="7" cy="7" rx="5.4" ry="2" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="2" ry="5.4" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="1" fill="currentColor"/>`,
   },
   "answer-console": {
     viewBox: "0 0 14 14",
@@ -356,11 +356,11 @@ const icons = {
   },
   "answer-read": {
     viewBox: "0 0 14 14",
-    body: `<path d="M3.8 2.4h3.6l2.6 2.6v6.6H3.8ZM7.4 2.4v2.6h2.6M5.6 8h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<path d="M2.6 4.8c1.5-.7 3.2-.7 4.4.1v6.6c-1.2-.8-2.9-.8-4.4-.1ZM7 4.9c1.2-.8 2.9-.8 4.4-.1v6.6c-1.5-.7-3.2-.7-4.4.1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
   "answer-edit": {
     viewBox: "0 0 14 14",
-    body: `<path d="M2.9 11.1l.5-2.3 5.4-5.4 1.8 1.8-5.4 5.4-2.3.5ZM8.1 4.3l1.8 1.8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<path d="M3.4 10.4 3 12a.5.5 0 0 0 .6.6l1.6-.4 6-6-1.8-1.8-6 6ZM8.6 2.8l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
   "answer-search": {
     viewBox: "0 0 14 14",

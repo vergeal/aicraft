@@ -149,25 +149,26 @@ html[data-replica-window="translucent"] #root:has([data-replica]) {
 /* The frame keeps the single chrome tint so the whole window is one sheet of glass; the columns and the title bar
    sit on that tint instead of washing it a second time. The workbench still gives up its fill, because everything
    inside it is either the opaque conversation or the navigation column's own tint. */
-/* Over the vibrancy material these tints are the only paint between the desktop and the chrome, so they run lighter
-   than the opaque platforms' 62%: at 62% the sheet read as plain grey and the wallpaper's light no longer moved
-   through the window. Dark mode keeps a heavier column than frame, because a 45% column washes out over a bright
-   desktop, but 90% had hidden the material entirely. */
+/* Over the vibrancy material these tints are the only paint between the desktop and the chrome, so they carry most of
+   the glass: one thickness for the frame and the rail, one step brighter for the navigation column. Below 75% the
+   wallpaper moved through the chrome and the window read as two unrelated themes — a bright rail beside an opaque
+   conversation. The steps below keep the sheet translucent while it still reads as one material. */
 html[data-replica-window="translucent"] [data-replica] {
   /* macOS 的 sidebar 材质自己就是一层带亮度补偿的浅色玻璃。应用层再刷 40% 白，等于在系统材质上又盖一张白纸：
-     壁纸的颜色和冷暖被冲掉，剩下的只有一层发灰的膜。这里只留薄薄一层，让材质本身读得出来。 */
-  --color-rail: rgb(246 246 246 / 14%);
+     壁纸的颜色和冷暖被冲掉，剩下的只有一层发灰的膜。这里留一层足够压住壁纸、又能透出材质的白。 */
+  --color-rail: rgb(246 247 250 / 80%);
+  --color-sidebar: rgb(252 252 254 / 84%);
   /* 标题栏和导航列是同一片材质：transparent 规则下标题栏不单独上色，所以这里跟随 rail，
      只有 reduced-transparency 分支会把这个值实体化。 */
   --color-titlebar: var(--color-rail);
 }
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
-  --color-titlebar: rgb(8 8 8 / 36%);
-  /* 暗色材质本来就深，应用层反而要兜住亮壁纸，否则浅色文字会压在透出来的亮背景上。 */
-  --color-rail: rgb(8 8 8 / 32%);
-  --color-navigation: rgb(21 21 21 / 58%);
-  --color-sidebar: rgb(21 21 21 / 44%);
+  /* 暗色玻璃要兜住亮壁纸，否则浅色文字压在透出来的亮背景上；rail 与导航列保持同一片材质，只差一档明度。 */
+  --color-titlebar: rgb(19 19 22 / 78%);
+  --color-rail: rgb(19 19 22 / 78%);
+  --color-navigation: rgb(27 27 31 / 86%);
+  --color-sidebar: rgb(27 27 31 / 86%);
 }
 
 /* 纯色玻璃读起来像一层灰纱，因为真实的玻璃是受光的：顶部向冷蓝偏、底部沉一点蓝紫、中间几乎不染色。
@@ -176,10 +177,10 @@ html[data-replica-window="translucent"] [data-replica] {
   background:
     linear-gradient(
       to bottom,
-      rgb(122 155 240 / 7%),
+      rgb(122 155 240 / 8%),
       rgb(122 155 240 / 0) 30%,
       rgb(143 137 184 / 0) 70%,
-      rgb(143 137 184 / 6%)
+      rgb(143 137 184 / 7%)
     ),
     var(--color-rail);
 }
@@ -213,7 +214,12 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
    white layer over an already light tint, and the column ended up indistinguishable from the opaque work area. */
 html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
   /* 比 rail 高一层，并且带一点冷色：中性白叠在系统材质上会把壁纸的色温中和成灰，蓝调才透得像玻璃。 */
-  background: rgb(247 250 255 / 10%);
+  background: rgb(247 250 255 / 8%);
+}
+
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
+  /* 导航列比 rail 高一层：极淡的冷白叠在 shell 的导航面上，让 rail 与导航列读作同一片玻璃的两个层次。 */
+  background: rgb(255 255 255 / 3%);
 }
 
 /* 分隔线画在不透明的一侧。半透明侧边栏上的 alpha 边框会和壁纸混成一条暗缝，看起来像面板裂了一道；
@@ -239,6 +245,21 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica]
   background: transparent;
 }
 
+/* Dark mode hands the frame's paint to the shell, which leaves the rail as the one column still sitting on bare
+   desktop: 46px of wallpaper next to an 86% navigation sheet is what read as two themes. The rail carries the same
+   tint and the same vertical light as the frame does in light mode. */
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-rail"] {
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(122 155 240 / 7%),
+      rgb(122 155 240 / 0) 30%,
+      rgb(143 137 184 / 0) 70%,
+      rgb(143 137 184 / 5%)
+    ),
+    var(--color-rail);
+}
+
 /* The title bar's lighter frame tint meets the navigation surface at a hard horizontal seam. The ramp lives in the bar's last
    10px so the shell below stays one flat colour: the workbench's rounded cutout takes its colour from the shell's
    top edge, and a gradient there would lighten the cutout into a wedge along the arc. */
@@ -256,10 +277,10 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
   background:
     linear-gradient(
       to bottom,
-      rgb(122 155 240 / 5%),
+      rgb(122 155 240 / 7%),
       rgb(122 155 240 / 0) 30%,
       rgb(143 137 184 / 0) 70%,
-      rgb(143 137 184 / 4%)
+      rgb(143 137 184 / 5%)
     ),
     var(--color-navigation);
 }

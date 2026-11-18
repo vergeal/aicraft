@@ -310,7 +310,7 @@ function RunningStatus(props: { elapsedMs?: number }) {
       data-slot="answer-running"
       class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[12px] leading-text-base"
     >
-      <div class="flex min-w-0 items-center gap-2" style={{ color: "var(--answer-ink-secondary)" }}>
+      <div class="flex min-w-0 items-center gap-2.5" style={{ color: "var(--answer-ink-secondary)" }}>
         <span class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
           <Spinner width={14} height={14} class="size-[14px]" />
         </span>
@@ -515,7 +515,7 @@ function GroupSeat(props: {
         aria-expanded={props.open}
         aria-controls={bodyID}
         hidden={props.flat}
-        class="group/heading flex min-w-0 w-full items-center gap-1.5 text-start text-[14px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="group/heading flex min-w-0 w-full items-center gap-2.5 text-start text-[14px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-tertiary)" }}
         onClick={(event) => {
           event.currentTarget.focus()
@@ -755,7 +755,7 @@ function DisclosureRow(props: {
         data-disclosure-row=""
         aria-expanded={props.expanded}
         aria-controls={id}
-        class="group/row flex min-w-0 cursor-pointer items-center gap-1.5 text-[13px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="group/row flex min-w-0 cursor-pointer items-center gap-2.5 text-[13px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-secondary)" }}
         onClick={props.onToggle}
         onKeyDown={(event) => {

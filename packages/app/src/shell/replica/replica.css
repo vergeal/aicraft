@@ -79,8 +79,9 @@
   /* The dock leaves 14px under the card; a taller blur would be clipped by the work area's bottom edge. */
   --shadow-composer: 0 2px 12px rgba(0, 0, 0, 0.05);
   /* The panel sheds this shadow onto the title bar and rail, so it needs a soft falloff rather than a 1px ring.
-     A tighter spread than the old 12px keeps the smaller radius from reading as a lifted card. */
-  --shadow-panel: 0 1px 2px rgb(0 0 0 / 7%), 0 3px 8px -2px rgb(0 0 0 / 10%);
+     The blur stays inside the 1px gutter: a wider one reached past the 12px corner and painted a wedge in each
+     window corner, which read as a small arrow. */
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 7%), 0 2px 6px -2px rgb(0 0 0 / 8%);
   --shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.1);
   --shadow-dialog: 0 16px 44px rgba(0, 0, 0, 0.15);
 
@@ -125,8 +126,9 @@
   --color-icon-secondary: var(--v2-icon-icon-muted);
   --color-send-bg: var(--v2-background-bg-layer-04);
   --color-send-fg: var(--v2-text-text-contrast);
-  /* The work area is darker than its backdrop here, so the lift needs more weight to read in dark mode. */
-  --shadow-panel: 0 1px 2px rgb(0 0 0 / 40%), 0 3px 8px -2px rgb(0 0 0 / 45%);
+  /* The work area is darker than its backdrop here, so the lift needs a little more weight, but it stays inside the
+     glass alpha budget: a 45/55% shadow reached past the panel corner and filled each window corner with a wedge. */
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 10%), 0 3px 10px -3px rgb(0 0 0 / 12%);
   /* A dark glass surface swallows a dark divider the same way the light one swallows #eeeeee. */
   --color-divider-glass: rgb(255 255 255 / 10%);
 }
@@ -198,14 +200,14 @@ html[data-replica-window="translucent"] [data-slot="replica-workbench"] {
   /* The resting shadow was tuned against a near-opaque sheet, where it only had to hint at an edge. Over the
      thinner chrome the panel has to lift on its own, or the conversation and the navigation read as one flat wash. */
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 10%),
-    0 6px 20px -6px rgb(0 0 0 / 16%);
+    0 1px 2px rgb(0 0 0 / 8%),
+    0 4px 14px -5px rgb(0 0 0 / 10%);
 }
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-workbench"] {
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 45%),
-    0 8px 28px -8px rgb(0 0 0 / 55%);
+    0 1px 2px rgb(0 0 0 / 12%),
+    0 4px 14px -5px rgb(0 0 0 / 14%);
 }
 
 /* The navigation column reads a step above the rail: both ride the window's single tint, so the sidebar adds a thin

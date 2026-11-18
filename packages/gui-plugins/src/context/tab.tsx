@@ -17,7 +17,7 @@ import type { SessionMessageAssistant, SessionMessageInfo } from "@opencode/clie
 import { lastAssistantWithUsage } from "@opencode/client/solid"
 import { createKeyed, usePlugin, type MountedSession } from "@opencode/plugin/gui"
 import { catalogModel, syncCatalog } from "./catalog"
-import { createCNY, createUSD, flashCostBreakdown, flashCostCNY, flashPrice } from "./cost"
+import { createCNY, createCostAmount, createUSD, flashCostBreakdown, flashCostCNY, flashPrice } from "./cost"
 import { fetchSessionExport, sessionExportFilename } from "./export"
 import { createSessionContextFormatter } from "./format"
 
@@ -89,7 +89,7 @@ const callColumns = {
     status: false,
   },
   narrow: {
-    grid: "54px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 62px 58px",
+    grid: "54px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 62px 62px",
     duration: false,
     cost: true,
     status: false,
@@ -421,8 +421,14 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
   const callLayout = createMemo(() => callColumnsAt(callWidth[0]()))
 
+  const callAmount = createMemo(() => createCostAmount(i18n.locale()))
+
+  // Amounts carry no currency mark; the column header names it instead, so the same cell
+  // reads correctly whether the row bills in USD from the provider or in the local estimate.
+  const callCurrency = () => spend()?.currency ?? "CNY"
+
   const callCost = (call: Step) =>
-    call.message.cost ? usd()(call.message.cost) : cny()(flashCostCNY([call.tokens]))
+    callAmount()(call.message.cost ? call.message.cost : flashCostCNY([call.tokens]))
 
   // Same step as the TUI and the header ring: after the last completed compaction and before an undo boundary.
   // Context occupancy is the prompt side only — output and reasoning are already spent, not resident.
@@ -446,6 +452,56 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       providerLabel: entry?.provider.name ?? message.model.providerID,
       modelLabel: entry?.model?.name ?? message.model.id,
     }
+  })
+
+  // The occupancy bar answers "how much of the prompt was cached", which says nothing about what actually fills the
+  // window. This splits the prompt side by what produced it, weighting each part by its character share — the provider
+  // only reports the total, so the split is an estimate derived from that total.
+  const composition = createMemo(() => {
+    const list = messages()
+    const last = lastAssistantWithUsage(list, info()?.revert?.messageID)
+    const used = context()?.used
+
+    if (!last || !used) return
+
+    const boundary = list.findIndex((message) => message.id === last.id)
+    const upTo = boundary >= 0 ? list.slice(0, boundary + 1) : list
+    const weight = { system: 0, history: 0, tools: 0 }
+
+    for (const message of upTo) {
+      if (message.type === "system") weight.system += message.text.length
+      else if (message.type === "user") weight.history += message.text.length
+      else if (message.type === "skill") weight.history += message.text.length
+      else if (message.type === "shell")
+        weight.tools += message.command.length + (message.output?.output.length ?? 0)
+      else if (message.type === "assistant") {
+        for (const part of message.content) {
+          if (part.type === "text" || part.type === "reasoning") weight.history += part.text.length
+          else if (part.type === "tool") weight.tools += JSON.stringify(part.state).length
+        }
+      }
+    }
+
+    const total = weight.system + weight.history + weight.tools
+
+    if (!total) return
+
+    const parts: Array<{
+      key: "window.compositionSystem" | "window.compositionHistory" | "window.compositionTools"
+      value: number
+    }> = [
+      { key: "window.compositionSystem", value: weight.system },
+      { key: "window.compositionHistory", value: weight.history },
+      { key: "window.compositionTools", value: weight.tools },
+    ]
+
+    return parts
+      .filter((part) => part.value > 0)
+      .map((part) => ({
+        key: part.key,
+        percent: (part.value / total) * 100,
+        tokens: Math.round((part.value / total) * used),
+      }))
   })
 
   const perTurnTokens = createMemo(() => {
@@ -826,6 +882,28 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </span>
           </div>
 
+          <Show when={composition()}>
+            {(items) => (
+              <div class="flex flex-col gap-1.5 pt-1">
+                <div class="flex items-baseline gap-2 text-[11.5px] text-v2-text-text-faint">
+                  <span>{ctx.t("window.composition")}</span>
+                  <span class="ms-auto">{ctx.t("window.compositionNote")}</span>
+                </div>
+                {items().map((item) => (
+                  <div class="flex items-center gap-2 text-[11.5px]">
+                    <span class="w-[5.5rem] shrink-0 text-v2-text-text-faint">{ctx.t(item.key)}</span>
+                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-v2-background-bg-layer-02">
+                      <div class="h-full rounded-full bg-v2-icon-icon-muted" style={{ width: `${item.percent}%` }} />
+                    </div>
+                    <span class="w-[3.25rem] shrink-0 text-right tabular-nums text-v2-text-text-muted">
+                      {formatter().compact(item.tokens)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Show>
+
           <div class="grid grid-cols-2 overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted gap-px">
             <Tile
               label={ctx.t("stats.cost")}
@@ -960,7 +1038,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
               <Show when={callLayout().duration}>
                 <span>{ctx.t("calls.duration")}</span>
               </Show>
-              <span>{ctx.t("calls.cost")}</span>
+              <span>{ctx.t("calls.costIn", { currency: callCurrency() })}</span>
               <Show when={callLayout().status}>
                 <span />
               </Show>
@@ -1095,7 +1173,10 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                               <Field label={ctx.t("calls.duration")} value={formatter().duration(call.duration)} />
                             </Show>
                             <Show when={!callLayout().cost}>
-                              <Field label={ctx.t("calls.cost")} value={callCost(call)} />
+                              <Field
+                                label={ctx.t("calls.costIn", { currency: callCurrency() })}
+                                value={callCost(call)}
+                              />
                             </Show>
                           </div>
                           <Show when={call.message.error}>

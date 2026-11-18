@@ -11,6 +11,11 @@ export default {
   "window.legendReasoning": "Reasoning",
   "window.perTurn": "{{tokens}} per turn",
   "window.remaining": "Limit {{limit}} · about {{turns}} more turns",
+  "window.composition": "Prompt composition",
+  "window.compositionNote": "estimated by characters",
+  "window.compositionSystem": "Instructions",
+  "window.compositionHistory": "Conversation",
+  "window.compositionTools": "Tool output",
 
   // Summary tiles
   "stats.cost": "Session cost",
@@ -45,6 +50,7 @@ export default {
   "calls.rate": "Rate tok/s",
   "calls.duration": "Time",
   "calls.cost": "Cost",
+  "calls.costIn": "Cost {{currency}}",
   "calls.retry": "Retry {{count}}",
   "calls.failed": "Failed",
   "calls.truncated": "Truncated",

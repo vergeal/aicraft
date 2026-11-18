@@ -70,6 +70,23 @@ export function createUSD(locale: string) {
 }
 
 /**
+ * Formats an amount without its currency, for a table whose header already names it. Amounts below one unit keep
+ * four decimals, because Flash prices are small enough that two would round a short call to zero.
+ */
+export function createCostAmount(locale: string) {
+  const format = (digits: number) =>
+    new Intl.NumberFormat(locale, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })
+
+  const fine = format(4)
+  const coarse = format(2)
+
+  return (value: number) => (Math.abs(value) < 1 ? fine : coarse).format(value)
+}
+
+/**
  * Formats CNY amounts as `CNY ¥20.79`. The code carries the currency, because `¥` alone is also Japanese yen.
  * Amounts below one yuan keep four decimals, because Flash prices are small enough that two decimals would round a
  * short session to zero.

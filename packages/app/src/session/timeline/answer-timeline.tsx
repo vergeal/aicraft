@@ -34,11 +34,14 @@ export function AnswerTimeline(props: {
   const [visible, setVisible] = createSignal<HTMLDivElement>()
   const [atBottom, setAtBottom] = createSignal(true)
   let viewport: HTMLDivElement | undefined
+  // The reader stays pinned to the end until they scroll away, across streamed growth.
+  let stick = true
 
   const measureBottom = () => {
     if (!viewport) return
 
-    setAtBottom(viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD)
+    stick = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD
+    setAtBottom(stick)
   }
 
   const jumpToLatest = () => {
@@ -56,17 +59,26 @@ export function AnswerTimeline(props: {
     props.setPage?.((direction) => viewport?.scrollBy({ top: direction * viewport.clientHeight * 0.9 }))
 
     requestAnimationFrame(measureBottom)
-  })
 
-  // Streamed rows grow the transcript: follow them while the reader is at the end, and leave a
-  // reader who scrolled up exactly where they are.
-  createEffect(() => {
-    props.messages()
-    const follow = atBottom()
-    requestAnimationFrame(() => {
-      if (follow && viewport) viewport.scrollTo({ top: viewport.scrollHeight })
+    if (!viewport) return
+
+    // Streamed text grows the rows without changing the message list identity, so follow the layout
+    // itself: every observed child that grows pulls the viewport back to the end while the reader is
+    // still pinned there. A reader who scrolled up is left exactly where they are.
+    const follow = new ResizeObserver(() => {
+      if (!stick || !viewport) return
+      viewport.scrollTop = viewport.scrollHeight
       measureBottom()
     })
+
+    for (const child of Array.from(viewport.children)) follow.observe(child)
+
+    onCleanup(() => follow.disconnect())
+  })
+
+  createEffect(() => {
+    props.messages()
+    requestAnimationFrame(measureBottom)
   })
 
   onCleanup(() => {

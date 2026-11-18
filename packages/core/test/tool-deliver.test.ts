@@ -77,7 +77,7 @@ const setup = () =>
               id: input.id ?? deliveredID,
               sessionID: input.sessionID,
               payload: { text: input.text, metadata: input.metadata },
-              delivery: input.delivery ?? "steer",
+              delivery: input.delivery ?? "queue",
               time: { created: at },
             })
           }),
@@ -165,7 +165,7 @@ describe("DeliverTool", () => {
     }),
   )
 
-  it.effect("answers with replyTo and can steer instead of queueing", () =>
+  it.effect("answers with replyTo and always queues", () =>
     Effect.gen(function* () {
       const { registry, prompts } = yield* setup()
 
@@ -174,10 +174,9 @@ describe("DeliverTool", () => {
         intent: "reply",
         replyTo: { sessionID: targetID, messageID: deliveredID },
         text: "Finished.",
-        delivery: "steer",
       })
 
-      expect(prompts[0]).toMatchObject({ sessionID: targetID, delivery: "steer" })
+      expect(prompts[0]).toMatchObject({ sessionID: targetID, delivery: "queue" })
       const text = prompts[0]?.text ?? ""
       expect(text).toContain("intent: reply")
       expect(text).toContain(`reply_to: ${targetID}/${deliveredID}`)

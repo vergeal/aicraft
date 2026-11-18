@@ -2,6 +2,27 @@
 
 Release notes for OpenCode V2, newest first.
 
+## Unreleased
+
+### Core
+
+#### Breaking changes
+
+- Session collaboration tools are renamed to a single word each: `session.create` → `create`, `undo` → `recall`, and `redirect` → `steer`. A permission action is the tool name, so an existing agent `deny` or `ask` entry naming the old tools no longer matches and must be updated. There are no aliases.
+- `deliver` always queues and no longer accepts a `delivery` argument. To change what a session is already doing, call `steer`.
+- `steer` no longer claims to supersede earlier deliveries, which it never cancelled.
+- `queue` only inspects an inbox. Withdrawing an undelivered message is done with `recall`, which checks that the caller sent it.
+
+#### Known limitations
+
+- `create`, `sessions`, `transcript`, `queue`, `deliver`, `steer`, `recall`, and `fork` are built in and appear in the model's tool list under those bare single-word names.
+- A tool is registered under its effective name and the newest registration wins. A third-party plugin or MCP server can therefore register a tool with one of those names, replace the built-in implementation, and get no error or warning.
+- This is a known limitation, not a bug. The fix is to make built-in tools win name conflicts and reject the later registration, or to decouple the permission action from the tool name. Both are follow-up work to this rename.
+
+#### Improvements
+
+- Added `transcript` to read a session's messages with cursor pagination, and `queue` to inspect the work a session still has waiting.
+
 ## v2.2.5 — 2026-10-30
 
 ### Highlights

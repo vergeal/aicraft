@@ -3,7 +3,6 @@ export * as DeliverTool from "./deliver.js"
 import { ToolFailure } from "@opencode/ai/effect"
 import type { Context } from "@opencode/plugin/effect/plugin"
 import { SessionMessage } from "@opencode/schema/session-message"
-import { SessionInbox } from "@opencode/schema/session-inbox"
 import { getFilename } from "@opencode/util/path"
 import { parseSessionMention } from "@opencode/util/session-mention"
 import { Effect, Schema } from "effect"
@@ -20,7 +19,7 @@ export const description = [
   "`to` is a session address: `ses_xxx`, `@session:ses_xxx`, or the exact title of a session in this project. If a title matches more than one session the call fails with the candidates; ask the user instead of guessing.",
   '`intent` defaults to "request", which asks the target to do the work and answer with `intent: "reply"`. Use "note" for background information, "reply" to answer a delivery you received, and "handoff" to transfer ownership of the task.',
   "A reply needs `replyTo` with the `sessionID` and `messageID` returned by the delivery. Envelopes in the target session also show it.",
-  'Delivery is queued by default so it does not interrupt the target\'s current step. Pass delivery: "steer" only when the user needs it to interrupt.',
+  "Delivery is always queued: it waits for the target to finish its current step and never interrupts it. Use `steer` instead when the target is already on the wrong path and has to change direction.",
 ].join("\n")
 
 export const Input = Schema.Struct({
@@ -47,10 +46,6 @@ export const Input = Schema.Struct({
   }),
   deadline: Schema.optionalKey(Schema.String).annotate({
     description: "When the reply is expected, as an ISO date or a short human description.",
-  }),
-  delivery: Schema.optionalKey(SessionInbox.Delivery).annotate({
-    description:
-      'How the message enters the target queue. "queue" (default) waits for the target\'s current step; "steer" interrupts it.',
   }),
   resume: Schema.optionalKey(Schema.Boolean).annotate({
     description: "Whether an idle target should start working immediately. Defaults to true.",
@@ -204,7 +199,7 @@ export const Plugin = {
                   text,
                   // Presentation needs all three fields; a missing one drops the whole record and shows `text`.
                   metadata: { delivery: envelope, displayText, comments: [], attachments: [] },
-                  delivery: input.delivery ?? "queue",
+                  delivery: "queue",
                   resume: input.resume ?? true,
                 })
                 .pipe(
@@ -216,11 +211,7 @@ export const Plugin = {
               return {
                 output: { sessionID: target.id, messageID: admitted.id, status: "queued" as const },
                 content: [
-                  `Delivered to @${title} (${target.id}) as ${intent}, ${
-                    (input.delivery ?? "queue") === "steer"
-                      ? "steering into its current step"
-                      : "queued after its current step"
-                  }.`,
+                  `Delivered to @${title} (${target.id}) as ${intent}, queued after its current step.`,
                   `messageID: ${admitted.id}`,
                   expectsReply
                     ? `The target is expected to reply. Answer any delivery you receive with intent: "reply" and replyTo: { sessionID, messageID }.`

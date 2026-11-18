@@ -6,9 +6,10 @@ import { SessionSchema } from "@opencode/core/session/schema"
 import { ForkEmptyError, MessageNotFoundError, NotFoundError } from "@opencode/core/session/error"
 import { parseDivergence, parseStatusPorcelain } from "@opencode/core/git"
 import { ForkTool } from "@opencode/core/tool/plugin/fork"
-import { RedirectTool } from "@opencode/core/tool/plugin/redirect"
+import { SteerTool } from "@opencode/core/tool/plugin/steer"
+import { QueueTool } from "@opencode/core/tool/plugin/queue"
 import { SessionsTool } from "@opencode/core/tool/plugin/sessions"
-import { UndoTool, planUndo, run as runUndo } from "@opencode/core/tool/plugin/undo"
+import { RecallTool, planRecall, run as runRecall } from "@opencode/core/tool/plugin/recall"
 import { Tool } from "@opencode/core/tool"
 import { Money } from "@opencode/schema/money"
 import { SessionInbox } from "@opencode/schema/session-inbox"
@@ -27,7 +28,14 @@ const OTHER = sessionID("o")
 
 const info = (
   id: Session.ID,
-  overrides: { title?: string; busy?: number; idle?: number; directory?: string; updated?: number } = {},
+  overrides: {
+    title?: string
+    busy?: number
+    idle?: number
+    directory?: string
+    updated?: number
+    parentID?: Session.ID
+  } = {},
 ) =>
   Session.Info.make({
     id,
@@ -42,6 +50,7 @@ const info = (
       ...(overrides.idle === undefined ? {} : { idle: DateTime.makeUnsafe(overrides.idle) }),
     },
     location: { directory: AbsolutePath.make(overrides.directory ?? "/workspace") },
+    ...(overrides.parentID === undefined ? {} : { parentID: overrides.parentID }),
   })
 
 const inboxItem = (id: string, from?: Session.ID) =>
@@ -62,6 +71,19 @@ const admitted = (id: SessionMessage.ID) =>
     time: { created: 0 },
     delivery: "queue",
     payload: { text: "instruction" },
+  })
+
+const queued = (input: { id: string; sessionID?: Session.ID; from?: Session.ID; text?: string }) =>
+  Schema.decodeUnknownSync(SessionInbox.Info)({
+    type: "user",
+    id: input.id,
+    sessionID: input.sessionID ?? TARGET,
+    time: { created: 0 },
+    delivery: "queue",
+    payload: {
+      text: input.text ?? "instruction",
+      ...(input.from ? { metadata: { delivery: { from: { sessionID: input.from } } } } : {}),
+    },
   })
 
 const call = (name: string, input: unknown) => ({
@@ -112,15 +134,15 @@ describe("session time", () => {
   })
 })
 
-describe("undo planning", () => {
+describe("recall planning", () => {
   plain("withdraws only deliveries from this session and leaves the rest pending", () => {
     const pending = [inboxItem("msg_mine", MINE), inboxItem("msg_user"), inboxItem("msg_other", OTHER)]
 
-    expect(planUndo({ pending, from: MINE })).toEqual({ cancel: ["msg_mine"], failed: [] })
+    expect(planRecall({ pending, from: MINE })).toEqual({ cancel: ["msg_mine"], failed: [] })
   })
 
   plain("reports a delivered id and a foreign pending id instead of dropping them", () => {
-    const plan = planUndo({
+    const plan = planRecall({
       pending: [inboxItem("msg_mine", MINE), inboxItem("msg_other", OTHER)],
       from: MINE,
       ids: ["msg_mine", "msg_delivered", "msg_other"],
@@ -134,7 +156,7 @@ describe("undo planning", () => {
 
   effectIt.effect("keeps the real reason when cancelling a pending item fails", () =>
     Effect.gen(function* () {
-      const result = yield* runUndo({
+      const result = yield* runRecall({
         pending: [inboxItem("msg_mine", MINE)],
         from: MINE,
         ids: ["msg_mine"],
@@ -292,11 +314,11 @@ describe("built-in orchestrator tools", () => {
     }),
   )
 
-  effectIt.live("undo withdraws this session's pending deliveries and touches nothing else", () =>
+  effectIt.live("recall withdraws this session's pending deliveries and touches nothing else", () =>
     Effect.gen(function* () {
       const registry = yield* Tool.Service
       const cancelled: string[] = []
-      yield* registerToolPlugin(UndoTool.Plugin, {
+      yield* registerToolPlugin(RecallTool.Plugin, {
         session: {
           get: (input) => Effect.succeed(info(input.sessionID)),
           inbox: {
@@ -311,7 +333,7 @@ describe("built-in orchestrator tools", () => {
         },
       })
 
-      const result = yield* executeTool(registry, call("undo", { to: TARGET }))
+      const result = yield* executeTool(registry, call("recall", { to: TARGET }))
 
       expect(result.status).toBe("completed")
       expect(cancelled).toEqual(["msg_mine"])
@@ -319,11 +341,11 @@ describe("built-in orchestrator tools", () => {
     }),
   )
 
-  effectIt.live("undo fails loudly on a delivered message", () =>
+  effectIt.live("recall fails loudly on a delivered message", () =>
     Effect.gen(function* () {
       const registry = yield* Tool.Service
       const cancelled: string[] = []
-      yield* registerToolPlugin(UndoTool.Plugin, {
+      yield* registerToolPlugin(RecallTool.Plugin, {
         session: {
           get: (input) => Effect.succeed(info(input.sessionID)),
           inbox: {
@@ -337,25 +359,26 @@ describe("built-in orchestrator tools", () => {
         },
       })
 
-      const result = yield* executeTool(registry, call("undo", { to: TARGET, ids: ["msg_delivered"] }))
+      const result = yield* executeTool(registry, call("recall", { to: TARGET, ids: ["msg_delivered"] }))
 
       expect(cancelled).toEqual([])
       expect(result.output.cancelled).toEqual([])
       expect(result.output.failed).toEqual([
         {
           id: "msg_delivered",
-          reason: "Not pending: already delivered or unknown. Use redirect to send a corrected message.",
+          reason: "Not pending: already delivered or unknown. Use steer to send a corrected message.",
         },
       ])
     }),
   )
 
-  effectIt.live("redirect leaves the target alone unless interruption is asked for", () =>
+  effectIt.live("steer leaves the target alone unless interruption is asked for", () =>
     Effect.gen(function* () {
       const registry = yield* Tool.Service
       let interrupted = false
       let delivered = 0
-      yield* registerToolPlugin(RedirectTool.Plugin, {
+      let delivery: string | undefined
+      yield* registerToolPlugin(SteerTool.Plugin, {
         session: {
           get: (input) => Effect.succeed(info(input.sessionID)),
           interrupt: () =>
@@ -367,8 +390,9 @@ describe("built-in orchestrator tools", () => {
           prompt: (input) =>
             Effect.sync(() => {
               delivered++
+              delivery = input.delivery
 
-              return admitted(input.id ?? SessionMessage.ID.make("msg_redirect"))
+              return admitted(input.id ?? SessionMessage.ID.make("msg_steer"))
             }),
           inbox: {
             list: () => Effect.succeed([inboxItem("msg_mine", MINE), inboxItem("msg_user")]),
@@ -378,14 +402,74 @@ describe("built-in orchestrator tools", () => {
         },
       })
 
-      const result = yield* executeTool(registry, call("redirect", { to: TARGET, text: "start over" }))
+      const result = yield* executeTool(registry, call("steer", { to: TARGET, text: "start over" }))
 
       expect(result.status).toBe("completed")
       expect(interrupted).toBe(false)
       expect(delivered).toBe(1)
+      expect(delivery).toBe("steer")
       expect(result.output.interrupted).toBe(false)
-      // The earlier delivery is left pending but reported, so the caller can decide to undo it.
+      // The earlier delivery is left pending but reported, so the caller can decide to recall it.
       expect(result.output.pendingFromHere).toBe(1)
+    }),
+  )
+
+  effectIt.live("queue reports duplicates and never cancels anything", () =>
+    Effect.gen(function* () {
+      const registry = yield* Tool.Service
+      const cancelled: string[] = []
+      const pending = [
+        queued({ id: "msg_a", sessionID: MINE, from: OTHER }),
+        queued({ id: "msg_b", sessionID: MINE, from: OTHER }),
+        queued({ id: "msg_person", sessionID: MINE }),
+      ]
+      yield* registerToolPlugin(QueueTool.Plugin, {
+        session: {
+          get: ({ sessionID }) => Effect.succeed(info(sessionID)),
+          inbox: {
+            list: () => Effect.succeed(pending),
+            cancel: (input) =>
+              Effect.sync(() => {
+                cancelled.push(input.inboxID)
+              }),
+            update: () => Effect.void,
+          },
+        },
+      })
+
+      const listed = completed<{
+        items: Array<{ id: string; duplicates: number; from: string | null }>
+      }>(yield* executeTool(registry, call("queue", {})))
+
+      expect(listed.items.map((item) => item.duplicates)).toEqual([2, 2, 1])
+      expect(listed.items.map((item) => item.from)).toEqual([OTHER, OTHER, null])
+      expect(cancelled).toEqual([])
+    }),
+  )
+
+  effectIt.live("queue manages a direct child but refuses any other session", () =>
+    Effect.gen(function* () {
+      const registry = yield* Tool.Service
+      const child = info(OTHER, { parentID: MINE })
+      yield* registerToolPlugin(QueueTool.Plugin, {
+        session: {
+          get: ({ sessionID }) => Effect.succeed(sessionID === OTHER ? child : info(sessionID)),
+          inbox: {
+            list: () => Effect.succeed([queued({ id: "msg_child", sessionID: OTHER, from: TARGET })]),
+            cancel: () => Effect.void,
+            update: () => Effect.void,
+          },
+        },
+      })
+
+      const managed = completed<{ items: Array<{ id: string }> }>(
+        yield* executeTool(registry, call("queue", { sessionID: OTHER })),
+      )
+      expect(managed.items.map((item) => item.id)).toEqual(["msg_child"])
+
+      const refused = yield* executeTool(registry, call("queue", { sessionID: TARGET }))
+      expect(refused.status).toBe("error")
+      expect(refused.error?.message).toContain("direct child")
     }),
   )
 })

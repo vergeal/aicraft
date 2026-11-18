@@ -39,7 +39,7 @@ const SHADOW =
   "drop-shadow(0 8px 18px color-mix(in oklch, var(--v2-text-text-accent) 45%, transparent)) drop-shadow(0 2px 6px rgb(0 0 0 / 0.22))"
 
 /**
- * `deliver` and `redirect` both record the sending session in the message metadata. The recipient is the session
+ * `deliver` and `steer` both record the sending session in the message metadata. The recipient is the session
  * the inbox event belongs to, so only the sender comes from here. Both ride the same envelope so the flight is
  * identical; the difference between them lives in the target's queue, not in the animation.
  */
@@ -52,7 +52,7 @@ export function deliveryFrom(metadata: unknown) {
 
   const envelope = delivery as Record<string, unknown>
 
-  if (envelope.kind !== "session.delivery" && envelope.kind !== "session.redirect") return undefined
+  if (envelope.kind !== "session.delivery" && envelope.kind !== "session.steer") return undefined
 
   const from = envelope.from
 

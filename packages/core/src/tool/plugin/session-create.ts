@@ -6,13 +6,14 @@ import { Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
 
-export const name = "session.create"
+export const name = "create"
 
 export const description = [
-  "Create a new session in this project and return its id.",
+  "Create a new session in this project and return its id. A session is a conversation, not a file.",
   "Use it when the work should continue in a fresh context instead of this session: a long task that would fill this one, or a task for a different agent.",
   "Pass `prompt` to start the new session immediately with the first message; omit it to leave the session idle and deliver to it later.",
   "Creating a session only makes the session. This session does not see what happens inside it.",
+  "To start an agent that runs this task and reports back to you, use `subagent` instead.",
 ].join("\n")
 
 export const Input = Schema.Struct({
@@ -38,6 +39,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          options: { codemode: false },
           description,
           input: Input,
           output: Output,

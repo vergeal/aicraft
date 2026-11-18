@@ -88,9 +88,11 @@ import { ReadTool } from "../tool/plugin/read.js"
 import { ArtifactTools } from "../tool/plugin/artifact.js"
 import { DeliverTool } from "../tool/plugin/deliver.js"
 import { ForkTool } from "../tool/plugin/fork.js"
-import { RedirectTool } from "../tool/plugin/redirect.js"
+import { SteerTool } from "../tool/plugin/steer.js"
 import { SessionsTool } from "../tool/plugin/sessions.js"
-import { UndoTool } from "../tool/plugin/undo.js"
+import { TranscriptTool } from "../tool/plugin/transcript.js"
+import { QueueTool } from "../tool/plugin/queue.js"
+import { RecallTool } from "../tool/plugin/recall.js"
 import { SessionCreateTool } from "../tool/plugin/session-create.js"
 import { KnowledgeTools } from "../tool/plugin/knowledge.js"
 import { ScheduleTools } from "../tool/plugin/schedule.js"
@@ -282,8 +284,10 @@ const pre = [
   ArtifactTools.Plugin,
   DeliverTool.Plugin,
   SessionsTool.Plugin,
-  RedirectTool.Plugin,
-  UndoTool.Plugin,
+  TranscriptTool.Plugin,
+  QueueTool.Plugin,
+  SteerTool.Plugin,
+  RecallTool.Plugin,
   ForkTool.Plugin,
   SessionCreateTool.Plugin,
   KnowledgeTools.Plugin,

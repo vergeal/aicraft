@@ -1,21 +1,21 @@
-export * as RedirectTool from "./redirect.js"
+export * as SteerTool from "./steer.js"
 
 import { ToolFailure } from "@opencode/ai/effect"
 import type { Context } from "@opencode/plugin/effect/plugin"
 import { SessionMessage } from "@opencode/schema/session-message"
-import { SessionInbox } from "@opencode/schema/session-inbox"
 import { getFilename } from "@opencode/util/path"
 import { Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
 import { SessionTarget } from "./session-target.js"
 
-export const name = "redirect"
+export const name = "steer"
 
 export const description = [
-  "Send a target session a new plan that replaces every earlier instruction this session gave it, so a session that went down the wrong path starts over from the new plan.",
-  "This is not a cancellation: pending messages this session already delivered stay in the target's queue only if you leave them there. The result reports how many are still pending and `undo` withdraws them.",
-  "The message reaches the target the way a person typing in that session would, so it does not interrupt by default. Pass `interrupt: true` to stop the target's current step first; if that interruption fails nothing is delivered.",
+  "Change where a target session is headed without waiting behind its current work: the message is delivered at the target's next step boundary as a steer, and its current step keeps running until then.",
+  "Use this when the target is already on the wrong path, or when a plan this session delivered earlier must be corrected. Use `deliver` instead when the target should finish its current work and pick this up afterwards.",
+  "Pass `interrupt: true` to also stop the target's current step first; if that interruption fails, nothing is delivered.",
+  "This does not cancel earlier deliveries: they stay in the target's queue unless you withdraw them with `recall`, and the result reports how many from this session are still pending.",
   "`to` is a session address: `ses_xxx`, `@session:ses_xxx`, or an exact title of a session in this project. If a title matches more than one session the call fails with the candidates.",
 ].join("\n")
 
@@ -24,13 +24,12 @@ export const Input = Schema.Struct({
     description: "The target session: ses_xxx, @session:ses_xxx, or an exact session title in this project.",
   }),
   text: Schema.String.check(Schema.isMinLength(1)).annotate({
-    description: "The new plan. State what replaced the earlier instructions so the target stops following them.",
+    description:
+      "The new direction. State what it corrects, because the target keeps working until it reaches the next step boundary.",
   }),
   interrupt: Schema.optionalKey(Schema.Boolean).annotate({
-    description: "Whether to stop the target's current step before delivering. Defaults to false.",
-  }),
-  delivery: Schema.optionalKey(SessionInbox.Delivery).annotate({
-    description: 'How the message enters the target queue. "queue" (default) waits for its current step; "steer" delivers at the next step boundary.',
+    description:
+      "Whether to stop the target's current step before delivering. Defaults to false, which waits for the next step boundary.",
   }),
 })
 
@@ -39,7 +38,7 @@ export const Output = Schema.Struct({
   messageID: SessionMessage.ID,
   status: Schema.Literal("queued"),
   interrupted: Schema.Boolean,
-  /** Deliveries from this session still pending in the target, which `undo` can withdraw. */
+  /** Deliveries from this session still pending in the target, which `recall` can withdraw. */
   pendingFromHere: Schema.Int,
 })
 
@@ -56,8 +55,8 @@ export const interruptFirst = <E>(input: {
     : Effect.succeed({ interrupted: false })
 
 export const Plugin = {
-  id: "opencode.tool.redirect",
-  effect: Effect.fn("RedirectTool.Plugin")(function* (ctx: Context) {
+  id: "opencode.tool.steer",
+  effect: Effect.fn("SteerTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
 
     yield* ctx.tool
@@ -80,7 +79,7 @@ export const Plugin = {
               const target = yield* SessionTarget.resolve(ctx, input.to)
 
               if (target.id === from.id)
-                return yield* new ToolFailure({ message: "Cannot redirect the current session." })
+                return yield* new ToolFailure({ message: "Cannot steer the current session." })
 
               yield* permission
                 .assert({
@@ -91,7 +90,7 @@ export const Plugin = {
                 })
                 .pipe(
                   Effect.mapError(
-                    (error) => new ToolFailure({ message: `Redirect to ${target.id} was not allowed`, error }),
+                    (error) => new ToolFailure({ message: `Steer to ${target.id} was not allowed`, error }),
                   ),
                 )
 
@@ -122,7 +121,7 @@ export const Plugin = {
 
               const messageID = SessionMessage.ID.create()
               const envelope = {
-                kind: "session.redirect",
+                kind: "session.steer",
                 id: messageID,
                 from: {
                   sessionID: from.id,
@@ -131,16 +130,15 @@ export const Plugin = {
                   agent: from.agent,
                 },
                 to: target.id,
-                supersedes: true,
-                replacesPending: pendingFromHere,
+                pendingFromSender: pendingFromHere,
               }
               const title = target.title ?? target.id
               const text = [
-                "⟦cross-session redirect⟧",
+                "⟦cross-session steer⟧",
                 `from: @${from.title ?? from.id} (${from.id})${from.agent ? ` · ${from.agent}` : ""}`,
                 `project: ${from.location.directory}`,
-                "supersedes: every earlier instruction from this session",
-                `pending_from_sender: ${pendingFromHere}${pendingFromHere > 0 ? " (still queued; the sender may withdraw them with undo)" : ""}`,
+                "corrects: the direction from here on",
+                `pending_from_sender: ${pendingFromHere}${pendingFromHere > 0 ? " (still queued; the sender may withdraw them with recall)" : ""}`,
                 "⟦message⟧",
                 input.text,
               ].join("\n")
@@ -157,7 +155,7 @@ export const Plugin = {
                 `to: ${sessionLink(target)}\\`,
                 `project: [${getFilename(from.location.directory)}](@project:${from.location.directory})`,
                 "",
-                "**此前收到的需求作废，以本条为准。**",
+                "**This corrects the direction from here. Earlier deliveries are not cancelled.**",
                 "",
                 "---",
                 "",
@@ -170,12 +168,12 @@ export const Plugin = {
                   sessionID: target.id,
                   text,
                   metadata: { delivery: envelope, displayText, comments: [], attachments: [] },
-                  delivery: input.delivery ?? "queue",
+                  delivery: "steer",
                   resume: true,
                 })
                 .pipe(
                   Effect.mapError(
-                    (error) => new ToolFailure({ message: `Failed to redirect ${target.id}`, error }),
+                    (error) => new ToolFailure({ message: `Failed to steer ${target.id}`, error }),
                   ),
                 )
 
@@ -188,11 +186,11 @@ export const Plugin = {
                   pendingFromHere,
                 },
                 content: [
-                  `Redirected @${title} (${target.id}) to the new plan.`,
+                  `Steered @${title} (${target.id}) to the new direction.`,
                   `messageID: ${admitted.id}`,
                   describeInterruption(input.interrupt ?? false, interrupted),
                   pendingFromHere > 0
-                    ? `${pendingFromHere} earlier delivery from this session is still pending in the target. It was left in place; call undo with this target to withdraw it if the old plan must not run.`
+                    ? `${pendingFromHere} earlier delivery from this session is still pending in the target. It was left in place; call recall with this target to withdraw it if the old plan must not run.`
                     : "No earlier delivery from this session is pending in the target.",
                 ].join("\n"),
                 metadata: { sessionID: target.id, messageID: admitted.id },
@@ -205,8 +203,8 @@ export const Plugin = {
 }
 
 const describeInterruption = (requested: boolean, interrupted: boolean) => {
-  if (!requested) return "The target was not interrupted; the new plan waits for its current step."
+  if (!requested) return "The target was not interrupted; the message waits for the next step boundary."
   return interrupted
     ? "The target's current step was interrupted before delivery."
-    : "The target had no running step to interrupt; the new plan is queued."
+    : "The target had no running step to interrupt; the message is queued."
 }

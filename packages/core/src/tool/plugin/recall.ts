@@ -1,4 +1,4 @@
-export * as UndoTool from "./undo.js"
+export * as RecallTool from "./recall.js"
 
 import { ToolFailure } from "@opencode/ai/effect"
 import type { Context } from "@opencode/plugin/effect/plugin"
@@ -8,13 +8,15 @@ import { Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionTarget } from "./session-target.js"
 
-export const name = "undo"
+export const name = "recall"
 
 export const description = [
   "Withdraw deliveries this session sent that the target has not read yet, so it never acts on instructions that were replaced or sent by mistake.",
-  "Only items delivered by the current session are touched: messages a person typed, another session delivered, or another plugin published are left alone. The protocol cancel endpoint does not check ownership, so this tool filters by the delivery envelope first.",
-  "A delivered message cannot be withdrawn. It is reported as failed instead of silently succeeding; send a new `redirect` to correct one.",
-  "`to` is a session address: `ses_xxx`, `@session:ses_xxx`, or an exact title of a session in this project. `ids` withdraws only those message IDs; omit it to withdraw every pending delivery from this session.",
+  "Only deliveries from the current session are eligible. A message a person typed, a delivery from another session, or anything another plugin published is never touched.",
+  "A delivery the target has already read cannot be withdrawn. It is reported as failed rather than silently succeeding; correct one with `steer` instead.",
+  "This withdraws what this session sent. To inspect or clear what has arrived in a queue, use `queue` instead.",
+  "`to` is a session address: `ses_xxx`, `@session:ses_xxx`, or an exact title of a session in this project.",
+  "`ids` withdraws only those deliveries; omit it to withdraw every delivery from this session that the target has not read.",
 ].join("\n")
 
 export const Input = Schema.Struct({
@@ -41,7 +43,7 @@ export interface Failure {
  * envelope, and an id that is not pending is a delivered or unknown message: it must be reported, not
  * dropped, so a caller never believes a delivered instruction was withdrawn.
  */
-export function planUndo(input: {
+export function planRecall(input: {
   readonly pending: readonly SessionInbox.Info[]
   readonly from: string
   readonly ids?: readonly string[]
@@ -63,8 +65,8 @@ export function planUndo(input: {
         plan.failed.push({
           id,
           reason: other.has(id)
-            ? "Pending, but not delivered by this session. Undo only withdraws this session's deliveries."
-            : "Not pending: already delivered or unknown. Use redirect to send a corrected message.",
+            ? "Pending, but not delivered by this session. Recall only withdraws this session's deliveries."
+            : "Not pending: already delivered or unknown. Use steer to send a corrected message.",
         })
 
       return plan
@@ -74,7 +76,7 @@ export function planUndo(input: {
 }
 
 /**
- * Cancels a plan made by {@link planUndo}. A cancel that fails keeps its real reason, because the
+ * Cancels a plan made by {@link planRecall}. A cancel that fails keeps its real reason, because the
  * server turns an inbox conflict into a no-op and the caller must still learn the message stayed.
  */
 export const run = (input: {
@@ -84,7 +86,7 @@ export const run = (input: {
   readonly cancel: (id: SessionMessage.ID) => Effect.Effect<void, unknown>
 }) =>
   Effect.gen(function* () {
-    const plan = planUndo(input)
+    const plan = planRecall(input)
     const results = yield* Effect.forEach(plan.cancel, (id) =>
       input.cancel(SessionMessage.ID.make(id)).pipe(
         Effect.as({ id, ok: true as const }),
@@ -104,8 +106,8 @@ export const run = (input: {
 const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 export const Plugin = {
-  id: "opencode.tool.undo",
-  effect: Effect.fn("UndoTool.Plugin")(function* (ctx: Context) {
+  id: "opencode.tool.recall",
+  effect: Effect.fn("RecallTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
 
     yield* ctx.tool
@@ -136,7 +138,7 @@ export const Plugin = {
                 })
                 .pipe(
                   Effect.mapError(
-                    (error) => new ToolFailure({ message: `Undo in ${target.id} was not allowed`, error }),
+                    (error) => new ToolFailure({ message: `Recall in ${target.id} was not allowed`, error }),
                   ),
                 )
 
@@ -162,7 +164,7 @@ export const Plugin = {
                     : [
                         "Not withdrawn:",
                         ...result.failed.map((failure) => `- ${failure.id}: ${failure.reason}`),
-                        "A delivered message cannot be withdrawn. Use redirect to send a corrected instruction instead.",
+                        "A delivered message cannot be withdrawn. Use steer to send a corrected instruction instead.",
                       ]),
                 ].join("\n"),
                 metadata: { sessionID: target.id, cancelled: result.cancelled },

@@ -311,8 +311,8 @@ function RunningStatus(props: { elapsedMs?: number }) {
       class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[12px] leading-text-base"
     >
       <div class="flex min-w-0 items-center gap-[6px]" style={{ color: "var(--answer-ink-secondary)" }}>
-        <span class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
-          <Spinner width={14} height={14} class="size-[14px]" />
+        <span class="grid size-[18px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[18px]">
+          <Spinner width={18} height={18} class="size-[18px]" />
         </span>
         <span class="min-w-0 shrink-0 overflow-hidden">
           <TextShimmer text={label()} active />
@@ -692,7 +692,7 @@ function Payload(props: { payload: NodePayload; cacheKey: string; view: Transcri
 
 function FlowIcon(props: { name: IconName }) {
   return (
-    <span class="flex h-[24px] shrink-0 items-center">
+    <span class="flex h-[24px] shrink-0 items-center [&_svg]:size-[18px]">
       <Icon aria-hidden="true" name={props.name} size="small" />
     </span>
   )
@@ -704,7 +704,7 @@ function FlowIcon(props: { name: IconName }) {
  */
 function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boolean; scope: "row" | "heading" }) {
   if (props.expandable === false)
-    return <span class="flex h-6 w-3.5 shrink-0 items-center justify-start">{props.icon}</span>
+    return <span class="flex h-6 w-[18px] shrink-0 items-center justify-start">{props.icon}</span>
 
   // Static class strings so the Tailwind scanner keeps the two named group variants.
   const idle =
@@ -718,7 +718,7 @@ function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boo
       : `absolute opacity-0 transition-[opacity,transform] group-hover/heading:opacity-100 group-focus-visible/heading:opacity-100 motion-reduce:transition-none ${props.open ? "rotate-180" : ""}`
 
   return (
-    <span class="relative grid h-6 w-3.5 shrink-0 items-center justify-items-start">
+    <span class="relative grid h-6 w-[18px] shrink-0 items-center justify-items-start [&_svg]:size-[18px]">
       <span data-slot="leading-idle" class={`${idle} col-start-1 row-start-1`}>
         {props.icon}
       </span>
@@ -809,8 +809,8 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
       expanded={expanded()}
       leading={
         <Show when={streaming()} fallback={<FlowIcon name="answer-thinking" />}>
-          <span data-slot="answer-reasoning-spinner" class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
-            <Spinner width={14} height={14} class="size-[14px]" />
+          <span data-slot="answer-reasoning-spinner" class="grid size-[18px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[18px]">
+            <Spinner width={18} height={18} class="size-[18px]" />
           </span>
         </Show>
       }
@@ -868,8 +868,8 @@ function ToolRow(props: { tool: Extract<NodePayload, { kind: "tool" }>["tool"] }
       expanded={expanded()}
       leading={
         <Show when={running()} fallback={<FlowIcon name={ACTIVITY_ICONS[toolActivity(props.tool.name)]} />}>
-          <span data-slot="answer-tool-spinner" class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
-            <Spinner width={14} height={14} class="size-[14px]" />
+          <span data-slot="answer-tool-spinner" class="grid size-[18px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[18px]">
+            <Spinner width={18} height={18} class="size-[18px]" />
           </span>
         </Show>
       }

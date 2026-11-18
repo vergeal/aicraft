@@ -6,6 +6,9 @@ export default {
   "window.legendInput": "输入",
   "window.legendCache": "缓存命中",
   "window.legendCacheWrite": "缓存写",
+  "window.legendOutput": "输出",
+  "window.legendReasoning": "推理",
+  "window.perTurn": "平均每轮 {{tokens}}",
   "window.remaining": "上限 {{limit}} · 约可再发 {{turns}} 轮",
 
   "stats.cost": "会话成本",

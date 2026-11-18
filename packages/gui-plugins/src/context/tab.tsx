@@ -1,5 +1,6 @@
 import { Popover } from "@kobalte/core/popover"
 import { createMemo, createSignal, on, onCleanup, onMount, For, Show } from "solid-js"
+import { createResizeObserver } from "@solid-primitives/resize-observer"
 import type { JSX } from "solid-js"
 import { checksum } from "@opencode/util/encode"
 import { Icon } from "@opencode/ui/icon"
@@ -72,16 +73,53 @@ const sectionLabel = "text-[12px] font-[530] text-v2-text-text-muted"
 
 const card = "rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-layer-01"
 
-const callGrid = "58px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 74px 44px 64px 44px"
+const callGrid = "54px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 74px 44px 62px 44px"
+
+const callColumns = {
+  wide: {
+    grid: callGrid,
+    duration: true,
+    cost: true,
+    status: true,
+  },
+  medium: {
+    grid: "54px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 74px 44px 62px",
+    duration: true,
+    cost: true,
+    status: false,
+  },
+  narrow: {
+    grid: "54px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 62px 58px",
+    duration: false,
+    cost: true,
+    status: false,
+  },
+  tight: {
+    grid: "54px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 58px",
+    duration: false,
+    cost: false,
+    status: false,
+  },
+}
+
+const callColumnsAt = (width: number) => {
+  if (width >= 470) return callColumns.wide
+
+  if (width >= 420) return callColumns.medium
+
+  if (width >= 340) return callColumns.narrow
+
+  return callColumns.tight
+}
 
 function Tile(props: { label: string; value: JSX.Element; sub: JSX.Element }) {
   return (
-    <div class="flex min-w-0 flex-col gap-px bg-v2-background-bg-base px-2.5 py-2.5">
-      <div class="text-[11px] text-v2-text-text-faint">{props.label}</div>
-      <div class="text-[16px] font-[590] tabular-nums leading-5 tracking-[-0.02em] text-v2-text-text-base">
+    <div class="flex min-w-0 flex-col gap-1 bg-v2-background-bg-base px-2.5 py-2.5">
+      <div class="text-[11px] leading-4 text-v2-text-text-faint">{props.label}</div>
+      <div class="text-[16px] font-[590] leading-5 tabular-nums tracking-[-0.02em] text-v2-text-text-base">
         {props.value}
       </div>
-      <div class="truncate text-[10.5px] text-v2-text-text-faint">{props.sub}</div>
+      <div class="text-[10.5px] leading-4 text-v2-text-text-faint">{props.sub}</div>
     </div>
   )
 }
@@ -368,6 +406,24 @@ export default function SessionContextTab(props: { session: MountedSession }) {
   const openCall = createSignal<string>()
   const toggleCall = (id: string) => openCall[1](openCall[0]() === id ? undefined : id)
 
+  // The side panel is resizable, so the call table measures the row it actually has and
+  // hides columns in order of how little they cost the reader, instead of trusting a
+  // fixed template that clips every token count once the panel narrows.
+  let callTable: HTMLDivElement | undefined
+  const callWidth = createSignal(0)
+
+  createResizeObserver(
+    () => callTable,
+    () => {
+      if (callTable) callWidth[1](callTable.clientWidth)
+    },
+  )
+
+  const callLayout = createMemo(() => callColumnsAt(callWidth[0]()))
+
+  const callCost = (call: Step) =>
+    call.message.cost ? usd()(call.message.cost) : cny()(flashCostCNY([call.tokens]))
+
   // Same step as the TUI and the header ring: after the last completed compaction and before an undo boundary.
   // Context occupancy is the prompt side only — output and reasoning are already spent, not resident.
   const context = createMemo(() => {
@@ -392,16 +448,43 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     }
   })
 
-  const remainingTurns = createMemo(() => {
+  const perTurnTokens = createMemo(() => {
     const current = context()
     const count = steps().length
 
-    if (!current?.limit || !current.used || !count) return
+    if (!current?.used || !count) return
 
-    const perTurn = current.used / count
+    return current.used / count
+  })
+
+  const remainingTurns = createMemo(() => {
+    const current = context()
+    const perTurn = perTurnTokens()
+
+    if (!current?.limit || !perTurn) return
 
     return Math.max(0, Math.floor((current.limit - current.used) / Math.max(1, perTurn)))
   })
+
+  const perTurnText = createMemo(() => {
+    const perTurn = perTurnTokens()
+
+    if (perTurn === undefined) return "—"
+
+    return formatter().compact(Math.round(perTurn))
+  })
+
+  // Everything this session spent on the output side. Output and reasoning are not part of
+  // the window's occupancy, so they are summed here instead of filling a bar segment.
+  const spentTokens = createMemo(() =>
+    steps().reduce(
+      (total, step) => ({
+        output: total.output + step.tokens.output,
+        reasoning: total.reasoning + step.tokens.reasoning,
+      }),
+      { output: 0, reasoning: 0 },
+    ),
+  )
 
   const rateStats = createMemo(() => {
     const rates = steps().flatMap((step) => (step.rate === undefined ? [] : [step.rate]))
@@ -707,7 +790,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             />
           </div>
 
-          <div class="flex items-center gap-3.5 text-[11.5px] text-v2-text-text-faint">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-v2-text-text-faint">
             <span class="inline-flex items-center gap-1.5">
               <i class="size-[7px] rounded-[2px] bg-v2-background-bg-accent" />
               {ctx.t("window.legendInput")} <span class="tabular-nums">{formatter().compact(context()?.input)}</span>
@@ -726,6 +809,20 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 limit: formatter().compact(context()?.limit),
                 turns: remainingTurns() ?? "—",
               })}
+            </span>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-v2-text-text-faint">
+            <span>
+              {ctx.t("window.legendOutput")}{" "}
+              <span class="tabular-nums text-v2-text-text-muted">{formatter().compact(spentTokens().output)}</span>
+            </span>
+            <span>
+              {ctx.t("window.legendReasoning")}{" "}
+              <span class="tabular-nums text-v2-text-text-muted">{formatter().compact(spentTokens().reasoning)}</span>
+            </span>
+            <span class="ms-auto">
+              {ctx.t("window.perTurn", { tokens: perTurnText() })}
             </span>
           </div>
 
@@ -847,19 +944,26 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </button>
           </div>
 
-          <div class="overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base">
+          <div
+            ref={callTable}
+            class="overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base"
+          >
             <div
               class="grid h-7 items-center gap-x-1.5 bg-v2-background-bg-layer-01 px-2.5 text-[11px] text-v2-text-text-faint [&>*:nth-child(n+2)]:text-end"
-              style={{ "grid-template-columns": callGrid }}
+              style={{ "grid-template-columns": callLayout().grid }}
             >
               <span>{ctx.t("calls.time")}</span>
               <span>{ctx.t("calls.input")}</span>
               <span>{ctx.t("calls.cache")}</span>
               <span>{ctx.t("calls.output")}</span>
               <span>{ctx.t("calls.rate")}</span>
-              <span>{ctx.t("calls.duration")}</span>
+              <Show when={callLayout().duration}>
+                <span>{ctx.t("calls.duration")}</span>
+              </Show>
               <span>{ctx.t("calls.cost")}</span>
-              <span />
+              <Show when={callLayout().status}>
+                <span />
+              </Show>
             </div>
 
             <Show
@@ -878,12 +982,12 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                     <>
                       <button
                         type="button"
-                        class="grid w-full items-center gap-x-1.5 border-b border-v2-border-border-muted px-2.5 text-start text-[12px] last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
+                        class="grid w-full items-center gap-x-1.5 border-b border-v2-border-border-muted px-2.5 text-start text-[12px] [&>*:nth-child(n+2)]:text-end last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
                         classList={{
                           "h-[34px]": true,
                         }}
                         style={{
-                          "grid-template-columns": callGrid,
+                          "grid-template-columns": callLayout().grid,
                           "box-shadow": call.failed
                             ? "inset 2px 0 0 var(--v2-state-fg-danger)"
                             : call.retried
@@ -931,51 +1035,55 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                             {formatter().rate(call.rate)}
                           </span>
                         </span>
-                        <span
-                          class="tabular-nums"
-                          classList={{
-                            "text-v2-state-fg-warning": (call.duration ?? 0) >= 10_000,
-                            "text-v2-text-text-muted": (call.duration ?? 0) < 10_000,
-                          }}
-                        >
-                          {formatter().duration(call.duration)}
-                        </span>
-                        <span class="tabular-nums text-v2-text-text-muted">
-                          {call.message.cost ? usd()(call.message.cost) : cny()(flashCostCNY([call.tokens]))}
-                        </span>
-                        <span class="flex justify-end">
-                          <Show
-                            when={call.failed}
-                            fallback={
-                              <Show
-                                when={call.retried}
-                                fallback={
-                                  <Show
-                                    when={call.truncated}
-                                    fallback={<i class="size-1.5 rounded-full bg-v2-state-fg-success" />}
-                                  >
-                                    <span class="rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
-                                      {ctx.t("calls.truncated")}
-                                    </span>
-                                  </Show>
-                                }
-                              >
-                                <span class="whitespace-nowrap rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
-                                  {ctx.t("calls.retry", { count: call.message.retry?.attempt ?? 1 })}
-                                </span>
-                              </Show>
-                            }
+                        <Show when={callLayout().duration}>
+                          <span
+                            class="tabular-nums"
+                            classList={{
+                              "text-v2-state-fg-warning": (call.duration ?? 0) >= 10_000,
+                              "text-v2-text-text-muted": (call.duration ?? 0) < 10_000,
+                            }}
                           >
-                            <span class="rounded bg-v2-state-bg-danger px-1 text-[10.5px] text-v2-state-fg-danger">
-                              {ctx.t("calls.failed")}
-                            </span>
-                          </Show>
-                        </span>
+                            {formatter().duration(call.duration)}
+                          </span>
+                        </Show>
+                        <Show when={callLayout().cost}>
+                          <span class="tabular-nums text-v2-text-text-muted">{callCost(call)}</span>
+                        </Show>
+                        <Show when={callLayout().status}>
+                          <span class="flex justify-end">
+                            <Show
+                              when={call.failed}
+                              fallback={
+                                <Show
+                                  when={call.retried}
+                                  fallback={
+                                    <Show
+                                      when={call.truncated}
+                                      fallback={<i class="size-1.5 rounded-full bg-v2-state-fg-success" />}
+                                    >
+                                      <span class="rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
+                                        {ctx.t("calls.truncated")}
+                                      </span>
+                                    </Show>
+                                  }
+                                >
+                                  <span class="whitespace-nowrap rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
+                                    {ctx.t("calls.retry", { count: call.message.retry?.attempt ?? 1 })}
+                                  </span>
+                                </Show>
+                              }
+                            >
+                              <span class="rounded bg-v2-state-bg-danger px-1 text-[10.5px] text-v2-state-fg-danger">
+                                {ctx.t("calls.failed")}
+                              </span>
+                            </Show>
+                          </span>
+                        </Show>
                       </button>
 
                       <Show when={open()}>
                         <div class="flex flex-col gap-2.5 border-b border-v2-border-border-muted bg-v2-background-bg-layer-01 px-3 py-2.5 text-[11.5px] text-v2-text-text-muted">
-                          <div class="grid grid-cols-4 gap-x-4 gap-y-2.5">
+                          <div class="grid grid-cols-2 gap-x-4 gap-y-2.5">
                             <Field label={ctx.t("calls.ttft")} value={formatter().duration(call.ttft)} />
                             <Field label={ctx.t("calls.reasoning")} value={formatter().number(call.tokens.reasoning)} />
                             <Field label={ctx.t("calls.cacheWrite")} value={formatter().number(call.tokens.cache.write)} />
@@ -983,6 +1091,12 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                               label={ctx.t("calls.tools")}
                               value={call.message.content.filter((item) => item.type === "tool").length}
                             />
+                            <Show when={!callLayout().duration}>
+                              <Field label={ctx.t("calls.duration")} value={formatter().duration(call.duration)} />
+                            </Show>
+                            <Show when={!callLayout().cost}>
+                              <Field label={ctx.t("calls.cost")} value={callCost(call)} />
+                            </Show>
                           </div>
                           <Show when={call.message.error}>
                             {(error) => (

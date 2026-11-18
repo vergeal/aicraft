@@ -7,6 +7,9 @@ export default {
   "window.legendInput": "Input",
   "window.legendCache": "Cache hits",
   "window.legendCacheWrite": "Cache write",
+  "window.legendOutput": "Output",
+  "window.legendReasoning": "Reasoning",
+  "window.perTurn": "{{tokens}} per turn",
   "window.remaining": "Limit {{limit}} · about {{turns}} more turns",
 
   // Summary tiles

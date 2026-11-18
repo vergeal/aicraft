@@ -50,11 +50,11 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   await expect(trigger).toHaveAttribute("aria-expanded", "false")
   await expect(root.locator('[data-slot="answer-group"]')).toHaveCount(0)
 
-  // Folding drops the inner open state: the reopened group starts collapsed.
+  // Reopening the turn keeps the reader's disclosure state: the group is still open.
   await trigger.click()
   await expect(root.locator('[data-slot="answer-group"]').first().locator("button")).toHaveAttribute(
     "aria-expanded",
-    "false",
+    "true",
   )
 })
 

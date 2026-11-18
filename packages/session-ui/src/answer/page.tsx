@@ -196,11 +196,6 @@ export function AnswerPage(props: AnswerPageProps) {
     ),
   )
 
-  const clearGroups = (turn: number) => {
-    for (const key of Object.keys(openGroups))
-      if (key.startsWith(`group:${turn}:`)) setOpenGroups(key, undefined)
-  }
-
   const entryKey = (entry: TimelineEntry) => (entry.kind === "fold" ? `fold:${entry.turn}` : `node:${entry.key}`)
 
   const entries = createMemo(() => snapshot().entries)
@@ -280,7 +275,6 @@ export function AnswerPage(props: AnswerPageProps) {
                       now={now()}
                       groupOpen={(key) => openGroups[key] ?? false}
                       toggleGroup={(key) => setOpenGroups(key, !(openGroups[key] ?? false))}
-                      clearGroups={clearGroups}
                       deferred={
                         value().status === "closed" &&
                         (props.collapseTiming ?? "completion") === "next-input" &&
@@ -383,23 +377,14 @@ function FoldRow(props: {
   deferred: boolean
   groupOpen: (key: string) => boolean
   toggleGroup: (key: string) => void
-  clearGroups: (turn: number) => void
   onToggle: () => void
 }) {
   const grouping = () => stepGrouping(props.view)
   const expandable = () => props.turn.status === "closed" && grouping() !== "none"
   const open = () => (expandable() ? props.open : true)
 
-  // Folding a turn drops its inner open state, as DSH resets the disclosure layout it hides.
-  createEffect(
-    on(
-      () => open(),
-      (value) => {
-        if (!value) props.clearGroups(props.turn.turn)
-      },
-      { defer: true },
-    ),
-  )
+  // A fold hides the turn's rows; the reader's own disclosure state survives it, so reopening the
+  // turn shows the same rows they had opened.
 
   // A running Turn keeps its process expanded; detailed only groups process rows once they are history.
   const flat = () =>
@@ -794,9 +779,13 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
   // Only this reasoning part, inside a running turn, is live; a finished step stops spinning at once.
   const streaming = () => props.live === true && props.streaming === true
   const [expanded, setExpanded] = createSignal(streaming())
+  // Once the reader opens or closes this row, streaming state stops overriding them.
+  let readerToggled = false
 
   createEffect(
-    on(streaming, (live) => setExpanded(live)),
+    on(streaming, (live) => {
+      if (!readerToggled) setExpanded(live)
+    }),
   )
 
   const preview = () => (props.preview === false ? undefined : reasoningPreview(props.text, streaming()))
@@ -814,7 +803,10 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
           </span>
         </Show>
       }
-      onToggle={() => setExpanded((value) => !value)}
+      onToggle={() => {
+        readerToggled = true
+        setExpanded((value) => !value)
+      }}
     >
       <Markdown
         text={props.text}

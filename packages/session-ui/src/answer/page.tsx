@@ -310,7 +310,7 @@ function RunningStatus(props: { elapsedMs?: number }) {
       data-slot="answer-running"
       class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[12px] leading-text-base"
     >
-      <div class="flex min-w-0 items-center gap-[3px]" style={{ color: "var(--answer-ink-secondary)" }}>
+      <div class="flex min-w-0 items-center gap-[4px]" style={{ color: "var(--answer-ink-secondary)" }}>
         <span class="grid size-[14px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[14px]">
           <Spinner width={14} height={14} class="size-[14px]" />
         </span>
@@ -515,7 +515,7 @@ function GroupSeat(props: {
         aria-expanded={props.open}
         aria-controls={bodyID}
         hidden={props.flat}
-        class="group/heading flex min-w-0 w-full items-center gap-[3px] text-start text-[14px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="group/heading flex min-w-0 w-full items-center gap-[4px] text-start text-[14px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-tertiary)" }}
         onClick={(event) => {
           event.currentTarget.focus()
@@ -704,7 +704,7 @@ function FlowIcon(props: { name: IconName }) {
  */
 function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boolean; scope: "row" | "heading" }) {
   if (props.expandable === false)
-    return <span class="flex size-6 shrink-0 items-center justify-center">{props.icon}</span>
+    return <span class="flex h-6 w-3.5 shrink-0 items-center justify-start">{props.icon}</span>
 
   // Static class strings so the Tailwind scanner keeps the two named group variants.
   const idle =
@@ -718,7 +718,7 @@ function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boo
       : `absolute opacity-0 transition-[opacity,transform] group-hover/heading:opacity-100 group-focus-visible/heading:opacity-100 motion-reduce:transition-none ${props.open ? "rotate-180" : ""}`
 
   return (
-    <span class="relative grid size-6 shrink-0 place-items-center">
+    <span class="relative grid h-6 w-3.5 shrink-0 items-center justify-items-start">
       <span data-slot="leading-idle" class={`${idle} col-start-1 row-start-1`}>
         {props.icon}
       </span>
@@ -755,7 +755,7 @@ function DisclosureRow(props: {
         data-disclosure-row=""
         aria-expanded={props.expanded}
         aria-controls={id}
-        class="group/row flex min-w-0 cursor-pointer items-center gap-[3px] text-[13px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="group/row flex min-w-0 cursor-pointer items-center gap-[4px] text-[13px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-secondary)" }}
         onClick={props.onToggle}
         onKeyDown={(event) => {

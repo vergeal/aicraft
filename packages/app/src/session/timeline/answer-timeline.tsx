@@ -40,16 +40,21 @@ export function AnswerTimeline(props: {
   const measureBottom = () => {
     if (!viewport) return
 
-    // The column ends with an inset that holds the last row above the composer. A reader counts as
-    // pinned to the end once only that inset is left below the final row, which is where scrolling
-    // naturally rests.
-    stick =
-      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= (props.bottomInset ?? 0) + BOTTOM_THRESHOLD
+    // Only a reader resting at the very end keeps following. A looser threshold would pull back a
+    // reader who scrolled up but stayed within the composer inset, which reads as the content jumping.
+    stick = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD
     setAtBottom(stick)
   }
 
   const jumpToLatest = () => {
     viewport?.scrollTo({ top: viewport.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" })
+  }
+
+  // A scroll gesture ends following immediately, before the next content growth can pull the reader
+  // back; the scroll handler re-pins once the reader comes back to the end.
+  const releaseFollow = () => {
+    stick = false
+    setAtBottom(false)
   }
 
   let follow: ResizeObserver | undefined
@@ -110,6 +115,8 @@ export function AnswerTimeline(props: {
           props.onContentResize()
           props.onHistoryScroll()
         }}
+        onWheel={releaseFollow}
+        onTouchMove={releaseFollow}
         class="relative h-full w-full min-w-0"
         style={{ "--sticky-accordion-top": props.showHeader ? "var(--session-header-height, 48px)" : "0px" }}
       >

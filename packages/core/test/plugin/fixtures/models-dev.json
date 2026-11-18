@@ -1,6 +1,6 @@
 {
-  "acme": {
-    "id": "acme",
+  "openai": {
+    "id": "openai",
     "name": "Acme",
     "env": ["ACME_API_KEY"],
     "models": {

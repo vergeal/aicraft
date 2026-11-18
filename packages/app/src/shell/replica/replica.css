@@ -825,7 +825,13 @@ html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="da
 }
 
 html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-shell"] {
-  background: var(--color-navigation);
+  /* The shell takes the conversation's own tint, so the 12px panel corner has nothing lighter behind it: the gutter
+     used to show a brighter wedge in each of the four window corners. The sidebar keeps its own column tint. */
+  background: var(--color-main);
+}
+
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-sidebar"] {
+  background: light-dark(#fbfbfd, #1a1a1d);
 }
 
 html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-rail"] {
@@ -834,6 +840,13 @@ html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-r
 
 html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
   background: var(--color-titlebar);
+}
+
+/* On an opaque window the panel separates from the chrome by tint and its 1px border alone, the way a card does in
+   the design spec. Any blur larger than the 1px gutter spills past the 12px corner and paints a wedge into each
+   window corner, so Windows draws no shadow at all. */
+html[data-replica-window][data-os="windows"] [data-slot="replica-workbench"] {
+  box-shadow: none;
 }
 
 /* The window root gives up its fill for translucent windows so the system material can show. Windows paints it

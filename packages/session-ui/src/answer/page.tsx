@@ -410,7 +410,11 @@ function FoldRow(props: {
   const elapsedMs = () =>
     props.turn.status === "open" ? runningElapsed(props.turn, props.now) : props.turn.elapsedMs
 
-  const children = () => childrenOf(props.snapshot, props.turn.turn)
+  const children = createMemo(() => childrenOf(props.snapshot, props.turn.turn))
+  // `children()` returns new objects each projection. Key the rows by id so streamed updates reuse the
+  // group and row components instead of rebuilding them under the pointer.
+  const childKeys = createMemo(() => children().map((child) => child.key))
+  const childIndex = createMemo(() => new Map(children().map((child) => [child.key, child] as const)))
 
   return (
     <section
@@ -433,32 +437,40 @@ function FoldRow(props: {
       </Show>
       <Show when={open()}>
         <div class={flat() ? "flex flex-col gap-1 pt-2" : "flex flex-col gap-3 pt-2"}>
-          <For each={children()}>
-            {(child) => {
-              if (child.kind === "node") {
-                const node = createMemo(() => props.snapshot.nodes.get(child.key))
-
-                return (
-                  <Show when={node()}>
-                    {(value) => <NodeRow node={value()} view={props.view} live={props.turn.status === "open"} />}
-                  </Show>
-                )
-              }
-
-              const group = () => props.snapshot.groups.get(child.key)
+          <For each={childKeys()}>
+            {(key) => {
+              const child = createMemo(() => childIndex().get(key))
 
               return (
-                <Show when={group()}>
-                  {(value) => (
-                    <GroupSeat
-                      group={value()}
-                      snapshot={props.snapshot}
-                      view={props.view}
-                      flat={flat()}
-                      open={props.groupOpen(child.key)}
-                      onToggle={() => props.toggleGroup(child.key)}
-                    />
-                  )}
+                <Show when={child()}>
+                  {(value) => {
+                    if (value().kind === "node") {
+                      const node = createMemo(() => props.snapshot.nodes.get(key))
+
+                      return (
+                        <Show when={node()}>
+                          {(nodeValue) => <NodeRow node={nodeValue()} view={props.view} live={props.turn.status === "open"} />}
+                        </Show>
+                      )
+                    }
+
+                    const group = createMemo(() => props.snapshot.groups.get(key))
+
+                    return (
+                      <Show when={group()}>
+                        {(groupValue) => (
+                          <GroupSeat
+                            group={groupValue()}
+                            snapshot={props.snapshot}
+                            view={props.view}
+                            flat={flat()}
+                            open={props.groupOpen(key)}
+                            onToggle={() => props.toggleGroup(key)}
+                          />
+                        )}
+                      </Show>
+                    )
+                  }}
                 </Show>
               )
             }}

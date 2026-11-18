@@ -5,6 +5,7 @@ export default {
   "window.title": "上下文窗口",
   "window.legendInput": "输入",
   "window.legendCache": "缓存命中",
+  "window.legendCacheWrite": "缓存写",
   "window.remaining": "上限 {{limit}} · 约可再发 {{turns}} 轮",
 
   "stats.cost": "会话成本",

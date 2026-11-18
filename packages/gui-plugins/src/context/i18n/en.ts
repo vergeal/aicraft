@@ -6,6 +6,7 @@ export default {
   "window.title": "Context window",
   "window.legendInput": "Input",
   "window.legendCache": "Cache hits",
+  "window.legendCacheWrite": "Cache write",
   "window.remaining": "Limit {{limit}} · about {{turns}} more turns",
 
   // Summary tiles

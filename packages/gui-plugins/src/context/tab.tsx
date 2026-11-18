@@ -72,7 +72,7 @@ const sectionLabel = "text-[12px] font-[530] text-v2-text-text-muted"
 
 const card = "rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-layer-01"
 
-const callGrid = "58px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 74px 46px 64px 60px"
+const callGrid = "58px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 74px 44px 64px 44px"
 
 function Tile(props: { label: string; value: JSX.Element; sub: JSX.Element }) {
   return (
@@ -384,6 +384,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       used,
       input: message.tokens.input,
       cache: message.tokens.cache.read,
+      cacheWrite: message.tokens.cache.write,
       limit,
       pct: limit ? Math.round((used / limit) * 100) : null,
       providerLabel: entry?.provider.name ?? message.model.providerID,
@@ -550,6 +551,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
     return {
       cache: (current.cache / current.limit) * 100,
+      cacheWrite: (current.cacheWrite / current.limit) * 100,
       input: (current.input / current.limit) * 100,
       level: current.pct !== null && current.pct >= 90 ? "danger" : current.pct !== null && current.pct >= 70 ? "warn" : "normal",
     }
@@ -688,14 +690,19 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
           <div class="flex h-2 overflow-hidden rounded bg-v2-background-bg-layer-02" aria-hidden="true">
             <div
-              class="h-full opacity-40"
+              class="h-full"
               style={{ width: `${barSegments()?.cache ?? 0}%`, background: "var(--v2-icon-icon-faint)" }}
+            />
+            <div
+              class="h-full"
+              style={{ width: `${barSegments()?.cacheWrite ?? 0}%`, background: "var(--v2-icon-icon-muted)" }}
             />
             <div
               class="h-full"
               style={{
                 width: `${barSegments()?.input ?? 0}%`,
                 background: levelPaint().bar,
+                "min-width": barSegments()?.input ? "2px" : undefined,
               }}
             />
           </div>
@@ -706,8 +713,13 @@ export default function SessionContextTab(props: { session: MountedSession }) {
               {ctx.t("window.legendInput")} <span class="tabular-nums">{formatter().compact(context()?.input)}</span>
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px] opacity-40" style={{ background: "var(--v2-icon-icon-faint)" }} />
+              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-icon-icon-faint)" }} />
               {ctx.t("window.legendCache")} <span class="tabular-nums">{formatter().compact(context()?.cache)}</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-icon-icon-muted)" }} />
+              {ctx.t("window.legendCacheWrite")}{" "}
+              <span class="tabular-nums">{formatter().compact(context()?.cacheWrite)}</span>
             </span>
             <span class="ms-auto text-v2-text-text-muted">
               {ctx.t("window.remaining", {
@@ -717,7 +729,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </span>
           </div>
 
-          <div class="grid grid-cols-4 overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted gap-px">
+          <div class="grid grid-cols-2 overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted gap-px">
             <Tile
               label={ctx.t("stats.cost")}
               value={costText()}
@@ -801,7 +813,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
               type="button"
               class="rounded-full border px-2 py-px text-[11.5px]"
               classList={{
-                "border-transparent bg-v2-background-bg-accent text-white": filter[0]() === "all",
+                "border-transparent bg-v2-background-bg-accent text-v2-text-text-contrast": filter[0]() === "all",
                 "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "all",
               }}
               onClick={() => filter[1]("all")}
@@ -813,7 +825,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
               type="button"
               class="rounded-full border px-2 py-px text-[11.5px]"
               classList={{
-                "border-transparent bg-v2-background-bg-accent text-white": filter[0]() === "failed",
+                "border-transparent bg-v2-background-bg-accent text-v2-text-text-contrast": filter[0]() === "failed",
                 "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "failed",
               }}
               onClick={() => filter[1]("failed")}
@@ -825,7 +837,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
               type="button"
               class="rounded-full border px-2 py-px text-[11.5px]"
               classList={{
-                "border-transparent bg-v2-background-bg-accent text-white": filter[0]() === "slow",
+                "border-transparent bg-v2-background-bg-accent text-v2-text-text-contrast": filter[0]() === "slow",
                 "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "slow",
               }}
               onClick={() => filter[1]("slow")}
@@ -837,7 +849,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
           <div class="overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base">
             <div
-              class="grid h-7 items-center gap-x-1 bg-v2-background-bg-layer-01 px-2.5 text-[11px] text-v2-text-text-faint [&>*:nth-child(n+2)]:text-end"
+              class="grid h-7 items-center gap-x-1.5 bg-v2-background-bg-layer-01 px-2.5 text-[11px] text-v2-text-text-faint [&>*:nth-child(n+2)]:text-end"
               style={{ "grid-template-columns": callGrid }}
             >
               <span>{ctx.t("calls.time")}</span>
@@ -866,7 +878,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                     <>
                       <button
                         type="button"
-                        class="grid w-full items-center gap-x-1 border-b border-v2-border-border-muted px-2.5 text-start text-[12px] last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
+                        class="grid w-full items-center gap-x-1.5 border-b border-v2-border-border-muted px-2.5 text-start text-[12px] last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
                         classList={{
                           "h-[34px]": true,
                         }}
@@ -1132,7 +1144,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </div>
             <Show when={systemPrompt()}>
               {(prompt) => (
-                <div class="max-h-[120px] overflow-hidden rounded-md border border-v2-border-border-muted bg-v2-background-bg-base px-2.5 py-2">
+                <div class="max-h-[240px] overflow-y-auto rounded-md border border-v2-border-border-muted bg-v2-background-bg-base px-2.5 py-2">
                   <Markdown text={prompt()} class="text-[11.5px]" />
                 </div>
               )}

@@ -9,7 +9,7 @@ import { TextInput } from "@opencode/ui/text-input"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useGlobal } from "@/runtime/server/runtime"
-import { ProjectIcon } from "@/shell/layout/project-icon"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { useCommand } from "@/shell/commands/command"
 import { useSettingsServers } from "./servers/inventory"
 import { useSettingsSurface } from "./surface"
@@ -228,7 +228,7 @@ export function SettingsSearch() {
                     when={item().projectInfo}
                     fallback={<Show when={item().topLevel && item().icon}>{(icon) => <Icon name={icon()} />}</Show>}
                   >
-                    {(project) => <ProjectIcon project={project()} class="shrink-0" aria-hidden="true" />}
+                    <ProjectFolder class="shrink-0" aria-hidden="true" />
                   </Show>
                 </span>
               </Show>

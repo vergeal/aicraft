@@ -1179,6 +1179,15 @@
   color: var(--v2-text-text-base);
 }
 
+/* A section's description sits under its title and above its card, in the same muted ink as a row description. */
+.settings-section-description {
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+}
+
 .settings-section-stack {
   display: flex;
   width: 100%;
@@ -2136,48 +2145,6 @@
   border-radius: 10px;
   background: var(--v2-background-bg-layer-01);
   text-align: center;
-}
-
-.settings-project-list {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.settings-project-row-shell {
-  position: relative;
-  width: 100%;
-  min-width: 0;
-  padding: 2px;
-}
-
-.settings-project-card {
-  display: flex;
-  min-height: 64px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--settings-card-border);
-  border-radius: var(--settings-card-radius, 10px);
-  background-color: var(--settings-card-bg);
-  background-image: var(--settings-card-gradient);
-  box-shadow: var(--settings-card-shadow);
-  transition:
-    border-color 120ms,
-    box-shadow 120ms;
-}
-
-.settings-project-card:hover,
-.settings-project-card:focus-within,
-.settings-project-card[data-menu="true"] {
-  border-color: var(--v2-border-border-strong);
-}
-
-:root[data-motion="reduce"] .settings-project-card {
-  transition: none;
 }
 
 /* Section spacing comes from `.settings-tab-body`'s shared 20px, and the group gap below is the 8px from a header to

@@ -4,13 +4,8 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
-import {
-  displayName,
-  getProjectAvatarGenerated,
-  getProjectAvatarSource,
-  getProjectAvatarVariant,
-  ProjectAvatar,
-} from "@opencode/ui/project-avatar"
+import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { TextInput } from "@opencode/ui/text-input"
 import { createTypeahead } from "@opencode/ui/typeahead"
 import { createEventListener } from "@solid-primitives/event-listener"
@@ -589,13 +584,7 @@ function ProjectRow(props: { project: PromptProject; path: string; onDrill?: () 
   return (
     <>
       <div class="command-palette-row-main">
-        <ProjectAvatar
-          class="shrink-0"
-          fallback={displayName(props.project)}
-          src={getProjectAvatarSource(props.project.id, props.project.icon)}
-          variant={getProjectAvatarVariant(props.project.icon?.color)}
-          generated={getProjectAvatarGenerated(props.project)}
-        />
+        <ProjectFolder class="shrink-0" />
         <div class="command-palette-row-text">
           <span class="new-session-location-name">
             <span class="command-palette-title palette-menu-title">{displayName(props.project)}</span>

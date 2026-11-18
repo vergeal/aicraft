@@ -8,8 +8,8 @@ import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection } from "@/runtime/server/registry"
 import type { LocalProject } from "@/shell/state/layout"
 import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { errorMessage } from "@/shell/layout/helpers"
-import { ProjectIcon } from "@/shell/layout/project-icon"
 import { showToast } from "@/shell/notifications/toast"
 import { ContextMenu } from "@opencode/ui/context-menu"
 import { Project } from "@opencode/schema/project"
@@ -128,25 +128,22 @@ export function SettingsProjectRow(props: {
     menu.find((item) => item.id === chosen)?.onSelect()
   }
 
-  const row = () => (
-    <div
-      role="listitem"
-      data-component="settings-project-card"
-      data-menu={store.menu ? "true" : undefined}
-      class="settings-project-card"
-    >
+  // A settings row: the leading area opens the project and names it, the options menu trails it. The path is the
+  // second line, so two projects with the same folder name stay apart without hovering for a tooltip.
+  const content = () => (
+    <>
       <Show
         when={!store.editor}
         fallback={
-          <div class="flex h-full min-w-0 flex-1 items-center gap-2">
-            <ProjectIcon project={props.project} class="shrink-0" />
+          <div class="project-row-editor">
+            <ProjectFolder />
             <InlineInput
               ref={input}
               aria-label={language.t("common.rename")}
               dir="auto"
               value={store.editor?.draft ?? ""}
               disabled={store.editor?.saving}
-              class="w-full text-[15px] font-[400] leading-5 tracking-[-0.04px] text-v2-text-text-base outline-none"
+              class="project-row-editor-input"
               style={{ "--inline-input-shadow": "none", "border-radius": "0", "text-align": "start" }}
               onInput={(event) => setStore("editor", "draft", event.currentTarget.value)}
               onKeyDown={(event) => {
@@ -176,13 +173,16 @@ export function SettingsProjectRow(props: {
           type="button"
           aria-label={displayName(props.project)}
           title={props.project.worktree}
-          class="flex h-full min-w-0 flex-1 items-center gap-2 rounded-[4px] bg-transparent text-start focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--v2-border-border-focus)]"
+          class="project-row-open"
           onClick={() => props.onOpen(props.project)}
         >
-          <ProjectIcon project={props.project} class="shrink-0" />
-          <bdi class="truncate text-[15px] font-[400] leading-5 tracking-[-0.04px] text-v2-text-text-base">
-            {displayName(props.project)}
-          </bdi>
+          <ProjectFolder />
+          <span class="project-row-text">
+            <bdi class="project-row-name">{displayName(props.project)}</bdi>
+            <bdi dir="ltr" class="project-row-path">
+              {props.project.worktree}
+            </bdi>
+          </span>
         </button>
         <ProjectOptions
           server={props.server}
@@ -197,25 +197,38 @@ export function SettingsProjectRow(props: {
           }
         />
       </Show>
-    </div>
+    </>
   )
 
+  // The row itself is the right-click target and the settings row, so it stays a direct child of the settings list
+  // and keeps its divider.
   return (
     <Show
       when={!platform.showContextMenu}
       fallback={
         <div
+          role="listitem"
+          data-component="settings-row"
+          data-project-row
+          data-menu={store.menu ? "true" : undefined}
           onContextMenu={(event) => {
             event.preventDefault()
             void showNativeMenu({ x: event.clientX, y: event.clientY })
           }}
         >
-          {row()}
+          {content()}
         </div>
       }
     >
       <ContextMenu>
-        <ContextMenu.Trigger class="settings-project-row-shell">{row()}</ContextMenu.Trigger>
+        <ContextMenu.Trigger
+          role="listitem"
+          data-component="settings-row"
+          data-project-row
+          data-menu={store.menu ? "true" : undefined}
+        >
+          {content()}
+        </ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Content>
             {items().map((item) => (

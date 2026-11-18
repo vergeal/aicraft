@@ -3,13 +3,8 @@ import type { MountedSession, SessionScreen } from "@opencode/plugin/gui"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
 import { Tooltip } from "@opencode/ui/tooltip"
-import {
-  displayName,
-  getProjectAvatarGenerated,
-  getProjectAvatarSource,
-  getProjectAvatarVariant,
-  ProjectAvatar,
-} from "@opencode/ui/project-avatar"
+import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { useNavigate } from "@solidjs/router"
 import {
   createContext,
@@ -233,14 +228,7 @@ export function SessionLocation(props: {
             aria-label={label()}
             class="relative flex h-7 min-w-0 max-w-full shrink items-center gap-2 overflow-hidden rounded-full px-1.5 text-start text-[15px] font-normal leading-[var(--line-height-compact)] tracking-[-0.04px] text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-hover data-[expanded]:text-v2-text-text-base"
           >
-            <ProjectAvatar
-              class="shrink-0"
-              aria-hidden="true"
-              fallback={projectName()}
-              src={getProjectAvatarSource(props.project?.id, props.project?.icon)}
-              variant={getProjectAvatarVariant(props.project?.icon?.color)}
-              generated={getProjectAvatarGenerated(props.project)}
-            />
+            <ProjectFolder class="shrink-0" aria-hidden="true" />
             <bdi dir="auto" data-slot="session-location-project" class="session-location-label min-w-0 truncate">
               {projectName()}
             </bdi>
@@ -278,14 +266,7 @@ export function SessionLocation(props: {
             aria-label={projectName()}
           >
             <Menu.Item class="min-w-0" disabled={!props.project} onSelect={openProject}>
-              <ProjectAvatar
-                class="shrink-0"
-                aria-hidden="true"
-                fallback={projectName()}
-                src={getProjectAvatarSource(props.project?.id, props.project?.icon)}
-                variant={getProjectAvatarVariant(props.project?.icon?.color)}
-                generated={getProjectAvatarGenerated(props.project)}
-              />
+              <ProjectFolder class="shrink-0" aria-hidden="true" />
               <bdi dir="auto" class="min-w-0 truncate font-[530]">
                 {projectName()}
               </bdi>

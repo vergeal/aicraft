@@ -1,0 +1,33 @@
+[data-component="project-folder"] {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--v2-icon-icon-muted);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-component="project-folder"][data-unread] {
+  overflow: visible;
+}
+
+/* A larger slot keeps the glyph at the icon set's 20px step, so a folder never draws a resampled 16px sprite. */
+[data-component="project-folder"] > [data-slot="icon-svg"] {
+  flex-shrink: 0;
+}
+
+[data-slot="project-folder-unread-dot"] {
+  position: absolute;
+  z-index: 3;
+  width: 6px;
+  height: 6px;
+  inset-block-start: -2px;
+  inset-inline-end: -2px;
+  border-radius: 9999px;
+  background: var(--v2-background-bg-accent);
+  pointer-events: none;
+}

@@ -8,13 +8,8 @@ import { Show, For, createMemo, createSignal, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { getFilename } from "@opencode/util/path"
-import {
-  displayName,
-  getProjectAvatarGenerated,
-  getProjectAvatarSource,
-  getProjectAvatarVariant,
-  ProjectAvatar,
-} from "@opencode/ui/project-avatar"
+import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { Schema } from "effect"
 import { createPresence } from "@/runtime/presence"
 import { Composer } from "@/composer/composer"
@@ -151,13 +146,7 @@ export function NewSessionView(props: {
                           props.composer.restoreFocus()
                         }}
                       >
-                        <ProjectAvatar
-                          class="shrink-0"
-                          fallback={displayName(project)}
-                          src={getProjectAvatarSource(project.id, project.icon)}
-                          variant={getProjectAvatarVariant(project.icon?.color)}
-                          generated={getProjectAvatarGenerated(project)}
-                        />
+                        <ProjectFolder class="shrink-0" />
                         <span class="min-w-0 truncate">{displayName(project)}</span>
                       </button>
                     )}
@@ -379,13 +368,7 @@ function NewSessionLocation(props: {
               class={`${TRIGGER} min-w-0`}
               onClick={props.onClick}
             >
-              <ProjectAvatar
-                class="shrink-0"
-                fallback={displayName(props.project)}
-                src={getProjectAvatarSource(props.project.id, props.project.icon)}
-                variant={getProjectAvatarVariant(props.project.icon?.color)}
-                generated={getProjectAvatarGenerated(props.project)}
-              />
+              <ProjectFolder class="shrink-0" />
               <span class="min-w-0 truncate">{displayName(props.project)}</span>
             </button>
           </Tooltip>

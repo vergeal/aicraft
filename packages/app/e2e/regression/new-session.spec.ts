@@ -1066,7 +1066,7 @@ test("the location dialog separates added projects from server projects and tags
       const row = await rows.nth(0).boundingBox()
       const first = await add.boundingBox()
       const icon = await add.locator(".command-palette-row-icon").boundingBox()
-      const avatar = await rows.nth(0).locator('[data-component="project-avatar-v2"]').boundingBox()
+      const avatar = await rows.nth(0).locator('[data-component="project-folder"]').boundingBox()
 
       return field && row && first && icon && avatar
         ? Math.max(Math.abs(field.width - row.width), Math.abs(first.width - row.width), Math.abs(icon.x - avatar.x))

@@ -8,7 +8,7 @@ import type { LocalProject } from "@/shell/state/layout"
 import { ServerConnection } from "@/runtime/server/registry"
 import { showToast } from "@/shell/notifications/toast"
 
-type ProjectPatch = Pick<ProjectUpdateInput, "name" | "icon" | "commands" | "prompt">
+type ProjectPatch = Pick<ProjectUpdateInput, "name" | "commands" | "prompt">
 
 export function createEditProjectModel(props: { project: LocalProject; server: ServerConnection.Any }) {
   const language = useLanguage()
@@ -18,12 +18,8 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
 
   const [store, setStore] = createStore({
     name: defaultName(),
-    color: props.project.icon?.color,
-    iconOverride: props.project.icon?.override,
     startup: props.project.commands?.start ?? "",
     prompt: props.project.prompt ?? "",
-    dragOver: false,
-    iconHover: false,
     saving: 0,
   })
 
@@ -31,11 +27,8 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
     name: props.project.name ?? "",
     startup: store.startup.trim(),
     prompt: store.prompt.trim(),
-    color: store.color,
-    iconOverride: store.iconOverride,
   }
 
-  let iconInput: HTMLInputElement | undefined
   let queue = Promise.resolve()
 
   const persist = (patch: ProjectPatch, complete: () => void) => {
@@ -95,29 +88,6 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
     })
   }
 
-  const saveIcon = (color = store.color, override = store.iconOverride) => {
-    if (!store.saving && color === saved.color && override === saved.iconOverride) return
-    persist({ icon: { color: color ?? "", override: override ?? "" } }, () => {
-      saved.color = color
-      saved.iconOverride = override
-    })
-  }
-
-  function selectFile(file: File) {
-    if (!file.type.startsWith("image/")) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-
-      if (!result || result instanceof ArrayBuffer) return
-      setStore("iconOverride", result)
-      setStore("iconHover", false)
-      saveIcon(store.color, result)
-    }
-
-    reader.readAsDataURL(file)
-  }
-
   return {
     store,
     setStore,
@@ -126,41 +96,5 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
     saveName,
     saveStartup,
     savePrompt,
-    setColor(value: string | undefined) {
-      setStore("color", value)
-      saveIcon(value, store.iconOverride)
-    },
-    drop(event: DragEvent) {
-      event.preventDefault()
-      setStore("dragOver", false)
-      const file = event.dataTransfer?.files[0]
-
-      if (file) selectFile(file)
-    },
-    dragOver(event: DragEvent) {
-      event.preventDefault()
-      setStore("dragOver", true)
-    },
-    dragLeave() {
-      setStore("dragOver", false)
-    },
-    inputChange(input: HTMLInputElement) {
-      const file = input.files?.[0]
-
-      if (file) selectFile(file)
-    },
-    iconClick() {
-      if (store.iconOverride && store.iconHover) {
-        setStore("iconOverride", "")
-        saveIcon(store.color, "")
-
-        return
-      }
-
-      iconInput?.click()
-    },
-    setIconInput(input: HTMLInputElement) {
-      iconInput = input
-    },
   }
 }

@@ -439,18 +439,6 @@
     height: 6px;
   }
 
-  [data-titlebar-tab]:is([data-status="attention"], [data-status="unread"]):not([data-orientation="vertical"])
-    [data-slot="project-avatar-surface"] {
-    -webkit-mask-image: radial-gradient(circle 4.5px at 100% 0, transparent 4px, black 5px);
-    mask-image: radial-gradient(circle 4.5px at 100% 0, transparent 4px, black 5px);
-  }
-
-  [data-titlebar-tab]:is([data-status="attention"], [data-status="unread"]):not([data-orientation="vertical"]):dir(rtl)
-    [data-slot="project-avatar-surface"] {
-    -webkit-mask-image: radial-gradient(circle 4.5px at 0 0, transparent 4px, black 5px);
-    mask-image: radial-gradient(circle 4.5px at 0 0, transparent 4px, black 5px);
-  }
-
   [data-titlebar-tab]:not([data-orientation="vertical"]) [data-titlebar-tab-link] {
     justify-content: center;
     gap: 0;

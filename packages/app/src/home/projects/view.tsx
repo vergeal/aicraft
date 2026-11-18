@@ -2,13 +2,8 @@ import { createMemo, For, type JSX, onCleanup, Show, splitProps } from "solid-js
 import { createStore } from "solid-js/store"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { Popover } from "@kobalte/core/popover"
-import {
-  displayName,
-  getProjectAvatarGenerated,
-  getProjectAvatarSource,
-  getProjectAvatarVariant,
-  ProjectAvatar,
-} from "@opencode/ui/project-avatar"
+import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Button } from "@opencode/ui/button"
@@ -105,9 +100,7 @@ export function HomeProjectsView(props: HomeProjectsViewProps) {
           aria-label={props.language.t("home.projects")}
           class="flex h-8 w-full min-w-0 items-center gap-2 rounded-[6px] bg-transparent px-1.5 text-start text-v2-text-text-base outline-none transition-colors duration-100 hover:bg-v2-overlay-simple-overlay-hover data-[expanded]:bg-v2-overlay-simple-overlay-pressed"
         >
-          <Show when={selected()} fallback={<Icon name="folder" size="small" />}>
-            {(project) => <HomeProjectAvatar project={project()} />}
-          </Show>
+          <Icon name="folder" size="small" />
           <span class="flex min-w-0 flex-1 flex-col leading-[var(--line-height-compact)]">
             <bdi class="truncate">
               <Show when={selected()} fallback={props.language.t("home.projects.all")}>
@@ -657,7 +650,7 @@ function HomeProjectRow(
         disabled={serverUnreachable()}
         onClick={() => props.onSelectProject(props.server, props.project.worktree)}
       >
-        <HomeProjectAvatar project={props.project} />
+        <ProjectFolder />
         <span data-slot="home-row-label" class={HOME_PROJECT_NAV_LABEL}>
           {displayName(props.project)}
         </span>
@@ -724,18 +717,5 @@ function HomeProjectNavButton(props: JSX.ButtonHTMLAttributes<HTMLButtonElement>
     >
       {local.children}
     </button>
-  )
-}
-
-function HomeProjectAvatar(props: { project: LocalProject; outline?: boolean }) {
-  const name = createMemo(() => displayName(props.project))
-
-  return (
-    <ProjectAvatar
-      fallback={name()}
-      src={props.outline ? undefined : getProjectAvatarSource(props.project.id, props.project.icon)}
-      variant={props.outline ? "outline" : getProjectAvatarVariant(props.project.icon?.color)}
-      generated={props.outline ? undefined : getProjectAvatarGenerated(props.project)}
-    />
   )
 }

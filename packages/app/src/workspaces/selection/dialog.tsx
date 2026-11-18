@@ -4,12 +4,8 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@op
 import { Button } from "@opencode/ui/button"
 import { Divider } from "@opencode/ui/divider"
 import { Loader } from "@opencode/ui/loader"
-import {
-  displayName,
-  getProjectAvatarSource,
-  getProjectAvatarVariant,
-  ProjectAvatar,
-} from "@opencode/ui/project-avatar"
+import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { TextInput } from "@opencode/ui/text-input"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { useDialog } from "@opencode/ui/context/dialog"
@@ -779,13 +775,7 @@ export function DirectoryPickerDialog(props: DirectoryPickerDialogProps) {
                         })}
                         onClick={() => void selectDirectory(project.worktree)}
                       >
-                        <ProjectAvatar
-                          class="shrink-0"
-                          aria-hidden="true"
-                          fallback={name()}
-                          src={getProjectAvatarSource(project.id, project.icon)}
-                          variant={getProjectAvatarVariant(project.icon?.color)}
-                        />
+                        <ProjectFolder class="shrink-0" aria-hidden="true" />
                         <span class="min-w-0 truncate">{name()}</span>
                       </Button>
                     </Tooltip>

@@ -10,7 +10,6 @@ import { GlobalProvider } from "@/runtime/server/runtime"
 import { ServerConnection, ServersProvider } from "@/runtime/server/registry"
 import { SettingsProvider } from "@/settings/model"
 import { CommandProvider } from "@/shell/commands/command"
-import { ProjectIconsProvider } from "@/shell/layout/project-icons"
 import { TabsProvider } from "@/shell/tabs/tabs"
 import { LocationProvider } from "@/workspaces/location"
 
@@ -604,17 +603,15 @@ export function DialogStoryRuntime(props: ParentProps<DialogStoryRuntimeOptions>
             <SettingsProvider>
               <TabsProvider>
                 <GlobalProvider>
-                  <ProjectIconsProvider>
-                    <CommandProvider>
-                      <ServerProvider conn={servers()[0] ?? STORY_SERVER}>
-                        <ModelsProvider directory={STORY_DIRECTORY}>
-                          <LocationProvider directory={STORY_DIRECTORY}>
-                            <LocalProvider>{props.children}</LocalProvider>
-                          </LocationProvider>
-                        </ModelsProvider>
-                      </ServerProvider>
-                    </CommandProvider>
-                  </ProjectIconsProvider>
+                  <CommandProvider>
+                    <ServerProvider conn={servers()[0] ?? STORY_SERVER}>
+                      <ModelsProvider directory={STORY_DIRECTORY}>
+                        <LocationProvider directory={STORY_DIRECTORY}>
+                          <LocalProvider>{props.children}</LocalProvider>
+                        </LocationProvider>
+                      </ModelsProvider>
+                    </ServerProvider>
+                  </CommandProvider>
                 </GlobalProvider>
               </TabsProvider>
             </SettingsProvider>

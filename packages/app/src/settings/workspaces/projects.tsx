@@ -7,6 +7,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { useServer } from "@/runtime/server/current"
 import { ServerConnection } from "@/runtime/server/registry"
 import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { homeProjectDirectories } from "@/shell/layout/helpers"
 import type { LocalProject } from "@/shell/state/layout"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
@@ -15,6 +16,7 @@ import { SettingsSearchEmpty } from "../search-empty"
 import { SettingsSearchField } from "../search-field"
 import { SettingsProjectRow } from "./project-row"
 import "@/settings/search.css"
+import { SettingsList } from "@/settings/list"
 import { SettingsPageHeader } from "@/settings/page-header"
 import "@/settings/settings.css"
 import "./project.css"
@@ -116,25 +118,22 @@ export const SettingsProjects: Component<{
                 </Show>
               }
             >
-              <div
-                data-component="settings-project-empty-card"
-                class="settings-project-empty-card flex flex-col items-center gap-2 py-24 text-center"
-              >
-                <Icon name="folder" size="large" class="mb-2 text-v2-icon-icon-muted" />
+              <div class="settings-project-empty-card">
+                <ProjectFolder class="mb-1 !size-6 [&_[data-slot=icon-svg]]:!size-5" />
                 <div class="text-13-medium text-v2-text-text-base">{language.t("settings.projects.empty.title")}</div>
                 <div class="text-13-regular text-v2-text-text-muted">
                   {language.t("settings.projects.empty.description")}
                 </div>
-                <Button variant="contrast" icon="plus" class="mt-6" onClick={addProject}>
+                <Button variant="contrast" icon="plus" class="mt-4" onClick={addProject}>
                   {language.t("home.project.add")}
                 </Button>
               </div>
             </Show>
           }
         >
-          <div class="flex flex-col gap-3">
+          <div class="settings-section-stack">
             <Show when={added().length > 0}>
-              <div role="list" class="settings-project-list">
+              <SettingsList>
                 <Key each={added()} by="worktree">
                   {(project) => (
                     <SettingsProjectRow
@@ -149,49 +148,42 @@ export const SettingsProjects: Component<{
                     />
                   )}
                 </Key>
-              </div>
+              </SettingsList>
             </Show>
             <Show when={otherResults().length > 0}>
-              <Show
-                when={!query()}
-                fallback={
-                  <h3 class="text-13-medium text-v2-text-text-muted">{language.t("settings.projects.other")}</h3>
-                }
-              >
-                <button
-                  type="button"
-                  class="settings-models-group-trigger project-settings-shared-trigger"
-                  aria-label={language.t("settings.projects.other")}
-                  aria-expanded={store.others}
-                  onClick={() => setStore("others", (value) => !value)}
+              <section class="settings-section">
+                <Show
+                  when={!query()}
+                  fallback={<h3 class="settings-section-title">{language.t("settings.projects.other")}</h3>}
                 >
-                  <span class="settings-models-group-chevron">
-                    <Icon
-                      name="fill-triangle-down"
-                      size="small"
-                      classList={{ "project-settings-shared-chevron": true, open: store.others }}
-                    />
-                  </span>
-                  <span class="project-settings-shared-label">
-                    <span class="settings-models-group-title">{language.t("settings.projects.other")}</span>
-                    <span class="project-settings-shared-count">{others().length}</span>
-                  </span>
-                </button>
-              </Show>
-              <Show when={store.others || query()}>
-                <div role="list" class="settings-project-list">
-                  <Key each={otherResults()} by="worktree">
-                    {(project) => (
-                      <SettingsProjectRow
-                        project={project()}
-                        server={props.server}
-                        onOpen={props.onOpenProject}
-                        onAdd={() => (focus = project().worktree)}
-                      />
-                    )}
-                  </Key>
-                </div>
-              </Show>
+                  <button
+                    type="button"
+                    class="settings-projects-group-trigger"
+                    aria-expanded={store.others}
+                    onClick={() => setStore("others", (value) => !value)}
+                  >
+                    <span class="settings-projects-group-chevron" classList={{ open: store.others }}>
+                      <Icon name="fill-triangle-down" size="small" />
+                    </span>
+                    <span class="settings-section-title">{language.t("settings.projects.other")}</span>
+                    <span class="settings-section-count">{others().length}</span>
+                  </button>
+                </Show>
+                <Show when={store.others || query()}>
+                  <SettingsList>
+                    <Key each={otherResults()} by="worktree">
+                      {(project) => (
+                        <SettingsProjectRow
+                          project={project()}
+                          server={props.server}
+                          onOpen={props.onOpenProject}
+                          onAdd={() => (focus = project().worktree)}
+                        />
+                      )}
+                    </Key>
+                  </SettingsList>
+                </Show>
+              </section>
             </Show>
           </div>
         </Show>

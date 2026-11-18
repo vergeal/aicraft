@@ -310,7 +310,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
    flex row reads a pixel high next to the labels. Drop them onto the text's optical band instead. */
 [data-slot="replica-titlebar-main"]
   [data-slot="session-location-trigger"]
-  > div:has([data-slot="project-avatar-surface"]),
+  > [data-component="project-folder"],
 [data-slot="replica-titlebar-main"] [data-slot="session-location-trigger"] > svg {
   position: relative;
   inset-block-start: 1px;

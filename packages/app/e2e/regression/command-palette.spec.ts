@@ -147,10 +147,10 @@ test("a working session keeps its project avatar in Search sessions and shows it
   const workingRow = dialog.getByRole("option", { name: /Working session/ })
   const idleRow = dialog.getByRole("option", { name: /Idle session/ })
   await expect(workingRow.locator('[data-component="activity-ring"]')).toBeVisible()
-  await expect(workingRow.locator('[data-component="project-avatar-v2"]')).toBeVisible()
+  await expect(workingRow.locator('[data-component="project-folder"]')).toBeVisible()
   await expect(workingRow.locator(".command-palette-meta")).toHaveText("Working")
   await expect(idleRow.locator('[data-component="activity-ring"]')).toHaveCount(0)
-  await expect(idleRow.locator('[data-component="project-avatar-v2"]')).toBeVisible()
+  await expect(idleRow.locator('[data-component="project-folder"]')).toBeVisible()
   await expect(idleRow.locator(".command-palette-meta")).not.toHaveText("Working")
 })
 

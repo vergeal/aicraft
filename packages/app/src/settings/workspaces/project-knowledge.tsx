@@ -98,14 +98,7 @@ export const ProjectKnowledge: Component<{ projectID: string }> = (props) => {
   }))
 
   return (
-    <div class="project-settings-knowledge">
-      <div class="project-settings-knowledge-copy">
-        <span class="project-settings-knowledge-title">{language.t("project.settings.knowledge.title")}</span>
-        <span class="project-settings-knowledge-description">
-          {language.t("project.settings.knowledge.description")}
-        </span>
-      </div>
-
+    <>
       <Show
         when={libraries.libraries().length > 0}
         fallback={
@@ -168,10 +161,12 @@ export const ProjectKnowledge: Component<{ projectID: string }> = (props) => {
       </Show>
 
       <Show when={!desktop()}>
-        <span class="project-settings-knowledge-description">
-          {language.t("project.settings.knowledge.desktopOnly")}
-        </span>
+        <div class="project-settings-knowledge-empty">
+          <span class="project-settings-knowledge-description">
+            {language.t("project.settings.knowledge.desktopOnly")}
+          </span>
+        </div>
       </Show>
-    </div>
+    </>
   )
 }

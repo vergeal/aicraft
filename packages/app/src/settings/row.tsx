@@ -6,6 +6,8 @@ export interface SettingsRowProps {
   description: string | JSX.Element
   children: JSX.Element
   align?: "start"
+  /** Extra class on the row, for a page-specific layout such as a full-width field below its label. */
+  class?: string
 }
 
 export const SettingsRow: Component<SettingsRowProps> = (props) => {
@@ -21,7 +23,7 @@ export const SettingsRow: Component<SettingsRowProps> = (props) => {
   })
 
   return (
-    <div ref={row} data-component="settings-row" data-align={props.align}>
+    <div ref={row} data-component="settings-row" data-align={props.align} class={props.class}>
       <div data-slot="settings-row-copy">
         <div data-slot="settings-row-title" id={titleID}>
           {props.title}

@@ -94,42 +94,7 @@
   background: var(--v2-state-fg-warning);
 }
 
-.project-settings-folder-missing {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
-  color: var(--v2-text-text-muted);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: var(--line-height-base);
-}
-
-.project-settings-folder-missing-icon {
-  flex-shrink: 0;
-  color: var(--v2-state-fg-warning);
-}
-
-.project-settings-folder-missing-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.project-settings-folder-missing-title {
-  color: var(--v2-text-text-base);
-  font-weight: 400;
-}
-
-.project-settings-folder-missing-path {
-  font-family: var(--font-family-mono);
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
+/* ---------------------------------------------------------------- shared group (extensions) */
 
 .project-settings-shared {
   display: flex;
@@ -182,12 +147,86 @@
   line-height: var(--line-height-compact);
 }
 
-.project-settings-name {
-  width: min(280px, 100%);
+/* ---------------------------------------------------------------- folder missing */
+
+.project-settings-folder-missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-base);
+}
+
+.project-settings-folder-missing-icon {
+  flex-shrink: 0;
+  color: var(--v2-state-fg-warning);
+}
+
+.project-settings-folder-missing-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-settings-folder-missing-title {
+  color: var(--v2-text-text-base);
+  font-weight: 400;
+}
+
+.project-settings-folder-missing-path {
+  font-family: var(--font-family-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- project detail header */
+
+/* The project's own mark is one folder, so the header carries the name and the path instead of a picture. */
+.settings-project-heading {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-project-heading-icon[data-component="project-folder"] {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-project-heading-icon[data-component="project-folder"] > [data-slot="icon-svg"] {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-project-subtitle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+}
+
+.settings-project-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-settings-server-link {
-  width: fit-content;
+  flex-shrink: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -210,118 +249,36 @@
   outline-offset: 2px;
 }
 
-.project-settings-icon {
-  position: relative;
-  display: flex;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: 6px;
-  outline: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-}
-
-.project-settings-icon--active,
-.project-settings-icon:focus-visible {
-  outline-color: var(--v2-border-border-focus);
-}
-
-.project-settings-icon-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--v2-background-bg-contrast) 80%, transparent);
-  color: var(--v2-icon-icon-contrast);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms ease;
-}
-
-.project-settings-icon-overlay.visible {
-  opacity: 1;
-}
-
-.project-settings-colors {
-  display: flex;
+/* A long field takes the row's full width under its label, so a textarea never squeezes the description. */
+.settings-project-field {
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  align-items: stretch;
 }
 
-.project-settings-color {
-  position: relative;
-  display: flex;
-  width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  outline: none;
-  background: transparent;
-  transition: box-shadow 120ms ease;
-}
-
-.project-settings-color:focus-visible,
-.project-settings-color--selected {
-  box-shadow:
-    0 0 0 2px var(--v2-background-bg-layer-01),
-    0 0 0 4px var(--v2-border-border-focus);
-}
-
-@media (hover: hover) {
-  .project-settings-color:not(.project-settings-color--selected):hover {
-    box-shadow:
-      0 0 0 2px var(--v2-background-bg-layer-01),
-      0 0 0 4px var(--v2-border-border-strong);
-  }
-}
-
-.project-settings-color-check {
-  position: absolute;
-  color: var(--v2-icon-icon-contrast);
-}
-
-.project-settings-startup,
-.project-settings-prompt {
-  display: flex;
+.settings-project-field [data-slot="settings-row-control"] {
+  width: 100%;
+  flex: 1 1 100%;
   flex-direction: column;
-  gap: 8px;
-  padding-block: 12px;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
-.project-settings-startup-copy,
-.project-settings-prompt-copy {
+.settings-project-field-body {
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: 8px;
 }
 
-.project-settings-startup-title,
-.project-settings-prompt-title {
-  color: var(--v2-text-text-base);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: var(--line-height-compact);
-}
-
-.project-settings-startup-description,
-.project-settings-startup-hint,
-.project-settings-prompt-description {
+.settings-project-field-hint {
+  gap: 2px;
   color: var(--v2-text-text-muted);
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
 }
 
-.project-settings-startup-hint code {
+.settings-project-field-hint code {
   padding-inline: 4px;
   border-radius: 4px;
   background: var(--v2-background-bg-layer-02);
@@ -331,32 +288,137 @@
   unicode-bidi: isolate;
 }
 
-.project-settings-knowledge {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-block: 12px;
+.settings-project-name {
+  width: min(280px, 100%);
 }
 
-.project-settings-knowledge-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* ---------------------------------------------------------------- project list row */
+
+/* The row is a settings row: the leading area opens the project and names it, the options menu trails it. */
+[data-project-row] {
+  padding-block: 8px;
 }
 
-.project-settings-knowledge-title {
+.project-row-open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.project-row-open:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+}
+
+.project-row-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.project-row-name {
+  min-width: 0;
+  overflow: hidden;
   color: var(--v2-text-text-base);
   font-size: 13px;
   font-weight: 400;
   line-height: var(--line-height-compact);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.project-settings-knowledge-description {
+.project-row-path {
+  min-width: 0;
+  overflow: hidden;
   color: var(--v2-text-text-muted);
   font-size: 12px;
   font-weight: 400;
-  line-height: 18px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+[data-project-row][data-menu="true"] {
+  background: var(--v2-overlay-simple-overlay-hover);
+}
+
+.project-row-editor {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-row-editor-input {
+  width: 100%;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- project list groups */
+
+.settings-projects-group-trigger {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.settings-projects-group-trigger:focus-visible {
+  outline: none;
+}
+
+.settings-projects-group-trigger:focus-visible .settings-section-title {
+  text-decoration: underline;
+}
+
+.settings-projects-group-chevron {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--v2-icon-icon-muted);
+}
+
+.settings-projects-group-chevron > [data-slot="icon-svg"] {
+  transition: transform 150ms ease;
+  transform: rotate(-90deg);
+}
+
+.settings-projects-group-chevron.open > [data-slot="icon-svg"] {
+  transform: rotate(0deg);
+}
+
+:dir(rtl) .settings-projects-group-chevron > [data-slot="icon-svg"] {
+  transform: rotate(90deg);
+}
+
+:dir(rtl) .settings-projects-group-chevron.open > [data-slot="icon-svg"] {
+  transform: rotate(0deg);
+}
+
+/* ---------------------------------------------------------------- knowledge */
 
 .project-settings-knowledge-meta {
   display: flex;
@@ -370,17 +432,23 @@
   gap: 8px;
 }
 
+.project-settings-knowledge-description {
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
 .project-settings-knowledge-empty {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding-block: 12px;
+  padding-block: 10px;
 }
 
 :root[data-motion="reduce"] {
-  .project-settings-icon-overlay,
-  .project-settings-color,
+  .settings-projects-group-chevron > [data-slot="icon-svg"],
   .project-settings-shared-chevron {
     transition: none;
   }

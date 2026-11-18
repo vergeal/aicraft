@@ -52,7 +52,7 @@ test("a working Home session keeps its project avatar and shows its activity rin
   await page.goto("/")
   const ring = row(page, working.title).locator('[data-component="activity-ring"]')
   await expect(ring).toBeVisible()
-  await expect(row(page, working.title).locator('[data-component="project-avatar-v2"]')).toBeVisible()
+  await expect(row(page, working.title).locator('[data-component="project-folder"]')).toBeVisible()
   await expect(row(page, idle.title).locator('[data-component="activity-ring"]')).toHaveCount(0)
 
   // The ring trails the title rather than standing in for the avatar.

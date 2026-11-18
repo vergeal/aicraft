@@ -24,7 +24,7 @@ import { Persist, persisted } from "@/runtime/persistence/storage"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal, useServerCtx } from "@/runtime/server/runtime"
 import type { Project } from "@/runtime/server/types"
-import { ProjectIcon } from "@/shell/layout/project-icon"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { useLayout } from "@/shell/state/layout"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs, type Tab } from "@/shell/tabs/tabs"
@@ -462,7 +462,7 @@ function ProjectRow(props: {
           onClick={props.onToggle}
         >
           <span class="flex size-4 shrink-0 items-center justify-center">
-            <ProjectIcon project={props.project} />
+            <ProjectFolder />
           </span>
           <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap" dir="auto">
             {displayName(props.project)}

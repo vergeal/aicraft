@@ -7,13 +7,16 @@ import { Loader } from "@opencode/ui/loader"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { TextField } from "@opencode/ui/text-field"
 import { Predicate } from "effect"
-import { createMemo, createSignal, For, Show, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, For, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { showToast } from "@/shell/notifications/toast"
 import type { ExperimentalConfigUpdateInput } from "@opencode/client/promise"
+import { ProviderAccountList } from "../account-list"
+import { useProviderAccountActions } from "../account-actions"
+import type { ProviderAccount } from "../accounts"
 import { baseURLError, detailsValid, idError, modelsError, providerConfig, type CustomProviderDraft } from "./draft"
 import {
   busy,
@@ -55,8 +58,15 @@ export function DialogCustomProvider(props: {
   existingKeyLoading?: boolean
   /** Every provider ID the configuration already declares. */
   taken: readonly string[]
-  /** Opens with this field focused, so "Replace API key" lands on the key instead of the top of the form. */
-  focusField?: "apiKey"
+  /**
+   * The accounts this provider already stores. Accounts belong to the provider, not to the form: they are listed and
+   * changed here so the row's menu does not have to hold a second, denser account surface.
+   */
+  accounts?: { integrationID: string; activeID?: string; items: readonly ProviderAccount[] }
+  /** Opens the connect dialog on top, so a new account can be added without losing the form underneath. */
+  onAddAccount?: () => void
+  /** A credential change makes the list that supplies `existingApiKey` stale, so the caller reloads it. */
+  onAccountChanged?: () => void
 }) {
   const language = useLanguage()
   const dialog = useDialog()
@@ -165,6 +175,40 @@ export function DialogCustomProvider(props: {
   }
 
   const set = (patch: Partial<CustomProviderDraft>) => dispatch({ type: "draft.changed", patch })
+
+  // Accounts save as they are changed: they are not part of the form, whose Cancel leaves them untouched.
+  const accountActions = useProviderAccountActions(() => props.directory)
+  const [accountBusy, setAccountBusy] = createSignal<string>()
+  const [closeWhenEmpty, setCloseWhenEmpty] = createSignal(false)
+  const providerName = () => props.provider?.name ?? props.provider?.id ?? ""
+
+  createEffect(() => {
+    if (!closeWhenEmpty()) return
+    // Removing the last account deletes the provider, so the accounts prop can disappear instead of becoming empty.
+    if (!props.accounts || props.accounts.items.length === 0) dialog.close()
+  })
+
+  const switchAccount = async (account: ProviderAccount) => {
+    const accounts = props.accounts
+
+    if (!accounts || accounts.activeID === account.id || accountBusy()) return
+    setAccountBusy(account.id)
+    await accountActions.activate({ integrationID: accounts.integrationID, provider: providerName(), account })
+    props.onAccountChanged?.()
+    setAccountBusy(undefined)
+  }
+
+  const removeAccount = async (account: ProviderAccount) => {
+    const accounts = props.accounts
+
+    if (!accounts) return
+    const final = accounts.items.length === 1
+    setAccountBusy(account.id)
+    if (final) setCloseWhenEmpty(true)
+    await accountActions.remove({ integrationID: accounts.integrationID, provider: providerName(), account, final })
+    props.onAccountChanged?.()
+    setAccountBusy(undefined)
+  }
 
   const [manual, setManual] = createSignal("")
   // A field only complains after the user leaves it: an empty form on open is not an error yet.
@@ -285,25 +329,60 @@ export function DialogCustomProvider(props: {
                     onInput={(event) => set({ baseURL: event.currentTarget.value })}
                     onBlur={() => setTouched("baseURL", true)}
                   />
-                  <TextField
-                    label={language.t("settings.providers.custom.apiKey")}
-                    type="password"
-                    autofocus={props.focusField === "apiKey"}
-                    placeholder={
-                      mode === "edit"
-                        ? language.t("settings.providers.custom.apiKey.keep")
-                        : language.t("settings.providers.custom.apiKey.placeholder")
-                    }
-                    description={
-                      mode === "edit"
-                        ? language.t("settings.providers.custom.apiKey.hint.edit")
-                        : language.t("settings.providers.custom.apiKey.hint")
-                    }
-                    value={value().apiKey}
-                    onInput={(event) => set({ apiKey: event.currentTarget.value })}
-                  />
+                  {/* A saved provider's key belongs to its accounts, which the section below edits directly. Keeping the
+                      field here as well would leave two places to change one credential, one of them behind a Cancel
+                      button that cannot undo it. */}
+                  <Show when={mode === "create"}>
+                    <TextField
+                      label={language.t("settings.providers.custom.apiKey")}
+                      type="password"
+                      placeholder={language.t("settings.providers.custom.apiKey.placeholder")}
+                      description={language.t("settings.providers.custom.apiKey.hint")}
+                      value={value().apiKey}
+                      onInput={(event) => set({ apiKey: event.currentTarget.value })}
+                    />
+                  </Show>
                 </div>
               </section>
+
+              <Show when={props.accounts && props.accounts.items.length > 0 ? props.accounts : undefined}>
+                {(accounts) => (
+                  <section class="settings-provider-custom-section">
+                    <div class="settings-provider-custom-section-head">
+                      <h2 class="settings-provider-custom-section-title">
+                        {language.t("settings.providers.account.group")}
+                      </h2>
+                      <span class="settings-provider-custom-section-note">
+                        {language.t("settings.providers.account.instant")}
+                      </span>
+                    </div>
+                    <ProviderAccountList
+                      accounts={accounts().items}
+                      activeID={accounts().activeID}
+                      size="compact"
+                      disabled={accountBusy() !== undefined}
+                      removeConfirm={(account, final) =>
+                        language.t(
+                          final
+                            ? "settings.providers.account.removeLast.confirm"
+                            : "settings.providers.account.remove.confirm",
+                          { account: account.label },
+                        )
+                      }
+                      onActivate={(account) => void switchAccount(account)}
+                      onRename={async (account, label) => {
+                        const renamed = await accountActions.rename(account, label)
+
+                        if (renamed) props.onAccountChanged?.()
+
+                        return renamed
+                      }}
+                      onRemove={(account) => void removeAccount(account)}
+                      onAdd={props.onAddAccount}
+                    />
+                  </section>
+                )}
+              </Show>
 
               <section class="settings-provider-custom-section">
                 <div class="settings-provider-custom-section-head">
@@ -456,7 +535,7 @@ export function DialogCustomProvider(props: {
             <Loader class="size-4" />
           </Show>
           {mode === "edit"
-            ? language.t("settings.providers.custom.save")
+            ? language.t("settings.providers.custom.save.config")
             : language.t("settings.providers.custom.create")}
         </Button>
       </DialogFooter>

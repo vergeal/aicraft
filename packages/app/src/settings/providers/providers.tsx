@@ -5,7 +5,6 @@ import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Loader } from "@opencode/ui/loader"
 import { Menu } from "@opencode/ui/menu"
-import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
 import { showToast } from "@/shell/notifications/toast"
 import { useQuery } from "@tanstack/solid-query"
@@ -24,8 +23,7 @@ import { CONSOLE_INTEGRATION } from "@/providers/connect/controller"
 import { DialogConnectProvider, useProviderConnectController } from "@/providers/connect/dialog"
 import { ProviderModelIcon } from "@/providers/models/provider-group"
 import { SettingsList } from "@/settings/list"
-import { activeProviderAccount, providerAccounts, type ProviderAccount } from "./accounts"
-import { AccountNameInput } from "./account-name"
+import { activeProviderAccount, providerAccounts } from "./accounts"
 import { useProviderAccountActions } from "./account-actions"
 import { SettingsPageHeader } from "@/settings/page-header"
 import {
@@ -42,25 +40,16 @@ type ProviderSource = "env" | "api" | "account" | "config" | "custom"
 type ProviderItem = ReturnType<ReturnType<typeof useProviders>["connected"]>[number]
 
 /**
- * A removal the list asks to confirm. Deleting a credential is the one action here that loses the user's data, so a
- * single menu click never performs it.
+ * A disconnect the list asks to confirm. Deleting a credential is the one action here that loses the user's data, so a
+ * single menu click never performs it. Accounts are removed inside their own list, which asks there.
  */
-type PendingRemoval =
-  | {
-      readonly kind: "disconnect"
-      readonly providerID: string
-      readonly integrationID: string
-      readonly providerIDs: readonly string[]
-      readonly providerName: string
-    }
-  | {
-      readonly kind: "account"
-      readonly providerID: string
-      readonly integrationID: string
-      readonly providerName: string
-      readonly account: ProviderAccount
-      readonly final: boolean
-    }
+type PendingRemoval = {
+  readonly kind: "disconnect"
+  readonly providerID: string
+  readonly integrationID: string
+  readonly providerIDs: readonly string[]
+  readonly providerName: string
+}
 
 const PROVIDER_NOTES = [
   { match: (id: string) => id === "opencode", key: "dialog.provider.opencode.note" },
@@ -89,8 +78,6 @@ export const SettingsProviders: Component<{
 
   const [state, setState] = createStore<{
     consoleExpanded: boolean
-    credentialID?: string
-    renaming?: string
     held?: ProviderItem[]
     confirming?: PendingRemoval
   }>({
@@ -240,6 +227,40 @@ export const SettingsProviders: Component<{
     )
   }
 
+  // Accounts are the provider's, not the row's. Both entry points open the account surface the connect dialog already
+  // draws: Settings does not grow a second account list in a dropdown. `adding` skips the list when the caller already
+  // shows it, as the edit sheet does.
+  const openAccountSheet = (integrationID: string, adding = false) => {
+    setState("held", available())
+    providerConnect.select(integrationID)
+    void dialog.show(
+      () => (
+        <DialogConnectProvider
+          directory={props.directory}
+          defaultLocation={props.directory === undefined}
+          controller={providerConnect}
+          standalone
+          initialAccounts
+          initialAdding={adding}
+          onConnected={(providerID) => dispatch({ type: "provider.reconnected", providerID })}
+        />
+      ),
+      () =>
+        void accountActions
+          .refresh()
+          .catch(() => undefined)
+          .finally(() => {
+            void credentials.refetch()
+            setState("held", undefined)
+          }),
+    )
+  }
+
+  const manageAccounts = (item: ProviderItem) => openAccountSheet(item.integrationID ?? item.id)
+
+  // The account list already shows every stored account, so adding one starts at the step that creates it.
+  const addAccount = (provider: CustomProvider) => openAccountSheet(provider.id, true)
+
   const available = createMemo(() => {
     if (state.held) return state.held
     const connected = providers.connected()
@@ -311,7 +332,22 @@ export const SettingsProviders: Component<{
     ...custom().map((item) => item.id),
   ])
 
-  const openCustom = (provider?: CustomProvider, focusField?: "apiKey") => {
+  // The accounts a custom provider already stores, read from the same lists the row does, so switching or renaming one
+  // inside the dialog needs no second source of truth.
+  const providerAccountList = (provider: CustomProvider) => {
+    const current = integrations.list().find((entry) => entry.id === provider.id)
+    const items = providerAccounts(current)
+
+    if (items.length === 0) return undefined
+
+    return {
+      integrationID: current?.id ?? provider.id,
+      activeID: activeProviderAccount(current, isActiveCredential)?.id,
+      items,
+    }
+  }
+
+  const openCustom = (provider?: CustomProvider) => {
     setState("held", available())
     void dialog.show(
       () => (
@@ -322,7 +358,10 @@ export const SettingsProviders: Component<{
           // Discovery borrows the stored key on edit, so it has to wait for the list that supplies it.
           existingKeyLoading={!credentials.data}
           taken={providerIDs()}
-          focusField={focusField}
+          accounts={provider ? providerAccountList(provider) : undefined}
+          onAddAccount={provider ? () => addAccount(provider) : undefined}
+          // Switching an account changes which key discovery borrows, so the credential list has to be reloaded.
+          onAccountChanged={() => void credentials.refetch()}
         />
       ),
       () => {
@@ -410,205 +449,83 @@ export const SettingsProviders: Component<{
     })
   }
 
-  const requestRemoveAccount = (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
-    setState("confirming", {
-      kind: "account",
-      providerID: provider.id,
-      integrationID: provider.integrationID ?? provider.id,
-      providerName,
-      account,
-      final: providerAccounts(integration(provider)).length === 1,
-    })
-  }
-
   const cancelRemoval = () => setState("confirming", undefined)
 
   const confirmRemoval = () => {
     const pending = state.confirming
 
     if (!pending) return
-
     setState("confirming", undefined)
-
-    if (pending.kind === "disconnect") {
-      dispatch({
-        type: "disconnect.requested",
-        providerIDs: [...pending.providerIDs],
-        integrationID: pending.integrationID,
-        providerName: pending.providerName,
-      })
-
-      return
-    }
-
-    void removeAccount(pending)
-  }
-
-  const removeAccount = async (removal: Extract<PendingRemoval, { kind: "account" }>) => {
-    setState({ credentialID: removal.account.id, held: available() })
-    await accountActions.remove({
-      integrationID: removal.integrationID,
-      provider: removal.providerName,
-      account: removal.account,
-      final: removal.final,
+    dispatch({
+      type: "disconnect.requested",
+      providerIDs: [...pending.providerIDs],
+      integrationID: pending.integrationID,
+      providerName: pending.providerName,
     })
-    void credentials.refetch()
-    setState({ credentialID: undefined, held: undefined })
   }
 
-  const activate = async (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
-    if (activeProviderAccount(integration(provider), isActiveCredential)?.id === account.id) return
-    setState({ credentialID: account.id, held: available() })
-    await accountActions.activate({
-      integrationID: provider.integrationID ?? provider.id,
-      provider: providerName,
-      account,
-    })
-    void credentials.refetch()
-    setState({ credentialID: undefined, held: undefined })
-  }
-
-  // The row offers one menu, and that menu holds everything the row can do: the accounts under their own labelled
-  // group, the provider form, and removal. Accounts used to sit on the row as a wide trigger printing their own name,
-  // which repeated the provider name above it and left a second dots menu beside it for the same account.
+  // Every row offers exactly one menu, and that menu only holds what the row itself owns. Accounts belong to the
+  // provider, not to the row: a custom provider lists them inside "Edit provider", and any other provider opens the
+  // account page the connect dialog already draws. Keeping the account list in the menu made a second, denser settings
+  // surface out of a dropdown, with the provider's own actions buried under it.
   function RowMenu(menuProps: { item: ProviderItem; name: string }) {
-    const accounts = () => providerAccounts(integration(menuProps.item))
-    const active = () => activeProviderAccount(integration(menuProps.item), isActiveCredential)
     const custom = () => customProvider(menuProps.item.id)
-    const busy = () => state.credentialID !== undefined
-    // A rename in flight replaces the menu with the name field, so the field sits where the row's control was.
-    const renaming = () => accounts().find((account) => account.id === state.renaming)
+    const accounts = () => canManageAccounts(menuProps.item)
+    const disconnect = () => !custom() && canDisconnect(menuProps.item)
 
     return (
-      <Show
-        when={renaming()}
-        fallback={
-          <Menu placement="bottom-end" gutter={6}>
-            <Menu.Trigger
-              as={IconButton}
-              variant="ghost-muted"
-              size="large"
-              icon={<Icon name="outline-dots" />}
-              aria-label={language.t("settings.providers.row.menu", { provider: menuProps.name })}
-            />
-            <Menu.Portal>
-              <Menu.Content
-                class="settings-provider-account-menu"
-                onEscapeKeyDown={(event) => event.stopPropagation()}
-                onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}
-              >
-                <Show when={canManageAccounts(menuProps.item)}>
-                  <Menu.Group>
-                    <Menu.GroupLabel>{language.t("settings.providers.account.group")}</Menu.GroupLabel>
-                    <MenuScroll
-                      class="settings-provider-account-scroll"
-                      viewportClass="settings-provider-account-viewport"
-                    >
-                      <Menu.RadioGroup
-                        class="settings-provider-account-list"
-                        value={active()?.id}
-                        onChange={(credentialID) => {
-                          const account = accounts().find((entry) => entry.id === credentialID)
-
-                          if (account) void activate(menuProps.item, menuProps.name, account)
-                        }}
-                      >
-                        <For each={accounts()}>
-                          {(account) => (
-                            <Menu.RadioItem value={account.id} closeOnSelect disabled={busy()}>
-                              <span class="settings-provider-account-label">{account.label}</span>
-                            </Menu.RadioItem>
-                          )}
-                        </For>
-                      </Menu.RadioGroup>
-                    </MenuScroll>
-                  </Menu.Group>
-                  <Menu.Separator />
-                  <Menu.Item disabled={busy()} onSelect={() => connect(menuProps.item.id)}>
-                    <Icon name="plus" size="small" class="shrink-0" />
-                    {language.t("settings.providers.account.add")}
+      <Menu placement="bottom-end" gutter={6}>
+        <Menu.Trigger
+          as={IconButton}
+          variant="ghost-muted"
+          size="large"
+          icon={<Icon name="outline-dots" />}
+          aria-label={language.t("settings.providers.row.menu", { provider: menuProps.name })}
+        />
+        <Menu.Portal>
+          <Menu.Content class="settings-provider-row-menu">
+            <Show when={accounts() && !custom()}>
+              <Menu.Item onSelect={() => manageAccounts(menuProps.item)}>
+                {language.t("settings.providers.account.manage.menu")}
+              </Menu.Item>
+            </Show>
+            <Show when={custom()}>
+              {(provider) => (
+                <>
+                  <Menu.Item onSelect={() => openCustom(provider())}>
+                    {language.t("settings.providers.custom.edit")}
                   </Menu.Item>
                   <Menu.Separator />
-                  <Menu.Item disabled={busy() || !active()} onSelect={() => setState("renaming", active()?.id)}>
-                    {language.t("common.rename")}
+                  <Menu.Item data-variant="critical" onSelect={() => deleteCustom(provider())}>
+                    {language.t("settings.providers.custom.delete.menu")}
                   </Menu.Item>
-                  <Menu.Item
-                    disabled={busy() || !active()}
-                    onSelect={() => {
-                      const account = active()
-
-                      if (account) requestRemoveAccount(menuProps.item, menuProps.name, account)
-                    }}
-                  >
-                    {language.t("dialog.provider.accounts.remove")}
-                  </Menu.Item>
-                </Show>
-                <Show when={!canManageAccounts(menuProps.item) && canDisconnect(menuProps.item)}>
-                  <Menu.Item onSelect={() => requestDisconnect(menuProps.item, menuProps.name)}>
-                    {language.t("common.disconnect")}
-                  </Menu.Item>
-                </Show>
-                <Show when={custom()}>
-                  {(provider) => (
-                    <>
-                      <Show when={canManageAccounts(menuProps.item) || canDisconnect(menuProps.item)}>
-                        <Menu.Separator />
-                      </Show>
-                      <Menu.Item onSelect={() => openCustom(provider())}>
-                        {language.t("settings.providers.custom.edit")}
-                      </Menu.Item>
-                      <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
-                        {language.t("settings.providers.custom.keyReplace")}
-                      </Menu.Item>
-                      <Menu.Separator />
-                      <Menu.Item data-variant="critical" onSelect={() => deleteCustom(provider())}>
-                        {language.t("settings.providers.custom.delete.menu")}
-                      </Menu.Item>
-                    </>
-                  )}
-                </Show>
-              </Menu.Content>
-            </Menu.Portal>
-          </Menu>
-        }
-      >
-        {(account) => (
-          <AccountNameInput
-            value={account().label}
-            class="settings-provider-account-input"
-            onSave={(label) => accountActions.rename(account(), label)}
-            onClose={() => setState("renaming", undefined)}
-          />
-        )}
-      </Show>
+                </>
+              )}
+            </Show>
+            <Show when={disconnect()}>
+              <Menu.Item onSelect={() => requestDisconnect(menuProps.item, menuProps.name)}>
+                {language.t("common.disconnect")}
+              </Menu.Item>
+            </Show>
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu>
     )
   }
 
   // The row keeps its layout and turns its action area into the question, the way the connect dialog's account list
   // does. The sentence truncates rather than pushing the buttons out of the row.
-  function ConfirmRemoval(confirmProps: { pending: PendingRemoval }) {
-    const text = () => {
-      const pending = confirmProps.pending
-
-      if (pending.kind === "disconnect") return language.t("settings.providers.disconnect.confirm")
-
-      return pending.final
-        ? language.t("settings.providers.account.removeLast.confirm")
-        : language.t("settings.providers.account.remove.confirm", { account: pending.account.label })
-    }
-
+  function ConfirmRemoval() {
     return (
       <div class="settings-provider-confirm">
         <span role="alert" class="settings-provider-confirm-text">
-          {text()}
+          {language.t("settings.providers.disconnect.confirm")}
         </span>
         <Button size="small" variant="ghost-muted" onClick={cancelRemoval}>
           {language.t("common.cancel")}
         </Button>
         <Button size="small" variant="neutral" onClick={confirmRemoval}>
-          {confirmProps.pending.kind === "disconnect"
-            ? language.t("common.disconnect")
-            : language.t("dialog.provider.accounts.remove")}
+          {language.t("common.disconnect")}
         </Button>
       </div>
     )
@@ -700,9 +617,11 @@ export const SettingsProviders: Component<{
                                     </Button>
                                   )}
                                 </Show>
+                                {/* A custom provider without a key has nothing for the edit sheet to save: its key is a
+                                    credential, so the button opens the connect step that asks for one. */}
                                 <Show when={!canDisconnect(item) && customProvider(item.id)}>
                                   {(provider) => (
-                                    <Button size="normal" variant="neutral" onClick={() => openCustom(provider())}>
+                                    <Button size="normal" variant="neutral" onClick={() => addAccount(provider())}>
                                       {language.t("settings.providers.custom.keyMissing")}
                                     </Button>
                                   )}
@@ -736,7 +655,7 @@ export const SettingsProviders: Component<{
                               </div>
                             }
                           >
-                            {(pending) => <ConfirmRemoval pending={pending()} />}
+                            <ConfirmRemoval />
                           </Show>
                         </div>
                       }
@@ -802,7 +721,7 @@ export const SettingsProviders: Component<{
                                 </Show>
                               }
                             >
-                              {(pending) => <ConfirmRemoval pending={pending()} />}
+                              <ConfirmRemoval />
                             </Show>
                           </div>
                           <Show when={state.consoleExpanded}>

@@ -50,10 +50,8 @@ import { ConsoleAuthorization } from "./console"
 import { DialogChatGPTPlanWelcome } from "./chatgpt-welcome"
 import { authServerName, RemoteAuthNotice } from "./remote"
 import { providerAccounts, type ProviderAccount } from "@/settings/providers/accounts"
-import { AccountNameInput } from "@/settings/providers/account-name"
+import { ProviderAccountList } from "@/settings/providers/account-list"
 import { useProviderAccountActions } from "@/settings/providers/account-actions"
-import { IconButton } from "@opencode/ui/icon-button"
-import { Menu } from "@opencode/ui/menu"
 import "@/shell/search-list.css"
 import "./models.css"
 
@@ -78,6 +76,10 @@ export const DialogConnectProvider: Component<{
   selection?: ModelSelection
   onDone?: () => void
   onConnected?: (provider: string) => void
+  /** Opens on the account list of an already connected provider, so Settings can manage accounts directly. */
+  initialAccounts?: boolean
+  /** Opens on the first step of adding an account rather than on the list of the ones already stored. */
+  initialAdding?: boolean
 }> = (props) => {
   const fallback = useProviderConnectController()
   const controller = props.controller ?? fallback
@@ -90,14 +92,16 @@ export const DialogConnectProvider: Component<{
     picked: boolean
     stepBack: boolean
     accounts: boolean
+    adding: boolean
     title: string
   }>({
     completed: false,
     authorization: false,
     chatgptWelcome: false,
-    picked: false,
+    picked: props.initialAccounts === true || props.initialAdding === true,
     stepBack: false,
-    accounts: false,
+    accounts: props.initialAccounts === true,
+    adding: props.initialAdding === true,
     title: "",
   })
 
@@ -131,6 +135,7 @@ export const DialogConnectProvider: Component<{
             <ProviderConnection
               provider={provider}
               accounts={state.picked}
+              initialAdding={props.initialAdding}
               directory={props.directory}
               defaultLocation={props.defaultLocation}
               onBack={reset}
@@ -462,6 +467,7 @@ function ProviderConnection(props: {
   onAccounts: (accounts: boolean) => void
   onTitle: (title: string) => void
   accounts?: boolean
+  initialAdding?: boolean
 }) {
   const dialog = useDialog()
   const params = useParams()
@@ -502,7 +508,7 @@ function ProviderConnection(props: {
     replacing: string[]
   }>({
     replacing: [],
-    adding: false,
+    adding: props.initialAdding === true,
     direct: false,
     copied: false,
     copyFailed: false,
@@ -1438,117 +1444,19 @@ function ProviderConnection(props: {
 
   function AccountsView() {
     return (
-      <div data-component="provider-accounts" class="flex flex-col gap-0.5">
-        <div
-          role="radiogroup"
-          aria-label={language.t("dialog.provider.accounts.connected")}
-          class="flex flex-col gap-0.5"
-        >
-          <For each={accounts()}>
-            {(account) => (
-              <Show
-                when={state.confirming !== account.id}
-                fallback={
-                  <div class="flex min-h-7 items-center gap-1.5 rounded-md ps-7 pe-0.5 text-[15px] leading-5 tracking-[-0.04px]">
-                    <span role="alert" class="min-w-0 flex-1 truncate font-[400] text-v2-text-text-base">
-                      {language.t("dialog.provider.accounts.removeConfirm", { account: account.label })}
-                    </span>
-                    <Button variant="ghost-muted" onClick={() => setState("confirming", undefined)}>
-                      {language.t("common.cancel")}
-                    </Button>
-                    <Button variant="neutral" onClick={() => void removeAccount(account)}>
-                      {language.t("dialog.provider.accounts.remove")}
-                    </Button>
-                  </div>
-                }
-              >
-                <div class="group relative flex min-h-7 items-center rounded-md hover:bg-v2-overlay-simple-overlay-hover focus-within:bg-v2-overlay-simple-overlay-hover has-[[data-expanded]]:bg-v2-overlay-simple-overlay-hover">
-                  <Show
-                    when={state.renaming !== account.id}
-                    fallback={
-                      <div class="flex min-h-7 min-w-0 flex-1 items-center ps-7 pe-2">
-                        <AccountNameInput
-                          value={account.label}
-                          class="-ms-1 max-w-full text-[15px] font-[400] leading-5 tracking-[-0.04px] text-v2-text-text-base"
-                          onSave={(label) => accountActions.rename(account, label)}
-                          onClose={() => setState("renaming", undefined)}
-                        />
-                      </div>
-                    }
-                  >
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={activeAccount() === account.id}
-                      class="flex min-h-7 min-w-0 flex-1 items-center gap-1.5 ps-1.5 pe-2 text-start text-[15px] leading-5 tracking-[-0.04px] focus-visible:outline-none"
-                      disabled={state.switching !== undefined}
-                      onClick={() => selectAccount(account)}
-                    >
-                      <span class="flex size-4 shrink-0 items-center justify-center">
-                        <Show when={activeAccount() === account.id}>
-                          <Icon name="check" size="small" class="text-v2-icon-icon-base" />
-                        </Show>
-                      </span>
-                      <span class="min-w-0 truncate font-[400] text-v2-text-text-base">{account.label}</span>
-                      <Show when={account.status}>
-                        {(status) => (
-                          <span
-                            data-slot="provider-account-status"
-                            title={status().message}
-                            class="ms-auto shrink-0 font-[400] text-[var(--v2-state-fg-warning)]"
-                          >
-                            {language.t("dialog.provider.needsSignIn")}
-                          </span>
-                        )}
-                      </Show>
-                    </button>
-                  </Show>
-                  <div class="hover-reveal flex shrink-0 items-center pe-1 group-hover:opacity-100 focus-within:opacity-100 has-[[data-expanded]]:opacity-100">
-                    <Menu gutter={4} modal={false} placement="bottom-end">
-                      <Menu.Trigger
-                        as={IconButton}
-                        variant="ghost-muted"
-                        size="small"
-                        icon={<Icon name="outline-dots" />}
-                        disabled={state.switching !== undefined}
-                        aria-label={language.t("dialog.provider.accounts.options", { account: account.label })}
-                      />
-                      {/* The modal dialog aria-hides anything added outside it, this portal included, a frame
-                            after it opens. Kobalte leaves a node marked as a top layer visible. */}
-                      <Menu.Portal
-                        ref={(el) => {
-                          el.dataset.reactAriaTopLayer = "true"
-                        }}
-                      >
-                        <Menu.Content onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}>
-                          <Menu.Item onSelect={() => setState({ renaming: account.id, confirming: undefined })}>
-                            {language.t("common.rename")}
-                          </Menu.Item>
-                          <Menu.Item onSelect={() => setState({ confirming: account.id, renaming: undefined })}>
-                            {language.t("dialog.provider.accounts.remove")}
-                          </Menu.Item>
-                        </Menu.Content>
-                      </Menu.Portal>
-                    </Menu>
-                  </div>
-                </div>
-              </Show>
-            )}
-          </For>
-        </div>
-        <button
-          type="button"
-          data-action="provider-account-add"
-          class="flex h-7 w-full items-center gap-1.5 rounded-md ps-1.5 pe-2 text-start text-[15px] font-[400] leading-5 tracking-[-0.04px] text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none disabled:pointer-events-none"
-          disabled={state.switching !== undefined || view().methods.length === 0}
-          onClick={addAccount}
-        >
-          <span class="flex size-4 shrink-0 items-center justify-center">
-            <Icon name="plus" class="text-v2-icon-icon-muted" />
-          </span>
-          {language.t("dialog.provider.accounts.add")}
-        </button>
-      </div>
+      <ProviderAccountList
+        accounts={accounts()}
+        activeID={activeAccount()}
+        size="comfortable"
+        disabled={state.switching !== undefined}
+        removeConfirm={(account) => language.t("dialog.provider.accounts.removeConfirm", { account: account.label })}
+        onActivate={(account) => void activateAccount(account)}
+        onReconnect={selectAccount}
+        onRename={(account, label) => accountActions.rename(account, label)}
+        onRemove={(account) => void removeAccount(account)}
+        onAdd={addAccount}
+        addDisabled={view().methods.length === 0}
+      />
     )
   }
 

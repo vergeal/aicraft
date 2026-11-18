@@ -1913,83 +1913,10 @@
   white-space: nowrap;
 }
 
-.settings-provider-account-input {
-  /* `field-sizing: content` sizes the field from the name; a percentage width overrode it, and a percentage
-     max-width resolved against the group's own content width, so a long name was cut after four glyphs. */
-  width: auto;
-  max-width: 240px;
-  min-width: 96px;
-  height: var(--settings-input);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 18px;
-  color: var(--v2-text-text-base);
-}
-
-.settings-provider-account-input:focus-visible {
-  outline: var(--settings-focus-outline);
-  outline-offset: 1px;
-}
-
-.settings-provider-account-input:disabled {
-  background: var(--v2-background-bg-layer-02);
-}
-
-/* The menu is placed by its popper, so only the width and inner rhythm come from here; the surface comes from the
-   shared glass menu. */
-.settings-provider-account-menu[data-component="menu-v2-content"] {
-  width: min(240px, calc(100vw - 32px));
-  padding: 8px;
-  border-radius: 8px;
-  overflow: visible;
-}
-
-.settings-provider-account-scroll {
-  margin-top: 6px;
-}
-
-/* The list scrolls inside MenuScroll, whose thumb is drawn over the content instead of taking width: the native bar
-   used to shave 8px off the rows at the inline end, so their highlight stopped short of the group label and the
-   "Add account" row under them. */
-.settings-provider-account-viewport {
-  max-height: min(240px, calc(var(--kb-popper-content-available-height) - 120px));
-}
-
-.settings-provider-account-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* The account rows are RadioItems: Kobalte renders them as a div carrying `data-component="menu-v2-item"`, so the
-   menu's own 28px/12px/15px rhythm is reset to the spec's 32px / 8px / 13px here. */
-.settings-provider-account-list [data-component="menu-v2-item"] {
-  height: 32px;
-  padding-inline: 8px;
-  border-radius: 5px;
-}
-
-.settings-provider-account-list [data-component="menu-v2-item"] [data-slot="menu-v2-item-content"] {
-  font-size: 13px;
-  line-height: 18px;
-}
-
-/* The account name is the row's content, not a group label: it reads at the item's size and foreground. */
-.settings-provider-account-label {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--v2-text-text-base);
-  font-size: 13px;
-  line-height: 18px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@container settings-panel (max-width: 520px) {
-  .settings-provider-account-input {
-    max-width: 100%;
-  }
+/* The row menu holds three actions at most, so it only needs a floor: a bare dropdown that hugs its longest label
+   reads as a tooltip, and two rows side by side stop lining up. */
+.settings-provider-row-menu[data-component="menu-v2-content"] {
+  min-width: 184px;
 }
 
 .settings-providers-view-all {
@@ -3633,6 +3560,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The account list is the one part of this sheet that does not wait for the footer: saying so beside its title keeps
+   the Cancel button from reading as an undo it cannot perform. */
+.settings-provider-custom-section-note {
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .settings-provider-custom-fields {
   display: flex;
   flex-direction: column;
@@ -4137,10 +4072,6 @@
   color: var(--v2-text-text-muted);
 }
 
-[data-color-scheme="light"] .settings-provider-account-input:disabled {
-  background: var(--v2-background-bg-layer-02);
-}
-
 /* Hover bands are white ink in dark, so light needs dark ink at the same strengths. */
 @media (hover: hover) {
   [data-color-scheme="light"] .settings-provider-row:hover {
@@ -4242,7 +4173,6 @@
    - `[data-slot="text-input-v2-input"]` — its `:focus-within` wrapper is the field's focus mark.
    - `[data-slot="input-input"]` — the same deal for `TextField`: its `[data-slot="input-wrapper"]` draws the ring on
      `:focus-within`, and the input itself states `outline: none`.
-   - `.settings-provider-account-input` — a native input, whose outline base.css never suppressed.
    - `.settings-workspaces-active` — a focusable span that keeps its own outline.
    - `.search-list-row` — draws the inset ring from `providers/models/manage.css`.
    - `input[type="range"]` — a native slider, whose UA focus ring is not suppressed.
@@ -4271,7 +4201,6 @@
     [data-slot="switch-input"],
     [data-slot="text-input-v2-input"],
     [data-slot="input-input"],
-    .settings-provider-account-input,
     .settings-workspaces-active,
     .search-list-row,
     input[type="range"]

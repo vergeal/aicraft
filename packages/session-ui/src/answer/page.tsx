@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, createUniqueId, on, onCleanup, type JSX } from "solid-js"
+import { For, Show, createContext, createEffect, createMemo, createSignal, createUniqueId, on, onCleanup, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
 import type { SessionMessageInfo } from "@opencode/client/promise"
@@ -27,6 +27,13 @@ export type TranscriptView = "compact" | "standard" | "detailed" | "verbose"
 export type CollapseTiming = "completion" | "next-input"
 
 export type FoldedReplies = "all" | "final"
+
+type RowDisclosure = {
+  open: (key: string) => boolean | undefined
+  toggle: (key: string, next: boolean) => void
+}
+
+const RowDisclosureContext = createContext<RowDisclosure>()
 
 export interface AnswerPageProps {
   readonly messages: () => readonly SessionMessageInfo[]
@@ -184,6 +191,9 @@ export function AnswerPage(props: AnswerPageProps) {
   const snapshot = createMemo(() => projectTimeline(props.messages()))
   const [folded, setFolded] = createStore<Record<number, boolean | undefined>>({})
   const [openGroups, setOpenGroups] = createStore<Record<string, boolean | undefined>>({})
+  // Row disclosures live here rather than in the row components: streamed projection rebuilds those
+  // components, and local state would come back closed.
+  const [openRows, setOpenRows] = createStore<Record<string, boolean | undefined>>({})
   const [now, setNow] = createSignal(Date.now())
 
   const view = () => props.view ?? "standard"
@@ -227,8 +237,14 @@ export function AnswerPage(props: AnswerPageProps) {
   }
 
   return (
-    <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
-      <div class="mx-auto flex w-full max-w-[952px] flex-col px-4 pt-4 pb-10">
+    <RowDisclosureContext.Provider
+      value={{
+        open: (key) => openRows[key],
+        toggle: (key, next) => setOpenRows(key, next),
+      }}
+    >
+      <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
+        <div class="mx-auto flex w-full max-w-[952px] flex-col px-4 pt-4 pb-10">
         <For each={keys()}>
           {(key, position) => {
             const entry = createMemo(() => index().get(key))
@@ -288,8 +304,9 @@ export function AnswerPage(props: AnswerPageProps) {
             )
           }}
         </For>
+        </div>
       </div>
-    </div>
+    </RowDisclosureContext.Provider>
   )
 }
 
@@ -601,6 +618,9 @@ function RunHeader(props: {
 function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolean }): JSX.Element | null {
   if (props.node.hidden) return null
 
+  const rows = useContext(RowDisclosureContext)
+  const key = props.node.key
+
   return (
     <div
       data-slot="answer-row"
@@ -608,12 +628,26 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
       data-message-id={props.node.messageID}
       data-timeline-part-id={props.node.partID}
     >
-      <Payload payload={props.node.payload} cacheKey={props.node.key} view={props.view} live={props.live} />
+      <Payload
+        payload={props.node.payload}
+        cacheKey={key}
+        view={props.view}
+        live={props.live}
+        rowOpen={rows?.open(key)}
+        onToggleRow={rows ? (next) => rows.toggle(key, next) : undefined}
+      />
     </div>
   )
 }
 
-function Payload(props: { payload: NodePayload; cacheKey: string; view: TranscriptView; live: boolean }): JSX.Element {
+function Payload(props: {
+  payload: NodePayload
+  cacheKey: string
+  view: TranscriptView
+  live: boolean
+  rowOpen?: boolean
+  onToggleRow?: (next: boolean) => void
+}): JSX.Element {
   switch (props.payload.kind) {
     case "input":
       return (
@@ -647,10 +681,12 @@ function Payload(props: { payload: NodePayload; cacheKey: string; view: Transcri
           streaming={props.payload.streaming}
           live={props.live}
           preview={props.view !== "compact"}
+          rowOpen={props.rowOpen}
+          onToggleRow={props.onToggleRow}
         />
       )
     case "tool":
-      return <ToolRow tool={props.payload.tool} />
+      return <ToolRow tool={props.payload.tool} rowOpen={props.rowOpen} onToggleRow={props.onToggleRow} />
     case "notice":
       return (
         <div class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[24px]" style={{ color: "var(--answer-ink-tertiary)" }}>
@@ -774,19 +810,19 @@ function DisclosureRow(props: {
   )
 }
 
-function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean; preview?: boolean }) {
+function ReasoningRow(props: {
+  text: string
+  streaming?: boolean
+  live: boolean
+  preview?: boolean
+  rowOpen?: boolean
+  onToggleRow?: (next: boolean) => void
+}) {
   const i18n = useI18n()
   // Only this reasoning part, inside a running turn, is live; a finished step stops spinning at once.
   const streaming = () => props.live === true && props.streaming === true
-  const [expanded, setExpanded] = createSignal(streaming())
-  // Once the reader opens or closes this row, streaming state stops overriding them.
-  let readerToggled = false
-
-  createEffect(
-    on(streaming, (live) => {
-      if (!readerToggled) setExpanded(live)
-    }),
-  )
+  // The row's disclosure outlives this component, so a streamed rebuild cannot close it again.
+  const expanded = () => props.rowOpen ?? streaming()
 
   const preview = () => (props.preview === false ? undefined : reasoningPreview(props.text, streaming()))
 
@@ -803,10 +839,7 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
           </span>
         </Show>
       }
-      onToggle={() => {
-        readerToggled = true
-        setExpanded((value) => !value)
-      }}
+      onToggle={() => props.onToggleRow?.(!expanded())}
     >
       <Markdown
         text={props.text}
@@ -819,11 +852,16 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
   )
 }
 
-function ToolRow(props: { tool: Extract<NodePayload, { kind: "tool" }>["tool"] }) {
+function ToolRow(props: {
+  tool: Extract<NodePayload, { kind: "tool" }>["tool"]
+  rowOpen?: boolean
+  onToggleRow?: (next: boolean) => void
+}) {
   const i18n = useI18n()
   const failed = () => props.tool.state.status === "error"
   const running = () => props.tool.state.status === "running" || props.tool.state.status === "streaming"
-  const [expanded, setExpanded] = createSignal(false)
+  // Kept outside the component so a streamed rebuild does not close the row the reader opened.
+  const expanded = () => props.rowOpen ?? false
   const [copied, setCopied] = createSignal(false)
   let copyTimer: number | undefined
 
@@ -867,7 +905,7 @@ function ToolRow(props: { tool: Extract<NodePayload, { kind: "tool" }>["tool"] }
           </span>
         </Show>
       }
-      onToggle={() => setExpanded((value) => !value)}
+      onToggle={() => props.onToggleRow?.(!expanded())}
     >
       <div
         data-slot="answer-io-card"

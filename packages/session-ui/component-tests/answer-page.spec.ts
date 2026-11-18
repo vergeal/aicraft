@@ -23,8 +23,8 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   const groups = root.locator('[data-slot="answer-fold"]').first().locator('[data-slot="answer-group"]')
 
   await expect(groups).toHaveCount(1)
-  await expect(groups.first().locator("button")).toHaveAttribute("aria-expanded", "false")
-  await groups.first().locator("button").click()
+  await expect(groups.first().locator(":scope > button")).toHaveAttribute("aria-expanded", "false")
+  await groups.first().locator(":scope > button").click()
   await expect(root.locator('[data-slot="answer-disclosure"]')).toHaveCount(3)
   await expect(root.locator('[data-slot="answer-row"][data-kind="reasoning"]')).toHaveCount(1)
   await expect(root.locator('[data-slot="answer-row"][data-kind="tool"]')).toHaveCount(2)
@@ -52,7 +52,7 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
 
   // Reopening the turn keeps the reader's disclosure state: the group is still open.
   await trigger.click()
-  await expect(root.locator('[data-slot="answer-group"]').first().locator("button")).toHaveAttribute(
+  await expect(root.locator('[data-slot="answer-group"]').first().locator(":scope > button")).toHaveAttribute(
     "aria-expanded",
     "true",
   )

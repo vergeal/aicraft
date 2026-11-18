@@ -802,6 +802,50 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   }
 }
 
+/* Windows draws acrylic behind the chrome, but over a desktop it reads as a grey film rather than glass: the
+   wallpaper loses its detail and the chrome sits a step away from the opaque conversation. Windows keeps an opaque
+   window instead — one solid tint per column, no transparency and no light wash. macOS keeps its vibrancy sheet and
+   Linux the compositor's blur. */
+html[data-replica-window="translucent"][data-os="windows"]:not([data-color-scheme="dark"]) [data-replica] {
+  --color-rail: #f5f6f8;
+  --color-titlebar: var(--color-rail);
+  --color-navigation: #fbfbfd;
+  --color-sidebar: #fbfbfd;
+  background: var(--color-rail);
+}
+
+html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-replica] {
+  --color-rail: #0c0c0e;
+  --color-titlebar: var(--color-rail);
+  --color-navigation: #17171a;
+  --color-sidebar: #17171a;
+  background: transparent;
+}
+
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-shell"] {
+  background: var(--color-navigation);
+}
+
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-rail"] {
+  background: var(--color-rail);
+}
+
+html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
+  background: var(--color-titlebar);
+}
+
+/* The window root gives up its fill for translucent windows so the system material can show. Windows paints it
+   again, because nothing below the chrome should let the desktop through. */
+html[data-replica-window="translucent"][data-os="windows"]:not([data-color-scheme="dark"]):has([data-replica]),
+html[data-replica-window="translucent"][data-os="windows"]:not([data-color-scheme="dark"]) #root:has([data-replica]) {
+  background-color: #f5f6f8 !important;
+}
+
+html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"]:has([data-replica]),
+html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] #root:has([data-replica]) {
+  background-color: #0c0c0e !important;
+}
+
 /* Forced colors replaces the palette with system colours, which cannot express a translucent tint or an inset
    light line. Hand the surfaces back as Canvas and drop the highlight. The declarations are important because the
    dark-theme highlight rules are more specific than a plain element selector. */

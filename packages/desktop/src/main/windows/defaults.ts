@@ -80,10 +80,9 @@ export function platformFrame(mode: "light" | "dark", factor: number) {
     frame.titleBarOverlay = titlebarOverlay(mode, factor)
     // The replica shell is a square sheet on Windows, so Windows should not round the window underneath it.
     frame.roundedCorners = false
-    // Windows 11 draws acrylic behind the same replica chrome. Windows 10 ignores the material, and the window then
-    // shows the translucent tint over whatever the desktop compositor paints, which is still a glass sheet rather
-    // than the opaque theme colour the frame used to paint.
-    frame.backgroundMaterial = "acrylic"
+    // Windows stays opaque: its acrylic reads as a grey film over the desktop rather than glass, so the chrome paints
+    // its own solid tint and the window never samples the wallpaper.
+    frame.backgroundColor = mode === "dark" ? "#0c0c0e" : "#f5f6f8"
   }
 
   if (process.platform === "linux") {

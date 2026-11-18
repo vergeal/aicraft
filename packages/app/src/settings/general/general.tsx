@@ -5,7 +5,7 @@ import { Switch } from "@opencode/ui/switch"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { PluginSettingsSections } from "@/runtime/plugin/settings-page-view"
-import { type FollowUpBehavior, type WorkspaceDefaultDestination, useSettings } from "@/settings/model"
+import { type CollapseTiming, type FollowUpBehavior, type TranscriptViewMode, type WorkspaceDefaultDestination, useSettings } from "@/settings/model"
 import { formatKeybind } from "@/shell/commands/command"
 import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
@@ -131,6 +131,64 @@ const FollowUpBehaviorSetting: Component = () => {
   )
 }
 
+const TranscriptViewSetting: Component = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+
+  const options = createMemo((): { value: TranscriptViewMode; label: string }[] => [
+    { value: "compact", label: language.t("settings.general.row.transcriptView.compact") },
+    { value: "standard", label: language.t("settings.general.row.transcriptView.standard") },
+    { value: "detailed", label: language.t("settings.general.row.transcriptView.detailed") },
+    { value: "verbose", label: language.t("settings.general.row.transcriptView.verbose") },
+  ])
+
+  return (
+    <SettingsRow
+      title={language.t("settings.general.row.transcriptView.title")}
+      description={language.t("settings.general.row.transcriptView.description")}
+    >
+      <Select
+        data-action="settings-transcript-view"
+        options={options()}
+        current={options().find((option) => option.value === settings.general.transcriptView())}
+        value={(option) => option.value}
+        label={(option) => option.label}
+        placement="bottom-end"
+        gutter={6}
+        onSelect={(option) => option && settings.general.setTranscriptView(option.value)}
+      />
+    </SettingsRow>
+  )
+}
+
+const CollapseTimingSetting: Component = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+
+  const options = createMemo((): { value: CollapseTiming; label: string }[] => [
+    { value: "completion", label: language.t("settings.general.row.collapseTiming.completion") },
+    { value: "next-input", label: language.t("settings.general.row.collapseTiming.nextInput") },
+  ])
+
+  return (
+    <SettingsRow
+      title={language.t("settings.general.row.collapseTiming.title")}
+      description={language.t("settings.general.row.collapseTiming.description")}
+    >
+      <Select
+        data-action="settings-collapse-timing"
+        options={options()}
+        current={options().find((option) => option.value === settings.general.collapseTiming())}
+        value={(option) => option.value}
+        label={(option) => option.label}
+        placement="bottom-end"
+        gutter={6}
+        onSelect={(option) => option && settings.general.setCollapseTiming(option.value)}
+      />
+    </SettingsRow>
+  )
+}
+
 const LanguageSetting = () => {
   const language = useLanguage()
 
@@ -221,6 +279,8 @@ export const SettingsGeneral: Component = () => {
         </SettingsRow>
 
         <FollowUpBehaviorSetting />
+        <TranscriptViewSetting />
+        <CollapseTimingSetting />
       </SettingsList>
     </div>
   )

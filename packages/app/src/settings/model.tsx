@@ -17,6 +17,12 @@ export type WorkspaceLastUsed = Settings["workspaces"]["lastUsed"][string]
 
 export type FollowUpBehavior = Settings["general"]["followUpBehavior"]
 
+export type TranscriptViewMode = Settings["general"]["transcriptView"]
+
+export type CollapseTiming = Settings["general"]["collapseTiming"]
+
+export type FoldedReplies = Settings["general"]["foldedReplies"]
+
 export type BackgroundActivity = Settings["general"]["backgroundActivity"]
 
 export type TimelineWidth = Settings["general"]["timelineWidth"]
@@ -180,6 +186,9 @@ const generalSchema = Persistence.struct({
   // Owned by the review plugin, which copies it out once; kept so settings rewrites cannot drop it first.
   mobileDiffWrap: Persistence.optional(Schema.Boolean),
   followUpBehavior: Schema.Literals(["queue", "steer"]),
+  transcriptView: Schema.Literals(["compact", "standard", "detailed", "verbose"]),
+  collapseTiming: Schema.Literals(["completion", "next-input"]),
+  foldedReplies: Schema.Literals(["all", "final"]),
 })
 
 const appearanceSchema = Persistence.struct({
@@ -369,6 +378,9 @@ export const defaultSettings: Settings = {
     sidebarOrganize: "list",
     mobileTitlebarPosition: "top",
     followUpBehavior: "queue",
+    transcriptView: isDesktopRuntime() ? "standard" : "detailed",
+    collapseTiming: "completion",
+    foldedReplies: "final",
   },
   appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: "horizontal", reduceMotion: "system" },
   keybinds: {},
@@ -390,6 +402,11 @@ export const defaultSettings: Settings = {
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
   return createMemo(() => read() ?? fallback)
+}
+
+/** The desktop renderer exposes `window.electron`; the web build never does. */
+function isDesktopRuntime() {
+  return typeof window !== "undefined" && "electron" in window
 }
 
 export const { use: useSettings, provider: SettingsProvider } = createSimpleContext({
@@ -506,6 +523,18 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         followUpBehavior: withFallback(() => store.general?.followUpBehavior, defaultSettings.general.followUpBehavior),
         setFollowUpBehavior(value: FollowUpBehavior) {
           setStore("general", "followUpBehavior", value)
+        },
+        transcriptView: withFallback(() => store.general?.transcriptView, defaultSettings.general.transcriptView),
+        setTranscriptView(value: "compact" | "standard" | "detailed" | "verbose") {
+          setStore("general", "transcriptView", value)
+        },
+        collapseTiming: withFallback(() => store.general?.collapseTiming, defaultSettings.general.collapseTiming),
+        setCollapseTiming(value: "completion" | "next-input") {
+          setStore("general", "collapseTiming", value)
+        },
+        foldedReplies: withFallback(() => store.general?.foldedReplies, defaultSettings.general.foldedReplies),
+        setFoldedReplies(value: "all" | "final") {
+          setStore("general", "foldedReplies", value)
         },
       },
       visibility: {

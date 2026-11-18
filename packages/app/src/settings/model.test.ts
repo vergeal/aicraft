@@ -106,6 +106,9 @@ describe("settings schema", () => {
         sidebarOrganize: "list",
         mobileTitlebarPosition: "top",
         followUpBehavior: "queue",
+        transcriptView: "detailed",
+        collapseTiming: "completion",
+        foldedReplies: "final",
       },
       appearance: {
         fontSize: 14,

@@ -346,6 +346,74 @@ const icons = {
     viewBox: "0 0 14 14",
     body: `<path d="M2.13889 11.0833L6.22222 7L2.13889 2.91667M7.38888 11.0834H11.8611" stroke="currentColor"/>`,
   },
+  "answer-thinking": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 3.4v9.2M8 3.4c-1.1 0-1.9.8-1.9 1.8-1 .2-1.6 1-1.6 1.9 0 .6.3 1.2.8 1.5-.3.4-.5.8-.5 1.3 0 1 .8 1.8 1.8 1.8H8M8 3.4c1.1 0 1.9.8 1.9 1.8 1 .2 1.6 1 1.6 1.9 0 .6-.3 1.2-.8 1.5.3.4.5.8.5 1.3 0 1-.8 1.8-1.8 1.8H8" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-console": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M3 4.5l3.2 3.5L3 11.5M8.4 11.5H13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-read": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M4 2.8h5l3 3v7.4H4zM9 2.8v3h3M6 8h4M6 10.2h4" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-edit": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M3 13l.6-2.6 6.5-6.5 2 2-6.5 6.5L3 13ZM8.8 5.2l2 2" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-search": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M7.2 3a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4ZM10.2 10.2 13 13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-list": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M5 4.5h8M5 8h8M5 11.5h8M3 4.5h.1M3 8h.1M3 11.5h.1" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-browse": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 2.6a5.4 5.4 0 1 0 0 10.8A5.4 5.4 0 0 0 8 2.6ZM2.6 8h10.8M8 2.6c1.6 1.6 2.4 3.4 2.4 5.4S9.6 11.8 8 13.4C6.4 11.8 5.6 10 5.6 8s.8-3.8 2.4-5.4Z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-web-search": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M6.6 2.8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM6.6 2.8v8M2.6 6.8h8M9.6 9.8 13 13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-subagent": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M3.4 3.6h3.2v3.2H3.4zM9.4 9.4h3.2v3.2H9.4zM6.6 5.2h1.2a1.6 1.6 0 0 1 1.6 1.6v2.6" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-skill": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M2.8 6.6 8 4l5.2 2.6L8 9.2 2.8 6.6ZM4.8 7.8v2.8c0 1 1.4 1.8 3.2 1.8s3.2-.8 3.2-1.8V7.8M13.2 6.6v3.6" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-tool": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 2.8l4.6 2.6v5.2L8 13.2 3.4 10.6V5.4L8 2.8ZM8 8l4.6-2.6M8 8v5.2M8 8 3.4 5.4" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-context": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M4 2.8h5l3 3v7.4H4zM9 2.8v3h3M6 9h3.4M8 7.8 9.6 9 8 10.2" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-analysis": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M4.5 4h3M4.5 12h3M10 8h3M7.5 4v4M7.5 12v-4M7.5 8h2.5" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-running": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 2.8a5.2 5.2 0 1 1-4.6 7.6" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8a.7.7 0 1 0 0-1.4A.7.7 0 0 0 8 8Z" fill="none" stroke="currentColor" stroke-width="1.25"/>`,
+  },
+  "answer-success": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 2.6a5.4 5.4 0 1 0 0 10.8A5.4 5.4 0 0 0 8 2.6ZM5.4 8.2 7.2 10l3.4-3.8" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-failure": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 2.6a5.4 5.4 0 1 0 0 10.8A5.4 5.4 0 0 0 8 2.6ZM6 6l4 4M10 6l-4 4" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  "answer-interrupted": {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 2.6a5.4 5.4 0 1 0 0 10.8A5.4 5.4 0 0 0 8 2.6ZM6.4 6.4h3.2v3.2H6.4z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
 }
 
 /** Icon names derived from the shared artwork, with no UI or runtime dependencies. */

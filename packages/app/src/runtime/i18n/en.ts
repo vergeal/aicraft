@@ -1328,6 +1328,23 @@ export const dict = {
     "Choose whether to queue follow-ups or steer the current turn. Use {{keybind}} to switch.",
   "settings.general.row.followUpBehavior.queue": "Queue",
   "settings.general.row.followUpBehavior.steer": "Steer",
+  "settings.general.row.transcriptView.title": "Work details",
+  "settings.general.row.transcriptView.description":
+    "Choose how much of each turn's work to show before you expand it.",
+  "settings.general.row.transcriptView.compact": "Compact",
+  "settings.general.row.transcriptView.standard": "Standard",
+  "settings.general.row.transcriptView.detailed": "Detailed",
+  "settings.general.row.transcriptView.verbose": "Verbose",
+  "settings.general.row.collapseTiming.title": "Collapse work",
+  "settings.general.row.collapseTiming.description":
+    "When a finished turn folds its work: right away, or when you send the next message.",
+  "settings.general.row.collapseTiming.completion": "On completion",
+  "settings.general.row.collapseTiming.nextInput": "On next message",
+  "settings.general.row.foldedReplies.title": "Replies kept when folded",
+  "settings.general.row.foldedReplies.description":
+    "Keep every reply visible while a turn is folded, or only the final answer.",
+  "settings.general.row.foldedReplies.all": "All replies",
+  "settings.general.row.foldedReplies.final": "Final answer only",
   "settings.general.row.pinchZoom.title": "Pinch to zoom",
   "settings.general.row.pinchZoom.description": "Allow trackpad pinch and Ctrl-scroll gestures to zoom",
   "settings.general.row.spellcheck.title": "Spellcheck",

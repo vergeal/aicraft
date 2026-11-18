@@ -89,3 +89,36 @@ export function markdownClipboardHtml(root: Element, range: Range) {
 
   return container.innerHTML
 }
+
+/**
+ * Copy plain text, falling back to a hidden textarea when the async clipboard API is unavailable
+ * (plain-HTTP origins) or refuses the write.
+ * @param text - the text to copy
+ * @returns whether the browser copied it
+ */
+export async function writeClipboard(text: string): Promise<boolean> {
+  const written = await navigator.clipboard?.writeText(text).then(
+    () => true,
+    () => false,
+  )
+
+  if (written) return true
+  // The textarea sits beside the focused element so a focus trap, such as an open menu's, keeps its selection.
+  const active = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+  const host = active && active !== document.body ? (active.parentElement ?? document.body) : document.body
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.setAttribute("readonly", "")
+  textarea.setAttribute("aria-hidden", "true")
+  textarea.tabIndex = -1
+  textarea.style.position = "fixed"
+  textarea.style.opacity = "0"
+  textarea.style.pointerEvents = "none"
+  host.appendChild(textarea)
+  textarea.select()
+  const copied = document.execCommand("copy")
+  textarea.remove()
+  active?.focus({ preventScroll: true })
+
+  return copied
+}

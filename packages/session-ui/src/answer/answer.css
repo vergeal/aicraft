@@ -1,0 +1,36 @@
+/* The answer column mirrors the DSH conversation surface: its own label ramp, system UI face, and
+   command surface, so the transcript does not inherit the app's configurable UI font. */
+.answer-scope {
+  --answer-ink: rgb(15, 17, 21);
+  --answer-ink-secondary: rgb(97, 102, 107);
+  --answer-ink-tertiary: rgb(129, 133, 140);
+  --answer-surface: rgb(249, 250, 251);
+  --answer-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  font-family: var(--answer-font-sans);
+  color: var(--answer-ink);
+}
+
+:root[data-color-scheme="dark"] .answer-scope {
+  --answer-ink: rgb(249, 250, 251);
+  --answer-ink-secondary: rgb(207, 211, 214);
+  --answer-ink-tertiary: rgb(173, 178, 184);
+  --answer-surface: var(--v2-background-bg-layer-01);
+}
+
+.answer-scope .answer-markdown {
+  font-family: var(--answer-font-sans);
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--answer-ink);
+}
+
+/* DSH list rhythm inside the answer column only; the shared markdown surface keeps its own spacing. */
+.answer-scope .answer-markdown :is(ul, ol) {
+  margin-top: 16px;
+  margin-bottom: 0;
+  padding-inline-start: 18px;
+}
+
+.answer-scope .answer-markdown li {
+  margin-bottom: 0;
+}

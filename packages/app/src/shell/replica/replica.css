@@ -639,7 +639,7 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
 }
 
 [data-slot="replica-main"] [data-component="session-composer-dock"] > div {
-  max-width: var(--container-session, 684px);
+  max-width: 952px;
 }
 
 [data-slot="replica-main"] [data-component="session-composer-dock"] {

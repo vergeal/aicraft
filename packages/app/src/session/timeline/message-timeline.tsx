@@ -24,6 +24,7 @@ import { getReadyMarkdown, preloadMarkdown } from "@opencode/session-ui/markdown
 import { createTimelineController, type TimelineController, type TimelineSessionSource } from "./controller"
 import type { TimelineFollow } from "./follow"
 import { createTimelineVirtualizer } from "./virtualizer"
+import { AnswerTimeline } from "./answer-timeline"
 import { createSelectedEffect } from "./selected-effect"
 import { containsDirectory } from "@opencode/util/path"
 import { isWorkspaceDirectory } from "@/workspaces/paths"
@@ -674,112 +675,7 @@ function MessageTimelineView(
     </div>
   )
 
-  return (
-    <VirtualizedTimeline
-      bottomSpacer={activity()}
-      deferred={(row) => {
-        if (!Predicate.isTagged(row, "AssistantPart") || row.group.type !== "part") return false
-        const content = Timeline.resolveContent(messageByID().get(row.group.ref.messageID), row.group.ref.partID)
-
-        return content?.type === "tool" && ["edit", "write"].includes(content.name)
-      }}
-      renderRow={(row, onSizeChange) => {
-        if (collapsedRowKeys().has(TimelineRow.key(row()))) return <></>
-
-        const assistantActivity = () => (
-          <Show
-            when={
-              showWorking() && !!currentWorkingStep() && assistantActivityPlacement()?.key === TimelineRow.key(row())
-            }
-          >
-            <div class={`w-full ${turnPadding()}`} classList={{ "pt-[15px]": activityFollowsContent() }}>
-              <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
-                <SessionAssistantActivity step={currentWorkingStep()} onOpenFile={openWorkingFile} />
-              </div>
-            </div>
-          </Show>
-        )
-
-        return (
-          <Show
-            when={Predicate.isTagged(row(), "Activity")}
-            fallback={
-              <>
-                <Show
-                  when={firstAssistantRowKeys().has(TimelineRow.key(row()))}
-                  fallback={
-                    <Show
-                      when={firstUserRowKey() === TimelineRow.key(row())}
-                      fallback={<rowRenderer.Row row={row} onSizeChange={onSizeChange} />}
-                    >
-                      <div data-session-first-message>
-                        <rowRenderer.Row row={row} onSizeChange={onSizeChange} />
-                      </div>
-                    </Show>
-                  }
-                >
-                  <div data-session-first-assistant>
-                    <rowRenderer.Row row={row} onSizeChange={onSizeChange} />
-                  </div>
-                </Show>
-                <Show when={Predicate.isTagged(row(), "UserMessage")}>
-                  <Show
-                    when={showWorking() && row().userMessageID === projection.activeMessageID()}
-                    fallback={
-                      <>
-                        <Show when={workedHeaders().get(row().userMessageID)}>
-                          {(header) => (
-                            <div class={`w-full pb-[15px] pt-4 ${turnPadding()}`}>
-                              <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
-                                <SessionWorkedHeader
-                                  started={header().started}
-                                  completed={header().completed}
-                                  expandable={workedFinalAnswer().has(row().userMessageID)}
-                                  expanded={expandedTurns().has(row().userMessageID)}
-                                  onToggle={() => toggleWorked(row().userMessageID)}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </Show>
-                        <Show when={interruptedHeaders().get(row().userMessageID)}>
-                          {(header) => (
-                            <div class={`w-full pb-[15px] pt-4 ${turnPadding()}`}>
-                              <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
-                                <SessionInterruptedHeader
-                                  started={header().started}
-                                  completed={header().completed}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </Show>
-                      </>
-                    }
-                  >
-                    <div class={`w-full pb-[15px] pt-4 ${turnPadding()}`}>
-                      <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
-                        <SessionWorkingHeader started={workingStartedAt()} />
-                      </div>
-                    </div>
-                  </Show>
-                </Show>
-                {assistantActivity()}
-              </>
-            }
-          >
-            {(_) => {
-              // This row sits above input still waiting for delivery. Until live status first shows, it takes no room,
-              // so the waiting input keeps the place delivery leaves it. Once shown, the lane stays for the life of the
-              // row: Working hides and returns several times in one step, and each change would move that input 36px.
-              const shown = createMemo((was) => was || backgroundHintPresence.present(), false)
-
-              return <Show when={shown()}>{activity()}</Show>
-            }}
-          </Show>
-        )
-      }}
-      header={
+  const header = (
         <Show when={!props.hideHeader}>
           <SessionTitleHeader>
             <SessionHeaderLayout
@@ -957,7 +853,137 @@ function MessageTimelineView(
             </SessionHeaderLayout>
           </SessionTitleHeader>
         </Show>
-      }
+  )
+
+  return (
+    <AnswerTimeline
+      header={header}
+      showHeader={showHeader()}
+      activity={activity()}
+      messages={() => props.data.messages()}
+      view={props.data.transcriptView()}
+      collapseTiming={props.data.collapseTiming()}
+      foldedReplies={props.data.foldedReplies()}
+      bottomInset={props.bottomInset ?? 0}
+      setScrollRef={props.setScrollRef}
+      setVisibleRef={props.setVisibleRef}
+      onScheduleScrollState={props.onScheduleScrollState}
+      onUserScroll={props.onUserScroll}
+      onHistoryScroll={props.onHistoryScroll}
+      onContentResize={props.onContentResize}
+      setRevealMessage={props.setRevealMessage}
+      setRevealPart={props.setRevealPart}
+      setScrollToEnd={props.setScrollToEnd}
+      setPage={props.setPage}
+    />
+  )
+
+  return (
+    <VirtualizedTimeline
+      bottomSpacer={activity()}
+      deferred={(row) => {
+        if (!Predicate.isTagged(row, "AssistantPart") || row.group.type !== "part") return false
+        const content = Timeline.resolveContent(messageByID().get(row.group.ref.messageID), row.group.ref.partID)
+
+        return content?.type === "tool" && ["edit", "write"].includes(content.name)
+      }}
+      renderRow={(row, onSizeChange) => {
+        if (collapsedRowKeys().has(TimelineRow.key(row()))) return <></>
+
+        const assistantActivity = () => (
+          <Show
+            when={
+              showWorking() && !!currentWorkingStep() && assistantActivityPlacement()?.key === TimelineRow.key(row())
+            }
+          >
+            <div class={`w-full ${turnPadding()}`} classList={{ "pt-[15px]": activityFollowsContent() }}>
+              <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
+                <SessionAssistantActivity step={currentWorkingStep()} onOpenFile={openWorkingFile} />
+              </div>
+            </div>
+          </Show>
+        )
+
+        return (
+          <Show
+            when={Predicate.isTagged(row(), "Activity")}
+            fallback={
+              <>
+                <Show
+                  when={firstAssistantRowKeys().has(TimelineRow.key(row()))}
+                  fallback={
+                    <Show
+                      when={firstUserRowKey() === TimelineRow.key(row())}
+                      fallback={<rowRenderer.Row row={row} onSizeChange={onSizeChange} />}
+                    >
+                      <div data-session-first-message>
+                        <rowRenderer.Row row={row} onSizeChange={onSizeChange} />
+                      </div>
+                    </Show>
+                  }
+                >
+                  <div data-session-first-assistant>
+                    <rowRenderer.Row row={row} onSizeChange={onSizeChange} />
+                  </div>
+                </Show>
+                <Show when={Predicate.isTagged(row(), "UserMessage")}>
+                  <Show
+                    when={showWorking() && row().userMessageID === projection.activeMessageID()}
+                    fallback={
+                      <>
+                        <Show when={workedHeaders().get(row().userMessageID)}>
+                          {(header) => (
+                            <div class={`w-full pb-[15px] pt-4 ${turnPadding()}`}>
+                              <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
+                                <SessionWorkedHeader
+                                  started={header().started}
+                                  completed={header().completed}
+                                  expandable={workedFinalAnswer().has(row().userMessageID)}
+                                  expanded={expandedTurns().has(row().userMessageID)}
+                                  onToggle={() => toggleWorked(row().userMessageID)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </Show>
+                        <Show when={interruptedHeaders().get(row().userMessageID)}>
+                          {(header) => (
+                            <div class={`w-full pb-[15px] pt-4 ${turnPadding()}`}>
+                              <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
+                                <SessionInterruptedHeader
+                                  started={header().started}
+                                  completed={header().completed}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </Show>
+                      </>
+                    }
+                  >
+                    <div class={`w-full pb-[15px] pt-4 ${turnPadding()}`}>
+                      <div classList={{ "md:max-w-session md:mx-auto": props.centered }}>
+                        <SessionWorkingHeader started={workingStartedAt()} />
+                      </div>
+                    </div>
+                  </Show>
+                </Show>
+                {assistantActivity()}
+              </>
+            }
+          >
+            {(_) => {
+              // This row sits above input still waiting for delivery. Until live status first shows, it takes no room,
+              // so the waiting input keeps the place delivery leaves it. Once shown, the lane stays for the life of the
+              // row: Working hides and returns several times in one step, and each change would move that input 36px.
+              const shown = createMemo((was) => was || backgroundHintPresence.present(), false)
+
+              return <Show when={shown()}>{activity()}</Show>
+            }}
+          </Show>
+        )
+      }}
+      header={header}
     />
   )
 }

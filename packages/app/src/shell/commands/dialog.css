@@ -140,54 +140,61 @@
 /* Like the project picker, results grow down from a stable search-field anchor. Other picker dialogs keep their layout. */
 [data-component="dialog-v2"]:has(.command-palette-compact) {
   /* One scale for the palette: panel, row, and the icon controls inside a row. */
-  --command-palette-radius-panel: 12px;
-  --command-palette-radius-row: 8px;
-  --command-palette-radius-control: 6px;
-  --command-palette-row-height: 32px;
-  --command-palette-row-inset: 10px;
+  --command-palette-radius-panel: 16px;
+  --command-palette-radius-row: 10px;
+  --command-palette-radius-control: 8px;
+  --command-palette-row-height: 38px;
+  --command-palette-row-inset: 8px;
+  --command-palette-panel-width: 540px;
+  --command-palette-panel-max-height: 520px;
 
   align-items: flex-start;
 }
 
 [data-component="dialog-v2"]:has(.command-palette-compact) [data-slot="dialog-container"] {
-  width: min(calc(100vw - 24px), 480px);
+  width: min(calc(100vw - 32px), var(--command-palette-panel-width));
   height: auto;
-  max-height: min(calc(100vh - 96px), 480px);
+  max-height: min(calc(100vh - 112px), var(--command-palette-panel-max-height));
   min-height: 0;
-  margin-top: max(48px, calc((100vh - 480px) / 2));
+  /* Sits above the optical centre so the eye lands on the field, not the empty lower half. */
+  margin-top: max(56px, calc((100vh - var(--command-palette-panel-max-height)) / 2.5));
   border-radius: var(--command-palette-radius-panel);
   background: var(--v2-material-surface-strong);
   backdrop-filter: var(--v2-material-blur-thick);
   /* A sheet lifts off the page by its ring and a low shadow, not a heavy drop shadow. */
-  box-shadow: var(--v2-elevation-floating);
+  box-shadow:
+    var(--v2-elevation-floating),
+    inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .command-palette-compact {
   [data-slot="search-list-search"] {
     position: relative;
-    padding: 8px 8px 12px;
+    padding: 10px 10px 12px;
 
+    /* A short hairline on the rows' spine, not a rule across the whole panel. */
     &::after {
       position: absolute;
-      inset-inline: 0;
-      bottom: 6px;
+      inset-inline: 10px;
+      bottom: 5px;
       border-top: 0.5px solid var(--v2-border-border-muted);
       content: "";
     }
 
     [data-component="text-input-v2"] {
-      height: 32px;
+      height: 36px;
       padding-inline-end: 8px;
       border-radius: var(--command-palette-radius-control);
-      background: transparent;
+      background: color-mix(in srgb, var(--v2-background-bg-layer-02) 55%, transparent);
     }
 
-    [data-component="text-input-v2"]:where(:hover, :focus-within):not([data-disabled], [data-invalid]) {
-      background: transparent;
+    /* The field reads as a well, not a floating pill: fill deepens on engagement instead of drawing a border. */
+    [data-component="text-input-v2"]:where(:hover):not([data-disabled], [data-invalid]) {
+      background: color-mix(in srgb, var(--v2-background-bg-layer-02) 80%, transparent);
     }
 
-    /* A neutral 1px inner ring. search-list.css zeroes the outline, so the field needs both width and colour. */
     [data-component="text-input-v2"]:where(:focus-within):not([data-disabled], [data-invalid]) {
+      background: var(--v2-background-bg-layer-02);
       outline: 1px solid var(--v2-border-border-strong);
       outline-offset: -1px;
       box-shadow: none;
@@ -229,18 +236,38 @@
   [data-slot="search-list-header"] {
     margin-inline: -8px;
     padding-inline: 18px;
-    color: var(--v2-text-text-muted);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: var(--line-height-compact);
-    letter-spacing: 0.01em;
+    color: var(--v2-text-text-faint);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 24px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   [data-slot="search-list-row"],
   [data-slot="search-list-row"][data-size="compact"] {
+    position: relative;
     height: var(--command-palette-row-height);
     padding-inline: var(--command-palette-row-inset);
     border-radius: var(--command-palette-radius-row);
+  }
+
+  /* The chosen row is marked by a short accent rail on its leading edge, so the eye can track selection while
+     sweeping the list with the keyboard. */
+  [data-component="search-list"] [data-slot="search-list-row"]::before {
+    position: absolute;
+    inset-block: 8px;
+    inset-inline-start: 0;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--v2-system-accent);
+    content: "";
+    opacity: 0;
+    transition: opacity 110ms ease;
+  }
+
+  [data-component="search-list"] [data-slot="search-list-row"][data-active]::before {
+    opacity: 1;
   }
 
   /* Pointer hover is a whisper. The row the field has chosen carries the neutral fill. */
@@ -252,6 +279,7 @@
 
   [data-component="search-list"] [data-slot="search-list-row"][data-active] {
     background: var(--v2-overlay-simple-overlay-pressed);
+    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
     outline: none;
   }
 

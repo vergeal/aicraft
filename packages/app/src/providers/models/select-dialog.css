@@ -69,31 +69,13 @@
    * `display: contents` leaves the shared list nothing to measure for its own top fade.
    */
   [data-component="search-list"] [data-slot="search-list-header"] {
-    /* The home page's sticky header fade, faded in by how far rows have scrolled beneath the stuck header. */
+    /* A short, plain fade: a tall multi-stop gradient plus blur reads as a smudge between dense groups. */
     &::after {
       position: absolute;
       top: 100%;
       inset-inline: 0;
-      height: 16px;
-      background: linear-gradient(
-        180deg,
-        var(--v2-material-surface-strong) 0%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 92.0456%, transparent) 7.93%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 84.9947%, transparent) 14.14%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 78.6813%, transparent) 19%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 72.9394%, transparent) 22.85%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 67.6028%, transparent) 26.05%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 62.5055%, transparent) 28.95%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 57.4815%, transparent) 31.91%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 52.3647%, transparent) 35.27%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 46.989%, transparent) 39.4%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 41.1884%, transparent) 44.65%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 34.7969%, transparent) 51.36%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 27.6484%, transparent) 59.9%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 19.5767%, transparent) 70.62%,
-        color-mix(in srgb, var(--v2-material-surface-strong) 10.416%, transparent) 83.87%,
-        transparent 100%
-      );
+      height: 8px;
+      background: linear-gradient(var(--v2-material-surface-strong), transparent);
       content: "";
       opacity: 0;
       pointer-events: none;
@@ -101,27 +83,25 @@
 
     &[data-stuck]::after {
       opacity: var(--model-dialog-header-fade, 0);
-      /* The fade band covers the first 16px below the band, so it blurs them too; opacity hides the blur with it. */
-      backdrop-filter: var(--v2-material-blur-thick);
     }
   }
 
   [data-component="search-list"] [data-slot="search-list-row"] {
     justify-content: flex-start;
-    gap: 6px;
-    font-size: 15px;
-    font-weight: 400;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
     line-height: var(--line-height-compact);
-    letter-spacing: -0.04px;
+    letter-spacing: -0.01px;
   }
 
   [data-slot="model-dialog-check"] {
     display: flex;
-    width: 16px;
+    width: 20px;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    color: var(--v2-icon-icon-base);
+    color: var(--v2-icon-icon-accent);
   }
 
   [data-slot="model-dialog-name"] {
@@ -130,15 +110,28 @@
     flex: 1;
     align-items: center;
     gap: 6px;
+
+    /* The provider belongs to the model as a qualifier, so it sits quieter and closer than a peer column. */
+    > .text-v2-text-text-faint {
+      font-size: 12px;
+      font-weight: 400;
+    }
   }
 
   [data-slot="model-dialog-variant"] {
     display: flex;
     min-width: 0;
-    max-width: 120px;
+    max-width: 140px;
     flex-shrink: 0;
     align-items: center;
+    gap: 2px;
+    padding: 2px 6px 2px 8px;
+    border-radius: 999px;
+    background: var(--v2-background-bg-layer-02);
     color: var(--v2-text-text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
 
     &[data-default] {
       color: var(--v2-text-text-faint);
@@ -152,29 +145,36 @@
 
   [data-slot="model-dialog-hints"] {
     display: flex;
-    height: 32px;
+    height: 30px;
     flex-shrink: 0;
     align-items: center;
-    gap: 16px;
+    justify-content: flex-end;
+    gap: 14px;
     padding: 0 12px;
-    border-top: 0.5px solid var(--v2-border-border-base);
+    border-top: 0.5px solid var(--v2-border-border-muted);
     color: var(--v2-text-text-faint);
-    font-size: 12px;
+    font-size: 11px;
 
     > span {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
   }
 }
 
 [data-component="menu-v2-content"][data-slot="model-dialog-flyout"] {
   position: fixed;
-  /* One width for every model, matching the 160px its placement assumes. */
-  width: 160px;
+  /* One width for every model, matching the 180px its placement assumes. */
+  width: 180px;
   max-height: 400px;
   padding: 0;
+  border-radius: 12px;
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
+  box-shadow:
+    var(--v2-elevation-floating),
+    inset 0 0 0 0.5px var(--v2-border-border-muted);
   animation: none;
 
   > [data-component="menu-scroll"] > [data-scrollable] {

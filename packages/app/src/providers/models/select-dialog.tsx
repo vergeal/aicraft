@@ -690,10 +690,13 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
     const box = row.getBoundingClientRect()
     // 6px beside the row's end edge, else its start edge, else over the dialog: always inside the layer that holds it.
     const bounds = row.closest("[data-dialog-layer]")?.getBoundingClientRect()
-    const fits = (x: number) => !bounds || (x >= bounds.left && x + 160 <= bounds.right)
-    const end = language.direction() === "rtl" ? box.left - 6 - 160 : box.right + 6
-    const start = language.direction() === "rtl" ? box.right + 6 : box.left - 6 - 160
-    const over = bounds ? Math.max(bounds.left, Math.min(end, bounds.right - 160)) : end
+    const flyoutWidth = 180
+    const fits = (x: number) => !bounds || (x >= bounds.left && x + flyoutWidth <= bounds.right)
+    const end = language.direction() === "rtl" ? box.left - 6 - flyoutWidth : box.right + 6
+    const start = language.direction() === "rtl" ? box.right + 6 : box.left - 6 - flyoutWidth
+    const over = bounds
+      ? Math.max(bounds.left, Math.min(end, bounds.right - flyoutWidth))
+      : end
     const left = fits(end) ? end : fits(start) ? start : over
     const top = box.top - 2
     setStore({ flyout: id, warm: true, position: { left, top } })
@@ -802,7 +805,7 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
 
     labels.forEach((item) => item.label?.style.setProperty("opacity", String(round(item.opacity))))
     headers.forEach((item, index) => item.toggleAttribute("data-stuck", index === stuck))
-    header?.style.setProperty("--model-dialog-header-fade", String(round(clamp(hidden / 16))))
+    header?.style.setProperty("--model-dialog-header-fade", String(round(clamp(hidden / 8))))
   }
 
   // Results that change without a scroll, such as a narrower search, move the headers too.

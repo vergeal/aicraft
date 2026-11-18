@@ -14,7 +14,7 @@ export const description = [
   "Withdraw deliveries this session sent that the target has not read yet, so it never acts on instructions that were replaced or sent by mistake.",
   "Only deliveries from the current session are eligible. A message a person typed, a delivery from another session, or anything another plugin published is never touched.",
   "A delivery the target has already read cannot be withdrawn. It is reported as failed rather than silently succeeding; correct one with `steer` instead.",
-  "This withdraws what this session sent. To inspect or clear what has arrived in a queue, use `queue` instead.",
+  "To inspect what is still waiting in a queue, use `queue` instead. It only reads: withdrawing a delivery is done here, by the session that sent it.",
   "`to` is a session address: `ses_xxx`, `@session:ses_xxx`, or an exact title of a session in this project.",
   "`ids` withdraws only those deliveries; omit it to withdraw every delivery from this session that the target has not read.",
 ].join("\n")

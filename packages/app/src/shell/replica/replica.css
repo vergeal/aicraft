@@ -407,10 +407,9 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   user-select: none;
 }
 
-/* The pointer drags the visible box only for the work area: its content keeps the width it started with, so the
-   session pane never reflows mid-drag and the final width lands once on release. The navigation column is the
-   exception and reflows live, because a frozen column read as a broken drag; its rows only recompute where they
-   truncate. */
+/* Every column follows the pointer live. The sidebar keeps its own overflow while it resizes, so its rows recompute
+   only where they truncate instead of painting past the slot. The work area needs no rule of its own: it is a flex
+   item, so its box and its content both track the slot's basis every frame. */
 [data-replica][data-resizing] [data-slot="replica-sidebar-slot"] {
   overflow: hidden;
 }
@@ -425,15 +424,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
       var(--titlebar-left-min)
     )
     minmax(0, 1fr);
-}
-
-[data-replica][data-resizing] [data-slot="replica-main"] {
-  overflow: hidden;
-}
-
-[data-replica][data-resizing] [data-slot="replica-main"] > * {
-  width: var(--drag-main-width, 100%);
-  min-width: var(--drag-main-width, 100%);
 }
 
 [data-slot="replica-rail"] {

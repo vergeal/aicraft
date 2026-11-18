@@ -23,13 +23,7 @@ function TitlebarStory() {
           scheduled
         </button>
       </div>
-      <ReplicaTitleBar
-        sidebarOpen
-        onToggleSidebar={() => undefined}
-        onMore={() => undefined}
-        onView={() => undefined}
-        onAdd={() => undefined}
-      />
+      <ReplicaTitleBar sidebarOpen onToggleSidebar={() => undefined} />
     </div>
   )
 }

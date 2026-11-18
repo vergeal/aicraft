@@ -89,7 +89,6 @@ test("replica v6 geometry", async ({ page }) => {
       newChat: box(newChat),
       titlebarFont: titlebar ? getComputedStyle(titlebar).fontFamily : null,
       sidebarFont: sidebar ? getComputedStyle(sidebar).fontFamily : null,
-      titlebarChatIcon: !!titlebar?.querySelector('use[href="#opencode-v2-icon-titlebar-chat"]'),
     }
   })
 
@@ -162,7 +161,6 @@ test("replica v6 geometry", async ({ page }) => {
   near(extra.composerEditor?.width, 650, 8)
   near(extra.newChat?.height, 31, 1)
   expect(extra.titlebarFont).toBe(extra.sidebarFont)
-  expect(extra.titlebarChatIcon).toBe(true)
   expect(extra.titleText).toBe("选择本地 Ollama 模型")
   expect(sidebar.text).not.toContain("项目")
   expect(sidebar.failed?.title).toBe("失败的会话")

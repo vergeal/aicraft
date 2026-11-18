@@ -4,7 +4,6 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { ToastRegion } from "@/shell/notifications/toast"
 import { UploadToastHost } from "@/composer/attachments/uploads"
 import { useSettings } from "@/settings/model"
-import { useSettingsDialog } from "@/settings/command"
 import { PluginServerCover } from "@/runtime/plugin/server-shell"
 import { PluginSlot } from "@/runtime/plugin/render"
 import { COMMAND_SEARCH_ID, useCommand } from "@/shell/commands/command"
@@ -98,7 +97,6 @@ function ReplicaLayer(props: ParentProps) {
   const command = useCommand()
   const language = useLanguage()
   const platform = usePlatform()
-  const openSettings = useSettingsDialog()
   const dialog = useDialog()
   const global = useGlobal()
   const servers = useServers()
@@ -172,22 +170,18 @@ function ReplicaLayer(props: ParentProps) {
     slot?.style.removeProperty("flex-basis")
   }
 
-  // While the pointer drags, the work area keeps the content width it started with and only its visible box changes,
-  // so the session pane never reflows mid-drag and the committed width lands once on release. The navigation column
-  // reflows live instead: its rows only recompute where they truncate, and a frozen column read as a broken drag. The
-  // titlebar follows too, so its left edge stays level with the sidebar. Each variable is written on the element that
-  // consumes it, not on the shell root: an inherited custom property invalidates the whole subtree.
-  const freezeColumns = () => {
-    const main = root?.querySelector<HTMLElement>('[data-slot="replica-main"]')
+  // The work area follows the pointer with everything else: its flex item shrinks or grows as the slot's basis moves,
+  // so the answer area reflows every frame of the drag and lands where the pointer leaves it. The titlebar is the one
+  // column that needs its own variable, because its left column paints from a calc() rather than a flex basis. Each
+  // variable is written on the element that consumes it, not on the shell root: an inherited custom property
+  // invalidates the whole subtree.
+  const followSidebar = () => {
     dragTitlebar = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar"]') ?? undefined
-
-    if (main) main.style.setProperty("--drag-main-width", `${main.offsetWidth}px`)
     // Seeded with the width the resting stylesheet already gives the column, so the first move does not jump.
     dragTitlebar?.style.setProperty("--drag-sidebar-current", `${sidebarSize()}px`)
   }
 
-  const releaseColumns = () => {
-    root?.querySelector<HTMLElement>('[data-slot="replica-main"]')?.style.removeProperty("--drag-main-width")
+  const stopFollowing = () => {
     dragTitlebar?.style.removeProperty("--drag-sidebar-current")
     dragTitlebar = undefined
   }
@@ -196,13 +190,13 @@ function ReplicaLayer(props: ParentProps) {
     setResizing(value)
 
     if (value) {
-      freezeColumns()
+      followSidebar()
 
       return
     }
 
     commitSidebarWidth()
-    releaseColumns()
+    stopFollowing()
   }
 
   onCleanup(() => {
@@ -278,20 +272,6 @@ function ReplicaLayer(props: ParentProps) {
     },
   ])
 
-  const newChat = () => {
-    const conn = global.servers.list()[0]
-
-    if (!conn) return
-    const key = ServerConnection.key(conn)
-    const ctx = global.serverCtx(key)
-
-    if (!ctx) return
-    const directory = ctx.projects.last()?.worktree ?? ctx.projects.list()[0]?.worktree
-
-    if (!directory) return
-    void tabs.newDraft({ server: key, directory })
-  }
-
   return (
     <div
       ref={root}
@@ -302,13 +282,7 @@ function ReplicaLayer(props: ParentProps) {
         "--navigation-sidebar-width-current": showSidebar() ? `${sidebarSize()}px` : "0px",
       }}
     >
-      <ReplicaTitleBar
-        sidebarOpen={sidebarOpen()}
-        onToggleSidebar={toggleSidebar}
-        onMore={() => command.trigger("command.palette")}
-        onView={openSettings}
-        onAdd={newChat}
-      />
+      <ReplicaTitleBar sidebarOpen={sidebarOpen()} onToggleSidebar={toggleSidebar} />
 
       <div data-slot="replica-shell">
         <Show when={!mobile()}>

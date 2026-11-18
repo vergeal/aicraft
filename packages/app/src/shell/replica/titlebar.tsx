@@ -26,13 +26,7 @@ const BUTTON =
  * The window bar, split at the sidebar boundary. The left half owns the traffic lights and navigation
  * controls; the right half shows the open conversation and the window actions.
  */
-export function ReplicaTitleBar(props: {
-  sidebarOpen: boolean
-  onToggleSidebar: () => void
-  onMore: () => void
-  onView: () => void
-  onAdd: () => void
-}) {
+export function ReplicaTitleBar(props: { sidebarOpen: boolean; onToggleSidebar: () => void }) {
   const language = useLanguage()
   const platform = usePlatform()
   const layout = useLayout()
@@ -109,7 +103,7 @@ export function ReplicaTitleBar(props: {
     }
   }
 
-  const cny = createMemo(() => createCNY(language.locale()))  // The ring, the token count and the spend are one control: clicking it opens the built-in context panel next
+  const cny = createMemo(() => createCNY(language.locale())) // The ring, the token count and the spend are one control: clicking it opens the built-in context panel next
   // to the conversation, the same panel the plugin's own indicator opens.
   const openContext = () => {
     const route = layout.route()
@@ -306,7 +300,6 @@ export function ReplicaTitleBar(props: {
 
       <div data-slot="replica-titlebar-main" data-ui="titlebar-main">
         <span class="flex min-w-0 flex-1 items-center gap-2.5">
-          <Icon name="titlebar-chat" size="small" class="shrink-0 text-[var(--color-icon-secondary)]" />
           <Show when={conversation()}>
             {(value) => (
               <Show when={value().server}>

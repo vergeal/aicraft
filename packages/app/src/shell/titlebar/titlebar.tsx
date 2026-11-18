@@ -3,7 +3,6 @@ import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import { useNavigate } from "@solidjs/router"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { IconButton } from "@opencode/ui/icon-button"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { Tooltip } from "@opencode/ui/tooltip"
@@ -313,54 +312,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
-            const homeButton = () => (
-              <Tooltip
-                placement="bottom"
-                value={
-                  <>
-                    {language.t("home.title")}
-                    <Keybind keys={command.keybindParts("home.toggle")} variant="neutral" />
-                  </>
-                }
-                class="shrink-0"
-              >
-                <IconButton
-                  type="button"
-                  variant="ghost-muted"
-                  size="large"
-                  class="!w-9 shrink-0"
-                  icon={<Icon name="grid-plus" />}
-                  state={layout.route().type === "home" ? "pressed" : undefined}
-                  onClick={toggleHome}
-                  aria-label={language.t("home.title")}
-                  aria-pressed={layout.route().type === "home"}
-                />
-              </Tooltip>
-            )
-
-            const searchButton = () => (
-              <Tooltip
-                placement="bottom"
-                value={
-                  <>
-                    {language.t("command.session.search")}
-                    <Keybind keys={command.keybindParts("sessions.search")} variant="neutral" />
-                  </>
-                }
-                class="shrink-0"
-              >
-                <IconButton
-                  type="button"
-                  variant="ghost-muted"
-                  size="large"
-                  class="!w-9 shrink-0"
-                  icon={<Icon name="magnifying-glass" />}
-                  onClick={() => command.trigger("sessions.search")}
-                  aria-label={language.t("command.session.search")}
-                />
-              </Tooltip>
-            )
-
             command.register("titlebar-home", () => [
               {
                 id: "home.toggle",
@@ -495,13 +446,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 <Show when={windows() && props.verticalTabs}>
                   <SidebarToggle />
                 </Show>
-                <Show when={!mobile() && !props.verticalTabs}>
-                  <div class="flex shrink-0 items-center gap-0.5">
-                    {homeButton()}
-                    {searchButton()}
-                  </div>
-                </Show>
-
                 <Show
                   when={!mobile()}
                   fallback={

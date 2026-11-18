@@ -57,6 +57,12 @@ export function AnswerTimeline(props: {
     setAtBottom(false)
   }
 
+  // A press pauses following without changing the button state: the rows must hold still between
+  // pointerdown and pointerup, or the click lands on whatever moved under the pointer instead.
+  const pauseFollow = () => {
+    stick = false
+  }
+
   let follow: ResizeObserver | undefined
   // Content height at the last follow. A renderer that collapses and re-expands a block within one
   // frame would otherwise drag the viewport up and straight back down.
@@ -133,6 +139,8 @@ export function AnswerTimeline(props: {
         }}
         onWheel={releaseFollow}
         onTouchMove={releaseFollow}
+        onPointerDown={pauseFollow}
+        onPointerUp={() => requestAnimationFrame(measureBottom)}
         class="relative h-full w-full min-w-0"
         style={{ "--sticky-accordion-top": props.showHeader ? "var(--session-header-height, 48px)" : "0px" }}
       >

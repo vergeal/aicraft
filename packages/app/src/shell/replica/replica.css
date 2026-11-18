@@ -154,14 +154,20 @@ html[data-replica-window="translucent"] #root:has([data-replica]) {
    through the window. Dark mode keeps a heavier column than frame, because a 45% column washes out over a bright
    desktop, but 90% had hidden the material entirely. */
 html[data-replica-window="translucent"] [data-replica] {
-  --color-titlebar: rgb(246 246 246 / 45%);
-  --color-rail: rgb(246 246 246 / 40%);
+  /* macOS 的 sidebar 材质自己就是一层带亮度补偿的浅色玻璃。应用层再刷 40% 白，等于在系统材质上又盖一张白纸：
+     壁纸的颜色和冷暖被冲掉，剩下的只有一层发灰的膜。这里只留薄薄一层，让材质本身读得出来。 */
+  --color-rail: rgb(246 246 246 / 14%);
+  /* 标题栏和导航列是同一片材质：transparent 规则下标题栏不单独上色，所以这里跟随 rail，
+     只有 reduced-transparency 分支会把这个值实体化。 */
+  --color-titlebar: var(--color-rail);
 }
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
-  --color-titlebar: rgb(8 8 8 / 45%);
-  --color-rail: rgb(8 8 8 / 45%);
-  --color-navigation: rgb(21 21 21 / 65%);
+  --color-titlebar: rgb(8 8 8 / 36%);
+  /* 暗色材质本来就深，应用层反而要兜住亮壁纸，否则浅色文字会压在透出来的亮背景上。 */
+  --color-rail: rgb(8 8 8 / 32%);
+  --color-navigation: rgb(21 21 21 / 58%);
+  --color-sidebar: rgb(21 21 21 / 44%);
 }
 
 html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
@@ -174,6 +180,17 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
 /* The conversation keeps an opaque surface; only the chrome acts as glass. */
 html[data-replica-window="translucent"] [data-slot="replica-workbench"] {
   background: transparent;
+  /* The resting shadow was tuned against a near-opaque sheet, where it only had to hint at an edge. Over the
+     thinner chrome the panel has to lift on its own, or the conversation and the navigation read as one flat wash. */
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 10%),
+    0 6px 20px -6px rgb(0 0 0 / 16%);
+}
+
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-workbench"] {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 45%),
+    0 8px 28px -8px rgb(0 0 0 / 55%);
 }
 
 /* The navigation column reads a step above the rail: both ride the window's single tint, so the sidebar adds a thin
@@ -181,7 +198,8 @@ html[data-replica-window="translucent"] [data-slot="replica-workbench"] {
    arcs still resolve to the window tint instead of to a lighter square. It stays at 4%: the 10% wash was a second
    white layer over an already light tint, and the column ended up indistinguishable from the opaque work area. */
 html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
-  background: rgb(255 255 255 / 4%);
+  /* 比 rail 只高一层：导航列要在透光的同时仍能读作「主面板的左边」，靠的是这点微差而不是白度。 */
+  background: rgb(255 255 255 / 8%);
 }
 
 /* Dark mode needs a deeper navigation surface. The shell carries it, the title bar keeps its own lighter tint, and
@@ -209,9 +227,10 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
 
 /* A hairline of light along the top edge reads as the glass catching the room. Only the window bar carries it: the
    navigation column starts 39px lower, and repeating the line there read as two parallel highlights across the
-   chrome. The window's own rounded corners clip this line, so it follows the arc instead of ending square. */
+   chrome. The window's own rounded corners clip this line, so it follows the arc instead of ending square.
+   It stays faint: over the thinned-out chrome a 55% line drew a bright edge that no system window has. */
 [data-slot="replica-titlebar"] {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 55%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 42%);
 }
 
 [data-color-scheme="dark"] [data-slot="replica-titlebar"] {

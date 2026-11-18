@@ -352,7 +352,7 @@ const icons = {
   },
   "answer-console": {
     viewBox: "0 0 14 14",
-    body: `<path d="M3.6 4.2 7 7l-3.4 2.8M7.6 9.8h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<rect x="2.6" y="3.2" width="8.8" height="7.6" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 6.2 6.6 7.6 5 9M7.6 9h1.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
   "answer-read": {
     viewBox: "0 0 14 14",
@@ -396,7 +396,7 @@ const icons = {
   },
   "answer-analysis": {
     viewBox: "0 0 14 14",
-    body: `<path d="M3.6 10.2V7.8M7 10.2V5.2M10.4 10.2V3.8M2.8 11.8h8.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<ellipse cx="7" cy="7" rx="5.4" ry="1.8" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="5.4" ry="1.8" transform="rotate(60 7 7)" fill="none" stroke="currentColor" stroke-width="1.2"/><ellipse cx="7" cy="7" rx="5.4" ry="1.8" transform="rotate(-60 7 7)" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="1" fill="currentColor"/>`,
   },
   "answer-running": {
     viewBox: "0 0 14 14",

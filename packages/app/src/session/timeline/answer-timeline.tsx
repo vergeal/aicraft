@@ -88,10 +88,15 @@ export function AnswerTimeline(props: {
         if (!stick || !viewport) return
 
         const height = viewport.scrollHeight
-        const grew = height > lastContentHeight
+        const delta = height - lastContentHeight
         lastContentHeight = height
 
-        if (!grew) return
+        // Growth always keeps the end visible. A large shrink, such as a thinking block collapsing
+        // when it finishes, must follow too or the reader is left above the fold looking at content
+        // that just disappeared. Small back-and-forth changes are renderer noise: following those
+        // would drag the viewport up and down every frame.
+        if (delta <= 0 && delta > -200) return
+
         viewport.scrollTop = height
         measureBottom()
       })

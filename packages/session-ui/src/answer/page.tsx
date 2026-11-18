@@ -308,19 +308,19 @@ function RunningStatus(props: { elapsedMs?: number }) {
     <div
       role="status"
       data-slot="answer-running"
-      class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[12px] leading-text-base"
+      class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[13px] leading-[24px]"
     >
-      <div class="flex min-w-0 items-center gap-[6px]" style={{ color: "var(--answer-ink-secondary)" }}>
+      <div class="flex h-[24px] min-w-0 items-center gap-[6px]" style={{ color: "var(--answer-ink-secondary)" }}>
         <span class="grid size-[18px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[18px] [&_svg]:translate-y-[0.5px]">
           <Spinner width={18} height={18} class="size-[18px]" />
         </span>
-        <span class="min-w-0 shrink-0 overflow-hidden">
+        <span class="min-w-0 shrink-0 overflow-hidden leading-[24px]">
           <TextShimmer text={label()} active />
         </span>
         <Show when={props.elapsedMs !== undefined && props.elapsedMs >= 1000 ? props.elapsedMs : undefined}>
-          {(ms) => <span class="shrink-0 font-mono tabular-nums">{durationText(i18n, ms())}</span>}
+          {(ms) => <span class="shrink-0 leading-[24px] tabular-nums">{durationText(i18n, ms())}</span>}
         </Show>
-        <span class="shrink-0 font-mono">{i18n.t("ui.answer.deepDivingEllipsis")}</span>
+        <span class="shrink-0 leading-[24px]">{i18n.t("ui.answer.deepDivingEllipsis")}</span>
       </div>
     </div>
   )

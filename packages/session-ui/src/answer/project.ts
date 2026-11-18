@@ -169,10 +169,10 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
   const children = new Map<number, readonly TimelineChild[]>()
 
   for (const draft of drafts) {
-    // A reply followed by more work is a step summary, not the answer: the answer closes the turn.
-    const lastAssistant = draft.nodes.findLast((node) => node.payload.kind === "assistant")
-    const lastProcessAnchor = draft.nodes.filter((node) => node.groupTree === "process").at(-1)?.anchor ?? -1
-    const answer = lastAssistant !== undefined && lastAssistant.anchor > lastProcessAnchor ? lastAssistant : undefined
+    // The answer is the last assistant output: the final node of the turn and the last block of its
+    // assistant message. Anything after it means the text was a step summary, not the answer.
+    const tail = draft.nodes.at(-1)
+    const answer = tail?.payload.kind === "assistant" ? tail : undefined
 
     const finalComplete = draft.lastStep?.completed === true && draft.lastStep.hasText
 

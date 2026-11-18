@@ -1,5 +1,5 @@
 import { Popover } from "@kobalte/core/popover"
-import { createMemo, on, onCleanup, onMount, For, Show } from "solid-js"
+import { createMemo, createSignal, on, onCleanup, onMount, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
 import { checksum } from "@opencode/util/encode"
 import { Icon } from "@opencode/ui/icon"
@@ -12,24 +12,90 @@ import { showToast } from "@opencode/ui/toast"
 import { useI18n } from "@opencode/ui/context/i18n"
 import { File } from "@opencode/session-ui/file"
 import { Markdown } from "@opencode/session-ui/markdown"
-import type { SessionMessageInfo } from "@opencode/client/promise"
+import type { SessionMessageAssistant, SessionMessageInfo } from "@opencode/client/promise"
 import { lastAssistantWithUsage } from "@opencode/client/solid"
 import { createKeyed, usePlugin, type MountedSession } from "@opencode/plugin/gui"
 import { catalogModel, syncCatalog } from "./catalog"
-import { createCNY, flashCostBreakdown, flashPrice } from "./cost"
+import { createCNY, createUSD, flashCostBreakdown, flashCostCNY, flashPrice } from "./cost"
 import { fetchSessionExport, sessionExportFilename } from "./export"
 import { createSessionContextFormatter } from "./format"
 
-function Stat(props: { label: string; value: JSX.Element }) {
+/** A finished step carries the usage the ledger prices; steps still streaming are left out. */
+type Assistant = SessionMessageAssistant & { tokens: NonNullable<SessionMessageAssistant["tokens"]> }
+
+function isAssistant(message: SessionMessageInfo): message is Assistant {
+  return message.type === "assistant" && message.tokens !== undefined
+}
+
+type Step = {
+  message: Assistant
+  tokens: NonNullable<SessionMessageAssistant["tokens"]>
+  started: number
+  /** Wall-clock duration of the step, when it finished. */
+  duration: number | undefined
+  /** Time to the first streamed content, when the server reported it. */
+  ttft: number | undefined
+  /** Output tokens per second over the streaming window. */
+  rate: number | undefined
+  failed: boolean
+  retried: boolean
+  truncated: boolean
+  /** The user message that opened this turn; the timeline row's `data-message-id`. */
+  anchor: string | undefined
+}
+
+/** One assistant step as a ledger row. */
+function stepOf(message: Assistant, anchor: string | undefined): Step {
+  const tokens = message.tokens
+  const started = message.time.created
+  const completed = message.time.completed
+  const streamed = message.time.streamed
+  const duration = completed === undefined ? undefined : completed - started
+  const ttft = streamed === undefined ? undefined : streamed - started
+  const stream = completed !== undefined && streamed !== undefined ? completed - streamed : undefined
+
+  return {
+    message,
+    tokens,
+    started,
+    duration,
+    ttft,
+    rate: stream !== undefined && stream > 0 ? (tokens.output / stream) * 1000 : undefined,
+    failed: message.error !== undefined || message.finish === "error",
+    retried: message.retry !== undefined,
+    truncated: message.finish === "length",
+    anchor,
+  }
+}
+
+const sectionLabel = "text-[12px] font-[530] text-v2-text-text-muted"
+
+const card = "rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-layer-01"
+
+const callGrid = "58px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 74px 50px 64px 60px"
+
+function Tile(props: { label: string; value: JSX.Element; sub: JSX.Element }) {
   return (
-    <div class="flex flex-col gap-1">
-      <div class="text-12-regular text-text-weak">{props.label}</div>
-      <div class="text-12-medium text-text-strong">{props.value}</div>
+    <div class="flex min-w-0 flex-col gap-px bg-v2-background-bg-base px-2.5 py-2.5">
+      <div class="text-[11px] text-v2-text-text-faint">{props.label}</div>
+      <div class="text-[16px] font-[590] tabular-nums leading-5 tracking-[-0.02em] text-v2-text-text-base">
+        {props.value}
+      </div>
+      <div class="truncate text-[10.5px] text-v2-text-text-faint">{props.sub}</div>
     </div>
   )
 }
 
-// The estimate behind the total cost, as the three lines a Flash invoice has.
+function Field(props: { label: string; value: JSX.Element }) {
+  return (
+    <div class="flex flex-col gap-0.5">
+      <span class="text-[10.5px] text-v2-text-text-faint">{props.label}</span>
+      <span class="text-[12px] tabular-nums text-v2-text-text-base">{props.value}</span>
+    </div>
+  )
+}
+
+// The estimate behind a locally priced total, as the three lines a Flash invoice has.
 function PriceDetails(props: {
   breakdown: () => ReturnType<typeof flashCostBreakdown> | undefined
   cost: () => string
@@ -154,6 +220,65 @@ function RawMessage(props: {
   )
 }
 
+/** The recent calls' output rate, with the session average as a dashed baseline. */
+function Sparkline(props: { rates: readonly number[]; baseline: number | undefined }) {
+  const geometry = createMemo(() => {
+    const rates = props.rates
+
+    if (rates.length < 2) return
+    const values = props.baseline === undefined ? rates : [...rates, props.baseline]
+    const max = Math.max(...values)
+    const min = Math.min(...values)
+    const span = Math.max(max - min, 1)
+    const width = 120
+    const height = 26
+    const y = (value: number) => height - ((value - min) / span) * (height - 4) - 2
+
+    const points = rates
+      .map((rate, index) => `${((index / (rates.length - 1)) * width).toFixed(1)},${y(rate).toFixed(1)}`)
+      .join(" ")
+
+    const low = Math.min(...rates)
+
+    return {
+      points,
+      baselineY: props.baseline === undefined ? undefined : y(props.baseline),
+      lowX: (rates.indexOf(low) / (rates.length - 1)) * width,
+      lowY: y(low),
+    }
+  })
+
+  return (
+    <Show when={geometry()}>
+      {(g) => (
+        <svg width="120" height="26" viewBox="0 0 120 26" class="overflow-visible" aria-hidden="true">
+          <Show when={g().baselineY}>
+            {(baselineY) => (
+              <line
+                x1="0"
+                y1={baselineY()}
+                x2="120"
+                y2={baselineY()}
+                stroke="var(--v2-border-border-strong)"
+                stroke-width="1"
+                stroke-dasharray="2 2"
+              />
+            )}
+          </Show>
+          <polyline
+            points={g().points}
+            fill="none"
+            stroke="var(--v2-text-text-muted)"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          />
+          <circle cx={g().lowX} cy={g().lowY} r="2.5" fill="var(--v2-state-fg-danger)" />
+        </svg>
+      )}
+    </Show>
+  )
+}
+
 const emptyMessages: SessionMessageInfo[] = []
 
 export default function SessionContextTab(props: { session: MountedSession }) {
@@ -178,42 +303,160 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     { equals: same },
   )
 
+  const formatter = createMemo(() => createSessionContextFormatter(i18n.locale()))
   const cny = createMemo(() => createCNY(i18n.locale()))
+  const usd = createMemo(() => createUSD(i18n.locale()))
 
-  // Same step as the TUI and the header button: after the last completed compaction and before an undo boundary.
+  const sessionDuration = createMemo(() => {
+    const current = info()
+
+    if (!current) return undefined
+
+    return current.time.updated - current.time.created
+  })
+
+  // One row per completed step, oldest first, cut at the undo boundary like the header's counter.
+  const steps = createMemo<Step[]>(() => {
+    const list = messages()
+    const boundary = info()?.revert?.messageID
+    const end = boundary ? list.findIndex((message) => message.id === boundary) : list.length
+
+    if (end === -1) return []
+
+    return list
+      .slice(0, end)
+      .reduce<{ anchor: string | undefined; rows: Step[] }>(
+        (state, message) => {
+          if (message.type === "user") state.anchor = message.id
+
+          if (isAssistant(message)) state.rows.push(stepOf(message, state.anchor))
+
+          return state
+        },
+        { anchor: undefined, rows: [] },
+      )
+      .rows
+  })
+
+  const calls = createMemo(() => [...steps()].reverse())
+
+  const summary = createMemo(() => {
+    const all = steps()
+    const failed = all.filter((step) => step.failed).length
+    const slow = all.filter((step) => (step.duration ?? 0) >= 10_000).length
+
+    return {
+      total: all.length,
+      failed,
+      slow,
+      success: all.length ? Math.round(((all.length - failed) / all.length) * 100) : 100,
+    }
+  })
+
+  const filter = createSignal<"all" | "failed" | "slow">("all")
+
+  const shownCalls = createMemo(() => {
+    const mode = filter[0]()
+
+    if (mode === "failed") return calls().filter((step) => step.failed)
+
+    if (mode === "slow") return calls().filter((step) => (step.duration ?? 0) >= 10_000)
+
+    return calls()
+  })
+
+  const openCall = createSignal<string>()
+  const toggleCall = (id: string) => openCall[1](openCall[0]() === id ? undefined : id)
+
+  // Same step as the TUI and the header ring: after the last completed compaction and before an undo boundary.
+  // Context occupancy is the prompt side only — output and reasoning are already spent, not resident.
   const context = createMemo(() => {
     const message = lastAssistantWithUsage(messages(), info()?.revert?.messageID)
 
     if (!message) return
     const entry = catalogModel(props.session, message.model)
-
-    const total =
-      message.tokens.input +
-      message.tokens.output +
-      message.tokens.reasoning +
-      message.tokens.cache.read +
-      message.tokens.cache.write
+    const used = message.tokens.input + message.tokens.cache.read + message.tokens.cache.write
+    const limit = entry?.model?.limit.context
 
     return {
       message,
       tokens: message.tokens,
+      used,
+      input: message.tokens.input,
+      cache: message.tokens.cache.read,
+      limit,
+      pct: limit ? Math.round((used / limit) * 100) : null,
       providerLabel: entry?.provider.name ?? message.model.providerID,
       modelLabel: entry?.model?.name ?? message.model.id,
-      limit: entry?.model?.limit.context,
-      input: message.tokens.input,
-      total,
-      usage: entry?.model?.limit.context ? Math.round((total / entry.model.limit.context) * 100) : null,
     }
   })
 
-  const formatter = createMemo(() => createSessionContextFormatter(i18n.locale()))
+  const remainingTurns = createMemo(() => {
+    const current = context()
+    const count = steps().length
 
-  // Priced at Flash rates for every model. A root session's cost includes its subagent sessions, as in the TUI.
-  const breakdown = createMemo(() => {
+    if (!current?.limit || !current.used || !count) return
+
+    const perTurn = current.used / count
+
+    return Math.max(0, Math.floor((current.limit - current.used) / Math.max(1, perTurn)))
+  })
+
+  const rateStats = createMemo(() => {
+    const rates = steps().flatMap((step) => (step.rate === undefined ? [] : [step.rate]))
+
+    if (rates.length === 0) return
+
+    return {
+      rates,
+      avg: rates.reduce((total, rate) => total + rate, 0) / rates.length,
+      last: rates[rates.length - 1]!,
+      low: Math.min(...rates),
+    }
+  })
+
+  // A root session's spend includes its subagent sessions; a subagent's is its own.
+  const spend = createMemo(() => {
     const id = props.session.id
 
     if (!id) return
 
+    const session = data().session.get(id)
+
+    if (!session) return
+
+    const family = data().session.family(id)
+    const ids = session.parentID ? [id] : family.length ? family : [id]
+    const members = ids.flatMap((member) => data().session.get(member) ?? [])
+    const billed = members.reduce((total, member) => total + member.cost, 0)
+
+    if (billed > 0) return { amount: billed, currency: "USD" as const, estimated: false }
+
+    const tokens = members.flatMap((member) => member.tokens)
+
+    return { amount: flashCostCNY(tokens), currency: "CNY" as const, estimated: true }
+  })
+
+  const costText = createMemo(() => {
+    const value = spend()
+
+    if (!value) return "—"
+
+    return value.currency === "USD" ? usd()(value.amount) : cny()(value.amount)
+  })
+
+  const costSource = createMemo(() => {
+    const value = spend()
+
+    if (!value) return ctx.t("stats.costUnpriced")
+
+    return ctx.t(value.estimated ? "stats.costEstimated" : "stats.costActual")
+  })
+
+  const breakdown = createMemo(() => {
+    const id = props.session.id
+
+    if (!id) return
     const session = data().session.get(id)
 
     if (!session) return
@@ -227,18 +470,11 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     )
   })
 
-  const cost = createMemo(() => cny()(breakdown()?.total ?? 0))
-
   const counts = createMemo(() => {
     const all = messages()
     const user = all.reduce((count, message) => count + (message.type === "user" ? 1 : 0), 0)
-    const assistant = all.reduce((count, message) => count + (message.type === "assistant" ? 1 : 0), 0)
 
-    return {
-      all: all.length,
-      user,
-      assistant,
-    }
+    return { loaded: all.length, turns: user }
   })
 
   const systemPrompt = createMemo(() => {
@@ -252,52 +488,97 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     return trimmed
   })
 
-  const providerLabel = createMemo(() => {
-    const c = context()
+  const parent = createMemo(() => {
+    const id = props.session.id
 
-    if (!c) return "—"
+    if (!id) return
+    const session = data().session.get(id)
 
-    return c.providerLabel
+    if (!session?.parentID) return
+
+    return { id: session.parentID, title: data().session.get(session.parentID)?.title ?? session.parentID }
   })
 
-  const modelLabel = createMemo(() => {
-    const c = context()
+  const children = createMemo(() => {
+    const id = props.session.id
 
-    if (!c) return "—"
+    if (!id) return []
 
-    return c.modelLabel
+    const session = data().session.get(id)
+
+    if (!session || session.parentID) return []
+
+    return data()
+      .session.family(id)
+      .flatMap((childID) => {
+        if (childID === id) return []
+
+        const child = data().session.get(childID)
+
+        if (!child) return []
+
+        return [
+          {
+            id: childID,
+            title: child.title ?? childID,
+            cost: child.cost,
+            running: (child.time.busy ?? 0) > (child.time.idle ?? 0),
+          },
+        ]
+      })
   })
 
-  const stats = [
-    { label: "stats.session", value: () => info()?.title ?? (props.session.id || "—") },
-    { label: "stats.messages", value: () => counts().all.toLocaleString(i18n.locale()) },
-    { label: "stats.provider", value: providerLabel },
-    { label: "stats.model", value: modelLabel },
-    { label: "stats.limit", value: () => formatter().number(context()?.limit) },
-    { label: "stats.totalTokens", value: () => formatter().number(context()?.total) },
-    { label: "stats.usage", value: () => formatter().percent(context()?.usage) },
-    { label: "stats.inputTokens", value: () => formatter().number(context()?.input) },
-    { label: "stats.outputTokens", value: () => formatter().number(context()?.tokens.output) },
-    { label: "stats.reasoningTokens", value: () => formatter().number(context()?.tokens.reasoning) },
-    {
-      label: "stats.cacheTokens",
-      value: () =>
-        `${formatter().number(context()?.tokens.cache.read)} / ${formatter().number(context()?.tokens.cache.write)}`,
-    },
-    { label: "stats.userMessages", value: () => counts().user.toLocaleString(i18n.locale()) },
-    { label: "stats.assistantMessages", value: () => counts().assistant.toLocaleString(i18n.locale()) },
-    {
-      label: "stats.totalCost",
-      value: () => (
-        <span class="inline-flex items-center gap-1">
-          {cost()}
-          <PriceDetails breakdown={breakdown} cost={cost} />
-        </span>
-      ),
-    },
-    { label: "stats.sessionCreated", value: () => formatter().time(info()?.time.created) },
-    { label: "stats.lastActivity", value: () => formatter().time(context()?.message.time.created) },
-  ] satisfies { label: string; value: () => JSX.Element }[]
+  const childrenSpend = createMemo(() => {
+    const total = children().reduce((sum, child) => sum + child.cost, 0)
+
+    if (total > 0) return usd()(total)
+
+    const tokens = children().flatMap((child) => data().session.get(child.id)?.tokens ?? [])
+
+    return cny()(flashCostCNY(tokens))
+  })
+
+  const openSession = (id: string) => {
+    ctx.tabs.open({ server: props.session.server.id, id }, { focus: true })
+  }
+
+  // The occupancy bar splits into the cache hits and the fresh input that make up the prompt side.
+  const barSegments = createMemo(() => {
+    const current = context()
+
+    if (!current?.limit) return
+
+    return {
+      cache: (current.cache / current.limit) * 100,
+      input: (current.input / current.limit) * 100,
+      level: current.pct !== null && current.pct >= 90 ? "danger" : current.pct !== null && current.pct >= 70 ? "warn" : "normal",
+    }
+  })
+
+  // The window's occupancy palette, chosen once per level instead of a chained ternary in each style prop.
+  const levelPaint = createMemo(() => {
+    const level = barSegments()?.level
+
+    if (level === "danger")
+      return {
+        surface: "var(--v2-state-bg-danger)",
+        tone: "var(--v2-state-fg-danger)",
+        bar: "var(--v2-state-fg-danger)",
+      }
+
+    if (level === "warn")
+      return {
+        surface: "var(--v2-state-bg-warning)",
+        tone: "var(--v2-state-fg-warning)",
+        bar: "var(--v2-state-fg-warning)",
+      }
+
+    return {
+      surface: "var(--v2-background-bg-layer-02)",
+      tone: "var(--v2-text-text-base)",
+      bar: "var(--v2-background-bg-accent)",
+    }
+  })
 
   const exportSession = async () => {
     const sessionID = props.session.id
@@ -389,41 +670,503 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       }}
       onScroll={handleScroll}
     >
-      <div data-slot="session-usage-content" class="px-4 pt-4 pb-6 flex flex-col gap-6 md:px-6 md:pb-10 md:gap-10">
-        <div class="grid grid-cols-1 @[32rem]:grid-cols-2 gap-4">
-          <For each={stats}>{(stat) => <Stat label={ctx.t(stat.label)} value={stat.value()} />}</For>
-        </div>
+      <div data-slot="session-usage-content" class="flex flex-col gap-7 px-4 pt-4 pb-6 md:px-6 md:pb-10">
+        {/* Context window */}
+        <section class="flex flex-col gap-2.5">
+          <div class="flex items-baseline gap-2">
+            <div class={sectionLabel}>{ctx.t("window.title")}</div>
+            <div
+              class="ms-auto rounded-md px-2 text-[15px] font-[590] tabular-nums tracking-[-0.02em]"
+              style={{
+                background: levelPaint().surface,
+                color: levelPaint().tone,
+              }}
+            >
+              {formatter().percent(context()?.pct)}
+            </div>
+          </div>
 
-        <Show when={systemPrompt()}>
-          {(prompt) => (
-            <div class="flex flex-col gap-2">
-              <div class="text-12-regular text-text-weak">{ctx.t("systemPrompt.title")}</div>
-              <div class="border border-v2-border-border-base rounded-md bg-surface-base px-3 py-2">
-                <Markdown text={prompt()} class="text-12-regular" />
+          <div class="flex h-2 overflow-hidden rounded bg-v2-background-bg-layer-02" aria-hidden="true">
+            <div
+              class="h-full opacity-40"
+              style={{ width: `${barSegments()?.cache ?? 0}%`, background: "var(--v2-icon-icon-faint)" }}
+            />
+            <div
+              class="h-full"
+              style={{
+                width: `${barSegments()?.input ?? 0}%`,
+                background: levelPaint().bar,
+              }}
+            />
+          </div>
+
+          <div class="flex items-center gap-3.5 text-[11.5px] text-v2-text-text-faint">
+            <span class="inline-flex items-center gap-1.5">
+              <i class="size-[7px] rounded-[2px] bg-v2-background-bg-accent" />
+              {ctx.t("window.legendInput")} <span class="tabular-nums">{formatter().compact(context()?.input)}</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="size-[7px] rounded-[2px] opacity-40" style={{ background: "var(--v2-icon-icon-faint)" }} />
+              {ctx.t("window.legendCache")} <span class="tabular-nums">{formatter().compact(context()?.cache)}</span>
+            </span>
+            <span class="ms-auto text-v2-text-text-muted">
+              {ctx.t("window.remaining", {
+                limit: formatter().compact(context()?.limit),
+                turns: remainingTurns() ?? "—",
+              })}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-4 overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted gap-px">
+            <Tile
+              label={ctx.t("stats.cost")}
+              value={costText()}
+              sub={
+                <span class="inline-flex items-center gap-1">
+                  {costSource()}
+                  <Show when={spend()?.estimated}>
+                    <PriceDetails breakdown={breakdown} cost={costText} />
+                  </Show>
+                </span>
+              }
+            />
+            <Tile
+              label={ctx.t("stats.messages")}
+              value={counts().loaded.toLocaleString(i18n.locale())}
+              sub={ctx.t("stats.messagesAll", { count: counts().turns })}
+            />
+            <Tile
+              label={ctx.t("stats.rate")}
+              value={
+                <>
+                  {formatter().rate(rateStats()?.avg)}
+                  <span class="ms-1 text-[11px] font-[400] text-v2-text-text-faint">tok/s</span>
+                </>
+              }
+              sub={ctx.t("stats.rateSub", {
+                last: formatter().rate(rateStats()?.last),
+                low: formatter().rate(rateStats()?.low),
+              })}
+            />
+            <Tile
+              label={ctx.t("stats.duration")}
+              value={formatter().duration(sessionDuration())}
+              sub={ctx.t("stats.lastActivity", { time: formatter().clock(info()?.time.updated) })}
+            />
+          </div>
+        </section>
+
+        {/* Model */}
+        <section class="flex flex-col gap-2.5">
+          <div class="flex items-center gap-2">
+            <div class={sectionLabel}>{ctx.t("model.title")}</div>
+            <div class="ms-auto flex items-center gap-2">
+              <span class="rounded-[5px] bg-v2-background-bg-layer-02 px-1.5 text-[11.5px] text-v2-text-text-muted">
+                {ctx.t(spend()?.estimated ? "model.priceLocal" : "model.priceServer")}
+              </span>
+              <button
+                type="button"
+                class="text-[12px] text-v2-text-text-accent hover:underline"
+                onClick={() => ctx.layout.settings()}
+              >
+                {ctx.t("model.configure")}
+              </button>
+            </div>
+          </div>
+          <div class={`${card} flex items-center gap-2.5 px-3 py-2.5`}>
+            <Icon name="status" size="small" class="shrink-0 text-v2-text-text-muted" />
+            <span class="text-[12.5px] font-[530] text-v2-text-text-base">{context()?.modelLabel ?? "—"}</span>
+            <span class="text-v2-border-border-strong">·</span>
+            <span class="text-[12px] text-v2-text-text-faint">
+              {ctx.t("model.contextLimit", { limit: formatter().compact(context()?.limit) })}
+            </span>
+            <span class="text-v2-border-border-strong">·</span>
+            <span class="text-[12px] text-v2-text-text-faint">{context()?.providerLabel ?? "—"}</span>
+          </div>
+        </section>
+
+        {/* Calls */}
+        <section class="flex flex-col gap-2.5">
+          <div class="flex items-center gap-2">
+            <div class={sectionLabel}>{ctx.t("calls.title")}</div>
+            <div class="ms-auto flex items-center gap-2 text-[11.5px] text-v2-text-text-faint">
+              <span>
+                {ctx.t("calls.summary", { count: summary().total, rate: summary().success })}
+              </span>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              class="rounded-full border px-2 py-px text-[11.5px]"
+              classList={{
+                "border-transparent bg-v2-background-bg-accent text-white": filter[0]() === "all",
+                "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "all",
+              }}
+              onClick={() => filter[1]("all")}
+            >
+              {ctx.t("calls.filterAll")}
+              <span class="ms-1 opacity-60">{summary().total}</span>
+            </button>
+            <button
+              type="button"
+              class="rounded-full border px-2 py-px text-[11.5px]"
+              classList={{
+                "border-transparent bg-v2-background-bg-accent text-white": filter[0]() === "failed",
+                "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "failed",
+              }}
+              onClick={() => filter[1]("failed")}
+            >
+              {ctx.t("calls.filterFailed")}
+              <span class="ms-1 opacity-60">{summary().failed}</span>
+            </button>
+            <button
+              type="button"
+              class="rounded-full border px-2 py-px text-[11.5px]"
+              classList={{
+                "border-transparent bg-v2-background-bg-accent text-white": filter[0]() === "slow",
+                "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "slow",
+              }}
+              onClick={() => filter[1]("slow")}
+            >
+              {ctx.t("calls.filterSlow")}
+              <span class="ms-1 opacity-60">{summary().slow}</span>
+            </button>
+          </div>
+
+          <div class="overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base">
+            <div
+              class="grid h-7 items-center gap-x-2 bg-v2-background-bg-layer-01 px-3 text-[11px] text-v2-text-text-faint [&>*:nth-child(n+2)]:text-end"
+              style={{ "grid-template-columns": callGrid }}
+            >
+              <span>{ctx.t("calls.time")}</span>
+              <span>{ctx.t("calls.input")}</span>
+              <span>{ctx.t("calls.cache")}</span>
+              <span>{ctx.t("calls.output")}</span>
+              <span>{ctx.t("calls.rate")}</span>
+              <span>{ctx.t("calls.duration")}</span>
+              <span>{ctx.t("calls.cost")}</span>
+              <span />
+            </div>
+
+            <Show
+              when={shownCalls().length > 0}
+              fallback={
+                <div class="flex items-center justify-center py-8 text-[12px] text-v2-text-text-faint">
+                  {ctx.t("calls.empty")}
+                </div>
+              }
+            >
+              <For each={shownCalls()}>
+                {(call) => {
+                  const open = () => openCall[0]() === call.message.id
+
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        class="grid w-full items-center gap-x-2 border-b border-v2-border-border-muted px-3 text-start text-[12px] last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
+                        classList={{
+                          "h-[34px]": true,
+                        }}
+                        style={{
+                          "grid-template-columns": callGrid,
+                          "box-shadow": call.failed
+                            ? "inset 2px 0 0 var(--v2-state-fg-danger)"
+                            : call.retried
+                              ? "inset 2px 0 0 var(--v2-state-fg-warning)"
+                              : undefined,
+                        }}
+                        onClick={() => toggleCall(call.message.id)}
+                        aria-expanded={open()}
+                      >
+                        <span class="font-mono text-[11px] tabular-nums text-v2-text-text-faint">
+                          {formatter().clock(call.started)}
+                        </span>
+                        <span class="tabular-nums text-v2-text-text-base">
+                          {formatter().number(call.tokens.input)}
+                        </span>
+                        <span
+                          class="tabular-nums"
+                          classList={{ "text-v2-text-text-faint": call.tokens.cache.read === 0, "text-v2-text-text-base": call.tokens.cache.read > 0 }}
+                        >
+                          {formatter().number(call.tokens.cache.read)}
+                        </span>
+                        <span class="tabular-nums text-v2-text-text-base">
+                          {formatter().number(call.tokens.output)}
+                        </span>
+                        <span class="flex items-center justify-end gap-1.5">
+                          <i class="h-[3px] w-[30px] shrink-0 overflow-hidden rounded-full bg-v2-background-bg-layer-02">
+                            <i
+                              class="block h-full rounded-full"
+                              style={{
+                                width: `${Math.min(100, ((call.rate ?? 0) / Math.max(rateStats()?.avg ?? 200, 1)) * 60)}%`,
+                                background:
+                                  (call.duration ?? 0) >= 10_000
+                                    ? "var(--v2-state-fg-warning)"
+                                    : "var(--v2-text-text-muted)",
+                              }}
+                            />
+                          </i>
+                          <span
+                            class="tabular-nums"
+                            classList={{
+                              "text-v2-state-fg-warning": (call.duration ?? 0) >= 10_000,
+                              "text-v2-text-text-base": (call.duration ?? 0) < 10_000,
+                            }}
+                          >
+                            {formatter().rate(call.rate)}
+                          </span>
+                        </span>
+                        <span
+                          class="tabular-nums"
+                          classList={{
+                            "text-v2-state-fg-warning": (call.duration ?? 0) >= 10_000,
+                            "text-v2-text-text-muted": (call.duration ?? 0) < 10_000,
+                          }}
+                        >
+                          {formatter().duration(call.duration)}
+                        </span>
+                        <span class="tabular-nums text-v2-text-text-muted">
+                          {call.message.cost ? usd()(call.message.cost) : cny()(flashCostCNY([call.tokens]))}
+                        </span>
+                        <span class="flex justify-end">
+                          <Show
+                            when={call.failed}
+                            fallback={
+                              <Show
+                                when={call.retried}
+                                fallback={
+                                  <Show
+                                    when={call.truncated}
+                                    fallback={<i class="size-1.5 rounded-full bg-v2-state-fg-success" />}
+                                  >
+                                    <span class="rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
+                                      {ctx.t("calls.truncated")}
+                                    </span>
+                                  </Show>
+                                }
+                              >
+                                <span class="whitespace-nowrap rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
+                                  {ctx.t("calls.retry", { count: call.message.retry?.attempt ?? 1 })}
+                                </span>
+                              </Show>
+                            }
+                          >
+                            <span class="rounded bg-v2-state-bg-danger px-1 text-[10.5px] text-v2-state-fg-danger">
+                              {ctx.t("calls.failed")}
+                            </span>
+                          </Show>
+                        </span>
+                      </button>
+
+                      <Show when={open()}>
+                        <div class="flex flex-col gap-2.5 border-b border-v2-border-border-muted bg-v2-background-bg-layer-01 px-3 py-2.5 text-[11.5px] text-v2-text-text-muted">
+                          <div class="grid grid-cols-4 gap-x-4 gap-y-2.5">
+                            <Field label={ctx.t("calls.ttft")} value={formatter().duration(call.ttft)} />
+                            <Field label={ctx.t("calls.reasoning")} value={formatter().number(call.tokens.reasoning)} />
+                            <Field label={ctx.t("calls.cacheWrite")} value={formatter().number(call.tokens.cache.write)} />
+                            <Field
+                              label={ctx.t("calls.tools")}
+                              value={call.message.content.filter((item) => item.type === "tool").length}
+                            />
+                          </div>
+                          <Show when={call.message.error}>
+                            {(error) => (
+                              <div class="flex items-start gap-2 rounded-md bg-v2-state-bg-danger px-2.5 py-2 text-v2-state-fg-danger">
+                                <Icon name="circle-exclamation" size="small" class="mt-px shrink-0" />
+                                <span>
+                                  {error().message}
+                                  <Show when={error().status}>
+                                    {(status) => <span class="opacity-70"> ({status()})</span>}
+                                  </Show>
+                                </span>
+                              </div>
+                            )}
+                          </Show>
+                          <div class="flex items-center gap-3">
+                            <button
+                              type="button"
+                              class="text-[12px] text-v2-text-text-accent hover:underline"
+                              onClick={() => {
+                                if (!call.anchor) return
+
+                                document
+                                  .querySelector(`[data-message-id="${call.anchor}"]`)
+                                  ?.scrollIntoView({ block: "center", behavior: "smooth" })
+                              }}
+                              disabled={!call.anchor}
+                            >
+                              {ctx.t("calls.locate")}
+                            </button>
+                            <span class="text-[10.5px] text-v2-text-text-faint">{ctx.t("calls.rateHint")}</span>
+                          </div>
+                        </div>
+                      </Show>
+                    </>
+                  )
+                }}
+              </For>
+            </Show>
+          </div>
+
+          <Show when={rateStats()}>
+            {(rates) => (
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-2">
+                  <div class="text-[11.5px] font-[530] text-v2-text-text-muted">{ctx.t("calls.trend")}</div>
+                  <div class="ms-auto text-[11px] text-v2-text-text-faint">
+                    {ctx.t("calls.baseline", { rate: formatter().rate(rates().avg) })}
+                  </div>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <Sparkline rates={rates().rates.slice(-8)} baseline={rates().avg} />
+                  <span class="text-[11px] text-v2-text-text-faint">
+                    {ctx.t("stats.rateSub", {
+                      last: formatter().rate(rates().last),
+                      low: formatter().rate(rates().low),
+                    })}
+                  </span>
+                </div>
+              </div>
+            )}
+          </Show>
+        </section>
+
+        {/* Session context */}
+        <section class="flex flex-col gap-2.5">
+          <div class={sectionLabel}>{ctx.t("session.title")}</div>
+          <div class={`${card} overflow-hidden`}>
+            <div class="flex items-center gap-2.5 border-b border-v2-border-border-muted px-3 py-2 text-[12px]">
+              <span class="w-[72px] shrink-0 text-v2-text-text-faint">{ctx.t("session.project")}</span>
+              <span class="truncate text-v2-text-text-base">
+                {props.session.listedProject?.name ?? props.session.project?.name ?? "—"}
+              </span>
+            </div>
+            <div class="flex items-center gap-2.5 border-b border-v2-border-border-muted px-3 py-2 text-[12px]">
+              <span class="w-[72px] shrink-0 text-v2-text-text-faint">{ctx.t("session.directory")}</span>
+              <span class="truncate font-mono text-[11.5px] text-v2-text-text-base">{props.session.directory}</span>
+            </div>
+            <div class="flex items-center gap-2.5 px-3 py-2 text-[12px]">
+              <span class="w-[72px] shrink-0 text-v2-text-text-faint">{ctx.t("session.parent")}</span>
+              <Show
+                when={parent()}
+                fallback={<span class="text-v2-text-text-faint">{ctx.t("session.root")}</span>}
+              >
+                {(item) => (
+                  <button
+                    type="button"
+                    class="truncate text-start text-v2-text-text-base hover:underline"
+                    onClick={() => openSession(item().id)}
+                  >
+                    {item().title}
+                  </button>
+                )}
+              </Show>
+            </div>
+          </div>
+
+          <Show when={children().length > 0}>
+            <div class="flex items-center gap-2">
+              <div class="text-[11.5px] font-[530] text-v2-text-text-muted">{ctx.t("session.children")}</div>
+              <div class="ms-auto text-[11px] text-v2-text-text-faint">
+                {ctx.t("session.childrenMeta", {
+                  count: children().length,
+                  cost: childrenSpend(),
+                })}
               </div>
             </div>
-          )}
-        </Show>
+            <div class="flex flex-col gap-px overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted">
+              <For each={children()}>
+                {(child) => (
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 bg-v2-background-bg-base px-3 py-2 text-start text-[12px] hover:bg-v2-overlay-simple-overlay-hover"
+                    onClick={() => openSession(child.id)}
+                  >
+                    <span class="truncate text-v2-text-text-base">{child.title}</span>
+                    <span
+                      class="shrink-0 rounded px-1 text-[10.5px]"
+                      classList={{
+                        "text-v2-text-text-muted": !child.running,
+                        "text-v2-text-text-accent": child.running,
+                      }}
+                      style={{
+                        background: child.running
+                          ? "color-mix(in srgb, var(--v2-background-bg-accent) 15%, transparent)"
+                          : "var(--v2-background-bg-layer-02)",
+                      }}
+                    >
+                      {ctx.t(child.running ? "session.running" : "session.done")}
+                    </span>
+                    <span class="ms-auto shrink-0 tabular-nums text-[11.5px] text-v2-text-text-faint">
+                      {usd()(child.cost)}
+                    </span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+        </section>
 
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-between">
-            <div class="text-12-regular text-text-weak">{ctx.t("rawMessages.title")}</div>
-            <Button
-              size="small"
-              variant="ghost"
-              class="gap-1.5 px-2 text-text-weak hover:text-text-base"
-              onClick={exportSession}
-            >
-              <Icon name="download" size="small" />
-              <span>{ctx.t("export.session")}</span>
-            </Button>
+        {/* Diagnostics */}
+        <details class={`${card} overflow-hidden`}>
+          <summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-[12px] text-v2-text-text-muted">
+            <Icon name="chevron-right" size="small" class="shrink-0 text-v2-text-text-faint" />
+            <span>{ctx.t("diag.title")}</span>
+            <span class="text-[11.5px] text-v2-text-text-faint">{ctx.t("diag.subtitle")}</span>
+            <span class="ms-auto shrink-0 rounded bg-v2-state-bg-warning px-1.5 text-[10.5px] text-v2-state-fg-warning">
+              {ctx.t("diag.permission")}
+            </span>
+          </summary>
+          <div class="flex flex-col gap-2 border-t border-v2-border-border-muted px-3 pb-3">
+            <div class="flex items-center gap-2 pt-2.5 text-[12px] text-v2-text-text-muted">
+              <span>{ctx.t("diag.systemPrompt")}</span>
+              <span class="text-[11.5px] text-v2-text-text-faint">
+                {ctx.t("diag.chars", { count: formatter().number(systemPrompt()?.length ?? 0) })}
+              </span>
+              <span class="rounded bg-v2-state-bg-warning px-1 text-[10.5px] text-v2-state-fg-warning">
+                {ctx.t("diag.sensitive")}
+              </span>
+            </div>
+            <Show when={systemPrompt()}>
+              {(prompt) => (
+                <div class="max-h-[120px] overflow-hidden rounded-md border border-v2-border-border-muted bg-v2-background-bg-base px-2.5 py-2">
+                  <Markdown text={prompt()} class="text-[11.5px]" />
+                </div>
+              )}
+            </Show>
+
+            <div class="flex items-center gap-2 pt-1 text-[12px] text-v2-text-text-muted">
+              <span>{ctx.t("diag.rawMessages")}</span>
+              <span class="text-[11.5px] text-v2-text-text-faint">
+                {ctx.t("diag.loaded", { loaded: counts().loaded })}
+              </span>
+            </div>
+            <Accordion multiple class="max-h-[320px] overflow-y-auto rounded-md border border-v2-border-border-muted">
+              <For each={messages()}>
+                {(message) => (
+                  <RawMessage message={message} onRendered={restoreScroll} time={formatter().time} />
+                )}
+              </For>
+            </Accordion>
+
+            <div class="flex items-center gap-2 pt-1 text-[12px] text-v2-text-text-muted">
+              <span>{ctx.t("diag.export")}</span>
+              <span class="text-[11.5px] text-v2-text-text-faint">{ctx.t("diag.redacted")}</span>
+              <Button
+                size="small"
+                variant="ghost"
+                class="ms-auto gap-1.5 px-2 text-text-weak hover:text-text-base"
+                onClick={exportSession}
+              >
+                <Icon name="download" size="small" />
+                <span>{ctx.t("export.session")}</span>
+              </Button>
+            </div>
           </div>
-          <Accordion multiple>
-            <For each={messages()}>
-              {(message) => <RawMessage message={message} onRendered={restoreScroll} time={formatter().time} />}
-            </For>
-          </Accordion>
-        </div>
+        </details>
       </div>
     </div>
   )

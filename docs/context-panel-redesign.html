@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>上下文面板 · 重构设计</title>
+<style>
+  /* ── Theme tokens：取自 packages/ui/src/styles/tokens ── */
+  /* macOS 系统色 + 材质。数值对齐 Apple HIG 与 packages/ui 的 v2 token。 */
+  :root {
+    --bg: #ffffff;
+    --stage: #ececec;
+    --layer-1: #f6f6f6;
+    --layer-2: #ededed;
+    --layer-3: #e2e2e2;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --faint: #8e8e93;
+    --border: rgba(0,0,0,.09);
+    --border-strong: rgba(0,0,0,.18);
+    --hover: rgba(0,0,0,.045);
+    --hairline: 0.5px;
+    --accent: #007aff;
+    --accent-soft: rgba(0,122,255,.14);
+    --success: #248a3d;
+    --success-bg: rgba(52,199,89,.14);
+    --warning: #b25e00;
+    --warning-bg: rgba(255,159,10,.16);
+    --danger: #d70015;
+    --danger-bg: rgba(255,59,48,.12);
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --shadow: 0 10px 30px rgba(0,0,0,.10), 0 0 0 .5px rgba(0,0,0,.06);
+    --shadow-pop: 0 18px 50px rgba(0,0,0,.18), 0 0 0 .5px rgba(0,0,0,.08);
+    /* 毛玻璃：macOS 侧栏/工具条材质 */
+    --material: rgba(255,255,255,.72);
+    --material-strong: rgba(255,255,255,.86);
+    --material-blur: saturate(180%) blur(24px);
+  }
+  html[data-theme="dark"] {
+    --bg: #1e1e1e;
+    --stage: #141414;
+    --layer-1: #2a2a2c;
+    --layer-2: #333335;
+    --layer-3: #3f3f42;
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --faint: #7c7c80;
+    --border: rgba(255,255,255,.1);
+    --border-strong: rgba(255,255,255,.2);
+    --hover: rgba(255,255,255,.07);
+    --accent: #0a84ff;
+    --accent-soft: rgba(10,132,255,.24);
+    --success: #30d158;
+    --success-bg: rgba(48,209,88,.16);
+    --warning: #ffd60a;
+    --warning-bg: rgba(255,214,10,.16);
+    --danger: #ff453a;
+    --danger-bg: rgba(255,69,58,.16);
+    --shadow: 0 12px 34px rgba(0,0,0,.55), 0 0 0 .5px rgba(255,255,255,.1);
+    --shadow-pop: 0 20px 60px rgba(0,0,0,.7), 0 0 0 .5px rgba(255,255,255,.12);
+    --material: rgba(30,30,30,.72);
+    --material-strong: rgba(30,30,30,.86);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--stage);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    letter-spacing: -.003em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: default; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ── 工具条（macOS 工具栏材质） ── */
+  .toolbar {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 18px;
+    background: var(--material-strong);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+    border-bottom: var(--hairline) solid var(--border);
+    position: relative;
+    z-index: 20;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .toolbar h1 { font-size: 13px; font-weight: 590; margin: 0; letter-spacing: -.01em; }
+  .toolbar .sub { color: var(--faint); font-size: 12px; }
+  .spacer { flex: 1; }
+  /* macOS 分段控件 */
+  .seg { display: flex; padding: 2px; gap: 1px; background: rgba(0,0,0,.06); border-radius: 6px; flex: none; }
+  html[data-theme="dark"] .seg { background: rgba(255,255,255,.08); }
+  .seg .seg-label { font-size: 11px; color: var(--faint); padding: 3px 6px 3px 8px; align-self: center; }
+  .seg button {
+    padding: 3px 9px; border-radius: 5px; font-size: 11.5px; color: var(--muted);
+  }
+  .seg button.on {
+    background: var(--bg); color: var(--text);
+    box-shadow: 0 1px 1.5px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.06);
+  }
+  html[data-theme="dark"] .seg button.on {
+    background: #5a5a5e; color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  .seg button:hover:not(.on) { color: var(--text); }
+
+  /* ── 舞台 ── */
+  .stage {
+    height: calc(100vh - 52px);
+    display: flex;
+    overflow: hidden;
+    /* 让毛玻璃透出一点桌面层次，macOS 侧栏材质才有意义 */
+    background:
+      radial-gradient(1100px 620px at 12% -12%, rgba(0,122,255,.10), transparent 62%),
+      radial-gradient(900px 520px at 102% 112%, rgba(255,45,85,.07), transparent 60%),
+      var(--stage);
+  }
+  html[data-theme="dark"] .stage {
+    background:
+      radial-gradient(1100px 620px at 12% -12%, rgba(10,132,255,.12), transparent 62%),
+      radial-gradient(900px 520px at 102% 112%, rgba(255,69,58,.07), transparent 60%),
+      var(--stage);
+  }
+
+  .rail {
+    width: 220px;
+    flex: none;
+    background: var(--material);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+    border-right: var(--hairline) solid var(--border);
+    padding: 10px;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .rail .rail-title { font-size: 11px; color: var(--faint); padding: 6px 8px 8px; letter-spacing: .02em; }
+  .rail .row {
+    padding: 7px 8px; border-radius: 6px; font-size: 12px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rail .row.on { background: var(--hover); color: var(--text); }
+  .rail .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--danger); display: inline-block; margin-right: 6px; vertical-align: 1px; }
+
+  .chat {
+    flex: 1; min-width: 0;
+    padding: 24px 32px;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .chat .ghost { background: var(--layer-1); border: var(--hairline) solid var(--border); border-radius: 10px; }
+  .chat .g-user { width: 62%; align-self: flex-end; height: 46px; }
+  .chat .g-ai { width: 86%; height: 120px; }
+  .chat .g-ai.short { height: 74px; }
+  .chat .g-note { color: var(--faint); font-size: 12px; text-align: center; opacity: .7; }
+
+  /* ── 右侧面板 ── */
+  .panel {
+    width: 600px; flex: none;
+    background: var(--material-strong);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+    border-left: var(--hairline) solid var(--border);
+    box-shadow: -10px 0 30px rgba(0,0,0,.05);
+    display: flex; flex-direction: column;
+    min-width: 0;
+    transition: width .18s ease;
+  }
+  html[data-theme="dark"] .panel { box-shadow: -10px 0 30px rgba(0,0,0,.3); }
+  .stage.mobile .panel { width: 392px; }
+  .stage.mobile .rail { display: none; }
+  .stage.mobile .chat { opacity: .2; }
+
+  .panel-tabs {
+    height: 44px; flex: none;
+    display: flex; align-items: center; gap: 4px;
+    padding: 0 10px 0 12px;
+    background: var(--material);
+    backdrop-filter: var(--material-blur);
+    -webkit-backdrop-filter: var(--material-blur);
+    border-bottom: var(--hairline) solid var(--border);
+  }
+  .ptab {
+    display: flex; align-items: center; gap: 7px;
+    height: 28px; padding: 0 10px; border-radius: 6px;
+    font-size: 12.5px; color: var(--muted);
+  }
+  .ptab:hover { background: var(--hover); color: var(--text); }
+  .ptab.on {
+    background: var(--bg); color: var(--text); font-weight: 530;
+    box-shadow: 0 1px 1.5px rgba(0,0,0,.1), 0 0 0 .5px rgba(0,0,0,.05);
+  }
+  html[data-theme="dark"] .ptab.on {
+    background: var(--layer-3);
+    box-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  .ptab .x { color: var(--faint); font-size: 11px; margin-left: 2px; }
+  .panel-tabs .grow { flex: 1; }
+  .iconbtn {
+    width: 26px; height: 26px; border-radius: 6px;
+    display: grid; place-items: center; color: var(--muted);
+  }
+  .iconbtn:hover { background: var(--hover); color: var(--text); }
+  .iconbtn svg { width: 15px; height: 15px; }
+
+  .panel-body {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 18px 22px 44px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .panel-body::-webkit-scrollbar { width: 9px; height: 9px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb {
+    background: var(--border-strong); border-radius: 5px;
+    border: 2.5px solid transparent; background-clip: content-box;
+  }
+  .panel-body::-webkit-scrollbar-thumb:hover { background-color: var(--faint); background-clip: content-box; }
+
+  .real { display: flex; flex-direction: column; gap: 22px; }
+
+  .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .sec-head h2 { font-size: 12px; font-weight: 590; color: var(--muted); margin: 0; letter-spacing: .01em; }
+  .sec-head .meta { font-size: 11.5px; color: var(--faint); margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .sec-head .meta b { color: var(--text); font-weight: 530; }
+
+  /* ── 顶部：上下文窗口 ── */
+  .hero { display: flex; flex-direction: column; gap: 10px; }
+  .hero-top { display: flex; align-items: baseline; gap: 10px; }
+  .hero-top .label { font-size: 12px; color: var(--muted); }
+  .hero-top .pct {
+    margin-left: auto; font-size: 15px; font-weight: 590; letter-spacing: -.02em;
+    padding: 0 8px; border-radius: 6px;
+    background: var(--layer-2); color: var(--text);
+    transition: background .2s, color .2s;
+  }
+  .pct.warn { background: var(--warning-bg); color: var(--warning); }
+  .pct.danger { background: var(--danger-bg); color: var(--danger); }
+
+  .bar { height: 8px; border-radius: 4px; background: var(--layer-2); overflow: hidden; display: flex; cursor: pointer; }
+  .bar .seg { height: 100%; transition: width .3s; }
+  .bar .seg.cache { background: var(--faint); opacity: .4; }
+  .bar .seg.input { background: var(--accent); }
+  .bar.warn .seg.input { background: var(--warning); }
+  .bar.danger .seg.input { background: var(--danger); }
+
+  .bar-legend { display: flex; align-items: center; gap: 14px; font-size: 11.5px; color: var(--faint); }
+  .bar-legend .k { display: inline-flex; align-items: center; gap: 5px; }
+  .bar-legend .sw { width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+  .bar-legend .sw.dim { background: var(--faint); opacity: .4; }
+  .bar-legend .right { margin-left: auto; color: var(--muted); }
+  .bar-legend .right b { color: var(--text); font-weight: 530; }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: var(--hairline) solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 4px; }
+  .tile { background: var(--bg); padding: 10px 11px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .tile .t-label { font-size: 11px; color: var(--faint); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .tile .t-value { font-size: 16px; font-weight: 590; letter-spacing: -.02em; white-space: nowrap; }
+  .tile .t-value .u { font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 1px; }
+  .tile .t-sub { font-size: 10.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── 模型行 ── */
+  .model-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--layer-1);
+    border: var(--hairline) solid var(--border);
+    border-radius: 10px;
+  }
+  .model-row .name { font-weight: 530; font-size: 12.5px; }
+  .model-row .sep { color: var(--border-strong); }
+  .model-row .dim { color: var(--faint); font-size: 12px; }
+  .model-row .grow { flex: 1; }
+  .link { color: var(--accent); font-size: 12px; }
+  .link:hover { text-decoration: underline; }
+  .price-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--muted);
+    background: var(--layer-2); border-radius: 5px; padding: 2px 7px;
+  }
+  .price-chip .warn-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning); }
+
+  /* ── 调用列表 ── */
+  .calls { display: flex; flex-direction: column; }
+  .chips { display: flex; gap: 6px; margin-bottom: 8px; }
+  .chip {
+    font-size: 11.5px; color: var(--muted);
+    padding: 2px 8px; border-radius: 20px; border: var(--hairline) solid var(--border);
+  }
+  .chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .chip.on { background: var(--accent); color: #fff; border-color: transparent; }
+  .chip .n { opacity: .6; margin-left: 4px; }
+
+  .spark { display: flex; align-items: center; gap: 6px; }
+  .spark svg { display: block; overflow: visible; }
+  .spark .lbl { font-size: 10.5px; color: var(--faint); }
+
+  .call-table { border: var(--hairline) solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg); }
+
+  .call-head, .call-row {
+    display: grid;
+    grid-template-columns: 58px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 74px 50px 62px 64px;
+    align-items: center;
+    gap: 0 8px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .call-head {
+    height: 28px; color: var(--faint); font-size: 11px;
+    background: var(--layer-1); border-bottom: var(--hairline) solid var(--border);
+  }
+  .call-head > :nth-child(n+2), .call-row > :nth-child(n+2) { text-align: right; }
+  .call-head .rate-h { text-align: right; }
+  .call-row {
+    height: 34px; color: var(--muted); cursor: pointer;
+    border-bottom: var(--hairline) solid var(--border);
+    transition: background .1s;
+  }
+  .call-row:hover { background: var(--hover); }
+  .call-row.fail { box-shadow: inset 2px 0 0 var(--danger); }
+  .call-row.retry { box-shadow: inset 2px 0 0 var(--warning); }
+  .call-row .t { color: var(--faint); font-family: var(--mono); font-size: 11px; text-align: left; }
+  .call-row .v { color: var(--text); }
+  .call-row .v.zero { color: var(--faint); }
+  .call-row .cost { color: var(--muted); }
+  .call-row .slow { color: var(--warning); }
+  .call-row .st { display: grid; place-items: center; }
+
+  .rate-cell { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .rate-cell .n { color: var(--text); font-size: 12px; }
+  .rate-cell .track { width: 30px; height: 3px; border-radius: 2px; background: var(--layer-2); overflow: hidden; flex: none; }
+  .rate-cell .track i { display: block; height: 100%; background: var(--muted); }
+  .rate-cell.slow .n { color: var(--warning); }
+  .rate-cell.slow .track i { background: var(--warning); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; padding: 1px 6px; border-radius: 4px; line-height: 1.6;
+    white-space: nowrap;
+  }
+  .badge.retry { color: var(--warning); background: var(--warning-bg); }
+  .badge.fail { color: var(--danger); background: var(--danger-bg); }
+  .dot-s { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+  .call-detail {
+    display: none;
+    padding: 10px 12px 12px;
+    background: var(--layer-1);
+    border-bottom: var(--hairline) solid var(--border);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .call-detail.open { display: block; }
+  .call-detail .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; }
+  .call-detail .kv .k { color: var(--faint); font-size: 10.5px; display: block; }
+  .call-detail .kv .v { color: var(--text); font-size: 12px; }
+  .call-detail .err {
+    margin-top: 10px; padding: 8px 10px; border-radius: 6px;
+    background: var(--danger-bg); color: var(--danger); font-size: 11.5px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .call-detail .actions { margin-top: 8px; display: flex; gap: 14px; }
+  .call-detail .hint { color: var(--faint); font-size: 10.5px; }
+
+  .event {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; font-size: 11.5px; color: var(--faint);
+    background: var(--layer-1); border-bottom: var(--hairline) solid var(--border);
+  }
+  .event .ev-icon { display: grid; place-items: center; color: var(--faint); }
+  .event b { font-weight: 530; color: var(--muted); }
+
+  .more-row {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 9px; font-size: 11.5px; color: var(--muted);
+    background: var(--layer-1);
+  }
+  .more-row:hover { color: var(--text); }
+
+  .footnote { margin: 8px 0 0; font-size: 11px; color: var(--faint); line-height: 1.6; }
+
+  /* ── 会话上下文 ── */
+  .kv-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: var(--hairline) solid var(--border); border-radius: 10px; overflow: hidden; }
+  .kv-line { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg); font-size: 12px; }
+  .kv-line .k { color: var(--faint); width: 72px; flex: none; }
+  .kv-line .v { color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kv-line .v.mono { font-family: var(--mono); font-size: 11.5px; }
+  .kv-line .tail { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
+
+  .child-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border-radius: 8px; overflow: hidden; }
+  .child {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; background: var(--bg); font-size: 12px; cursor: pointer;
+  }
+  .child:hover { background: var(--hover); }
+  .child .cname { color: var(--text); }
+  .child .cmeta { margin-left: auto; color: var(--faint); font-size: 11.5px; }
+  .status-tag { font-size: 10.5px; padding: 1px 6px; border-radius: 4px; }
+  .status-tag.run { color: var(--accent); background: var(--accent-soft); }
+  .status-tag.done { color: var(--muted); background: var(--layer-2); }
+
+  .link-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ext-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 11px; border-radius: 7px;
+    border: var(--hairline) solid var(--border); background: var(--bg);
+    font-size: 12px; color: var(--text);
+  }
+  .ext-link:hover { border-color: var(--border-strong); }
+  .ext-link .tag { font-size: 10px; color: var(--danger); background: var(--danger-bg); padding: 0 5px; border-radius: 3px; }
+  .ext-link .tag.info { color: var(--accent); background: var(--accent-soft); }
+  .ext-link .src { color: var(--faint); font-size: 11px; }
+
+  /* ── 诊断折叠区 ── */
+  .diag {
+    border: var(--hairline) solid var(--border); border-radius: 10px; overflow: hidden;
+    background: var(--layer-1);
+  }
+  .diag > summary {
+    list-style: none; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; font-size: 12px; color: var(--muted);
+  }
+  .diag > summary::-webkit-details-marker { display: none; }
+  .diag > summary:hover { color: var(--text); }
+  .diag > summary .grow { flex: 1; }
+  .diag > summary .caret { transition: transform .15s; color: var(--faint); flex: none; }
+  .diag[open] > summary .caret { transform: rotate(90deg); }
+  .diag-body { padding: 2px 12px 12px; display: flex; flex-direction: column; gap: 4px; border-top: var(--hairline) solid var(--border); }
+  .diag-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); padding-top: 8px; }
+  .diag-row .grow { flex: 1; }
+  .sensitive {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; color: var(--warning); background: var(--warning-bg);
+    padding: 1px 6px; border-radius: 4px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 24px; padding: 0 10px; border-radius: 6px;
+    border: var(--hairline) solid var(--border); background: var(--bg);
+    font-size: 12px; color: var(--text);
+    box-shadow: 0 1px 1.5px rgba(0,0,0,.05);
+  }
+  html[data-theme="dark"] .btn { background: var(--layer-2); box-shadow: none; }
+  .btn:hover { border-color: var(--border-strong); }
+  .btn.primary {
+    background: linear-gradient(#0a84ff, #0071e3);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 1px 2px rgba(0,113,227,.35);
+  }
+  html[data-theme="dark"] .btn.primary { background: linear-gradient(#0a84ff, #0069d9); color: #fff; }
+  .prompt-preview {
+    font-size: 11.5px; color: var(--muted); line-height: 1.65;
+    background: var(--bg); border: var(--hairline) solid var(--border); border-radius: 6px;
+    padding: 8px 10px; max-height: 92px; overflow: hidden;
+    position: relative; font-family: var(--mono);
+    white-space: pre-wrap;
+  }
+  .prompt-preview::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: 34px;
+    background: linear-gradient(transparent, var(--bg));
+  }
+
+  /* ── 状态演示 ── */
+  .skel { display: none; flex-direction: column; gap: 12px; }
+  .panel-body[data-state="loading"] .skel { display: flex; }
+  .panel-body[data-state="loading"] .real { display: none; }
+  .panel-body[data-state="loading"] .empty-state { display: none; }
+
+  .nocost { display: none; }
+  .panel-body[data-state="nocost"] .cost-tile .real-cost { display: none; }
+  .panel-body[data-state="nocost"] .cost-tile .nocost { display: inline; }
+
+  .empty-state { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 90px 0; text-align: center; }
+  .panel-body[data-state="empty"] .real { display: none; }
+  .panel-body[data-state="empty"] .empty-state { display: flex; }
+
+  .skel .s { height: 12px; border-radius: 6px; background: var(--layer-2); animation: pulse 1.4s ease-in-out infinite; }
+  .skel .s.w60 { width: 60%; } .skel .s.w40 { width: 40%; } .skel .s.w80 { width: 80%; }
+  .skel .s.h24 { height: 24px; } .skel .s.h8 { height: 8px; }
+  @keyframes pulse { 0%,100% { opacity: .55 } 50% { opacity: 1 } }
+  .skel .note { font-size: 11.5px; color: var(--faint); }
+
+  .empty-state .big { width: 44px; height: 44px; border-radius: 12px; border: 1px dashed var(--border-strong); display: grid; place-items: center; color: var(--faint); }
+  .empty-state p { margin: 0; font-size: 12.5px; color: var(--muted); }
+  .empty-state span { font-size: 11.5px; color: var(--faint); max-width: 240px; }
+
+  /* ── 标注 ── */
+  .anno {
+    display: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #ff375f; color: #fff;
+    font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+    margin-left: 4px; cursor: help; flex: none;
+    position: relative; vertical-align: 2px;
+  }
+  body.show-anno .anno { display: inline-block; }
+  .anno::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    width: 240px; padding: 8px 10px; border-radius: 7px;
+    background: #1f1f1f; color: #f0f0f0;
+    font-size: 11.5px; font-weight: 400; line-height: 1.55; text-align: left;
+    box-shadow: var(--shadow); z-index: 50;
+    opacity: 0; pointer-events: none; transition: opacity .12s;
+  }
+  .anno:hover::after { opacity: 1; }
+
+  @media (max-width: 1200px) { .rail { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>上下文面板 · 重构设计</h1>
+  <span class="sub">运维视角：模型调用 + 性能 + 成本，去掉开发者调试内容</span>
+  <div class="spacer"></div>
+  <div class="seg" data-group="state">
+    <span class="seg-label">状态</span>
+    <button data-state="normal" class="on">正常</button>
+    <button data-state="loading">加载中</button>
+    <button data-state="nocost">无定价</button>
+    <button data-state="empty">空会话</button>
+  </div>
+  <div class="seg" data-group="view">
+    <span class="seg-label">视图</span>
+    <button data-view="desktop" class="on">桌面</button>
+    <button data-view="mobile">窄屏</button>
+  </div>
+  <div class="seg" data-group="theme">
+    <span class="seg-label">主题</span>
+    <button data-theme="light" class="on">浅色</button>
+    <button data-theme="dark">深色</button>
+  </div>
+  <div class="seg" data-group="anno">
+    <span class="seg-label">设计标注</span>
+    <button data-anno="on">显示</button>
+    <button data-anno="off" class="on">隐藏</button>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+  <aside class="rail">
+    <div class="rail-title">会话</div>
+    <div class="row"><span class="dot"></span>支付服务 5xx 告警排查</div>
+    <div class="row on">支付服务 5xx 告警排查</div>
+    <div class="row">订单库连接池打满</div>
+    <div class="row">网关 504 复盘</div>
+    <div class="row">灰度回滚检查</div>
+    <div class="row">Nginx 证书续期</div>
+  </aside>
+
+  <main class="chat">
+    <div class="ghost g-user"></div>
+    <div class="ghost g-ai"></div>
+    <div class="g-note">— 对话区（不在本次设计范围）—</div>
+    <div class="ghost g-user" style="height:74px"></div>
+    <div class="ghost g-ai short"></div>
+    <div class="ghost g-ai"></div>
+  </main>
+
+  <section class="panel">
+    <div class="panel-tabs">
+      <button class="ptab on">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 6.4v4.2M8 4.6v.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        上下文
+        <span class="anno" data-tip="移动端与桌面统一叫「上下文」。原名「用法」是 token 计价的旧视角，运维用户找不到。">1</span>
+      </button>
+      <button class="ptab">变更<span class="x">×</span></button>
+      <button class="ptab">终端<span class="x">×</span></button>
+      <div class="grow"></div>
+      <button class="iconbtn" title="新标签">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="iconbtn" title="关闭">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="panel-body" id="panelBody" data-state="normal">
+
+      <div class="skel">
+        <div class="s w40 h8"></div>
+        <div class="s h24"></div>
+        <div class="s w60"></div>
+        <div class="s w80"></div>
+        <div class="s w40"></div>
+        <div class="note">正在加载模型目录与调用记录…</div>
+      </div>
+
+      <div class="empty-state">
+        <div class="big">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <p>本次会话还没有模型调用</p>
+        <span>第一轮对话后，这里会显示上下文占用、调用清单、输出速率与成本。</span>
+      </div>
+
+      <div class="real">
+
+        <!-- 1. 上下文窗口 -->
+        <section class="hero">
+          <div class="hero-top">
+            <span class="label">上下文窗口</span>
+            <span class="anno" data-tip="原来平铺的「上下文限制 / 词元总数 / 使用率 / 输入 / 输出 / 推理 / 缓存」七项，压缩成一条占用条。点进度条可预览预警配色。">2</span>
+            <span class="pct num" id="pctBadge">24%</span>
+          </div>
+          <div class="bar" id="ctxBar" title="点击预览 70% / 90% 预警">
+            <i class="seg cache" id="segCache" style="width:17.9%"></i>
+            <i class="seg input" id="segInput" style="width:6.2%"></i>
+          </div>
+          <div class="bar-legend">
+            <span class="k"><i class="sw"></i>输入 <span id="lgInput" class="num">12.4k</span></span>
+            <span class="k"><i class="sw dim"></i>缓存命中 <span id="lgCache" class="num">35.8k</span></span>
+            <span class="right">上限 200k · 还可容纳约 <b id="lgLeft" class="num">12</b> 轮</span>
+          </div>
+
+          <div class="tiles">
+            <div class="tile cost-tile">
+              <span class="t-label">会话成本 <span class="anno" data-tip="定价可配置。企业自建模型不配置时只显示词元、不显示金额——不能拿 DeepSeek 标价给别人的模型开账单。">3</span></span>
+              <span class="t-value num"><span class="real-cost">¥0.42</span><span class="nocost">—</span></span>
+              <span class="t-sub"><span class="real-cost">按 DeepSeek 标价估算</span><span class="nocost">该模型未配置定价</span></span>
+            </div>
+            <div class="tile">
+              <span class="t-label">消息 <span class="anno" data-tip="原实现只统计客户端已加载的最近 20 条，却写成「消息数」。这里改为全量，并补上轮次。">4</span></span>
+              <span class="t-value num">128<span class="u">条</span></span>
+              <span class="t-sub">全量 · 28 轮</span>
+            </div>
+            <div class="tile">
+              <span class="t-label">输出速率 <span class="anno" data-tip="新增。输出词元 ÷ (总耗时 − 首字延迟)。运维判断上游模型是否变慢，看这个比看总耗时准。">5</span></span>
+              <span class="t-value num">205<span class="u">tok/s</span></span>
+              <span class="t-sub">最近一次 217 · 最低 115</span>
+            </div>
+            <div class="tile">
+              <span class="t-label">时长</span>
+              <span class="t-value num">1<span class="u">h</span>24<span class="u">m</span></span>
+              <span class="t-sub">最后活动 3 分钟前</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. 模型 -->
+        <section>
+          <div class="sec-head">
+            <h2>模型</h2>
+            <div class="meta">
+              <span class="price-chip"><i class="warn-dot"></i>定价：DeepSeek 官方</span>
+              <button class="link">配置</button>
+            </div>
+          </div>
+          <div class="model-row">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="color:var(--muted);flex:none">
+              <rect x="2.5" y="3.5" width="11" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M5.5 6.5v3M8 6.5v3M10.5 6.5v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <span class="name">DeepSeek Flash</span>
+            <span class="sep">·</span>
+            <span class="dim">200K 上下文</span>
+            <span class="sep">·</span>
+            <span class="dim">hongxincy</span>
+            <div class="grow"></div>
+            <button class="link">切换模型</button>
+          </div>
+        </section>
+
+        <!-- 3. 模型调用 -->
+        <section class="calls">
+          <div class="sec-head">
+            <h2>模型调用</h2>
+            <div class="meta">
+              <span>8 次 · 成功率 <b class="num">88%</b></span>
+              <button class="link">复制摘要</button>
+            </div>
+          </div>
+
+          <div class="chips">
+            <button class="chip on">全部<span class="n">8</span></button>
+            <button class="chip">失败<span class="n">1</span></button>
+            <button class="chip">慢 &gt;10s<span class="n">1</span></button>
+          </div>
+
+          <div class="call-table">
+            <div class="call-head">
+              <span>时刻</span>
+              <span>输入</span>
+              <span>缓存</span>
+              <span>输出</span>
+              <span class="rate-h">速率 tok/s</span>
+              <span>耗时</span>
+              <span>成本</span>
+              <span></span>
+            </div>
+
+            <div class="call-row" data-call>
+              <span class="t">14:02:11</span>
+              <span class="v num">3,204</span>
+              <span class="v num">12,880</span>
+              <span class="v num">412</span>
+              <span class="rate-cell"><i class="track"><i style="width:57%"></i></i><span class="n num">172</span></span>
+              <span class="num">2.4s</span>
+              <span class="cost num">¥0.0031</span>
+              <span class="st"><i class="dot-s"></i></span>
+            </div>
+            <div class="call-detail">
+              <div class="grid">
+                <div class="kv"><span class="k">首字延迟</span><span class="v num">0.42s</span></div>
+                <div class="kv"><span class="k">推理词元</span><span class="v num">412</span></div>
+                <div class="kv"><span class="k">缓存写 / 重试</span><span class="v num">0 / 0</span></div>
+                <div class="kv"><span class="k">工具调用</span><span class="v num">3</span></div>
+              </div>
+              <div class="actions"><button class="link">在对话中定位</button><span class="hint">速率 = 输出 ÷ (耗时 − 首字延迟)</span></div>
+            </div>
+
+            <div class="event">
+              <span class="ev-icon">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+              <span>14:03:40 完成一次<b>上下文压缩</b>，压缩前 96,200 词元</span>
+            </div>
+
+            <div class="call-row" data-call>
+              <span class="t">14:04:02</span>
+              <span class="v num">3,616</span>
+              <span class="v num">12,880</span>
+              <span class="v num">688</span>
+              <span class="rate-cell"><i class="track"><i style="width:74%"></i></i><span class="n num">252</span></span>
+              <span class="num">3.1s</span>
+              <span class="cost num">¥0.0042</span>
+              <span class="st"><i class="dot-s"></i></span>
+            </div>
+            <div class="call-detail">
+              <div class="grid">
+                <div class="kv"><span class="k">首字延迟</span><span class="v num">0.38s</span></div>
+                <div class="kv"><span class="k">推理词元</span><span class="v num">688</span></div>
+                <div class="kv"><span class="k">缓存写 / 重试</span><span class="v num">0 / 0</span></div>
+                <div class="kv"><span class="k">工具调用</span><span class="v num">1</span></div>
+              </div>
+              <div class="actions"><button class="link">在对话中定位</button></div>
+            </div>
+
+            <div class="call-row retry" data-call>
+              <span class="t">14:05:17</span>
+              <span class="v num">4,120</span>
+              <span class="v num">12,880</span>
+              <span class="v num">1,240</span>
+              <span class="rate-cell"><i class="track"><i style="width:70%"></i></i><span class="n num">238</span></span>
+              <span class="num">5.8s</span>
+              <span class="cost num">¥0.0061</span>
+              <span class="st"><span class="badge retry">重试 1</span></span>
+            </div>
+            <div class="call-detail">
+              <div class="grid">
+                <div class="kv"><span class="k">首字延迟</span><span class="v num">0.61s</span></div>
+                <div class="kv"><span class="k">推理词元</span><span class="v num">890</span></div>
+                <div class="kv"><span class="k">缓存写 / 重试</span><span class="v num">0 / 1</span></div>
+                <div class="kv"><span class="k">工具调用</span><span class="v num">2</span></div>
+              </div>
+              <div class="err">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex:none;margin-top:1px"><path d="M8 5v4M8 11.2v.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/></svg>
+                <span>上游返回 504 Gateway Timeout，系统自动重试一次后成功。</span>
+              </div>
+              <div class="actions"><button class="link">在对话中定位</button></div>
+            </div>
+
+            <div class="call-row fail" data-call>
+              <span class="t">14:08:02</span>
+              <span class="v num">12,904</span>
+              <span class="v num zero">0</span>
+              <span class="v num">2,140</span>
+              <span class="rate-cell slow"><i class="track"><i style="width:38%"></i></i><span class="n num">122</span></span>
+              <span class="num slow">18.6s</span>
+              <span class="cost num">¥0.0186</span>
+              <span class="st"><span class="badge fail">失败</span></span>
+            </div>
+            <div class="call-detail">
+              <div class="grid">
+                <div class="kv"><span class="k">首字延迟</span><span class="v num">1.24s</span></div>
+                <div class="kv"><span class="k">推理词元</span><span class="v num">1,906</span></div>
+                <div class="kv"><span class="k">缓存写 / 重试</span><span class="v num">0 / 0</span></div>
+                <div class="kv"><span class="k">工具调用</span><span class="v num">0</span></div>
+              </div>
+              <div class="err">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex:none;margin-top:1px"><path d="M8 5v4M8 11.2v.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/></svg>
+                <span>模型服务返回 500，本轮未完成；缓存未命中，成本按全价计。</span>
+              </div>
+              <div class="actions"><button class="link">在对话中定位</button></div>
+            </div>
+
+            <div class="call-row" data-call>
+              <span class="t">14:09:30</span>
+              <span class="v num">13,240</span>
+              <span class="v num">1,920</span>
+              <span class="v num">1,860</span>
+              <span class="rate-cell"><i class="track"><i style="width:67%"></i></i><span class="n num">229</span></span>
+              <span class="num">8.5s</span>
+              <span class="cost num">¥0.0124</span>
+              <span class="st"><i class="dot-s"></i></span>
+            </div>
+            <div class="call-detail">
+              <div class="grid">
+                <div class="kv"><span class="k">首字延迟</span><span class="v num">0.47s</span></div>
+                <div class="kv"><span class="k">推理词元</span><span class="v num">1,240</span></div>
+                <div class="kv"><span class="k">缓存写 / 重试</span><span class="v num">0 / 0</span></div>
+                <div class="kv"><span class="k">工具调用</span><span class="v num">4</span></div>
+              </div>
+              <div class="actions"><button class="link">在对话中定位</button></div>
+            </div>
+
+            <div class="call-row" data-call>
+              <span class="t">14:11:44</span>
+              <span class="v num">9,860</span>
+              <span class="v num">4,120</span>
+              <span class="v num">960</span>
+              <span class="rate-cell"><i class="track"><i style="width:66%"></i></i><span class="n num">224</span></span>
+              <span class="num">4.6s</span>
+              <span class="cost num">¥0.0081</span>
+              <span class="st"><i class="dot-s"></i></span>
+            </div>
+            <div class="call-detail">
+              <div class="grid">
+                <div class="kv"><span class="k">首字延迟</span><span class="v num">0.33s</span></div>
+                <div class="kv"><span class="k">推理词元</span><span class="v num">960</span></div>
+                <div class="kv"><span class="k">缓存写 / 重试</span><span class="v num">0 / 0</span></div>
+                <div class="kv"><span class="k">工具调用</span><span class="v num">2</span></div>
+              </div>
+              <div class="actions"><button class="link">在对话中定位</button></div>
+            </div>
+
+            <button class="more-row">查看全部 8 次调用</button>
+          </div>
+
+          <div class="sec-head" style="margin-top:12px;margin-bottom:6px">
+            <h2 style="font-size:11.5px">速率趋势</h2>
+            <div class="meta"><span>基线 200 tok/s</span></div>
+          </div>
+          <div class="spark">
+            <svg width="120" height="26" viewBox="0 0 120 26" aria-label="最近 8 次调用的输出速率">
+              <line x1="0" y1="9" x2="120" y2="9" stroke="var(--border-strong)" stroke-width="1" stroke-dasharray="2 2"/>
+              <polyline points="0,13.9 17.1,4.4 34.3,5.8 51.4,22 68.6,8.2 85.7,3.3 102.9,4.2 120,5" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round"/>
+              <circle cx="51.4" cy="22" r="2.5" fill="var(--danger)"/>
+            </svg>
+            <span class="lbl">14:08 那次骤降到 122 tok/s，同时报 500</span>
+          </div>
+
+          <p class="footnote">用「调用清单」替代原来的「原始消息」折叠列表：运维要看的是哪一轮慢、哪一轮失败、成本花在哪、上游是否变慢。</p>
+        </section>
+
+        <!-- 4. 会话上下文 -->
+        <section>
+          <div class="sec-head">
+            <h2>会话上下文</h2>
+            <span class="anno" data-tip="这是运维产品里「上下文」的正解：环境、子任务、告警与工单。现在这块是空的，只算钱了。">6</span>
+          </div>
+          <div class="kv-list">
+            <div class="kv-line">
+              <span class="k">项目</span>
+              <span class="v">prod-payments</span>
+              <span class="tail"><span class="status-tag run">生产</span></span>
+            </div>
+            <div class="kv-line">
+              <span class="k">工作目录</span>
+              <span class="v mono">~/ops/payments · main</span>
+            </div>
+            <div class="kv-line">
+              <span class="k">父会话</span>
+              <span class="v" style="color:var(--faint)">无（根会话）</span>
+            </div>
+          </div>
+
+          <div class="sec-head" style="margin-top:14px;margin-bottom:8px">
+            <h2 style="font-size:11.5px">子代理会话</h2>
+            <div class="meta"><span>3 个 · 合计 ¥0.11</span></div>
+          </div>
+          <div class="child-list">
+            <div class="child">
+              <span class="cname">kubectl 排障</span>
+              <span class="status-tag done">完成</span>
+              <span class="cmeta num">12 次调用 · ¥0.06</span>
+            </div>
+            <div class="child">
+              <span class="cname">日志聚类</span>
+              <span class="status-tag done">完成</span>
+              <span class="cmeta num">6 次调用 · ¥0.03</span>
+            </div>
+            <div class="child">
+              <span class="cname">配置比对</span>
+              <span class="status-tag run">进行中</span>
+              <span class="cmeta num">3 次调用 · ¥0.02</span>
+            </div>
+          </div>
+
+          <div class="sec-head" style="margin-top:14px;margin-bottom:8px">
+            <h2 style="font-size:11.5px">关联</h2>
+          </div>
+          <div class="link-row">
+            <button class="ext-link">
+              <span class="tag">告警</span>
+              支付失败率 &gt; 5%
+              <span class="src">A-2291</span>
+            </button>
+            <button class="ext-link">
+              <span class="tag info">工单</span>
+              OPS-1042
+              <span class="src">处理中</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- 5. 诊断 -->
+        <details class="diag">
+          <summary>
+            <svg class="caret" width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>诊断信息</span>
+            <span style="color:var(--faint);font-size:11.5px">系统提示词 · 原始消息 · 导出</span>
+            <span class="grow"></span>
+            <span class="sensitive">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="7" width="9" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6 7V5a2 2 0 014 0v2" stroke="currentColor" stroke-width="1.3"/></svg>
+              需诊断权限
+            </span>
+          </summary>
+          <div class="diag-body">
+            <div class="diag-row">
+              <span>系统提示词</span>
+              <span style="color:var(--faint);font-size:11.5px">3,412 词元</span>
+              <span class="sensitive">含内部策略</span>
+              <span class="grow"></span>
+              <button class="btn">查看</button>
+            </div>
+            <div class="prompt-preview">你是支付系统的运维助手。优先使用只读命令。禁止直接修改生产配置，任何变更需先出变更单…
+  # 内部工具清单
+  - runbook.search(...)
+  - k8s.describe(...)</div>
+
+            <div class="diag-row">
+              <span>原始消息</span>
+              <span style="color:var(--faint);font-size:11.5px">已加载最近 20 条 / 共 128 条</span>
+              <span class="grow"></span>
+              <button class="btn">加载更早</button>
+            </div>
+
+            <div class="diag-row">
+              <span>导出会话</span>
+              <span style="color:var(--faint);font-size:11.5px">默认脱敏：密钥、令牌、内网 IP</span>
+              <span class="grow"></span>
+              <button class="btn primary">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v7M5 7.5L8 10.5l3-3M3.5 12.5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                导出 JSON
+              </button>
+            </div>
+            <div class="diag-row">
+              <span class="grow"></span>
+              <a class="link" href="#" onclick="return false">查看未脱敏（需权限，记审计）</a>
+            </div>
+          </div>
+        </details>
+
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  const html = document.documentElement
+  const stage = document.getElementById('stage')
+  const panelBody = document.getElementById('panelBody')
+
+  function bind(group, fn) {
+    document.querySelectorAll(`[data-group="${group}"] button`).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('button').forEach((b) => b.classList.remove('on'))
+        btn.classList.add('on')
+        fn(btn)
+      })
+    })
+  }
+  bind('theme', (b) => { html.dataset.theme = b.dataset.theme })
+  bind('view', (b) => { stage.classList.toggle('mobile', b.dataset.view === 'mobile') })
+  bind('state', (b) => { panelBody.dataset.state = b.dataset.state })
+  bind('anno', (b) => { document.body.classList.toggle('show-anno', b.dataset.anno === 'on') })
+
+  // 调用行展开（点行切换其后的详情）
+  document.querySelectorAll('.call-table').forEach((table) => {
+    table.addEventListener('click', (e) => {
+      if (e.target.closest('.more-row')) return
+      const row = e.target.closest('.call-row')
+      if (!row) return
+      const detail = row.nextElementSibling
+      if (detail && detail.classList.contains('call-detail')) detail.classList.toggle('open')
+    })
+  })
+
+  // 进度条：点一下在 24% / 68% / 91% 之间切换，验证预警配色
+  const usage = [
+    { pct: 24, input: 12.4, cache: 35.8 },
+    { pct: 68, input: 33.1, cache: 102.9 },
+    { pct: 91, input: 44.6, cache: 137.4 },
+  ]
+  const fmt = (n) => (n >= 10 ? String(Math.round(n)) : n.toFixed(1)) + 'k'
+  let usageIndex = 0
+
+  function renderUsage() {
+    const u = usage[usageIndex]
+    const bar = document.getElementById('ctxBar')
+    const badge = document.getElementById('pctBadge')
+    const limit = 200
+
+    document.getElementById('segCache').style.width = ((u.cache / limit) * 100).toFixed(1) + '%'
+    document.getElementById('segInput').style.width = ((u.input / limit) * 100).toFixed(1) + '%'
+    document.getElementById('lgInput').textContent = fmt(u.input)
+    document.getElementById('lgCache').textContent = fmt(u.cache)
+    document.getElementById('lgLeft').textContent = Math.max(0, Math.round((100 - u.pct) / 2))
+    badge.textContent = u.pct + '%'
+
+    const level = u.pct >= 90 ? 'danger' : u.pct >= 70 ? 'warn' : ''
+    badge.className = 'pct num' + (level ? ' ' + level : '')
+    bar.className = 'bar' + (level ? ' ' + level : '')
+  }
+  document.getElementById('ctxBar').addEventListener('click', () => {
+    usageIndex = (usageIndex + 1) % usage.length
+    renderUsage()
+  })
+</script>
+</body>
+</html>

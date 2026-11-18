@@ -51,6 +51,25 @@ export function flashCostCNY(tokens: readonly TokenUsage.Info[]) {
 }
 
 /**
+ * Formats USD amounts as the provider billed them. Amounts below one dollar keep four decimals, because a short
+ * session costs fractions of a cent at Flash prices and two decimals would round it to zero.
+ */
+export function createUSD(locale: string) {
+  const format = (digits: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })
+
+  const fine = format(4)
+  const coarse = format(2)
+
+  return (value: number) => (Math.abs(value) < 1 ? fine : coarse).format(value)
+}
+
+/**
  * Formats CNY amounts as `CNY ¥20.79`. The code carries the currency, because `¥` alone is also Japanese yen.
  * Amounts below one yuan keep four decimals, because Flash prices are small enough that two decimals would round a
  * short session to zero.

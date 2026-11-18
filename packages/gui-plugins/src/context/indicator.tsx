@@ -43,14 +43,12 @@ export function SessionContextUsage(props: {
     const message = lastAssistantWithUsage(messages(), info()?.revert?.messageID)
 
     if (!message) return
+
     const model = catalogModel(props.session, message.model)?.model
 
-    const total =
-      message.tokens.input +
-      message.tokens.output +
-      message.tokens.reasoning +
-      message.tokens.cache.read +
-      message.tokens.cache.write
+    // Context occupancy is the prompt side only, as the panel's window bar shows it: output and reasoning are
+    // already spent, not resident in the next request.
+    const total = message.tokens.input + message.tokens.cache.read + message.tokens.cache.write
 
     return {
       total,

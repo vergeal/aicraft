@@ -1252,6 +1252,8 @@ export const dict = {
   "settings.general.section.general": "General",
   "settings.general.section.notifications": "Desktop notifications",
   "settings.general.section.sounds": "Sound effects",
+  "settings.general.group.behavior": "Behavior",
+  "settings.general.group.desktop": "Desktop",
 
   "settings.timeline.title": "Timeline",
   "settings.timeline.row.backgroundActivity.title": "Background activity",

@@ -974,6 +974,8 @@ export const dict = {
   "project.settings.extensions.shared": "与所有项目共享",
   "project.settings.extensions.lsp.description": "根据文件类型自动检测",
   "settings.general.section.general": "常规",
+  "settings.general.group.behavior": "行为",
+  "settings.general.group.desktop": "桌面",
   "common.viewAll": "查看全部",
   "session.new.workspace.local.tooltip": "使用当前检出",
   "session.new.workspace.new.tooltip": "创建隔离检出",

@@ -196,8 +196,16 @@ export const SettingsGeneral: Component = () => {
     <div class="settings-section">
       <SettingsList>
         <LanguageSetting />
-
         <WorkspaceDestinationSetting />
+        <PluginSettingsSections page="general" section="general" />
+      </SettingsList>
+    </div>
+  )
+
+  const BehaviorSection = () => (
+    <div class="settings-section">
+      <h3 class="settings-section-title">{language.t("settings.general.group.behavior")}</h3>
+      <SettingsList>
         <AutoApprovePermissionsSetting />
 
         <SettingsRow
@@ -213,41 +221,30 @@ export const SettingsGeneral: Component = () => {
         </SettingsRow>
 
         <FollowUpBehaviorSetting />
+      </SettingsList>
+    </div>
+  )
 
-        <Show when={desktop()}>
-          <SettingsRow
-            title={language.t("settings.general.row.pinchZoom.title")}
-            description={language.t("settings.general.row.pinchZoom.description")}
-          >
-            <div data-action="settings-pinch-zoom">
-              <Switch checked={pinchZoom.latest} onChange={onPinchZoomChange} />
-            </div>
-          </SettingsRow>
-          <SettingsRow
-            title={language.t("settings.general.row.spellcheck.title")}
-            description={language.t("settings.general.row.spellcheck.description")}
-          >
-            <div data-action="settings-spellcheck">
-              <Switch checked={spellcheck.latest} onChange={onSpellcheckChange} />
-            </div>
-          </SettingsRow>
-        </Show>
-
-        <PluginSettingsSections page="general" section="general" />
-
-        <Show when={mobile()}>
-          <SettingsRow
-            title={language.t("settings.general.row.mobileTitlebarBottom.title")}
-            description={language.t("settings.general.row.mobileTitlebarBottom.description")}
-          >
-            <div data-action="settings-mobile-titlebar-bottom">
-              <Switch
-                checked={settings.general.mobileTitlebarPosition() === "bottom"}
-                onChange={(checked) => settings.general.setMobileTitlebarPosition(checked ? "bottom" : "top")}
-              />
-            </div>
-          </SettingsRow>
-        </Show>
+  const DesktopSection = () => (
+    <div class="settings-section">
+      <h3 class="settings-section-title">{language.t("settings.general.group.desktop")}</h3>
+      <SettingsList>
+        <SettingsRow
+          title={language.t("settings.general.row.pinchZoom.title")}
+          description={language.t("settings.general.row.pinchZoom.description")}
+        >
+          <div data-action="settings-pinch-zoom">
+            <Switch checked={pinchZoom.latest} onChange={onPinchZoomChange} />
+          </div>
+        </SettingsRow>
+        <SettingsRow
+          title={language.t("settings.general.row.spellcheck.title")}
+          description={language.t("settings.general.row.spellcheck.description")}
+        >
+          <div data-action="settings-spellcheck">
+            <Switch checked={spellcheck.latest} onChange={onSpellcheckChange} />
+          </div>
+        </SettingsRow>
       </SettingsList>
     </div>
   )
@@ -258,8 +255,31 @@ export const SettingsGeneral: Component = () => {
         title={language.t("settings.nav.general")}
         description={language.t("settings.preferences.description")}
       />
-      <div class="settings-tab-body settings-tab-body--sectioned">
+      <div class="settings-tab-body">
         <GeneralSection />
+        <BehaviorSection />
+
+        <Show when={desktop()}>
+          <DesktopSection />
+        </Show>
+
+        <Show when={mobile()}>
+          <div class="settings-section">
+            <SettingsList>
+              <SettingsRow
+                title={language.t("settings.general.row.mobileTitlebarBottom.title")}
+                description={language.t("settings.general.row.mobileTitlebarBottom.description")}
+              >
+                <div data-action="settings-mobile-titlebar-bottom">
+                  <Switch
+                    checked={settings.general.mobileTitlebarPosition() === "bottom"}
+                    onChange={(checked) => settings.general.setMobileTitlebarPosition(checked ? "bottom" : "top")}
+                  />
+                </div>
+              </SettingsRow>
+            </SettingsList>
+          </div>
+        </Show>
 
         <PluginSettingsSections page="general" />
       </div>

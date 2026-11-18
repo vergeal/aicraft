@@ -1,40 +1,68 @@
 @import "@opencode/ui/text-input.css";
 @import "@opencode/ui/button.css";
 
-/* One metric scale for the whole settings surface: 13px labels, 12px descriptions, 44px rows, 10px cards.
-   Control heights are three tiers, not seven: a navigation row, a row control, and a form input. */
+/* One metric scale for the whole settings surface: a 4px base, an 8/12/16/20/24 rhythm, radius 8/12/16/20/28 and
+   three control tiers. Every colour comes from the shared theme layer (--v2-*); this block only names metrics, so no
+   rule below restates a colour or a magic number. */
 :is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"]) {
-  --settings-sidebar-width: 264px;
-  --settings-content-max: 720px;
+  --settings-space-1: 4px;
+  --settings-space-2: 8px;
+  --settings-space-3: 12px;
+  --settings-space-4: 16px;
+  --settings-space-5: 20px;
+  --settings-space-6: 24px;
+
+  --settings-radius-xs: 4px;
+  --settings-radius-sm: 8px;
+  --settings-radius-md: 12px;
+  --settings-radius-lg: 16px;
+  --settings-radius-xl: 20px;
+  --settings-radius-panel: 28px;
+
+  --settings-control-sm: 24px;
+  --settings-control-md: 28px;
+  --settings-control-lg: 32px;
+  --settings-control-xl: 36px;
+
+  --settings-hairline: 0.5px;
+
+  --settings-sidebar-width: 280px;
+  --settings-content-max: 760px;
   --settings-content-inset: 32px;
-  --settings-nav: 30px;
+
+  --settings-nav: var(--settings-control-xl);
   --settings-nav-item-height: var(--settings-nav);
-  --settings-nav-item-radius: 6px;
-  --settings-row-control: 28px;
-  --settings-input: 32px;
-  --settings-row-min-height: 44px;
-  --settings-card-radius: 10px;
-  /* One card material. Every list surface in Settings reads these four, so a scheme change happens in one place. */
-  --settings-card-bg: #2b2b2e;
-  /* 9% keeps the card's outer stroke above the 8% row hairline; at 7% the frame read weaker than the lines inside it. */
-  --settings-card-border: rgba(255, 255, 255, 0.09);
-  --settings-card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
-  --settings-card-shadow:
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.025),
-    0 2px 8px rgba(0, 0, 0, 0.08);
-  /* The 45% focus ring token is below 3:1 on both schemes; settings draws its own ring at full accent. */
-  --settings-focus-ring: 0 0 0 2px var(--v2-system-accent);
-  --settings-focus-outline: 2px solid var(--v2-system-accent);
+  --settings-nav-item-radius: var(--settings-radius-sm);
+  --settings-nav-icon: 20px;
+
+  --settings-row-control: var(--settings-control-lg);
+  --settings-row-min-height: 56px;
+  --settings-list-row-padding: var(--settings-space-4);
+  --settings-list-icon-gap: var(--settings-space-2);
+  --settings-row-control-min: 160px;
+
+  /* A card is a fill one step off the page plus a hairline; it does not float. Depth is reserved for overlays. */
+  --settings-card-radius: var(--settings-radius-lg);
+  /* Three readable depths: the page, the sidebar one step off it, and the cards one step above the sidebar. The
+     sidebar sinks in light and lifts in dark, which is the one thing a single layer token cannot express. */
+  --settings-sidebar-bg: light-dark(var(--v2-grey-200), var(--v2-grey-1100));
+  --settings-card-bg: light-dark(var(--v2-grey-50), var(--v2-grey-800));
+  --settings-card-border: var(--v2-border-border-muted);
+
+  /* Rings are outlines, not shadows: an outline stays outside layout, follows outline-offset and survives
+     forced-colors. */
+  --settings-focus-width: 2px;
+  --settings-focus-outline: var(--settings-focus-width) solid var(--v2-system-accent);
 }
 
 /* The glass sheets are a separate family: the notices and delete dialogs live outside .settings-screen, so their
    material is defined once here instead of being copied per dialog. */
 :root {
-  --settings-sheet-radius: 15px;
-  --settings-sheet-bg: rgba(38, 38, 42, 0.78);
-  --settings-sheet-border: rgba(255, 255, 255, 0.12);
-  --settings-sheet-shadow: 0 20px 64px rgba(0, 0, 0, 0.42);
-  --settings-sheet-blur: blur(30px) saturate(1.8);
+  --settings-sheet-radius: 20px;
+  --settings-sheet-bg: var(--v2-material-surface-strong);
+  --settings-sheet-border: var(--v2-border-border-base);
+  --settings-sheet-shadow: var(--v2-elevation-floating);
+  --settings-sheet-blur: var(--v2-material-blur-thick);
 }
 
 /* Settings copy reads at regular weight; shared components keep their own emphasis outside settings. */
@@ -63,11 +91,10 @@
   margin-block: var(--shell-top-inset, 8px) var(--shell-bottom-inset, 8px);
   justify-content: center;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--settings-radius-md);
   background: var(--v2-background-bg-base);
-  /* The dark base is v2-grey-1000 (#242424); the opaque shell needs a matching text color, not the page foreground. */
   color: var(--v2-text-text-base);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, .28);
+  box-shadow: var(--v2-elevation-floating);
   outline: none;
   container: settings-screen / inline-size;
   height: calc(100% - var(--shell-top-inset, 8px) - var(--shell-bottom-inset, 8px));
@@ -95,7 +122,6 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  --settings-nav-item-radius: 6px;
 }
 
 /* The header sits on the workbench surface, so it paints that surface instead of the page base. The page base is a
@@ -148,10 +174,10 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  /* The sidebar is the one recessed surface in Settings: a step below the #161616 page base, matching the depth the
-     light scheme gives it below white. #1B1B1D was lighter than the page it sat on. */
-  background: #131315;
-  border-inline-end: 1px solid var(--v2-border-border-muted);
+  /* The sidebar is the one recessed surface in Settings: one layer step off the page in both schemes, so the page,
+     the sidebar and the cards read as three depths instead of one flat field. */
+  background: var(--settings-sidebar-bg);
+  border-inline-end: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 .settings-screen > .settings > .settings-content {
@@ -160,10 +186,10 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  /* The content column owns its scrollbar; the shell itself never scrolls. Reserving both edges keeps the column
-     centered on its axis whether or not the scrollbar is present, instead of shifting content 8px when it appears. */
+  /* The content column owns its scrollbar; the shell itself never scrolls. Reserving the lane on the end edge alone
+     keeps the scrollbar against the window edge without shifting the centered column when it appears. */
   overflow: auto;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
 }
 
 .settings-nav {
@@ -174,8 +200,8 @@
   min-height: 0;
   flex-shrink: 0;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px 12px;
+  gap: var(--settings-space-3);
+  padding: var(--settings-space-3) var(--settings-space-2);
 }
 
 .settings-nav-groups {
@@ -183,7 +209,7 @@
   width: 100%;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--settings-space-3);
   overflow-y: auto;
   overflow-x: hidden;
   /* Reserve the scrollbar's lane on both edges so a list that starts to overflow does not shift every row and icon. */
@@ -259,17 +285,17 @@
 .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger"] {
   width: 100%;
   height: 100%;
-  min-height: 30px;
+  min-height: var(--settings-nav);
   justify-content: flex-start;
-  gap: 8px;
-  padding: 0 8px;
+  gap: var(--settings-space-2);
+  padding: 0 var(--settings-space-3);
   border: 1px solid transparent;
   border-radius: var(--settings-nav-item-radius);
   background: transparent;
   color: var(--v2-text-text-muted);
   font-size: 13px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
+  line-height: 20px;
   letter-spacing: -0.04px;
   text-align: left;
   cursor: pointer;
@@ -300,7 +326,7 @@
   inset-block: 6px;
   inset-inline-start: 0;
   width: 2px;
-  border-radius: 2px;
+  border-radius: var(--settings-radius-xs);
   background: var(--v2-text-text-accent);
   content: "";
   pointer-events: none;
@@ -344,8 +370,8 @@
 /* The sidebar search is the nav's text input: it sits at the nav item's 30px metric so the search and the rows
    below it share one rhythm. Scoped to the nav so the page-level filter search keeps its own metrics. */
 .settings-nav .settings-search [data-component="text-input-v2"] {
-  height: 30px;
-  border-radius: 6px;
+  height: 32px;
+  border-radius: var(--settings-radius-sm);
 }
 
 /* The search and the back button sit inside the nav list's reserved scrollbar lane, so the three share one column. */
@@ -374,30 +400,30 @@
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--settings-space-1);
 }
 
 /* Each group carries a header, so the header names the boundary and the gap around it separates the groups. A
    hairline under a 24px label would draw the same boundary twice. */
 .settings-nav-group + .settings-nav-group {
-  padding-block-start: 12px;
+  padding-block-start: var(--settings-space-3);
 }
 
-/* A sidebar label, not a control: small, quiet, and only interactive when it carries an action. 11px/600 with wider
-   tracking reads as a section name above 13px/400 rows; faint was below 4.5:1 at this size. */
+/* A sidebar label, not a control: small, quiet, and only interactive when it carries an action. It sits a step under
+   the nav rows in weight, at 13px so the CJK glyphs stay legible. */
 .settings-nav-group-header {
   display: flex;
-  height: 24px;
-  min-height: 24px;
+  height: 28px;
+  min-height: 28px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding-inline: 8px;
-  border-radius: 6px;
+  padding-inline: 12px;
+  border-radius: var(--settings-radius-sm);
   color: var(--v2-text-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
   line-height: var(--line-height-compact);
 }
 
@@ -524,7 +550,7 @@
   margin-block: -2px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -539,7 +565,7 @@
   z-index: -1;
   inset-block: 0;
   inset-inline: -6px;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
   content: "";
   transition: background-color 120ms ease;
@@ -601,7 +627,7 @@
 
 .settings-about-legal {
   width: 108px;
-  height: 19px;
+  height: 20px;
 }
 
 .settings-about-copyright {
@@ -662,8 +688,8 @@
   text-decoration: underline;
 }
 
-/* The notices and delete sheets take the same 15px glass as the server and custom-provider sheets instead of
-   inheriting the shared dialog defaults. The values come from --settings-sheet-* so light can override them once. */
+/* The notices and delete sheets take the same glass as the server and custom-provider sheets instead of inheriting
+   the shared dialog defaults. The values come from --settings-sheet-* so both schemes resolve from one place. */
 [data-component="dialog-v2"]:has(.settings-notices) > [data-slot="dialog-container"],
 [data-component="dialog-v2"]:has(.settings-provider-custom-delete-dialog) > [data-slot="dialog-container"] {
   border: 1px solid var(--settings-sheet-border);
@@ -699,9 +725,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: var(--settings-radius-md);
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--v2-border-border-muted);
 }
 
 /* The crate sections keep the flat section rhythm; only the crate list is a card. */
@@ -756,7 +782,7 @@
 .settings-notice details pre {
   margin-top: 12px;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-background-bg-deep);
   color: var(--v2-text-text-muted);
 }
@@ -786,9 +812,9 @@
   margin: 8px 0 0;
   padding: 0 16px;
   /* One card material in this sheet: the same layer and inset hairline as the notice cards above it. */
-  border-radius: 10px;
+  border-radius: var(--settings-radius-md);
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--v2-border-border-muted);
   list-style: none;
 }
 
@@ -859,7 +885,7 @@
   gap: 6px;
   padding-inline: 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
   color: var(--v2-text-text-muted);
   font: inherit;
@@ -903,9 +929,11 @@
 .settings-panel {
   display: flex;
   flex-direction: column;
-  /* Page panels do not scroll: .settings-content owns the page scrollbar, so it sits on the content
-     column's edge instead of the 720px panel. Dialog panels are their own scroll container because the
-     dialog body has a fixed height. */
+  /* The tab content slot defaults to `overflow: auto`, which made every page panel its own scroll container: the
+     scrollbar then sat on the panel's 760px edge, in the middle of the window. The page scrolls in .settings-content,
+     which spans the content column to the window edge, so the panel must not scroll. Dialog panels keep their own
+     scroll because the dialog body has a fixed height. */
+  overflow: visible;
   user-select: none;
   container: settings-panel / inline-size;
 }
@@ -916,10 +944,16 @@
   scrollbar-gutter: stable;
 }
 
+/* `[data-component="tabs-v2"] [data-slot="tabs-v2-content"]` sets `overflow: auto` at (0,2,0), so the panel needs the
+   extra class to win over it. */
+.settings-screen [data-slot="tabs-v2-content"].settings-panel {
+  overflow: visible;
+}
+
 .settings-panel > .settings-tab-header,
 .settings-panel > .settings-tab-body,
 .settings-panel > .settings-about-content {
-  animation: settings-panel-in 180ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: settings-panel-in 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes settings-panel-in {
@@ -956,10 +990,11 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  /* The divider carries the same 12px the tab body opens with, so the header reads the same on both sides. */
-  padding: 16px var(--settings-content-inset, 32px) 12px;
+  /* The header opens the page: 24px above the title and 16px under it, so the title reads as the page heading
+     rather than a toolbar label. */
+  padding: var(--settings-space-6) var(--settings-content-inset) var(--settings-space-4);
   background: var(--v2-background-bg-base);
-  border-bottom: 0.5px solid var(--v2-border-border-muted);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 .settings-tab-header-row {
@@ -980,19 +1015,19 @@
 }
 
 .settings-tab-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
-  letter-spacing: -0.2px;
-  line-height: 26px;
+  letter-spacing: -0.3px;
+  line-height: 32px;
   color: var(--v2-text-text-base);
 }
 
 .settings-tab-description {
   margin: 0;
   color: var(--v2-text-text-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
+  line-height: var(--line-height-base);
 }
 
 /* As tall as the title's line box, so header actions center on the title rather than on the title and description. */
@@ -1031,9 +1066,9 @@
 .settings-server-switcher-label {
   flex-shrink: 0;
   color: var(--v2-text-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: 18px;
 }
 
 .settings-server-switcher-name {
@@ -1078,8 +1113,8 @@
 .settings-server-switcher-status {
   flex-shrink: 0;
   color: var(--v2-text-text-muted);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-server-unavailable {
@@ -1101,16 +1136,16 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--settings-radius-md);
   background: var(--v2-state-bg-warning);
   color: var(--v2-state-fg-warning);
 }
 
 .settings-server-unavailable-title {
   color: var(--v2-text-text-base);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 24px;
 }
 
 .settings-server-unavailable-description {
@@ -1131,7 +1166,7 @@
 .settings-server-unavailable-error {
   max-width: 480px;
   padding: 10px 12px;
-  border-radius: 7px;
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-background-bg-deep);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   color: var(--v2-text-text-muted);
@@ -1142,14 +1177,14 @@
 .settings-tab-body {
   display: flex;
   flex-direction: column;
-  /* Sections are groups: 20px between them, 8px from a section title to its card. */
-  gap: 20px;
+  /* Sections are groups: 24px between them, 8px from a section title to its card. */
+  gap: var(--settings-space-6);
   width: 100%;
-  padding: 12px var(--settings-content-inset) calc(80px + var(--settings-bottom-inset, 0px));
+  padding: var(--settings-space-4) var(--settings-content-inset) calc(96px + var(--settings-bottom-inset, 0px));
 }
 
 .settings-tab-body--sectioned {
-  padding-top: 16px;
+  padding-top: var(--settings-space-5);
 }
 
 [data-slot="settings-row-description"] a.settings-link {
@@ -1165,18 +1200,18 @@
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--settings-space-2);
 }
 
-/* A group header sits above the rows it names, so it carries more weight than a row title (13px/400) rather than
-   less, and it takes its colour from the palette instead of a hard-coded white. */
+/* A group header names the boundary, so it sits below the rows in weight: muted ink, regular weight, one step under
+   the row title. A bold primary-colour label competed with the rows it was meant to organize. */
 .settings-section-title {
   margin: 0;
   padding: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: var(--line-height-compact);
-  color: var(--v2-text-text-base);
+  color: var(--v2-text-text-muted);
 }
 
 /* A section's description sits under its title and above its card, in the same muted ink as a row description. */
@@ -1193,7 +1228,7 @@
   width: 100%;
   flex-direction: column;
   min-width: 0;
-  gap: 20px;
+  gap: var(--settings-space-5);
 }
 
 [data-component="settings-list"] {
@@ -1201,15 +1236,14 @@
   flex-direction: column;
   width: 100%;
   min-width: 0;
-  padding-inline: 16px;
+  padding-inline: var(--settings-space-4);
   overflow: hidden;
-  /* One card material for every list: a hairline stroke, a 145deg sheen over the fill and a top highlight, with an
-     outer drop so the card lifts off the page rather than only drawing an edge. */
-  border: 1px solid var(--settings-card-border);
-  border-radius: var(--settings-card-radius, 10px);
+  /* One card material for every list: a fill one step off the page, a transparent border that keeps the box, and a
+     0.5px inset hairline that survives fractional widths. A card does not lift; depth is reserved for overlays. */
+  border: 1px solid transparent;
+  border-radius: var(--settings-card-radius);
   background-color: var(--settings-card-bg);
-  background-image: var(--settings-card-gradient);
-  box-shadow: var(--settings-card-shadow);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
 }
 
 /* The separator is drawn, not laid out: a 0.5px border adds half a pixel to every row, which is why a 59px row
@@ -1229,8 +1263,8 @@
 
 [data-component="settings-list"][data-variant="catalog"] {
   --settings-list-row-padding: 10px;
-  --settings-list-icon-gap: 8px;
-  padding-inline: 16px;
+  --settings-list-icon-gap: var(--settings-space-2);
+  padding-inline: var(--settings-space-4);
 }
 
 [data-component="settings-row"] {
@@ -1238,7 +1272,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--settings-space-4);
   min-width: 0;
   min-height: var(--settings-row-min-height, 44px);
   padding-block: var(--settings-list-row-padding, 10px);
@@ -1253,30 +1287,29 @@
     flex-wrap: nowrap;
   }
 }
-
 [data-slot="settings-row-copy"] {
   display: flex;
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--settings-space-1);
 }
 
 [data-slot="settings-row-title"] {
   font-style: normal;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: var(--line-height-compact);
+  line-height: var(--line-height-base);
   letter-spacing: -0.04px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--v2-text-text-base);
   overflow-wrap: anywhere;
   font-variation-settings: "slnt" 0;
 }
 
 [data-slot="settings-row-description"] {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 18px;
+  line-height: 20px;
   color: var(--v2-text-text-muted);
   overflow-wrap: anywhere;
 }
@@ -1345,12 +1378,16 @@
 
 :is([data-component="dialog-v2"][data-variant="settings"], .settings-screen)
   [data-component="button-v2"]:focus-visible {
-  box-shadow: var(--settings-focus-ring);
+  outline: var(--settings-focus-outline) !important;
+  outline-offset: 2px;
 }
 
 @media (min-width: 640px) {
   [data-slot="settings-row-control"] {
     width: auto;
+    /* A fixed control column keeps the left edge of every switch, select and button on one axis, so a page reads as
+       a column of answers instead of a ragged right edge. */
+    min-width: var(--settings-row-control-min);
     flex-shrink: 0;
   }
 }
@@ -1506,11 +1543,11 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-  min-height: 49px;
+  min-height: 48px;
   margin-inline: -16px;
   padding-inline: 16px;
   padding-block: 10px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 /* Live in the popular list, which has no add row after its last provider. */
@@ -1526,7 +1563,7 @@
 
 @media (hover: hover) {
   .settings-provider-row:hover {
-    background: rgba(255, 255, 255, 0.025);
+    background: var(--v2-overlay-simple-overlay-hover);
   }
 }
 
@@ -1539,7 +1576,7 @@
 .settings-provider-console {
   margin-inline: -16px;
   padding-inline: 16px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 .settings-provider-console-header {
@@ -1547,7 +1584,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 49px;
+  min-height: 48px;
   padding-block: 10px;
 }
 
@@ -1557,7 +1594,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--v2-text-text-muted);
   font-size: 13px;
   line-height: 18px;
 }
@@ -1570,7 +1607,7 @@
   gap: 2px;
   padding-inline: 4px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
   color: var(--v2-text-text-muted);
   font-size: 13px;
@@ -1582,7 +1619,7 @@
 
 @media (hover: hover) {
   .settings-provider-console-toggle:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--v2-overlay-simple-overlay-pressed);
     color: var(--v2-text-text-base);
   }
 }
@@ -1608,7 +1645,7 @@
   height: 1px;
   margin-block: 8px;
   margin-inline: -16px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--v2-border-border-muted);
 }
 
 .settings-provider-console-item {
@@ -1620,9 +1657,9 @@
   gap: 2px;
   padding-inline: 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--v2-text-text-muted);
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
@@ -1636,12 +1673,13 @@
 
 @media (hover: hover) {
   .settings-provider-console-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--v2-overlay-simple-overlay-hover);
   }
 }
 
 .settings-provider-console-item:focus-visible {
-  background: color-mix(in srgb, var(--v2-system-accent) 12%, transparent);
+  outline: var(--settings-focus-outline);
+  outline-offset: -2px;
 }
 
 :root[data-motion="reduce"] {
@@ -1694,7 +1732,7 @@
   flex: 0 0 28px;
   min-width: 0;
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-background-bg-layer-02);
 }
 
@@ -1718,7 +1756,7 @@
   flex: 0 0 28px;
   place-items: center;
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-background-bg-layer-02);
 }
 
@@ -1742,7 +1780,7 @@
 .settings-provider-name {
   min-width: 0;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--v2-text-text-base);
   font-size: 13px;
   font-weight: 500;
   line-height: 18px;
@@ -1767,40 +1805,41 @@
 .settings-providers [data-component="tag"]:not([data-variant="accent"]) {
   height: 20px;
   padding: 0 6px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.045);
-  font-size: 10px;
-  font-weight: 450;
+  border: var(--settings-hairline) solid var(--v2-border-border-base);
+  border-radius: var(--settings-radius-sm);
+  background: var(--v2-overlay-simple-overlay-hover);
+  font-size: 11px;
+  font-weight: 500;
   line-height: 16px;
 }
 
 /* The accent chip reads as a tinted outline, not the global solid fill: v3 wants a 20% accent stroke over a 9% accent
    wash with light-blue ink, at the same 20px face as the other chips. This selector (0,3,0) has to clear the shared
-   accent rule in badge.css (0,2,0), which paints the tag solid and zeroes its border. `#75baff` is the accent lifted
-   toward white for the dark card: 56% accent + 44% white resolves to it exactly from #0a84ff, so no bare hex. */
+   accent rule in badge.css (0,2,0), which paints the tag solid and zeroes its border. The ink is the accent lifted
+   toward white for the dark card; it resolves from the accent and white, so no bare colour is written here. */
 .settings-providers [data-component="tag"][data-variant="accent"] {
   height: 20px;
   padding: 0 6px;
-  border: 1px solid color-mix(in srgb, var(--v2-system-accent) 20%, transparent);
-  border-radius: 5px;
+  border: var(--settings-hairline) solid color-mix(in srgb, var(--v2-system-accent) 20%, transparent);
+  border-radius: var(--settings-radius-xs);
   background: color-mix(in srgb, var(--v2-system-accent) 9%, transparent);
-  color: color-mix(in srgb, var(--v2-system-accent) 56%, white);
-  font-size: 10px;
-  font-weight: 450;
+  color: color-mix(in srgb, var(--v2-system-accent) 56%, var(--v2-grey-50));
+  font-size: 11px;
+  font-weight: 500;
   line-height: 16px;
 }
 
 /* The lifted ink is drawn for the dark card; the light card keeps the accent but darkens it, because full-strength
-   accent ink on the 9% accent wash only reaches ~3.4:1. 80% accent mixed with black lands near 4.9:1. */
+   accent ink on the 9% accent wash only reaches ~3.4:1. 80% accent mixed with the darkest palette step lands near
+   4.9:1. */
 [data-color-scheme="light"] .settings-providers [data-component="tag"][data-variant="accent"] {
-  color: color-mix(in srgb, var(--v2-system-accent) 80%, black);
+  color: color-mix(in srgb, var(--v2-system-accent) 80%, var(--v2-grey-1100));
 }
 
 /* The popular list keeps one line per provider: name, tag and note share the line, and a long note ends in an ellipsis
    instead of pushing the row to two lines. */
 .settings-provider-row--popular {
-  min-height: 59px;
+  min-height: 56px;
 }
 
 .settings-provider-row--popular .settings-provider-copy {
@@ -1823,7 +1862,7 @@
   flex: 1 1 auto;
   min-width: 0;
   color: var(--v2-text-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 18px;
 }
 
@@ -1841,8 +1880,8 @@
   height: 18px;
   align-items: center;
   justify-content: center;
-  padding-inline: 5px;
-  border-radius: 9px;
+  padding-inline: 4px;
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-muted);
   font-size: 11px;
@@ -1851,7 +1890,7 @@
 }
 
 [data-color-scheme="light"] .settings-section-count {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--v2-overlay-simple-overlay-hover);
 }
 
 /* Deleting a credential is the one irreversible action on this page, so the row turns its action area into a question.
@@ -1893,12 +1932,12 @@
   gap: 8px;
   padding-inline: 24px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--v2-text-text-muted);
 }
 
 .settings-provider-empty > span {
-  font-size: 15px;
-  line-height: 18px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 /* Secondary text, always visible: the hint explains where the credential came from and a hover-only reveal hid it from
@@ -1908,7 +1947,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--v2-text-text-faint);
   cursor: default;
   white-space: nowrap;
 }
@@ -1926,7 +1965,7 @@
   margin-top: 20px;
   padding-inline: 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
   font-size: 12px;
   font-weight: 400;
@@ -1938,7 +1977,7 @@
 
 @media (hover: hover) {
   .settings-providers-view-all:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--v2-overlay-simple-overlay-hover);
     color: var(--v2-text-text-accent-hover);
   }
 }
@@ -1972,12 +2011,10 @@
 /* Matches the sidebar search field's 30px box: both are page-level filters on the nav metric, not form inputs. */
 .settings-filter-search [data-component="text-input-v2"] {
   height: var(--settings-nav);
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-muted);
-  transition:
-    background-color 120ms ease-out,
-    box-shadow 120ms ease-out;
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--v2-border-border-muted);
+  transition: background-color 120ms ease-out;
 }
 
 .settings-filter-search [data-component="text-input-v2"]:is(:hover, :focus-within):not([data-disabled]) {
@@ -1985,9 +2022,7 @@
 }
 
 .settings-filter-search [data-component="text-input-v2"]:focus-within:not([data-disabled]) {
-  box-shadow:
-    inset 0 0 0 1px var(--v2-border-border-focus),
-    var(--settings-focus-ring);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
 }
 
 .settings-filter-search [data-slot="text-input-v2-input"] {
@@ -2040,8 +2075,8 @@
   justify-content: center;
   gap: 8px;
   padding: 24px;
-  border: 1px dashed var(--v2-border-border-strong);
-  border-radius: 10px;
+  border: var(--settings-hairline) dashed var(--v2-border-border-strong);
+  border-radius: var(--settings-radius-md);
   background: var(--v2-background-bg-layer-01);
   text-align: center;
 }
@@ -2056,11 +2091,10 @@
    pin as sticky, and every child that could reach a corner is inset, so the rounded card edge still reads clean. */
 .settings-models .settings-section[data-component="settings-models-provider"] {
   overflow: visible;
-  border: 1px solid var(--settings-card-border);
-  border-radius: var(--settings-card-radius, 10px);
+  border: 1px solid transparent;
+  border-radius: var(--settings-card-radius);
   background-color: var(--settings-card-bg);
-  background-image: var(--settings-card-gradient);
-  box-shadow: var(--settings-card-shadow);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
 }
 
 .settings-models .settings-section > [data-component="settings-list"] {
@@ -2083,7 +2117,7 @@
 .settings-tab-body.settings-models
   .settings-section[data-component="settings-models-provider"]:not([data-expanded])
   > .settings-models-group-header {
-  border-radius: var(--settings-card-radius, 10px);
+  border-radius: var(--settings-card-radius);
 }
 
 /* One header for both tiers: the chevron leads, and the trigger keeps the same height and padding. Console groups
@@ -2096,7 +2130,7 @@
   align-items: center;
   padding: 4px 12px;
   /* The header is the top of its provider card, so it shares the card's top corners. */
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--settings-radius-md) var(--settings-radius-md) 0 0;
 }
 
 .settings-models-group-trigger:disabled {
@@ -2140,7 +2174,7 @@
   overflow: hidden;
   color: var(--v2-text-text-muted);
   font-size: 12px;
-  font-weight: 550;
+  font-weight: 600;
   line-height: var(--line-height-compact);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2176,11 +2210,10 @@
   min-width: 0;
   /* The header pins inside the card, so the card must not clip it. */
   overflow: visible;
-  border: 1px solid var(--settings-card-border);
-  border-radius: var(--settings-card-radius, 10px);
+  border: 1px solid transparent;
+  border-radius: var(--settings-card-radius);
   background-color: var(--settings-card-bg);
-  background-image: var(--settings-card-gradient);
-  box-shadow: var(--settings-card-shadow);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
 }
 
 .provider-model-group-header {
@@ -2191,7 +2224,7 @@
   align-items: center;
   padding: 4px 12px;
   /* The header tops its group card, so it takes the card's top corners; the list below squares them off. */
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--settings-radius-md) var(--settings-radius-md) 0 0;
 }
 
 /* Same step as the top-level header: a collapsed group ends at its header, so the header also carries the card's
@@ -2200,7 +2233,7 @@
 .settings-tab-body.settings-models
   .provider-model-group:not([data-expanded])
   > .provider-model-group-header {
-  border-radius: var(--settings-card-radius, 10px);
+  border-radius: var(--settings-card-radius);
 }
 
 /* Both tiers use the same trigger: one height, radius and padding, so a Console group differs only by the indentation
@@ -2216,7 +2249,7 @@
   height: 36px;
   padding: 4px 8px 4px 4px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--settings-radius-xs);
   background: transparent;
   color: var(--v2-text-text-base);
   text-align: start;
@@ -2224,7 +2257,8 @@
 
 .provider-model-group-trigger:focus-visible,
 .settings-models-group-trigger:focus-visible {
-  box-shadow: var(--settings-focus-ring);
+  outline: var(--settings-focus-outline) !important;
+  outline-offset: 2px;
 }
 
 @media (hover: hover) {
@@ -2257,7 +2291,7 @@
   overflow: hidden;
   color: var(--v2-text-text-muted);
   font-size: 12px;
-  font-weight: 550;
+  font-weight: 600;
   line-height: var(--line-height-compact);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2353,8 +2387,6 @@
 .settings-tab-body.settings-models [data-component="settings-models-provider"] > .settings-models-group-header,
 .settings-tab-body.settings-models .provider-model-group-header {
   background-color: var(--settings-card-bg);
-  /* Same gradient as the card the band heads: without it the pinned header reads as a flat substitute for the card. */
-  background-image: var(--settings-card-gradient);
 }
 
 .settings-tab-body.settings-models [data-component="settings-models-console"] > .settings-models-group-header {
@@ -2458,7 +2490,7 @@
 .settings-shortcuts {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--settings-space-6);
 }
 
 /* The keybind lists are ordinary cards now: they keep the shared card material instead of replacing it with a flat
@@ -2468,17 +2500,17 @@
   flex-direction: column;
   gap: 0;
   padding-block: 0;
-  border-radius: 10px;
+  border-radius: var(--settings-card-radius);
 }
 
 .settings-shortcuts [data-component="settings-list"] > div {
   display: flex;
-  min-height: var(--settings-row-min-height, 44px);
+  min-height: var(--settings-row-min-height);
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding-block: 10px;
-  border-bottom: 0.5px solid var(--v2-border-border-base);
+  gap: var(--settings-space-4);
+  padding-block: var(--settings-space-4);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 .settings-shortcuts [data-component="settings-list"] > div:last-child {
@@ -2488,8 +2520,8 @@
 .settings-shortcuts [data-component="settings-list"] > div > span {
   min-width: 0;
   font-weight: 400;
-  font-size: 13px;
-  line-height: var(--line-height-compact);
+  font-size: 14px;
+  line-height: var(--line-height-base);
   letter-spacing: -0.04px;
   color: var(--v2-text-text-base);
   font-variation-settings: "slnt" 0;
@@ -2512,7 +2544,21 @@
 
 /* One hover layer: the row already reacts, and a second band on the key button made a single hover paint twice. */
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording] {
-  background: var(--v2-system-accent-soft);
+  position: relative;
+  background: var(--v2-overlay-simple-overlay-pressed);
+}
+
+/* Recording is a state, so it earns a shape signal: the same 2px accent rail the navigation uses for its selected
+   row. A full accent wash made the whole row read as a different surface rather than a selected one. */
+.settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording]::before {
+  position: absolute;
+  inset-block: var(--settings-space-3);
+  inset-inline-start: calc(-1 * var(--settings-space-4));
+  width: 2px;
+  border-radius: 2px;
+  background: var(--v2-system-accent);
+  content: "";
+  pointer-events: none;
 }
 
 /* A plugin's command title can be long; it truncates instead of wrapping the row past its 44px metric. */
@@ -2547,7 +2593,7 @@
   gap: 8px;
   padding: 2px 4px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
   background: transparent;
   color: var(--v2-text-text-muted);
   font-family: inherit;
@@ -2556,9 +2602,7 @@
   line-height: var(--line-height-compact);
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background-color 120ms ease,
-    box-shadow 120ms ease;
+  transition: background-color 120ms ease;
 }
 
 .settings-shortcut-capture:focus-visible {
@@ -2566,15 +2610,15 @@
   outline-offset: 1px;
 }
 
-/* Recording is a state of the keys themselves, not only a change of text. The accent-soft fill follows the system
-   accent in both schemes; a white alpha did not. */
+/* Recording is a state of the keys themselves, not only a change of text. An accent outline marks the capture
+   without painting a colour block on top of the row's own selected fill. */
 .settings-shortcut-capture[data-expanded] {
-  background: var(--v2-system-accent-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v2-system-accent) 55%, transparent);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--v2-system-accent);
 }
 
 .settings-shortcut-capture[data-expanded]:hover {
-  background: color-mix(in srgb, var(--v2-system-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--v2-system-accent) 8%, transparent);
 }
 
 .settings-shortcut-unassigned {
@@ -2587,7 +2631,7 @@
 
 .settings-servers-row {
   display: flex;
-  min-height: 49px;
+  min-height: 48px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -2606,7 +2650,7 @@
   inset-block: 8px;
   inset-inline-start: -8px;
   width: 2px;
-  border-radius: 2px;
+  border-radius: var(--settings-radius-xs);
   background: var(--v2-text-text-accent);
   content: "";
 }
@@ -2671,13 +2715,13 @@
 
 .settings-servers-current {
   flex-shrink: 0;
-  padding-inline: 5px;
-  border-radius: 5px;
+  padding-inline: 4px;
+  border-radius: var(--settings-radius-xs);
   background: var(--v2-background-bg-layer-02);
   color: var(--v2-text-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: 18px;
 }
 
 .settings-servers-meta {
@@ -2752,11 +2796,10 @@
   gap: 12px;
   padding: 14px 16px;
   overflow: hidden;
-  border: 1px solid var(--settings-card-border);
-  border-radius: var(--settings-card-radius, 10px);
+  border: 1px solid transparent;
+  border-radius: var(--settings-card-radius);
   background-color: var(--settings-card-bg);
-  background-image: var(--settings-card-gradient);
-  box-shadow: var(--settings-card-shadow);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
 }
 
 .settings-workspaces-empty-motion {
@@ -2907,7 +2950,7 @@
 
 /* The label is focusable so its tooltip works from the keyboard, which needs a visible focus ring. */
 .settings-workspaces-active:focus-visible {
-  border-radius: 3px;
+  border-radius: var(--settings-radius-xs);
   outline: 2px solid var(--v2-border-border-focus);
   outline-offset: 2px;
 }
@@ -2943,7 +2986,7 @@
   justify-content: space-between;
   gap: 12px;
   padding-inline: 8px;
-  border-radius: 5px;
+  border-radius: var(--settings-radius-xs);
   color: var(--v2-text-text-muted);
   font-size: 12px;
   font-weight: 400;
@@ -2980,9 +3023,9 @@
 
 .settings-workspaces-empty-title {
   color: var(--v2-text-text-base);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 24px;
 }
 
 /* The notifications page: the OS permission note under its group, and the sound row's select plus preview button.
@@ -3066,9 +3109,7 @@
   background: var(--settings-sheet-bg);
   backdrop-filter: var(--settings-sheet-blur);
   -webkit-backdrop-filter: var(--settings-sheet-blur);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    var(--settings-sheet-shadow);
+  box-shadow: var(--settings-sheet-shadow);
 }
 
 /* The body owns the scroll, so the content shell only clips the header highlight. */
@@ -3085,8 +3126,7 @@
   align-items: center;
   min-height: 56px;
   padding: 16px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.15);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-body"] {
@@ -3105,7 +3145,7 @@
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px 16px;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-top: var(--settings-hairline) solid var(--v2-border-border-muted);
 }
 
 .settings-server-dialog-label {
@@ -3142,12 +3182,12 @@
   gap: 8px;
   align-items: flex-start;
   padding: 10px 12px;
-  border: 0.5px solid rgba(255, 255, 255, 0.07);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.04);
+  border: var(--settings-hairline) solid var(--v2-border-border-muted);
+  border-radius: var(--settings-radius-sm);
+  background: var(--v2-overlay-simple-overlay-hover);
   font-size: 12px;
   line-height: 18px;
-  color: #b8b8be;
+  color: var(--v2-text-text-muted);
 }
 
 .settings-server-dialog-notice [data-slot="icon-svg"] {
@@ -3168,7 +3208,7 @@
 
 .settings-extension-row {
   display: flex;
-  min-height: 49px;
+  min-height: 48px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -3245,8 +3285,8 @@
    an `::after` inset would keep 20px but would overlap the error text, where a drag to select text becomes a toggle. */
 .settings-plugin-error-toggle[data-component="button-v2"][data-size="small"] {
   height: 24px;
-  margin-inline-start: -5px;
-  padding-inline: 5px;
+  margin-inline-start: -4px;
+  padding-inline: 4px;
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
@@ -3295,7 +3335,7 @@
   > [data-slot="tabs-v2-list"]
   [data-slot="tabs-v2-trigger-wrapper"] {
   /* The list hugs its pills, so each pill takes its label's width instead of an equal share of the panel. */
-  border-radius: 6px;
+  border-radius: var(--settings-radius-sm);
 }
 
 .settings-subtabs[data-component="tabs-v2"][data-variant="pill"]
@@ -3304,7 +3344,7 @@
   padding-inline: 8px;
 }
 
-/* ── Custom providers ──
+/* Custom providers
    The editor row closes the connected list; the dialog styles below keep the two-step form on the settings spine. */
 
 /* The add row is a control, not a line of text. It follows the existing add-slot language (`.knowledge-card-add`): a
@@ -3337,11 +3377,11 @@
     gap: 8px;
     margin-inline: 12px;
     margin-block: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.11);
-    border-radius: 7px;
-    background: rgba(255, 255, 255, 0.035);
+    border: var(--settings-hairline) solid var(--v2-border-border-base);
+    border-radius: var(--settings-radius-sm);
+    background: var(--v2-overlay-simple-overlay-hover);
     padding-inline: 16px;
-    /* v3 draws this control at 36px with a 7px radius and a #c5c5cc label: 34% base ink over the muted ink resolves to
+    /* v3 draws this control at 36px with a 7px radius and a lifted label: 34% base ink over the muted ink resolves to
        it from the palette, so the rule also stays readable on the light card instead of the white alpha it replaced.
        The 8px block margins keep the add row at its 64px band. */
     color: color-mix(in srgb, var(--v2-text-text-base) 34%, var(--v2-text-text-muted));
@@ -3353,7 +3393,7 @@
 
   @media (hover: hover) {
     > button:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--v2-overlay-simple-overlay-hover);
     }
   }
 }
@@ -3379,15 +3419,15 @@
 .settings-providers [data-component="button-v2"][data-variant="neutral"] {
   height: 28px;
   min-height: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.055);
+  border: var(--settings-hairline) solid var(--v2-border-border-base);
+  border-radius: var(--settings-radius-sm);
+  background: var(--v2-overlay-simple-overlay-hover);
   box-shadow: none;
 }
 
 [data-color-scheme="light"] .settings-providers [data-component="button-v2"][data-variant="neutral"] {
   border-color: var(--v2-border-border-base);
-  background: rgba(0, 0, 0, 0.045);
+  background: var(--v2-overlay-simple-overlay-hover);
 }
 
 /* One primary control plus its overflow menu: the group never shrinks under the provider name, and the 8px gap
@@ -3425,9 +3465,7 @@
   -webkit-backdrop-filter: var(--settings-sheet-blur);
   /* The same glass as the server sheet. The inset is the highlight both share; the light scheme needs no override
      because every value here resolves from the scheme's `--settings-sheet-*` variables. */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    var(--settings-sheet-shadow);
+  box-shadow: var(--settings-sheet-shadow);
 }
 
 [data-component="dialog-v2"][data-variant="settings"]
@@ -3466,16 +3504,16 @@
   gap: 2px;
 }
 
-/* The mark names the dialog before the title does: ＋ for a new provider, the provider's own initial when editing. */
+/* The mark names the dialog before the title does: — for a new provider, the provider's own initial when editing. */
 .settings-provider-custom-mark {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   flex: none;
   margin-top: 1px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--v2-system-accent) 32%, transparent);
-  border-radius: 9px;
+  border: var(--settings-hairline) solid color-mix(in srgb, var(--v2-system-accent) 32%, transparent);
+  border-radius: var(--settings-radius-sm);
   background: color-mix(in srgb, var(--v2-system-accent) 14%, transparent);
   color: var(--v2-system-accent);
   font-size: 14px;
@@ -3490,9 +3528,9 @@
   [data-slot="dialog-title"] {
   margin: 0;
   color: var(--v2-text-text-base);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 22px;
+  line-height: 24px;
 }
 
 [data-component="dialog-v2"]
@@ -3564,8 +3602,8 @@
    the Cancel button from reading as an undo it cannot perform. */
 .settings-provider-custom-section-note {
   color: var(--v2-text-text-muted);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-provider-custom-fields {
@@ -3606,8 +3644,8 @@
   .settings-provider-custom-dialog
   [data-component="input"]
   [data-slot="input-wrapper"] {
-  border: 1px solid var(--v2-border-border-base);
-  border-radius: 6px;
+  border: var(--settings-hairline) solid var(--v2-border-border-base);
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-overlay-simple-overlay-hover);
 }
 
@@ -3628,8 +3666,8 @@
   [data-component="input"]
   [data-slot="input-description"] {
   color: var(--v2-text-text-muted);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 /* A read-only ID is an answer, not an editable field: dashed border, no fill, muted ink. */
@@ -3662,13 +3700,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--settings-card-border);
-  border-radius: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--settings-card-radius);
   background: var(--settings-card-bg);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
 }
 
 .settings-provider-custom-models > :not(:last-child, .settings-provider-custom-alert) {
-  border-bottom: 1px solid var(--v2-border-border-base);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-base);
 }
 
 .settings-provider-custom-toolbar {
@@ -3689,7 +3728,7 @@
   .settings-provider-custom-search
   [data-component="input"]
   [data-slot="input-input"] {
-  height: 26px;
+  height: 24px;
   font-size: 12px;
 }
 
@@ -3793,10 +3832,10 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 1px solid var(--v2-border-border-base);
+  border: var(--settings-hairline) solid var(--v2-border-border-base);
   /* The design's own chip radius; the pill was an R3 deviation. Colour and size stay as they are: the design's
      11px accent-on-14%-accent chip only reaches ~3.3:1, and 24px keeps a usable hit area. */
-  border-radius: 5px;
+  border-radius: var(--settings-radius-xs);
   background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-base);
   font-size: 12px;
@@ -3834,7 +3873,7 @@
   .settings-provider-custom-manual
   [data-component="input"]
   [data-slot="input-input"] {
-  height: 26px;
+  height: 24px;
   font-size: 12px;
 }
 
@@ -3843,8 +3882,8 @@
 .settings-provider-custom-hint {
   margin: 6px 0 0;
   color: var(--v2-text-text-muted);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .settings-provider-custom-empty {
@@ -3863,12 +3902,12 @@
   gap: 8px;
   margin: 10px;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--v2-state-fg-danger) 32%, transparent);
-  border-radius: 6px;
+  border: var(--settings-hairline) solid color-mix(in srgb, var(--v2-state-fg-danger) 32%, transparent);
+  border-radius: var(--settings-radius-sm);
   background: color-mix(in srgb, var(--v2-state-fg-danger) 12%, transparent);
   color: var(--v2-state-fg-danger);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 /* The mark, the title group and the close button share the header's first line; only the title group flexes. */
@@ -3906,8 +3945,8 @@
 .settings-provider-custom-error {
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--v2-state-fg-danger) 24%, transparent);
-  border-radius: 6px;
+  border: var(--settings-hairline) solid color-mix(in srgb, var(--v2-state-fg-danger) 24%, transparent);
+  border-radius: var(--settings-radius-sm);
   background: color-mix(in srgb, var(--v2-state-fg-danger) 8%, transparent);
   color: var(--v2-state-fg-danger);
   font-size: 12px;
@@ -3959,43 +3998,13 @@
   color: color-mix(in srgb, var(--v2-text-text-contrast) 62%, transparent);
 }
 
-/* ── Light scheme surfaces ──────────────────────────────────────────────────────────────────────────────────────
-   The chrome in this file was drawn against the v3 mock, so it hard-codes dark values: #1B1B1D and #2b2b2e fills,
-   white-alpha text, and a glass sheet at rgb(38 38 42). The palette defaults to light (`:root` is
-   `color-scheme: light`), and the theme applies `data-color-scheme="light"` explicitly whenever the resolved mode is
-   light, so without this block everyone on the light scheme got white text on a dark card, or dark text on #292929.
+/* Scheme parity
+   Every surface, ink and hairline above resolves from the shared theme layer (--v2-*), which already carries a light
+   table and a dark table. There is no second colour block to keep in sync: a scheme change is a token change, so a
+   value can never be light-only or dark-only by accident. */
 
-   Every rule below is a colour-only counterpart of the original declaration, prefixed with the attribute selector so
-   it outranks the original without editing it. Structure, spacing and layout are deliberately untouched. */
-
-/* The material variables get their light values in one place, so no rule below restates a fill or a shadow. */
-[data-color-scheme="light"] {
-  --settings-sheet-bg: rgba(255, 255, 255, 0.86);
-  --settings-sheet-border: rgba(0, 0, 0, 0.12);
-  --settings-sheet-shadow: 0 20px 64px rgba(0, 0, 0, 0.18);
-}
-
-[data-color-scheme="light"] :is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"]) {
-  --settings-card-bg: var(--v2-background-bg-layer-01);
-  --settings-card-border: var(--v2-border-border-base);
-  --settings-card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
-  --settings-card-shadow:
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.025),
-    0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-[data-color-scheme="light"] .settings-screen {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-}
-
-/* The sidebar is the one recessed surface of Settings: one grey step below the white page. bg-deep and layer-01
-   are both #fafafa in light, which made the sidebar, the page and the cards one flat field. */
-[data-color-scheme="light"]
-  .settings-screen
-  > .settings[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
-  > .settings-sidebar {
-  background: var(--v2-background-bg-layer-02);
-}
+/* The sidebar is the one recessed surface of Settings, and the base rule already gives it one layer step off the
+   page in both schemes. */
 
 [data-color-scheme="light"] [data-slot="settings-row-title"] {
   color: var(--v2-text-text-base);
@@ -4021,7 +4030,7 @@
 
 @media (hover: hover) {
   [data-color-scheme="light"] [data-slot="settings-provider-add-row"] > button:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--v2-overlay-simple-overlay-hover);
   }
 }
 
@@ -4029,7 +4038,7 @@
    an accent-ink outline over an accent wash (rule above the light block), and this selector outranks it. */
 [data-color-scheme="light"] .settings-providers [data-component="tag"]:not([data-variant="accent"]) {
   border-color: var(--v2-border-border-base);
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--v2-overlay-simple-overlay-hover);
 }
 
 [data-color-scheme="light"] .settings-provider-console-summary {
@@ -4099,7 +4108,7 @@
 [data-color-scheme="light"]
   [data-component="dialog-v2"]:has(.settings-server-dialog)
   > [data-slot="dialog-container"] {
-  /* Same sheet variables as the notices and delete dialogs, so the three 15px glass shells cannot drift apart. */
+  /* Same sheet variables as the notices and delete dialogs, so the four glass shells cannot drift apart. */
   border-color: var(--settings-sheet-border);
   background: var(--settings-sheet-bg);
   box-shadow: var(--settings-sheet-shadow);
@@ -4107,7 +4116,6 @@
 
 [data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-header"] {
   border-bottom-color: var(--v2-border-border-muted);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.7);
 }
 
 [data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-footer"] {
@@ -4124,7 +4132,7 @@
 
 [data-color-scheme="light"] .settings-server-dialog-notice {
   border-color: var(--v2-border-border-muted);
-  background: rgba(0, 0, 0, 0.035);
+  background: var(--v2-overlay-simple-overlay-hover);
   color: var(--v2-text-text-muted);
 }
 
@@ -4138,9 +4146,8 @@
 }
 
 [data-color-scheme="light"] .settings-provider-custom-model:has(input:checked) {
-  /* The dark scheme's 8% wash all but disappears on the light card, so light takes the accent's own soft layer. The
-     checkbox stays the primary signal; this only makes the row read as selected. */
-  background: var(--v2-system-accent-soft);
+  /* The checkbox is the selection signal in both schemes; the row only carries the quiet selected wash. */
+  background: var(--v2-overlay-simple-overlay-pressed);
   color: var(--v2-text-text-base);
 }
 
@@ -4157,13 +4164,13 @@
   color: var(--v2-state-fg-danger);
 }
 
-/* The wordmark needs more of the surface in light: .42 over #fafafa still reads as a ghost, and this mark is the
-   only image on the page. */
+/* The wordmark needs more of the surface in light: the base opacity reads as a ghost on the light page, and this mark
+   is the only image on the page. */
 [data-color-scheme="light"] .settings-about-wordmark {
   opacity: 0.52;
 }
 
-/* ── Focus rings ──
+/* Focus rings
    `packages/ui/src/styles/base.css` turns focus outlines off with `outline: none !important` for every button-like
    element, and nothing scoped here can beat `!important`. `box-shadow` is not silenced, so the settings surfaces
    draw the ring that way and keyboard focus stays visible wherever base.css removed it. Elements that already show
@@ -4205,5 +4212,6 @@
     .search-list-row,
     input[type="range"]
   ):focus-visible {
-  box-shadow: var(--settings-focus-ring);
+  outline: var(--settings-focus-outline) !important;
+  outline-offset: 2px;
 }

@@ -13,6 +13,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
+import { displayName } from "@opencode/ui/project-avatar"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ServerConnection } from "@/runtime/server/registry"
@@ -648,6 +649,43 @@ function ConversationNav() {
     return ordered
   })
 
+  /**
+   * The recent list read as a project tree: one folder row per project with its sessions underneath. Group order
+   * follows the list itself, so the project that spoke last stays on top, and a session keeps the relative position
+   * the fetch and drag order gave it inside its own project.
+   */
+  const projectGroups = createMemo(() => {
+    const groups = new Map<string, { key: string; name: string; entries: InboxEntry[] }>()
+
+    for (const entry of recent()) {
+      const project = entry.ctx.projects.forSession(entry.session)
+      const key = project?.id ?? project?.worktree ?? entry.session.location.directory
+      const name = project
+        ? displayName(project)
+        : (entry.session.location.directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || key)
+      const group = groups.get(key)
+
+      if (group) group.entries.push(entry)
+      else groups.set(key, { key, name, entries: [entry] })
+    }
+
+    return [...groups.values()]
+  })
+
+  // A folded project stays folded while the list re-sorts underneath, because the key is the project, not the row.
+  const [foldedProjects, setFoldedProjects] = createSignal<ReadonlySet<string>>(new Set())
+
+  const toggleProject = (key: string) => {
+    setFoldedProjects((current) => {
+      const next = new Set(current)
+
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+
+      return next
+    })
+  }
+
   const currentTab = createMemo(() => {
     const route = layout.route()
 
@@ -834,21 +872,47 @@ function ConversationNav() {
             </section>
           )}
 
-          <Show when={recent().length > 0}>
+          <Show when={projectGroups().length > 0}>
             <section class="flex flex-col">
               <h2 class={SECTION}>{language.t("replica.section.recent")}</h2>
-              <div class={LIST}>
-                <Key each={recent()} by={(entry) => entry.key}>
-                  {(entry) => (
-                    <SessionRow
-                      entry={entry}
-                      active={() => active(entry())}
-                      group={RECENT_GROUP}
-                      index={recent().findIndex((item) => item.key === entry().key)}
-                      onOpen={open}
-                      onArchive={archive}
-                      onDelete={confirmDelete}
-                    />
+              <div class="flex flex-col gap-[2px]">
+                <Key each={projectGroups()} by={(group) => group.key}>
+                  {(group) => (
+                    <div class="flex flex-col">
+                      <button
+                        type="button"
+                        data-replica-control
+                        data-slot="replica-project-row"
+                        aria-expanded={!foldedProjects().has(group().key)}
+                        class={`${ROW} font-medium`}
+                        onClick={() => toggleProject(group().key)}
+                      >
+                        <Icon name="folder" class="size-4 shrink-0 text-[var(--color-icon-secondary)]" />
+                        <span class="min-w-0 flex-1 truncate">{group().name}</span>
+                        <Icon
+                          name={foldedProjects().has(group().key) ? "chevron-right" : "chevron-down"}
+                          size="small"
+                          class="shrink-0 text-[var(--color-icon-secondary)]"
+                        />
+                      </button>
+                      <Show when={!foldedProjects().has(group().key)}>
+                        <div class={`${LIST} ps-3`}>
+                          <Key each={group().entries} by={(entry) => entry.key}>
+                            {(entry) => (
+                              <SessionRow
+                                entry={entry}
+                                active={() => active(entry())}
+                                group={RECENT_GROUP}
+                                index={recent().findIndex((item) => item.key === entry().key)}
+                                onOpen={open}
+                                onArchive={archive}
+                                onDelete={confirmDelete}
+                              />
+                            )}
+                          </Key>
+                        </div>
+                      </Show>
+                    </div>
                   )}
                 </Key>
               </div>

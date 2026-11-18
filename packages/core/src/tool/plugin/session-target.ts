@@ -44,7 +44,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
 
 /**
  * The session that delivered a pending inbox item, read from the `delivery` envelope `deliver` and
- * `redirect` write into `metadata`. Undefined for a message the user typed, another plugin published,
+ * `steer` write into `metadata`. Undefined for a message the user typed, another plugin published,
  * or a delivery whose envelope was stripped, so ownership is never inferred from a missing field.
  */
 export function deliveredBy(item: SessionInbox.Info) {

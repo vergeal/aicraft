@@ -59,6 +59,7 @@ export const description = [
   "Foreground (default) runs the subagent to completion and returns its final response.",
   "Background mode (background=true) launches it asynchronously and returns immediately; you are notified when it finishes.",
   "Use background only for independent work that can run while you continue elsewhere.",
+  "To correct a subagent that is already on the wrong path, pass its sessionID to `steer`; do not spawn another subagent to replace it.",
 ].join("\n")
 
 export const Plugin = {

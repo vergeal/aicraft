@@ -14,7 +14,7 @@ export const name = "fork"
 
 export const description = [
   "Copy a session's history into a new session that has not started, so a different approach can be tried without losing the original.",
-  "This copies only: nothing is delivered, the new session is not woken, the current session is not switched and the source session is not interrupted. Give the copy work with `deliver` or `redirect` afterwards.",
+  "This copies only: nothing is delivered, the new session is not woken, the current session is not switched and the source session is not interrupted. Give the copy work with `deliver` or `steer` afterwards.",
   "`to` is the session to copy: ses_xxx, @session:ses_xxx, or an exact title of a session in this project. Omit it to fork the current session. Forking another session copies its whole history; that is reported, not confirmed.",
   "`before` copies the history up to but excluding that message. Omit it to copy through the newest message.",
   "The source session is unchanged either way. The result is a separate session with its own id.",
@@ -122,7 +122,7 @@ export const Plugin = {
                   `Forked @${target.title ?? target.id} (${target.id}) into @${forked.title ?? forked.id} (${forked.id}).`,
                   `The copy holds the history ${boundary.type === "before" ? "before" : "through"} message ${boundary.messageID}.`,
                   "It is a copy only: nothing was delivered, no step was started, and the source session is unchanged.",
-                  "Use deliver or redirect to give the new session work when you are ready.",
+                  "Use deliver or steer to give the new session work when you are ready.",
                 ].join("\n"),
                 metadata: { sessionID: forked.id, source: target.id },
               }

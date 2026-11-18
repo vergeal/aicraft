@@ -19,6 +19,7 @@ export const description = [
   "`base` defaults to `lts/ocdev` and is read from local git refs only: nothing is fetched, checked out or written.",
   "`worktree` is null when the directory is not inside a git worktree or the repository could not be read. `directory` is empty when the session does not report one.",
   "Rows are newest first by update time and `limit` (default 40, maximum 200) truncates the result. `search` matches titles and ids. Pass `parentID: null` to list only root sessions.",
+  "This returns metadata only. Use `transcript` to read what a session actually said.",
 ].join("\n")
 
 export const Input = Schema.Struct({

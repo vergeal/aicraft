@@ -20,6 +20,7 @@ export const description = [
   '`intent` defaults to "request", which asks the target to do the work and answer with `intent: "reply"`. Use "note" for background information, "reply" to answer a delivery you received, and "handoff" to transfer ownership of the task.',
   "A reply needs `replyTo` with the `sessionID` and `messageID` returned by the delivery. Envelopes in the target session also show it.",
   "Delivery is always queued: it waits for the target to finish its current step and never interrupts it. Use `steer` instead when the target is already on the wrong path and has to change direction.",
+  "If you delivered the wrong thing, withdraw it with `recall` before the target reads it instead of sending a correction on top of it.",
 ].join("\n")
 
 export const Input = Schema.Struct({

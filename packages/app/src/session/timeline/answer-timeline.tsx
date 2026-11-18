@@ -1,4 +1,4 @@
-import { Show, createEffect, createSignal, onCleanup, onMount, type JSX } from "solid-js"
+import { Show, createSignal, onCleanup, onMount, type JSX } from "solid-js"
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Icon } from "@opencode/ui/icon"
 import { prefersReducedMotion } from "@opencode/ui/motion"
@@ -40,13 +40,19 @@ export function AnswerTimeline(props: {
   const measureBottom = () => {
     if (!viewport) return
 
-    stick = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD
+    // The column ends with an inset that holds the last row above the composer. A reader counts as
+    // pinned to the end once only that inset is left below the final row, which is where scrolling
+    // naturally rests.
+    stick =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= (props.bottomInset ?? 0) + BOTTOM_THRESHOLD
     setAtBottom(stick)
   }
 
   const jumpToLatest = () => {
     viewport?.scrollTo({ top: viewport.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" })
   }
+
+  let follow: ResizeObserver | undefined
 
   onMount(() => {
     props.setRevealMessage?.((id, partID) => {
@@ -58,28 +64,27 @@ export function AnswerTimeline(props: {
     })
     props.setPage?.((direction) => viewport?.scrollBy({ top: direction * viewport.clientHeight * 0.9 }))
 
-    requestAnimationFrame(measureBottom)
-
-    if (!viewport) return
-
-    // Streamed text grows the rows without changing the message list identity, so follow the layout
-    // itself: every observed child that grows pulls the viewport back to the end while the reader is
-    // still pinned there. A reader who scrolled up is left exactly where they are.
-    const follow = new ResizeObserver(() => {
-      if (!stick || !viewport) return
-      viewport.scrollTop = viewport.scrollHeight
+    // The ScrollView hands over its viewport after this component mounts, so observe from the next
+    // frame, once the rows are laid out.
+    requestAnimationFrame(() => {
       measureBottom()
+      if (!viewport) return
+
+      // Streamed text and disclosures grow the rows without changing the message list identity, so
+      // follow the observed layout instead of the list: every child that grows pulls the viewport back
+      // to the end while the reader is still pinned there. Nothing else measures the bottom while
+      // content grows, because that would clear `stick` before the follow-up scroll runs.
+      follow = new ResizeObserver(() => {
+        if (!stick || !viewport) return
+        viewport.scrollTop = viewport.scrollHeight
+        measureBottom()
+      })
+
+      for (const child of Array.from(viewport.children)) follow.observe(child)
     })
-
-    for (const child of Array.from(viewport.children)) follow.observe(child)
-
-    onCleanup(() => follow.disconnect())
   })
 
-  createEffect(() => {
-    props.messages()
-    requestAnimationFrame(measureBottom)
-  })
+  onCleanup(() => follow?.disconnect())
 
   onCleanup(() => {
     props.setScrollRef(undefined)

@@ -1,35 +1,14 @@
-export const popularProviders = [
-  "opencode-go",
-  "opencode",
-  "anthropic",
-  "github-copilot",
-  "openai",
-  "google",
-  "openrouter",
-  "vercel",
-]
+export const popularProviders = ["openai", "deepseek"]
 
 /**
- * Providers the connect pickers and the settings list offer. Everything else stays hidden unless it is already
- * connected or configured, which keeps the catalogue readable while leaving every existing setup reachable. Order
- * is the display order.
+ * Providers the connect pickers and the settings list offer. This client ships only the OpenAI and DeepSeek catalog
+ * providers; anything else a user needs is added as a custom provider from configuration. `connected` no longer
+ * bypasses the list: a provider that was configured earlier is not offered anymore, and its credentials stay
+ * manageable through the custom-provider flow.
  */
-export const visibleProviders = [
-  "opencode",
-  "opencode-go",
-  "anthropic",
-  "openai",
-  "google",
-  "openrouter",
-  "github-copilot",
-  "vercel",
-  "ollama",
-  "lmstudio",
-  "claude-agent",
-  "chatgpt",
-]
+export const visibleProviders = ["openai", "deepseek"]
 
-/** Whether a provider row belongs in the connect list: the offered set, or anything already connected. */
-export function showsProvider(id: string, connected: boolean) {
-  return connected || visibleProviders.includes(id)
+/** Whether a provider row belongs in the connect list. */
+export function showsProvider(id: string) {
+  return visibleProviders.includes(id)
 }

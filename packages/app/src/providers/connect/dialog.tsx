@@ -277,14 +277,14 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
   })
 
   // MCP servers are connected and managed from the MCP dialog, not here. Only the offered providers are listed;
-  // anything else stays hidden unless it is already connected, which keeps every existing setup reachable.
+  // anything else, connected or not, belongs to the custom-provider flow instead.
   const all = createMemo(() => {
     const query = store.filter.trim().toLowerCase()
 
     return integrations
       .list()
       .filter((row) => row.metadata?.source !== "mcp")
-      .filter((row) => showsProvider(row.id, row.connections.length > 0))
+      .filter((row) => showsProvider(row.id))
       .filter((row) => !query || `${row.id} ${row.name}`.toLowerCase().includes(query))
   })
 

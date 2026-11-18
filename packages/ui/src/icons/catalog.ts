@@ -388,7 +388,7 @@ const icons = {
   },
   "answer-tool": {
     viewBox: "0 0 14 14",
-    body: `<path d="M2.8 5.6h8.4v5.6H2.8ZM5.4 5.6V4.4c0-.5.4-.9.9-.9h1.4c.5 0 .9.4.9.9v1.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<g transform="translate(0.35 0.12) scale(0.58333)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></g>`,
   },
   "answer-context": {
     viewBox: "0 0 14 14",

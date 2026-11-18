@@ -468,17 +468,108 @@ export const SettingsProviders: Component<{
     setState({ credentialID: undefined, held: undefined })
   }
 
-  function AccountMenu(menuProps: { provider: ProviderItem; name?: string }) {
-    const accounts = () => providerAccounts(integration(menuProps.provider))
-    const active = () => activeProviderAccount(integration(menuProps.provider), isActiveCredential)
-    const name = () => menuProps.name ?? menuProps.provider.name
+  // The row offers one menu, and that menu holds everything the row can do: the accounts under their own labelled
+  // group, the provider form, and removal. Accounts used to sit on the row as a wide trigger printing their own name,
+  // which repeated the provider name above it and left a second dots menu beside it for the same account.
+  function RowMenu(menuProps: { item: ProviderItem; name: string }) {
+    const accounts = () => providerAccounts(integration(menuProps.item))
+    const active = () => activeProviderAccount(integration(menuProps.item), isActiveCredential)
+    const custom = () => customProvider(menuProps.item.id)
+    const busy = () => state.credentialID !== undefined
+    // A rename in flight replaces the menu with the name field, so the field sits where the row's control was.
     const renaming = () => accounts().find((account) => account.id === state.renaming)
 
     return (
       <Show
         when={renaming()}
         fallback={
-          <AccountMenuTrigger provider={menuProps.provider} name={name()} accounts={accounts()} active={active()} />
+          <Menu placement="bottom-end" gutter={6}>
+            <Menu.Trigger
+              as={IconButton}
+              variant="ghost-muted"
+              size="large"
+              icon={<Icon name="outline-dots" />}
+              aria-label={language.t("settings.providers.row.menu", { provider: menuProps.name })}
+            />
+            <Menu.Portal>
+              <Menu.Content
+                class="settings-provider-account-menu"
+                onEscapeKeyDown={(event) => event.stopPropagation()}
+                onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}
+              >
+                <Show when={canManageAccounts(menuProps.item)}>
+                  <Menu.Group>
+                    <Menu.GroupLabel>{language.t("settings.providers.account.group")}</Menu.GroupLabel>
+                    <MenuScroll
+                      class="settings-provider-account-scroll"
+                      viewportClass="settings-provider-account-viewport"
+                    >
+                      <Menu.RadioGroup
+                        class="settings-provider-account-list"
+                        value={active()?.id}
+                        onChange={(credentialID) => {
+                          const account = accounts().find((entry) => entry.id === credentialID)
+
+                          if (account) void activate(menuProps.item, menuProps.name, account)
+                        }}
+                      >
+                        <For each={accounts()}>
+                          {(account) => (
+                            <Menu.RadioItem value={account.id} closeOnSelect disabled={busy()}>
+                              <span class="settings-provider-account-label">{account.label}</span>
+                            </Menu.RadioItem>
+                          )}
+                        </For>
+                      </Menu.RadioGroup>
+                    </MenuScroll>
+                  </Menu.Group>
+                  <Menu.Separator />
+                  <Menu.Item disabled={busy()} onSelect={() => connect(menuProps.item.id)}>
+                    <Icon name="plus" size="small" class="shrink-0" />
+                    {language.t("settings.providers.account.add")}
+                  </Menu.Item>
+                  <Menu.Separator />
+                  <Menu.Item disabled={busy() || !active()} onSelect={() => setState("renaming", active()?.id)}>
+                    {language.t("common.rename")}
+                  </Menu.Item>
+                  <Menu.Item
+                    disabled={busy() || !active()}
+                    onSelect={() => {
+                      const account = active()
+
+                      if (account) requestRemoveAccount(menuProps.item, menuProps.name, account)
+                    }}
+                  >
+                    {language.t("dialog.provider.accounts.remove")}
+                  </Menu.Item>
+                </Show>
+                <Show when={!canManageAccounts(menuProps.item) && canDisconnect(menuProps.item)}>
+                  <Menu.Item onSelect={() => requestDisconnect(menuProps.item, menuProps.name)}>
+                    {language.t("common.disconnect")}
+                  </Menu.Item>
+                </Show>
+                <Show when={custom()}>
+                  {(provider) => (
+                    <>
+                      <Show when={canManageAccounts(menuProps.item) || canDisconnect(menuProps.item)}>
+                        <Menu.Separator />
+                      </Show>
+                      <Menu.Item onSelect={() => openCustom(provider())}>
+                        {language.t("settings.providers.custom.edit")}
+                      </Menu.Item>
+                      <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
+                        {language.t("settings.providers.custom.keyReplace")}
+                      </Menu.Item>
+                      <Menu.Separator />
+                      <Menu.Item data-variant="critical" onSelect={() => deleteCustom(provider())}>
+                        {language.t("settings.providers.custom.delete.menu")}
+                      </Menu.Item>
+                    </>
+                  )}
+                </Show>
+              </Menu.Content>
+            </Menu.Portal>
+          </Menu>
         }
       >
         {(account) => (
@@ -490,100 +581,6 @@ export const SettingsProviders: Component<{
           />
         )}
       </Show>
-    )
-  }
-
-  function AccountMenuTrigger(menuProps: {
-    provider: ProviderItem
-    name: string
-    accounts: ProviderAccount[]
-    active: ProviderAccount | undefined
-  }) {
-    const accounts = () => menuProps.accounts
-    const active = () => menuProps.active
-    const name = () => menuProps.name
-    // The same source the menu's radio group reads: only the credential list may name the current account. Guessing
-    // `accounts()[0]` before it answers put a name in the trigger with no matching selected row in the menu.
-    const label = () => active()?.label ?? name()
-
-    return (
-      <div class="settings-provider-account-actions">
-        <Menu placement="bottom-end" gutter={6}>
-          {/* The visible text is the account name, so the accessible name has to start with it (WCAG 2.5.3); the
-              provider is only extra context for screen readers. */}
-          <Menu.Trigger
-            as={Button}
-            size="normal"
-            variant="ghost-muted"
-            class="settings-provider-account-trigger"
-            aria-label={`${label()}, ${language.t("settings.providers.account.manage", { provider: name() })}`}
-          >
-            <span>{label()}</span>
-            <Icon name="chevron-down" size="small" />
-          </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Content class="settings-provider-account-menu" onEscapeKeyDown={(event) => event.stopPropagation()}>
-              <Menu.Group>
-                <Menu.GroupLabel>{language.t("settings.providers.account.group")}</Menu.GroupLabel>
-                <MenuScroll
-                  class="settings-provider-account-scroll"
-                  viewportClass="settings-provider-account-viewport"
-                >
-                  <Menu.RadioGroup
-                    class="settings-provider-account-list"
-                    value={active()?.id}
-                    onChange={(credentialID) => {
-                      const account = accounts().find((item) => item.id === credentialID)
-
-                      if (account) void activate(menuProps.provider, name(), account)
-                    }}
-                  >
-                    <For each={accounts()}>
-                      {(account) => (
-                        <Menu.RadioItem value={account.id} closeOnSelect disabled={state.credentialID !== undefined}>
-                          <span class="settings-provider-account-label">{account.label}</span>
-                        </Menu.RadioItem>
-                      )}
-                    </For>
-                  </Menu.RadioGroup>
-                </MenuScroll>
-              </Menu.Group>
-              <Menu.Separator />
-              <Menu.Item disabled={state.credentialID !== undefined} onSelect={() => connect(menuProps.provider.id)}>
-                <Icon name="plus" size="small" class="shrink-0" />
-                {language.t("settings.providers.account.add")}
-              </Menu.Item>
-            </Menu.Content>
-          </Menu.Portal>
-        </Menu>
-        <Menu placement="bottom-end" gutter={6}>
-          <Menu.Trigger
-            as={IconButton}
-            variant="ghost-muted"
-            size="large"
-            icon={<Icon name="outline-dots" />}
-            disabled={state.credentialID !== undefined || !active()}
-            aria-label={language.t("dialog.provider.accounts.options", { account: label() })}
-          />
-          <Menu.Portal>
-            <Menu.Content
-              class="settings-provider-account-menu"
-              onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}
-            >
-              <Menu.Item onSelect={() => setState("renaming", active()?.id)}>{language.t("common.rename")}</Menu.Item>
-              <Menu.Item
-                onSelect={() => {
-                  const account = active()
-
-                  if (account) requestRemoveAccount(menuProps.provider, name(), account)
-                }}
-              >
-                {language.t("dialog.provider.accounts.remove")}
-              </Menu.Item>
-            </Menu.Content>
-          </Menu.Portal>
-        </Menu>
-      </div>
     )
   }
 
@@ -687,104 +684,54 @@ export const SettingsProviders: Component<{
                             when={confirmingFor(item)}
                             fallback={
                               <div class="settings-provider-actions">
-                                {/* The custom menu leads wherever the provider is editable. A credential (an API key
-                                    counts) used to route the row into the account branch, which dropped the only
-                                    baseURL/model/key/delete entry the user had: the better configured the provider, the
-                                    less of it could be changed. */}
-                                <Show when={customProvider(item.id)}>
-                                  {(provider) => (
-                                    <>
-                                      <Menu placement="bottom-end" gutter={6}>
-                                        <Menu.Trigger
-                                          as={IconButton}
-                                          variant="ghost-muted"
-                                          size="large"
-                                          icon={<Icon name="outline-dots" />}
-                                          aria-label={language.t("settings.providers.custom.title.edit")}
-                                        />
-                                        <Menu.Portal>
-                                          <Menu.Content class="settings-provider-account-menu">
-                                            <Menu.Item onSelect={() => openCustom(provider())}>
-                                              {language.t("settings.providers.custom.edit")}
-                                            </Menu.Item>
-                                            <Menu.Item onSelect={() => openCustom(provider(), "apiKey")}>
-                                              {language.t("settings.providers.custom.keyReplace")}
-                                            </Menu.Item>
-                                            <Menu.Separator />
-                                            <Menu.Item
-                                              data-variant="critical"
-                                              onSelect={() => deleteCustom(provider())}
-                                            >
-                                              {language.t("settings.providers.custom.delete.menu")}
-                                            </Menu.Item>
-                                          </Menu.Content>
-                                        </Menu.Portal>
-                                      </Menu>
-                                      <Show when={!canDisconnect(item)}>
-                                        <Button
-                                          size="normal"
-                                          variant="neutral"
-                                          onClick={() => openCustom(provider())}
-                                        >
-                                          {language.t("settings.providers.custom.keyMissing")}
-                                        </Button>
-                                      </Show>
-                                    </>
+                                {/* The row has one control. Accounts, the provider form and its removal all live in
+                                    that menu: a row-wide account trigger printed a name that repeated the provider
+                                    name above it, and its second dots menu put two identical icons on one row. */}
+                                <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
+                                  {(status) => (
+                                    <Button
+                                      size="normal"
+                                      variant="ghost-muted"
+                                      class="text-[var(--v2-state-fg-warning)]"
+                                      title={status().message}
+                                      onClick={() => connect(item.id)}
+                                    >
+                                      {language.t("dialog.provider.needsSignIn")}
+                                    </Button>
                                   )}
                                 </Show>
+                                <Show when={!canDisconnect(item) && customProvider(item.id)}>
+                                  {(provider) => (
+                                    <Button size="normal" variant="neutral" onClick={() => openCustom(provider())}>
+                                      {language.t("settings.providers.custom.keyMissing")}
+                                    </Button>
+                                  )}
+                                </Show>
+                                {/* A custom provider without the configuration document cannot say where its
+                                    credential came from, so it shows no hint instead of the wrong one. */}
+                                <Show when={!customProvider(item.id) && readOnly().has(item.id)}>
+                                  <span class="settings-provider-env-hint">
+                                    {language.t("settings.providers.custom.readOnly")}
+                                  </span>
+                                </Show>
                                 <Show
-                                  when={canManageAccounts(item)}
-                                  fallback={
-                                    <>
-                                      <Show when={canDisconnect(item)}>
-                                        <Button
-                                          size="normal"
-                                          variant="ghost-muted"
-                                          onClick={() => requestDisconnect(item, item.name)}
-                                        >
-                                          {language.t("common.disconnect")}
-                                        </Button>
-                                      </Show>
-                                      {/* A custom provider without the configuration document cannot say where its
-                                          credential came from, so it shows no hint instead of the wrong one. */}
-                                      <Show when={!customProvider(item.id) && readOnly().has(item.id)}>
-                                        <span class="settings-provider-env-hint">
-                                          {language.t("settings.providers.custom.readOnly")}
-                                        </span>
-                                      </Show>
-                                      <Show
-                                        when={
-                                          !customProvider(item.id) &&
-                                          !readOnly().has(item.id) &&
-                                          !canDisconnect(item) &&
-                                          (configReady() || source(item) !== "custom")
-                                        }
-                                      >
-                                        <span class="settings-provider-env-hint">
-                                          {source(item) === "config"
-                                            ? language.t("settings.providers.custom.configured")
-                                            : language.t("settings.providers.connected.environmentDescription")}
-                                        </span>
-                                      </Show>
-                                    </>
+                                  when={
+                                    !customProvider(item.id) &&
+                                    !readOnly().has(item.id) &&
+                                    !canDisconnect(item) &&
+                                    (configReady() || source(item) !== "custom")
                                   }
                                 >
-                                  <>
-                                    <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
-                                      {(status) => (
-                                        <Button
-                                          size="normal"
-                                          variant="ghost-muted"
-                                          class="text-[var(--v2-state-fg-warning)]"
-                                          title={status().message}
-                                          onClick={() => connect(item.id)}
-                                        >
-                                          {language.t("dialog.provider.needsSignIn")}
-                                        </Button>
-                                      )}
-                                    </Show>
-                                    <AccountMenu provider={item} />
-                                  </>
+                                  <span class="settings-provider-env-hint">
+                                    {source(item) === "config"
+                                      ? language.t("settings.providers.custom.configured")
+                                      : language.t("settings.providers.connected.environmentDescription")}
+                                  </span>
+                                </Show>
+                                {/* A provider with nothing to offer keeps no menu: an empty dots button would open
+                                    a blank surface. */}
+                                <Show when={canManageAccounts(item) || canDisconnect(item) || customProvider(item.id)}>
+                                  <RowMenu item={item} name={item.name} />
                                 </Show>
                               </div>
                             }
@@ -851,7 +798,7 @@ export const SettingsProviders: Component<{
                                     </Button>
                                   }
                                 >
-                                  <AccountMenu provider={item} name={language.t("provider.connect.opencode.name")} />
+                                  <RowMenu item={item} name={language.t("provider.connect.opencode.name")} />
                                 </Show>
                               }
                             >

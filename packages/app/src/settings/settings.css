@@ -1913,41 +1913,13 @@
   white-space: nowrap;
 }
 
-.settings-provider-account-actions {
-  display: flex;
-  min-width: 0;
-  max-width: min(272px, 50%);
-  flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
-}
-
-.settings-provider-account-trigger {
-  min-width: 0;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.settings-provider-account-trigger > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (hover: hover) {
-  .settings-provider-account-trigger:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
-}
-
 .settings-provider-account-input {
-  width: 100%;
+  /* `field-sizing: content` sizes the field from the name; a percentage width overrode it, and a percentage
+     max-width resolved against the group's own content width, so a long name was cut after four glyphs. */
+  width: auto;
+  max-width: 240px;
+  min-width: 96px;
   height: var(--settings-input);
-  max-width: min(240px, 45%);
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
@@ -2015,7 +1987,7 @@
 }
 
 @container settings-panel (max-width: 520px) {
-  .settings-provider-account-actions {
+  .settings-provider-account-input {
     max-width: 100%;
   }
 }
@@ -3501,6 +3473,11 @@
   gap: 8px;
 }
 
+/* A 28px icon button still loses to flex shrink, which squeezed the row's dots down to a 16px hit target. */
+.settings-provider-actions [data-component="icon-button-v2"] {
+  flex: none;
+}
+
 /* The custom provider sheet: one screen of details and models. The container sizes itself from its content, the body
    owns the scroll, and the model list scrolls inside its own 208px box, so the footer stays visible when the form grows
    or a fetch fails. */
@@ -4174,8 +4151,7 @@
     background: var(--v2-overlay-simple-overlay-hover);
   }
 
-  [data-color-scheme="light"] .settings-provider-console-toggle:hover,
-  [data-color-scheme="light"] .settings-provider-account-trigger:hover {
+  [data-color-scheme="light"] .settings-provider-console-toggle:hover {
     background: var(--v2-overlay-simple-overlay-pressed);
   }
 

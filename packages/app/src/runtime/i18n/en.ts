@@ -1438,6 +1438,7 @@ export const dict = {
   "settings.providers.connected.environmentDescription": "Connected from your environment variables",
   "settings.providers.account.manage": "Manage {{provider}} accounts",
   "settings.providers.account.group": "Accounts",
+  "settings.providers.row.menu": "{{provider}} options",
   "settings.providers.account.add": "Add account",
   "settings.providers.account.name": "Account name",
   "settings.providers.account.remove.confirm": "Remove {{account}} and delete its stored credential?",

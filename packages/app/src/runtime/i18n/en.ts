@@ -1720,7 +1720,7 @@ export const dict = {
   "usage.retry": "Try again",
 
   "knowledge.title": "Knowledge",
-  "replica.workspace.name": "ChangHong Work",
+  "replica.workspace.name": "Workspace",
   "replica.newChat": "New chat",
   "replica.section.recent": "Recent",
   "replica.rail.updates": "Check for updates",

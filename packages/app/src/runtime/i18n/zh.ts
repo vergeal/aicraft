@@ -1347,7 +1347,7 @@ export const dict = {
   "settings.search.clear": "清除搜索",
 
   "knowledge.title": "知识库",
-  "replica.workspace.name": "ChangHong Work",
+  "replica.workspace.name": "工作区",
   "replica.newChat": "新聊天",
   "replica.section.recent": "最近",
   "replica.rail.updates": "检查更新",

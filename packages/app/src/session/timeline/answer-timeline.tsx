@@ -58,6 +58,9 @@ export function AnswerTimeline(props: {
   }
 
   let follow: ResizeObserver | undefined
+  // Content height at the last follow. A renderer that collapses and re-expands a block within one
+  // frame would otherwise drag the viewport up and straight back down.
+  let lastContentHeight = 0
 
   onMount(() => {
     props.setRevealMessage?.((id, partID) => {
@@ -72,8 +75,10 @@ export function AnswerTimeline(props: {
     // The ScrollView hands over its viewport after this component mounts, so observe from the next
     // frame, once the rows are laid out.
     requestAnimationFrame(() => {
-      measureBottom()
       if (!viewport) return
+
+      lastContentHeight = viewport.scrollHeight
+      measureBottom()
 
       // Streamed text and disclosures grow the rows without changing the message list identity, so
       // follow the observed layout instead of the list: every child that grows pulls the viewport back
@@ -81,7 +86,13 @@ export function AnswerTimeline(props: {
       // content grows, because that would clear `stick` before the follow-up scroll runs.
       follow = new ResizeObserver(() => {
         if (!stick || !viewport) return
-        viewport.scrollTop = viewport.scrollHeight
+
+        const height = viewport.scrollHeight
+        const grew = height > lastContentHeight
+        lastContentHeight = height
+
+        if (!grew) return
+        viewport.scrollTop = height
         measureBottom()
       })
 

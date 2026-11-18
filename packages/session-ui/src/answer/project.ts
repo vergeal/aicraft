@@ -22,7 +22,6 @@ type TurnDraft = {
   failure?: "stopped" | "failed"
   streaming?: boolean
   idle?: boolean
-  lastStep?: { completed: boolean; hasText: boolean; hasTool: boolean }
 }
 
 const decodeNotice = Schema.decodeUnknownOption(
@@ -111,12 +110,6 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
 
     if (message.time.completed !== undefined) draft.completedAt = message.time.completed
 
-    // The final answer is a completed step whose content is text only; any other step is a step summary.
-    draft.lastStep = {
-      completed: message.time.completed !== undefined,
-      hasText: message.content.some((content) => content.type === "text" && content.text.trim() !== ""),
-      hasTool: message.content.some((content) => content.type === "tool"),
-    }
     const ordinals = { text: 0, reasoning: 0 }
 
     for (const content of message.content) {
@@ -174,16 +167,16 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
     const tail = draft.nodes.at(-1)
     const answer = tail?.payload.kind === "assistant" ? tail : undefined
 
-    const finalComplete = draft.lastStep?.completed === true && draft.lastStep.hasText
-
     // A turn closes only when a closing answer exists; a step reply followed by work never closes it.
     // The server marks the end of a turn with an idle message; without one, a closing answer ends it.
     const lastTurn = draft === drafts[drafts.length - 1]
 
     // Historical turns are always closed; only the tail turn can still be running.
+    // Only the server's idle message closes the last turn. A step finishing mid-stream is not the end
+    // of the turn: closing it for one frame collapses the transcript and the next step expands it
+    // again, which the reader sees as the content jumping. Historical turns are always closed.
     const status: TimelineTurn["status"] =
-      draft.failure ??
-      (!lastTurn || draft.idle === true || (answer !== undefined && finalComplete) ? "closed" : "open")
+      draft.failure ?? (!lastTurn || draft.idle === true ? "closed" : "open")
 
     const process = draft.nodes.filter((node) => node.groupTree === "process")
     const foldable = status === "closed" && answer !== undefined && process.length > 0

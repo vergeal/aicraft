@@ -21,6 +21,9 @@ const assistant = (id: string, content: Content[], created: number, completed?: 
 
 const reasoning = (text: string): Content => ({ type: "reasoning", text, time: { created: TIME, completed: TIME } })
 
+// The client projects a `session.idle` event into this message; it is what closes a turn.
+const idle = (id: string, created: number): SessionMessageInfo => ({ id, type: "idle", outcome: "succeeded", time: { created } })
+
 const tool = (id: string, name: string, input: Record<string, string>, status: "completed" | "error"): Content => ({
   type: "tool",
   id,
@@ -45,6 +48,7 @@ const settled: SessionMessageInfo[] = [
     TIME + 1_000,
     TIME + 13_000,
   ),
+  idle("msg_idle_1", TIME + 13_500),
   { id: "msg_notice_1", type: "system", text: "上下文注入 · AGENTS.md, README.md", time: { created: TIME + 19_000 } },
   { id: "msg_user_2", type: "user", text: "继续，顺便把工具失败态也验证一下。", time: { created: TIME + 20_000 } },
   assistant(
@@ -56,6 +60,7 @@ const settled: SessionMessageInfo[] = [
     TIME + 21_000,
     TIME + 24_000,
   ),
+  idle("msg_idle_2", TIME + 24_500),
 ]
 
 const streaming: SessionMessageInfo[] = [
@@ -103,6 +108,7 @@ const withPhase: SessionMessageInfo[] = [
     TIME + 1_000,
     TIME + 8_000,
   ),
+  idle("msg_idle_phase", TIME + 8_500),
 ]
 
 const flowSequence: SessionMessageInfo[] = [
@@ -132,6 +138,7 @@ const flowSequence: SessionMessageInfo[] = [
     TIME + 8_000,
     TIME + 10_000,
   ),
+  idle("msg_idle_flow", TIME + 10_500),
 ]
 
 const lists: SessionMessageInfo[] = [
@@ -142,6 +149,7 @@ const lists: SessionMessageInfo[] = [
     TIME + 1_000,
     TIME + 4_000,
   ),
+  idle("msg_idle_list", TIME + 4_500),
 ]
 
 const runningPhase: SessionMessageInfo[] = [
@@ -250,6 +258,7 @@ const twoKinds: SessionMessageInfo[] = [
     TIME + 1_000,
     TIME + 5_000,
   ),
+  idle("msg_idle_two", TIME + 5_500),
 ]
 
 export const TwoKinds = {

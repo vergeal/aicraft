@@ -43,6 +43,7 @@ describe("answer projection", () => {
       user("msg_1", "go", 1),
       assistant("msg_2", 2, [reasoning("thinking"), tool("tool_1")], 10),
       assistant("msg_3", 11, [text("answer")], 20),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 21 } } satisfies SessionMessageInfo,
     ])
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
@@ -148,7 +149,7 @@ describe("answer projection", () => {
     expect(first?.members.map((key) => snapshot.nodes.get(key)?.payload.kind)).toEqual(["reasoning"])
   })
 
-  test("keeps the turn running until the final answer completes", () => {
+  test("keeps the last turn open until the server marks it idle", () => {
     const step = (id: string, created: number, completed: number) =>
       assistant(id, created, [reasoning("step"), tool("tool_1")], completed)
 
@@ -163,6 +164,8 @@ describe("answer projection", () => {
 
     expect(afterStepTwo.turns.get(1)?.status).toBe("open")
 
+    // A completed final answer does not close the turn: the next step may still arrive, and closing
+    // here would collapse the transcript between two steps.
     const afterFinal = projectTimeline([
       user("msg_1", "go", 1),
       step("msg_2", 2, 5),
@@ -170,7 +173,7 @@ describe("answer projection", () => {
       assistant("msg_4", 10, [text("final answer")], 12),
     ])
 
-    expect(afterFinal.turns.get(1)?.status).toBe("closed")
+    expect(afterFinal.turns.get(1)?.status).toBe("open")
   })
 
   test("splits one message into a group per thought and summary", () => {

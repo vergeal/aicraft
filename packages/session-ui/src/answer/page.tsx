@@ -819,6 +819,7 @@ function ReasoningRow(props: { text: string; streaming?: boolean; live: boolean;
       <Markdown
         text={props.text}
         cacheKey={props.text.length.toString()}
+        streaming={streaming()}
         class="answer-markdown ps-[30px] py-1 [overflow-wrap:anywhere]"
       />
     </DisclosureRow>

@@ -67,10 +67,11 @@ export function platformFrame(mode: "light" | "dark", factor: number) {
     frame.titleBarStyle = "hidden"
     frame.trafficLightPosition = { x: 14, y: 14 }
     // The replica shell draws its own translucent window frame, so the desktop shows through it. The sidebar
-    // material desaturates the wallpaper instead of letting its colours bleed into the chrome, and the effect
-    // follows focus so a background window recedes the way a native one does.
+    // material desaturates the wallpaper instead of letting its colours bleed into the chrome. The effect stays
+    // active while the window is unfocused: following focus washed the column out over a bright wallpaper, which
+    // read as a grey film rather than as a window that merely lost focus.
     frame.vibrancy = "sidebar"
-    frame.visualEffectState = "followWindow"
+    frame.visualEffectState = "active"
   }
 
   if (process.platform === "win32") {

@@ -170,6 +170,20 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica]
   --color-sidebar: rgb(21 21 21 / 44%);
 }
 
+/* 纯色玻璃读起来像一层灰纱，因为真实的玻璃是受光的：顶部向冷蓝偏、底部沉一点蓝紫、中间几乎不染色。
+   同一道垂直光铺在窗口底色上，标题栏和 rail 都透出它；每一层都在 8% 以下，系统材质仍然是主体。 */
+html[data-replica-window="translucent"] [data-replica] {
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(122 155 240 / 7%),
+      rgb(122 155 240 / 0) 30%,
+      rgb(143 137 184 / 0) 70%,
+      rgb(143 137 184 / 6%)
+    ),
+    var(--color-rail);
+}
+
 html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
 html[data-replica-window="translucent"] [data-slot="replica-rail"],
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
@@ -198,8 +212,24 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
    arcs still resolve to the window tint instead of to a lighter square. It stays at 4%: the 10% wash was a second
    white layer over an already light tint, and the column ended up indistinguishable from the opaque work area. */
 html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
-  /* 比 rail 只高一层：导航列要在透光的同时仍能读作「主面板的左边」，靠的是这点微差而不是白度。 */
-  background: rgb(255 255 255 / 8%);
+  /* 比 rail 高一层，并且带一点冷色：中性白叠在系统材质上会把壁纸的色温中和成灰，蓝调才透得像玻璃。 */
+  background: rgb(247 250 255 / 10%);
+}
+
+/* 分隔线画在不透明的一侧。半透明侧边栏上的 alpha 边框会和壁纸混成一条暗缝，看起来像面板裂了一道；
+   挪到不透明的会话面上，线就落在实底上，只做分层。 */
+html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
+  border-inline-end: 0;
+}
+
+html[data-replica-window="translucent"] [data-slot="replica-main"] {
+  border-inline-start: 1px solid var(--color-divider);
+}
+
+html[data-replica-window="translucent"]
+  [data-slot="replica-sidebar-slot"][data-collapsed]
+  + [data-slot="replica-main"] {
+  border-inline-start: 0;
 }
 
 /* Dark mode needs a deeper navigation surface. The shell carries it, the title bar keeps its own lighter tint, and
@@ -222,7 +252,16 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
 }
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-shell"] {
-  background: var(--color-navigation);
+  /* 暗色下 frame 让位给 shell，导航面由这一层承载，所以同一道垂直光挂在这里而不是 frame 上。 */
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(122 155 240 / 5%),
+      rgb(122 155 240 / 0) 30%,
+      rgb(143 137 184 / 0) 70%,
+      rgb(143 137 184 / 4%)
+    ),
+    var(--color-navigation);
 }
 
 /* A hairline of light along the top edge reads as the glass catching the room. Only the window bar carries it: the

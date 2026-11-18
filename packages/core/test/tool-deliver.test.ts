@@ -1,6 +1,8 @@
 import { describe, expect } from "bun:test"
 import { DateTime, Effect, Stream } from "effect"
 import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
+import { LayerNode } from "@opencode/util/effect/layer-node"
+import { FSUtil } from "@opencode/util/fs-util"
 import { Image } from "@opencode/core/image"
 import { Permission } from "@opencode/core/permission"
 import { Session } from "@opencode/core/session"
@@ -26,7 +28,10 @@ const deliveredID = SessionMessage.ID.make("msg_deliver_sent")
 const at = DateTime.makeUnsafe(0)
 
 const it = testEffect(
-  AppNodeBuilder.build(Tool.node, [Image.node.replace(imagePassthrough), Permission.node.replace(permissionLayer())]),
+  AppNodeBuilder.build(LayerNode.group([Tool.node, FSUtil.node]), [
+    Image.node.replace(imagePassthrough),
+    Permission.node.replace(permissionLayer()),
+  ]),
 )
 
 const session = (id: Session.ID, title: string, directory = "/project") =>
@@ -40,19 +45,20 @@ const session = (id: Session.ID, title: string, directory = "/project") =>
     location: { directory: AbsolutePath.make(directory) },
   })
 
-const setup = () =>
+const setup = (directory = "/project") =>
   Effect.gen(function* () {
     const prompts: Array<{
       id?: SessionMessage.ID
       sessionID: Session.ID
       text: string
+      files?: readonly { uri: string; name?: string; description?: string }[]
       metadata?: Record<string, unknown>
       delivery?: SessionInbox.Delivery
       resume?: boolean
     }> = []
     const asserts: unknown[] = []
     const sessions = [session(targetID, "Reviewer"), session(duplicateID, "Reviewer"), session(uniqueID, "Docs")]
-    const self = session(selfID, "Build")
+    const self = session(selfID, "Build", directory)
 
     yield* registerToolPlugin(DeliverTool.Plugin, {
       event: { subscribe: () => Stream.empty },
@@ -181,6 +187,43 @@ describe("DeliverTool", () => {
       expect(text).toContain("intent: reply")
       expect(text).toContain(`reply_to: ${targetID}/${deliveredID}`)
       expect(text).toContain("expects_reply: no")
+    }),
+  )
+
+  it.effect("attaches a workspace file to the prompt and the presentation", () =>
+    Effect.gen(function* () {
+      const { registry, prompts } = yield* setup(process.cwd())
+
+      const result = yield* call(registry, {
+        to: targetID,
+        text: "Review the manifest.",
+        files: [{ path: "package.json", description: "the package manifest" }],
+      })
+
+      expect(result.status).toBe("completed")
+      const files = prompts[0]?.files ?? []
+      expect(files).toHaveLength(1)
+      expect(files[0]).toMatchObject({ name: "package.json", description: "the package manifest" })
+      expect(files[0]?.uri).toStartWith("file://")
+      expect(prompts[0]?.metadata?.attachments).toMatchObject([{ name: "package.json", mime: "text/plain" }])
+      expect(prompts[0]?.text).toContain("⟦attachments⟧")
+      expect(prompts[0]?.text).toContain("package.json")
+    }),
+  )
+
+  it.effect("refuses a file outside the project directory", () =>
+    Effect.gen(function* () {
+      const { registry, prompts } = yield* setup(process.cwd())
+
+      const result = yield* call(registry, {
+        to: targetID,
+        text: "Read this.",
+        files: [{ path: "../outside-the-project.txt" }],
+      })
+
+      expect(result.status).toBe("error")
+      expect(result.error?.message).toContain("outside the project directory")
+      expect(prompts).toHaveLength(0)
     }),
   )
 })

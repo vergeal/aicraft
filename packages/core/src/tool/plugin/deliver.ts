@@ -3,9 +3,13 @@ export * as DeliverTool from "./deliver.js"
 import { ToolFailure } from "@opencode/ai/effect"
 import type { Context } from "@opencode/plugin/effect/plugin"
 import { SessionMessage } from "@opencode/schema/session-message"
+import { FSUtil } from "@opencode/util/fs-util"
 import { getFilename } from "@opencode/util/path"
 import { parseSessionMention } from "@opencode/util/session-mention"
 import { Effect, Schema } from "effect"
+import { basename, isAbsolute, join } from "path"
+import { pathToFileURL } from "url"
+import { Mime } from "../../mime.js"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
 
@@ -21,7 +25,10 @@ export const description = [
   "A reply needs `replyTo` with the `sessionID` and `messageID` returned by the delivery. Envelopes in the target session also show it.",
   "Delivery is always queued: it waits for the target to finish its current step and never interrupts it. Use `steer` instead when the target is already on the wrong path and has to change direction.",
   "If you delivered the wrong thing, withdraw it with `recall` before the target reads it instead of sending a correction on top of it.",
+  "`files` attaches workspace files to the delivery. Pass paths relative to the current project directory or absolute paths inside it; the target receives them as attachments it can open. A path outside the project directory is rejected.",
 ].join("\n")
+
+type FileInput = { path: string; name?: string; description?: string }
 
 export const Input = Schema.Struct({
   to: Schema.String.check(Schema.isMinLength(1)).annotate({
@@ -29,6 +36,23 @@ export const Input = Schema.Struct({
   }),
   text: Schema.String.check(Schema.isMinLength(1)).annotate({
     description: "The message to deliver. Write what the target needs to act on; it cannot see this session's history.",
+  }),
+  files: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        path: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Workspace-relative or absolute path to a file inside the project directory.",
+        }),
+        name: Schema.optionalKey(Schema.String).annotate({
+          description: "Display name. Defaults to the file's basename.",
+        }),
+        description: Schema.optionalKey(Schema.String).annotate({
+          description: "Short note about what the file is, shown beside the attachment.",
+        }),
+      }),
+    ),
+  ).annotate({
+    description: "Files to attach to the delivery. Each file is read from the source project directory.",
   }),
   intent: Schema.optionalKey(Schema.Literals(["request", "reply", "note", "handoff"])).annotate({
     description:
@@ -63,6 +87,49 @@ export const Plugin = {
   id: "opencode.tool.deliver",
   effect: Effect.fn("DeliverTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
+    const fs = yield* FSUtil.Service
+
+    /* Attachments travel two ways: `prompt.files` gives the target's model the bytes, while
+       `metadata.attachments` gives the client the name, mime and path it renders beside the message. Resolve both from
+       one read so they cannot disagree. */
+    const resolveFiles = Effect.fn("DeliverTool.resolveFiles")(function* (
+      directory: string,
+      files: readonly FileInput[] | undefined,
+    ) {
+      if (!files?.length) return undefined
+      const root = yield* fs.resolve(directory)
+      return yield* Effect.forEach(
+        files,
+        (file) =>
+          Effect.gen(function* () {
+            const absolute = yield* fs
+              .resolve(isAbsolute(file.path) ? file.path : join(directory, file.path))
+              .pipe(
+                Effect.mapError(() => new ToolFailure({ message: `Cannot resolve attached file: ${file.path}` })),
+              )
+            if (!FSUtil.contains(root, absolute))
+              return yield* new ToolFailure({
+                message: `Cannot attach ${file.path}: it is outside the project directory.`,
+              })
+            const info = yield* fs
+              .stat(absolute)
+              .pipe(Effect.mapError(() => new ToolFailure({ message: `Attached file not found: ${file.path}` })))
+            if (info.type !== "File")
+              return yield* new ToolFailure({ message: `Cannot attach ${file.path}: it is not a file.` })
+            const bytes = yield* fs
+              .readFile(absolute)
+              .pipe(Effect.mapError(() => new ToolFailure({ message: `Cannot read attached file: ${file.path}` })))
+            return {
+              uri: pathToFileURL(absolute).href,
+              name: file.name ?? basename(absolute),
+              description: file.description,
+              mime: Mime.detect(bytes),
+              path: absolute,
+            }
+          }),
+        { concurrency: 4 },
+      )
+    })
 
     const resolveTarget = Effect.fn("DeliverTool.resolveTarget")(function* (to: string) {
       const mention = parseSessionMention(to)
@@ -132,6 +199,7 @@ export const Plugin = {
                 )
 
               const expectsReply = input.expectsReply ?? (intent === "request" || intent === "handoff")
+              const files = yield* resolveFiles(from.location.directory, input.files)
               const replyTo =
                 input.replyTo === undefined ? "none" : `${input.replyTo.sessionID}/${input.replyTo.messageID}`
               const messageID = SessionMessage.ID.create()
@@ -165,6 +233,9 @@ export const Plugin = {
                   : []),
                 "⟦message⟧",
                 input.text,
+                ...(files?.length
+                  ? ["⟦attachments⟧", ...files.map((file) => `${file.name}: ${file.path}`)]
+                  : []),
               ].join("\n")
               // What a person reads in place of the header above: a mail header. A session link shows the
               // title and agent while its tooltip carries the full address, and the project path renders as
@@ -198,8 +269,14 @@ export const Plugin = {
                   id: messageID,
                   sessionID: target.id,
                   text,
+                  files: files?.map((file) => ({ uri: file.uri, name: file.name, description: file.description })),
                   // Presentation needs all three fields; a missing one drops the whole record and shows `text`.
-                  metadata: { delivery: envelope, displayText, comments: [], attachments: [] },
+                  metadata: {
+                    delivery: envelope,
+                    displayText,
+                    comments: [],
+                    attachments: files?.map((file) => ({ name: file.name, mime: file.mime, path: file.path })) ?? [],
+                  },
                   delivery: "queue",
                   resume: input.resume ?? true,
                 })
@@ -213,6 +290,7 @@ export const Plugin = {
                 output: { sessionID: target.id, messageID: admitted.id, status: "queued" as const },
                 content: [
                   `Delivered to @${title} (${target.id}) as ${intent}, queued after its current step.`,
+                  ...(files?.length ? [`attached: ${files.map((file) => file.name).join(", ")}`] : []),
                   `messageID: ${admitted.id}`,
                   expectsReply
                     ? `The target is expected to reply. Answer any delivery you receive with intent: "reply" and replyTo: { sessionID, messageID }.`

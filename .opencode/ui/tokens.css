@@ -1,0 +1,405 @@
+/* =============================================================================
+   tokens.css — 桌面客户端设计 token（归一化）
+   -----------------------------------------------------------------------------
+   来源：参考实现 A（提取）+ 参考实现 B（源码），取两者共有的
+        数值与结构，冲突处取更保守的一方。不是任何一方的原样拷贝。
+   约定：
+     · 原始层 --p-*   只放色值与尺寸，不带语义
+     · 语义层 --c-*   组件只允许引用这一层
+     · 私有层 --_*    内部计算用，不对外
+     · 深色主题用 data-theme 属性；未显式指定时跟随系统
+   ========================================================================== */
+
+/* ---------- 1. 原始层：中性色（带轻微冷偏，两套系统一致） ---------- */
+:root {
+  --p-white: #ffffff;
+  --p-black: #0d0d0d; /* 不用纯黑：实现 A 正文字色 */
+
+  --p-gray-0: #ffffff;
+  --p-gray-25: #fafafa;
+  --p-gray-50: #f5f6f7; /* 实现 B neutral-bluish-55 */
+  --p-gray-75: #f1f3f5;
+  --p-gray-100: #ebedf0; /* 淡面板面 */
+  --p-gray-200: #e1e5ee;
+  --p-gray-300: #cfd3d6;
+  --p-gray-400: #adb2b8;
+  --p-gray-500: #979da6;
+  --p-gray-600: #81858c;
+  --p-gray-700: #61666b;
+  --p-gray-800: #353638;
+  --p-gray-850: #2c2c2e;
+  --p-gray-875: #232324;
+  --p-gray-900: #1b1b1c;
+  --p-gray-950: #151517; /* 深色画布：实现 B bg-base */
+  --p-gray-1000: #0f1115; /* 深色正文字 */
+
+  /* 品牌与状态 */
+  --p-blue-400: #608afe;
+  --p-blue-500: #4176e6; /* 实现 B brand-500 */
+  --p-blue-600: #2f5cc4;
+  --p-green-500: #22c55e;
+  --p-green-400: #4ed17e;
+  --p-amber-500: #f59e0b;
+  --p-amber-400: #f7ad31;
+  --p-red-500: #ef4444;
+  --p-red-400: #f25a5a;
+  --p-violet-600: #7c3aed;
+  --p-violet-400: #a78bfa;
+
+  /* 透明度（边框/悬停）：深色下需提高 4–6 个百分点 */
+  --p-a-04: rgb(0 0 0 / 0.04);
+  --p-a-06: rgb(0 0 0 / 0.06);
+  --p-a-10: rgb(0 0 0 / 0.1);
+  --p-a-12: rgb(0 0 0 / 0.12);
+  --p-a-16: rgb(0 0 0 / 0.16);
+  --p-a-24: rgb(0 0 0 / 0.24);
+}
+
+/* ---------- 2. 尺寸与形状（跨主题恒定） ---------- */
+:root {
+  /* 间距：4 基准，只用 2 的倍数 */
+  --s-0: 0;
+  --s-1: 2px;
+  --s-2: 4px;
+  --s-3: 6px;
+  --s-4: 8px;
+  --s-5: 12px;
+  --s-6: 16px;
+  --s-7: 20px;
+  --s-8: 24px;
+  --s-9: 32px;
+  --s-10: 40px;
+  --s-11: 48px;
+
+  /* 控件高度阶梯：实现 A control-size + 实现 B 实测的交集 */
+  --h-xs: 20px;
+  --h-sm: 24px;
+  --h-md: 28px;
+  --h-lg: 32px;
+  --h-xl: 36px;
+  --h-2xl: 40px;
+  --h-3xl: 48px;
+
+  /* 圆角：8/12/16/20/28 为主 */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
+  --r-panel: 28px;
+  --r-full: 999px;
+
+  /* 字体 */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  --font-mono:
+    "SF Mono", "JetBrains Mono", "Fira Code", Consolas, "Liberation Mono",
+    Menlo, Courier, "PingFang SC", "Microsoft YaHei";
+
+  /* 字号 / 行高 */
+  --fs-11: 11px;
+  --lh-11: 14px;
+  --fs-12: 12px;
+  --lh-12: 18px;
+  --fs-13: 13px;
+  --lh-13: 20px;
+  --fs-14: 14px;
+  --lh-14: 22px; /* UI 默认 */
+  --fs-16: 16px;
+  --lh-16: 24px; /* 正文 */
+  --fs-18: 18px;
+  --lh-18: 28px;
+  --fs-20: 20px;
+  --lh-20: 28px;
+  --fs-24: 24px;
+  --lh-24: 32px;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* 动效 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 100ms;
+  --dur-base: 150ms;
+  --dur-slow: 240ms;
+
+  /* 描边 */
+  --hairline: 0.5px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+}
+
+/* ---------- 3. 语义层：浅色（基准） ---------- */
+:root {
+  color-scheme: light;
+
+  /* 背景 */
+  --c-bg-canvas: var(--p-white);
+  --c-bg-surface: var(--p-white);
+  --c-bg-layer-1: var(--p-white);
+  --c-bg-layer-2: var(--p-white);
+  --c-bg-layer-3: var(--p-white);
+  --c-bg-subtle: var(--p-gray-50);
+  --c-bg-skeleton: var(--p-a-04);
+  --c-bg-mask: rgb(0 0 0 / 0.24);
+  --c-bg-glass: rgb(252 253 254 / 0.7);
+
+  /* 文字 */
+  --c-text: var(--p-black);
+  --c-text-secondary: var(--p-gray-700);
+  --c-text-tertiary: var(--p-gray-600);
+  --c-text-dimmed: var(--p-gray-400);
+  --c-text-on-color: var(--p-white);
+  --c-text-link: var(--p-blue-500);
+
+  /* 边框 */
+  --c-border-subtle: var(--p-a-04);
+  --c-border: var(--p-a-10);
+  --c-border-strong: var(--p-a-12);
+  --c-border-heavy: var(--p-a-16);
+  --c-border-focus: var(--p-blue-500);
+
+  /* 交互 */
+  --c-hover: rgb(38 49 72 / 0.06);
+  --c-active: rgb(38 49 72 / 0.1);
+  --c-selected: var(--p-gray-100);
+
+  /* 主操作：黑白（两套系统一致的选择） */
+  --c-primary-fill: var(--p-gray-900);
+  --c-primary-fill-hover: var(--p-gray-800);
+  --c-primary-text: var(--p-white);
+
+  /* 状态 */
+  --c-success: var(--p-green-500);
+  --c-warning: var(--p-amber-500);
+  --c-danger: var(--p-red-500);
+  --c-info: var(--p-blue-500);
+  --c-done: var(--p-violet-600);
+
+  /* 抬升 */
+  --c-elevation-stroke: 0 0 0 var(--hairline) var(--c-border-heavy);
+  --elevation-panel:
+    var(--c-elevation-stroke), 0 3px 8px rgb(0 0 0 / 0.03),
+    0 0 16px rgb(0 0 0 / 0.02);
+  --elevation-prominent:
+    var(--c-elevation-stroke), 0 3px 8px rgb(0 0 0 / 0.04),
+    0 0 20px rgb(0 0 0 / 0.05);
+  --elevation-soft:
+    var(--c-elevation-stroke), 0 4px 16px rgb(0 0 0 / 0.03),
+    0 0 24px rgb(0 0 0 / 0.03);
+}
+
+/* ---------- 4. 语义层：深色 ---------- */
+/* 两处声明必须一致：1) 系统偏好且用户未锁定浅色  2) 用户显式选深色 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --c-bg-canvas: var(--p-gray-950);
+    --c-bg-surface: var(--p-gray-875);
+    --c-bg-layer-1: var(--p-gray-875);
+    --c-bg-layer-2: var(--p-gray-850);
+    --c-bg-layer-3: var(--p-gray-800);
+    --c-bg-subtle: var(--p-gray-900);
+    --c-bg-skeleton: rgb(255 255 255 / 0.08);
+    --c-bg-mask: rgb(0 0 0 / 0.5);
+    --c-bg-glass: rgb(48 49 54 / 0.64);
+
+    --c-text: #f9fafb;
+    --c-text-secondary: var(--p-gray-300);
+    --c-text-tertiary: var(--p-gray-400);
+    --c-text-dimmed: var(--p-gray-500);
+    --c-text-on-color: var(--p-white);
+    --c-text-link: var(--p-blue-400);
+
+    --c-border-subtle: rgb(255 255 255 / 0.06);
+    --c-border: rgb(255 255 255 / 0.12);
+    --c-border-strong: rgb(255 255 255 / 0.16);
+    --c-border-heavy: rgb(255 255 255 / 0.2);
+    --c-border-focus: var(--p-blue-400);
+
+    --c-hover: rgb(255 255 255 / 0.08);
+    --c-active: rgb(255 255 255 / 0.14);
+    --c-selected: var(--p-gray-800);
+
+    /* 深色下主按钮改为浅底黑字 */
+    --c-primary-fill: #f9fafb;
+    --c-primary-fill-hover: var(--p-white);
+    --c-primary-text: var(--p-gray-1000);
+
+    --c-success: var(--p-green-500);
+    --c-warning: var(--p-amber-500);
+    --c-danger: var(--p-red-400);
+    --c-info: var(--p-blue-400);
+    --c-done: var(--p-violet-400);
+
+    --c-elevation-stroke: 0 0 0 var(--hairline) var(--c-border-strong);
+    --elevation-panel:
+      var(--c-elevation-stroke), 0 3px 8px rgb(0 0 0 / 0.28),
+      0 0 16px rgb(0 0 0 / 0.18);
+    --elevation-prominent:
+      var(--c-elevation-stroke), 0 3px 8px rgb(0 0 0 / 0.32),
+      0 0 20px rgb(0 0 0 / 0.24);
+    --elevation-soft:
+      var(--c-elevation-stroke), 0 4px 16px rgb(0 0 0 / 0.26),
+      0 0 24px rgb(0 0 0 / 0.2);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-bg-canvas: var(--p-gray-950);
+  --c-bg-surface: var(--p-gray-875);
+  --c-bg-layer-1: var(--p-gray-875);
+  --c-bg-layer-2: var(--p-gray-850);
+  --c-bg-layer-3: var(--p-gray-800);
+  --c-bg-subtle: var(--p-gray-900);
+  --c-bg-skeleton: rgb(255 255 255 / 0.08);
+  --c-bg-mask: rgb(0 0 0 / 0.5);
+  --c-bg-glass: rgb(48 49 54 / 0.64);
+
+  --c-text: #f9fafb;
+  --c-text-secondary: var(--p-gray-300);
+  --c-text-tertiary: var(--p-gray-400);
+  --c-text-dimmed: var(--p-gray-500);
+  --c-text-on-color: var(--p-white);
+  --c-text-link: var(--p-blue-400);
+
+  --c-border-subtle: rgb(255 255 255 / 0.06);
+  --c-border: rgb(255 255 255 / 0.12);
+  --c-border-strong: rgb(255 255 255 / 0.16);
+  --c-border-heavy: rgb(255 255 255 / 0.2);
+  --c-border-focus: var(--p-blue-400);
+
+  --c-hover: rgb(255 255 255 / 0.08);
+  --c-active: rgb(255 255 255 / 0.14);
+  --c-selected: var(--p-gray-800);
+
+  --c-primary-fill: #f9fafb;
+  --c-primary-fill-hover: var(--p-white);
+  --c-primary-text: var(--p-gray-1000);
+
+  --c-success: var(--p-green-500);
+  --c-warning: var(--p-amber-500);
+  --c-danger: var(--p-red-400);
+  --c-info: var(--p-blue-400);
+  --c-done: var(--p-violet-400);
+
+  --c-elevation-stroke: 0 0 0 var(--hairline) var(--c-border-strong);
+  --elevation-panel:
+    var(--c-elevation-stroke), 0 3px 8px rgb(0 0 0 / 0.28),
+    0 0 16px rgb(0 0 0 / 0.18);
+  --elevation-prominent:
+    var(--c-elevation-stroke), 0 3px 8px rgb(0 0 0 / 0.32),
+    0 0 20px rgb(0 0 0 / 0.24);
+  --elevation-soft:
+    var(--c-elevation-stroke), 0 4px 16px rgb(0 0 0 / 0.26),
+    0 0 24px rgb(0 0 0 / 0.2);
+}
+
+/* ---------- 5. 层级（唯一一处集中管理，避免散落） ---------- */
+:root {
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-drawer: 60;
+  --z-overlay: 100;
+  --z-modal: 1000;
+  --z-popover: 1100;
+  --z-toast: 1200;
+}
+
+/* ---------- 6. 布局常量 ---------- */
+:root {
+  --layout-sidebar: 280px;
+  --layout-sidebar-collapsed: 56px;
+  --layout-content-max: 900px;
+  --layout-reading-max: 730px;
+  --layout-settings-max: 760px;
+  --bp-collapse: 1024px;
+  --bp-drawer: 768px;
+}
+
+/* ---------- 7. 图标 ---------- */
+:root {
+  --icon-xs: 12px;
+  --icon-sm: 14px;
+  --icon-md: 16px; /* 默认 */
+  --icon-lg: 20px;
+  --icon-xl: 24px;
+  --icon-gap: 4px;
+  --icon-gap-wide: 6px;
+  --icon-stroke: 2; /* 24 网格；跨网格按 网格/12 换算 */
+}
+
+/* ---------- 8. 表格 ---------- */
+:root {
+  --table-font: var(--fs-13);
+  --table-leading: var(--lh-13);
+  --table-cell-y: 4px;
+  --table-cell-x: 12px;
+  --table-head-weight: var(--fw-medium);
+  --table-row-min: 28px;
+  --table-sep: 0.5px solid var(--c-border);
+}
+
+/* ---------- 9. 密度 ---------- */
+:root {
+  --density-control-h: 32px;
+  --density-row-h: 36px;
+  --density-gap: var(--s-6);
+  --density-radius: var(--r-md);
+}
+
+[data-density="compact"] {
+  --density-control-h: 28px;
+  --density-row-h: 28px;
+  --density-gap: var(--s-5);
+  --density-radius: var(--r-sm);
+}
+
+/* ---------- 10. 滚动条 ---------- */
+:root {
+  --scrollbar-w: 6px;
+  --scrollbar-thumb: var(--c-border-strong);
+  --scrollbar-thumb-hover: var(--c-border-heavy);
+}
+
+/* ---------- 11. 图表（深浅同值，不随主题漂移） ---------- */
+:root {
+  --c-chart-1: #60a5fa;
+  --c-chart-2: #a78bfa;
+  --c-chart-3: #adb2b8;
+}
+
+/* ---------- 12. 最小基础样式（可选，按项目移除） ---------- */
+
+:where(html, body) {
+  margin: 0;
+  background: var(--c-bg-canvas);
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-14);
+  line-height: var(--lh-14);
+  -webkit-font-smoothing: antialiased;
+}
+
+:where(code, pre, kbd, samp) {
+  font-family: var(--font-mono);
+}
+
+:where(:focus-visible) {
+  outline: var(--focus-width) solid var(--c-border-focus);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(*) {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

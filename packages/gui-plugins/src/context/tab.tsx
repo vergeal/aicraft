@@ -72,7 +72,7 @@ const sectionLabel = "text-[12px] font-[530] text-v2-text-text-muted"
 
 const card = "rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-layer-01"
 
-const callGrid = "58px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 74px 50px 64px 60px"
+const callGrid = "58px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) 74px 46px 64px 60px"
 
 function Tile(props: { label: string; value: JSX.Element; sub: JSX.Element }) {
   return (
@@ -837,7 +837,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
           <div class="overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-base">
             <div
-              class="grid h-7 items-center gap-x-2 bg-v2-background-bg-layer-01 px-3 text-[11px] text-v2-text-text-faint [&>*:nth-child(n+2)]:text-end"
+              class="grid h-7 items-center gap-x-1 bg-v2-background-bg-layer-01 px-2.5 text-[11px] text-v2-text-text-faint [&>*:nth-child(n+2)]:text-end"
               style={{ "grid-template-columns": callGrid }}
             >
               <span>{ctx.t("calls.time")}</span>
@@ -866,7 +866,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                     <>
                       <button
                         type="button"
-                        class="grid w-full items-center gap-x-2 border-b border-v2-border-border-muted px-3 text-start text-[12px] last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
+                        class="grid w-full items-center gap-x-1 border-b border-v2-border-border-muted px-2.5 text-start text-[12px] last:border-b-0 hover:bg-v2-overlay-simple-overlay-hover"
                         classList={{
                           "h-[34px]": true,
                         }}

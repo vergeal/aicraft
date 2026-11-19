@@ -349,15 +349,16 @@ export function AnswerTimeline(props: {
           type="button"
           data-slot="answer-to-bottom"
           aria-label={language.t("session.messages.jumpToLatest")}
-          class="absolute right-4 z-[8] flex h-[34px] w-[34px] items-center justify-center rounded-full border-[0.5px] border-v2-border-border-base text-v2-text-text-base backdrop-blur-[2px] hover:bg-[linear-gradient(var(--v2-overlay-simple-overlay-hover),var(--v2-overlay-simple-overlay-hover))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+          class="absolute left-1/2 z-[8] flex size-7 -translate-x-1/2 items-center justify-center rounded-full transition-opacity hover:opacity-90 active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
           style={{
             bottom: `${props.bottomInset + 16}px`,
-            "background-color": "color-mix(in srgb, var(--v2-background-bg-base) 92%, transparent)",
-            "box-shadow": "var(--v2-elevation-raised), 0px 2px 8px var(--v2-background-bg-base)",
+            "background-color": "#000",
+            color: "#fff",
+            "box-shadow": "var(--v2-elevation-raised)",
           }}
           onClick={jumpToLatest}
         >
-          <Icon aria-hidden="true" name="chevron-down" size="small" />
+          <Icon aria-hidden="true" name="arrow-down" size="small" />
         </button>
       </Show>
     </div>

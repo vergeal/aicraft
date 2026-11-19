@@ -56,6 +56,12 @@ export interface AnswerPageProps {
   readonly following?: () => boolean
   /** The row and offset the reader last stopped at. Restored once the rows exist. */
   readonly restore?: { readonly key: string; readonly offset: number }
+  /**
+   * The remembered row is not loaded, so restoring it is impossible. The host must settle the view at the newest
+   * content: leaving it alone would park the reader at the windowed list's start offset, which reads as a jump to the
+   * top of the transcript.
+   */
+  readonly onRestoreMiss?: () => void
   /** Reports the row under the top edge, so the host can remember where the reader stopped. */
   readonly onPositionChange?: (position: { readonly key: string; readonly offset: number }) => void
 }
@@ -588,6 +594,7 @@ export function AnswerPage(props: AnswerPageProps) {
       restored = true
       const target = props.restore
       if (target && currentKeys.includes(target.key)) pinRestore(target)
+      else if (target) props.onRestoreMiss?.()
     }
 
     // A real scroll already moved the anchor; only a content change may restore it.

@@ -35,6 +35,8 @@ export function AnswerTimeline(props: {
   positionKey?: () => string
   /** The page is about to restore a mid-transcript position, so the host must not scroll to the end. */
   onRestore?: () => void
+  /** The remembered row is not loaded, so the host must resume following the newest content instead. */
+  onRestoreMiss?: () => void
   setScrollRef: (element: HTMLDivElement | undefined) => void
   setVisibleRef?: (element: HTMLDivElement | undefined) => void
   onScheduleScrollState: (element: HTMLDivElement) => void
@@ -63,6 +65,9 @@ export function AnswerTimeline(props: {
   let landAtEnd = !restore || restore.bottom
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let lastPosition: SavedPosition | undefined
+  // A restore that could not find its row leaves the view at the newest content, not where the reader stopped. Hold the
+  // saved record until the reader actually moves, or a failed restore would erase the position worth paging back to.
+  let holdPosition = false
 
   const flushPosition = () => {
     if (!lastPosition) return
@@ -70,6 +75,7 @@ export function AnswerTimeline(props: {
   }
 
   const rememberPosition = (position: { key: string; offset: number }) => {
+    if (holdPosition) return
     lastPosition = { ...position, bottom: stick }
 
     if (saveTimer !== undefined) clearTimeout(saveTimer)
@@ -128,6 +134,8 @@ export function AnswerTimeline(props: {
   const setFollowing = (next: boolean) => {
     if (stick === next) return
 
+    // The reader moved away from the newest content on their own, so their position is worth recording again.
+    if (!next) holdPosition = false
     stick = next
     setAtBottom(next)
 
@@ -209,6 +217,15 @@ export function AnswerTimeline(props: {
     positioned = true
     viewport.scrollTop = viewport.scrollHeight
     measureBottom()
+  }
+
+  // The remembered row is not loaded, so there is nothing to restore. Land on the newest content instead of leaving the
+  // view at the windowed list's start offset, which reads as a jump to the top of the transcript.
+  const restoreMissed = () => {
+    landAtEnd = true
+    holdPosition = true
+    landOnEnd()
+    props.onRestoreMiss?.()
   }
 
   onMount(() => {
@@ -352,6 +369,7 @@ export function AnswerTimeline(props: {
           revealAll={revealAll}
           following={() => stick}
           restore={restore?.bottom ? undefined : restore}
+          onRestoreMiss={restoreMissed}
           onPositionChange={rememberPosition}
         />
         <div data-timeline-row="bottom-spacer" class="w-full">

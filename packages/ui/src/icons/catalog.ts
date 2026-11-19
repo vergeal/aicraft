@@ -371,7 +371,7 @@ const icons = {
   },
   "answer-context": {
     viewBox: "0 0 14 14",
-    body: `<path d="M3.8 2.4h3.4l2.8 2.8v6.4H3.8ZM7.2 2.4v2.8h2.8M5.4 8.6h3M7.2 7 8.4 8 7.2 9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<path d="M2.6 7.4v3a1 1 0 0 0 1 1h6.8a1 1 0 0 0 1-1v-3M2.6 7.4h2.1M9.3 7.4h2.1M7 1.9v4.4M5.1 4.4 7 6.3l1.9-1.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
   "answer-analysis": {
     viewBox: "0 0 14 14",

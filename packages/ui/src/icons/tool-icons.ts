@@ -6,7 +6,7 @@ const outline = `fill="none" stroke="currentColor" stroke-width="2" stroke-linec
 const mark = (body: string) => ({ viewBox: "0 0 24 24", body: `<g ${outline}>${body}</g>` })
 
 export const toolIcons = {
-  "tool-read": mark(`<path d="M13.5 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V9Z"/> <path d="M13.5 3.5V9H19"/> <path d="M8.5 12.5h7"/> <path d="M8.5 15.5h7"/> <path d="M8.5 18.5h4"/>`),
+  "tool-read": mark(`<path d="M12 8.2C10.4 6.4 7.6 5.6 4.2 5.6a1 1 0 0 0-1 1v10.4a1 1 0 0 0 1 1c3.4 0 6.2.8 7.8 2.6"/> <path d="M12 8.2c1.6-1.8 4.4-2.6 7.8-2.6a1 1 0 0 1 1 1v10.4a1 1 0 0 1-1 1c-3.4 0-6.2.8-7.8 2.6"/> <path d="M12 8.2v12.2"/>`),
   "tool-write": mark(`<path d="M13.5 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V9Z"/> <path d="M13.5 3.5V9H19"/> <path d="M12 11v6"/> <path d="M9.4 14.4 12 17l2.6-2.6"/>`),
   "tool-edit": mark(`<path d="M20.2 7.7a1 1 0 0 0-3.9-3.9L4.6 15.5a2 2 0 0 0-.5.8l-1.3 4.2a.5.5 0 0 0 .6.6l4.2-1.3a2 2 0 0 0 .8-.5Z"/> <path d="m14.5 5.5 4 4"/>`),
   "tool-patch": mark(`<rect x="4.5" y="7.5" width="15" height="11" rx="3"/> <path d="M9 7.8v10.4" stroke-dasharray="2 2.4"/> <path d="M15 7.8v10.4" stroke-dasharray="2 2.4"/>`),
@@ -21,14 +21,14 @@ export const toolIcons = {
   "tool-create": mark(`<path d="M3.5 7A2.5 2.5 0 0 1 6 4.5h7A2.5 2.5 0 0 1 15.5 7v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3V14.5H6A2.5 2.5 0 0 1 3.5 12Z"/> <path d="M19 4v6"/> <path d="M16 7h6"/>`),
   "tool-deliver": mark(`<path d="M3.5 11.5L20.5 4l-6.2 16-3.3-6.5-7.5-2Z"/> <path d="M11 13.5L20.5 4"/>`),
   "tool-steer": mark(`<circle cx="12" cy="12" r="8"/> <circle cx="12" cy="12" r="2.2"/> <path d="M12 4v5.8"/> <path d="M5.4 16.1l5-3"/> <path d="M18.6 16.1l-5-3"/>`),
-  "tool-queue": mark(`<path d="M4 13.5 6.6 5.6h10.8L20 13.5V18a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18Z"/> <path d="M4 13.5h4.2l1.6 2.6h4.4l1.6-2.6H20"/>`),
+  "tool-queue": mark(`<path d="M2.6 12h3.6"/> <path d="m4.6 10 2 2-2 2"/> <rect x="9.4" y="9" width="5.2" height="6" rx="1.4"/> <circle cx="17.2" cy="12" r="1.05" fill="currentColor" stroke="none"/> <circle cx="20.2" cy="12" r="1.05" fill="currentColor" stroke="none"/>`),
   "tool-recall": mark(`<path d="M9.5 5.5L4.5 10l5 4.5"/> <path d="M4.5 10h9.5a5.5 5.5 0 0 1 0 11H10"/>`),
   "tool-fork": mark(`<circle cx="7" cy="5" r="1.8"/> <circle cx="17" cy="5" r="1.8"/> <circle cx="7" cy="19" r="1.8"/> <path d="M7 6.8v10.4"/> <path d="M17 6.8v3.2a4 4 0 0 1-4 4H7"/>`),
   "tool-subagent": mark(`<rect x="8.5" y="3.5" width="7" height="5" rx="1.5"/> <path d="M12 8.5v3"/> <path d="M5.5 14.5h13"/> <path d="M5.5 11.5v3"/> <path d="M18.5 11.5v3"/> <rect x="2.5" y="14.5" width="6" height="5" rx="1.5"/> <rect x="15.5" y="14.5" width="6" height="5" rx="1.5"/>`),
   "tool-question": mark(`<circle cx="12" cy="12" r="8"/> <path d="M10.1 9.7a2 2 0 1 1 3 1.9c-.6.3-1 .9-1 1.5v.4"/> <circle cx="12.1" cy="16.1" r=".95" fill="currentColor" stroke="none"/>`),
   "tool-todowrite": mark(`<path d="M4 6.2l1.4 1.4 2.2-2.6"/> <path d="M10 6.5h10"/> <path d="M4 13.2l1.4 1.4 2.2-2.6"/> <path d="M10 13.5h10"/> <path d="M4 19.5h16"/>`),
   "tool-skill": mark(`<path d="M6.5 5.8H11a1.8 1.8 0 0 0 3.6 0H18a1.5 1.5 0 0 1 1.5 1.5v2.5a1.8 1.8 0 0 1 0 3.6v2.3a1.5 1.5 0 0 1-1.5 1.5H6.5A1.5 1.5 0 0 1 5 15.7V7.3A1.5 1.5 0 0 1 6.5 5.8Z"/>`),
-  "tool-knowledge_search": mark(`<path d="M7 6.8C5.7 6 4.1 5.6 2.6 5.8v9.2c1.5-.2 3.1.2 4.4.9 1.3-.7 2.9-1.1 4.4-.9V5.8C9.9 5.6 8.3 6 7 6.8Z"/> <path d="M7 6.8v9.1"/> <circle cx="17.5" cy="16.2" r="3.1"/> <path d="M19.7 18.4 21.4 20.1"/>`),
+  "tool-knowledge_search": mark(`<path d="M8 6.6C7.1 5.5 5.8 5 4.2 5a1.3 1.3 0 0 0-1.3 1.3v5.9a1.3 1.3 0 0 0 1.3 1.3c1.6 0 2.9.5 3.8 1.6"/> <path d="M8 6.6c.9-1.1 2.2-1.6 3.8-1.6a1.3 1.3 0 0 1 1.3 1.3v5.9a1.3 1.3 0 0 1-1.3 1.3c-1.6 0-2.9.5-3.8 1.6"/> <path d="M8 6.6v8.5"/> <circle cx="17.5" cy="16.2" r="3.1"/> <path d="M19.7 18.4 21.4 20.1"/>`),
   "tool-session_rename": mark(`<path d="M3.5 7A2.5 2.5 0 0 1 6 4.5h7A2.5 2.5 0 0 1 15.5 7v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3V14.5H6A2.5 2.5 0 0 1 3.5 12Z"/> <path d="M18.6 3.4l2 2-4.6 4.6-2.4.4.4-2.4Z"/>`),
   "tool-session_move": mark(`<path d="M3 7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H9l-3 2.5V13H5a2 2 0 0 1-2-2Z"/> <path d="M13.5 17.5h7.5"/> <path d="M18.8 15.2L21 17.5l-2.2 2.3"/>`),
   "tool-worktree_create": mark(`<circle cx="7" cy="5" r="1.8"/> <circle cx="7" cy="19" r="1.8"/> <circle cx="16" cy="13" r="1.8"/> <path d="M7 6.8v10.4"/> <path d="M7 12h5.2a3.8 3.8 0 0 1 3.8 3.8"/> <path d="M19.2 3.5v5"/> <path d="M16.7 6h5"/>`),

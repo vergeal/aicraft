@@ -4,10 +4,11 @@ import { ToolFailure } from "@opencode/ai/effect"
 import type { Context } from "@opencode/plugin/effect/plugin"
 import { SessionMessage } from "@opencode/schema/session-message"
 import { getFilename } from "@opencode/util/path"
-import { Effect, Schema } from "effect"
+import { Clock, Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
 import { SessionTarget } from "./session-target.js"
+import { Timestamp } from "./timestamp.js"
 
 export const name = "steer"
 
@@ -121,6 +122,7 @@ export const Plugin = {
               const pendingFromHere = pending.filter((item) => SessionTarget.deliveredBy(item) === from.id).length
 
               const messageID = SessionMessage.ID.create()
+              const sentAt = Timestamp.local(yield* Clock.currentTimeMillis)
               const envelope = {
                 kind: "session.steer",
                 id: messageID,
@@ -140,6 +142,7 @@ export const Plugin = {
                 `project: ${from.location.directory}`,
                 "corrects: the direction from here on",
                 `pending_from_sender: ${pendingFromHere}${pendingFromHere > 0 ? " (still queued; the sender may withdraw them with recall)" : ""}`,
+                `sent_at: ${sentAt}`,
                 "⟦message⟧",
                 input.text,
               ].join("\n")
@@ -154,7 +157,8 @@ export const Plugin = {
               const displayText = [
                 `from: ${sessionLink(from)}\\`,
                 `to: ${sessionLink(target)}\\`,
-                `project: [${getFilename(from.location.directory)}](@project:${from.location.directory})`,
+                `project: [${getFilename(from.location.directory)}](@project:${from.location.directory})\\`,
+                `sent_at: ${sentAt}`,
                 "",
                 "**This corrects the direction from here. Earlier deliveries are not cancelled.**",
                 "",

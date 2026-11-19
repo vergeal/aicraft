@@ -6,12 +6,13 @@ import { SessionMessage } from "@opencode/schema/session-message"
 import { FSUtil } from "@opencode/util/fs-util"
 import { getFilename } from "@opencode/util/path"
 import { parseSessionMention } from "@opencode/util/session-mention"
-import { Effect, Schema } from "effect"
+import { Clock, Effect, Schema } from "effect"
 import { basename, isAbsolute, join } from "path"
 import { pathToFileURL } from "url"
 import { Mime } from "../../mime.js"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
+import { Timestamp } from "./timestamp.js"
 
 export const name = "deliver"
 
@@ -204,6 +205,7 @@ export const Plugin = {
               const replyTo =
                 input.replyTo === undefined ? "none" : `${input.replyTo.sessionID}/${input.replyTo.messageID}`
               const messageID = SessionMessage.ID.create()
+              const sentAt = Timestamp.local(yield* Clock.currentTimeMillis)
               const envelope = {
                 kind: "session.delivery",
                 id: messageID,
@@ -232,6 +234,7 @@ export const Plugin = {
                       `reply_with: deliver({ to: "${from.id}", intent: "reply", replyTo: { sessionID: "${from.id}", messageID: "${messageID}" }, text: "..." })`,
                     ]
                   : []),
+                `sent_at: ${sentAt}`,
                 "⟦message⟧",
                 input.text,
                 ...(files?.length
@@ -258,7 +261,8 @@ export const Plugin = {
                 `to: ${sessionLink(target)}\\`,
                 `project: [${getFilename(from.location.directory)}](@project:${from.location.directory})\\`,
                 `intent: ${intent}\\`,
-                `expects_reply: ${expectsReply ? "yes" : "no"}${input.deadline ? `, by ${input.deadline}` : ""}`,
+                `expects_reply: ${expectsReply ? "yes" : "no"}${input.deadline ? `, by ${input.deadline}` : ""}\\`,
+                `sent_at: ${sentAt}`,
                 "",
                 "---",
                 "",

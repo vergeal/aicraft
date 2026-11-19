@@ -130,6 +130,7 @@ describe("DeliverTool", () => {
       expect(text).toContain("intent: request")
       expect(text).toContain(`reply_to: none`)
       expect(text).toContain("expects_reply: yes")
+      expect(text).toMatch(/sent_at: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)
       expect(text).toContain(`messageID: "${messageID}"`)
       expect(text).toContain("⟦message⟧")
       expect(text).toContain("Check the failing build.")

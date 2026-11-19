@@ -878,6 +878,7 @@ function MessageTimelineView(
       onUserScroll={props.onUserScroll}
       onHistoryScroll={props.onHistoryScroll}
       onContentResize={props.onContentResize}
+      onRestore={() => props.follow.dispatch({ type: "detach" })}
       setRevealMessage={props.setRevealMessage}
       setRevealPart={props.setRevealPart}
       setScrollToEnd={props.setScrollToEnd}

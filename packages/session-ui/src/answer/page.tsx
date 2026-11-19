@@ -405,25 +405,40 @@ export function AnswerPage(props: AnswerPageProps) {
 
     if (!root) return
 
-    // The cached view is removed from its parent on a session switch, so watch that parent for the
-    // reattach that brings the viewport back.
+    // The cached view is removed from its parent on a session switch, which zeroes its scroll offset.
+    // Only that detach may put the reader back: a reader who scrolled to the top must stay there.
     let lastTop = root.scrollTop
+    let detached = false
 
     const sync = () => {
       if (!root.isConnected) return
 
-      const height = root.clientHeight
-
-      // The detach zeroed the offset; put the reader back where the last real scroll left them.
-      if (height > 0 && root.scrollTop === 0 && lastTop > 0) root.scrollTop = lastTop
-
-      setViewportHeight(height)
+      setViewportHeight(root.clientHeight)
       setScrollTop(root.scrollTop)
     }
     sync()
 
     const parent = root.parentElement
-    const reconnect = parent ? new MutationObserver(() => sync()) : undefined
+    const reconnect = parent
+      ? new MutationObserver(() => {
+          if (!root.isConnected) {
+            detached = true
+            return
+          }
+
+          if (detached) {
+            detached = false
+
+            // Rows above the window are estimates, so an absolute offset lands somewhere else; the
+            // remembered row does not move. A reader resting at the end simply goes back to the end.
+            if (props.following?.() === true) root.scrollTop = root.scrollHeight
+            else if (anchor) pinRestore(anchor)
+            else if (root.scrollTop === 0 && lastTop > 0) root.scrollTop = lastTop
+          }
+
+          sync()
+        })
+      : undefined
     reconnect?.observe(parent!, { childList: true })
     onCleanup(() => reconnect?.disconnect())
 
@@ -466,7 +481,6 @@ export function AnswerPage(props: AnswerPageProps) {
     if (!restored) {
       restored = true
       const target = props.restore
-
       if (target && currentKeys.includes(target.key)) pinRestore(target)
     }
 

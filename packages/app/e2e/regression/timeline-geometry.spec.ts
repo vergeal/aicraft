@@ -1090,3 +1090,60 @@ test("opens a session where the reader left it", async ({ page }) => {
     viewport.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight <= 24),
   ).toBe(true)
 })
+
+test("keeps the reading position when switching sessions in one document", async ({ page }) => {
+  await mockStressTimeline(page)
+  await seed(page, { usedProjects: { local: [fixture.project.id] }, tabs: [fixture.targetID, fixture.sourceID] })
+  await page.goto(sessionHref(fixture.targetID))
+
+  const viewport = page.locator('[data-slot="session-timeline-scroll"] .scroll-view__viewport')
+  await expect.poll(() => page.locator("[data-answer-key]").count()).toBeGreaterThan(0)
+
+  // Settle at the end first: the windowed height is an estimate until the rows render, so a fraction of
+  // it would clamp to the end. Then move up a screen for a real mid-transcript stop.
+  await viewport.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect.poll(() =>
+    viewport.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight <= 24),
+  ).toBe(true)
+  await viewport.evaluate((element) => {
+    element.scrollTop -= element.clientHeight * 1.5
+  })
+
+  // The reader's stop is the row under the top edge; the stored record may still be the previous
+  // debounced write, so measure the row itself.
+  const topRow = () =>
+    viewport.evaluate((element) => {
+      const frame = element.getBoundingClientRect()
+      const row = [...element.querySelectorAll<HTMLElement>("[data-answer-key]")].find((node) => {
+        const rect = node.getBoundingClientRect()
+
+        return rect.bottom > frame.top + 1 && rect.top <= frame.top + 1
+      })
+
+      return row ? { key: row.dataset.answerKey!, offset: frame.top - row.getBoundingClientRect().top } : null
+    })
+
+  await expect.poll(async () => (await topRow()) !== null).toBe(true)
+  const saved = (await topRow())!
+
+  // Switch through the sidebar and back without reloading the document.
+  const row = (id: string) => page.locator(`[data-slot="replica-row"][data-session-id="${id}"]:visible`)
+
+  await row(fixture.sourceID).click()
+  await expect(viewport).toBeVisible()
+  await expect.poll(() => viewport.locator("[data-answer-key]").count()).toBeGreaterThan(0)
+
+  await row(fixture.targetID).click()
+  await expect(viewport).toBeVisible()
+
+  // The same row, the same distance from the top edge, without a document reload.
+  await expect
+    .poll(async () => {
+      const current = await topRow()
+
+      return current !== null && current.key === saved.key && Math.abs(current.offset - saved.offset) <= 2
+    })
+    .toBe(true)
+})

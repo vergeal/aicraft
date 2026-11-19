@@ -33,11 +33,13 @@ design to restore when the channels need to be told apart again.
 
 Geometry per asset:
 
-- `icon.png`, small PNGs, `Square*Logo.png`, `StoreLogo.png`, `icon.ico`: edge-to-edge rounded square, corner radius
-  22.37% of the side, transparent outside.
-- `icon.icns`: 1024 canvas, 824 body centred at inset 100, corner radius 185, drop shadow `dy 12 / blur 22 / 30%`.
-  Every smaller layer is a premultiplied-alpha LANCZOS downsample of that 1024 master, and `dock.png` is its 256 render.
-- `prod/icon.icon/Assets/icon.png`: full-bleed 1024 square; Icon Composer applies the macOS mask.
+- `icon.png`, small PNGs, `Square*Logo.png`, `StoreLogo.png`, `icon.ico`: rounded square at 94% of the canvas, corner radius
+  22.37% of its side, transparent around it. A white keyline (0.45% of the canvas, 50% opacity, minimum 0.9px) and a soft
+  drop shadow (`dy` 0.8%, blur 2%, 30%) keep the edge readable against the system selection background.
+- `icon.icns`: 1024 canvas, 824 body centred at inset 100, corner radius 185, drop shadow `dy 12 / blur 22 / 30%`, plus a
+  4px white keyline at 34% opacity. Every smaller layer is a premultiplied-alpha LANCZOS downsample of that 1024 master,
+  and `dock.png` is its 256 render.
+- `prod/icon.icon/Assets/icon.png`: 1024 square at 94%; Icon Composer applies the macOS mask.
 
 Regenerating: render each master at 1024 with a transparent background, downsample with premultiplied alpha, then
 `iconutil -c icns` from the 10-layer iconset. Do not use the old Tauri/Image2Icon flow for the current artwork.

@@ -28,6 +28,9 @@ fills 62% of the icon body. The three channels share that geometry and differ on
 | `beta` | `#3A3A3E` | same gradient, core `#99F6E4` |
 | `dev` | `#00C79B` | inverted: ring and core `#0B1714` |
 
+`dev` currently ships the `beta` artwork (same surface and mark) as a temporary state; the inverted dev palette above is the
+design to restore when the channels need to be told apart again.
+
 Geometry per asset:
 
 - `icon.png`, small PNGs, `Square*Logo.png`, `StoreLogo.png`, `icon.ico`: edge-to-edge rounded square, corner radius
@@ -38,4 +41,7 @@ Geometry per asset:
 
 Regenerating: render each master at 1024 with a transparent background, downsample with premultiplied alpha, then
 `iconutil -c icns` from the 10-layer iconset. Do not use the old Tauri/Image2Icon flow for the current artwork.
+
+Headless Chrome renders the viewport shorter than `--window-size` requests, so a square screenshot of a 1024 canvas crops the
+bottom edge. Ask for extra height and crop the square back out before downsampling, or the icon loses its bottom corners.
 

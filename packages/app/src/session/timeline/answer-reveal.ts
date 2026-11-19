@@ -8,9 +8,15 @@ const MAX_DEPTH = 6
  * @param root - the timeline viewport
  * @param id - message id used when no part identity matches
  * @param partID - content part identity, preferred because one message can hold several rows
+ * @param onSettled - runs after the scroll, so a caller that mounted every row for the reveal can release it
  * @returns whether a row was found
  */
-export function revealInTimeline(root: HTMLElement, id: string, partID?: string) {
+export function revealInTimeline(
+  root: HTMLElement,
+  id: string,
+  partID?: string,
+  onSettled?: () => void,
+) {
   const element =
     (partID ? root.querySelector(`[data-timeline-part-id="${CSS.escape(partID)}"]`) : null) ??
     root.querySelector(`[data-message-id="${CSS.escape(id)}"]`)
@@ -18,7 +24,10 @@ export function revealInTimeline(root: HTMLElement, id: string, partID?: string)
   if (!(element instanceof HTMLElement)) return false
   expandAncestors(element)
   requestAnimationFrame(() =>
-    requestAnimationFrame(() => element.scrollIntoView?.({ block: "center", behavior: "auto" })),
+    requestAnimationFrame(() => {
+      element.scrollIntoView?.({ block: "center", behavior: "auto" })
+      onSettled?.()
+    }),
   )
 
   return true

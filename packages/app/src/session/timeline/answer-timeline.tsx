@@ -9,6 +9,45 @@ import { revealInTimeline } from "./answer-reveal"
 
 const BOTTOM_THRESHOLD = 24
 
+/** Where the reader stopped, keyed by session. Kept per browser so reopening a session resumes in place. */
+const POSITION_PREFIX = "opencode.timeline.position:"
+
+const SAVE_DELAY = 200
+
+type SavedPosition = { key: string; offset: number; bottom: boolean }
+
+function readPosition(sessionKey: string | undefined): SavedPosition | undefined {
+  if (!sessionKey || typeof localStorage === "undefined") return undefined
+
+  try {
+    const raw = localStorage.getItem(POSITION_PREFIX + sessionKey)
+
+    if (!raw) return undefined
+    const value: unknown = JSON.parse(raw)
+
+    if (typeof value !== "object" || value === null) return undefined
+    const { key, offset, bottom } = value as Record<string, unknown>
+
+    if (typeof key !== "string" || typeof offset !== "number" || !Number.isFinite(offset)) return undefined
+    // Older records lack `bottom`, so they cannot tell "left at the end" from "left mid-way".
+    if (typeof bottom !== "boolean") return undefined
+
+    return { key, offset, bottom }
+  } catch {
+    return undefined
+  }
+}
+
+function writePosition(sessionKey: string | undefined, position: SavedPosition) {
+  if (!sessionKey || typeof localStorage === "undefined") return
+
+  try {
+    localStorage.setItem(POSITION_PREFIX + sessionKey, JSON.stringify(position))
+  } catch {
+    // Blocked or full storage must not break scrolling.
+  }
+}
+
 /** The conversation column: the session header, the answer area, and the composer's bottom lane. */
 export function AnswerTimeline(props: {
   header: JSX.Element
@@ -19,6 +58,10 @@ export function AnswerTimeline(props: {
   collapseTiming?: CollapseTiming
   foldedReplies?: FoldedReplies
   bottomInset: number
+  /** Every row must stay mounted while the reader searches the transcript. */
+  searching?: () => boolean
+  /** Session identity for the remembered reading position. */
+  positionKey?: () => string
   setScrollRef: (element: HTMLDivElement | undefined) => void
   setVisibleRef?: (element: HTMLDivElement | undefined) => void
   onScheduleScrollState: (element: HTMLDivElement) => void
@@ -32,18 +75,99 @@ export function AnswerTimeline(props: {
 }) {
   const language = useLanguage()
   const [visible, setVisible] = createSignal<HTMLDivElement>()
+  const [viewportElement, setViewportElement] = createSignal<HTMLDivElement>()
   const [atBottom, setAtBottom] = createSignal(true)
+  // An off-window reveal unmounts the page's rows, so it mounts everything for the frames the reveal needs.
+  const [revealAll, setRevealAll] = createSignal(false)
   let viewport: HTMLDivElement | undefined
-  // The reader stays pinned to the end until they scroll away, across streamed growth.
-  let stick = true
+  // Where the reader stopped last time. A fresh session opens at its newest message instead.
+  const restore = readPosition(props.positionKey?.())
+  // A reader who left at the end comes back at the end, not at the row that happened to be on top.
+  let stick = restore === undefined || restore.bottom
+  let saveTimer: ReturnType<typeof setTimeout> | undefined
+  let lastPosition: SavedPosition | undefined
+
+  const flushPosition = () => {
+    if (!lastPosition) return
+    writePosition(props.positionKey?.(), lastPosition)
+  }
+
+  const rememberPosition = (position: { key: string; offset: number }) => {
+    lastPosition = { ...position, bottom: stick }
+
+    if (saveTimer !== undefined) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      saveTimer = undefined
+      flushPosition()
+    }, SAVE_DELAY)
+  }
+
+  const virtualize = () => !!viewport && !props.searching?.() && !revealAll()
+
+  const reveal = (id: string, partID?: string) => {
+    if (!viewport) return false
+    if (!virtualize()) return revealInTimeline(viewport, id, partID)
+
+    // Solid commits the full page synchronously; two frames let the rows and their Markdown lay out.
+    setRevealAll(true)
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (!viewport) {
+          setRevealAll(false)
+          return
+        }
+
+        const done = () => requestAnimationFrame(() => setRevealAll(false))
+
+        // A row that never appears must not leave the page stuck on a full mount.
+        if (!revealInTimeline(viewport, id, partID, done)) setRevealAll(false)
+      }),
+    )
+
+    return true
+  }
+
+  const revealTarget = (target: string) => {
+    if (!viewport) return false
+    if (!virtualize()) return revealInTimeline(viewport, target)
+
+    setRevealAll(true)
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (!viewport) {
+          setRevealAll(false)
+          return
+        }
+
+        const done = () => requestAnimationFrame(() => setRevealAll(false))
+
+        if (!revealInTimeline(viewport, target, undefined, done)) setRevealAll(false)
+      }),
+    )
+
+    return true
+  }
+
+  const setFollowing = (next: boolean) => {
+    if (stick === next) return
+
+    stick = next
+    setAtBottom(next)
+
+    // Persist the change now: the page may not report a new anchor while the content is still moving,
+    // and a reader who left at the end must come back at the end.
+    if (lastPosition) {
+      lastPosition = { ...lastPosition, bottom: next }
+      flushPosition()
+    }
+  }
 
   const measureBottom = () => {
     if (!viewport) return
 
     // Only a reader resting at the very end keeps following. A looser threshold would pull back a
     // reader who scrolled up but stayed within the composer inset, which reads as the content jumping.
-    stick = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD
-    setAtBottom(stick)
+    setFollowing(viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD)
   }
 
   const jumpToLatest = () => {
@@ -53,26 +177,40 @@ export function AnswerTimeline(props: {
   // A scroll gesture ends following immediately, before the next content growth can pull the reader
   // back; the scroll handler re-pins once the reader comes back to the end.
   const releaseFollow = () => {
-    stick = false
-    setAtBottom(false)
+    setFollowing(false)
   }
 
   // A press pauses following without changing the button state: the rows must hold still between
   // pointerdown and pointerup, or the click lands on whatever moved under the pointer instead.
+  // The release restores what the press paused, unless the pointer actually scrolled upward.
+  let pressed: { top: number; following: boolean } | undefined
   const pauseFollow = () => {
+    if (!viewport) return
+    pressed = { top: viewport.scrollTop, following: stick }
     stick = false
   }
+
+  const resumeFollow = () => {
+    const before = pressed
+    pressed = undefined
+
+    if (!before || !viewport) return
+    // An upward move under the pointer is the reader's own; keep it detached.
+    if (viewport.scrollTop < before.top - 1 || !before.following) return measureBottom()
+
+    viewport.scrollTop = viewport.scrollHeight
+    measureBottom()  }
 
   let follow: ResizeObserver | undefined
   // Content height at the last follow. A renderer that collapses and re-expands a block within one
   // frame would otherwise drag the viewport up and straight back down.
   let lastContentHeight = 0
+  // Scroll offset at the last scroll event, so a follow scroll is told from the reader's own move.
+  let lastScrollTop = 0
 
   onMount(() => {
-    props.setRevealMessage?.((id, partID) => {
-      if (viewport) revealInTimeline(viewport, id, partID)
-    })
-    props.setRevealPart?.((target) => (viewport ? revealInTimeline(viewport, target) : false))
+    props.setRevealMessage?.(reveal)
+    props.setRevealPart?.(revealTarget)
     props.setScrollToEnd?.((behavior) => {
       viewport?.scrollTo({ top: viewport.scrollHeight, behavior })
     })
@@ -83,8 +221,20 @@ export function AnswerTimeline(props: {
     requestAnimationFrame(() => {
       if (!viewport) return
 
+      // No remembered position, or the reader left at the end: open at the newest message.
+      if (!restore || restore.bottom) viewport.scrollTop = viewport.scrollHeight
+
       lastContentHeight = viewport.scrollHeight
+      lastScrollTop = viewport.scrollTop
       measureBottom()
+
+      // The page restores a remembered row on its own frame; re-read the bottom once it has.
+      requestAnimationFrame(() => {
+        if (!viewport) return
+        lastContentHeight = viewport.scrollHeight
+        lastScrollTop = viewport.scrollTop
+        measureBottom()
+      })
 
       // Streamed text and disclosures grow the rows without changing the message list identity, so
       // follow the observed layout instead of the list: every child that grows pulls the viewport back
@@ -114,6 +264,11 @@ export function AnswerTimeline(props: {
   onCleanup(() => follow?.disconnect())
 
   onCleanup(() => {
+    if (saveTimer !== undefined) clearTimeout(saveTimer)
+    flushPosition()
+  })
+
+  onCleanup(() => {
     props.setScrollRef(undefined)
     props.setRevealMessage?.(() => {})
     props.setRevealPart?.(() => false)
@@ -125,6 +280,7 @@ export function AnswerTimeline(props: {
         data-slot="session-timeline-scroll"
         viewportRef={(element) => {
           viewport = element
+          setViewportElement(element)
           props.setScrollRef(element)
         }}
         thumbContainer={visible()}
@@ -132,15 +288,30 @@ export function AnswerTimeline(props: {
           props.onUserScroll(event.target)
 
           if (!viewport) return
-          measureBottom()
+          const top = viewport.scrollTop
+          // A follow scroll moves down, and by the time its event arrives the content has already
+          // grown past what was followed. Measuring that would read the gap as the reader leaving
+          // and clear `stick`, stopping the follow after a couple of chunks. Only an upward move, or
+          // a reader who is already detached, re-measures.
+          if (!stick || top < lastScrollTop - 1) measureBottom()
+          lastScrollTop = top
           props.onScheduleScrollState(viewport)
           props.onContentResize()
           props.onHistoryScroll()
         }}
-        onWheel={releaseFollow}
+        // Only an upward wheel gesture leaves the end. A downward one may already rest at the end,
+        // where the browser sends no further scroll event, so measure here or the jump button never
+        // clears. A touch drag has no direction of its own: release, then measure, which restores
+        // following unless the drag actually scrolled upward.
+        onWheel={(event) => {
+          if (event.deltaY < 0) return releaseFollow()
+          // A downward wheel while following must not re-measure: the growth it has not followed
+          // yet would read as distance from the end and stop the follow.
+          if (!stick) measureBottom()
+        }}
         onTouchMove={releaseFollow}
         onPointerDown={pauseFollow}
-        onPointerUp={() => requestAnimationFrame(measureBottom)}
+        onPointerUp={() => requestAnimationFrame(resumeFollow)}
         class="relative h-full w-full min-w-0"
         style={{ "--sticky-accordion-top": props.showHeader ? "var(--session-header-height, 48px)" : "0px" }}
       >
@@ -152,6 +323,12 @@ export function AnswerTimeline(props: {
           view={props.view}
           collapseTiming={props.collapseTiming}
           foldedReplies={props.foldedReplies}
+          viewport={viewportElement}
+          searching={props.searching}
+          revealAll={revealAll}
+          following={() => stick}
+          restore={restore?.bottom ? undefined : restore}
+          onPositionChange={rememberPosition}
         />
         <div data-timeline-row="bottom-spacer" class="w-full">
           {props.activity}

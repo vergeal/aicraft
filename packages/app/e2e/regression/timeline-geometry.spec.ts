@@ -1,6 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
 import { timelinePresets } from "@opencode/session-ui/timeline/detail"
 import { createTwoFilesPatch } from "diff"
+import { seed, sessionHref } from "../utils/app"
+import { fixture, mockStressTimeline } from "../utils/session-fixture"
 import {
   assistantMessage,
   historyMessages,
@@ -1025,4 +1027,66 @@ test("folds a prompt past 12 lines to its first 8 and keeps it open after scroll
   await search.fill("Long line 13")
   await expect(toggle).toHaveAttribute("aria-expanded", "true")
   await expect.poll(highlights).toBe(1)
+})
+
+test("opens a session where the reader left it", async ({ page }) => {
+  await mockStressTimeline(page)
+  await seed(page, { usedProjects: { local: [fixture.project.id] }, tabs: [fixture.targetID, fixture.sourceID] })
+  await page.goto(sessionHref(fixture.targetID))
+
+  const viewport = page.locator('[data-slot="session-timeline-scroll"] .scroll-view__viewport')
+  const readSaved = () =>
+    page.evaluate(() => {
+      const prefix = "opencode.timeline.position:"
+      const stored = Object.keys(localStorage).find((key) => key.startsWith(prefix))
+      const raw = stored ? localStorage.getItem(stored) : null
+
+      return raw ? (JSON.parse(raw) as { key: string; offset: number; bottom: boolean }) : null
+    })
+
+  await expect(viewport).toBeVisible()
+  await expect.poll(() => page.locator("[data-answer-key]").count()).toBeGreaterThan(0)
+
+  // Read halfway down the long transcript; the saved position replaces a timer as the readiness signal.
+  await viewport.evaluate((element) => {
+    element.scrollTop = Math.round(element.scrollHeight / 2)
+  })
+  await expect.poll(readSaved).not.toBeNull()
+
+  const saved = await readSaved()
+  expect(saved?.bottom).toBe(false)
+
+  await page.goto(sessionHref(fixture.sourceID))
+  await expect(viewport).toBeVisible()
+  await page.goto(sessionHref(fixture.targetID))
+  await expect(viewport).toBeVisible()
+
+  // The same row sits the same distance from the top edge, which is where the reader stopped.
+  const offsetOf = () =>
+    viewport.evaluate((element, key) => {
+      const row = element.querySelector(`[data-answer-key="${key}"]`)
+
+      return row ? element.getBoundingClientRect().top - row.getBoundingClientRect().top : null
+    }, saved!.key)
+
+  await expect.poll(async () => {
+    const offset = await offsetOf()
+
+    return offset !== null && Math.abs(offset - saved!.offset) <= 2
+  }).toBe(true)
+
+  // A reader who leaves at the end comes back at the end rather than at the row that was on top.
+  await viewport.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect.poll(async () => (await readSaved())?.bottom).toBe(true)
+
+  await page.goto(sessionHref(fixture.sourceID))
+  await expect(viewport).toBeVisible()
+  await page.goto(sessionHref(fixture.targetID))
+  await expect(viewport).toBeVisible()
+
+  await expect.poll(() =>
+    viewport.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight <= 24),
+  ).toBe(true)
 })

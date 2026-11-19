@@ -327,6 +327,7 @@ export function createTimelineSearchController(input: {
 
   return {
     visible,
+    searching,
     query: {
       value: () => view().value,
       placeholder: () => language.t("session.search.placeholder"),

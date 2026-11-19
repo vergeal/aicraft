@@ -108,6 +108,8 @@ type MessageTimelineProps = {
   setPage?: (fn: (direction: 1 | -1) => void) => void
   reveal?: { target: () => string | undefined; done: () => void }
   search?: JSX.Element
+  /** A non-empty query is reading the transcript's DOM, so no row may be unmounted. */
+  searching?: () => boolean
 }
 
 export function MessageTimeline(props: MessageTimelineProps) {
@@ -192,7 +194,10 @@ function MessageTimelineView(
   const messageByID = projection.messageByID
 
   const virtualized = createTimelineVirtualizer({
-    active: () => props.active !== false,
+    // The old row tree below is unreachable now that the page renders through AnswerTimeline. Kept
+    // until that tree is removed, but inert: an active instance still claims setRevealPart,
+    // setScrollToEnd and setPage from the answer page's own registrations.
+    active: () => false,
     sessionKey: () => `${server.key}/${props.data.sessionID()}`,
     presentationKey: () => JSON.stringify(props.data.timelineDetail()),
     projection,
@@ -865,6 +870,8 @@ function MessageTimelineView(
       collapseTiming={props.data.collapseTiming()}
       foldedReplies={props.data.foldedReplies()}
       bottomInset={props.bottomInset ?? 0}
+      searching={props.searching}
+      positionKey={() => props.data.sessionKey()}
       setScrollRef={props.setScrollRef}
       setVisibleRef={props.setVisibleRef}
       onScheduleScrollState={props.onScheduleScrollState}

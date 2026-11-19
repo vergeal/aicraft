@@ -5,7 +5,7 @@ export function SessionRouteFrame(props: ParentProps<{ padded?: boolean }>) {
     <div
       class="relative flex size-full flex-col"
       classList={{
-        "px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]":
+        "ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]":
           props.padded,
       }}
     >

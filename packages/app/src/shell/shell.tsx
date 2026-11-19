@@ -125,6 +125,8 @@ function ReplicaLayer(props: ParentProps) {
   // The traffic lights sit in the top-left corner of the sidebar header. That header starts at the window's top edge and
   // is a fixed 44px tall, so the buttons' centre is always 22px down and needs no DOM measurement.
   const mac = () => platform.platform === "desktop" && platform.os === "macos"
+  // Windows shows the workspace as an inset rounded panel under the chrome, the way the reference apps do.
+  const windows = () => platform.platform === "desktop" && platform.os === "windows"
 
   createEffect(() => {
     if (!mac()) return
@@ -275,6 +277,13 @@ function ReplicaLayer(props: ParentProps) {
       data-resizing={resizing() ? "" : undefined}
       style={{
         "--navigation-sidebar-width-current": showSidebar() ? `${sidebarSize()}px` : "0px",
+        /* Windows fills the workspace to the window edges and keeps only a rounded top-left corner, the way the
+           reference apps do. The values live on the shell root so the sidebar hairline and the workspace share one
+           origin. */
+        "--shell-inline-inset": "0px",
+        "--shell-top-inset": "0px",
+        "--shell-bottom-inset": "0px",
+        "--shell-panel-radius": windows() ? "12px" : "0px",
       }}
     >
       <div data-slot="replica-shell">
@@ -301,12 +310,6 @@ function ReplicaLayer(props: ParentProps) {
           data-slot="replica-main"
           data-ui="main-workspace"
           class="relative flex min-h-0 min-w-0 flex-col"
-          style={{
-            "--shell-inline-inset": "0px",
-            "--shell-top-inset": "0px",
-            "--shell-bottom-inset": "0px",
-            "--shell-panel-radius": "0px",
-          }}
         >
           <ReplicaTitleBar sidebarOpen={sidebarOpen()} />
 

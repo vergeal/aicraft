@@ -80,7 +80,7 @@ export function AppRoutes() {
           <SessionRouteFrame>
             <Suspense
               fallback={
-                <div class="flex min-h-0 flex-1 px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
+                <div class="flex min-h-0 flex-1 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
                   <SessionPanelFrame raised />
                 </div>
               }
@@ -112,7 +112,7 @@ function TargetServerRoute(props: ParentProps) {
         <ServerProvider
           conn={connection}
           signedOut={
-            <div class="flex min-h-0 flex-1 px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
+            <div class="flex min-h-0 flex-1 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
               <SessionPanelFrame raised>
                 <ServerSignedOutPanel conn={connection} />
               </SessionPanelFrame>

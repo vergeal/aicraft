@@ -99,7 +99,7 @@ export default function NewSessionPage(props: { draftId: string }) {
   return (
     <div class="relative size-full overflow-hidden flex flex-col">
       {suspendUntilPromptReady()}
-      <div class="flex-1 min-h-0 flex flex-col gap-2 px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
+      <div class="flex-1 min-h-0 flex flex-col gap-2 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
         <NewSessionView composer={model} project={project} workspace={workspace} location={location} />
       </div>
     </div>

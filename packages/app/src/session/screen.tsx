@@ -460,7 +460,7 @@ function SessionScreenContent(props: {
 
   return (
     <>
-      <div class="flex-1 min-h-0 flex flex-col gap-2 px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
+      <div class="flex-1 min-h-0 flex flex-col gap-2 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
         <div ref={screen.panel.ref} data-pane-row class="relative flex-1 min-h-0 flex flex-col md:flex-row gap-2">
           {/* Keep the control outside panel animations. */}
           <Show when={isDesktop() && messagesReady() && session.identity.params.id}>
@@ -502,7 +502,6 @@ function SessionScreenContent(props: {
                 selectors in the transcript then restyle every element in it as the side panel starts to close. */}
             <div classList={{ hidden: !screen.panel.resizable() }} onPointerDown={() => screen.size.start()}>
               <ResizeHandle
-                class="-end-1"
                 direction="horizontal"
                 size={screen.panel.resizedWidth()}
                 min={SESSION_PANEL_WIDTH_MIN}

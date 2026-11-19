@@ -1,4 +1,5 @@
 import type { SessionMessageAssistant, SessionMessageInfo } from "@opencode/client/promise"
+import { createSignal } from "solid-js"
 import { CURRENT_SESSION_ID } from "../storybook/current-session-fixtures"
 import { AnswerPage } from "./page"
 
@@ -299,4 +300,98 @@ export const Streaming = {
       <AnswerPage messages={() => streaming} />
     </div>
   ),
+}
+
+// Enough settled turns that a full mount would be obvious in the row count.
+const longSession: SessionMessageInfo[] = Array.from({ length: 40 }, (_, index) => {
+  const created = TIME + index * 10_000
+  const turn = `long_${index}`
+
+  return [
+    { id: `msg_user_${turn}`, type: "user", text: `第 ${index + 1} 个问题：确认分页与折叠的边界。`, time: { created } },
+    assistant(
+      `msg_assistant_${turn}`,
+      [
+        reasoning(`第 ${index + 1} 轮：先看边界。`),
+        tool(`tool_read_${turn}`, "read", { filePath: "packages/session-ui/src/answer/page.tsx" }, "completed"),
+        { type: "text", text: `第 ${index + 1} 轮结论：窗口只挂载视口附近的行。` },
+      ],
+      created + 1_000,
+      created + 4_000,
+    ),
+    idle(`msg_idle_${turn}`, created + 4_500),
+  ] satisfies SessionMessageInfo[]
+}).flat()
+
+export const Windowed = {
+  render: () => {
+    const [viewport, setViewport] = createSignal<HTMLDivElement>()
+
+    return (
+      <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
+        <AnswerPage messages={() => longSession} viewport={viewport} />
+      </div>
+    )
+  },
+}
+
+// A query reads the transcript's DOM, so the page must stop windowing and mount every row.
+export const WindowedSearching = {
+  render: () => {
+    const [viewport, setViewport] = createSignal<HTMLDivElement>()
+
+    return (
+      <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
+        <AnswerPage messages={() => longSession} viewport={viewport} searching={() => true} />
+      </div>
+    )
+  },
+}
+
+// A remembered row opens the page at that row instead of the first message.
+export const WindowedRestore = {
+  render: () => {
+    const [viewport, setViewport] = createSignal<HTMLDivElement>()
+    const restore = { key: "node:input:msg_user_long_29", offset: 0 }
+
+    return (
+      <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
+        <AnswerPage messages={() => longSession} viewport={viewport} restore={restore} following={() => false} />
+      </div>
+    )
+  },
+}
+
+// Mirrors the host's reveal: mount every row, scroll the target into view, then resume windowing.
+export const WindowedReveal = {
+  render: () => {
+    const [viewport, setViewport] = createSignal<HTMLDivElement>()
+    const [revealAll, setRevealAll] = createSignal(false)
+
+    const reveal = () => {
+      const root = viewport()
+
+      if (!root) return
+      setRevealAll(true)
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          root
+            .querySelector<HTMLElement>('[data-message-id="msg_user_long_29"]')
+            ?.scrollIntoView({ block: "center", behavior: "auto" })
+          requestAnimationFrame(() => setRevealAll(false))
+        }),
+      )
+    }
+
+    return (
+      <div>
+        <button type="button" onClick={reveal}>
+          定位第 30 条
+        </button>
+        <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
+          <AnswerPage messages={() => longSession} viewport={viewport} revealAll={revealAll} />
+        </div>
+      </div>
+    )
+  },
 }

@@ -199,12 +199,15 @@ story("keeps step summaries outside every group", async ({ mount }) => {
 })
 
 story("keeps the running title fixed while the detail is long", async ({ mount, page }) => {
+  await page.setViewportSize({ width: 360, height: 800 })
   const root = await mount("answer-page--long-detail")
   const leading = root.locator('[data-slot="answer-group-leading"]').first()
   const content = root.locator('[data-slot="answer-group-content"]').first()
   const before = await content.boundingBox()
   const icon = await leading.boundingBox()
 
+  // A long detail truncates its own text instead of squeezing the icon slot under the title.
+  expect(icon?.width ?? 0).toBeGreaterThanOrEqual(17)
   expect(before?.x ?? 0).toBeGreaterThanOrEqual((icon ? icon.x + icon.width : 0) - 1)
 
   await page.waitForTimeout(400)
@@ -241,4 +244,127 @@ story("renders the running turn without a settled header", async ({ mount, page 
   })
 
   expect(offset).toBeLessThanOrEqual(1)
+})
+
+story("mounts only the rows near the viewport and follows a scroll", async ({ mount, page }) => {
+  await mount("answer-page--windowed")
+  const viewport = page.getByTestId("answer-window")
+  const mounted = () => viewport.locator("[data-answer-key]").count()
+
+  // Forty settled turns lay out far more rows than one window; only a slice may stay mounted.
+  await expect.poll(mounted).toBeLessThan(60)
+  await expect(viewport.locator('[data-slot="user-message-text"]').first()).toContainText("第 1 个问题")
+
+  await viewport.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+
+  await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').last().textContent()).toContain("第 40 个问题")
+  await expect.poll(mounted).toBeLessThan(60)
+
+  // Scrolling back replaces the window instead of keeping every row it mounted on the way down.
+  await viewport.evaluate((element) => {
+    element.scrollTop = 0
+  })
+
+  await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').first().textContent()).toContain("第 1 个问题")
+})
+
+story("opens at a restored row instead of the first message", async ({ mount, page }) => {
+  await mount("answer-page--windowed-restore")
+  const viewport = page.getByTestId("answer-window")
+  const row = viewport.locator('[data-message-id="msg_user_long_29"]')
+
+  await expect(row).toBeVisible()
+  // The first message is not even mounted: the window starts at the remembered row.
+  await expect(viewport.locator('[data-slot="user-message-text"]').first()).not.toContainText("第 1 个问题")
+
+  const offset = await row.evaluate((element) => {
+    const host = element.closest("[data-testid='answer-window']")
+
+    if (!host) return 999
+
+    return element.getBoundingClientRect().top - host.getBoundingClientRect().top
+  })
+
+  expect(offset).toBeLessThan(40)
+})
+
+story("mounts every row while the reader searches", async ({ mount, page }) => {
+  await mount("answer-page--windowed-searching")
+  const viewport = page.getByTestId("answer-window")
+
+  // A DOM-based search must see the rows that sit outside the viewport.
+  await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').count()).toBe(40)
+  await expect(viewport.locator('[data-slot="user-message-text"]').last()).toContainText("第 40 个问题")
+})
+
+story("keeps a revealed row in place once windowing resumes", async ({ mount, page }) => {
+  await mount("answer-page--windowed-reveal")
+  const viewport = page.getByTestId("answer-window")
+
+  await page.getByRole("button", { name: "定位第 30 条" }).click()
+  const row = viewport.locator('[data-message-id="msg_user_long_29"]')
+
+  await expect(row).toBeVisible()
+  // Windowing resumes: the earlier rows unmount again instead of staying mounted for the reveal.
+  await expect.poll(() => viewport.locator("[data-answer-key]").count()).toBeLessThan(60)
+
+  const inside = await row.evaluate((element) => {
+    const host = element.closest("[data-testid='answer-window']")
+
+    if (!host) return false
+    const target = element.getBoundingClientRect()
+    const frame = host.getBoundingClientRect()
+
+    return target.top >= frame.top - 1 && target.bottom <= frame.bottom + 1
+  })
+
+  expect(inside).toBe(true)
+})
+
+story("keeps the reading position when the cached view is detached and reattached", async ({ mount, page }) => {
+  await mount("answer-page--windowed")
+  const viewport = page.getByTestId("answer-window")
+
+  await expect.poll(() => viewport.locator("[data-answer-key]").count()).toBeGreaterThan(0)
+
+  await viewport.evaluate((element) => {
+    element.scrollTop = Math.round(element.scrollHeight / 3)
+  })
+
+  const probe = () =>
+    viewport.evaluate(async (element) => {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      const frame = element.getBoundingClientRect()
+      const top = [...element.querySelectorAll("[data-answer-key]")].find(
+        (node) => node.getBoundingClientRect().bottom > frame.top + 1,
+      )
+
+      return { scrollTop: element.scrollTop, topKey: top?.getAttribute("data-answer-key") ?? undefined }
+    })
+
+  const before = await probe()
+
+  // A session switch removes the cached view from its parent, which zeroes the scroll offset.
+  await page.evaluate(() => {
+    const host = document.querySelector('[data-testid="answer-window"]')
+
+    if (!(host instanceof HTMLElement) || !host.parentElement) return
+    const parent = host.parentElement
+    const next = host.nextSibling
+
+    host.remove()
+    ;(globalThis as unknown as { __reattach?: () => void }).__reattach = () => parent.insertBefore(host, next)
+  })
+
+  await expect.poll(() => page.locator('[data-testid="answer-window"]').count()).toBe(0)
+
+  await page.evaluate(() => (globalThis as unknown as { __reattach?: () => void }).__reattach?.())
+
+  const after = await probe()
+
+  // Windowing re-estimates unmounted rows, so the offset may shift a few pixels; the row must not.
+  expect(Math.abs(after.scrollTop - before.scrollTop)).toBeLessThanOrEqual(4)
+  expect(after.topKey).toBe(before.topKey)
 })

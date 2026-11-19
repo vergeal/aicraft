@@ -11,6 +11,7 @@ import { Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
 import { childrenOf, projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolInput, toolOutput } from "./tool"
+import { entryLayout, estimateEntryHeight, positionAt, visibleRange } from "./virtual"
 import type {
   NodePayload,
   ProcessActivity,
@@ -35,12 +36,27 @@ type RowDisclosure = {
 
 const RowDisclosureContext = createContext<RowDisclosure>()
 
+/** Rows mounted beyond the viewport on each side, so a fast scroll does not show a blank slice. */
+const OVERSCAN = 600
+
 export interface AnswerPageProps {
   readonly messages: () => readonly SessionMessageInfo[]
   readonly view?: TranscriptView
   readonly collapseTiming?: CollapseTiming
   readonly foldedReplies?: FoldedReplies
   readonly class?: string
+  /** The scroll container this page renders into. Windowing is off until it exists. */
+  readonly viewport?: () => HTMLDivElement | undefined
+  /** Every row must stay mounted so a DOM-based search can collect its matches. */
+  readonly searching?: () => boolean
+  /** A reveal is about to run, so the target row must be in the document. */
+  readonly revealAll?: () => boolean
+  /** The reader still follows the newest content, so layout changes must not restore an anchor. */
+  readonly following?: () => boolean
+  /** The row and offset the reader last stopped at. Restored once the rows exist. */
+  readonly restore?: { readonly key: string; readonly offset: number }
+  /** Reports the row under the top edge, so the host can remember where the reader stopped. */
+  readonly onPositionChange?: (position: { readonly key: string; readonly offset: number }) => void
 }
 
 const STEP_LIVE = {
@@ -187,6 +203,22 @@ function liveTitle(i18n: ReturnType<typeof useI18n>, group: TimelineGroup) {
 }
 
 /** The answer column: one column of turns, each with its process run and answer. */
+/** The row covering the top edge, read from the DOM: `offset` is how far its top sits above the viewport. */
+function measureTopRow(root: HTMLDivElement): { key: string; offset: number } | undefined {
+  const frame = root.getBoundingClientRect()
+  const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find((node) => {
+    const rect = node.getBoundingClientRect()
+
+    // The window trails a fast scroll by a frame, so only a row that actually covers the edge counts.
+    return rect.bottom > frame.top + 1 && rect.top <= frame.top + 1
+  })
+  const key = row?.dataset.answerKey
+
+  if (!row || !key) return undefined
+
+  return { key, offset: frame.top - row.getBoundingClientRect().top }
+}
+
 export function AnswerPage(props: AnswerPageProps) {
   const snapshot = createMemo(() => projectTimeline(props.messages()))
   const [folded, setFolded] = createStore<Record<number, boolean | undefined>>({})
@@ -213,6 +245,256 @@ export function AnswerPage(props: AnswerPageProps) {
   const index = createMemo(() => new Map(entries().map((entry) => [entryKey(entry), entry] as const)))
   const running = createMemo(() => [...snapshot().turns.values()].findLast((turn) => turn.status === "open"))
 
+  const rowIndex = createMemo(() => new Map(keys().map((key, position) => [key, position] as const)))
+  const rowGaps = createMemo(() => entries().map((_, position) => flowGapPx(snapshot(), entries(), position)))
+  const estimates = createMemo(
+    () => new Map(entries().map((entry) => [entryKey(entry), estimateEntryHeight(entry, snapshot())] as const)),
+  )
+
+  // Measured border boxes, keyed by row identity. A key leaves the cache with its row, which is what
+  // lets a regrouped or folded row re-estimate instead of keeping a stale height.
+  const [rowSizes, setRowSizes] = createStore<Record<string, number>>({})
+  const [scrollTop, setScrollTop] = createSignal(0)
+  const [viewportHeight, setViewportHeight] = createSignal(0)
+
+  const virtualize = () => !!props.viewport?.() && !props.searching?.() && !props.revealAll?.()
+
+  const layout = createMemo(() =>
+    entryLayout(keys(), (key, position) => rowSizes[key] ?? (estimates().get(key) ?? 80) + (rowGaps()[position] ?? 0)),
+  )
+
+  const windowRange = createMemo(() => {
+    if (!virtualize()) return { start: 0, end: keys().length - 1 }
+
+    return visibleRange(layout(), scrollTop(), viewportHeight(), OVERSCAN)
+  })
+
+  const windowKeys = createMemo(() => {
+    const range = windowRange()
+
+    return keys().slice(range.start, range.end + 1)
+  })
+
+  const leadingSpacer = () => layout().tops[windowRange().start] ?? 0
+
+  const trailingSpacer = createMemo(() => {
+    const range = windowRange()
+    const value = layout()
+    const top = value.tops[range.end]
+    const height = value.heights[range.end]
+
+    if (top === undefined || height === undefined) return 0
+
+    return Math.max(0, value.total - top - height)
+  })
+
+  // Mounted rows report their real box. A row that is only in the tree because it is on screen keeps
+  // the estimate while detached, so the scrollbar never collapses.
+  const measure =
+    typeof ResizeObserver === "undefined"
+      ? undefined
+      : new ResizeObserver((measured) => {
+          for (const entry of measured) {
+            const node = entry.target
+
+            if (!(node instanceof HTMLElement)) continue
+            const key = node.dataset.answerKey
+
+            if (!key) continue
+            const size = Math.round(entry.borderBoxSize[0]?.blockSize ?? node.offsetHeight)
+
+            if (size > 0) setRowSizes(key, size)
+          }
+        })
+
+  onCleanup(() => measure?.disconnect())
+
+  // The row under the top edge of the viewport. It holds the reader's place when rows above it
+  // change height or an older page is prepended.
+  let anchor: { key: string; offset: number } | undefined
+  let anchorTop = 0
+
+  const rememberAnchor = (top: number) => {
+    const root = props.viewport?.()
+    const measured = root ? measureTopRow(root) : undefined
+
+    // While the window catches up with a fast scroll no row covers the edge; keep the last real anchor.
+    if (!measured && anchor !== undefined) {
+      anchorTop = top
+      return
+    }
+
+    const currentKeys = keys()
+    const value = layout()
+    const position = positionAt(value, top)
+
+    // The layout is still an estimate on the frame a scroll lands, so the DOM row wins when it exists.
+    anchor =
+      measured ??
+      (position === undefined ? undefined : { key: currentKeys[position]!, offset: top - value.tops[position]! })
+    anchorTop = top
+
+    if (anchor) props.onPositionChange?.(anchor)
+  }
+
+  // A restored row only exists once the page renders it, so the first restore waits for the rows.
+  let restored = false
+  // Rows above the target shrink from their estimate as they measure, which would drag the restored
+  // row upward. Hold it on the target for the frames the layout settles, then let the anchor take over.
+  let pinned: { key: string; offset: number; lastTop?: number; stable?: number } | undefined
+  let pinFrame: number | undefined
+  let pinTimer: ReturnType<typeof setTimeout> | undefined
+
+  const releasePin = () => {
+    pinned = undefined
+    if (pinFrame !== undefined) cancelAnimationFrame(pinFrame)
+    if (pinTimer !== undefined) clearTimeout(pinTimer)
+    pinFrame = undefined
+    pinTimer = undefined
+  }
+
+  const pinRestore = (position: { key: string; offset: number }) => {
+    pinned = { ...position }
+
+    const step = () => {
+      pinFrame = undefined
+      const root = props.viewport?.()
+      const target = pinned
+
+      if (!target || !root) return releasePin()
+
+      const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find(
+        (node) => node.dataset.answerKey === target.key,
+      )
+
+      if (row) {
+        // Measure the row itself: layout tops are estimates for every row above the window, and their
+        // accumulated error is what used to park the reader a message away from where they stopped.
+        const frame = root.getBoundingClientRect()
+        const delta = row.getBoundingClientRect().top - frame.top + target.offset
+
+        if (Math.abs(delta) > 1) root.scrollTop += delta
+
+        target.stable = Math.abs(delta) <= 1 ? (target.stable ?? 0) + 1 : 0
+      } else {
+        // The row is outside the window: land near it with the estimate, then measure once it renders.
+        const index = keys().indexOf(target.key)
+
+        if (index < 0) return releasePin()
+
+        root.scrollTop = layout().tops[index]! + target.offset
+        target.stable = 0
+      }
+
+      rememberAnchor(root.scrollTop)
+
+      // A few unchanged frames mean the measured layout has settled.
+      if ((target.stable ?? 0) >= 3) return releasePin()
+
+      pinFrame = requestAnimationFrame(step)
+    }
+
+    pinFrame = requestAnimationFrame(step)
+    pinTimer = setTimeout(releasePin, 1000)
+  }
+
+  onCleanup(releasePin)
+
+  createEffect(() => {
+    const root = props.viewport?.()
+
+    if (!root) return
+
+    // The cached view is removed from its parent on a session switch, so watch that parent for the
+    // reattach that brings the viewport back.
+    let lastTop = root.scrollTop
+
+    const sync = () => {
+      if (!root.isConnected) return
+
+      const height = root.clientHeight
+
+      // The detach zeroed the offset; put the reader back where the last real scroll left them.
+      if (height > 0 && root.scrollTop === 0 && lastTop > 0) root.scrollTop = lastTop
+
+      setViewportHeight(height)
+      setScrollTop(root.scrollTop)
+    }
+    sync()
+
+    const parent = root.parentElement
+    const reconnect = parent ? new MutationObserver(() => sync()) : undefined
+    reconnect?.observe(parent!, { childList: true })
+    onCleanup(() => reconnect?.disconnect())
+
+    let frame: number | undefined
+    const onScroll = () => {
+      if (frame !== undefined) return
+      frame = requestAnimationFrame(() => {
+        frame = undefined
+        // Detaching zeroes scrollTop, which is not the reader scrolling to the top.
+        if (!root.isConnected) return
+        lastTop = root.scrollTop
+        setScrollTop(root.scrollTop)
+        // A real scroll moves the anchor with the reader, so a later content change holds this place.
+        rememberAnchor(root.scrollTop)
+      })
+    }
+    const observer = new ResizeObserver(sync)
+    observer.observe(root)
+    root.addEventListener("scroll", onScroll, { passive: true })
+
+    onCleanup(() => {
+      root.removeEventListener("scroll", onScroll)
+      observer.disconnect()
+      if (frame !== undefined) cancelAnimationFrame(frame)
+    })
+  })
+
+  // Keeps the row at the top of the viewport in place when rows above it change height or an older
+  // page is prepended. While the reader follows the end, the host owns the scroll position instead.
+  createEffect(() => {
+    const currentKeys = keys()
+    const value = layout()
+    const root = props.viewport?.()
+
+    if (!root || currentKeys.length === 0) return
+
+    const top = root.scrollTop
+    const previous = anchor
+
+    if (!restored) {
+      restored = true
+      const target = props.restore
+
+      if (target && currentKeys.includes(target.key)) pinRestore(target)
+    }
+
+    // A real scroll already moved the anchor; only a content change may restore it.
+    const scrolled = Math.abs(top - anchorTop) > 1
+
+    if (!pinned && !scrolled && previous && currentKeys.includes(previous.key) && props.following?.() === false) {
+      const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find(
+        (node) => node.dataset.answerKey === previous.key,
+      )
+
+      if (row) {
+        // Measure the row instead of trusting the estimate for everything above the window.
+        const frame = root.getBoundingClientRect()
+        const delta = row.getBoundingClientRect().top - frame.top + previous.offset
+
+        if (Math.abs(delta) > 1) root.scrollTop += delta
+      } else {
+        const position = currentKeys.indexOf(previous.key)
+        const target = value.tops[position]! + previous.offset
+
+        if (Math.abs(top - target) > 1) root.scrollTop = target
+      }
+    }
+
+    if (!pinned) rememberAnchor(root.scrollTop)
+  })
+
   createEffect(() => {
     if (!running()) return
     setNow(Date.now())
@@ -236,6 +518,76 @@ export function AnswerPage(props: AnswerPageProps) {
     return true
   }
 
+  const renderEntry = (key: string) => {
+    const position = () => rowIndex().get(key) ?? 0
+    const entry = createMemo(() => index().get(key))
+
+    const node = createMemo(() => {
+      const value = entry()
+
+      return value?.kind === "node" ? snapshot().nodes.get(value.key) : undefined
+    })
+
+    const visibleNode = createMemo(() => {
+      const value = node()
+
+      if (!value) return undefined
+
+      if ((props.foldedReplies ?? "final") !== "final" || value.payload.kind !== "assistant") return value
+
+      const owner = snapshot().turns.get(value.turn)
+
+      if (!owner || owner.status !== "closed" || !isFolded(owner.turn)) return value
+
+      if (value.anchor === owner.answer) return value
+
+      return undefined
+    })
+
+    const turn = createMemo(() => {
+      const value = entry()
+
+      return value?.kind === "fold" ? snapshot().turns.get(value.turn) : undefined
+    })
+
+    return (
+      <div
+        data-answer-key={key}
+        style={{ "padding-top": `${rowGaps()[position()] ?? 0}px` }}
+        ref={(node) => {
+          measure?.observe(node)
+          onCleanup(() => measure?.unobserve(node))
+        }}
+      >
+        <Show when={visibleNode()}>
+          {(value) => (
+            <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />
+          )}
+        </Show>
+        <Show when={turn()}>
+          {(value) => (
+            <FoldRow
+              turn={value()}
+              open={!isFolded(value().turn)}
+              snapshot={snapshot()}
+              view={view()}
+              foldedReplies={props.foldedReplies ?? "final"}
+              now={now()}
+              groupOpen={(key) => openGroups[key] ?? false}
+              toggleGroup={(key) => setOpenGroups(key, !(openGroups[key] ?? false))}
+              deferred={
+                value().status === "closed" &&
+                (props.collapseTiming ?? "completion") === "next-input" &&
+                value().turn === lastTurn()
+              }
+              onToggle={() => setFolded(value().turn, !isFolded(value().turn))}
+            />
+          )}
+        </Show>
+      </div>
+    )
+  }
+
   return (
     <RowDisclosureContext.Provider
       value={{
@@ -245,65 +597,11 @@ export function AnswerPage(props: AnswerPageProps) {
     >
       <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
         <div class="mx-auto flex w-full max-w-[952px] flex-col px-4 pt-4 pb-10">
-        <For each={keys()}>
-          {(key, position) => {
-            const entry = createMemo(() => index().get(key))
-
-            const node = createMemo(() => {
-              const value = entry()
-
-              return value?.kind === "node" ? snapshot().nodes.get(value.key) : undefined
-            })
-
-            const visibleNode = createMemo(() => {
-              const value = node()
-
-              if (!value) return undefined
-
-              if ((props.foldedReplies ?? "final") !== "final" || value.payload.kind !== "assistant") return value
-
-              const owner = snapshot().turns.get(value.turn)
-
-              if (!owner || owner.status !== "closed" || !isFolded(owner.turn)) return value
-
-              if (value.anchor === owner.answer) return value
-
-              return undefined
-            })
-
-            const turn = createMemo(() => {
-              const value = entry()
-
-              return value?.kind === "fold" ? snapshot().turns.get(value.turn) : undefined
-            })
-
-            return (
-              <div class={flowGap(snapshot(), entries(), position())}>
-                <Show when={visibleNode()}>{(value) => <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />}</Show>
-                <Show when={turn()}>
-                  {(value) => (
-                    <FoldRow
-                      turn={value()}
-                      open={!isFolded(value().turn)}
-                      snapshot={snapshot()}
-                      view={view()}
-                      foldedReplies={props.foldedReplies ?? "final"}
-                      now={now()}
-                      groupOpen={(key) => openGroups[key] ?? false}
-                      toggleGroup={(key) => setOpenGroups(key, !(openGroups[key] ?? false))}
-                      deferred={
-                        value().status === "closed" &&
-                        (props.collapseTiming ?? "completion") === "next-input" &&
-                        value().turn === lastTurn()
-                      }
-                      onToggle={() => setFolded(value().turn, !isFolded(value().turn))}
-                    />
-                  )}
-                </Show>
-              </div>
-            )
-          }}
-        </For>
+          <Show when={virtualize()} fallback={<For each={keys()}>{(key) => renderEntry(key)}</For>}>
+            <div aria-hidden="true" style={{ height: `${leadingSpacer()}px`, "flex-shrink": 0 }} />
+            <For each={windowKeys()}>{(key) => renderEntry(key)}</For>
+            <div aria-hidden="true" style={{ height: `${trailingSpacer()}px`, "flex-shrink": 0 }} />
+          </Show>
         </div>
       </div>
     </RowDisclosureContext.Provider>
@@ -342,20 +640,25 @@ function runningElapsed(turn: TimelineTurn | undefined, now: number) {
 }
 
 /** Turn spacing: process rows 4px, an assistant response 16px, a process head 12px. */
-function flowGap(snapshot: Snapshot, entries: readonly TimelineEntry[], index: number) {
-  if (index <= 0) return ""
+/**
+ * The leading gap of one row in pixels. It is padding inside the row box rather than a margin, so the
+ * measured border box already covers it and the window offsets stay exact.
+ */
+function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index: number) {
+  if (index <= 0) return 0
+
   const current = entries[index]
   const previous = entries[index - 1]
 
-  if (!current || !previous) return ""
+  if (!current || !previous) return 0
 
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return "mt-2"
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 8
 
-  if (current.kind === "fold") return "mt-3"
+  if (current.kind === "fold") return 12
 
-  if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return "mt-4"
+  if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
 
-  return "mt-1"
+  return 4
 }
 
 function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
@@ -539,7 +842,7 @@ function GroupSeat(props: {
         <span class="flex min-w-0 items-center" data-slot="answer-group-leading">
           <LeadingSlot icon={<FlowIcon name={ACTIVITY_ICONS[activity()]} />} open={props.open} scope="heading" />
         </span>
-        <span class="flex h-[24px] min-w-0 items-center overflow-hidden" data-slot="answer-group-content">
+        <span class="flex h-[24px] min-w-0 flex-1 items-center overflow-hidden" data-slot="answer-group-content">
           <span class="shrink-0">
             <TextShimmer text={title()} active={live()} />
           </span>

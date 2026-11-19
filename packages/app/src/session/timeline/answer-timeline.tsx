@@ -66,7 +66,9 @@ export function AnswerTimeline(props: {
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let lastPosition: SavedPosition | undefined
   // A restore that could not find its row leaves the view at the newest content, not where the reader stopped. Hold the
-  // saved record until the reader actually moves, or a failed restore would erase the position worth paging back to.
+  // saved record until the reader's own gesture moves, or a failed restore would erase the anchor worth paging back to.
+  // Nothing else clears it: measuring the end, prepending history, and rows re-measuring are the app moving, not them.
+  // A restore that lands needs no hold: the reader is where they left off, so that position is the record.
   let holdPosition = false
 
   const flushPosition = () => {
@@ -134,14 +136,12 @@ export function AnswerTimeline(props: {
   const setFollowing = (next: boolean) => {
     if (stick === next) return
 
-    // The reader moved away from the newest content on their own, so their position is worth recording again.
-    if (!next) holdPosition = false
     stick = next
     setAtBottom(next)
 
     // Persist the change now: the page may not report a new anchor while the content is still moving,
     // and a reader who left at the end must come back at the end.
-    if (lastPosition) {
+    if (lastPosition && !holdPosition) {
       lastPosition = { ...lastPosition, bottom: next }
       flushPosition()
     }
@@ -168,7 +168,11 @@ export function AnswerTimeline(props: {
 
   // A scroll gesture ends following immediately, before the next content growth can pull the reader
   // back; the scroll handler re-pins once the reader comes back to the end.
+  // A gesture is the reader's own move, so where they land becomes worth recording again. Gesture events are the only
+  // signal that can tell it from the app: windowed rows shrink after measuring, and the browser clamps scrollTop down
+  // with them, which looks like an upward scroll in the scroll handler.
   const releaseFollow = () => {
+    holdPosition = false
     setFollowing(false)
   }
 
@@ -188,7 +192,10 @@ export function AnswerTimeline(props: {
 
     if (!before || !viewport) return
     // An upward move under the pointer is the reader's own; keep it detached.
-    if (viewport.scrollTop < before.top - 1 || !before.following) return measureBottom()
+    if (viewport.scrollTop < before.top - 1 || !before.following) {
+      holdPosition = false
+      return measureBottom()
+    }
 
     viewport.scrollTop = viewport.scrollHeight
     measureBottom()  }
@@ -346,6 +353,7 @@ export function AnswerTimeline(props: {
         // following unless the drag actually scrolled upward.
         onWheel={(event) => {
           if (event.deltaY < 0) return releaseFollow()
+          holdPosition = false
           // A downward wheel while following must not re-measure: the growth it has not followed
           // yet would read as distance from the end and stop the follow.
           if (!stick) measureBottom()

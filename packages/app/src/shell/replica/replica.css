@@ -512,6 +512,13 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
     visibility 0s;
 }
 
+/* A project row and its first session sit 2px apart, the same gap the rows below use, so the project's hover
+   background never reads as one block with the session's. Folded groups keep their plain 2px rhythm: Solid writes
+   `data-collapsed={false}` as the string "false", so the open state is matched by value, not by absence. */
+.replica-project-sessions[data-collapsed="false"] {
+  margin-block-start: 2px;
+}
+
 .replica-project-sessions[data-collapsed="true"] {
   grid-template-rows: minmax(0, 0fr);
   visibility: hidden;
@@ -614,7 +621,9 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   -webkit-line-clamp: 2;
 }
 
-[data-slot="replica-sidebar"] [data-slot="replica-row"]:hover {
+/* The project row is a row too, so it takes the same hover background as the sessions folded under it. */
+[data-slot="replica-sidebar"] [data-slot="replica-row"]:hover,
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"]:hover {
   background: var(--color-hover);
 }
 

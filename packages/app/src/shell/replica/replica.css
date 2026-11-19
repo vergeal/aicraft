@@ -678,7 +678,7 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
 }
 
 [data-slot="replica-main"] [data-component="session-composer-dock"] > div {
-  max-width: 952px;
+  max-width: var(--container-session, 840px);
 }
 
 [data-slot="replica-main"] [data-component="session-composer-dock"] {

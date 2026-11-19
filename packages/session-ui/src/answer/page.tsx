@@ -596,7 +596,7 @@ export function AnswerPage(props: AnswerPageProps) {
       }}
     >
       <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
-        <div class="mx-auto flex w-full max-w-[952px] flex-col px-4 pt-4 pb-10">
+        <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
           <Show when={virtualize()} fallback={<For each={keys()}>{(key) => renderEntry(key)}</For>}>
             <div aria-hidden="true" style={{ height: `${leadingSpacer()}px`, "flex-shrink": 0 }} />
             <For each={windowKeys()}>{(key) => renderEntry(key)}</For>

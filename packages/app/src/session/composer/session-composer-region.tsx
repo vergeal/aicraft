@@ -52,7 +52,7 @@ export function SessionComposerRegion(props: {
       {/* Only the docks and composer take the pointer; the gaps beside them belong to the timeline underneath. */}
       <div
         classList={{
-          "w-full px-4 *:pointer-events-auto md:mx-auto md:max-w-[952px]": true,
+          "w-full px-4 *:pointer-events-auto md:mx-auto md:max-w-[var(--container-session,840px)]": true,
         }}
       >
         <div class="relative z-[70] flex flex-col">

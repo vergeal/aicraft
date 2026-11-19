@@ -5,7 +5,7 @@ import { Switch } from "@opencode/ui/switch"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { PluginSettingsSections } from "@/runtime/plugin/settings-page-view"
-import { type CollapseTiming, type FollowUpBehavior, type TranscriptViewMode, type WorkspaceDefaultDestination, useSettings } from "@/settings/model"
+import { type CollapseTiming, type FollowUpBehavior, type TimelineWidth, type TranscriptViewMode, type WorkspaceDefaultDestination, useSettings } from "@/settings/model"
 import { formatKeybind } from "@/shell/commands/command"
 import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
@@ -161,6 +161,35 @@ const TranscriptViewSetting: Component = () => {
   )
 }
 
+const TimelineWidthSetting: Component = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+
+  const options = createMemo((): { value: TimelineWidth; label: string }[] => [
+    { value: "focused", label: language.t("settings.timeline.row.width.focused") },
+    { value: "comfortable", label: language.t("settings.timeline.row.width.comfortable") },
+    { value: "wide", label: language.t("settings.timeline.row.width.wide") },
+  ])
+
+  return (
+    <SettingsRow
+      title={language.t("settings.timeline.row.width.title")}
+      description={language.t("settings.timeline.row.width.description")}
+    >
+      <Select
+        data-action="settings-timeline-width"
+        options={options()}
+        current={options().find((option) => option.value === settings.general.timelineWidth())}
+        value={(option) => option.value}
+        label={(option) => option.label}
+        placement="bottom-end"
+        gutter={6}
+        onSelect={(option) => option && settings.general.setTimelineWidth(option.value)}
+      />
+    </SettingsRow>
+  )
+}
+
 const CollapseTimingSetting: Component = () => {
   const language = useLanguage()
   const settings = useSettings()
@@ -280,6 +309,7 @@ export const SettingsGeneral: Component = () => {
 
         <FollowUpBehaviorSetting />
         <TranscriptViewSetting />
+        <TimelineWidthSetting />
         <CollapseTimingSetting />
       </SettingsList>
     </div>

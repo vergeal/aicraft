@@ -399,12 +399,9 @@ html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
    渐变就跟着列一起变，不需要任何人每帧把宽度同步给 CSS，也就不会出现「拖动时渐变停在原处」。取色自应用
    图标的圆环：左上青绿 rgb(0 221 143)、往右下过渡到青蓝 rgb(0 188 230)，到 78% 归零。 */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
-  /* 右缘 28px 向内收拢：越是贴近分界，导航面越往画布的亮度沉，接缝两侧的明度差被这条窄带吃掉，
-     两块区域读作同一片材质的转折，而不是一块亮板贴在黑底上。压黑只有 14%，再深就会把彩光拽回灰色。
+  /* 只有一束彩光，右缘不再向内压黑：那条 28px 的暗带读起来是贴在分界上的一道阴影，而不是材质的转折。
      彩光从青绿走到青蓝，尾部不归零：整列都在同一束色里，只有浓度往下递减，否则下半截会掉回一块死灰。 */
-  background-image:
-    linear-gradient(to right, rgb(0 0 0 / 0%) calc(100% - 28px), rgb(0 0 0 / 14%)),
-    linear-gradient(160deg, rgb(0 221 143 / 22%), rgb(0 188 230 / 15%) 45%, rgb(0 188 230 / 7%));
+  background-image: linear-gradient(160deg, rgb(0 221 143 / 22%), rgb(0 188 230 / 15%) 45%, rgb(0 188 230 / 7%));
   background-repeat: no-repeat;
 }
 

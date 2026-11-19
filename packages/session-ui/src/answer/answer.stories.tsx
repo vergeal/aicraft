@@ -204,6 +204,28 @@ export const LongDetail = {
   ),
 }
 
+const injectedContext: SessionMessageInfo[] = [
+  { id: "msg_user_ctx", type: "user", text: "看看注入的上下文。", time: { created: TIME } },
+  assistant("msg_ctx_tool", [tool("tool_ctx", "read", { filePath: "README.md" }, "completed")], TIME + 1_000, TIME + 3_000),
+  {
+    id: "msg_ctx_notice",
+    type: "synthetic",
+    text: "来自以下文件的指令：AGENTS.md\n\n# AGENTS\n\n回答前先读项目说明。",
+    description: "已加载 AGENTS.md",
+    time: { created: TIME + 4_000 },
+  },
+  assistant("msg_ctx_final", [{ type: "text", text: "上下文已注入。" }], TIME + 5_000, TIME + 6_000),
+  idle("msg_idle_ctx", TIME + 6_500),
+]
+
+export const InjectedContext = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => injectedContext} />
+    </div>
+  ),
+}
+
 export const Lists = {
   render: () => (
     <div class="h-dvh">

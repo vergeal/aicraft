@@ -13,7 +13,8 @@ export type NodePayload =
   | { readonly kind: "assistant"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "reasoning"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "tool"; readonly tool: ToolContent }
-  | { readonly kind: "notice"; readonly text: string }
+  /** `detail` is the injected body, shown when the reader expands the notice. */
+  | { readonly kind: "notice"; readonly text: string; readonly detail?: string }
   | { readonly kind: "error"; readonly text: string }
   | { readonly kind: "retry"; readonly attempt: number; readonly text: string }
 

@@ -1004,12 +1004,13 @@ function Payload(props: {
       return <ToolRow tool={props.payload.tool} rowOpen={props.rowOpen} onToggleRow={props.onToggleRow} />
     case "notice":
       return (
-        <div class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[24px]" style={{ color: "var(--answer-ink-tertiary)" }}>
-          <FlowIcon name="answer-context" />
-          <bdi dir="auto" class="min-w-0 truncate">
-            {props.payload.text}
-          </bdi>
-        </div>
+        <NoticeRow
+          text={props.payload.text}
+          detail={props.payload.detail}
+          cacheKey={props.cacheKey}
+          rowOpen={props.rowOpen}
+          onToggleRow={props.onToggleRow}
+        />
       )
     case "error":
       return (
@@ -1024,6 +1025,44 @@ function Payload(props: {
         </div>
       )
   }
+}
+
+/** An injected context keeps its body behind a disclosure; a plain notice stays one truncated line. */
+function NoticeRow(props: {
+  text: string
+  detail?: string
+  cacheKey: string
+  rowOpen?: boolean
+  onToggleRow?: (next: boolean) => void
+}) {
+  const expanded = () => props.rowOpen ?? false
+
+  if (!props.detail)
+    return (
+      <div class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[24px]" style={{ color: "var(--answer-ink-tertiary)" }}>
+        <FlowIcon name="answer-context" />
+        <bdi dir="auto" class="min-w-0 truncate">
+          {props.text}
+        </bdi>
+      </div>
+    )
+
+  return (
+    <DisclosureRow
+      title={props.text}
+      state="ok"
+      expanded={expanded()}
+      leading={<FlowIcon name="answer-context" />}
+      onToggle={() => props.onToggleRow?.(!expanded())}
+    >
+      <Markdown
+        text={props.detail}
+        cacheKey={`${props.cacheKey}:detail`}
+        deferUntilReady
+        class="answer-markdown ps-[30px] py-1 [overflow-wrap:anywhere]"
+      />
+    </DisclosureRow>
+  )
 }
 
 function FlowIcon(props: { name: IconName }) {
@@ -1102,7 +1141,7 @@ function DisclosureRow(props: {
       >
         <LeadingSlot icon={props.leading} open={props.expanded} scope="row" />
         <span class="flex h-[24px] min-w-0 items-center overflow-hidden">
-          <span class="shrink-0">{props.title}</span>
+          <bdi dir="auto" class="min-w-0 shrink truncate">{props.title}</bdi>
           <Show when={props.summary}>
             {(value) => (
               <span

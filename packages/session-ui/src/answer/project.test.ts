@@ -283,4 +283,23 @@ describe("answer projection", () => {
       ],
     ])
   })
+
+  test("keeps the injected context body as a notice detail", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      {
+        id: "msg_2",
+        type: "synthetic",
+        text: "来自以下文件的指令：AGENTS.md\n\n# AGENTS\n\n先读项目说明。",
+        description: "已加载 AGENTS.md",
+        time: { created: 2 },
+      } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.nodes.get("notice:msg_2")?.payload).toEqual({
+      kind: "notice",
+      text: "已加载 AGENTS.md",
+      detail: "来自以下文件的指令：AGENTS.md\n\n# AGENTS\n\n先读项目说明。",
+    })
+  })
 })

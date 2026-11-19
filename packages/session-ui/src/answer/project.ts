@@ -31,11 +31,23 @@ const decodeNotice = Schema.decodeUnknownOption(
   }),
 )
 
-/** Notice copy, or undefined when the message carries none (so its type tag never reaches the reader). */
-function noticeText(message: SessionMessageInfo) {
+/**
+ * Notice copy, or undefined when the message carries none (so its type tag never reaches the reader).
+ * An injected context carries a one-line description and the full body in `text`; the body is what the
+ * reader expands, so the row keeps it instead of flattening it into the truncated summary.
+ */
+function noticeCopy(message: SessionMessageInfo) {
   const value = Option.getOrUndefined(decodeNotice(message))
+  const body = value?.text?.trim()
+  const text = value?.description?.trim() || firstLine(body) || undefined
 
-  return value?.description?.trim() || value?.text?.trim() || undefined
+  if (!text) return undefined
+
+  return { text, detail: body && body !== text ? body : undefined }
+}
+
+function firstLine(text: string | undefined) {
+  return text?.split("\n").find((line) => line.trim())?.trim()
 }
 
 /**
@@ -97,9 +109,9 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
     }
 
     if (message.type !== "assistant") {
-      const text = noticeText(message)
+      const copy = noticeCopy(message)
 
-      if (text) push(draft, { kind: "notice", text }, `notice:${message.id}`, message.id, "turn")
+      if (copy) push(draft, { kind: "notice", ...copy }, `notice:${message.id}`, message.id, "turn")
 
       continue
     }

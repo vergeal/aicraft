@@ -57,11 +57,18 @@ export interface ActivityCount {
   readonly count: number
 }
 
+/** One entry of a group body: a single row, or a run of identical consecutive steps folded into one. */
+export type GroupItem =
+  | { readonly kind: "row"; readonly key: string }
+  | { readonly kind: "repeat"; readonly key: string; readonly activity: ProcessActivity; readonly members: readonly string[] }
+
 /** One contiguous run of process rows inside a turn. */
 export interface TimelineGroup {
   readonly key: string
   readonly turn: number
   readonly members: readonly string[]
+  /** The group body in order: identical consecutive steps share one repeat item. */
+  readonly items: readonly GroupItem[]
   readonly closed: boolean
   /** Categories ranked by call count, ties by first appearance. */
   readonly counts: readonly ActivityCount[]

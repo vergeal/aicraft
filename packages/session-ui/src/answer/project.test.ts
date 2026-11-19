@@ -327,4 +327,54 @@ describe("answer projection", () => {
     const group = children[0]?.kind === "group" ? snapshot.groups.get(children[0].key) : undefined
     expect(group?.counts).toEqual([{ kind: "context", count: 2 }])
   })
+
+  test("folds consecutive identical steps into one repeat item", () => {
+    const edit = (id: string, filePath: string): Content => ({
+      type: "tool",
+      id,
+      name: "edit",
+      state: { status: "completed", input: { filePath }, content: [{ type: "text", text: "ok" }], metadata: {} },
+      time: { created: 2, completed: 3 },
+    })
+
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant(
+        "msg_2",
+        2,
+        [edit("tool_1", "src/a.ts"), edit("tool_2", "src/a.ts"), edit("tool_3", "src/b.ts"), edit("tool_4", "src/b.ts"), edit("tool_5", "src/b.ts")],
+        10,
+      ),
+      assistant("msg_3", 11, [text("answer")], 20),
+    ])
+
+    const group = [...snapshot.groups.values()][0]
+
+    expect(group?.items.map((item) => item.kind)).toEqual(["repeat", "repeat"])
+    expect(group?.items.map((item) => (item.kind === "repeat" ? item.members.length : 1))).toEqual([2, 3])
+    // Folding the rows does not change what the step counted: five edits stay five.
+    expect(group?.counts).toEqual([{ kind: "edit", count: 5 }])
+  })
+
+  test("keeps a different neighbour out of a repeat run", () => {
+    const edit = (id: string): Content => ({
+      type: "tool",
+      id,
+      name: "edit",
+      state: { status: "completed", input: { filePath: "src/a.ts" }, content: [{ type: "text", text: "ok" }], metadata: {} },
+      time: { created: 2, completed: 3 },
+    })
+
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [edit("tool_1"), edit("tool_2"), reasoning("thinking"), edit("tool_3")], 10),
+      assistant("msg_3", 11, [text("answer")], 20),
+    ])
+
+    const group = [...snapshot.groups.values()][0]
+
+    // Only the two adjacent edits fold; reasoning breaks the run and the third edit stands alone.
+    expect(group?.items.map((item) => item.kind)).toEqual(["repeat", "row", "row"])
+    expect(group?.items[0]?.kind === "repeat" ? group.items[0].members.length : 0).toBe(2)
+  })
 })

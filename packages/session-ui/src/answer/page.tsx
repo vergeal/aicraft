@@ -13,6 +13,7 @@ import { childrenOf, projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolInput, toolOutput } from "./tool"
 import { entryLayout, estimateEntryHeight, positionAt, visibleRange } from "./virtual"
 import type {
+  GroupItem,
   NodePayload,
   ProcessActivity,
   Snapshot,
@@ -679,9 +680,21 @@ function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
   return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
 }
 
-/** Process rows of a group; step summaries render outside it, after the group header. */
-function processKeys(snapshot: Snapshot, group: TimelineGroup) {
-  return group.members.filter((key) => snapshot.nodes.get(key)?.payload.kind !== "assistant")
+/** The row a repeat run folds from: its first member names the run and carries its icon. */
+function repeatLabel(i18n: ReturnType<typeof useI18n>, node: TimelineNode | undefined) {
+  if (node?.payload.kind === "tool") return i18n.t(TOOL_ACTIONS[actionKey(node.payload.tool.name)])
+
+  if (node?.payload.kind === "reasoning") return i18n.t("ui.answer.thinking")
+
+  if (node?.payload.kind === "notice") return node.payload.text
+
+  return i18n.t("ui.answer.step.tools")
+}
+
+function repeatSummary(node: TimelineNode | undefined) {
+  if (node?.payload.kind === "tool") return toolDescription(node.payload.tool)
+
+  return undefined
 }
 
 function durationText(i18n: ReturnType<typeof useI18n>, ms: number) {
@@ -867,18 +880,87 @@ function GroupSeat(props: {
       </button>
       <Show when={props.flat || props.open}>
         <div id={bodyID} class={props.flat ? "flex flex-col gap-1" : "flex flex-col gap-1 pt-1"}>
-          <For each={processKeys(props.snapshot, props.group)}>
+          <For each={props.group.items.map((item) => item.key)}>
             {(key) => {
-              const node = createMemo(() => props.snapshot.nodes.get(key))
+              const item = createMemo(() => props.group.items.find((entry) => entry.key === key))
 
               return (
-                <Show when={node()}>{(value) => <NodeRow node={value()} view={props.view} live={!props.group.closed} />}</Show>
+                <Show when={item()}>
+                  {(value) => (
+                    <GroupItemRow item={value()} snapshot={props.snapshot} view={props.view} live={!props.group.closed} />
+                  )}
+                </Show>
               )
             }}
           </For>
         </div>
       </Show>
     </section>
+  )
+}
+
+/** One entry of a group body: a plain row, or a folded run of identical consecutive steps. */
+function GroupItemRow(props: { item: GroupItem; snapshot: Snapshot; view: TranscriptView; live: boolean }) {
+  return props.item.kind === "row" ? (
+    <Show when={props.snapshot.nodes.get(props.item.key)}>
+      {(node) => <NodeRow node={node()} view={props.view} live={props.live} />}
+    </Show>
+  ) : (
+    <RepeatRow item={props.item} snapshot={props.snapshot} view={props.view} live={props.live} />
+  )
+}
+
+/** L2: identical consecutive steps folded into one row; open it to read each step, and each step again. */
+function RepeatRow(props: {
+  item: Extract<GroupItem, { kind: "repeat" }>
+  snapshot: Snapshot
+  view: TranscriptView
+  live: boolean
+}) {
+  const i18n = useI18n()
+  const rows = useContext(RowDisclosureContext)
+  // The run's disclosure outlives a streamed projection for the same reason the rows' does.
+  const expanded = () => rows?.open(props.item.key) ?? false
+  const first = createMemo(() => props.snapshot.nodes.get(props.item.members[0]))
+
+  const count = () => i18n.t("ui.answer.repeat.count", { count: String(props.item.members.length) })
+
+  const summary = () => {
+    const detail = repeatSummary(first())
+
+    return detail ? `${detail} ${count()}` : count()
+  }
+
+  const state = () => {
+    const members = props.item.members.map((key) => props.snapshot.nodes.get(key)?.payload)
+
+    if (members.some((payload) => payload?.kind === "tool" && payload.tool.state.status === "error")) return "error"
+    if (members.some((payload) => payload?.kind === "tool" && (payload.tool.state.status === "running" || payload.tool.state.status === "streaming")))
+      return "running"
+
+    return "ok"
+  }
+
+  return (
+    <DisclosureRow
+      title={repeatLabel(i18n, first())}
+      summary={summary()}
+      summaryDanger={state() === "error"}
+      state={state()}
+      expanded={expanded()}
+      leading={<FlowIcon name={ACTIVITY_ICONS[props.item.activity]} />}
+      onToggle={() => rows?.toggle(props.item.key, !expanded())}
+    >
+      <div class="flex flex-col gap-1 ps-[24px]">
+        <For each={props.item.members}>
+          {(key) => (
+            <Show when={props.snapshot.nodes.get(key)}>
+              {(node) => <NodeRow node={node()} view={props.view} live={props.live} />}
+            </Show>
+          )}
+        </For>
+      </div>
+    </DisclosureRow>
   )
 }
 

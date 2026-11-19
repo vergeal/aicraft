@@ -201,6 +201,7 @@ const source = {
   "ui.answer.tool.call": "Call tool",
   "ui.answer.deepDivingFor": "Deep diving for {{duration}}",
   "ui.answer.deepDivingEllipsis": "···",
+  "ui.answer.repeat.count": "×{{count}}",
   "ui.answer.separator": " · ",
   "ui.answer.io.input": "Input",
   "ui.answer.io.output": "Output",

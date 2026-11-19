@@ -268,6 +268,7 @@ export const dict = {
   "ui.answer.copied": "已复制",
   "ui.answer.deepDivingFor": "深度求索中，用时 {{duration}}",
   "ui.answer.deepDivingEllipsis": "···",
+  "ui.answer.repeat.count": "×{{count}}",
   "ui.answer.separator": " · ",
   "ui.tool.execute.running": "运行中",
   "ui.tool.execute.completed": "已完成",

@@ -1,9 +1,10 @@
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Option, Schema } from "effect"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
-import { toolActivity, toolDescription } from "./tool"
+import { toolActivity, toolDescription, toolSummary } from "./tool"
 import type {
   ActivityCount,
+  GroupItem,
   GroupTree,
   ProcessActivity,
   Snapshot,
@@ -328,6 +329,7 @@ function summarizeGroup(
       key,
       turn,
       members: members.map((member) => member.key),
+      items: groupItems(key, members),
       closed,
       counts: [{ kind: "context", count: 1 }],
       runningDetail: "",
@@ -381,6 +383,7 @@ function summarizeGroup(
     key,
     turn,
     members: members.map((member) => member.key),
+    items: groupItems(key, members),
     closed,
     counts: ranked,
     runningDetail: closed ? "" : running ? runningDetail : reasoningDetail,
@@ -395,9 +398,65 @@ function summarizeGroup(
   return base
 }
 
+/** Two steps fold together only when they repeat the same activity on the same target. */
+function repeatSignature(node: TimelineNode) {
+  if (node.payload.kind === "tool") return `${toolActivity(node.payload.tool.name)}|${toolSummary(node.payload.tool)}`
+
+  if (node.payload.kind === "reasoning") return "thinking"
+
+  if (node.payload.kind === "notice") return `context|${node.payload.text}`
+
+  return undefined
+}
+
+function activityOf(node: TimelineNode): ProcessActivity {
+  if (node.payload.kind === "tool") return toolActivity(node.payload.tool.name)
+
+  if (node.payload.kind === "reasoning") return "thinking"
+
+  return "context"
+}
+
+/**
+ * The group body in order: consecutive steps with the same signature become one repeat item, so a burst
+ * of edits to one file reads as one row. A run of one stays a plain row, and a step with no signature
+ * (or a different neighbour) never merges.
+ */
+function groupItems(groupKey: string, members: readonly TimelineNode[]): GroupItem[] {
+  const runs: { key: string; activity: ProcessActivity; signature: string; members: string[] }[] = []
+
+  for (const member of members) {
+    // Step summaries sit outside the group body; only process rows fold.
+    if (member.payload.kind === "assistant") continue
+
+    const signature = repeatSignature(member)
+    const last = runs.at(-1)
+
+    if (signature !== undefined && last?.signature === signature) {
+      last.members.push(member.key)
+
+      continue
+    }
+
+    runs.push({
+      // A solo member is keyed by its row; a repeat run needs its own identity across projections.
+      key: `repeat:${groupKey}:${member.key}`,
+      activity: activityOf(member),
+      // Rows without a signature never merge, so each keeps its own run.
+      signature: signature ?? member.key,
+      members: [member.key],
+    })
+  }
+
+  return runs.map((run) =>
+    run.members.length === 1
+      ? { kind: "row", key: run.members[0] }
+      : { kind: "repeat", key: run.key, activity: run.activity, members: run.members },
+  )
+}
+
 /** The first line of the newest reasoning paragraph, for the live activity detail. */
-function reasoningTail(text: string) {
-  const blocks = text.split(/\n\s*\n/).filter((block) => block.trim())
+function reasoningTail(text: string) {  const blocks = text.split(/\n\s*\n/).filter((block) => block.trim())
 
   return blocks.at(-1)?.split("\n").find((line) => line.trim())?.replace(/^#+\s*/, "").trim()
 }

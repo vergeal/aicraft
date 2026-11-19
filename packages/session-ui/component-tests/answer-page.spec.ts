@@ -368,3 +368,27 @@ story("keeps the reading position when the cached view is detached and reattache
   expect(Math.abs(after.scrollTop - before.scrollTop)).toBeLessThanOrEqual(4)
   expect(after.topKey).toBe(before.topKey)
 })
+
+story("folds a burst of identical steps into one row", async ({ mount }) => {
+  const root = await mount("answer-page--repeated-edits")
+
+  await expandTurn(root).click()
+
+  const group = root.locator('[data-slot="answer-group"]').first()
+  await group.locator(":scope > button").click()
+
+  // Two edits to one file collapse into a single row; the read and the other edit stay their own rows.
+  const rows = group.locator(":scope > div > *")
+  await expect(rows).toHaveCount(3)
+
+  const repeat = rows.first()
+  await expect(repeat).toContainText(/Edit|编辑/)
+  await expect(repeat).toContainText("×2")
+
+  // The members are their own disclosure rows once open, so target this run's own trigger.
+  const trigger = repeat.locator(":scope > [data-disclosure-row]")
+  await expect(trigger).toHaveAttribute("aria-expanded", "false")
+  await trigger.click()
+  await expect(trigger).toHaveAttribute("aria-expanded", "true")
+  await expect(repeat.locator('[data-slot="answer-row"][data-kind="tool"]')).toHaveCount(2)
+})

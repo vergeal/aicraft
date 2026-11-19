@@ -324,6 +324,41 @@ export const TwoKinds = {
   ),
 }
 
+const repeatedEdits: SessionMessageInfo[] = [
+  { id: "msg_user_repeat", type: "user", text: "把同一处的两行分别改掉。", time: { created: TIME } },
+  assistant(
+    "msg_repeat",
+    [
+      tool(
+        "tool_edit_1",
+        "edit",
+        { filePath: "packages/app/src/session/timeline/answer-timeline.tsx" },
+        "completed",
+      ),
+      tool(
+        "tool_edit_2",
+        "edit",
+        { filePath: "packages/app/src/session/timeline/answer-timeline.tsx" },
+        "completed",
+      ),
+      tool("tool_read_1", "read", { filePath: "packages/app/src/session/timeline/interaction.ts" }, "completed"),
+      tool("tool_edit_3", "edit", { filePath: "packages/app/src/session/timeline/interaction.ts" }, "completed"),
+      { type: "text", text: "两处都改好了。" },
+    ],
+    TIME + 1_000,
+    TIME + 9_000,
+  ),
+  idle("msg_idle_repeat", TIME + 9_500),
+]
+
+export const RepeatedEdits = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => repeatedEdits} />
+    </div>
+  ),
+}
+
 export const Compact = {
   render: () => (
     <div class="h-dvh">

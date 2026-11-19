@@ -37,10 +37,12 @@
   --font-size-secondary: 12px;
 
   /* The window backdrop, titlebar and navigation column share one soft grey with a hint of translucency. On macOS
-     they sit on the window's vibrancy material, so the tints stay light enough to let it read as glass. */
-  --color-titlebar: rgb(246 246 246 / 62%);
-  --color-rail: rgb(246 246 246 / 62%);
-  --color-sidebar: rgb(252 252 252 / 62%);
+     they sit on the window's vibrancy material, so the tints stay light enough to let it read as glass. Opaque
+     windows (web) have nothing behind the chrome but the painted root, so those tints stay close to solid: a thin
+     wash only greys the surface without ever reading as glass. */
+  --color-titlebar: rgb(248 248 250 / 86%);
+  --color-rail: rgb(248 248 250 / 86%);
+  --color-sidebar: rgb(252 252 254 / 90%);
   --color-main: #ffffff;
   --color-composer: #ffffff;
   --replica-composer-fill: #ffffff;
@@ -64,6 +66,8 @@
   --color-accent-orange: #ed641b;
   --color-send-bg: #929596;
   --color-send-fg: #ffffff;
+  /* The chrome is acrylic rather than a flat tint: it keeps the surface behind it soft instead of a hard copy. */
+  --color-material-blur: blur(30px) saturate(180%);
 
   --radius-row: 8px;
   --radius-control: 10px;
@@ -104,11 +108,11 @@
    The frame sits below the panel — as it does in light mode — so the cutout of the workbench's rounded corner reads
    as a recess; a frame above the panel turned that corner into a bright square poking out of the panel. */
 [data-color-scheme="dark"] [data-replica] {
-  --color-titlebar: rgb(8 8 8 / 62%);
-  --color-rail: rgb(8 8 8 / 62%);
-  --color-sidebar: rgb(21 21 21 / 62%);
-  /* The column reads washed out at 62% over a bright desktop, so the shell paints it almost solid. */
-  --color-navigation: rgb(21 21 21 / 90%);
+  --color-titlebar: rgb(14 14 16 / 86%);
+  --color-rail: rgb(14 14 16 / 86%);
+  --color-sidebar: rgb(24 24 27 / 90%);
+  /* The column reads washed out below 90% over a bright desktop, so the shell paints it almost solid. */
+  --color-navigation: rgb(21 21 21 / 92%);
   --color-main: rgb(15 15 15);
   --color-composer: var(--v2-background-bg-layer-01);
   --replica-composer-fill: var(--v2-background-bg-layer-01);
@@ -156,10 +160,10 @@ html[data-replica-window="translucent"] #root:has([data-replica]) {
    wallpaper moved through the chrome and the window read as two unrelated themes — a bright rail beside an opaque
    conversation. The steps below keep the sheet translucent while it still reads as one material. */
 html[data-replica-window="translucent"] [data-replica] {
-  /* macOS 的 sidebar 材质自己就是一层带亮度补偿的浅色玻璃。应用层再刷 40% 白，等于在系统材质上又盖一张白纸：
-     壁纸的颜色和冷暖被冲掉，剩下的只有一层发灰的膜。这里留一层足够压住壁纸、又能透出材质的白。 */
-  --color-rail: rgb(246 247 250 / 80%);
-  --color-sidebar: rgb(252 252 254 / 84%);
+  /* macOS 的 sidebar 材质自己就是一层带亮度补偿的浅色玻璃。应用层再刷一层白，等于在系统材质上又盖一张白纸：
+     壁纸的颜色和冷暖被冲掉，剩下的只有一层发灰的膜。这里保留足够压住壁纸的白，同时让材质继续透出来。 */
+  --color-rail: rgb(246 247 250 / 86%);
+  --color-sidebar: rgb(252 252 254 / 88%);
   /* 标题栏和导航列是同一片材质：transparent 规则下标题栏不单独上色，所以这里跟随 rail，
      只有 reduced-transparency 分支会把这个值实体化。 */
   --color-titlebar: var(--color-rail);
@@ -167,10 +171,10 @@ html[data-replica-window="translucent"] [data-replica] {
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
   /* 暗色玻璃要兜住亮壁纸，否则浅色文字压在透出来的亮背景上；rail 与导航列保持同一片材质，只差一档明度。 */
-  --color-titlebar: rgb(19 19 22 / 78%);
-  --color-rail: rgb(19 19 22 / 78%);
-  --color-navigation: rgb(27 27 31 / 86%);
-  --color-sidebar: rgb(27 27 31 / 86%);
+  --color-titlebar: rgb(19 19 22 / 86%);
+  --color-rail: rgb(19 19 22 / 86%);
+  --color-navigation: rgb(27 27 31 / 90%);
+  --color-sidebar: rgb(27 27 31 / 90%);
 }
 
 /* 纯色玻璃读起来像一层灰纱，因为真实的玻璃是受光的：顶部向冷蓝偏、底部沉一点蓝紫、中间几乎不染色。
@@ -297,6 +301,17 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
 
 [data-color-scheme="dark"] [data-slot="replica-titlebar"] {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%);
+}
+
+/* Every chrome surface is one acrylic sheet: it blurs and saturates the desktop behind it, so the window reads as
+   soft colour instead of a hard copy of the wallpaper. Only the translucent window has a material underneath to
+   blur; an opaque window (web) would pay for a filter that has nothing behind it to soften. */
+html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
+html[data-replica-window="translucent"] [data-slot="replica-rail"],
+html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
+html[data-replica-window="translucent"] [data-slot="destination-bar"] {
+  -webkit-backdrop-filter: var(--color-material-blur);
+  backdrop-filter: var(--color-material-blur);
 }
 
 [data-slot="replica-titlebar"] {
@@ -770,6 +785,16 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
     --color-titlebar: rgb(246 246 246);
     --color-rail: rgb(246 246 246);
     --color-sidebar: rgb(252 252 252);
+  }
+
+  /* A solid tint has nothing to blur; keeping the filter would only blur the surface's own edge. The selector
+     repeats the translucent prefix so it outranks the filter above at the same specificity. */
+  html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
+  html[data-replica-window="translucent"] [data-slot="replica-rail"],
+  html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
+  html[data-replica-window="translucent"] [data-slot="destination-bar"] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {

@@ -92,6 +92,7 @@ export const create = (
 ) => {
   return {
     name: "execute",
+    icon: "tool-shell",
     description,
     input: CodeMode.Input,
     output: ExecuteOutput,

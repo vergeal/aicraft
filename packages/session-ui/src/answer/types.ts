@@ -72,8 +72,16 @@ export interface TimelineGroup {
   readonly closed: boolean
   /** Categories ranked by call count, ties by first appearance. */
   readonly counts: readonly ActivityCount[]
+  /** The names of the group's tools that have no activity category of their own. */
+  readonly uncategorized: readonly string[]
   /** The category of the newest still-running call, when the group has one. */
   readonly running?: ProcessActivity
+  /** The declared mark of the group's tools when every tool in it agrees on one. */
+  readonly icon?: string
+  /** The tool the heading speaks for: the running call, else the last call of the run. */
+  readonly lead?: ToolContent
+  /** Every tool in the group advertises this one name, so the heading can use its own phrasing. */
+  readonly single?: string
   /** One line of the newest running call's arguments, for the live title. */
   readonly runningDetail: string
 }

@@ -26,6 +26,8 @@ type Input = {
   readonly pendingSnapshot?: Effect.Effect<Snapshot.ID | undefined>
   readonly started: number
   readonly assistantMessageID: SessionMessage.ID
+  /** Resolves a tool's declared mark from its advertised name, so the part carries it without a UI lookup table. */
+  readonly toolIcon?: (name: string) => string | undefined
 }
 
 const asRecord = (value: unknown): Record<string, unknown> => (isRecord(value) ? value : { value })
@@ -303,6 +305,7 @@ export const createLLMEventPublisher = (bus: Pick<Bus.Interface, "publish">, inp
       assistantMessageID,
       id: event.id,
       name: event.name,
+      icon: input.toolIcon?.(event.name),
     })
     return tool
   })

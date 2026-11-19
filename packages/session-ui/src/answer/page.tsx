@@ -3,14 +3,14 @@ import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Icon } from "@opencode/ui/icon"
-import type { IconName } from "@opencode/ui/icons/catalog"
+import { isIconName, type IconName } from "@opencode/ui/icons/catalog"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { Spinner } from "@opencode/ui/spinner"
-import { useI18n } from "@opencode/ui/context/i18n"
+import { useI18n, type UiI18nOrdinaryKey } from "@opencode/ui/context/i18n"
 import { Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
 import { childrenOf, projectTimeline } from "./project"
-import { toolActivity, toolDescription, toolError, toolInput, toolOutput } from "./tool"
+import { toolDescription, toolError, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import { entryLayout, estimateEntryHeight, positionAt, visibleRange } from "./virtual"
 import type {
   GroupItem,
@@ -171,9 +171,109 @@ function actionKey(name: string): keyof typeof TOOL_ACTIONS {
   return "call"
 }
 
+/**
+ * Every built-in tool phrases its own call, in the tense the call's state asks for.
+ * A tool absent here falls back to its category phrase, or to naming itself when it has no category.
+ */
+const TOOL_TITLES: Record<string, { readonly live: UiI18nOrdinaryKey; readonly done: UiI18nOrdinaryKey }> = {
+  create: { live: "ui.answer.call.create", done: "ui.answer.call.create.done" },
+  deliver: { live: "ui.answer.call.deliver", done: "ui.answer.call.deliver.done" },
+  fork: { live: "ui.answer.call.fork", done: "ui.answer.call.fork.done" },
+  queue: { live: "ui.answer.call.queue", done: "ui.answer.call.queue.done" },
+  steer: { live: "ui.answer.call.steer", done: "ui.answer.call.steer.done" },
+  recall: { live: "ui.answer.call.recall", done: "ui.answer.call.recall.done" },
+  sessions: { live: "ui.answer.call.sessions", done: "ui.answer.call.sessions.done" },
+  transcript: { live: "ui.answer.call.transcript", done: "ui.answer.call.transcript.done" },
+  artifact_create: { live: "ui.answer.call.artifact_create", done: "ui.answer.call.artifact_create.done" },
+  artifact_read: { live: "ui.answer.call.artifact_read", done: "ui.answer.call.artifact_read.done" },
+  artifact_update: { live: "ui.answer.call.artifact_update", done: "ui.answer.call.artifact_update.done" },
+  artifact_delete: { live: "ui.answer.call.artifact_delete", done: "ui.answer.call.artifact_delete.done" },
+  schedule_create: { live: "ui.answer.call.schedule_create", done: "ui.answer.call.schedule_create.done" },
+  schedule_list: { live: "ui.answer.call.schedule_list", done: "ui.answer.call.schedule_list.done" },
+  schedule_pause: { live: "ui.answer.call.schedule_pause", done: "ui.answer.call.schedule_pause.done" },
+  schedule_resume: { live: "ui.answer.call.schedule_resume", done: "ui.answer.call.schedule_resume.done" },
+  schedule_delete: { live: "ui.answer.call.schedule_delete", done: "ui.answer.call.schedule_delete.done" },
+  worktree_create: { live: "ui.answer.call.worktree_create", done: "ui.answer.call.worktree_create.done" },
+  worktree_list: { live: "ui.answer.call.worktree_list", done: "ui.answer.call.worktree_list.done" },
+  worktree_remove: { live: "ui.answer.call.worktree_remove", done: "ui.answer.call.worktree_remove.done" },
+  session_move: { live: "ui.answer.call.session_move", done: "ui.answer.call.session_move.done" },
+  session_rename: { live: "ui.answer.call.session_rename", done: "ui.answer.call.session_rename.done" },
+  models: { live: "ui.answer.call.models", done: "ui.answer.call.models.done" },
+  knowledge_search: { live: "ui.answer.call.knowledge_search", done: "ui.answer.call.knowledge_search.done" },
+  list_mcp_resources: { live: "ui.answer.call.list_mcp_resources", done: "ui.answer.call.list_mcp_resources.done" },
+  read_mcp_resource: { live: "ui.answer.call.read_mcp_resource", done: "ui.answer.call.read_mcp_resource.done" },
+  experimental_image_generate: {
+    live: "ui.answer.call.experimental_image_generate",
+    done: "ui.answer.call.experimental_image_generate.done",
+  },
+  subagent: { live: "ui.answer.call.subagent", done: "ui.answer.call.subagent.done" },
+  skill: { live: "ui.answer.call.skill", done: "ui.answer.call.skill.done" },
+  todowrite: { live: "ui.answer.call.todowrite", done: "ui.answer.call.todowrite.done" },
+}
+
+/** One tool's own phrase, in the tense its state asks for. */
+function toolTitle(i18n: ReturnType<typeof useI18n>, tool: Extract<NodePayload, { kind: "tool" }>["tool"], done: boolean) {
+  const entry = TOOL_TITLES[toolLabel(tool.name)]
+
+  if (!entry) return undefined
+
+  return i18n.t(done ? entry.done : entry.live)
+}
+
+/** The short noun a summary calls a tool by: English keeps the advertised name, Chinese names the action. */
+const TOOL_NAMES: Record<string, UiI18nOrdinaryKey> = {
+  create: "ui.answer.tool.name.create",
+  deliver: "ui.answer.tool.name.deliver",
+  fork: "ui.answer.tool.name.fork",
+  queue: "ui.answer.tool.name.queue",
+  steer: "ui.answer.tool.name.steer",
+  recall: "ui.answer.tool.name.recall",
+  sessions: "ui.answer.tool.name.sessions",
+  transcript: "ui.answer.tool.name.transcript",
+  artifact_create: "ui.answer.tool.name.artifact_create",
+  artifact_read: "ui.answer.tool.name.artifact_read",
+  artifact_update: "ui.answer.tool.name.artifact_update",
+  artifact_delete: "ui.answer.tool.name.artifact_delete",
+  schedule_create: "ui.answer.tool.name.schedule_create",
+  schedule_list: "ui.answer.tool.name.schedule_list",
+  schedule_pause: "ui.answer.tool.name.schedule_pause",
+  schedule_resume: "ui.answer.tool.name.schedule_resume",
+  schedule_delete: "ui.answer.tool.name.schedule_delete",
+  worktree_create: "ui.answer.tool.name.worktree_create",
+  worktree_list: "ui.answer.tool.name.worktree_list",
+  worktree_remove: "ui.answer.tool.name.worktree_remove",
+  session_move: "ui.answer.tool.name.session_move",
+  session_rename: "ui.answer.tool.name.session_rename",
+  models: "ui.answer.tool.name.models",
+  knowledge_search: "ui.answer.tool.name.knowledge_search",
+  list_mcp_resources: "ui.answer.tool.name.list_mcp_resources",
+  read_mcp_resource: "ui.answer.tool.name.read_mcp_resource",
+  experimental_image_generate: "ui.answer.tool.name.experimental_image_generate",
+  todowrite: "ui.answer.tool.name.todowrite",
+  question: "ui.answer.tool.name.question",
+  skill: "ui.answer.tool.name.skill",
+  subagent: "ui.answer.tool.name.subagent",
+}
+
+/** One category's phrase. Tools with no category of their own are named rather than called "tools". */
+function stepLabel(i18n: ReturnType<typeof useI18n>, kind: ProcessActivity, group: TimelineGroup, done: boolean) {
+  if (kind === "tools" && group.uncategorized.length > 0 && group.uncategorized.length <= 2)
+    return i18n.t(done ? "ui.answer.step.done.named" : "ui.answer.step.named", {
+      tool: i18n.list(
+        group.uncategorized.map((name) => {
+          const key = TOOL_NAMES[name]
+
+          return key ? i18n.t(key) : name
+        }),
+      ),
+    })
+
+  return i18n.t(done ? STEP_DONE[kind] : STEP_LIVE[kind])
+}
+
 /** DSH's closed-group title: the top categories as one past-tense phrase. */
 function processTitle(i18n: ReturnType<typeof useI18n>, group: TimelineGroup) {
-  const labels = group.counts.slice(0, 3).map((item) => i18n.t(STEP_DONE[item.kind]))
+  const labels = group.counts.slice(0, 3).map((item) => stepLabel(i18n, item.kind, group, true))
   const first = labels[0]
 
   if (first === undefined) return i18n.t(STEP_DONE.thinking)
@@ -200,7 +300,7 @@ function processTitle(i18n: ReturnType<typeof useI18n>, group: TimelineGroup) {
 }
 
 function liveTitle(i18n: ReturnType<typeof useI18n>, group: TimelineGroup) {
-  return i18n.t(STEP_LIVE[group.running ?? group.counts[0]?.kind ?? "thinking"])
+  return stepLabel(i18n, group.running ?? group.counts[0]?.kind ?? "thinking", group, false)
 }
 
 /** The answer column: one column of turns, each with its process run and answer. */
@@ -846,10 +946,24 @@ function GroupSeat(props: {
 
   const activity = () => props.group.running ?? props.group.counts[0]?.kind ?? "thinking"
 
+  // Tools in the group agree on a mark, so the heading carries it; otherwise the category mark stays.
+  const icon = (): IconName => {
+    const declared = props.group.icon
+
+    return declared && isIconName(declared) ? declared : ACTIVITY_ICONS[activity()]
+  }
+
   // Standard appends the live task detail to the category summary while the group is still running.
   const detail = () => (props.view === "standard" && live() ? props.group.runningDetail : "")
 
-  const title = () => (live() ? liveTitle(i18n, props.group) : processTitle(i18n, props.group))
+  const title = () => {
+    // A run of one tool phrases that tool itself; a mixed run still reads as a summary of categories.
+    const own = props.group.single && props.group.lead ? toolTitle(i18n, props.group.lead, !live()) : undefined
+
+    if (own) return own
+
+    return live() ? liveTitle(i18n, props.group) : processTitle(i18n, props.group)
+  }
   const bodyID = createUniqueId()
 
   return (
@@ -873,7 +987,7 @@ function GroupSeat(props: {
         }}
       >
         <span class="flex min-w-0 items-center" data-slot="answer-group-leading">
-          <LeadingSlot icon={<FlowIcon name={ACTIVITY_ICONS[activity()]} />} open={props.open} scope="heading" />
+          <LeadingSlot icon={<FlowIcon name={icon()} />} open={props.open} scope="heading" />
         </span>
         <span class="flex h-[24px] min-w-0 flex-1 items-center overflow-hidden" data-slot="answer-group-content">
           <span class="shrink-0">
@@ -1321,6 +1435,26 @@ function ToolRow(props: {
   const [copied, setCopied] = createSignal(false)
   let copyTimer: number | undefined
 
+  // The tool declares its own mark; parts recorded before that field resolve by name, and only an unknown one falls back.
+  const icon = (): IconName => {
+    const declared = toolMark(props.tool)
+
+    return isIconName(declared) ? declared : "tool-default"
+  }
+
+  // A tool with its own phrase uses it; the rest fall back to the category, then to naming themselves.
+  const title = () => {
+    const own = toolTitle(i18n, props.tool, !running())
+
+    if (own) return own
+
+    const key = actionKey(props.tool.name)
+
+    if (key !== "call") return i18n.t(TOOL_ACTIONS[key])
+
+    return i18n.t("ui.answer.tool.callNamed", { tool: toolLabel(props.tool.name) })
+  }
+
   onCleanup(() => {
     if (copyTimer !== undefined) window.clearTimeout(copyTimer)
   })
@@ -1349,13 +1483,13 @@ function ToolRow(props: {
 
   return (
     <DisclosureRow
-      title={i18n.t(TOOL_ACTIONS[actionKey(props.tool.name)])}
+      title={title()}
       summary={summary()}
       summaryDanger={failed()}
       state={failed() ? "error" : running() ? "running" : "ok"}
       expanded={expanded()}
       leading={
-        <Show when={running()} fallback={<FlowIcon name={ACTIVITY_ICONS[toolActivity(props.tool.name)]} />}>
+        <Show when={running()} fallback={<FlowIcon name={icon()} />}>
           <span data-slot="answer-tool-spinner" class="grid size-[18px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[18px] [&_svg]:translate-y-[0.5px]">
             <Spinner width={18} height={18} class="size-[18px]" />
           </span>

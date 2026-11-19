@@ -256,6 +256,7 @@ export const Plugin = {
         if (!enabled || imageGenerate(loaded.entries) === false) return
         editor.add({
           name,
+          icon: "tool-experimental_image_generate",
           options: { codemode: false },
           description,
           input: Input,

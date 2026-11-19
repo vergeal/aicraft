@@ -1608,7 +1608,7 @@ export type SessionToolInputStarted = {
   type: "session.tool.input.started"
   durable: { aggregateID: string; seq: EventSeq; version: 1 }
   location?: LocationRef
-  data: { sessionID: SessionID; assistantMessageID: SessionMessageID; id: string; name: string }
+  data: { sessionID: SessionID; assistantMessageID: SessionMessageID; id: string; name: string; icon?: string }
 }
 
 export type SessionToolInputEnded = {
@@ -2690,6 +2690,7 @@ export type SessionMessageAssistantTool = {
   type: "tool"
   id: string
   name: string
+  icon?: string
   executed?: boolean
   native?: SessionMessageNative
   state:
@@ -2712,6 +2713,7 @@ export type SessionMessageAssistantTool1 = {
   type: "tool"
   id: string
   name: string
+  icon?: string
   executed?: boolean
   native?: SessionMessageNative1
   state:

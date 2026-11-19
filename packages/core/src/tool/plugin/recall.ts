@@ -114,6 +114,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-recall",
           options: { codemode: false },
           description,
           input: Input,

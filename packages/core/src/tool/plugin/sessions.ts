@@ -74,6 +74,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-sessions",
           options: { codemode: false },
           description,
           input: Input,

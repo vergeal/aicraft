@@ -161,6 +161,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-deliver",
           options: { codemode: false },
           description,
           input: Input,

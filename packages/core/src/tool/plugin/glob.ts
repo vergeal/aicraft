@@ -57,6 +57,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-glob",
           options: { codemode: false },
           description: 'Search file paths using a glob pattern (examples: "**/*.ts", "src/**/*.tsx").',
           input: Input,

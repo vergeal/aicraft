@@ -29,6 +29,8 @@ import { llmClient } from "../../effect/app-node-platform.js"
 import { StepFailedError } from "../error.js"
 import { SessionRunnerRetry } from "./retry.js"
 import { SessionStep } from "./step.js"
+import { Tool } from "../../tool.js"
+import { effectiveName } from "../../tool/runtime.js"
 import { ToolOutput } from "../../tool-output.js"
 import { Plugin } from "../../plugin.js"
 import { PluginHooks } from "../../plugin/hooks.js"
@@ -57,6 +59,7 @@ const layer = Layer.effect(
     const jobs = yield* Job.Service
     const title = yield* SessionTitle.Service
     const steps = yield* SessionStep.make
+    const registry = yield* Tool.Service
     // Title generation starts once input is visible and must not delay model execution.
     const titles = yield* FiberMap.make<SessionSchema.ID, void, never>()
 
@@ -288,12 +291,19 @@ const layer = Layer.effect(
               executeTool: prepared.executeTool,
             })),
           )
+        // Advertised name to the mark the tool itself declares, so the part carries its icon with no UI table.
+        const iconByName = new Map(
+          (yield* registry.list()).flatMap((tool) =>
+            tool.icon === undefined ? [] : [[effectiveName(tool), tool.icon] as const],
+          ),
+        )
         const outcome = yield* steps.attempt({
           isLocationClosed: lifecycle.isClosed,
           sessionID,
           assistantMessageID,
           agent: loaded.agent.id,
           model: loaded.model,
+          toolIcon: (name) => iconByName.get(name),
           prepared: {
             ...prepared,
             // A tool call can arrive during a reload; its permission check reads the session's agent.
@@ -461,6 +471,7 @@ export const node = makeLocationNode({
     Job.node,
     SessionTitle.node,
     Snapshot.node,
+    Tool.node,
     ToolOutput.node,
     Database.node,
   ],

@@ -135,6 +135,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-webfetch",
           options: { codemode: false },
           description,
           input: Input,

@@ -1,4 +1,5 @@
 import { additionalIcons, additionalIconViewBox } from "./icon/additional-icons"
+import { toolIcons } from "./tool-icons"
 
 // 16-unit grid weight: stroke = grid / 12 = 1.33, so it matches the 2px stroke of the 24-unit grid.
 // Every mark below uses the same weight, round caps and joins, and `currentColor` only (docs/ui/10-icons.md §1, §8).
@@ -466,6 +467,8 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M1.5 5C1.5 3.62 2.62 2.5 4 2.5H7.5C8.6 2.5 9.5 3.4 9.5 4.5V8.5C9.5 9.6 8.6 10.5 7.5 10.5H5.9L4 12C3.7 12.25 3.2 12.05 3.2 11.65V10.3C2.2 10.1 1.5 9.2 1.5 8.2V5Z"/></g><circle cx="12.6" cy="3.4" r="1.9" fill="currentColor"/>`,
   },
+  // One mark per built-in tool, keyed `tool-<name>`; a tool declares its mark on `Tool.Info.icon`.
+  ...toolIcons,
 }
 
 /** Icon names derived from the shared artwork, with no UI or runtime dependencies. */

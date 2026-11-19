@@ -79,6 +79,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-patch",
           options: { codemode: false, permission: "edit" },
           description: DESCRIPTION,
           input: Input,

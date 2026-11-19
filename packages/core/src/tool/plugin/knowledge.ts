@@ -27,6 +27,7 @@ export const Plugin = {
     yield* ctx.tool.transform((editor) => {
       editor.add({
         name: "knowledge_search",
+        icon: "tool-knowledge_search",
         description:
           "Search the knowledge libraries assigned to this Project and return the best matching passages with their document paths. Use it to ground an answer in project knowledge.",
         input: Input,

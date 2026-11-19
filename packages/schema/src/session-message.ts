@@ -172,6 +172,7 @@ export const AssistantTool = Schema.Struct({
   type: Schema.tag("tool"),
   id: Schema.String,
   name: Schema.String,
+  icon: Schema.String.pipe(optional),
   executed: Schema.Boolean.pipe(optional),
   native: Native.pipe(optional),
   state: ToolState,

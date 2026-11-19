@@ -1,0 +1,50 @@
+// Tool marks for the answer timeline: one icon per built-in tool, all drawn on the 24 grid with a 2px
+// stroke and a 2px safe area (docs/ui/10-icons.md §1, §8). A tool declares its mark on `Tool.Info.icon`;
+// any tool without one falls back to `tool-default`.
+const outline = `fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`
+
+const mark = (body: string) => ({ viewBox: "0 0 24 24", body: `<g ${outline}>${body}</g>` })
+
+export const toolIcons = {
+  "tool-read": mark(`<path d="M13.5 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V9Z"/> <path d="M13.5 3.5V9H19"/> <path d="M8.5 12.5h7"/> <path d="M8.5 15.5h7"/> <path d="M8.5 18.5h4"/>`),
+  "tool-write": mark(`<path d="M13.5 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V9Z"/> <path d="M13.5 3.5V9H19"/> <path d="M12 11v6"/> <path d="M9.4 14.4 12 17l2.6-2.6"/>`),
+  "tool-edit": mark(`<path d="M20.2 7.7a1 1 0 0 0-3.9-3.9L4.6 15.5a2 2 0 0 0-.5.8l-1.3 4.2a.5.5 0 0 0 .6.6l4.2-1.3a2 2 0 0 0 .8-.5Z"/> <path d="m14.5 5.5 4 4"/>`),
+  "tool-patch": mark(`<rect x="4.5" y="7.5" width="15" height="11" rx="3"/> <path d="M9 7.8v10.4" stroke-dasharray="2 2.4"/> <path d="M15 7.8v10.4" stroke-dasharray="2 2.4"/>`),
+  "tool-glob": mark(`<path d="M4 8a2 2 0 0 1 2-2h3.2l1.8 2.4H18a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/> <path d="M12 11.6v4.8"/> <path d="M9.9 12.8l4.2 2.4"/> <path d="M14.1 12.8l-4.2 2.4"/>`),
+  "tool-grep": mark(`<circle cx="10.5" cy="10.5" r="5.8"/> <path d="M14.8 14.8L20 20"/> <path d="M8 8.8h5"/> <path d="M8 11h5"/> <path d="M8 13.2h3"/>`),
+  "tool-shell": mark(`<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/> <path d="M7 9.5l2.8 2.8L7 15.1"/> <path d="M12.5 15.2h4.5"/>`),
+  "tool-webfetch": mark(`<circle cx="12" cy="9.5" r="6"/> <path d="M6 9.5h12"/> <path d="M12 3.5c-2 1.8-3.2 3.8-3.2 6s1.2 4.2 3.2 6c2-1.8 3.2-3.8 3.2-6s-1.2-4.2-3.2-6Z"/> <path d="M12 15.5v5.3"/> <path d="M9.6 18.4L12 20.8l2.4-2.4"/>`),
+  "tool-websearch": mark(`<circle cx="10.5" cy="9.5" r="5.5"/> <path d="M5 9.5h11"/> <path d="M10.5 4c-1.8 1.7-2.9 3.5-2.9 5.5s1.1 3.8 2.9 5.5c1.8-1.7 2.9-3.5 2.9-5.5S12.3 5.7 10.5 4Z"/> <circle cx="16.5" cy="15.5" r="3.5"/> <path d="M19 18l2 2"/>`),
+  "tool-experimental_image_generate": mark(`<rect x="3.5" y="6.5" width="12.5" height="12.5" rx="2"/> <circle cx="7" cy="10" r="1.2"/> <path d="M3.5 16.5l3.5-3.5 3 3 1.8-1.8 4.2 4.2"/> <path d="M18.5 3.2l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9Z"/>`),
+  "tool-sessions": mark(`<path d="M8 4.5h10a2 2 0 0 1 2 2V14"/> <rect x="4" y="7.5" width="14" height="12" rx="2"/> <path d="M7.5 11.5h7"/> <path d="M7.5 15h4.5"/>`),
+  "tool-transcript": mark(`<path d="M4 7a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 7v6.5a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16H6.5A2.5 2.5 0 0 1 4 13.5Z"/> <path d="M7.5 8.5h9"/> <path d="M7.5 11.5h5.5"/>`),
+  "tool-create": mark(`<path d="M3.5 7A2.5 2.5 0 0 1 6 4.5h7A2.5 2.5 0 0 1 15.5 7v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3V14.5H6A2.5 2.5 0 0 1 3.5 12Z"/> <path d="M19 4v6"/> <path d="M16 7h6"/>`),
+  "tool-deliver": mark(`<path d="M3.5 11.5L20.5 4l-6.2 16-3.3-6.5-7.5-2Z"/> <path d="M11 13.5L20.5 4"/>`),
+  "tool-steer": mark(`<circle cx="12" cy="12" r="8"/> <circle cx="12" cy="12" r="2.2"/> <path d="M12 4v5.8"/> <path d="M5.4 16.1l5-3"/> <path d="M18.6 16.1l-5-3"/>`),
+  "tool-queue": mark(`<path d="M4 13.5 6.6 5.6h10.8L20 13.5V18a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18Z"/> <path d="M4 13.5h4.2l1.6 2.6h4.4l1.6-2.6H20"/>`),
+  "tool-recall": mark(`<path d="M9.5 5.5L4.5 10l5 4.5"/> <path d="M4.5 10h9.5a5.5 5.5 0 0 1 0 11H10"/>`),
+  "tool-fork": mark(`<circle cx="7" cy="5" r="1.8"/> <circle cx="17" cy="5" r="1.8"/> <circle cx="7" cy="19" r="1.8"/> <path d="M7 6.8v10.4"/> <path d="M17 6.8v3.2a4 4 0 0 1-4 4H7"/>`),
+  "tool-subagent": mark(`<rect x="8.5" y="3.5" width="7" height="5" rx="1.5"/> <path d="M12 8.5v3"/> <path d="M5.5 14.5h13"/> <path d="M5.5 11.5v3"/> <path d="M18.5 11.5v3"/> <rect x="2.5" y="14.5" width="6" height="5" rx="1.5"/> <rect x="15.5" y="14.5" width="6" height="5" rx="1.5"/>`),
+  "tool-question": mark(`<circle cx="12" cy="12" r="8"/> <path d="M10.1 9.7a2 2 0 1 1 3 1.9c-.6.3-1 .9-1 1.5v.4"/> <circle cx="12.1" cy="16.1" r=".95" fill="currentColor" stroke="none"/>`),
+  "tool-todowrite": mark(`<path d="M4 6.2l1.4 1.4 2.2-2.6"/> <path d="M10 6.5h10"/> <path d="M4 13.2l1.4 1.4 2.2-2.6"/> <path d="M10 13.5h10"/> <path d="M4 19.5h16"/>`),
+  "tool-skill": mark(`<path d="M6.5 5.8H11a1.8 1.8 0 0 0 3.6 0H18a1.5 1.5 0 0 1 1.5 1.5v2.5a1.8 1.8 0 0 1 0 3.6v2.3a1.5 1.5 0 0 1-1.5 1.5H6.5A1.5 1.5 0 0 1 5 15.7V7.3A1.5 1.5 0 0 1 6.5 5.8Z"/>`),
+  "tool-knowledge_search": mark(`<path d="M7 6.8C5.7 6 4.1 5.6 2.6 5.8v9.2c1.5-.2 3.1.2 4.4.9 1.3-.7 2.9-1.1 4.4-.9V5.8C9.9 5.6 8.3 6 7 6.8Z"/> <path d="M7 6.8v9.1"/> <circle cx="17.5" cy="16.2" r="3.1"/> <path d="M19.7 18.4 21.4 20.1"/>`),
+  "tool-session_rename": mark(`<path d="M3.5 7A2.5 2.5 0 0 1 6 4.5h7A2.5 2.5 0 0 1 15.5 7v5a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3V14.5H6A2.5 2.5 0 0 1 3.5 12Z"/> <path d="M18.6 3.4l2 2-4.6 4.6-2.4.4.4-2.4Z"/>`),
+  "tool-session_move": mark(`<path d="M3 7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H9l-3 2.5V13H5a2 2 0 0 1-2-2Z"/> <path d="M13.5 17.5h7.5"/> <path d="M18.8 15.2L21 17.5l-2.2 2.3"/>`),
+  "tool-worktree_create": mark(`<circle cx="7" cy="5" r="1.8"/> <circle cx="7" cy="19" r="1.8"/> <circle cx="16" cy="13" r="1.8"/> <path d="M7 6.8v10.4"/> <path d="M7 12h5.2a3.8 3.8 0 0 1 3.8 3.8"/> <path d="M19.2 3.5v5"/> <path d="M16.7 6h5"/>`),
+  "tool-worktree_list": mark(`<circle cx="7" cy="5" r="1.8"/> <circle cx="7" cy="19" r="1.8"/> <circle cx="14" cy="13" r="1.8"/> <path d="M7 6.8v10.4"/> <path d="M7 12h5.2"/> <path d="M18 7h3.5"/> <path d="M18 10.5h3.5"/> <path d="M18 14h3.5"/>`),
+  "tool-worktree_remove": mark(`<circle cx="7" cy="5" r="1.8"/> <circle cx="7" cy="19" r="1.8"/> <circle cx="16" cy="13" r="1.8"/> <path d="M7 6.8v10.4"/> <path d="M7 12h5.2a3.8 3.8 0 0 1 3.8 3.8"/> <path d="M16.7 6h5"/>`),
+  "tool-models": mark(`<path d="M12 3.5l7 4v9l-7 4-7-4v-9Z"/> <path d="M5 7.5l7 4 7-4"/> <path d="M12 11.5v9"/>`),
+  "tool-artifact_create": mark(`<path d="M3.5 9.8h10v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z"/> <path d="M3.5 9.8 5.2 6.9h6.6l1.7 2.9"/> <path d="M8.5 6.9v4.9"/> <path d="M18.8 4.1v4.4"/> <path d="M16.6 6.3h4.4"/>`),
+  "tool-artifact_read": mark(`<path d="M3.5 9.8h10v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z"/> <path d="M3.5 9.8 5.2 6.9h6.6l1.7 2.9"/> <path d="M8.5 6.9v4.9"/> <circle cx="18.9" cy="6" r="2"/> <path d="M20.3 7.4 21.4 8.5"/>`),
+  "tool-artifact_update": mark(`<path d="M3.5 9.8h10v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z"/> <path d="M3.5 9.8 5.2 6.9h6.6l1.7 2.9"/> <path d="M8.5 6.9v4.9"/> <path d="M17.2 8.3 21 4.5"/> <path d="M18 4.5h3v3"/>`),
+  "tool-artifact_delete": mark(`<path d="M3.5 9.8h10v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z"/> <path d="M3.5 9.8 5.2 6.9h6.6l1.7 2.9"/> <path d="M8.5 6.9v4.9"/> <path d="M17.3 4.5 20.7 7.9"/> <path d="M20.7 4.5 17.3 7.9"/>`),
+  "tool-list_mcp_resources": mark(`<rect x="3" y="9.5" width="5" height="5" rx="1.2"/> <circle cx="19" cy="6" r="1.6"/> <circle cx="19" cy="12" r="1.6"/> <circle cx="19" cy="18" r="1.6"/> <path d="M8 11L17.4 6.6"/> <path d="M8 12h9.4"/> <path d="M8 13L17.4 17.4"/>`),
+  "tool-read_mcp_resource": mark(`<rect x="3" y="4" width="8.5" height="5" rx="1.2"/> <rect x="3" y="11.5" width="8.5" height="5" rx="1.2"/> <circle cx="5.5" cy="6.5" r=".8" fill="currentColor" stroke="none"/> <circle cx="5.5" cy="14" r=".8" fill="currentColor" stroke="none"/> <path d="M14 5.5h4a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"/> <path d="M15 9h5"/> <path d="M15 12h5"/>`),
+  "tool-schedule_create": mark(`<circle cx="10" cy="12" r="6"/> <path d="M10 8.5V12l2.2 1.3"/> <path d="M19 3.5v5"/> <path d="M16.5 6h5"/>`),
+  "tool-schedule_list": mark(`<circle cx="10" cy="11" r="6"/> <path d="M10 7.5V11l2.2 1.3"/> <path d="M16.5 15.5h5"/> <path d="M16.5 18.5h5"/>`),
+  "tool-schedule_pause": mark(`<circle cx="12" cy="12" r="8"/> <path d="M9.8 9.5v5"/> <path d="M14.2 9.5v5"/>`),
+  "tool-schedule_resume": mark(`<circle cx="12" cy="12" r="8"/> <path d="M10 9l4.5 3-4.5 3Z"/>`),
+  "tool-schedule_delete": mark(`<path d="M3.8 8.2h8.4"/> <path d="M5.9 8.2V6.9a1 1 0 0 1 1-1h2.2a1 1 0 0 1 1 1v1.3"/> <path d="M4.9 8.2v10.4a1.6 1.6 0 0 0 1.6 1.6h3a1.6 1.6 0 0 0 1.6-1.6V8.2"/> <path d="M7.4 11.5v5.6"/> <path d="M9.6 11.5v5.6"/> <circle cx="18.4" cy="6" r="2.8"/> <path d="M18.4 4.7v1.3l1 .6"/>`),
+  "tool-default": mark(`<path d="M15 5.1Q15.67 11.46 19.8 12.5 15.67 13.54 15 19.9 14.33 13.54 10.2 12.5 14.33 11.46 15 5.1Z"/> <path d="M5.4 2.4Q5.85 5.15 8.6 5.6 5.85 6.05 5.4 8.8 4.95 6.05 2.2 5.6 4.95 5.15 5.4 2.4Z"/> <path d="M7 15.6Q7.39 18.01 9.8 18.4 7.39 18.79 7 21.2 6.61 18.79 4.2 18.4 6.61 18.01 7 15.6Z"/>`),
+}

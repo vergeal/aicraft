@@ -1,7 +1,7 @@
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Option, Schema } from "effect"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
-import { toolActivity, toolDescription, toolSummary } from "./tool"
+import { toolActivity, toolDescription, toolLabel, toolMark, toolSummary } from "./tool"
 import type {
   ActivityCount,
   GroupItem,
@@ -13,6 +13,7 @@ import type {
   TimelineGroup,
   TimelineNode,
   TimelineTurn,
+  ToolContent,
 } from "./types"
 
 type TurnDraft = {
@@ -332,16 +333,25 @@ function summarizeGroup(
       items: groupItems(key, members),
       closed,
       counts: [{ kind: "context", count: 1 }],
+      uncategorized: [],
       runningDetail: "",
     }
 
   const counts = new Map<ProcessActivity, number>()
+  const names: string[] = []
+  // Tools with no category of their own are named in the summary instead of "Called tools".
+  const uncategorized: string[] = []
   const order: ProcessActivity[] = []
   let running: ProcessActivity | undefined
   let runningDetail = ""
   let runningAnchor = -1
   let reasoningStreaming = false
   let reasoningDetail = ""
+  // The heading speaks for the running call, else the last one.
+  let icon: string | undefined
+  let runningIcon: string | undefined
+  let lead: ToolContent | undefined
+  let runningLead: ToolContent | undefined
 
   for (const member of members) {
     if (member.payload.kind === "reasoning") {
@@ -362,6 +372,13 @@ function summarizeGroup(
 
     if (member.payload.kind !== "tool") continue
     const kind = toolActivity(member.payload.tool.name)
+    const memberIcon = toolMark(member.payload.tool)
+    const name = toolLabel(member.payload.tool.name)
+
+    icon = memberIcon
+    lead = member.payload.tool
+    if (!names.includes(name)) names.push(name)
+    if (kind === "tools" && !uncategorized.includes(name)) uncategorized.push(name)
 
     if (!counts.has(kind)) order.push(kind)
     counts.set(kind, (counts.get(kind) ?? 0) + 1)
@@ -372,6 +389,8 @@ function summarizeGroup(
       running = kind
       runningDetail = toolDescription(member.payload.tool) ?? ""
       runningAnchor = member.anchor
+      runningIcon = memberIcon
+      runningLead = member.payload.tool
     }
   }
 
@@ -386,6 +405,10 @@ function summarizeGroup(
     items: groupItems(key, members),
     closed,
     counts: ranked,
+    uncategorized,
+    lead: runningLead ?? lead,
+    single: names.length === 1 ? names[0] : undefined,
+    icon: runningIcon ?? icon,
     runningDetail: closed ? "" : running ? runningDetail : reasoningDetail,
   }
 

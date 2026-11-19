@@ -40,6 +40,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-websearch",
           options: { codemode: false },
           description,
           input: Input,

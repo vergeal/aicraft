@@ -94,6 +94,7 @@ export type Info<
   Output extends ValueSchema<any> | undefined = ValueSchema<any> | undefined,
 > = {
   readonly name: string
+  readonly icon?: string
   readonly input: Input
   readonly description: string
   readonly execute: (input: InputValue<Input>, context: Context) => Effect.Effect<Result<Output>, Error>

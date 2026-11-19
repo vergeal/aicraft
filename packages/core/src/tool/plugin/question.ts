@@ -55,6 +55,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-question",
           options: { codemode: false },
           description,
           input: Input,

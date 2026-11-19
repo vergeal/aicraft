@@ -52,8 +52,10 @@ export const layer = Layer.effect(
           discovered = yield* mcp.tools()
           yield* tools.transform((editor) => {
             for (const tool of discovered) {
+              const declared = metaIcon(tool._meta)
               editor.add({
                 name: tool.name,
+                ...(declared === undefined ? {} : { icon: declared }),
                 options: { namespace: namespace(tool.server), codemode: tool.codemode !== false },
                 description: tool.description ?? "",
                 input: tool.inputSchema as JsonSchema.JsonSchema,
@@ -151,6 +153,13 @@ export const layer = Layer.effect(
     })
   }),
 )
+
+// A server declares its tool's mark in the tool's own `_meta`, so no name-to-icon table is kept outside the tool.
+const metaIcon = (meta: Record<string, unknown> | undefined) => {
+  const value = meta?.["ai.opencode/icon"]
+
+  return typeof value === "string" && value !== "" ? value : undefined
+}
 
 // Only media the read tool also accepts is sent inline; other types would fail request lowering on every later turn.
 const toContent = Effect.fnUntraced(function* (part: Mcp.ToolResultContent, toolOutput: ToolOutput.Interface) {

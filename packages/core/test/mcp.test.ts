@@ -2729,6 +2729,42 @@ testEffect(Layer.empty).effect("coalesces queued MCP tool notifications after in
   )
 })
 
+// A server declares its tool's icon in the tool's own metadata, so the registry carries it onward.
+testEffect(Layer.empty).effect("registers the icon a server declares in a tool's _meta", () => {
+  const catalog = [
+    {
+      server: Mcp.ServerName.make("demo"),
+      name: "marked",
+      inputSchema: { type: "object", properties: {} },
+      _meta: { "ai.opencode/icon": "tool-shell" },
+    },
+    { server: Mcp.ServerName.make("demo"), name: "plain", inputSchema: { type: "object", properties: {} } },
+  ] satisfies Mcp.Tool[]
+
+  return Effect.gen(function* () {
+    const registry = yield* Tool.Service
+    const registration = yield* McpTool.Service
+    yield* registration.flush
+    const tools = yield* registry.list()
+
+    expect(tools.find((item) => item.id === "demo_marked")?.icon).toBe("tool-shell")
+    expect(tools.find((item) => item.id === "demo_plain")?.icon).toBeUndefined()
+  }).pipe(
+    Effect.provide(
+      AppNodeBuilder.build(LayerNode.group([Tool.node, McpTool.node, Bus.node]), [
+        Mcp.node.replace(
+          Layer.mock(Mcp.Service, {
+            awaitStartup: () => Effect.void,
+            tools: () => Effect.succeed(catalog),
+          }),
+        ),
+        Permission.node.replace(Layer.mock(Permission.Service, { assert: () => Effect.void })),
+        Image.node.replace(imagePassthrough),
+      ]),
+    ),
+  )
+})
+
 // Holds every MCP POST, including the handshake, until the test releases it.
 const gatedServer = Effect.gen(function* () {
   const started = yield* Deferred.make<void>()

@@ -55,6 +55,8 @@ interface Input {
   readonly recoverContinuation: boolean
   /** The runner owns compaction policy; the attempt invokes it only before durable output. */
   readonly recoverOverflow: Effect.Effect<boolean>
+  /** Resolves a tool's declared mark from its advertised name; the runner owns the registry lookup. */
+  readonly toolIcon?: (name: string) => string | undefined
 }
 
 const TOOLS_INTERRUPTED = { type: "aborted", message: "Tool execution interrupted" } as const
@@ -86,6 +88,7 @@ export const make = Effect.gen(function* () {
       providerMetadataKey: input.model.model.route.providerMetadataKey ?? input.model.model.provider,
       pendingSnapshot: Fiber.join(pendingStartSnapshot),
       started,
+      toolIcon: input.toolIcon,
     })
     const toolRuns: Array<{
       readonly call: ToolCall

@@ -54,6 +54,7 @@ export const Plugin = {
         if (!enabled()) return
         editor.add({
           name,
+          icon: "tool-todowrite",
           options: { codemode: false },
           description: DESCRIPTION,
           input: Input,

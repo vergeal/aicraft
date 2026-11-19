@@ -117,6 +117,7 @@ export const Plugin = {
         })
         draft.add({
           name: "session_rename",
+          icon: "tool-session_rename",
           description:
             "Rename a session, or omit sessionID to rename the current session. Use a short, specific title that summarizes the work being done.",
           input: RenameInput,
@@ -137,6 +138,7 @@ export const Plugin = {
         })
         draft.add({
           name: "session_move",
+          icon: "tool-session_move",
           description:
             "Move a session to another directory, or omit sessionID to move the current session. The current session moves at the next safe boundary; do not run destination-dependent tools in the same execute call.",
           input: MoveInput,
@@ -162,6 +164,7 @@ export const Plugin = {
         })
         draft.add({
           name: "worktree_create",
+          icon: "tool-worktree_create",
           description: "Create a named worktree. Returns its directory.",
           input: WorktreeCreateInput,
           output: Worktree.Info,
@@ -176,6 +179,7 @@ export const Plugin = {
         })
         draft.add({
           name: "worktree_list",
+          icon: "tool-worktree_list",
           description: "List a repository's worktrees.",
           input: Schema.Struct({}),
           output: Schema.Struct({ worktrees: Worktree.List }),
@@ -188,6 +192,7 @@ export const Plugin = {
         })
         draft.add({
           name: "worktree_remove",
+          icon: "tool-worktree_remove",
           description:
             "Remove a worktree. The repository location selects configuration; directory identifies the worktree to remove.",
           input: WorktreeRemoveInput,
@@ -220,6 +225,7 @@ export const Plugin = {
         })
         draft.add({
           name: "models",
+          icon: "tool-models",
           description:
             "Search the models available to use. Use this to turn a model name the user mentions into an exact reference for a tool that takes a model. Check your own provider first.",
           input: ModelsInput,

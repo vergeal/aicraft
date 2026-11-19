@@ -39,6 +39,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-skill",
           options: { codemode: false },
           description,
           input: Input,

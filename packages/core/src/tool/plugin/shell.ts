@@ -179,6 +179,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-shell",
           options: { codemode: false },
           description: description(),
           input: Input,

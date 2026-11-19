@@ -6,6 +6,26 @@ export type ToolPart = Extract<SessionMessageAssistant["content"][number], { typ
 
 export type ToolInput = ToolPart["state"]["input"]
 
+/** Names that share another tool's mark, so parts recorded before `icon` existed still resolve. */
+const MARK_ALIASES: Record<string, string> = { execute: "shell", bash: "shell" }
+
+/**
+ * The catalog mark a tool declares on `Tool.Info.icon`, or the key its advertised name implies.
+ * Parts recorded before that field existed carry no icon, so history resolves by the same convention.
+ */
+export function toolMark(tool: Pick<ToolPart, "name" | "icon">): string {
+  if (tool.icon) return tool.icon
+
+  const label = toolLabel(tool.name)
+
+  return `tool-${(MARK_ALIASES[label] ?? label).replace(/[^a-zA-Z0-9_-]/g, "_")}`
+}
+
+/** The advertised tool name without its `opencode_` namespace prefix, for display and catalog keys. */
+export function toolLabel(name: string): string {
+  return name.replace(/^opencode_/, "")
+}
+
 /** A tool's input: an object when parsed, raw text while it streams. */
 export function toolInput(tool: ToolPart): ToolInput {
   return tool.state.input

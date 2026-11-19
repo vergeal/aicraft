@@ -75,6 +75,7 @@ export const Plugin = {
         if (!enabled()) return
         editor.add({
           name: "schedule_create",
+          icon: "tool-schedule_create",
           description:
             "Schedule a prompt that wakes this session later: once after a delay, at a time, every interval, on a cron, or gated by an `if` / `until` shell (`{ run }`) or Code Mode (`{ code }`) check. Returns the schedule with its next run (or `done` immediately if `until` already matches).",
           input: Schedule.Request,
@@ -93,6 +94,7 @@ export const Plugin = {
         })
         editor.add({
           name: "schedule_list",
+          icon: "tool-schedule_list",
           description: "List this session's schedules with their status and next run, and the current time.",
           input: Schema.Struct({}),
           output: ListOutput,
@@ -110,6 +112,7 @@ export const Plugin = {
         })
         editor.add({
           name: "schedule_pause",
+          icon: "tool-schedule_pause",
           description: "Pause a schedule. It keeps its settings and does not fire until resumed.",
           input: IDInput,
           output: View,
@@ -123,6 +126,7 @@ export const Plugin = {
         })
         editor.add({
           name: "schedule_resume",
+          icon: "tool-schedule_resume",
           description:
             "Resume a paused schedule. A one-shot that fell due while paused fires once now; a repeating one resumes at its next slot.",
           input: IDInput,
@@ -137,6 +141,7 @@ export const Plugin = {
         })
         editor.add({
           name: "schedule_delete",
+          icon: "tool-schedule_delete",
           description: "Delete a schedule for good.",
           input: IDInput,
           output: RemoveOutput,

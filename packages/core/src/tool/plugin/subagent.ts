@@ -108,6 +108,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-subagent",
           options: { codemode: false },
           description,
           input: Input,

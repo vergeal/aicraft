@@ -47,6 +47,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-fork",
           options: { codemode: false },
           description,
           input: Input,

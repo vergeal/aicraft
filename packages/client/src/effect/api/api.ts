@@ -1281,6 +1281,7 @@ export type ExperimentalSessionLogOutput =
             readonly assistantMessageID: SessionMessage.ID
             readonly id: string
             readonly name: string
+            readonly icon?: string | undefined
           }
         }
       | {

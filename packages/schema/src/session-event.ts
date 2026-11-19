@@ -502,6 +502,7 @@ export namespace Tool {
       schema: {
         ...ToolBase,
         name: Schema.String,
+        icon: Schema.String.pipe(optional),
       },
     })
     export type Started = typeof Started.Type

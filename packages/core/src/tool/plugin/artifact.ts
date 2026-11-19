@@ -70,6 +70,7 @@ export const Plugin = {
 
         editor.add({
           name: "artifact_create",
+          icon: "tool-artifact_create",
           description: promptSnapshot.text,
           input: CreateToolInput,
           output: Artifact.Info,
@@ -94,6 +95,7 @@ export const Plugin = {
 
         editor.add({
           name: "artifact_read",
+          icon: "tool-artifact_read",
           description: "Read an artifact's metadata and file contents so you can inspect or update it.",
           input: ReadToolInput,
           output: Artifact.Content,
@@ -110,6 +112,7 @@ export const Plugin = {
 
         editor.add({
           name: "artifact_update",
+          icon: "tool-artifact_update",
           description: "Replace an existing artifact's files at the same ID and URL.",
           input: UpdateToolInput,
           output: Artifact.Info,
@@ -133,6 +136,7 @@ export const Plugin = {
 
         editor.add({
           name: "artifact_delete",
+          icon: "tool-artifact_delete",
           description: "Delete an artifact and remove its stored copy.",
           input: DeleteToolInput,
           output: DeleteToolOutput,

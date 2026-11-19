@@ -121,6 +121,7 @@ export const Plugin = {
       .transform((editor) =>
         editor.add({
           name,
+          icon: "tool-transcript",
           options: { codemode: false },
           description,
           input: Input,

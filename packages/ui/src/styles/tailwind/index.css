@@ -55,7 +55,7 @@
   /* Shared by the session timeline, composer dock, and drop target so their edges stay aligned.
      The values scale with the viewport so a large display gets a wider reading measure, and the
      timeline width setting overrides the default below. */
-  --container-session: min(840px, 55vw);
+  --container-session: min(760px, 55vw);
 
   --font-sans: var(--font-family-sans);
   --font-sans--font-feature-settings: var(--font-family-sans--font-feature-settings);

@@ -406,6 +406,11 @@ export function AnswerPage(props: AnswerPageProps) {
 
     if (!root) return
 
+    // The page keeps its own anchor while estimated rows measure, so a second browser correction would
+    // fight it: every row above the window that swaps its estimate for a measured box also moves the
+    // content under the reader. The virtualized timeline disables it for the same reason.
+    root.style.overflowAnchor = "none"
+
     // The cached view is removed from its parent on a session switch, which zeroes its scroll offset.
     // Only that detach may put the reader back: a reader who scrolled to the top must stay there.
     let lastTop = root.scrollTop

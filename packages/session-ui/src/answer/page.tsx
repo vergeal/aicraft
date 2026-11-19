@@ -573,6 +573,7 @@ export function AnswerPage(props: AnswerPageProps) {
     return (
       <div
         data-answer-key={key}
+        class="select-text"
         style={{ "padding-top": `${rowGaps()[position()] ?? 0}px` }}
         ref={(node) => {
           measure?.observe(node)

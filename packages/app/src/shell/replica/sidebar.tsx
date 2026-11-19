@@ -37,6 +37,7 @@ import { deliveryFrom, playDeliveryFlight, playUndoDrop } from "./envelope-fligh
 import { HEADER, LIST, ROW, SECTION } from "./sidebar-tokens"
 import { ReplicaPrimaryFooter, ReplicaPrimaryNav } from "./primary-nav"
 import { SidebarToggle } from "@/shell/sidebar-toggle"
+import { WindowsMenuBar } from "@/shell/titlebar/windows-menu"
 import { createdFrom, creatorName, playBranchGrowth } from "./session-branch"
 import { replicaRow } from "./overlay"
 
@@ -124,21 +125,12 @@ export function ReplicaSidebar() {
   )
 }
 
-/** The sidebar's top row, which the traffic lights sit in: the workspace name and the collapse toggle. */
+/** The sidebar's top row, which the traffic lights sit in: the collapse toggle and the menu bar. */
 function ReplicaSidebarHeader() {
-  const language = useLanguage()
-
   return (
     <div data-slot="replica-sidebar-header" data-ui="sidebar-header" class={HEADER}>
-      <span
-        data-slot="replica-sidebar-title"
-        class="min-w-0 truncate text-[14px] leading-5 font-semibold text-[var(--color-text-main)]"
-      >
-        {language.t("replica.workspace.name")}
-      </span>
-      <div class="ms-auto flex shrink-0 items-center gap-0.5">
-        <SidebarToggle />
-      </div>
+      <SidebarToggle />
+      <WindowsMenuBar />
     </div>
   )
 }

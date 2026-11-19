@@ -428,3 +428,12 @@
 [data-session-first-assistant] [data-timeline-row="AssistantPart"] {
   padding-top: 0;
 }
+
+/* The desktop menu portal mounts on the document body, and the menu stylesheet is unlayered with its own
+   `[data-appearance="standard"]` row radius, so it outranks the component-layer rules under `.desktop-app-menu`
+   above. Match that specificity plus the appearance attribute so a dropdown row keeps the same 10px control radius as
+   the titlebar buttons and menu labels. The portal sits outside `[data-replica]`, so the radius is a literal rather
+   than `--radius-control`. */
+[data-component="menu-v2-content"][data-appearance].desktop-app-menu [data-component="menu-v2-item"] {
+  border-radius: 10px;
+}

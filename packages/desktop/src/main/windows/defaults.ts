@@ -53,6 +53,9 @@ export function storedZoomFactor() {
 
 export function titlebarOverlay(mode: "light" | "dark" = tone(), factor = 1) {
   return {
+    // Transparent: the replica paints its own opaque titlebar across the top, and an opaque overlay would cover
+    // everything under it, including the app menu and the tab strip. The window itself is opaque on Windows, so
+    // nothing behind the chrome shows through.
     color: "#00000000",
     symbolColor: mode === "dark" ? "white" : "black",
     height: Math.max(titlebarHeight, Math.round(titlebarHeight * factor)),

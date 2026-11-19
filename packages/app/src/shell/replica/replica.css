@@ -165,6 +165,10 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica]
   --color-rail: rgb(33 33 33 / 90%);
   --color-navigation: rgb(26 26 26 / 92%);
   --color-sidebar: rgb(26 26 26 / 92%);
+  /* The glass group above redeclares these as ink washes for the light theme; without this pair a dark window
+     inherits the 5% black hover and every button's fill disappears on the near-black chrome. */
+  --color-hover: rgb(255 255 255 / 8%);
+  --color-selected: rgb(255 255 255 / 12%);
 }
 
 /* 实现 A 的窗户是纯中性灰：面板与抬升面只差明度，没有任何色相偏移。之前那层「受光」蓝紫渐变把导航面染成了
@@ -436,12 +440,10 @@ html[data-os="macos"]
   background: transparent;
 }
 
-/* The column's own edges fade to signal that the list scrolls, so no scrollbar is drawn. `thin` would hand the
-   column back to Chromium's native Windows scrollbar, and a resize that makes the list overflow would then paint a
-   bright hairline down the navigation column. */
-[data-slot="replica-sidebar-scroll"] {
-  scrollbar-width: none;
-}
+/* The column's own edges fade to signal that the list scrolls, and the shared native scrollbar from
+   `styles/scrollbar.css` draws its 4px thumb over the rows while the column is hovered. Keep `scrollbar-width` at auto:
+   `none` would hide it, and `thin` would hand the column back to Chromium's native Windows scrollbar instead of the
+   shared thumb. */
 
 /* Rows leave the list through its top and bottom edges. Fade those edges so a row fades out instead of being cut
    off mid-height. A list that still fits fades nowhere: the sidebar marks only the edges it can actually scroll to. */
@@ -925,9 +927,39 @@ html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-m
 }
 
 /* The navigation column shares the titlebar tint, so the chrome reads as one bar across the top while the workspace
-   sits below it. */
+   sits below it. Windows takes the navigation tint itself rather than the titlebar alias: the light glass column
+   normally adds an 8% white wash over the material, and beside the titlebar that made the top row read as two
+   translucent halves. */
 html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-sidebar"] {
+  background: var(--color-navigation);
+}
+
+/* The replica titlebar is transparent elsewhere so the workspace canvas continues behind it. On Windows the window
+   root paints a darker fill, so a transparent titlebar read as a see-through band next to the opaque navigation
+   column. Give it the column's opaque tint; the window controls sit in a transparent overlay above it. */
+html[data-replica-window="translucent"][data-os="windows"] [data-replica] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
   background-color: var(--color-titlebar);
+}
+
+/* The back/forward controls open the topbar at the workspace's left edge, so they align with the panel below
+   instead of sitting one gutter in from it. */
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-titlebar"] {
+  padding-inline-start: 0;
+}
+
+/* Collapsed, the toggle moves into the topbar and the workspace starts at the window edge. Keep the 6px gap it has
+   in the sidebar header so it never sits flush against the frame. */
+html[data-replica-window="translucent"][data-os="windows"]
+  [data-slot="replica-sidebar-slot"][data-collapsed]
+  + [data-slot="replica-main"]
+  [data-slot="replica-titlebar"] {
+  padding-inline-start: 6px;
+}
+
+/* Both the sidebar header and the collapsed topbar lead with the toggle, so it holds one 6px gap from the window's
+   start edge in either state. */
+html[data-replica-window="translucent"][data-os="windows"] [data-replica] {
+  --sidebar-header-lead: 6px;
 }
 
 /* Windows keeps one flat tint above the workspace panel: the navigation column, the titlebar and the strip of

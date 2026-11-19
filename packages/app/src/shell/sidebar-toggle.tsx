@@ -108,7 +108,7 @@ export function SidebarToggle(props: { handoff?: "out" | "in" }) {
         type="button"
         variant="ghost-muted"
         size="large"
-        class="shrink-0"
+        class="shrink-0 rounded-[var(--radius-control)]"
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => settings.appearance.setSidebarOpen(!settings.appearance.sidebarOpen())}
         aria-label={language.t(unread() ? "command.sidebar.toggle.unread" : "command.sidebar.toggle")}
@@ -116,7 +116,7 @@ export function SidebarToggle(props: { handoff?: "out" | "in" }) {
         aria-controls="vertical-tabs-sidebar"
         icon={
           side === "in" ? (
-            <span class="relative flex">
+            <span class="relative -top-px flex">
               <Icon ref={full} name="layout-left-full" />
               <span ref={outline} class="absolute inset-0 flex">
                 <Icon name="layout-left" />
@@ -124,7 +124,7 @@ export function SidebarToggle(props: { handoff?: "out" | "in" }) {
               </span>
             </span>
           ) : (
-            <span class="relative flex">
+            <span class="relative -top-px flex">
               <Icon
                 name={
                   side === "out" || (!side && settings.appearance.sidebarOpen()) ? "layout-left-full" : "layout-left"

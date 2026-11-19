@@ -17,6 +17,7 @@ import { createTitlebarHistory } from "@/shell/titlebar/history-store"
 import { useLayout } from "@/shell/state/layout"
 import { findSessionTab, useTabs } from "@/shell/tabs/tabs"
 import { SidebarToggle } from "@/shell/sidebar-toggle"
+import { WindowsMenuBar } from "@/shell/titlebar/windows-menu"
 
 const BUTTON =
   "flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)] disabled:opacity-40 disabled:pointer-events-none"
@@ -214,10 +215,11 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
 
   return (
     <header data-slot="replica-titlebar" data-ui="content-topbar">
-      {/* Collapsed, the sidebar's own header is gone, so the topbar offers the way back in. Opened, the sidebar header
-          carries that toggle and this row stays pure location. */}
+      {/* Collapsed, the sidebar's own header is gone, so the topbar offers the way back in and the menu bar that
+          otherwise sits beside it. Opened, the sidebar header carries both and this row starts at the workspace. */}
       <Show when={!props.sidebarOpen}>
         <SidebarToggle />
+        <WindowsMenuBar />
       </Show>
 
       <div data-slot="replica-titlebar-nav" data-ui="titlebar-nav" class="flex shrink-0 items-center gap-0.5">

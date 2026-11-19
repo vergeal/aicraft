@@ -1,7 +1,7 @@
 ## Localization
 
 - NEVER hardcode user-visible English strings in production code. ALWAYS use an i18n key for component defaults, visible copy, placeholders, accessible labels, tooltips, dialogs, toasts, empty states, and displayed errors.
-- Feature work adds English source strings only. Leave non-English keys absent so the runtime English fallback applies; translations land separately after language review.
+- Chinese is the first language of the client UI. Feature work writes the Simplified Chinese copy in `zh.ts` together with each new key; `en.ts` stays the typed key source and the runtime fallback. Every other locale lands separately after language review.
 - Render count-sensitive copy through `plural(baseKey, count, params)`. Never select or pass `.zero`, `.one`, `.two`, `.few`, `.many`, or `.other` variants to `t(...)`; `pluralForm(...)` is reserved for components that animate individual grammatical forms.
 - When migrating existing copy to i18n, preserve the English text byte-for-byte unless the task explicitly requests a copy change.
 - NEVER change existing English text or English keys to facilitate translation. English is intentional, designer-written source copy; adapt locale-specific translations and i18n mechanics around it.

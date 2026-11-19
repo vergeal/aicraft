@@ -887,7 +887,10 @@ function ConversationNav() {
                         class={`${ROW} font-medium`}
                         onClick={() => toggleProject(group().key)}
                       >
-                        <Icon name="folder" class="size-4 shrink-0 text-[var(--color-icon-secondary)]" />
+                        <Icon
+                          name={foldedProjects().has(group().key) ? "folder" : "folder-open"}
+                          class="size-4 shrink-0 text-[var(--color-icon-secondary)]"
+                        />
                         <span class="min-w-0 flex-1 truncate">{group().name}</span>
                         <Icon
                           name="chevron-down"

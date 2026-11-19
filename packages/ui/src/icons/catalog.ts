@@ -1,5 +1,15 @@
 import { additionalIcons, additionalIconViewBox } from "./icon/additional-icons"
 
+// 16-unit grid weight: stroke = grid / 12 = 1.33, so it matches the 2px stroke of the 24-unit grid.
+// Every mark below uses the same weight, round caps and joins, and `currentColor` only (docs/ui/10-icons.md §1, §8).
+const outline16 = `fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"`
+
+// One bubble outline backs both the conversation marks and the titlebar entry, so the pair stays
+// pixel-identical instead of drifting apart (docs/ui/10-icons.md §2 single source, §4 paired marks).
+const messageBubblePath = "M1.5 5C1.5 3.62 2.62 2.5 4 2.5H12C13.38 2.5 14.5 3.62 14.5 5V9C14.5 10.38 13.38 11.5 12 11.5H7.6C7.3 11.5 7 11.6 6.8 11.8L4.2 14.1C3.9 14.4 3.4 14.2 3.4 13.8V11.4C2.3 11.1 1.5 10.2 1.5 9V5Z"
+
+const messageBubble = `<g ${outline16}><path d="${messageBubblePath}"/></g>`
+
 // Consumers center the SVG viewport, so each icon must center its artwork within its viewBox.
 const icons = {
   "outline-list-changelog": {
@@ -30,21 +40,9 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<path d="M13.5556 8.21529V13.5556H2.44446L2.44446 2.44445H7.78474M6.00002 8.16216V10H7.83786L14 3.83784L12.1622 2L6.00002 8.16216Z" stroke="currentColor"/>`,
   },
-  "folder-add-left": {
-    viewBox: "0 0 16 16",
-    body: `<path d="M7.5 13.3333H1.5V2H6.83333L8.83333 4H14.8333V6M10.1667 11.3333H15.5M12.8333 8.66667V14" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="square"/>`,
-  },
-  folder: {
-    viewBox: "0 0 16 16",
-    body: `<path d="M1.33337 2V13.3333H14.6667V4H8.66671L6.66671 2H1.33337Z" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="square"/>`,
-  },
   branch: {
     viewBox: "0 0 16 16",
     body: `<path d="M5.118 5.686V10.314M5.118 5.686C5.97 5.686 6.661 4.995 6.661 4.143C6.661 3.291 5.97 2.6 5.118 2.6C4.266 2.6 3.575 3.291 3.575 4.143C3.575 4.995 4.266 5.686 5.118 5.686ZM5.118 10.314C4.266 10.314 3.575 11.005 3.575 11.857C3.575 12.709 4.266 13.4 5.118 13.4C5.97 13.4 6.661 12.709 6.661 11.857M5.118 10.314C5.97 10.314 6.661 11.005 6.661 11.857M10.882 5.686C11.734 5.686 12.425 4.995 12.425 4.143C12.425 3.291 11.734 2.6 10.882 2.6C10.03 2.6 9.339 3.291 9.339 4.143C9.339 4.995 10.03 5.686 10.882 5.686ZM10.882 5.686V9.457C10.882 10.783 9.807 11.857 8.482 11.857H6.661" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>`,
-  },
-  "branch-out": {
-    viewBox: "0 0 16 16",
-    body: `<path d="M10.4225 3.35355L12.9024 5.83344L10.4225 8.31333" stroke="currentColor"/><path d="M1 12.2852H4.23042C4.89912 12.2852 5.52359 11.951 5.89452 11.3946L9.00783 6.72462C8.37877 6.16823 10.0032 5.83402 10.6719 5.83402H12.9024" stroke="currentColor"/><path d="M8.5 12.2852H14" stroke="currentColor" stroke-linejoin="round"/>`,
   },
   "grid-plus": {
     viewBox: "0 0 16 16",
@@ -117,22 +115,6 @@ const icons = {
   monitor: {
     viewBox: "0 0 16 16",
     body: `<path d="M4.05559 9.38889H0.500007C0.500007 9.38889 0.500017 8.59298 0.500017 7.61112V2.27778C0.500017 1.29594 0.500102 0.5 0.500102 0.5H13.3889C13.3889 0.5 13.3889 1.29594 13.3889 2.27778V7.61112C13.3889 8.59298 13.3889 9.38889 13.3889 9.38889H9.83336M4.05559 9.38889V11.6111H6.94448H9.83336V9.38889M4.05559 9.38889H9.83336" transform="translate(1.05556 1.94444)" stroke="currentColor"/>`,
-  },
-  "workspace-new": {
-    viewBox: "0 0 16 16",
-    body: `<path d="M2 10.7578V14.0011H5.24324M13.9991 5.24324V2H10.7559M13.9991 10.7578V14.0011H10.7559M2 5.24324V2H5.24324" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="square"/><path d="M8 4.5V11.5M4.5 8H11.5" stroke="currentColor" stroke-linejoin="round"/>`,
-  },
-  "workspace-isolated": {
-    viewBox: "0 0 16 16",
-    body: `<path d="M10.5 10.5V5.5H5.5V10.5H10.5Z" fill="currentColor"/><rect x="2.5" y="2.5" width="11" height="11" stroke="currentColor"/>`,
-  },
-  workspace: {
-    viewBox: "0 0 16 16",
-    body: `<path d="M2 10.668V14.0013H10.6667M13.9974 10.6667V2H2.66406M13.9974 10.668V14.0013H10.6641M2 10V2H5.33333" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="square"/><path d="M10.6693 10.6654V5.33203H5.33594V10.6654H10.6693Z" fill="currentColor"/>`,
-  },
-  "outline-worktree": {
-    viewBox: "0 0 16 16",
-    body: `<path d="M12 3.11133L14.3885 5.49977L12 7.88822M14.5 5.49972H10.058L5.13456 11.8139M14.5 11.6606L8.5 11.6606M5.50012 11.6597H1.5" stroke="currentColor"/>`,
   },
   "outline-trash": {
     viewBox: "0 0 16 16",
@@ -310,10 +292,6 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<path d="M14.5 8.01193V8" stroke-linecap="square" stroke="currentColor"/><path d="M1.5 8.00607V7.99414" stroke-linecap="square" stroke="currentColor"/><path d="M3.66699 10.5141V5.48438" stroke-linecap="square" stroke="currentColor"/><path d="M10.167 10.5141V5.48438" stroke-linecap="square" stroke="currentColor"/><path d="M8 11.6004V4.39844" stroke-linecap="square" stroke="currentColor"/><path d="M12.333 9.20144V6.80078" stroke-linecap="square" stroke="currentColor"/><path d="M5.83301 13.5323V2.4668" stroke-linecap="square" stroke="currentColor"/>`,
   },
-  comment: {
-    viewBox: "0 0 16 16",
-    body: `<path d="M13.5 2.5H2.5V13.5H4.5L5.5 11.5H13.5V2.5Z" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="square"/>`,
-  },
   archive: {
     viewBox: "0 0 16 16",
     body: `<path d="M13.1112 13.5555V14.0555H13.6112V13.5555H13.1112ZM2.889 13.5555H2.389L2.389 14.0555H2.889V13.5555ZM3.38901 5.55546L3.38901 5.05546L2.38901 5.05546L2.38901 5.55546L2.88901 5.55546L3.38901 5.55546ZM14.4446 2.44434H14.9446V1.94434L14.4446 1.94434L14.4446 2.44434ZM14.4446 5.55545L14.4446 6.05545L14.9446 6.05545V5.55545H14.4446ZM1.55566 5.55546L1.05566 5.55545L1.05566 6.05546L1.55566 6.05546L1.55566 5.55546ZM1.5557 2.44436L1.5557 1.94436L1.05571 1.94436L1.0557 2.44435L1.5557 2.44436ZM13.1112 5.55546H12.6112V13.5555H13.1112H13.6112V5.55546H13.1112ZM2.889 13.5555H3.389L3.38901 5.55546L2.88901 5.55546L2.38901 5.55546L2.389 13.5555H2.889ZM14.4446 2.44434H13.9446V5.55545H14.4446H14.9446V2.44434H14.4446ZM1.55566 5.55546L2.05566 5.55547L2.0557 2.44436L1.5557 2.44436L1.0557 2.44435L1.05566 5.55545L1.55566 5.55546ZM6.22234 8.22213V8.72213H9.7779V8.22213V7.72213H6.22234V8.22213ZM13.1112 13.5555V13.0555H2.889V13.5555V14.0555H13.1112V13.5555ZM1.5557 2.44436L1.5557 2.94436L14.4446 2.94434L14.4446 2.44434L14.4446 1.94434L1.5557 1.94436L1.5557 2.44436ZM14.4446 5.55545L14.4446 5.05545L1.55566 5.05546L1.55566 5.55546L1.55566 6.05546L14.4446 6.05545L14.4446 5.55545Z" fill="currentColor"/>`,
@@ -413,6 +391,73 @@ const icons = {
   "answer-interrupted": {
     viewBox: "0 0 14 14",
     body: `<path d="M7 2.4a4.6 4.6 0 1 0 0 9.2A4.6 4.6 0 0 0 7 2.4ZM5.6 5.6h2.8v2.8H5.6Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  // Project set: one rounded macOS-style folder/window language shared by the project row, its
+  // branches, and its workspaces. Every corner is an explicit arc (r≈1.5-2) so the marks read soft
+  // at the 16px default size instead of relying on `stroke-linejoin`, which caps at 0.67.
+  folder: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 12.5V5C1.5 3.9 2.4 3 3.5 3H7.2C7.6 3 7.9 3.15 8.2 3.4L9.8 5H12.5C13.6 5 14.5 5.9 14.5 7V12.5C14.5 13.6 13.6 14.5 12.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5Z"/></g>`,
+  },
+  // The open state of a project row: same tab and body as `folder`, with a tilted front panel that
+  // reads as "expanded" at 16px without any interior detail.
+  "folder-open": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 12.6V5C1.5 3.9 2.4 3 3.5 3H7.2C7.6 3 7.9 3.15 8.2 3.4L9.8 5H12.5C13.6 5 14.5 5.9 14.5 7V8.6"/><path d="M1.5 12.6C1.5 13.4 2.2 14.1 3 14.1H11.4C12 14.1 12.6 13.7 12.8 13.1L15.1 7.9C15.3 7.3 14.9 6.6 14.2 6.6H4.9C4.3 6.6 3.7 7 3.5 7.6L1.5 12.6Z"/></g>`,
+  },
+  "folder-add-left": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M7 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V5C1.5 3.9 2.4 3 3.5 3H7.2C7.6 3 7.9 3.15 8.2 3.4L9.8 5H12.5C13.6 5 14.5 5.9 14.5 7V8"/><path d="M11 10.5V14.5M9 12.5H13"/></g>`,
+  },
+  "file-tree": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M2.5 3V13.5M2.5 6H7.5M2.5 10.5H7.5"/><path d="M10 4.5H13C13.55 4.5 14 4.95 14 5.5V6.5C14 7.05 13.55 7.5 13 7.5H10C9.45 7.5 9 7.05 9 6.5V5.5C9 4.95 9.45 4.5 10 4.5Z"/><path d="M10 9H13C13.55 9 14 9.45 14 10V11C14 11.55 13.55 12 13 12H10C9.45 12 9 11.55 9 11V10C9 9.45 9.45 9 10 9Z"/></g>`,
+  },
+  workspace: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 3.5C1.5 2.4 2.4 1.5 3.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V3.5Z"/></g><circle cx="8" cy="8" r="2" fill="currentColor"/>`,
+  },
+  "workspace-new": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M14.5 9V3.5C14.5 2.4 13.6 1.5 12.5 1.5H3.5C2.4 1.5 1.5 2.4 1.5 3.5V12.5C1.5 13.6 2.4 14.5 3.5 14.5H9"/><path d="M11.5 10V13.5M9.75 11.75H13.25"/></g>`,
+  },
+  "workspace-isolated": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 3.5C1.5 2.4 2.4 1.5 3.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V3.5Z"/><path d="M6 5H10C10.55 5 11 5.45 11 6V10C11 10.55 10.55 11 10 11H6C5.45 11 5 10.55 5 10V6C5 5.45 5.45 5 6 5Z"/></g>`,
+  },
+  "outline-worktree": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M3 2.5V13.5"/><path d="M3 9.5C3 7.3 4.8 5.5 7 5.5H11"/></g><circle cx="12.3" cy="5.5" r="1.3" fill="currentColor"/>`,
+  },
+  "branch-out": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M2.5 7H6C6.6 7 7.1 7.3 7.4 7.7L9.6 10.3C9.9 10.7 10.4 11 11 11H13.5"/><path d="M11 8.5L13.5 11L11 13.5"/></g>`,
+  },
+  // Message set: one rounded bubble shared by rows and the titlebar entry, plus companions whose own
+  // silhouette carries the extra meaning rather than interior detail that would blur at 14-16px.
+  "bubble-5": {
+    viewBox: "0 0 16 16",
+    body: messageBubble,
+  },
+  "speech-bubble": {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M2.5 5C2.5 3.9 3.4 3 4.5 3H11.5C12.6 3 13.5 3.9 13.5 5V9C13.5 10.1 12.6 11 11.5 11H8.4L5.4 13.2C5.1 13.45 4.6 13.25 4.6 12.85V11H4.5C3.4 11 2.5 10.1 2.5 9V5Z"/></g>`,
+  },
+  comment: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 4C1.5 2.9 2.4 2 3.5 2H12.5C13.6 2 14.5 2.9 14.5 4V9C14.5 10.1 13.6 11 12.5 11H8.4L5.4 13.2C5.1 13.45 4.6 13.25 4.6 12.85V11C3 11 1.5 9.9 1.5 8.5V4Z"/><path d="M4.5 5.5H11.5M4.5 8H9"/></g>`,
+  },
+  "titlebar-chat": {
+    viewBox: "0 0 16 16",
+    body: messageBubble,
+  },
+  prompt: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 4C1.5 2.9 2.4 2 3.5 2H12.5C13.6 2 14.5 2.9 14.5 4V12C14.5 13.1 13.6 14 12.5 14H3.5C2.4 14 1.5 13.1 1.5 12V4Z"/><path d="M5 8H10"/><path d="M8 5.5L10.5 8L8 10.5"/></g>`,
+  },
+  notifications: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M1.5 5C1.5 3.62 2.62 2.5 4 2.5H7.5C8.6 2.5 9.5 3.4 9.5 4.5V8.5C9.5 9.6 8.6 10.5 7.5 10.5H5.9L4 12C3.7 12.25 3.2 12.05 3.2 11.65V10.3C2.2 10.1 1.5 9.2 1.5 8.2V5Z"/></g><circle cx="12.6" cy="3.4" r="1.9" fill="currentColor"/>`,
   },
 }
 

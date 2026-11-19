@@ -189,10 +189,14 @@ export function loadLocaleDict(locale: Locale) {
 }
 
 function detectLocale(): Locale {
+  // Chinese is the product's first language: with no stored choice the UI starts in Simplified
+  // Chinese, and only a system that explicitly asks for Traditional Chinese overrides it.
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- probing for a browser global
-  if (typeof navigator !== "object") return "en"
+  if (typeof navigator !== "object") return "zh"
 
-  return detectDesktopNativeLocale(navigator.languages?.length ? navigator.languages : [navigator.language])
+  const languages = navigator.languages?.length ? navigator.languages : [navigator.language]
+
+  return detectDesktopNativeLocale(languages) === "zht" ? "zht" : "zh"
 }
 
 export function normalizeLocale(value: string): Locale {

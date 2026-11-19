@@ -250,7 +250,7 @@ export function KnowledgeScreen() {
             when={libraries().length > 0}
             fallback={
               <div class="flex h-full flex-col items-center justify-center gap-3 text-center">
-                <Icon name="folder" class="text-v2-text-text-faint" />
+                <Icon name="library" class="text-v2-text-text-faint" />
                 <p class="text-[13px] leading-[var(--line-height-base)]">{language.t("knowledge.empty")}</p>
                 <p class="text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-muted">
                   {language.t("knowledge.empty.hint")}

@@ -14,6 +14,11 @@ const KIND_ICONS = {
   result: "file-document",
 } as const
 
+/** Knowledge notices borrow the library mark, so an index result never reads as a generic document. */
+function kindIcon(item: InboxItem) {
+  return item.source.type === "knowledge" ? "library" : KIND_ICONS[item.kind]
+}
+
 const KIND_LABELS = {
   approval: "inbox.detail.kind.approval",
   question: "inbox.detail.kind.question",
@@ -86,7 +91,7 @@ export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () =
           />
         </Show>
         <span class="flex items-center gap-1.5 text-[12px] leading-[var(--line-height-compact)] text-v2-text-text-muted">
-          <Icon name={KIND_ICONS[props.item.kind]} />
+          <Icon name={kindIcon(props.item)} />
           {language.t(KIND_LABELS[props.item.kind])}
         </span>
         <span class={`text-[12px] leading-[var(--line-height-compact)] ${STATUS_CLASS[props.item.status]}`}>

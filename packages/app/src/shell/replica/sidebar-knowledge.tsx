@@ -86,7 +86,7 @@ function LibraryNav() {
                   class={ROW}
                   onClick={() => knowledge.openLibrary(library)}
                 >
-                  <Icon name="file-document" class="size-4 shrink-0 text-[var(--color-icon-secondary)]" />
+                  <Icon name="library" class="size-4 shrink-0 text-[var(--color-icon-secondary)]" />
                   <span class="min-w-0 flex-1 truncate">{library.name}</span>
                   <span class="shrink-0 text-[11px] tabular-nums text-[var(--color-text-faint)]">
                     {library.files.length}

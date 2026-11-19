@@ -94,6 +94,7 @@ export type IconName =
   | "layout-right"
   | "layout-right-full"
   | "layout-right-partial"
+  | "library"
   | "link"
   | "lock"
   | "magnifying-glass"

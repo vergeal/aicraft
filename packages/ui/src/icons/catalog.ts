@@ -433,6 +433,13 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M2.5 7H6C6.6 7 7.1 7.3 7.4 7.7L9.6 10.3C9.9 10.7 10.4 11 11 11H13.5"/><path d="M11 8.5L13.5 11L11 13.5"/></g>`,
   },
+  // Knowledge set: the rail's open book redrawn on the 16px grid, so the inbox notice, the library
+  // rows, and the empty state share one silhouette. Corners are explicit arcs (r≈1.3) because
+  // `stroke-linejoin` cannot reach the softness SF Symbols shows at this size.
+  library: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><path d="M8 4.1C7.05 3.55 5.7 3 4.3 3A1.3 1.3 0 0 0 3 4.3V11A1.3 1.3 0 0 0 4.3 12.3C5.7 12.3 7.05 12.85 8 13.4C8.95 12.85 10.3 12.3 11.7 12.3A1.3 1.3 0 0 0 13 11V4.3A1.3 1.3 0 0 0 11.7 3C10.3 3 8.95 3.55 8 4.1Z"/><path d="M8 4.4V13.4"/></g>`,
+  },
   // Message set: one rounded bubble shared by rows and the titlebar entry, plus companions whose own
   // silhouette carries the extra meaning rather than interior detail that would blur at 14-16px.
   "bubble-5": {

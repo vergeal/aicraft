@@ -57,6 +57,10 @@ export function AnswerTimeline(props: {
   const restore = readPosition(props.positionKey?.())
   // A reader who left at the end comes back at the end, not at the row that happened to be on top.
   let stick = restore === undefined || restore.bottom
+  // Whether this open ends at the newest message. `stick` alone cannot decide it: on a fresh page the
+  // rows have not filled the viewport yet, so the reader is not near the bottom until they land there.
+  // A reader who leaves the end clears it, so following their own scroll never pulls them back.
+  let landAtEnd = !restore || restore.bottom
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let lastPosition: SavedPosition | undefined
 
@@ -142,8 +146,12 @@ export function AnswerTimeline(props: {
     // reader who scrolled up but stayed within the composer inset, which reads as the content jumping.
     setFollowing(viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD)
 
-    // A reader who leaves the end is no longer waiting to land on it.
-    if (!stick) cancelSettle()
+    // A reader who leaves the end is no longer waiting to land on it, and must not be pulled back
+    // when a row they open changes the content height.
+    if (!stick) {
+      landAtEnd = false
+      cancelSettle()
+    }
   }
 
   const jumpToLatest = () => {
@@ -188,9 +196,6 @@ export function AnswerTimeline(props: {
   let positioned = false
   let settleTimer: ReturnType<typeof setTimeout> | undefined
   let settleDeadline = 0
-  // Whether this open ends at the newest message. `stick` alone cannot decide it: on a fresh page the
-  // rows have not filled the viewport yet, so the reader is not near the bottom until they land there.
-  const landAtEnd = !restore || restore.bottom
 
   const cancelSettle = () => {
     if (settleTimer !== undefined) clearTimeout(settleTimer)

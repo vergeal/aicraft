@@ -1,4 +1,4 @@
-import type { InboxStatus } from "./model"
+import type { InboxItem, InboxStatus } from "./model"
 import { INBOX_FILTERS, type InboxFilter } from "@/shell/state/layout"
 
 export { INBOX_FILTERS }
@@ -24,3 +24,8 @@ export const INBOX_KIND_ICONS = {
   output: "terminal",
   result: "file-document",
 } as const
+
+/** Knowledge notices borrow the library mark, so a finished index never reads as a generic document. */
+export function inboxItemIcon(item: InboxItem) {
+  return item.source.type === "knowledge" ? "library" : INBOX_KIND_ICONS[item.kind]
+}

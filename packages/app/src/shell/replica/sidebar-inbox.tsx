@@ -6,7 +6,7 @@ import {
   INBOX_FILTERS,
   INBOX_FILTER_LABELS,
   INBOX_FILTER_STATUS,
-  INBOX_KIND_ICONS,
+  inboxItemIcon,
 } from "@/inbox/filters"
 import type { InboxItem } from "@/inbox/model"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -135,7 +135,7 @@ export function InboxNav() {
                   onClick={() => open(item)}
                 >
                   <Icon
-                    name={INBOX_KIND_ICONS[item.kind]}
+                    name={inboxItemIcon(item)}
                     class="size-4 shrink-0 text-[var(--color-icon-secondary)]"
                   />
                   <span class="min-w-0 flex-1 truncate">{item.title}</span>

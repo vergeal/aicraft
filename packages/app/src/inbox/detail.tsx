@@ -4,20 +4,8 @@ import { createSignal, For, Show } from "solid-js"
 import { SessionElicitationDock } from "@/session/requests/session-elicitation-dock"
 import { getRelativeTime } from "@/shell/time"
 import { useLanguage } from "@/runtime/i18n/language"
+import { inboxItemIcon } from "./filters"
 import type { InboxItem, Inbox } from "./model"
-
-const KIND_ICONS = {
-  approval: "check",
-  question: "bubble-5",
-  failure: "outline-hexagonal-warning",
-  output: "terminal",
-  result: "file-document",
-} as const
-
-/** Knowledge notices borrow the library mark, so an index result never reads as a generic document. */
-function kindIcon(item: InboxItem) {
-  return item.source.type === "knowledge" ? "library" : KIND_ICONS[item.kind]
-}
 
 const KIND_LABELS = {
   approval: "inbox.detail.kind.approval",
@@ -91,7 +79,7 @@ export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () =
           />
         </Show>
         <span class="flex items-center gap-1.5 text-[12px] leading-[var(--line-height-compact)] text-v2-text-text-muted">
-          <Icon name={kindIcon(props.item)} />
+          <Icon name={inboxItemIcon(props.item)} />
           {language.t(KIND_LABELS[props.item.kind])}
         </span>
         <span class={`text-[12px] leading-[var(--line-height-compact)] ${STATUS_CLASS[props.item.status]}`}>

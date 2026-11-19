@@ -334,7 +334,7 @@ const icons = {
   },
   "answer-read": {
     viewBox: "0 0 14 14",
-    body: `<path d="M2.6 4.8c1.5-.7 3.2-.7 4.4.1v6.6c-1.2-.8-2.9-.8-4.4-.1ZM7 4.9c1.2-.8 2.9-.8 4.4-.1v6.6c-1.5-.7-3.2-.7-4.4.1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<path d="M2.6 3.91c1.5-.7 3.2-.7 4.4.1v6.6c-1.2-.8-2.9-.8-4.4-.1ZM7 4.01c1.2-.8 2.9-.8 4.4-.1v6.6c-1.5-.7-3.2-.7-4.4.1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
   "answer-edit": {
     viewBox: "0 0 14 14",
@@ -362,7 +362,7 @@ const icons = {
   },
   "answer-skill": {
     viewBox: "0 0 14 14",
-    body: `<path d="M2.4 6.2 7 3.6l4.6 2.6L7 8.8 2.4 6.2ZM4.6 7.4v2.2c0 .9 1.1 1.6 2.4 1.6s2.4-.7 2.4-1.6V7.4M11.6 6.2v2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<path d="M2.4 5.8 7 3.2l4.6 2.6L7 8.4 2.4 5.8ZM4.6 7v2.2c0 .9 1.1 1.6 2.4 1.6s2.4-.7 2.4-1.6V7M11.6 5.8v2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
   "answer-tool": {
     viewBox: "0 0 14 14",
@@ -397,17 +397,17 @@ const icons = {
   // at the 16px default size instead of relying on `stroke-linejoin`, which caps at 0.67.
   folder: {
     viewBox: "0 0 16 16",
-    body: `<g ${outline16}><path d="M1.5 12.5V5C1.5 3.9 2.4 3 3.5 3H7.2C7.6 3 7.9 3.15 8.2 3.4L9.8 5H12.5C13.6 5 14.5 5.9 14.5 7V12.5C14.5 13.6 13.6 14.5 12.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5Z"/></g>`,
+    body: `<g ${outline16}><path d="M1.5 11.75V4.25C1.5 3.15 2.4 2.25 3.5 2.25H7.2C7.6 2.25 7.9 2.4 8.2 2.65L9.8 4.25H12.5C13.6 4.25 14.5 5.15 14.5 6.25V11.75C14.5 12.85 13.6 13.75 12.5 13.75H3.5C2.4 13.75 1.5 12.85 1.5 11.75Z"/></g>`,
   },
   // The open state of a project row: same tab and body as `folder`, with a tilted front panel that
   // reads as "expanded" at 16px without any interior detail.
   "folder-open": {
     viewBox: "0 0 16 16",
-    body: `<g ${outline16}><path d="M1.5 12.6V5C1.5 3.9 2.4 3 3.5 3H7.2C7.6 3 7.9 3.15 8.2 3.4L9.8 5H12.5C13.6 5 14.5 5.9 14.5 7V8.6"/><path d="M1.5 12.6C1.5 13.4 2.2 14.1 3 14.1H11.4C12 14.1 12.6 13.7 12.8 13.1L15.1 7.9C15.3 7.3 14.9 6.6 14.2 6.6H4.9C4.3 6.6 3.7 7 3.5 7.6L1.5 12.6Z"/></g>`,
+    body: `<g ${outline16}><path d="M1.5 11.85V4.25C1.5 3.15 2.4 2.25 3.5 2.25H7.2C7.6 2.25 7.9 2.4 8.2 2.65L9.8 4.25H12.5C13.6 4.25 14.5 5.15 14.5 6.25V7.85"/><path d="M1.5 11.85C1.5 12.65 2.2 13.35 3 13.35H11.4C12 13.35 12.6 12.95 12.8 12.35L15.1 7.15C15.3 6.55 14.9 5.85 14.2 5.85H4.9C4.3 5.85 3.7 6.25 3.5 6.85L1.5 11.85Z"/></g>`,
   },
   "folder-add-left": {
     viewBox: "0 0 16 16",
-    body: `<g ${outline16}><path d="M7 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V5C1.5 3.9 2.4 3 3.5 3H7.2C7.6 3 7.9 3.15 8.2 3.4L9.8 5H12.5C13.6 5 14.5 5.9 14.5 7V8"/><path d="M11 10.5V14.5M9 12.5H13"/></g>`,
+    body: `<g ${outline16}><path d="M7 13.75H3.5C2.4 13.75 1.5 12.85 1.5 11.75V4.25C1.5 3.15 2.4 2.25 3.5 2.25H7.2C7.6 2.25 7.9 2.4 8.2 2.65L9.8 4.25H12.5C13.6 4.25 14.5 5.15 14.5 6.25V7.25"/><path d="M11 9.75V13.75M9 11.75H13"/></g>`,
   },
   "file-tree": {
     viewBox: "0 0 16 16",

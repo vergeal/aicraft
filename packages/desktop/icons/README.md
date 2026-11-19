@@ -16,3 +16,26 @@ macOS uses in System Settings lists. Regenerate them from the 1024px image and r
 
 For unpackaged Electron on macOS, `app.dock.setIcon()` should use a PNG. Keep `dock.png` in each channel folder synced with the
 extracted `icon_128x128@2x.png` from that channel's `icon.icns` so the dev Dock icon matches the packaged app inset.
+
+## Current artwork (2026-11)
+
+The mark now comes from `packages/ui/src/assets/brand/favicon-logo.svg`: a 24-unit grid with a 2-unit ring, scaled so the mark
+fills 62% of the icon body. The three channels share that geometry and differ only in surface colour:
+
+| Channel | Surface | Ring / core |
+| --- | --- | --- |
+| `prod` | `#131010` | `#00E08A → #00D4A0 → #00B4FF` gradient, core `#99F6E4` |
+| `beta` | `#3A3A3E` | same gradient, core `#99F6E4` |
+| `dev` | `#00C79B` | inverted: ring and core `#0B1714` |
+
+Geometry per asset:
+
+- `icon.png`, small PNGs, `Square*Logo.png`, `StoreLogo.png`, `icon.ico`: edge-to-edge rounded square, corner radius
+  22.37% of the side, transparent outside.
+- `icon.icns`: 1024 canvas, 824 body centred at inset 100, corner radius 185, drop shadow `dy 12 / blur 22 / 30%`.
+  Every smaller layer is a premultiplied-alpha LANCZOS downsample of that 1024 master, and `dock.png` is its 256 render.
+- `prod/icon.icon/Assets/icon.png`: full-bleed 1024 square; Icon Composer applies the macOS mask.
+
+Regenerating: render each master at 1024 with a transparent background, downsample with premultiplied alpha, then
+`iconutil -c icns` from the 10-layer iconset. Do not use the old Tauri/Image2Icon flow for the current artwork.
+

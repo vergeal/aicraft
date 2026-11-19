@@ -1,0 +1,21 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Quiet variant: ink ring, brand gradient in the core. The ring inverts to stay visible on dark. */
+    .ring {
+      stroke: #171717;
+    }
+    @media (prefers-color-scheme: dark) {
+      .ring {
+        stroke: #f1ecec;
+      }
+    }
+  </style>
+  <defs>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00e08a" />
+      <stop offset="1" stop-color="#00b4ff" />
+    </linearGradient>
+  </defs>
+  <rect class="ring" x="3" y="3" width="18" height="18" rx="5.5" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="url(#core)" />
+</svg>

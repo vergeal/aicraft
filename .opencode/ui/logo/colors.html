@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>配色方案 · 高饱和</title>
+    <style>
+      :root {
+        --bg: #fafafa;
+        --panel: #ffffff;
+        --text: #0d0d0d;
+        --text-secondary: #61666b;
+        --text-tertiary: #81858c;
+        --border: rgba(0, 0, 0, 0.08);
+        --font: -apple-system, "Inter", "PingFang SC", system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 13px;
+        line-height: 18px;
+      }
+      h1 { margin: 0 0 4px; font-size: 16px; font-weight: 590; line-height: 22px; }
+      .lede { margin: 0 0 24px; color: var(--text-secondary); max-width: 70ch; }
+      .mark { display: block; }
+      .grid { display: grid; gap: 16px; }
+      .opt {
+        display: grid;
+        gap: 12px;
+        padding: 16px 20px;
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: inset 0 0 0 0.5px var(--border);
+      }
+      header { display: flex; align-items: center; gap: 10px; }
+      .tag {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.06);
+        font-size: 11px;
+        font-weight: 590;
+      }
+      .name { font-weight: 590; }
+      .hex { color: var(--text-tertiary); font-size: 11px; font-family: ui-monospace, monospace; }
+      .samples { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+      .on {
+        display: grid;
+        place-items: center;
+        width: 168px;
+        height: 132px;
+        border-radius: 12px;
+      }
+      .on.light { background: #ffffff; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.1); }
+      .on.dark { background: rgb(21,21,23); box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.12); }
+      .sizes { display: flex; align-items: center; gap: 20px; padding-left: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>配色方案</h1>
+    <p class="lede">
+      同一个几何（24 网格、描边 2、渐变环 + 实心核），只换色。每行左为浅底、右为深底，再给小尺寸 32 / 16 预览。
+      色值都是高饱和纯色端点，中间段让渐变过渡。
+    </p>
+    <div class="grid">
+    <section class="opt">
+      <header>
+        <span class="tag">A</span>
+        <span class="name">电光蓝</span>
+        <span class="hex">#0057FF → #00D4FF</span>
+      </header>
+      <div class="samples">
+        <div class="on light"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gA-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#0057FF" /><stop offset="0.50" stop-color="#0094FF" /><stop offset="1.00" stop-color="#00D4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gA-l)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#00C2FF" />
+</svg></div>
+        <div class="on dark"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gA-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#0057FF" /><stop offset="0.50" stop-color="#0094FF" /><stop offset="1.00" stop-color="#00D4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gA-d)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#00C2FF" />
+</svg></div>
+        <div class="sizes">
+          <svg class="mark " viewBox="0 0 24 24" style="width:32px;height:32px">
+  <defs>
+    <linearGradient id="gA-32" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#0057FF" /><stop offset="0.50" stop-color="#0094FF" /><stop offset="1.00" stop-color="#00D4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gA-32)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#00C2FF" />
+</svg>
+          <svg class="mark " viewBox="0 0 24 24" style="width:16px;height:16px">
+  <defs>
+    <linearGradient id="gA-16" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#0057FF" /><stop offset="0.50" stop-color="#0094FF" /><stop offset="1.00" stop-color="#00D4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gA-16)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#00C2FF" />
+</svg>
+        </div>
+      </div>
+    </section>
+    <section class="opt">
+      <header>
+        <span class="tag">B</span>
+        <span class="name">蓝紫粉</span>
+        <span class="hex">#4F46E5 → #F472B6</span>
+      </header>
+      <div class="samples">
+        <div class="on light"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gB-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#4F46E5" /><stop offset="0.50" stop-color="#A855F7" /><stop offset="1.00" stop-color="#F472B6" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gB-l)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg></div>
+        <div class="on dark"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gB-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#4F46E5" /><stop offset="0.50" stop-color="#A855F7" /><stop offset="1.00" stop-color="#F472B6" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gB-d)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg></div>
+        <div class="sizes">
+          <svg class="mark " viewBox="0 0 24 24" style="width:32px;height:32px">
+  <defs>
+    <linearGradient id="gB-32" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#4F46E5" /><stop offset="0.50" stop-color="#A855F7" /><stop offset="1.00" stop-color="#F472B6" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gB-32)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg>
+          <svg class="mark " viewBox="0 0 24 24" style="width:16px;height:16px">
+  <defs>
+    <linearGradient id="gB-16" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#4F46E5" /><stop offset="0.50" stop-color="#A855F7" /><stop offset="1.00" stop-color="#F472B6" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gB-16)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg>
+        </div>
+      </div>
+    </section>
+    <section class="opt">
+      <header>
+        <span class="tag">C</span>
+        <span class="name">青绿</span>
+        <span class="hex">#00E08A → #00B4FF</span>
+      </header>
+      <div class="samples">
+        <div class="on light"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gC-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#00E08A" /><stop offset="0.50" stop-color="#00D4A0" /><stop offset="1.00" stop-color="#00B4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gC-l)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#5EEAD4" />
+</svg></div>
+        <div class="on dark"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gC-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#00E08A" /><stop offset="0.50" stop-color="#00D4A0" /><stop offset="1.00" stop-color="#00B4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gC-d)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#5EEAD4" />
+</svg></div>
+        <div class="sizes">
+          <svg class="mark " viewBox="0 0 24 24" style="width:32px;height:32px">
+  <defs>
+    <linearGradient id="gC-32" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#00E08A" /><stop offset="0.50" stop-color="#00D4A0" /><stop offset="1.00" stop-color="#00B4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gC-32)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#5EEAD4" />
+</svg>
+          <svg class="mark " viewBox="0 0 24 24" style="width:16px;height:16px">
+  <defs>
+    <linearGradient id="gC-16" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#00E08A" /><stop offset="0.50" stop-color="#00D4A0" /><stop offset="1.00" stop-color="#00B4FF" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gC-16)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#5EEAD4" />
+</svg>
+        </div>
+      </div>
+    </section>
+    <section class="opt">
+      <header>
+        <span class="tag">D</span>
+        <span class="name">暖橙金</span>
+        <span class="hex">#FF5A00 → #FFC400</span>
+      </header>
+      <div class="samples">
+        <div class="on light"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gD-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF5A00" /><stop offset="0.50" stop-color="#FF8A00" /><stop offset="1.00" stop-color="#FFC400" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gD-l)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#FFD54A" />
+</svg></div>
+        <div class="on dark"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gD-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF5A00" /><stop offset="0.50" stop-color="#FF8A00" /><stop offset="1.00" stop-color="#FFC400" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gD-d)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#FFD54A" />
+</svg></div>
+        <div class="sizes">
+          <svg class="mark " viewBox="0 0 24 24" style="width:32px;height:32px">
+  <defs>
+    <linearGradient id="gD-32" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF5A00" /><stop offset="0.50" stop-color="#FF8A00" /><stop offset="1.00" stop-color="#FFC400" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gD-32)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#FFD54A" />
+</svg>
+          <svg class="mark " viewBox="0 0 24 24" style="width:16px;height:16px">
+  <defs>
+    <linearGradient id="gD-16" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF5A00" /><stop offset="0.50" stop-color="#FF8A00" /><stop offset="1.00" stop-color="#FFC400" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gD-16)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#FFD54A" />
+</svg>
+        </div>
+      </div>
+    </section>
+    <section class="opt">
+      <header>
+        <span class="tag">E</span>
+        <span class="name">品红紫</span>
+        <span class="hex">#FF1E8A → #7B2BF9</span>
+      </header>
+      <div class="samples">
+        <div class="on light"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gE-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF1E8A" /><stop offset="0.50" stop-color="#C026D3" /><stop offset="1.00" stop-color="#7B2BF9" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gE-l)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg></div>
+        <div class="on dark"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gE-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF1E8A" /><stop offset="0.50" stop-color="#C026D3" /><stop offset="1.00" stop-color="#7B2BF9" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gE-d)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg></div>
+        <div class="sizes">
+          <svg class="mark " viewBox="0 0 24 24" style="width:32px;height:32px">
+  <defs>
+    <linearGradient id="gE-32" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF1E8A" /><stop offset="0.50" stop-color="#C026D3" /><stop offset="1.00" stop-color="#7B2BF9" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gE-32)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg>
+          <svg class="mark " viewBox="0 0 24 24" style="width:16px;height:16px">
+  <defs>
+    <linearGradient id="gE-16" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#FF1E8A" /><stop offset="0.50" stop-color="#C026D3" /><stop offset="1.00" stop-color="#7B2BF9" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gE-16)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#F0ABFC" />
+</svg>
+        </div>
+      </div>
+    </section>
+    <section class="opt">
+      <header>
+        <span class="tag">F</span>
+        <span class="name">柠檬青</span>
+        <span class="hex">#C6F432 → #22D3EE</span>
+      </header>
+      <div class="samples">
+        <div class="on light"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gF-l" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#C6F432" /><stop offset="0.50" stop-color="#5CE1A0" /><stop offset="1.00" stop-color="#22D3EE" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gF-l)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#A5F3FC" />
+</svg></div>
+        <div class="on dark"><svg class="mark " viewBox="0 0 24 24" style="width:104px;height:104px">
+  <defs>
+    <linearGradient id="gF-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#C6F432" /><stop offset="0.50" stop-color="#5CE1A0" /><stop offset="1.00" stop-color="#22D3EE" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gF-d)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#A5F3FC" />
+</svg></div>
+        <div class="sizes">
+          <svg class="mark " viewBox="0 0 24 24" style="width:32px;height:32px">
+  <defs>
+    <linearGradient id="gF-32" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#C6F432" /><stop offset="0.50" stop-color="#5CE1A0" /><stop offset="1.00" stop-color="#22D3EE" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gF-32)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#A5F3FC" />
+</svg>
+          <svg class="mark " viewBox="0 0 24 24" style="width:16px;height:16px">
+  <defs>
+    <linearGradient id="gF-16" x1="0" y1="0" x2="1" y2="1"><stop offset="0.00" stop-color="#C6F432" /><stop offset="0.50" stop-color="#5CE1A0" /><stop offset="1.00" stop-color="#22D3EE" /></linearGradient>
+  </defs>
+  <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#gF-16)" stroke-width="2" />
+  <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#A5F3FC" />
+</svg>
+        </div>
+      </div>
+    </section>
+    </div>
+  </body>
+</html>

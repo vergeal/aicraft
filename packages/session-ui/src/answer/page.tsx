@@ -879,7 +879,7 @@ function GroupSeat(props: {
         </span>
       </button>
       <Show when={props.flat || props.open}>
-        <div id={bodyID} class={props.flat ? "flex flex-col gap-1" : "flex flex-col gap-1 pt-1"}>
+        <div id={bodyID} class={props.flat ? "flex flex-col gap-1" : "answer-tree flex flex-col gap-1 pt-1"}>
           <For each={props.group.items.map((item) => item.key)}>
             {(key) => {
               const item = createMemo(() => props.group.items.find((entry) => entry.key === key))
@@ -951,7 +951,7 @@ function RepeatRow(props: {
       leading={<FlowIcon name={ACTIVITY_ICONS[props.item.activity]} />}
       onToggle={() => rows?.toggle(props.item.key, !expanded())}
     >
-      <div class="flex flex-col gap-1 ps-[24px]">
+      <div class="answer-tree answer-tree-nested flex flex-col gap-1">
         <For each={props.item.members}>
           {(key) => (
             <Show when={props.snapshot.nodes.get(key)}>

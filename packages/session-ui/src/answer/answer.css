@@ -5,6 +5,8 @@
   --answer-ink-secondary: rgb(97, 102, 107);
   --answer-ink-tertiary: rgb(129, 133, 140);
   --answer-surface: rgb(249, 250, 251);
+  /* Branch guides of a step tree; kept low so the rail never competes with the labels. */
+  --answer-guide: rgba(129, 133, 140, 0.45);
   --answer-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
   font-family: var(--answer-font-sans);
   color: var(--answer-ink);
@@ -15,6 +17,7 @@
   --answer-ink-secondary: rgb(207, 211, 214);
   --answer-ink-tertiary: rgb(173, 178, 184);
   --answer-surface: var(--v2-background-bg-layer-01);
+  --answer-guide: rgba(173, 178, 184, 0.26);
 }
 
 .answer-scope .answer-markdown {
@@ -33,4 +36,48 @@
 
 .answer-scope .answer-markdown li {
   margin-bottom: 0;
+}
+
+/* Branch guides: a group body reads as a tree, one rail down the children and a short elbow per entry.
+   Each entry draws its own rail segment so the run stops on the last row's midline even when that row
+   is expanded, instead of running past it to the bottom of the body. */
+.answer-scope .answer-tree {
+  --answer-tree-indent: 16px;
+  --answer-tree-gap: 4px;
+  position: relative;
+  padding-inline-start: var(--answer-tree-indent);
+}
+
+/* A folded run nests one level deeper than the rows inside a group. */
+.answer-scope .answer-tree-nested {
+  --answer-tree-indent: 20px;
+}
+
+.answer-scope .answer-tree > * {
+  position: relative;
+}
+
+/* The elbow: from the rail to just before the entry's own icon. */
+.answer-scope .answer-tree > *::before {
+  content: "";
+  position: absolute;
+  top: 11.5px;
+  inset-inline-start: calc(var(--answer-tree-indent) / -2);
+  width: calc(var(--answer-tree-indent) / 2 - 3px);
+  border-top: 1px solid var(--answer-guide);
+}
+
+/* The rail: one segment per entry, down to the next entry's midline, and none after the last. */
+.answer-scope .answer-tree > *::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: calc((var(--answer-tree-gap) + 12px) * -1);
+  inset-inline-start: calc(var(--answer-tree-indent) / -2 - 0.5px);
+  width: 1px;
+  background: var(--answer-guide);
+}
+
+.answer-scope .answer-tree > *:last-child::after {
+  display: none;
 }

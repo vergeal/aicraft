@@ -890,13 +890,17 @@ function ConversationNav() {
                         <Icon name="folder" class="size-4 shrink-0 text-[var(--color-icon-secondary)]" />
                         <span class="min-w-0 flex-1 truncate">{group().name}</span>
                         <Icon
-                          name={foldedProjects().has(group().key) ? "chevron-right" : "chevron-down"}
+                          name="chevron-down"
                           size="small"
-                          class="shrink-0 text-[var(--color-icon-secondary)]"
+                          class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
                         />
                       </button>
-                      <Show when={!foldedProjects().has(group().key)}>
-                        <div class={`${LIST} ps-3`}>
+                      {/* The sessions fold open by grid rows, so the column grows instead of the list appearing at once. */}
+                      <div
+                        class="replica-project-sessions"
+                        data-collapsed={foldedProjects().has(group().key)}
+                      >
+                        <div class={`${LIST} ps-3 min-h-0 overflow-hidden`}>
                           <Key each={group().entries} by={(entry) => entry.key}>
                             {(entry) => (
                               <SessionRow
@@ -911,7 +915,7 @@ function ConversationNav() {
                             )}
                           </Key>
                         </div>
-                      </Show>
+                      </div>
                     </div>
                   )}
                 </Key>

@@ -7,7 +7,7 @@ import { isIconName, type IconName } from "@opencode/ui/icons/catalog"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { Spinner } from "@opencode/ui/spinner"
 import { useI18n, type UiI18nOrdinaryKey } from "@opencode/ui/context/i18n"
-import { Markdown } from "../components/markdown"
+import { hasMarkdownSyntax, Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
 import { childrenOf, projectTimeline } from "./project"
 import { toolDescription, toolError, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
@@ -1189,10 +1189,12 @@ function Payload(props: {
           <div
             dir="auto"
             data-slot="user-message-text"
-            class="inline-block overflow-hidden whitespace-pre-wrap break-words rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[14px] leading-[22px] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
+            class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[14px] leading-[22px] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
             style={{ color: "var(--answer-ink)" }}
           >
-            {props.payload.text}
+            <Show when={hasMarkdownSyntax(props.payload.text)} fallback={<>{props.payload.text}</>}>
+              <Markdown text={props.payload.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
+            </Show>
           </div>
         </div>
       )

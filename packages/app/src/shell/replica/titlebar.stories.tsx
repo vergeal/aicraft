@@ -23,7 +23,7 @@ function TitlebarStory() {
           scheduled
         </button>
       </div>
-      <ReplicaTitleBar sidebarOpen onToggleSidebar={() => undefined} />
+      <ReplicaTitleBar sidebarOpen />
     </div>
   )
 }

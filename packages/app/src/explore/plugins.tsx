@@ -5,10 +5,8 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from
 import { Progress } from "@opencode/ui/progress"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
-import { TextInput } from "@opencode/ui/text-input"
-import { createMemo, createResource, For, Show } from "solid-js"
+import { For, Show } from "solid-js"
 import { createStore } from "solid-js/store"
-import { useExploreInstalled } from "@/explore/installed"
 import { pluginLabel } from "@/providers/catalog/plugin"
 import { useServerSDK } from "@/runtime/server/client"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -16,20 +14,10 @@ import { showToast } from "@/shell/notifications/toast"
 import { ExternalLink } from "@/runtime/platform/external-link"
 import { usePlatform } from "@/runtime/platform/platform"
 import { PluginSource } from "@/runtime/plugin/extension-plugins"
-import { PageHeader } from "@/shell/page"
-import { useLayout } from "@/shell/state/layout"
 import "@/settings/settings.css"
 import "./explore.css"
-import { loadLocalCatalog, PLUGIN_CATEGORIES, type CatalogPlugin, type PluginCategory } from "./catalog"
-import { PluginInstallDialog } from "./plugin-install-dialog"
+import type { CatalogPlugin } from "./catalog"
 import { PluginIcon } from "./plugin-icon"
-import { ExploreStatus } from "./status"
-
-const CATEGORY_LABELS: Record<PluginCategory, string> = {
-  "developer-tools": "explore.plugins.category.developer-tools",
-  productivity: "explore.plugins.category.productivity",
-  automation: "explore.plugins.category.automation",
-}
 
 const featureLabels = {
   server: "explore.plugins.feature.server",
@@ -63,455 +51,16 @@ const sourceDetail = (plugin: PluginInfo) => {
   return undefined
 }
 
-const pluginKey = (plugin: PluginInfo) => plugin.id ?? pluginLabel(plugin)
-
-/** One installed plugin's card, with the generic plugins mark. */
-
-/** The published plugins this project can install, and whichever entry the list or the column opened. */
-export function ExplorePlugins() {
-  const layout = useLayout()
-  const dialog = useDialog()
-  const installed = useExploreInstalled()
-  const server = useServerSDK()
-
-  const [catalog, { refetch: refetchCatalog }] = createResource(() => loadLocalCatalog(server))
-
-  // Reading the resource before its first value would suspend the whole pane, so the list stays empty until it lands.
-  const catalogPlugins = () => {
-    if (catalog.state !== "ready" && catalog.state !== "refreshing") return []
-
-    return catalog.latest?.plugins ?? []
-  }
-
-  const selected = createMemo(() =>
-    installed.plugins().find((plugin) => pluginKey(plugin) === layout.destination.explore.selected()),
-  )
-
-  const catalogEntry = createMemo(() =>
-    catalogPlugins().find((entry) => entry.id === layout.destination.explore.catalog()),
-  )
-
-  const install = () =>
-    void dialog.show(() => <PluginInstallDialog onInstalled={() => void installed.refetchPlugins()} />)
-
-  const uninstall = (plugin: PluginInfo) =>
-    void dialog.show(() => (
-      <UninstallPluginDialog plugin={plugin} onUninstalled={() => void installed.refetchPlugins()} />
-    ))
-
-  const installFromCatalog = (entry: CatalogPlugin) =>
-    void dialog.show(() => (
-      <PluginInstallDialog
-        package={entry.package}
-        name={entry.name}
-        integrated={entry.integrated}
-        bundle={entry.bundle}
-        id={entry.id}
-        entry={entry}
-        versions={entry.versions}
-        onInstalled={() => void installed.refetchPlugins()}
-      />
-    ))
-
-  const back = () => {
-    layout.destination.explore.setSelected(undefined)
-    layout.destination.explore.setCatalog(undefined)
-  }
-
-  return (
-    <ExplorePluginsView
-      installed={installed.plugins()}
-      skills={installed.skills()}
-      catalog={catalogPlugins()}
-      selected={selected()}
-      catalogEntry={catalogEntry()}
-      onSelectCatalog={(id) => layout.destination.explore.setCatalog(id)}
-      onBack={back}
-      onInstall={install}
-      onInstallCatalog={installFromCatalog}
-      onUninstall={uninstall}
-      onRefresh={() => {
-        void refetchCatalog()
-        void installed.refetchPlugins()
-      }}
-    />
-  )
-}
-
-/**
- * The plugins page's presentational half: the catalog grouped by category, or the full page for whichever entry
- * the user opened. It owns no server state, so the same view renders the real page and the component test.
- */
-export function ExplorePluginsView(props: {
-  /** Plugins this project already loads, so the column and cards can mark an entry installed. */
-  installed?: readonly PluginInfo[]
-  /** Every skill this project knows, so a plugin's page can list the ones it contributes. */
-  skills?: readonly SkillInfo[]
-  /** Publishable plugins from the catalog. */
-  catalog?: readonly CatalogPlugin[]
-  /** The installed plugin the navigation column opened. */
-  selected?: PluginInfo
-  /** The catalog entry the list opened. */
-  catalogEntry?: CatalogPlugin
-  onSelectCatalog?: (id: string) => void
-  onBack: () => void
-  onInstall: () => void
-  onInstallCatalog?: (entry: CatalogPlugin) => void
-  onUninstall?: (plugin: PluginInfo) => void
-  onRefresh?: () => void
-}) {
-  const language = useLanguage()
-
-  const [state, setState] = createStore<{ query: string }>({ query: "" })
-
-  const query = () => state.query.trim().toLowerCase()
-
-  // A catalog entry that the server already loads must not offer a second install.
-  const installedIDs = createMemo(
-    () => new Set((props.installed ?? []).flatMap((plugin) => (plugin.id ? [plugin.id] : []))),
-  )
-
-  const groups = createMemo(() => {
-    const needle = query()
-    const items = (props.catalog ?? []).filter((entry) => {
-      if (!needle) return true
-
-      return `${entry.name}\n${entry.description}\n${entry.package}\n${entry.author}`.toLowerCase().includes(needle)
-    })
-
-    return PLUGIN_CATEGORIES.flatMap((category) => {
-      const entries = items.filter((entry) => entry.category === category)
-
-      return entries.length > 0 ? [{ category, entries }] : []
-    })
-  })
-
-  // An installed plugin opened from the column, or a catalog entry opened from the list, takes over the page.
-  const detail = createMemo(() => {
-    if (props.selected) return "installed" as const
-
-    if (props.catalogEntry) return "catalog" as const
-
-    return undefined
-  })
-
-  return (
-    <Show
-      when={detail()}
-      fallback={
-        <>
-          <PageHeader
-            title={language.t("explore.plugins.title")}
-            description={language.t("explore.plugins.description")}
-            inset
-            actions={
-              <>
-                <div class="explore-page-search">
-                  <TextInput
-                    type="search"
-                    appearance="base"
-                    leadingIcon={<Icon name="magnifying-glass" size="small" />}
-                    value={state.query}
-                    placeholder={language.t("explore.plugins.search.placeholder")}
-                    aria-label={language.t("explore.plugins.search.placeholder")}
-                    showClearButton={!!state.query}
-                    clearIcon="circle-xmark"
-                    onClearClick={() => setState("query", "")}
-                    onInput={(event) => setState("query", event.currentTarget.value)}
-                    spellcheck={false}
-                    autocorrect="off"
-                    autocomplete="off"
-                    autocapitalize="off"
-                  />
-                </div>
-                <button
-                  type="button"
-                  class="explore-plugins-icon-button"
-                  aria-label={language.t("explore.plugins.refresh")}
-                  title={language.t("explore.plugins.refresh")}
-                  onClick={() => props.onRefresh?.()}
-                >
-                  <Icon name="refresh" />
-                </button>
-                <Button variant="contrast" size="small" icon="plus" onClick={props.onInstall}>
-                  {language.t("explore.plugins.add")}
-                </Button>
-              </>
-            }
-          />
-
-          <div class="explore-catalog-body" data-scrollable>
-            <div class="explore-page-inner">
-              <Show
-                when={groups().length > 0}
-                fallback={
-                  <ExploreStatus
-                    icon="outline-pair"
-                    title={language.t(query() ? "explore.plugins.noResults.title" : "explore.plugins.none.title")}
-                    description={language.t(
-                      query() ? "explore.plugins.noResults.description" : "explore.plugins.none.description",
-                    )}
-                  />
-                }
-              >
-                <For each={groups()}>
-                  {(group) => (
-                    <section class="explore-catalog-group">
-                      <h2 class="explore-catalog-group-title">{language.t(CATEGORY_LABELS[group.category])}</h2>
-                      <div class="explore-catalog-grid">
-                        <For each={group.entries}>
-                          {(entry) => (
-                            <PluginCard
-                              name={entry.name}
-                              description={entry.description}
-                              onOpen={() => props.onSelectCatalog?.(entry.id)}
-                            />
-                          )}
-                        </For>
-                      </div>
-                    </section>
-                  )}
-                </For>
-              </Show>
-            </div>
-          </div>
-        </>
-      }
-    >
-      <Show
-        when={props.selected}
-        fallback={
-          <Show when={props.catalogEntry}>
-            {(entry) => (
-              <CatalogPluginDetail
-                entry={entry()}
-                installed={installedIDs().has(entry().id)}
-                onBack={props.onBack}
-                onInstall={() => props.onInstallCatalog?.(entry())}
-              />
-            )}
-          </Show>
-        }
-      >
-        {(plugin) => (
-          <PluginDetail
-            plugin={plugin()}
-            skills={props.skills}
-            onBack={props.onBack}
-            onUninstall={props.onUninstall}
-            onRetried={props.onRefresh}
-          />
-        )}
-      </Show>
-    </Show>
-  )
-}
-
-/** One catalog plugin: the whole row opens its page. The page owns the install action, so the list only shows what exists. */
-function PluginCard(props: { name: string; description: string; onOpen?: () => void }) {
-  return (
-    <div class="explore-catalog-card">
-      <button type="button" class="explore-catalog-card-main" onClick={() => props.onOpen?.()}>
-        <span class="explore-catalog-card-icon">
-          <PluginIcon />
-        </span>
-        <span class="explore-catalog-card-copy">
-          <span class="explore-catalog-card-name">
-            <bdi dir="ltr">{props.name}</bdi>
-          </span>
-          <span class="explore-catalog-card-description">{props.description}</span>
-        </span>
-      </button>
-    </div>
-  )
-}
-
-function DetailCrumbs(props: { current: string; onBack: () => void }) {
-  const language = useLanguage()
-
-  return (
-    <nav class="explore-catalog-crumbs" aria-label={language.t("explore.plugins.back")}>
-      <button type="button" class="explore-catalog-crumb" onClick={props.onBack}>
-        {language.t("explore.plugins.title")}
-      </button>
-      <Icon name="outline-chevron-right" class="explore-catalog-crumb-separator" />
-      <span class="explore-catalog-crumb-current">{props.current}</span>
-    </nav>
-  )
-}
-
-/** A catalog entry's full page: who publishes it, what it does, and the install that adds it to the project. */
-function CatalogPluginDetail(props: {
-  entry: CatalogPlugin
-  installed?: boolean
-  onBack: () => void
-  onInstall: () => void
-}) {
-  const language = useLanguage()
-
-  const details = () => props.entry.details ?? props.entry.description
-
-  return (
-    <div class="explore-catalog-page" data-scrollable>
-      <div class="explore-page-inner">
-        <DetailCrumbs current={props.entry.name} onBack={props.onBack} />
-
-        <div class="explore-catalog-page-body">
-          <header class="explore-catalog-hero">
-            <span class="explore-catalog-hero-icon">
-              <PluginIcon />
-            </span>
-            <div class="explore-catalog-hero-copy">
-              <h1 class="explore-catalog-hero-name">
-                <bdi dir="ltr">{props.entry.name}</bdi>
-              </h1>
-              <p class="explore-catalog-hero-meta">
-                <Show when={props.entry.author}>
-                  {(author) => <>{language.t("explore.plugins.by", { author: author() })} · </>}
-                </Show>
-                {props.entry.description}
-              </p>
-            </div>
-            <Show
-              when={!props.installed}
-              fallback={
-                <div class="explore-catalog-hero-actions">
-                  <span class="explore-catalog-hero-installed">{language.t("explore.plugins.installed")}</span>
-                  <Show when={props.entry.versions && props.entry.versions.length > 1}>
-                    <Button variant="neutral" size="small" onClick={props.onInstall}>
-                      {language.t("explore.plugins.switchVersion")}
-                    </Button>
-                  </Show>
-                </div>
-              }
-            >
-              <Button variant="contrast" size="small" icon="plus" onClick={props.onInstall}>
-                {language.t("explore.plugins.install")}
-              </Button>
-            </Show>
-          </header>
-
-          <p class="explore-catalog-about">{details()}</p>
-
-          <Show when={props.entry.mcpServers?.length}>
-            {(count) => (
-              <section class="explore-catalog-section">
-                <h2 class="explore-catalog-section-title">
-                  {language.t("explore.plugins.detail.mcp")}
-                  <span class="explore-catalog-section-count">{count()}</span>
-                </h2>
-                <ul class="explore-catalog-list">
-                  <For each={props.entry.mcpServers}>
-                    {(server) => (
-                      <li class="explore-catalog-list-row">
-                        <span class="explore-catalog-list-icon">
-                          <Icon name="outline-pair" />
-                        </span>
-                        <span class="explore-catalog-list-name">{server.name}</span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </section>
-            )}
-          </Show>
-
-          <Show when={props.entry.skills?.length}>
-            {(count) => (
-              <section class="explore-catalog-section">
-                <h2 class="explore-catalog-section-title">
-                  {language.t("explore.plugins.detail.skills")}
-                  <span class="explore-catalog-section-count">{count()}</span>
-                </h2>
-                <ul class="explore-catalog-list">
-                  <For each={props.entry.skills}>
-                    {(skill) => (
-                      <li class="explore-catalog-list-row explore-catalog-skill">
-                        <span class="explore-catalog-list-icon">
-                          <Icon name="post-skill" />
-                        </span>
-                        <span class="explore-catalog-skill-copy">
-                          <span class="explore-catalog-list-name">{skill.name}</span>
-                          <span class="explore-catalog-skill-description">{skill.description}</span>
-                        </span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </section>
-            )}
-          </Show>
-
-          <dl class="explore-catalog-facts">
-            <Show when={props.entry.versions?.length ? props.entry.versions : undefined}>
-              {(versions) => (
-                <div>
-                  <dt>{language.t("explore.plugins.facts.version")}</dt>
-                  <dd>
-                    <span dir="ltr">v{versions()[0]!.version}</span>
-                    <Show when={versions().length > 1}>
-                      <span class="explore-catalog-version-count">
-                        {" · "}
-                        {language.t("explore.plugins.discover.version.count", { count: versions().length })}
-                      </span>
-                    </Show>
-                  </dd>
-                </div>
-              )}
-            </Show>
-            <div>
-              <dt>
-                {language.t(
-                  props.entry.integrated
-                    ? "explore.plugins.discover.integration"
-                    : props.entry.bundle
-                      ? "explore.plugins.discover.local"
-                      : "explore.plugins.discover.package",
-                )}
-              </dt>
-              <dd>
-                {props.entry.integrated ? (
-                  language.t("explore.plugins.install.integrated")
-                ) : (
-                  <code dir="ltr">
-                    {props.entry.bundle ? `~/.distribution/plugins/${props.entry.id}` : props.entry.package}
-                  </code>
-                )}
-              </dd>
-            </div>
-            <Show when={props.entry.repository}>
-              <div>
-                <dt>{language.t("explore.plugins.discover.repository")}</dt>
-                <dd>
-                  <ExternalLink href={props.entry.repository}>{props.entry.repository}</ExternalLink>
-                </dd>
-              </div>
-            </Show>
-          </dl>
-
-          <p class="explore-note">
-            {language.t(
-              props.entry.integrated
-                ? "explore.plugins.install.integrated.note"
-                : props.entry.bundle
-                  ? "explore.plugins.install.bundle.note"
-                  : "explore.plugins.install.manual",
-            )}
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** An installed plugin's page: how it loads, whether it is healthy, and where its module lives. */
-function PluginDetail(props: {
+/** An installed plugin: the card head names it, and the body opens its state and the actions on it. */
+export function InstalledPluginCard(props: {
   plugin: PluginInfo
+  open: boolean
+  onToggle: () => void
   /** Every known skill; the ones carrying this plugin's id are what the plugin contributes at runtime. */
   skills?: readonly SkillInfo[]
-  onBack: () => void
-  onUninstall?: (plugin: PluginInfo) => void
-  onRetried?: () => void
+  onUninstall?: () => void
+  onRetry?: () => Promise<void>
+  onRuntimeRetry?: () => Promise<void>
 }) {
   const language = useLanguage()
 
@@ -520,9 +69,7 @@ function PluginDetail(props: {
   // The runtime list is the source of truth (a plugin may register skills its manifest never declares); the
   // manifest's own skills stand in while the plugin has not registered any, such as after a failed load.
   const contributedSkills = (): ReadonlyArray<{ id: string; name: string; description?: string }> => {
-    const runtime = props.plugin.id
-      ? (props.skills ?? []).filter((skill) => skill.plugin === props.plugin.id)
-      : []
+    const runtime = props.plugin.id ? (props.skills ?? []).filter((skill) => skill.plugin === props.plugin.id) : []
 
     if (runtime.length > 0) return runtime
 
@@ -530,32 +77,26 @@ function PluginDetail(props: {
   }
 
   return (
-    <div class="explore-catalog-page" data-scrollable>
-      <div class="explore-page-inner">
-        <DetailCrumbs current={pluginLabel(props.plugin)} onBack={props.onBack} />
+    <article class="module-card" data-open={props.open ? "" : undefined}>
+      <button type="button" class="module-card-head" aria-expanded={props.open} onClick={() => props.onToggle()}>
+        <span class="module-card-glyph">
+          <PluginIcon size={16} />
+        </span>
+        <span class="module-card-title">
+          <strong class="truncate">
+            <bdi dir="ltr">{pluginLabel(props.plugin)}</bdi>
+          </strong>
+          <span class="module-card-meta">
+            <span class="module-tag">{language.t("explore.plugins.title")}</span>
+            <PluginSource source={props.plugin.source.type} />
+            <span>{language.t(failed() ? "explore.plugins.state.failed" : "explore.plugins.state.active")}</span>
+          </span>
+        </span>
+        <Icon name="chevron-down" size="small" class="module-card-trail" />
+      </button>
 
-        <div class="explore-catalog-page-body">
-          <header class="explore-catalog-hero">
-            <span class="explore-catalog-hero-icon">
-              <PluginIcon />
-            </span>
-            <div class="explore-catalog-hero-copy">
-              <h1 class="explore-catalog-hero-name">
-                <bdi dir="ltr">{pluginLabel(props.plugin)}</bdi>
-              </h1>
-              <p class="explore-catalog-hero-meta">
-                <PluginSource source={props.plugin.source.type} />
-                <Show when={sourceDetail(props.plugin)}>
-                  {(target) => (
-                    <span class="explore-catalog-path" dir="ltr" title={target()}>
-                      {target()}
-                    </span>
-                  )}
-                </Show>
-              </p>
-            </div>
-          </header>
-
+      <Show when={props.open}>
+        <div class="module-card-body">
           <dl class="explore-catalog-facts">
             <Show when={props.plugin.id && !props.plugin.display}>
               {(id) => (
@@ -567,12 +108,18 @@ function PluginDetail(props: {
                 </div>
               )}
             </Show>
-
-            <div>
-              <dt>{language.t("explore.plugins.detail.state")}</dt>
-              <dd>{language.t(failed() ? "explore.plugins.state.failed" : "explore.plugins.state.active")}</dd>
-            </div>
-
+            <Show when={sourceDetail(props.plugin)}>
+              {(target) => (
+                <div>
+                  <dt>{language.t("explore.plugins.discover.repository")}</dt>
+                  <dd>
+                    <span dir="ltr" title={target()}>
+                      {target()}
+                    </span>
+                  </dd>
+                </div>
+              )}
+            </Show>
             <Show when={!props.plugin.display && featuresOf(props.plugin).length > 0}>
               <div>
                 <dt>{language.t("explore.plugins.detail.features")}</dt>
@@ -583,7 +130,6 @@ function PluginDetail(props: {
                 </dd>
               </div>
             </Show>
-
             <Show when={props.plugin.runtime}>
               {(runtime) => (
                 <div>
@@ -657,7 +203,7 @@ function PluginDetail(props: {
           </Show>
 
           <Show when={failed()}>
-            {(state) => <PluginFailure error={state().error} reference={state().ref} reason={state().reason} />}
+            {(failure) => <PluginFailure error={failure().error} reference={failure().ref} reason={failure().reason} />}
           </Show>
 
           <Show when={props.plugin.runtime?.status === "failed" ? props.plugin.runtime : undefined}>
@@ -673,28 +219,122 @@ function PluginDetail(props: {
           </Show>
 
           <Show when={props.plugin.runtime?.status === "failed" ? props.plugin.id : undefined}>
-            {(id) => <PluginRuntimeRetry id={id()} onRetried={props.onRetried} />}
+            {(id) => <PluginRuntimeRetry retry={() => props.onRuntimeRetry?.() ?? Promise.resolve()} />}
           </Show>
 
-          <Show when={failed() && props.plugin.source.type !== "builtin" && props.plugin.id}>
-            {(id) => <PluginRetry id={id()} onRetried={props.onRetried} />}
+          <Show when={!!failed() && props.plugin.source.type !== "builtin" && !!props.plugin.id}>
+            <PluginRetry retry={() => props.onRetry?.() ?? Promise.resolve()} />
           </Show>
 
-          <Show when={props.plugin.source.type !== "builtin"}>
-            <div class="explore-catalog-detail-actions">
-              <Button
-                size="small"
-                variant="ghost-danger"
-                icon="trash"
-                onClick={() => props.onUninstall?.(props.plugin)}
-              >
+          <div class="module-card-foot">
+            <Show when={props.plugin.source.type !== "builtin"}>
+              <Button size="small" variant="ghost-danger" icon="trash" onClick={() => props.onUninstall?.()}>
                 {language.t("explore.plugins.uninstall")}
               </Button>
-            </div>
-          </Show>
+            </Show>
+          </div>
         </div>
-      </div>
-    </div>
+      </Show>
+    </article>
+  )
+}
+
+/** A published plugin this project can install: the card carries the install, so no separate page is needed. */
+export function CatalogPluginCard(props: {
+  entry: CatalogPlugin
+  open: boolean
+  onToggle: () => void
+  onInstall?: () => void
+}) {
+  const language = useLanguage()
+
+  return (
+    <article class="module-card" data-open={props.open ? "" : undefined}>
+      <button type="button" class="module-card-head" aria-expanded={props.open} onClick={() => props.onToggle()}>
+        <span class="module-card-glyph">
+          <PluginIcon size={16} />
+        </span>
+        <span class="module-card-title">
+          <strong class="truncate">
+            <bdi dir="ltr">{props.entry.name}</bdi>
+          </strong>
+          <span class="module-card-meta">
+            <span class="module-tag">{language.t("explore.plugins.title")}</span>
+            <Show when={props.entry.author}>{(author) => <span class="truncate">{author()}</span>}</Show>
+          </span>
+        </span>
+        <Icon name="chevron-down" size="small" class="module-card-trail" />
+      </button>
+
+      <Show when={props.open}>
+        <div class="module-card-body">
+          <p class="explore-catalog-about">{props.entry.details ?? props.entry.description}</p>
+
+          <dl class="explore-catalog-facts">
+            <Show when={props.entry.versions?.length ? props.entry.versions : undefined}>
+              {(versions) => (
+                <div>
+                  <dt>{language.t("explore.plugins.facts.version")}</dt>
+                  <dd>
+                    <span dir="ltr">v{versions()[0]!.version}</span>
+                    <Show when={versions().length > 1}>
+                      <span class="explore-catalog-version-count">
+                        {" · "}
+                        {language.t("explore.plugins.discover.version.count", { count: versions().length })}
+                      </span>
+                    </Show>
+                  </dd>
+                </div>
+              )}
+            </Show>
+            <div>
+              <dt>
+                {language.t(
+                  props.entry.integrated
+                    ? "explore.plugins.discover.integration"
+                    : props.entry.bundle
+                      ? "explore.plugins.discover.local"
+                      : "explore.plugins.discover.package",
+                )}
+              </dt>
+              <dd>
+                {props.entry.integrated ? (
+                  language.t("explore.plugins.install.integrated")
+                ) : (
+                  <code dir="ltr">
+                    {props.entry.bundle ? `~/.distribution/plugins/${props.entry.id}` : props.entry.package}
+                  </code>
+                )}
+              </dd>
+            </div>
+            <Show when={props.entry.repository}>
+              <div>
+                <dt>{language.t("explore.plugins.discover.repository")}</dt>
+                <dd>
+                  <ExternalLink href={props.entry.repository}>{props.entry.repository}</ExternalLink>
+                </dd>
+              </div>
+            </Show>
+          </dl>
+
+          <p class="explore-note">
+            {language.t(
+              props.entry.integrated
+                ? "explore.plugins.install.integrated.note"
+                : props.entry.bundle
+                  ? "explore.plugins.install.bundle.note"
+                  : "explore.plugins.install.manual",
+            )}
+          </p>
+
+          <div class="module-card-foot">
+            <Button variant="contrast" size="small" icon="plus" onClick={() => props.onInstall?.()}>
+              {language.t("explore.plugins.install")}
+            </Button>
+          </div>
+        </div>
+      </Show>
+    </article>
   )
 }
 
@@ -722,7 +362,12 @@ function PluginFailure(props: {
       return language.t("explore.plugins.error.reason.loadTimeout", { seconds: reason.seconds })
     if (reason?.kind === "load-failed") return language.t("explore.plugins.error.reason.loadFailed")
     // A stack starts with the message; an untranslated server error is a single fixed sentence.
-    return props.error.split("\n").find((line) => line.trim().length > 0)?.trim() || props.error
+    return (
+      props.error
+        .split("\n")
+        .find((line) => line.trim().length > 0)
+        ?.trim() || props.error
+    )
   }
 
   const copyReference = async () => {
@@ -760,7 +405,9 @@ function PluginFailure(props: {
       <Show when={props.error.trim() !== summary()}>
         <details class="explore-plugin-error-details">
           <summary>{language.t("explore.plugins.error.details")}</summary>
-          <pre class="explore-plugin-error-pre" dir="ltr">{props.error}</pre>
+          <pre class="explore-plugin-error-pre" dir="ltr">
+            {props.error}
+          </pre>
         </details>
       </Show>
 
@@ -799,9 +446,8 @@ function PluginFailure(props: {
  * Retries a failed plugin through the server's reload endpoint. The endpoint clears the target's load backoff and
  * asks the supervisor to activate again, so this button is the manual recovery path when the backoff is still open.
  */
-function PluginRetry(props: { id: string; onRetried?: () => void }) {
+function PluginRetry(props: { retry: () => Promise<void> }) {
   const language = useLanguage()
-  const server = useServerSDK()
   const [state, setState] = createStore<{ busy: boolean; error: string }>({ busy: false, error: "" })
 
   const retry = async () => {
@@ -809,9 +455,8 @@ function PluginRetry(props: { id: string; onRetried?: () => void }) {
 
     setState({ busy: true, error: "" })
     try {
-      await server.api.experimental.plugin.reload({ id: props.id })
+      await props.retry()
       setState({ busy: false, error: "" })
-      props.onRetried?.()
     } catch (error) {
       console.error("plugin reload failed", error)
       const message = error instanceof Error ? error.message : String(error)
@@ -844,9 +489,8 @@ function PluginRetry(props: { id: string; onRetried?: () => void }) {
  * Prepares a plugin's interpreter environment again after it failed, without reloading the plugin itself. The server
  * replies as soon as preparation starts; the status change arrives through the plugin inventory like any other.
  */
-function PluginRuntimeRetry(props: { id: string; onRetried?: () => void }) {
+function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
   const language = useLanguage()
-  const server = useServerSDK()
   const [state, setState] = createStore<{ busy: boolean; error: string }>({ busy: false, error: "" })
 
   const retry = async () => {
@@ -854,9 +498,8 @@ function PluginRuntimeRetry(props: { id: string; onRetried?: () => void }) {
 
     setState({ busy: true, error: "" })
     try {
-      await server.api.experimental.plugin.runtime.retry({ id: props.id })
+      await props.retry()
       setState({ busy: false, error: "" })
-      props.onRetried?.()
     } catch (error) {
       console.error("plugin runtime retry failed", error)
       const message = error instanceof Error ? error.message : String(error)
@@ -885,7 +528,10 @@ function PluginRuntimeRetry(props: { id: string; onRetried?: () => void }) {
   )
 }
 
-/** Confirms before removing an installed plugin, because its tools and skills disappear with it. */function UninstallPluginDialog(props: { plugin: PluginInfo; onUninstalled?: () => void }) {
+/** Confirms before removing an installed plugin, because its tools and skills disappear with it. */ export function UninstallPluginDialog(props: {
+  plugin: PluginInfo
+  onUninstalled?: () => void
+}) {
   const language = useLanguage()
   const dialog = useDialog()
   const server = useServerSDK()

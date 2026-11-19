@@ -1,31 +1,9 @@
 import { Button } from "@opencode/ui/button"
-import { Icon } from "@opencode/ui/icon"
-import { createSignal, For, Show } from "solid-js"
+import { For, Show, createSignal } from "solid-js"
 import { SessionElicitationDock } from "@/session/requests/session-elicitation-dock"
 import { getRelativeTime } from "@/shell/time"
 import { useLanguage } from "@/runtime/i18n/language"
-import { inboxItemIcon } from "./filters"
 import type { InboxItem, Inbox } from "./model"
-
-const KIND_LABELS = {
-  approval: "inbox.detail.kind.approval",
-  question: "inbox.detail.kind.question",
-  failure: "inbox.detail.kind.failure",
-  output: "inbox.detail.kind.output",
-  result: "inbox.detail.kind.result",
-} as const
-
-const STATUS_LABELS = {
-  pending: "inbox.detail.status.pending",
-  done: "inbox.detail.status.done",
-  failed: "inbox.detail.status.failed",
-} as const
-
-const STATUS_CLASS = {
-  pending: "text-v2-text-text-base",
-  done: "text-v2-text-text-muted",
-  failed: "text-v2-state-fg-danger",
-} as const
 
 const RESOLUTION_LABELS = {
   once: "inbox.detail.resolution.once",
@@ -35,8 +13,11 @@ const RESOLUTION_LABELS = {
   dismissed: "inbox.detail.resolution.dismissed",
 } as const
 
-/** One inbox item opened: the facts a decision needs, and the one or two actions that close it. */
-export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () => void; onBack?: () => void }) {
+/**
+ * One inbox item's content inside its card: the facts a decision needs and the actions that close it. The card's
+ * summary row already carries the title and its status, so this body starts at the details.
+ */
+export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () => void }) {
   const language = useLanguage()
   const [busy, setBusy] = createSignal(false)
   const [failed, setFailed] = createSignal(false)
@@ -55,45 +36,16 @@ export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () =
     if (!accepted) setFailed(true)
   }
 
-  const decide = (decision: "once" | "always" | "reject") =>
-    run(() => props.inbox.decide(props.item, decision))
+  const decide = (decision: "once" | "always" | "reject") => run(() => props.inbox.decide(props.item, decision))
 
-  const resources = () => (props.item.action.type === "permission" ? props.inbox.permission(props.item)?.resources : undefined)
+  const resources = () =>
+    props.item.action.type === "permission" ? props.inbox.permission(props.item)?.resources : undefined
   const form = () => (props.item.action.type === "form" ? props.inbox.form(props.item) : undefined)
   const entry = () => props.inbox.entry(props.item)
 
   return (
-    <article
-      data-slot="inbox-detail-body"
-      class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5"
-      data-scrollable
-    >
-      <div class="flex items-center gap-2">
-        <Show when={props.onBack}>
-          <Button
-            size="small"
-            variant="ghost-muted"
-            icon="arrow-left"
-            aria-label={language.t("inbox.detail.back")}
-            onClick={() => props.onBack?.()}
-          />
-        </Show>
-        <span class="flex items-center gap-1.5 text-[12px] leading-[var(--line-height-compact)] text-v2-text-text-muted">
-          <Icon name={inboxItemIcon(props.item)} />
-          {language.t(KIND_LABELS[props.item.kind])}
-        </span>
-        <span class={`text-[12px] leading-[var(--line-height-compact)] ${STATUS_CLASS[props.item.status]}`}>
-          {language.t(STATUS_LABELS[props.item.status])}
-        </span>
-        <span class="ms-auto text-[12px] leading-[var(--line-height-compact)] text-v2-text-text-faint">
-          {getRelativeTime(new Date(props.item.createdAt).toISOString(), language.t)}
-        </span>
-      </div>
-
-      <div class="flex min-w-0 flex-col gap-1.5">
-        <h2 class="text-[17px] leading-[24px] font-semibold tracking-[-0.1px]">{props.item.title}</h2>
-        <p class="text-[13px] leading-[var(--line-height-base)] text-v2-text-text-muted">{props.item.summary}</p>
-      </div>
+    <div data-slot="inbox-detail-body" class="flex flex-col gap-3">
+      <p class="text-[13px] leading-[22px] text-v2-text-text-muted">{props.item.summary}</p>
 
       <dl class="flex flex-col gap-1 text-[13px] leading-[var(--line-height-compact)]">
         <div class="flex gap-2">
@@ -150,9 +102,7 @@ export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () =
             class="flex flex-col gap-1.5 rounded-[6px] bg-v2-background-bg-layer-01 px-3 py-2.5"
           >
             <div class="flex items-center gap-2 text-[12px] leading-[var(--line-height-compact)]">
-              <span class="text-v2-text-text-base">
-                {language.t(RESOLUTION_LABELS[resolution().decision])}
-              </span>
+              <span class="text-v2-text-text-base">{language.t(RESOLUTION_LABELS[resolution().decision])}</span>
               <span class="ms-auto text-v2-text-text-faint">
                 {getRelativeTime(new Date(resolution().at).toISOString(), language.t)}
               </span>
@@ -182,7 +132,7 @@ export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () =
       </Show>
 
       <Show when={!decided()}>
-        <div class="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-v2-border-border-muted pt-4">
+        <div class="flex flex-wrap items-center gap-2">
           <Show when={props.item.kind === "approval"}>
             <Button size="small" variant="neutral" disabled={busy()} onClick={() => props.onOpen()}>
               {language.t("inbox.detail.action.open")}
@@ -231,13 +181,14 @@ export function InboxDetail(props: { item: InboxItem; inbox: Inbox; onOpen: () =
           </Show>
         </div>
       </Show>
+
       <Show when={props.inbox.history(props.item)}>
-        <div class="mt-auto flex items-center justify-end border-t border-v2-border-border-muted pt-4">
+        <div class="flex items-center">
           <Button size="small" variant="neutral" onClick={() => props.inbox.remove(props.item)}>
             {language.t("inbox.detail.action.delete")}
           </Button>
         </div>
       </Show>
-    </article>
+    </div>
   )
 }

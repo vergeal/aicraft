@@ -1,0 +1,388 @@
+/* Shared frame for the four fused module pages: one scroll surface, state groups, cards, and the search overlay.
+   Values follow .opencode/ui: a 4px rhythm (8/12/16/20/24/32), semantic tokens only, and 0.5px edges drawn
+   with inset shadows rather than borders. */
+
+.module-page {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.module-page-inner {
+  display: flex;
+  max-width: 900px;
+  margin-inline: auto;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px 24px 64px;
+}
+
+.module-page-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.module-page-head-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.module-page-head h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  letter-spacing: -0.015em;
+}
+
+.module-page-head h1 .count {
+  color: var(--v2-text-text-faint);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-page-head p {
+  margin: 8px 0 0;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.module-page-head-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.module-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.module-group-head {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 12px;
+  padding-inline: 4px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.module-group-head .count {
+  color: var(--v2-text-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.module-group-head .rule {
+  height: 0.5px;
+  flex: 1;
+  background: var(--v2-border-border-muted);
+}
+
+.module-group-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.module-group-head button:hover {
+  color: var(--v2-text-text-base);
+}
+
+.module-group-chevron {
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.module-group-head button[aria-expanded="false"] .module-group-chevron {
+  transform: rotate(-90deg);
+}
+
+/* A card is the item: its summary row opens the full content and the actions in place. */
+.module-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+}
+
+.module-card[data-open] {
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
+}
+
+.module-card-head {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: default;
+}
+
+.module-card-glyph {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+  flex: none;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-icon-icon-muted);
+}
+
+.module-card-glyph[data-tone="pending"] {
+  color: var(--v2-state-fg-warning);
+}
+
+.module-card-glyph[data-tone="failed"] {
+  color: var(--v2-state-fg-danger);
+}
+
+.module-card-glyph[data-tone="done"] {
+  color: var(--v2-state-fg-success);
+}
+
+.module-card-title {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.module-card-title strong {
+  min-width: 0;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.module-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.module-card-meta .sep {
+  width: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--v2-text-text-faint);
+}
+
+.module-card-trail {
+  flex: none;
+  padding-top: 1px;
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.module-card[data-open] .module-card-trail {
+  transform: rotate(180deg);
+}
+
+.module-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+/* A card whose summary line is the whole body: one line of context plus the card's own actions. */
+.module-card-desc {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.module-card-foot {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 14px;
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* A card body supplies its own 12px rhythm; the standalone detail page's larger margins would double it. */
+.module-card-body .scheduled-stats {
+  margin-top: 0;
+}
+
+.module-card-body .scheduled-section {
+  margin-top: 12px;
+}
+
+.module-card-body .scheduled-section:first-child {
+  margin-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .module-group-chevron,
+  .module-card-trail {
+    transition: none;
+  }
+}
+
+/* ---------- search overlay: the only glass surface on a module page ---------- */
+
+.module-search-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: start center;
+  padding-top: 12vh;
+  background: var(--v2-overlay-simple-overlay-scrim);
+}
+
+.module-search-panel {
+  display: flex;
+  width: min(640px, calc(100vw - 48px));
+  max-height: min(480px, calc(100vh - 160px));
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--v2-material-surface-strong);
+  box-shadow: var(--v2-elevation-floating);
+  backdrop-filter: var(--v2-material-blur-thick);
+}
+
+.module-search-field {
+  display: flex;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  box-shadow: inset 0 -0.5px 0 var(--v2-border-border-muted);
+}
+
+.module-search-icon {
+  flex: none;
+  color: var(--v2-text-text-faint);
+}
+
+.module-search-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--v2-text-text-base);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.module-search-field input::placeholder {
+  color: var(--v2-text-text-faint);
+}
+
+.module-search-results {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.module-search-hint {
+  padding: 4px 8px;
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.module-search-hit {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: none;
+  color: var(--v2-text-text-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: start;
+  cursor: default;
+}
+
+.module-search-hit:hover,
+.module-search-hit[data-active] {
+  background: var(--v2-overlay-simple-overlay-hover);
+  color: var(--v2-text-text-base);
+}
+
+.module-search-hit-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-search-empty {
+  padding: 16px 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* ---------- cards grid and tags (knowledge / explore) ---------- */
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.module-tag {
+  display: inline-flex;
+  height: 18px;
+  flex: none;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+  padding: 0 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  line-height: 18px;
+}

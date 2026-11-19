@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, Match, onCleanup, Show, Switch, type Accessor } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, Show, type Accessor } from "solid-js"
 import { Schema } from "effect"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { Key } from "@solid-primitives/keyed"
@@ -14,7 +14,6 @@ import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
 import { displayName } from "@opencode/ui/project-avatar"
-import { Tooltip } from "@opencode/ui/tooltip"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
@@ -23,7 +22,6 @@ import { Persistence } from "@/runtime/persistence/schema"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { arrayMove } from "@/runtime/array-move"
 import { useSettingsSurface } from "@/settings/surface"
-import { useCommand } from "@/shell/commands/command"
 import { usePinnedSessions } from "@/session/pins"
 import { sessionLabel } from "@/session/title"
 import { SessionMenuCopyID, useCopySessionID } from "@/session/menu-items"
@@ -36,11 +34,9 @@ import { sessionHref } from "@/shell/routes/session"
 import { createWorktree } from "@/workspaces/create"
 import { createSessionInbox, inboxArchived, type InboxEntry, type InboxStatus } from "@/shell/titlebar/inbox-model"
 import { deliveryFrom, playDeliveryFlight, playUndoDrop } from "./envelope-flight"
-import { InboxNav } from "./sidebar-inbox"
-import { ExploreNav } from "./sidebar-explore"
-import { KnowledgeNav } from "./sidebar-knowledge"
-import { ScheduledNav } from "./sidebar-scheduled"
-import { HEADER, LIST, PRIMARY, ROW, SECTION } from "./sidebar-tokens"
+import { HEADER, LIST, ROW, SECTION } from "./sidebar-tokens"
+import { ReplicaPrimaryFooter, ReplicaPrimaryNav } from "./primary-nav"
+import { SidebarToggle } from "@/shell/sidebar-toggle"
 import { createdFrom, creatorName, playBranchGrowth } from "./session-branch"
 import { replicaRow } from "./overlay"
 
@@ -110,30 +106,40 @@ function StatusMark(props: { status: InboxStatus }) {
   )
 }
 
-/** The navigation column of the workbench: each destination owns the list that leads into its workspace. */
+/**
+ * The navigation column of the workbench: one 44px header that reaches the window's top edge, the first-level
+ * destinations under it, and the conversation list. Module pages draw their own navigation inside the content area.
+ */
 export function ReplicaSidebar() {
-  const layout = useLayout()
-
   return (
     <aside data-slot="replica-sidebar" data-ui="navigation-sidebar" class="flex min-h-0 flex-col">
-      <Switch>
-        <Match when={layout.route().type === "inbox"}>
-          <InboxNav />
-        </Match>
-        <Match when={layout.route().type === "scheduled"}>
-          <ScheduledNav />
-        </Match>
-        <Match when={layout.route().type === "explore"}>
-          <ExploreNav />
-        </Match>
-        <Match when={layout.route().type === "knowledge"}>
-          <KnowledgeNav />
-        </Match>
-        <Match when={true}>
-          <ConversationNav />
-        </Match>
-      </Switch>
+      <ReplicaSidebarHeader />
+
+      <ReplicaPrimaryNav />
+
+      <ConversationNav />
+
+      <ReplicaPrimaryFooter />
     </aside>
+  )
+}
+
+/** The sidebar's top row, which the traffic lights sit in: the workspace name and the collapse toggle. */
+function ReplicaSidebarHeader() {
+  const language = useLanguage()
+
+  return (
+    <div data-slot="replica-sidebar-header" data-ui="sidebar-header" class={HEADER}>
+      <span
+        data-slot="replica-sidebar-title"
+        class="min-w-0 truncate text-[14px] leading-5 font-semibold text-[var(--color-text-main)]"
+      >
+        {language.t("replica.workspace.name")}
+      </span>
+      <div class="ms-auto flex shrink-0 items-center gap-0.5">
+        <SidebarToggle />
+      </div>
+    </div>
   )
 }
 
@@ -340,10 +346,7 @@ function SessionRow(props: {
         { type: "separator" },
         {
           id: "archive",
-          label:
-            session.time.archived !== undefined
-              ? language.t("common.unarchive")
-              : language.t("common.archive"),
+          label: session.time.archived !== undefined ? language.t("common.unarchive") : language.t("common.archive"),
           icon: "archive",
         },
         { type: "separator" },
@@ -494,19 +497,12 @@ function SessionRow(props: {
 
 function ConversationNav() {
   const language = useLanguage()
-  const navigate = useNavigate()
-  const command = useCommand()
   const tabs = useTabs()
   const layout = useLayout()
   const global = useGlobal()
   const inbox = createSessionInbox()
   const pins = usePinnedSessions()
   const dialog = useDialog()
-
-  const pending = () =>
-    inbox
-      .entries()
-      .filter((entry) => entry.status === "approval" || entry.status === "input" || entry.status === "failed").length
 
   // A cross-session delivery sends a letter from the sender's row to the recipient's. Only `deliver` stamps the
   // envelope into the payload, so a person's own prompt never triggers it.
@@ -597,9 +593,7 @@ function ConversationNav() {
           const timer = setTimeout(() => voidBatches.delete(key), 1500)
           voidBatches.set(key, { count, timer })
 
-          requestAnimationFrame(() =>
-            requestAnimationFrame(() => playUndoDrop(server, target, by, count)),
-          )
+          requestAnimationFrame(() => requestAnimationFrame(() => playUndoDrop(server, target, by, count)))
         }),
       )
     }
@@ -622,9 +616,7 @@ function ConversationNav() {
   const recent = createMemo(() => {
     const pinnedIDs = new Set(pins.ids())
     // Archiving keeps the session in the local store, so the row has to leave the list here as well as from the index.
-    const list = inbox
-      .entries()
-      .filter((entry) => !pinnedIDs.has(entry.session.id) && !inboxArchived(entry))
+    const list = inbox.entries().filter((entry) => !pinnedIDs.has(entry.session.id) && !inboxArchived(entry))
     const byID = new Map(list.map((entry) => [entry.session.id, entry]))
     const ranked = new Set(order.recent)
     const fresh = list
@@ -662,7 +654,10 @@ function ConversationNav() {
       const key = project?.id ?? project?.worktree ?? entry.session.location.directory
       const name = project
         ? displayName(project)
-        : (entry.session.location.directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || key)
+        : entry.session.location.directory
+            .replace(/[\\/]+$/, "")
+            .split(/[\\/]/)
+            .pop() || key
       const group = groups.get(key)
 
       if (group) group.entries.push(entry)
@@ -671,6 +666,24 @@ function ConversationNav() {
 
     return [...groups.values()]
   })
+
+  // Rows leave the list through its top and bottom edges, so fade them there rather than cutting them off. The fade
+  // shows only on the edges the list can actually scroll, which the row count and the scroll position decide.
+  const [list, setList] = createSignal<HTMLDivElement>()
+  const updateFades = (element: HTMLDivElement | undefined) => {
+    if (!element) return
+
+    element.toggleAttribute("data-fade-top", element.scrollTop > 0)
+    element.toggleAttribute("data-fade-bottom", element.scrollHeight - element.scrollTop - element.clientHeight > 1)
+  }
+
+  createEffect(
+    on(
+      () => [pinned().length, projectGroups().length],
+      () => updateFades(list()),
+      { defer: true },
+    ),
+  )
 
   // A folded project stays folded while the list re-sorts underneath, because the key is the project, not the row.
   const [foldedProjects, setFoldedProjects] = createSignal<ReadonlySet<string>>(new Set())
@@ -699,20 +712,6 @@ function ConversationNav() {
     const tab = currentTab()
 
     return !!tab && tab.type === "session" && tab.server === entry.server && tab.sessionId === entry.session.id
-  }
-
-  const newChat = () => {
-    const conn = global.servers.list()[0]
-
-    if (!conn) return
-    const key = ServerConnection.key(conn)
-    const ctx = global.serverCtx(key)
-
-    if (!ctx) return
-    const directory = ctx.projects.last()?.worktree ?? ctx.projects.list()[0]?.worktree
-
-    if (!directory) return
-    void tabs.newDraft({ server: key, directory })
   }
 
   const open = (entry: InboxEntry) => {
@@ -763,47 +762,13 @@ function ConversationNav() {
 
   return (
     <>
-      <div data-slot="replica-sidebar-header" data-ui="sidebar-header" class={HEADER}>
-        <button
-          type="button"
-          data-replica-control
-          class="flex min-w-0 items-center gap-2 rounded-[var(--radius-control)] px-1 py-0.5 text-[19px] leading-6 font-semibold text-[var(--color-text-main)] hover:bg-[var(--color-hover)]"
-          onClick={() => command.trigger("command.palette")}
-        >
-          <span class="min-w-0 truncate">{language.t("replica.workspace.name")}</span>
-          <Icon name="chevron-down" size="small" class="shrink-0 text-[var(--color-icon-secondary)]" />
-        </button>
-        <div class="ms-auto flex shrink-0 items-center gap-1">
-          <Tooltip placement="bottom" value={language.t("inbox.title")}>
-            <button
-              type="button"
-              data-replica-control
-              aria-label={language.t("inbox.title")}
-              class="relative flex size-[30px] items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)]"
-              onClick={() => navigate("/inbox")}
-            >
-              <Icon name="notifications" />
-              {pending() > 0 && (
-                <span
-                  class="absolute end-1.5 top-1.5 size-[5px] rounded-full bg-[var(--color-accent-blue)]"
-                  aria-hidden="true"
-                />
-              )}
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-
-      <button type="button" data-replica-control data-slot="replica-new-chat" class={PRIMARY} onClick={newChat}>
-        <Icon name="edit" class="shrink-0 text-[var(--color-icon-secondary)]" />
-        <span class="min-w-0 truncate">{language.t("replica.newChat")}</span>
-      </button>
-
       <div
+        ref={setList}
         data-slot="replica-sidebar-scroll"
         class="mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-3"
         onScroll={(event) => {
           const element = event.currentTarget
+          updateFades(element)
           // Start the next page before the list runs out, so scrolling never stops at an empty edge.
           if (element.scrollHeight - element.scrollTop - element.clientHeight > 320) return
 
@@ -899,10 +864,7 @@ function ConversationNav() {
                         />
                       </button>
                       {/* The sessions fold open by grid rows, so the column grows instead of the list appearing at once. */}
-                      <div
-                        class="replica-project-sessions"
-                        data-collapsed={foldedProjects().has(group().key)}
-                      >
+                      <div class="replica-project-sessions" data-collapsed={foldedProjects().has(group().key)}>
                         <div class={`${LIST} ps-3 min-h-0 overflow-hidden`}>
                           <Key each={group().entries} by={(entry) => entry.key}>
                             {(entry) => (

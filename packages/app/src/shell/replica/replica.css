@@ -1,18 +1,16 @@
 /* v6 workbench: the window is one continuous surface. Three columns share the frame with the titlebar,
    and every size below comes from the v6 token table rather than ad-hoc component values. */
 [data-replica] {
-  /* Windows draws its caption buttons in the window controls overlay, whose height follows the zoom level. The bar
-     has to be at least that tall, otherwise the buttons' hover background spills over the workbench below it. */
-  --titlebar-height: max(39px, env(titlebar-area-height, 39px));
-  --primary-rail-width: 46px;
-  /* The window controls keep this much room even when the sidebar collapses, so the traffic lights and the
-     three buttons never run under the title. */
-  --titlebar-left-min: 176px;
-  --navigation-sidebar-width: 300px;
+  /* The sidebar header and the content topbar share one 36px row across the window. The traffic lights keep their own
+     inset inside that row, so the bar stays a title strip rather than a second toolbar. */
+  --titlebar-height: 36px;
+  --navigation-sidebar-width: 280px;
   --navigation-sidebar-width-current: var(--navigation-sidebar-width);
 
-  --sidebar-header-height: 49px;
+  --sidebar-header-height: 36px;
   --sidebar-header-padding-inline: 14px;
+  /* macOS draws the traffic lights here; other platforms keep a normal inset. */
+  --sidebar-header-lead: 14px;
   --sidebar-list-gutter-inline: 8px;
   --sidebar-row-padding-inline: 8px;
   --sidebar-new-chat-height: 31px;
@@ -40,17 +38,19 @@
      they sit on the window's vibrancy material, so the tints stay light enough to let it read as glass. Opaque
      windows (web) have nothing behind the chrome but the painted root, so those tints stay close to solid: a thin
      wash only greys the surface without ever reading as glass. */
-  --color-titlebar: rgb(248 248 250 / 86%);
-  --color-rail: rgb(248 248 250 / 86%);
-  --color-sidebar: rgb(252 252 254 / 90%);
+  --color-titlebar: rgb(247 247 247 / 86%);
+  --color-rail: rgb(247 247 247 / 86%);
+  /* The navigation column sits one step below the canvas on the design system's neutral ramp (#f5f5f5 over white),
+     so the two columns read as one surface with a level change rather than a wash of near-white. */
+  --color-sidebar: rgb(245 245 245 / 92%);
   --color-main: #ffffff;
   --color-composer: #ffffff;
   --replica-composer-fill: #ffffff;
-  --color-hover: #f3f3f3;
-  --color-selected: #e2e2e2;
-  --color-muted-surface: #f7f7f7;
-  --color-border: #e8e8e8;
-  --color-divider: #eeeeee;
+  --color-hover: rgb(0 0 0 / 5%);
+  --color-selected: #e8e8e8;
+  --color-muted-surface: #f5f5f5;
+  --color-border: rgb(0 0 0 / 10%);
+  --color-divider: rgb(0 0 0 / 5%);
   /* The panel edge sits on the vibrancy material rather than on an opaque sheet, where #eeeeee disappears into the
      62% white tint. Six percent still vanished over a white wallpaper, so the glass variant carries ten percent,
      enough to read at 1x without turning into a drawn outline. */
@@ -73,19 +73,12 @@
   --radius-control: 10px;
   --radius-card: 12px;
   --radius-popover: 12px;
-  /* The panel's outer arc sits one 1px gutter inside the window edge, so 12px reads as the macOS window radius
-     (about 12px on current macOS) instead of a floating card. */
-  --radius-panel: 12px;
   --radius-message: 17px;
   --radius-composer: 19px;
   --radius-dialog: 18px;
 
   /* The dock leaves 14px under the card; a taller blur would be clipped by the work area's bottom edge. */
   --shadow-composer: 0 2px 12px rgba(0, 0, 0, 0.05);
-  /* The panel sheds this shadow onto the title bar and rail, so it needs a soft falloff rather than a 1px ring.
-     The blur stays inside the 1px gutter: a wider one reached past the 12px corner and painted a wedge in each
-     window corner, which read as a small arrow. */
-  --shadow-panel: 0 1px 2px rgb(0 0 0 / 7%), 0 2px 6px -2px rgb(0 0 0 / 8%);
   --shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.1);
   --shadow-dialog: 0 16px 44px rgba(0, 0, 0, 0.15);
 
@@ -104,23 +97,23 @@
   font-optical-sizing: auto;
 }
 
-/* Dark mode steps the three surfaces down: the window frame (8), the navigation column (21), the work area (15).
-   The frame sits below the panel — as it does in light mode — so the cutout of the workbench's rounded corner reads
-   as a recess; a frame above the panel turned that corner into a bright square poking out of the panel. */
+/* Dark mode follows the design system's neutral implementation: the canvas is a near-black (#111111) and the
+   navigation column sits well above it on the raised step (#303030). Both are pure neutral greys: the previous
+   cool-blue canvas beside a blue-violet sidebar made the split read as two different materials. */
 [data-color-scheme="dark"] [data-replica] {
-  --color-titlebar: rgb(14 14 16 / 86%);
-  --color-rail: rgb(14 14 16 / 86%);
-  --color-sidebar: rgb(24 24 27 / 90%);
+  --color-titlebar: rgb(17 17 17 / 86%);
+  --color-rail: rgb(17 17 17 / 86%);
+  --color-sidebar: rgb(48 48 48 / 95%);
   /* The column reads washed out below 90% over a bright desktop, so the shell paints it almost solid. */
-  --color-navigation: rgb(21 21 21 / 92%);
-  --color-main: rgb(15 15 15);
+  --color-navigation: rgb(48 48 48 / 92%);
+  --color-main: #111111;
   --color-composer: var(--v2-background-bg-layer-01);
   --replica-composer-fill: var(--v2-background-bg-layer-01);
-  --color-hover: rgb(255 255 255 / 7%);
-  /* Pressed rows need a clear step above the 21-value navigation surface, not an 8% wash. */
-  --color-selected: rgb(255 255 255 / 14%);
-  --color-border: var(--v2-border-border-muted);
-  --color-divider: var(--v2-border-border-muted);
+  --color-hover: rgb(255 255 255 / 8%);
+  /* Pressed rows need a clear step above the navigation surface, not an 8% wash. */
+  --color-selected: rgb(255 255 255 / 12%);
+  --color-border: rgb(255 255 255 / 10%);
+  --color-divider: rgb(255 255 255 / 10%);
   --color-text-primary: var(--v2-text-text-base);
   --color-text-main: var(--v2-text-text-base);
   --color-text-secondary: var(--v2-text-text-muted);
@@ -130,17 +123,8 @@
   --color-icon-secondary: var(--v2-icon-icon-muted);
   --color-send-bg: var(--v2-background-bg-layer-04);
   --color-send-fg: var(--v2-text-text-contrast);
-  /* The work area is darker than its backdrop here, so the lift needs a little more weight, but it stays inside the
-     glass alpha budget: a 45/55% shadow reached past the panel corner and filled each window corner with a wedge. */
-  --shadow-panel: 0 1px 2px rgb(0 0 0 / 10%), 0 3px 10px -3px rgb(0 0 0 / 12%);
   /* A dark glass surface swallows a dark divider the same way the light one swallows #eeeeee. */
   --color-divider-glass: rgb(255 255 255 / 10%);
-}
-
-/* Windows draws a 32px caption, so its bar matches that instead of the taller macOS one and the window controls
-   in the overlay sit where every other window puts them. */
-html[data-os="windows"] [data-replica] {
-  --titlebar-height: max(32px, env(titlebar-area-height, 32px));
 }
 
 /* One titlebar split at the sidebar boundary: window controls on the left, conversation title on the right. */
@@ -160,10 +144,16 @@ html[data-replica-window="translucent"] #root:has([data-replica]) {
    wallpaper moved through the chrome and the window read as two unrelated themes — a bright rail beside an opaque
    conversation. The steps below keep the sheet translucent while it still reads as one material. */
 html[data-replica-window="translucent"] [data-replica] {
-  /* macOS 的 sidebar 材质自己就是一层带亮度补偿的浅色玻璃。应用层再刷一层白，等于在系统材质上又盖一张白纸：
-     壁纸的颜色和冷暖被冲掉，剩下的只有一层发灰的膜。这里保留足够压住壁纸的白，同时让材质继续透出来。 */
-  --color-rail: rgb(246 247 250 / 86%);
-  --color-sidebar: rgb(252 252 254 / 88%);
+  /* macOS 的 sidebar 材质自己就是一层带亮度补偿的浅色玻璃，CSS 的亚克力再叠一层模糊与饱和。玻璃感靠这层
+     半透明白 + 系统材质的透光：90% 是既能透出壁纸冷暖、又不让亮壁纸冲淡文字的一档。 */
+  --color-rail: rgb(247 247 247 / 90%);
+  --color-sidebar: rgb(245 245 245 / 92%);
+  /* Rows sit on glass too, so their hover and pressed fills are washes of ink rather than the opaque greys the
+     opaque window uses. An opaque #f3f3f3 replaces the wallpaper colour under the row and reads as a sticker
+     pressed onto the chrome; at these alphas the wash keeps the material visible through it and still stacks to
+     roughly the old luminance on the 90% tint. */
+  --color-hover: rgb(0 0 0 / 5%);
+  --color-selected: rgb(0 0 0 / 9%);
   /* 标题栏和导航列是同一片材质：transparent 规则下标题栏不单独上色，所以这里跟随 rail，
      只有 reduced-transparency 分支会把这个值实体化。 */
   --color-titlebar: var(--color-rail);
@@ -171,163 +161,106 @@ html[data-replica-window="translucent"] [data-replica] {
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
   /* 暗色玻璃要兜住亮壁纸，否则浅色文字压在透出来的亮背景上；rail 与导航列保持同一片材质，只差一档明度。 */
-  --color-titlebar: rgb(19 19 22 / 86%);
-  --color-rail: rgb(19 19 22 / 86%);
-  --color-navigation: rgb(27 27 31 / 90%);
-  --color-sidebar: rgb(27 27 31 / 90%);
+  --color-titlebar: rgb(33 33 33 / 90%);
+  --color-rail: rgb(33 33 33 / 90%);
+  --color-navigation: rgb(48 48 48 / 92%);
+  --color-sidebar: rgb(48 48 48 / 92%);
 }
 
-/* 纯色玻璃读起来像一层灰纱，因为真实的玻璃是受光的：顶部向冷蓝偏、底部沉一点蓝紫、中间几乎不染色。
-   同一道垂直光铺在窗口底色上，标题栏和 rail 都透出它；每一层都在 8% 以下，系统材质仍然是主体。 */
+/* 实现 A 的窗户是纯中性灰：面板与抬升面只差明度，没有任何色相偏移。之前那层「受光」蓝紫渐变把导航面染成了
+   另一个色族，和画布拼在一起像两种材质，所以这里只铺纯色。 */
 html[data-replica-window="translucent"] [data-replica] {
-  background:
-    linear-gradient(
-      to bottom,
-      rgb(122 155 240 / 8%),
-      rgb(122 155 240 / 0) 30%,
-      rgb(143 137 184 / 0) 70%,
-      rgb(143 137 184 / 7%)
-    ),
-    var(--color-rail);
+  background: var(--color-rail);
 }
 
-html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
-html[data-replica-window="translucent"] [data-slot="replica-rail"],
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
 html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   background: transparent;
 }
 
-/* The conversation keeps an opaque surface; only the chrome acts as glass. */
-html[data-replica-window="translucent"] [data-slot="replica-workbench"] {
-  background: transparent;
-  /* The resting shadow was tuned against a near-opaque sheet, where it only had to hint at an edge. Over the
-     thinner chrome the panel has to lift on its own, or the conversation and the navigation read as one flat wash. */
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 8%),
-    0 4px 14px -5px rgb(0 0 0 / 10%);
-}
-
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-workbench"] {
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 12%),
-    0 4px 14px -5px rgb(0 0 0 / 14%);
-}
-
-/* The navigation column reads a step above the rail: both ride the window's single tint, so the sidebar adds a thin
-   white wash instead of a second opaque sheet. The wash stays inside the workbench's rounded cutout, so the corner
-   arcs still resolve to the window tint instead of to a lighter square. It stays at 4%: the 10% wash was a second
-   white layer over an already light tint, and the column ended up indistinguishable from the opaque work area. */
+/* The navigation column reads a step above the window tint: it adds a thin white wash instead of a second opaque
+   sheet, so the wallpaper's colour still comes through the glass. Dark mode skips the wash: the shell already
+   carries the design system's panel step (gray-875), and a second wash there pushed the column into a bluer tint
+   than the canvas, so the two halves read as different materials. */
 html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
-  /* 比 rail 高一层，并且带一点冷色：中性白叠在系统材质上会把壁纸的色温中和成灰，蓝调才透得像玻璃。 */
-  background: rgb(247 250 255 / 8%);
+  /* 中性白叠在系统材质上，让侧栏读作同一片玻璃更高的一层；实现 A 不引入任何冷偏。 */
+  background: rgb(255 255 255 / 8%);
 }
 
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
-  /* 导航列比 rail 高一层：极淡的冷白叠在 shell 的导航面上，让 rail 与导航列读作同一片玻璃的两个层次。 */
-  background: rgb(255 255 255 / 3%);
-}
-
-/* 分隔线画在不透明的一侧。半透明侧边栏上的 alpha 边框会和壁纸混成一条暗缝，看起来像面板裂了一道；
-   挪到不透明的会话面上，线就落在实底上，只做分层。 */
-html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
-  border-inline-end: 0;
-}
-
-html[data-replica-window="translucent"] [data-slot="replica-main"] {
-  border-inline-start: 1px solid var(--color-divider);
-}
-
-html[data-replica-window="translucent"]
-  [data-slot="replica-sidebar-slot"][data-collapsed]
-  + [data-slot="replica-main"] {
-  border-inline-start: 0;
-}
-
-/* Dark mode needs a deeper navigation surface. The shell carries it, the title bar keeps its own lighter tint, and
-   the frame stays clear: splitting the tint across those two layers keeps the workbench's rounded cutout on the
-   navigation surface instead of on a darker frame. */
+/* The frame stays clear in dark mode so the material shows through both columns. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
   background: transparent;
 }
 
-/* Dark mode hands the frame's paint to the shell, which leaves the rail as the one column still sitting on bare
-   desktop: 46px of wallpaper next to an 86% navigation sheet is what read as two themes. The rail carries the same
-   tint and the same vertical light as the frame does in light mode. */
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-rail"] {
-  background:
-    linear-gradient(
-      to bottom,
-      rgb(122 155 240 / 7%),
-      rgb(122 155 240 / 0) 30%,
-      rgb(143 137 184 / 0) 70%,
-      rgb(143 137 184 / 5%)
-    ),
-    var(--color-rail);
-}
-
-/* The title bar's lighter frame tint meets the navigation surface at a hard horizontal seam. The ramp lives in the bar's last
-   10px so the shell below stays one flat colour: the workbench's rounded cutout takes its colour from the shell's
-   top edge, and a gradient there would lighten the cutout into a wedge along the arc. */
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
-  background: linear-gradient(
-    180deg,
-    var(--color-titlebar) 0,
-    var(--color-titlebar) calc(100% - 10px),
-    var(--color-navigation) 100%
-  );
-}
-
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-shell"] {
-  /* 暗色下 frame 让位给 shell，导航面由这一层承载，所以同一道垂直光挂在这里而不是 frame 上。 */
-  background:
-    linear-gradient(
-      to bottom,
-      rgb(122 155 240 / 7%),
-      rgb(122 155 240 / 0) 30%,
-      rgb(143 137 184 / 0) 70%,
-      rgb(143 137 184 / 5%)
-    ),
-    var(--color-navigation);
-}
-
-/* A hairline of light along the top edge reads as the glass catching the room. Only the window bar carries it: the
-   navigation column starts 39px lower, and repeating the line there read as two parallel highlights across the
-   chrome. The window's own rounded corners clip this line, so it follows the arc instead of ending square.
-   It stays faint: over the thinned-out chrome a 55% line drew a bright edge that no system window has. */
-[data-slot="replica-titlebar"] {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 42%);
-}
-
-[data-color-scheme="dark"] [data-slot="replica-titlebar"] {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%);
+  /* 暗色下 frame 让位给 shell，导航面由这一层承载：纯中性灰的玻璃，工作区由自己的不透明画布盖住。
+     表面那道渐变画在导航列自己身上（见 replica-sidebar 的规则），不在这里按宽度裁。 */
+  background-color: var(--color-navigation);
 }
 
 /* Every chrome surface is one acrylic sheet: it blurs and saturates the desktop behind it, so the window reads as
    soft colour instead of a hard copy of the wallpaper. Only the translucent window has a material underneath to
    blur; an opaque window (web) would pay for a filter that has nothing behind it to soften. */
-html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
-html[data-replica-window="translucent"] [data-slot="replica-rail"],
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
 html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   -webkit-backdrop-filter: var(--color-material-blur);
   backdrop-filter: var(--color-material-blur);
 }
 
+/* The content topbar is the same surface as the canvas it heads, closed off by a 0.5px hairline instead of a card
+   edge. It stays draggable so the window can move from anywhere along its top row, and its controls opt out. */
 [data-slot="replica-titlebar"] {
-  display: grid;
-  grid-template-columns:
-    max(calc(var(--primary-rail-width) + var(--navigation-sidebar-width-current)), var(--titlebar-left-min))
-    minmax(0, 1fr);
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
   height: var(--titlebar-height);
   min-height: var(--titlebar-height);
-  background: var(--color-titlebar);
-  /* Collapsing the sidebar slides this column with it instead of snapping the boundary. */
-  transition: grid-template-columns 220ms cubic-bezier(0.2, 0, 0, 1);
-  /* The window bar has no rule against the content below; only the surface color separates them. */
-  /* The window bar follows the appearance font instead of the replica's system stack. */
+  padding-inline: 12px;
+  /* Windows paints its caption buttons over the right edge; everywhere else this inset resolves to 12px. */
+  padding-right: calc(100vw - env(titlebar-area-width, 100vw) + 12px);
+  background: var(--color-main);
   font-family: var(--font-family-sans, var(--font-family-ui));
   -webkit-app-region: drag;
+}
+
+/* 标题栏不再铺自己的底，也没有了底部那条 0.5px 分隔线：工作区的画布、白光和氛围光都从这一行底下继续过来，
+   顶部读作同一片面，而不是一条贴在上边的带子。选择器带上 replica-main 和 data-replica，是为了压过
+   reduced-transparency 分支里给标题栏重新铺实色底的那条规则。 */
+[data-replica] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
+  background-color: transparent;
+}
+
+/* 标题栏与画布之间重新落一条线。1px、10% 的对比，并且两端淡出，所以读作画布上的一道折痕，而不是贴在表面的一条边
+   ——线在中间最实，走到左右两端就归零，接缝因此是被"暗示"出来的。1px 是下限：在这个 devicePixelRatio 上它才真的
+   跨过两个像素行，再细下去宽度就只能靠填满是没法表达的。 */
+[data-slot="replica-titlebar"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 10%)) 8%,
+    light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 10%)) 92%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* 导航面的光不该在分界处断掉：标题栏是唯一横跨两栏的元素，所以在它身上让同一束渐变往内容区淡出一段，
+   两块区域在顶部先连成一片，分界就不再读作一条直线。取色与导航列的渐变完全同源。 */
+html[data-color-scheme="dark"] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
+  background-image: linear-gradient(
+    to right,
+    rgb(0 221 143 / 10%),
+    rgb(0 188 230 / 4%) 180px,
+    rgb(0 188 230 / 0%) 380px
+  );
 }
 
 [data-slot="replica-titlebar"] [data-replica-control] {
@@ -351,76 +284,84 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   max-inline-size: min(60%, 560px);
 }
 
-[data-slot="replica-titlebar-left"] {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
 [data-slot="replica-titlebar-main"] {
   display: flex;
+  flex: 1;
   align-items: center;
   min-width: 0;
-  padding-inline: 18px 14px;
-  /* Windows paints its three caption buttons over the right edge of the window bar, so the conversation title and
-     the context control stop before them. `titlebar-area-width` is the draggable part of the bar; wherever there is
-     no window controls overlay (macOS, Linux, web) it resolves to the full width and this keeps the 14px inset. */
-  padding-right: calc(100vw - env(titlebar-area-width, 100vw) + 14px);
 }
 
 [data-slot="replica-shell"] {
-  display: grid;
-  grid-template-columns: var(--primary-rail-width) minmax(0, 1fr);
+  display: flex;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  /* The workbench shadow paints past this grid into the title bar and the rail; the window frame still clips it. */
-  overflow: visible;
+  overflow: hidden;
 }
 
-/* Only the glass shell needs the darker divider: an opaque sheet still shows #eeeeee against #ffffff. The variable
-   is set on the two elements that draw the lines rather than on the frame, so nothing else inside the workbench
-   picks up the glass ink. */
-html[data-replica-window="translucent"] [data-slot="replica-workbench"],
+/* Only the glass shell needs the darker divider: an opaque sheet still shows #eeeeee against #ffffff. */
 html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   --color-divider: var(--color-divider-glass);
 }
 
-/* The sidebar and the conversation are one main panel, rounded as a whole. A 1px gutter on every side matches the
-   rail icons and the title bar's controls, so the panel reads as the same surface level as the chrome around it.
-   The edge stays a border rather than an inset shadow: the workbench's children paint over an inset ring, and at a
-   fractional device pixel ratio Chromium snaps the 1px border to one physical pixel anyway. */
-[data-slot="replica-workbench"] {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  margin: 1px;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-panel);
-  overflow: hidden;
-  background: var(--color-main);
-  box-shadow: var(--shadow-panel);
+/* The navigation column carries the design system's own neutral set: secondary text is a mid grey, and hover and
+   press are washes that lighten in dark mode and sit as an ink wash in light mode. They are declared on the column
+   itself so the conversation beside it keeps its tokens untouched. */
+[data-slot="replica-sidebar"] {
+  --color-hover: rgb(0 0 0 / 6%);
+  --color-selected: #e8e8e8;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #8a8a8a;
+  --color-icon-secondary: #8a8a8a;
 }
 
+html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
+  --color-hover: rgb(255 255 255 / 8%);
+  /* Pressed rows step above the navigation surface instead of cutting into it: in dark mode a darker fill reads as a
+     hole, while a lifted wash reads as the selected level. */
+  --color-selected: rgb(255 255 255 / 12%);
+  --color-text-secondary: #c2c2c2;
+  --color-text-tertiary: #8f8f8f;
+  --color-icon-secondary: #8f8f8f;
+}
+
+/* The sidebar and the content are two full-height columns of one surface. The card edge, gutter and rounded panel
+   are gone: the columns are separated by a 0.5px hairline drawn as an inset shadow, never a 1px border, so it stays
+   crisp at fractional device pixel ratios and never reads as a floating card. */
 [data-slot="replica-sidebar-slot"] {
   position: relative;
   display: flex;
   flex: 0 0 var(--navigation-sidebar-width-current);
   min-width: 0;
   min-height: 0;
-  /* A hairline keeps the navigation column and the conversation apart inside the one main panel. */
-  border-inline-end: 1px solid var(--color-divider);
   transition:
     flex-basis 220ms cubic-bezier(0.2, 0, 0, 1),
     opacity 160ms ease;
+}
+
+/* The dividing hairline is painted as an overlay rather than a border or an inset shadow: children paint their own
+   backgrounds over both, while an absolutely positioned 0.5px strip stays on top and stays crisp. It fades out at
+   both ends, so the two columns read as one surface meeting at a seam rather than two panels stacked side by side. */
+[data-slot="replica-sidebar-slot"]::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 0.5px;
+  background: linear-gradient(to bottom, transparent, var(--color-divider) 12%, var(--color-divider) 88%, transparent);
+  pointer-events: none;
 }
 
 /* Collapsed, the column keeps its element so the width can animate; its contents are clipped and inert. */
 [data-slot="replica-sidebar-slot"][data-collapsed] {
   opacity: 0;
   overflow: hidden;
-  border-inline-end: 0;
   pointer-events: none;
+}
+
+[data-slot="replica-sidebar-slot"][data-collapsed]::after {
+  display: none;
 }
 
 /* Dragging writes the width every frame, so the transition would lag behind the pointer. */
@@ -442,36 +383,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   overflow: hidden;
 }
 
-/* The titlebar is the exception to that freeze: its left column follows the pointer so the title stays level with
-   the sidebar edge. The same max() as the resting rule keeps the rail offset and the 176px floor in CSS, so the drag
-   only writes a bare number. Without the live variable it falls back to the resting width instead of jumping. */
-[data-replica][data-resizing] [data-slot="replica-titlebar"] {
-  grid-template-columns:
-    max(
-      calc(var(--primary-rail-width) + var(--drag-sidebar-current, var(--navigation-sidebar-width-current))),
-      var(--titlebar-left-min)
-    )
-    minmax(0, 1fr);
-}
-
-[data-slot="replica-rail"] {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  min-height: 0;
-  padding-block: 7px 14px;
-  background: var(--color-rail);
-}
-
-[data-slot="replica-rail-bottom"] {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-top: auto;
-}
-
 [data-slot="replica-sidebar"] {
   display: flex;
   flex: 1 1 auto;
@@ -484,9 +395,75 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   font-family: var(--font-family-sans, var(--font-family-ui));
 }
 
+/* 导航面的光泽画在导航列自己身上，而不是铺满整个窗口再按一个宽度变量去裁：列的宽度由 flex 盒决定，拖动时
+   渐变就跟着列一起变，不需要任何人每帧把宽度同步给 CSS，也就不会出现「拖动时渐变停在原处」。取色自应用
+   图标的圆环：左上青绿 rgb(0 221 143)、往右下过渡到青蓝 rgb(0 188 230)，到 78% 归零。 */
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
+  /* 右缘 28px 向内收拢：越是贴近分界，导航面越往画布的亮度沉，接缝两侧的明度差被这条窄带吃掉，
+     两块区域读作同一片材质的转折，而不是一块亮板贴在黑底上。压黑只有 14%，再深就会把彩光拽回灰色。
+     彩光从青绿走到青蓝，尾部不归零：整列都在同一束色里，只有浓度往下递减，否则下半截会掉回一块死灰。 */
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0%) calc(100% - 28px), rgb(0 0 0 / 14%)),
+    linear-gradient(160deg, rgb(0 221 143 / 22%), rgb(0 188 230 / 15%) 45%, rgb(0 188 230 / 7%));
+  background-repeat: no-repeat;
+}
+
+/* The sidebar header is the window's top-left corner, so the traffic lights sit in its start and it is draggable.
+   Only the header carries the drag region; every control inside it opts out. */
+[data-slot="replica-sidebar-header"] {
+  padding-inline-start: var(--sidebar-header-lead);
+  -webkit-app-region: drag;
+}
+
+[data-slot="replica-sidebar-header"] :where(button, a, input, [role="button"]) {
+  -webkit-app-region: no-drag;
+}
+
+/* macOS traffic lights end 88px from the window edge (14px origin + 74px pitch), so the header keeps that much room. */
+html[data-os="macos"] [data-replica] {
+  --sidebar-header-lead: 88px;
+}
+
+/* Collapsed, the sidebar is gone and the lights float over the content topbar's corner: give its first control the
+   same room so nothing runs under them. */
+html[data-os="macos"]
+  [data-slot="replica-sidebar-slot"][data-collapsed]
+  + [data-slot="replica-main"]
+  [data-slot="replica-titlebar"] {
+  padding-inline-start: 92px;
+}
+
+[data-slot="replica-primary-nav"],
+[data-slot="replica-primary-footer"] {
+  background: transparent;
+}
+
 [data-slot="replica-sidebar-scroll"] {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+}
+
+/* Rows leave the list through its top and bottom edges. Fade those edges so a row fades out instead of being cut
+   off mid-height. A list that still fits fades nowhere: the sidebar marks only the edges it can actually scroll to. */
+[data-slot="replica-sidebar-scroll"] {
+  --sidebar-fade: 20px;
+  --sidebar-fade-top: 0px;
+  --sidebar-fade-bottom: 0px;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--sidebar-fade-top),
+    black calc(100% - var(--sidebar-fade-bottom)),
+    transparent 100%
+  );
+}
+
+[data-slot="replica-sidebar-scroll"][data-fade-top] {
+  --sidebar-fade-top: var(--sidebar-fade);
+}
+
+[data-slot="replica-sidebar-scroll"][data-fade-bottom] {
+  --sidebar-fade-bottom: var(--sidebar-fade);
 }
 
 /* A project row turns one chevron instead of swapping two glyphs, and its sessions unfold by grid rows: the
@@ -657,8 +634,56 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   flex-direction: column;
   overflow: hidden;
   background: var(--color-main);
+  /* 内容区贴着导航列的一侧加一道 0.5px 内高光：分界读作玻璃的边缘，而不是两块色板对切。 */
+  box-shadow: inset 0.5px 0 0 rgb(0 0 0 / 5%);
   /* The conversation follows the appearance font the user selected; the chrome keeps the system stack. */
   font-family: var(--font-family-sans, var(--font-family-ui));
+}
+
+[data-color-scheme="dark"] [data-slot="replica-main"] {
+  box-shadow: inset 0.5px 0 0 rgb(255 255 255 / 6%);
+  /* 稳定的照明留在画布底色上：白光 2.5% 从顶栏下方落、240px 内归零，底部压 14% 暗角。会动的那两团光在
+     ::before 里，见下。 */
+  background-image:
+    linear-gradient(to bottom, rgb(255 255 255 / 2.5%), rgb(255 255 255 / 0%) 240px),
+    linear-gradient(to top, rgb(0 0 0 / 14%), rgb(0 0 0 / 0%) 200px);
+}
+
+/* 全局氛围光。它挂在外壳这一层，而不是任何一个页面里：任何渲染在 replica-main 之内的内容，包括以后接入的
+   插件页面，都会自动带上它，页面自己既不需要知道有这层光，也不需要按规范再去实现一次。z-index 只在 main
+   内部比较，且 main 有 overflow: hidden，所以光不会溢到侧栏或标题栏。
+
+   两团光取色自应用图标：导航一侧青绿、右下青蓝，各自的边缘都用很长的过渡，看不出是一块贴上去的色斑。
+   动画只改 transform，走合成层，不动布局也不触发重绘。 */
+[data-color-scheme="dark"] [data-slot="replica-main"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 7% 9%, rgb(0 221 143 / 3%), rgb(0 221 143 / 0%) 70%),
+    radial-gradient(52% 46% at 84% 92%, rgb(0 188 230 / 3.5%), rgb(0 188 230 / 0%) 72%);
+  /* 用 screen 混合：光只把底下的暗面提亮，白字与正文颜色不会被染上一层绿。 */
+  mix-blend-mode: screen;
+  animation: replica-ambient 36s ease-in-out infinite alternate;
+}
+
+/* 起始缩放已经大于 1，位移和放大都不会露边，所以光斑始终留在容器内。 */
+@keyframes replica-ambient {
+  from {
+    transform: translate3d(-0.5%, 0, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(1%, 1%, 0) scale(1.08);
+  }
+}
+
+/* 降低动态效果时保留静态的那层光，只停掉漂移。 */
+@media (prefers-reduced-motion: reduce) {
+  [data-color-scheme="dark"] [data-slot="replica-main"]::before {
+    animation: none;
+  }
 }
 
 /* Workspace content keeps a readable measure instead of stretching across the whole panel. */
@@ -669,11 +694,25 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
 }
 
 /* A route panel would otherwise paint the theme's base layer (#161616) over the work area, so the answer
-   read one step lighter than the surface around it. The dark shell keeps one flat fill here, and the draft
+   read a step lighter than the surface around it. The dark shell keeps one flat fill here, and the draft
    page's own panel takes the same fill so arriving at a new chat does not shift the shade. */
 [data-color-scheme="dark"] [data-slot="replica-main"] [data-slot="session-panel"],
 [data-color-scheme="dark"] [data-slot="replica-main"] [data-component="new-session"] {
-  background: var(--color-main);
+  background: transparent;
+}
+
+/* 这两个面板还各自带着 --v2-elevation-raised 的 0.5px 白色描边：在独立的窗口里那是面板自己的边缘，但外壳是一整块
+   连续画布，于是它表现为标题栏下方横贯屏幕的一条线，把刚融合好的顶部又切开。描边属于窗框，不属于内容，所以在外壳
+   里一律去掉；右侧的 review-panel 早就这么处理了。 */
+[data-replica] [data-slot="replica-main"] [data-slot="session-panel"],
+[data-replica] [data-slot="replica-main"] [data-component="new-session"] {
+  box-shadow: none;
+}
+
+/* 页面外壳不再自己画画布色：回答页根本不用 PagePanel，而模块页用它，两边的底色必须来自同一边（`main`），
+   否则光被一层实色盖住。这里只留透明，让工作区的光透上来。 */
+[data-color-scheme="dark"] [data-slot="replica-main"] [data-slot="page-panel"] {
+  background: transparent;
 }
 
 /* The conversation scroll area owns its own scrollbar; the window never scrolls. */
@@ -764,19 +803,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
 }
 
 @media (max-width: 767px) {
-  [data-slot="replica-titlebar"] {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  [data-slot="replica-titlebar-left"] {
-    display: none;
-  }
-
-  [data-slot="replica-shell"] {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  [data-slot="replica-rail"],
   [data-slot="replica-sidebar"] {
     display: none;
   }
@@ -791,15 +817,14 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
    window opaque while keeping the same three surface levels. */
 @media (prefers-reduced-transparency: reduce) {
   html[data-replica-window="translucent"] [data-replica] {
-    --color-titlebar: rgb(246 246 246);
-    --color-rail: rgb(246 246 246);
-    --color-sidebar: rgb(252 252 252);
+    --color-titlebar: rgb(247 247 247);
+    --color-rail: rgb(247 247 247);
+    --color-sidebar: rgb(245 245 245);
   }
 
   /* A solid tint has nothing to blur; keeping the filter would only blur the surface's own edge. The selector
      repeats the translucent prefix so it outranks the filter above at the same specificity. */
   html[data-replica-window="translucent"] [data-slot="replica-titlebar"],
-  html[data-replica-window="translucent"] [data-slot="replica-rail"],
   html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
   html[data-replica-window="translucent"] [data-slot="destination-bar"] {
     -webkit-backdrop-filter: none;
@@ -807,10 +832,10 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
   }
 
   html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
-    --color-titlebar: rgb(21 21 21);
-    --color-rail: rgb(21 21 21);
-    --color-sidebar: rgb(21 21 21);
-    --color-navigation: rgb(21 21 21);
+    --color-titlebar: rgb(17 17 17);
+    --color-rail: rgb(17 17 17);
+    --color-sidebar: rgb(48 48 48);
+    --color-navigation: rgb(48 48 48);
     /* Dark mode clears the frame so the shell can carry the navigation surface; an opaque window paints it. */
     background: var(--color-rail);
   }
@@ -831,10 +856,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
      own surface again, and the sidebar keeps the step above the rail it has in an opaque window. */
   html[data-replica-window="translucent"] [data-slot="replica-titlebar"] {
     background: var(--color-titlebar);
-  }
-
-  html[data-replica-window="translucent"] [data-slot="replica-rail"] {
-    background: var(--color-rail);
   }
 
   html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
@@ -872,18 +893,18 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
    window instead — one solid tint per column, no transparency and no light wash. macOS keeps its vibrancy sheet and
    Linux the compositor's blur. */
 html[data-replica-window="translucent"][data-os="windows"]:not([data-color-scheme="dark"]) [data-replica] {
-  --color-rail: #f5f6f8;
+  --color-rail: #f7f7f7;
   --color-titlebar: var(--color-rail);
-  --color-navigation: #fbfbfd;
-  --color-sidebar: #fbfbfd;
+  --color-navigation: #f5f5f5;
+  --color-sidebar: #f5f5f5;
   background: var(--color-rail);
 }
 
 html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-replica] {
-  --color-rail: #0c0c0e;
+  --color-rail: #111111;
   --color-titlebar: var(--color-rail);
-  --color-navigation: #17171a;
-  --color-sidebar: #17171a;
+  --color-navigation: #303030;
+  --color-sidebar: #303030;
   background: transparent;
 }
 
@@ -894,22 +915,11 @@ html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-s
 }
 
 html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-sidebar"] {
-  background: light-dark(#fbfbfd, #1a1a1d);
-}
-
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-rail"] {
-  background: var(--color-rail);
+  background: light-dark(#f5f5f5, #303030);
 }
 
 html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
   background: var(--color-titlebar);
-}
-
-/* On an opaque window the panel separates from the chrome by tint and its 1px border alone, the way a card does in
-   the design spec. Any blur larger than the 1px gutter spills past the 12px corner and paints a wedge into each
-   window corner, so Windows draws no shadow at all. */
-html[data-replica-window][data-os="windows"] [data-slot="replica-workbench"] {
-  box-shadow: none;
 }
 
 /* The window root gives up its fill for translucent windows so the system material can show. Windows paints it
@@ -930,10 +940,8 @@ html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="da
 @media (forced-colors: active) {
   [data-replica],
   [data-slot="replica-titlebar"],
-  [data-slot="replica-rail"],
   [data-slot="replica-sidebar"],
   [data-slot="replica-shell"],
-  [data-slot="replica-workbench"],
   [data-slot="replica-sidebar-slot"],
   [data-slot="destination-bar"] {
     background: Canvas !important;
@@ -949,8 +957,8 @@ html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="da
     color: CanvasText;
   }
 
-  [data-slot="replica-workbench"],
-  [data-slot="replica-sidebar-slot"] {
-    border-color: CanvasText !important;
+  [data-slot="replica-sidebar-slot"]::after,
+  [data-slot="replica-titlebar"]::after {
+    background: CanvasText !important;
   }
 }

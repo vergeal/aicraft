@@ -38,6 +38,23 @@
   margin-bottom: 0;
 }
 
+/* A prompt bubble wraps the code it holds: the bubble clips its own box, so the shared sideways scroll
+   would hide everything past one long line instead of revealing it on scroll. */
+.answer-scope [data-slot="user-message-text"] .answer-input-markdown {
+  font-size: 14px;
+  line-height: 22px;
+  color: inherit;
+}
+
+.answer-scope [data-slot="user-message-text"] .answer-input-markdown p {
+  margin: 0;
+}
+
+.answer-scope [data-slot="user-message-text"] .answer-input-markdown :is(pre, pre code) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* Branch guides: a group body reads as a tree, one rail down the children and a short elbow per entry.
    Each entry draws its own rail segment so the run stops on the last row's midline even when that row
    is expanded, instead of running past it to the bottom of the body. */

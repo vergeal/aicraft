@@ -6,10 +6,9 @@ export const ROW =
 
 export const LIST = "flex flex-col gap-[2px]"
 
-export const HEADER = "flex h-[49px] shrink-0 items-center gap-1 ps-[14px] pe-2"
-
-export const TITLE =
-  "min-w-0 truncate px-2 text-[19px] leading-6 font-semibold text-[var(--color-text-main)]"
+// The sidebar header reaches the window's top edge, so it takes the content topbar's height from one token and holds
+// the traffic lights at its start. The start padding is set from CSS per platform, where the lights' room is known.
+export const HEADER = "flex h-[var(--sidebar-header-height)] shrink-0 items-center gap-1 pe-2"
 
 export const ICON_BUTTON =
   "flex size-[30px] shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)]"

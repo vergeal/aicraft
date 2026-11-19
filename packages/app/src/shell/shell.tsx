@@ -21,7 +21,6 @@ import { ExploreInstalledProvider } from "@/explore/installed"
 import { InboxProvider } from "@/inbox/context"
 import { KnowledgeProvider } from "@/knowledge/context"
 import { ScheduledProvider } from "@/scheduled/context"
-import { ReplicaRail } from "./replica/rail"
 import { ReplicaSidebar } from "./replica/sidebar"
 import { ReplicaTitleBar } from "./replica/titlebar"
 import "./replica/replica.css"
@@ -31,8 +30,9 @@ const DraftPage = lazy(() => import("@/new-session/route").then((module) => ({ d
 export const sidebarToggleCommand = { id: "sidebar.toggle", keybind: "mod+shift+b" }
 
 /**
- * The replica workbench frame: a 27px window bar over a 36px rail, a 239px sidebar and the remaining white
- * canvas. Pages keep their routes and data; the empty home route shows the new-conversation welcome.
+ * The replica frame is two full-height columns: the navigation sidebar on the left and the content on the right,
+ * separated by a hairline instead of a card edge. Pages keep their routes and data; the empty home route shows the
+ * new-conversation welcome.
  */
 export default function Layout(props: ParentProps) {
   return (
@@ -122,6 +122,24 @@ function ReplicaLayer(props: ParentProps) {
     if (platform.platform === "desktop" && platform.os) document.documentElement.dataset.os = platform.os
   })
 
+  // The traffic lights sit in the top-left corner of the sidebar header. That header starts at the window's top edge and
+  // is a fixed 44px tall, so the buttons' centre is always 22px down and needs no DOM measurement.
+  const mac = () => platform.platform === "desktop" && platform.os === "macos"
+
+  createEffect(() => {
+    if (!mac()) return
+
+    const scale = platform.webviewZoom?.() ?? 1
+
+    void platform.setTrafficLightsPosition?.({ x: 14, y: Math.round(22 * scale - 7) })
+  })
+
+  // Hand the buttons back at the window's default position when the shell unmounts.
+  onCleanup(() => {
+    if (!mac()) return
+    void platform.setTrafficLightsPosition?.({ x: 14, y: 14 })
+  })
+
   const sidebarWidth = () => preferences.appearance.sidebarWidth()
   const [resizing, setResizing] = createSignal(false)
   // The handle clamps while dragging; clamp again so an edited store cannot push the column out of range.
@@ -129,7 +147,6 @@ function ReplicaLayer(props: ParentProps) {
 
   let root: HTMLDivElement | undefined
   let draggingWidth: number | undefined
-  let dragTitlebar: HTMLElement | undefined
   let frame = 0
 
   // Dragging writes the slot's own flex-basis, coalesced to one write per frame. The root variable is left alone:
@@ -148,8 +165,6 @@ function ReplicaLayer(props: ParentProps) {
       if (draggingWidth === undefined) return
       const slot = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar-slot"]')
       if (slot) slot.style.flexBasis = showSidebar() ? `${draggingWidth}px` : "0px"
-      // Same frame and the same rounded value as the slot, so the titlebar edge never trails the sidebar by a pixel.
-      dragTitlebar?.style.setProperty("--drag-sidebar-current", `${draggingWidth}px`)
     })
   }
 
@@ -170,33 +185,13 @@ function ReplicaLayer(props: ParentProps) {
     slot?.style.removeProperty("flex-basis")
   }
 
-  // The work area follows the pointer with everything else: its flex item shrinks or grows as the slot's basis moves,
-  // so the answer area reflows every frame of the drag and lands where the pointer leaves it. The titlebar is the one
-  // column that needs its own variable, because its left column paints from a calc() rather than a flex basis. Each
-  // variable is written on the element that consumes it, not on the shell root: an inherited custom property
-  // invalidates the whole subtree.
-  const followSidebar = () => {
-    dragTitlebar = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar"]') ?? undefined
-    // Seeded with the width the resting stylesheet already gives the column, so the first move does not jump.
-    dragTitlebar?.style.setProperty("--drag-sidebar-current", `${sidebarSize()}px`)
-  }
-
-  const stopFollowing = () => {
-    dragTitlebar?.style.removeProperty("--drag-sidebar-current")
-    dragTitlebar = undefined
-  }
-
+  // Every column follows the pointer live: the sidebar slot and the main column are flex items, so both reflow each
+  // frame of the drag and land where the pointer leaves them. No extra variable is written for the topbar, which now
+  // lives inside the content column and follows it for free.
   const onDraggingChange = (value: boolean) => {
     setResizing(value)
 
-    if (value) {
-      followSidebar()
-
-      return
-    }
-
-    commitSidebarWidth()
-    stopFollowing()
+    if (!value) commitSidebarWidth()
   }
 
   onCleanup(() => {
@@ -282,56 +277,50 @@ function ReplicaLayer(props: ParentProps) {
         "--navigation-sidebar-width-current": showSidebar() ? `${sidebarSize()}px` : "0px",
       }}
     >
-      <ReplicaTitleBar sidebarOpen={sidebarOpen()} onToggleSidebar={toggleSidebar} />
-
       <div data-slot="replica-shell">
-        <Show when={!mobile()}>
-          <ReplicaRail />
-        </Show>
-
-        <div data-slot="replica-workbench">
-          <div
-            data-slot="replica-sidebar-slot"
-            data-collapsed={showSidebar() ? undefined : ""}
-            class="relative flex min-h-0 min-w-0"
-          >
-            <ReplicaSidebar />
-            <Show when={showSidebar()}>
-              <ResizeHandle
-                direction="horizontal"
-                edge="end"
-                size={sidebarSize()}
-                min={220}
-                max={480}
-                onResize={writeSidebarWidth}
-                onDraggingChange={onDraggingChange}
-              />
-            </Show>
-          </div>
-
-          <main
-            data-slot="replica-main"
-            data-ui="main-workspace"
-            class="relative flex min-h-0 min-w-0 flex-col"
-            style={{
-              "--shell-inline-inset": "0px",
-              "--shell-top-inset": "0px",
-              "--shell-bottom-inset": "0px",
-              "--shell-panel-radius": "0px",
-            }}
-          >
-            <Show
-              when={welcome()}
-              fallback={
-                <PluginServerCover>
-                  <Suspense>{props.children}</Suspense>
-                </PluginServerCover>
-              }
-            >
-              <HomeNewChat />
-            </Show>
-          </main>
+        <div
+          data-slot="replica-sidebar-slot"
+          data-collapsed={showSidebar() ? undefined : ""}
+          class="relative flex min-h-0 min-w-0"
+        >
+          <ReplicaSidebar />
+          <Show when={showSidebar()}>
+            <ResizeHandle
+              direction="horizontal"
+              edge="end"
+              size={sidebarSize()}
+              min={220}
+              max={480}
+              onResize={writeSidebarWidth}
+              onDraggingChange={onDraggingChange}
+            />
+          </Show>
         </div>
+
+        <main
+          data-slot="replica-main"
+          data-ui="main-workspace"
+          class="relative flex min-h-0 min-w-0 flex-col"
+          style={{
+            "--shell-inline-inset": "0px",
+            "--shell-top-inset": "0px",
+            "--shell-bottom-inset": "0px",
+            "--shell-panel-radius": "0px",
+          }}
+        >
+          <ReplicaTitleBar sidebarOpen={sidebarOpen()} />
+
+          <Show
+            when={welcome()}
+            fallback={
+              <PluginServerCover>
+                <Suspense>{props.children}</Suspense>
+              </PluginServerCover>
+            }
+          >
+            <HomeNewChat />
+          </Show>
+        </main>
       </div>
 
       <Show when={mobile()}>

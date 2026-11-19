@@ -397,3 +397,89 @@
 .knowledge-discard-item:first-child {
   border-top: 0;
 }
+
+/* ---------- fused page: the library meta line, the file rows and their preview ---------- */
+
+.knowledge-page-meta {
+  display: flex;
+  min-height: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.knowledge-page-meta .knowledge-ghost-button {
+  height: 18px;
+  padding-inline: 0;
+  font-size: 12px;
+}
+
+.knowledge-files-bar {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 4px;
+  color: var(--v2-text-text-muted);
+}
+
+.knowledge-files-count {
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.knowledge-files-push {
+  flex: 1;
+}
+
+/* A file is a card, so its preview opens under the row instead of in a separate pane. */
+.module-file-row {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 12px;
+  color: var(--v2-text-text-muted);
+}
+
+.module-file-row [data-component="checkbox"] {
+  gap: 0;
+}
+
+.module-file-open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: start;
+  cursor: default;
+}
+
+.module-file-open:hover {
+  color: var(--v2-text-text-base);
+}
+
+.module-card[data-open] .module-file-open {
+  color: var(--v2-text-text-base);
+}
+
+/* The stored Markdown page already paints its own sheet; inside a card the card is the sheet. */
+.module-card-body [data-slot="knowledge-document"] [data-slot="artifact-markdown-page"] {
+  padding: 0;
+}
+
+.module-card-body .knowledge-file-preview {
+  margin: 0;
+}

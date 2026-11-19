@@ -1266,3 +1266,36 @@
   outline: 2px solid var(--v2-border-border-focus);
   outline-offset: 1px;
 }
+
+/* ---------- inside a fused module card: the same detail sections, at the card's own 12px rhythm ---------- */
+
+.module-card-body .explore-catalog-about,
+.module-card-body .explore-catalog-section,
+.module-card-body .explore-catalog-facts,
+.module-card-body .explore-catalog-toggle,
+.module-card-body .explore-plugin-error,
+.module-card-body .explore-plugin-retry,
+.module-card-body .explore-note {
+  margin-top: 0;
+}
+
+.module-card-body .explore-catalog-facts {
+  padding-block: 12px;
+}
+
+.module-card-body .explore-catalog-toggle {
+  padding-block: 12px;
+}
+
+/* A skill's SKILL.md stays a bounded scrollport: the card body must not become the page's tallest thing. */
+.module-skill-doc {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--v2-background-bg-layer-02);
+}
+
+.module-skill-doc [data-slot="artifact-markdown-content"] {
+  min-width: 0;
+}

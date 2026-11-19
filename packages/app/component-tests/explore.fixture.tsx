@@ -1,8 +1,8 @@
 import type { PluginInfo } from "@opencode/client"
-import { createSignal } from "solid-js"
+import { createSignal, For } from "solid-js"
 import { render } from "solid-js/web"
 import type { CatalogPlugin } from "../src/explore/catalog"
-import { ExplorePluginsView } from "../src/explore/plugins"
+import { CatalogPluginCard, InstalledPluginCard } from "../src/explore/plugins"
 import { LanguageProvider } from "../src/runtime/i18n/language"
 import { PlatformProvider, type Platform } from "../src/runtime/platform/platform"
 
@@ -79,7 +79,8 @@ export const failedInstalled: PluginInfo[] = [
     features: { server: true },
     state: {
       status: "failed",
-      error: "Tool transform failed: acme.search has no input schema\n    at Tool.transform (tool.ts:120:9)\n    at Plugin.start (plugin.ts:88:5)",
+      error:
+        "Tool transform failed: acme.search has no input schema\n    at Tool.transform (tool.ts:120:9)\n    at Plugin.start (plugin.ts:88:5)",
       ref: "err_1a2b3c4d",
     },
   },
@@ -94,8 +95,8 @@ const webPlatform: Platform = {
 }
 
 /**
- * Mounts the plugins page's real view over fixture data. The page's story provides the app runtime; this only
- * supplies the language and platform contexts and the selection the real navigation column would own.
+ * Mounts the real plugin cards over fixture data. The list groups installed and available entries the way the page
+ * does, and each card owns the body it opens.
  */
 export function mountExplorePlugins(input?: {
   catalog?: readonly CatalogPlugin[]
@@ -103,7 +104,12 @@ export function mountExplorePlugins(input?: {
   selected?: PluginInfo
 }) {
   const catalog = input?.catalog ?? sample
-  const [openID, setOpenID] = createSignal<string>()
+  const installed = input?.installed ?? []
+  const [open, setOpen] = createSignal<string | undefined>(
+    input?.selected ? `installed:${input.selected.id}` : undefined,
+  )
+
+  const toggle = (key: string) => setOpen((current) => (current === key ? undefined : key))
 
   const host = document.createElement("div")
   host.dataset.testid = "explore-plugins-fixture"
@@ -114,16 +120,24 @@ export function mountExplorePlugins(input?: {
     () => (
       <LanguageProvider locale="en">
         <PlatformProvider value={webPlatform}>
-          <ExplorePluginsView
-            catalog={catalog}
-            installed={input?.installed}
-            selected={input?.selected}
-            catalogEntry={catalog.find((entry) => entry.id === openID())}
-            onSelectCatalog={setOpenID}
-            onBack={() => setOpenID(undefined)}
-            onInstall={() => undefined}
-            onInstallCatalog={() => undefined}
-          />
+          <For each={installed}>
+            {(plugin) => (
+              <InstalledPluginCard
+                plugin={plugin}
+                open={open() === `installed:${plugin.id}`}
+                onToggle={() => toggle(`installed:${plugin.id}`)}
+              />
+            )}
+          </For>
+          <For each={catalog.filter((entry) => !installed.some((plugin) => plugin.id === entry.id))}>
+            {(entry) => (
+              <CatalogPluginCard
+                entry={entry}
+                open={open() === `catalog:${entry.id}`}
+                onToggle={() => toggle(`catalog:${entry.id}`)}
+              />
+            )}
+          </For>
         </PlatformProvider>
       </LanguageProvider>
     ),

@@ -58,6 +58,38 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   )
 })
 
+story("wraps a pasted fenced block inside the prompt bubble", async ({ mount }) => {
+  const root = await mount("answer-page--code-prompt")
+  const bubble = root.locator('[data-slot="user-message-body"]').first()
+  const pre = bubble.locator("pre")
+
+  // The bubble renders the fence as code, and the long line breaks inside it rather than scrolling sideways.
+  await expect(pre).toBeAttached()
+  await expect(pre).toHaveCSS("white-space", "pre-wrap")
+
+  const geometry = await bubble.evaluate((el) => {
+    const block = el.querySelector("pre") as HTMLElement
+    const row = el.closest('[data-slot="answer-row"]') as HTMLElement
+    const rect = (node: HTMLElement) => node.getBoundingClientRect()
+
+    return {
+      viewport: innerWidth,
+      docScroll: document.documentElement.scrollWidth,
+      bubble: Math.round(rect(el).width),
+      rowRight: Math.round(rect(row).right),
+      pre: Math.round(rect(block).width),
+      preRight: Math.round(rect(block).right),
+      preScroll: block.scrollWidth,
+      preClient: block.clientWidth,
+    }
+  })
+
+  expect(geometry.preScroll).toBeLessThanOrEqual(geometry.preClient + 1)
+  expect(geometry.pre).toBeLessThanOrEqual(geometry.bubble)
+  expect(geometry.preRight).toBeLessThanOrEqual(geometry.rowRight + 1)
+  expect(geometry.docScroll).toBeLessThanOrEqual(geometry.viewport)
+})
+
 story("hides the settled reasoning preview in compact and keeps it in detailed", async ({ mount, page }) => {
   const compact = await mount("answer-page--compact")
 

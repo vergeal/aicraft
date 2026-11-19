@@ -96,6 +96,28 @@ export const Settled = {
   ),
 }
 
+// A pasted config keeps one line far past the bubble's measure, so the fenced block has to wrap
+// inside the bubble instead of scrolling sideways or pushing the bubble past the screen.
+const codePrompt: SessionMessageInfo[] = [
+  {
+    id: "msg_user_code",
+    type: "user",
+    text:
+      "```yaml\nwps:\n  drive:\n    base-url: https://pan.changhong.com\n    notice-dir-ids: '1000=410866789433389,1001=410866789433390,1002=410866789433393,1003=410866789433392,1004=410866789433391,1006=410866789433395,1007=410866789433396'\n```\n这个不是测试吗？",
+    time: { created: TIME },
+  },
+  assistant("msg_assistant_code", [{ type: "text", text: "目录 id 指向的是测试盘。" }], TIME + 1_000, TIME + 2_000),
+  idle("msg_idle_code", TIME + 2_500),
+]
+
+export const CodePrompt = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => codePrompt} />
+    </div>
+  ),
+}
+
 const withPhase: SessionMessageInfo[] = [
   { id: "msg_user_phase", type: "user", text: "先给阶段结论，再给最终答案。", time: { created: TIME } },
   assistant(

@@ -2,7 +2,7 @@ import { expect, sourceURL, story } from "../../stories/playwright/story"
 
 const fixture = sourceURL(new URL("./explore.fixture.tsx", import.meta.url))
 
-// Any story loads the app runtime; the fixture mounts the real plugins view beside it.
+// Any story loads the app runtime; the fixture mounts the real plugin cards beside it.
 story.beforeEach(async ({ mount, page }) => {
   await mount("ui-line-comment--editor")
 
@@ -20,7 +20,7 @@ story.beforeEach(async ({ mount, page }) => {
   }
 })
 
-story("groups the catalog, filters it, opens a plugin's page, and returns", async ({ page }) => {
+story("lists the available plugins and opens one card in place", async ({ page }) => {
   const result = await page.evaluate(async (fixture) => {
     const { mountExplorePlugins } = await import(fixture)
     const mounted = mountExplorePlugins()
@@ -32,86 +32,43 @@ story("groups the catalog, filters it, opens a plugin's page, and returns", asyn
 
     // SAFETY: mountExplorePlugins builds its host with document.createElement("div").
     const host = mounted.host as HTMLDivElement
-
-    const cards = () => Array.from(host.querySelectorAll<HTMLButtonElement>(".explore-catalog-card-main"))
-
+    const cards = () => Array.from(host.querySelectorAll<HTMLElement>(".module-card"))
     const names = () =>
-      cards().map((card) => card.querySelector(".explore-catalog-card-name")?.textContent?.trim() ?? "")
-
-    const groups = () =>
-      Array.from(host.querySelectorAll(".explore-catalog-group-title")).map((title) => title.textContent?.trim() ?? "")
-
-    const detailTitle = () => host.querySelector(".explore-catalog-hero-name")?.textContent?.trim()
-
-    const crumbs = () => host.querySelector(".explore-catalog-crumb")?.textContent?.trim()
-
-    const statusTitle = () => host.querySelector(".explore-status-title")?.textContent?.trim()
-
-    const search = host.querySelector<HTMLInputElement>('input[type="search"]')!
-
-    const body = host.querySelector(".explore-catalog-body")!
-
-    const heights = cards().map((card) => Math.round(card.getBoundingClientRect().height))
+      cards().map((card) => card.querySelector(".module-card-title strong")?.textContent?.trim() ?? "")
 
     const initial = {
       cards: cards().length,
       names: names(),
-      groups: groups(),
-      uniformCards: new Set(heights).size === 1,
-      noHorizontalOverflow: body.scrollWidth <= body.clientWidth,
+      noHorizontalOverflow: host.scrollWidth <= host.clientWidth,
     }
 
-    const type = async (input: HTMLInputElement, value: string) => {
-      input.value = value
-      input.dispatchEvent(new Event("input", { bubbles: true }))
-      await frame()
-    }
-
-    await type(search, "beta")
-    const filtered = { cards: cards().length, names: names() }
-
-    cards()[0]?.click()
+    cards()[0]?.querySelector<HTMLButtonElement>(".module-card-head")?.click()
     await frame()
     const opened = {
-      title: detailTitle(),
-      crumbs: crumbs(),
-      hasAbout: !!host.querySelector(".explore-catalog-about"),
-      hasMcp: !!host.querySelector(".explore-catalog-section-title"),
+      about: host.querySelector(".explore-catalog-about")?.textContent?.trim(),
+      hasFacts: !!host.querySelector(".explore-catalog-facts"),
+      expanded: cards()[0]?.getAttribute("data-open") !== null,
     }
 
-    host.querySelector<HTMLButtonElement>(".explore-catalog-crumb")?.click()
+    cards()[0]?.querySelector<HTMLButtonElement>(".module-card-head")?.click()
     await frame()
-    const returned = cards().length
-
-    // The page rebuilt its header with the list, so the search field is a new element.
-    const reopenedSearch = host.querySelector<HTMLInputElement>('input[type="search"]')!
-
-    await type(reopenedSearch, "nothing-matches")
-    const empty = { title: statusTitle(), cards: cards().length }
+    const closed = !cards()[0]?.querySelector(".module-card-body")
 
     mounted.unmount()
 
-    return { initial, filtered, opened, returned, empty }
+    return { initial, opened, closed }
   }, fixture)
 
   expect(result.initial.cards).toBe(3)
   expect(result.initial.names).toEqual(["alpha-plugin", "beta-plugin", "gamma-plugin"])
-  expect(result.initial.groups).toEqual(["Developer Tools", "Productivity", "Automation"])
-  expect(result.initial.uniformCards).toBe(true)
   expect(result.initial.noHorizontalOverflow).toBe(true)
-
-  expect(result.filtered).toEqual({ cards: 1, names: ["beta-plugin"] })
-  expect(result.opened).toEqual({
-    title: "beta-plugin",
-    crumbs: "Plugins",
-    hasAbout: true,
-    hasMcp: true,
-  })
-  expect(result.returned).toBe(1)
-  expect(result.empty).toEqual({ title: "No matching plugins", cards: 0 })
+  expect(result.opened.about).toBe("The full alpha introduction.")
+  expect(result.opened.hasFacts).toBe(true)
+  expect(result.opened.expanded).toBe(true)
+  expect(result.closed).toBe(true)
 })
 
-story("shows a catalog bundle and reports it once installed", async ({ page }) => {
+story("shows a catalog bundle and hides it once installed", async ({ page }) => {
   const result = await page.evaluate(async (fixture) => {
     const { webwrightCatalog, webwrightInstalled, mountExplorePlugins } = await import(fixture)
 
@@ -124,22 +81,20 @@ story("shows a catalog bundle and reports it once installed", async ({ page }) =
       const host = mounted.host as HTMLDivElement
       await frame()
 
-      const card = host.querySelector<HTMLElement>(".explore-catalog-card")!
+      const card = host.querySelector<HTMLElement>(".module-card")
       const state = {
-        name: card.querySelector(".explore-catalog-card-name")?.textContent?.trim() ?? "",
-        installed: card.querySelector(".explore-catalog-card-installed")?.textContent?.trim() ?? "",
-        hasInstall: !!card.querySelector(".explore-catalog-card-add"),
-        brandColor: card.querySelector(".explore-catalog-card-icon svg path")?.getAttribute("fill") ?? "",
+        cards: host.querySelectorAll(".module-card").length,
+        name: card?.querySelector(".module-card-title strong")?.textContent?.trim() ?? "",
       }
 
-      card.querySelector<HTMLButtonElement>(".explore-catalog-card-main")?.click()
+      card?.querySelector<HTMLButtonElement>(".module-card-head")?.click()
       await frame()
 
+      const labels = Array.from(host.querySelectorAll("button")).map((button) => button.textContent?.trim() ?? "")
       const detail = {
-        installed: host.querySelector(".explore-catalog-hero-installed")?.textContent?.trim() ?? "",
-        hasInstall: !!host.querySelector(".explore-catalog-hero .explore-button"),
-        brandColor: host.querySelector(".explore-catalog-hero-icon svg path")?.getAttribute("fill") ?? "",
-        type: host.querySelector(".explore-catalog-facts dt")?.textContent?.trim() ?? "",
+        type: host.querySelector(".explore-catalog-facts dd")?.textContent?.trim() ?? "",
+        hasInstall: labels.includes("Install plugin"),
+        hasUninstall: labels.includes("Uninstall"),
       }
 
       mounted.unmount()
@@ -153,25 +108,16 @@ story("shows a catalog bundle and reports it once installed", async ({ page }) =
     }
   }, fixture)
 
-  const expectInstalled = (hasInstall: boolean, installed: string) => {
-    expect(hasInstall).toBe(false)
-    expect(installed).toBe("Installed")
-  }
-
-  expect(result.catalogOnly.state.name).toBe("Webwright")
-  expect(result.catalogOnly.state.hasInstall).toBe(false)
-  expect(result.catalogOnly.state.installed).toBe("")
+  expect(result.catalogOnly.state).toEqual({ cards: 1, name: "Webwright" })
+  expect(result.catalogOnly.detail.type).toContain("~/.distribution/plugins/opencode.webwright")
   expect(result.catalogOnly.detail.hasInstall).toBe(true)
-  expect(result.catalogOnly.detail.type).toBe("Type")
 
-  expect(result.installed.state.name).toBe("Webwright")
-  expect(result.installed.state.hasInstall).toBe(false)
-  expect(result.installed.state.installed).toBe("")
-  expect(result.installed.detail.type).toBe("Type")
-  expectInstalled(result.installed.detail.hasInstall, result.installed.detail.installed)
+  expect(result.installed.state).toEqual({ cards: 1, name: "Webwright" })
+  expect(result.installed.detail.hasInstall).toBe(false)
+  expect(result.installed.detail.hasUninstall).toBe(true)
 })
 
-story("keeps a failed plugin's error folded, with its reference and without stretching the page", async ({ page }) => {
+story("keeps a failed plugin's error folded, with its reference, inside its card", async ({ page }) => {
   const result = await page.evaluate(async (fixture) => {
     const { failedInstalled, mountExplorePlugins } = await import(fixture)
     const mounted = mountExplorePlugins({ installed: failedInstalled, selected: failedInstalled[0] })

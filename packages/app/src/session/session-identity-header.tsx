@@ -267,7 +267,7 @@ export function SessionLocation(props: {
           >
             <Menu.Item class="min-w-0" disabled={!props.project} onSelect={openProject}>
               <ProjectFolder class="shrink-0" aria-hidden="true" />
-              <bdi dir="auto" class="min-w-0 truncate font-[530]">
+              <bdi dir="auto" class="min-w-0 truncate">
                 {projectName()}
               </bdi>
             </Menu.Item>

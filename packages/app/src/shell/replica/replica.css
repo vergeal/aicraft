@@ -329,16 +329,6 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
   color: var(--color-text-secondary);
 }
 
-/* The UI font's ink hangs below the box centre of a 13px line, so an avatar or icon centred by the
-   flex row reads a pixel high next to the labels. Drop them onto the text's optical band instead. */
-[data-slot="replica-titlebar-main"]
-  [data-slot="session-location-trigger"]
-  > [data-component="project-folder"],
-[data-slot="replica-titlebar-main"] [data-slot="session-location-trigger"] > svg {
-  position: relative;
-  inset-block-start: 1px;
-}
-
 /* The location keeps its whole crumb inside the title's row: it never shrinks below the width its
    project, worktree and branch need, so the title is the part that gives way and truncates. */
 [data-slot="replica-titlebar-main"] .session-location-tooltip {

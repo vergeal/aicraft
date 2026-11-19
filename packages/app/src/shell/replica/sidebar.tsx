@@ -884,7 +884,7 @@ function ConversationNav() {
                         data-replica-control
                         data-slot="replica-project-row"
                         aria-expanded={!foldedProjects().has(group().key)}
-                        class={`${ROW} font-medium`}
+                        class={ROW}
                         onClick={() => toggleProject(group().key)}
                       >
                         <Icon

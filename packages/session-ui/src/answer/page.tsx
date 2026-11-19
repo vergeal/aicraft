@@ -946,8 +946,11 @@ function GroupSeat(props: {
 
   const activity = () => props.group.running ?? props.group.counts[0]?.kind ?? "thinking"
 
-  // Tools in the group agree on a mark, so the heading carries it; otherwise the category mark stays.
+  // While the heading reads as a pending analysis it carries the thinking mark, even when the
+  // group mixes in a tool. Settled groups keep marking their tools.
   const icon = (): IconName => {
+    if (live() && activity() === "thinking") return ACTIVITY_ICONS.thinking
+
     const declared = props.group.icon
 
     return declared && isIconName(declared) ? declared : ACTIVITY_ICONS[activity()]

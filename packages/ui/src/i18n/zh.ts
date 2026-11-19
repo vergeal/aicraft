@@ -250,7 +250,7 @@ export const dict = {
   "ui.answer.step.joinTwo": "{{first}}并{{second}}",
   "ui.answer.step.sharedPrefix": "已",
   "ui.answer.step.comma": "、",
-  "ui.answer.step.more": "{{title}}，等",
+  "ui.answer.step.more": "{{title}}等",
   "ui.answer.tool.runCommand": "运行命令",
   "ui.answer.tool.read": "读取",
   "ui.answer.tool.search": "搜索",

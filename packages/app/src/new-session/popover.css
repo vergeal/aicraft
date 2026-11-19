@@ -1,0 +1,36 @@
+/* The project and workspace pickers share one entrance: settle in from the trigger edge, fade out on close. */
+[data-component="new-session-popover"] {
+  transform-origin: var(--kb-popover-content-transform-origin, top left);
+  animation: new-session-popover-in 140ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &[data-closed] {
+    animation: new-session-popover-out 90ms ease-in forwards;
+  }
+}
+
+:root[data-motion="reduce"] [data-component="new-session-popover"],
+:root[data-motion="reduce"] [data-component="new-session-popover"][data-closed] {
+  animation: none;
+}
+
+@keyframes new-session-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes new-session-popover-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}

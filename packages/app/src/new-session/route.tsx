@@ -37,23 +37,21 @@ export function DraftPage(props: { draft: DraftTab }) {
   const conn = createMemo(() => global.servers.list().find((item) => ServerConnection.key(item) === props.draft.server))
 
   return (
-    <Show when={`${props.draft.server}\0${props.draft.directory}`} keyed>
-      <Show when={conn()} keyed>
-        {(conn) => (
-          <ServerProvider
-            conn={conn}
-            signedOut={
-              <SessionRouteFrame padded>
-                <SessionPanelFrame raised>
-                  <ServerSignedOutPanel conn={conn} />
-                </SessionPanelFrame>
-              </SessionRouteFrame>
-            }
-          >
-            <ResolvedDraftContent draft={props.draft} />
-          </ServerProvider>
-        )}
-      </Show>
+    <Show when={conn()} keyed>
+      {(conn) => (
+        <ServerProvider
+          conn={conn}
+          signedOut={
+            <SessionRouteFrame padded>
+              <SessionPanelFrame raised>
+                <ServerSignedOutPanel conn={conn} />
+              </SessionPanelFrame>
+            </SessionRouteFrame>
+          }
+        >
+          <ResolvedDraftContent draft={props.draft} />
+        </ServerProvider>
+      )}
     </Show>
   )
 }

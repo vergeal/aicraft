@@ -302,4 +302,29 @@ describe("answer projection", () => {
       detail: "来自以下文件的指令：AGENTS.md\n\n# AGENTS\n\n先读项目说明。",
     })
   })
+
+  test("keeps an injected context step when the turn has no calls", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      {
+        id: "msg_2",
+        type: "synthetic",
+        text: "来自以下文件的指令：a\n\n第一条。",
+        description: "已加载 a",
+        time: { created: 2 },
+      } satisfies SessionMessageInfo,
+      {
+        id: "msg_3",
+        type: "synthetic",
+        text: "来自以下文件的指令：b\n\n第二条。",
+        description: "已加载 b",
+        time: { created: 3 },
+      } satisfies SessionMessageInfo,
+    ])
+
+    const children = snapshot.children.get(1) ?? []
+    expect(children.map((child) => child.kind)).toEqual(["group"])
+    const group = children[0]?.kind === "group" ? snapshot.groups.get(children[0].key) : undefined
+    expect(group?.counts).toEqual([{ kind: "context", count: 2 }])
+  })
 })

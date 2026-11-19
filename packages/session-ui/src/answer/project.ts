@@ -201,8 +201,11 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
 
       if (run.length === 0) return
 
-      // A step with no calls is a plain summary row, not a process group with a step title.
-      if (!run.some((node) => node.groupTree === "process")) {
+      // An injected context is a step of its own, so it keeps a group and its entries; a bare summary
+      // row still lays flat.
+      const injected = run.some((node) => node.payload.kind === "notice")
+
+      if (!injected && !run.some((node) => node.groupTree === "process")) {
         for (const node of run) turnChildren.push({ kind: "node", key: node.key })
         run = []
 

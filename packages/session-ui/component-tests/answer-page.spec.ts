@@ -22,7 +22,7 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   await expect(trigger).toHaveAttribute("aria-expanded", "true")
   const groups = root.locator('[data-slot="answer-fold"]').first().locator('[data-slot="answer-group"]')
 
-  await expect(groups).toHaveCount(1)
+  await expect(groups).toHaveCount(2)
   await expect(groups.first().locator(":scope > button")).toHaveAttribute("aria-expanded", "false")
   await groups.first().locator(":scope > button").click()
   await expect(root.locator('[data-slot="answer-disclosure"]')).toHaveCount(3)

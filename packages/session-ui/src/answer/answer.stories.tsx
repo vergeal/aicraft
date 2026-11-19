@@ -226,6 +226,38 @@ export const InjectedContext = {
   ),
 }
 
+const injectedContextMultiple: SessionMessageInfo[] = [
+  { id: "msg_user_ctxm", type: "user", text: "看看多个注入上下文。", time: { created: TIME } },
+  {
+    id: "msg_ctxm_a",
+    type: "synthetic",
+    text: "来自以下文件的指令：/a/AGENTS.md\n\n# A\n\n第一条规则。",
+    time: { created: TIME + 1_000 },
+  },
+  {
+    id: "msg_ctxm_b",
+    type: "synthetic",
+    text: "来自以下文件的指令：/b/AGENTS.md\n\n# B\n\n第二条规则。",
+    time: { created: TIME + 2_000 },
+  },
+  {
+    id: "msg_ctxm_c",
+    type: "synthetic",
+    text: "来自以下文件的指令：/c/AGENTS.md\n\n# C\n\n第三条规则。",
+    time: { created: TIME + 3_000 },
+  },
+  assistant("msg_ctxm_final", [{ type: "text", text: "上下文已注入。" }], TIME + 4_000, TIME + 5_000),
+  idle("msg_idle_ctxm", TIME + 5_500),
+]
+
+export const InjectedContextMultiple = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => injectedContextMultiple} />
+    </div>
+  ),
+}
+
 export const Lists = {
   render: () => (
     <div class="h-dvh">

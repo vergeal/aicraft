@@ -12,6 +12,13 @@ const BOTTOM_THRESHOLD = 24
 
 const SAVE_DELAY = 200
 
+// A fresh page estimates the height of rows it has not measured yet, so the height keeps moving for
+// the first frames. This is how long it must hold still before the first landing on the end.
+const SETTLE_DELAY = 120
+
+// Never wait longer than this for the measurements to settle, so a streaming session still follows.
+const SETTLE_TIMEOUT = 1000
+
 /** The conversation column: the session header, the answer area, and the composer's bottom lane. */
 export function AnswerTimeline(props: {
   header: JSX.Element
@@ -134,6 +141,9 @@ export function AnswerTimeline(props: {
     // Only a reader resting at the very end keeps following. A looser threshold would pull back a
     // reader who scrolled up but stayed within the composer inset, which reads as the content jumping.
     setFollowing(viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= BOTTOM_THRESHOLD)
+
+    // A reader who leaves the end is no longer waiting to land on it.
+    if (!stick) cancelSettle()
   }
 
   const jumpToLatest = () => {
@@ -173,6 +183,28 @@ export function AnswerTimeline(props: {
   let lastContentHeight = 0
   // Scroll offset at the last scroll event, so a follow scroll is told from the reader's own move.
   let lastScrollTop = 0
+  // The page has landed on the end once its windowed measurements stopped moving. Until then the
+  // growing height is an estimate, and chasing it would slide the transcript down the screen.
+  let positioned = false
+  let settleTimer: ReturnType<typeof setTimeout> | undefined
+  let settleDeadline = 0
+  // Whether this open ends at the newest message. `stick` alone cannot decide it: on a fresh page the
+  // rows have not filled the viewport yet, so the reader is not near the bottom until they land there.
+  const landAtEnd = !restore || restore.bottom
+
+  const cancelSettle = () => {
+    if (settleTimer !== undefined) clearTimeout(settleTimer)
+    settleTimer = undefined
+  }
+
+  const landOnEnd = () => {
+    cancelSettle()
+    if (!viewport || !(landAtEnd || stick)) return
+
+    positioned = true
+    viewport.scrollTop = viewport.scrollHeight
+    measureBottom()
+  }
 
   onMount(() => {
     // The reader stopped mid-transcript last time, so a host that follows the newest message must let go
@@ -191,12 +223,15 @@ export function AnswerTimeline(props: {
     requestAnimationFrame(() => {
       if (!viewport) return
 
-      // No remembered position, or the reader left at the end: open at the newest message.
-      if (!restore || restore.bottom) viewport.scrollTop = viewport.scrollHeight
+      settleDeadline = performance.now() + SETTLE_TIMEOUT
 
       lastContentHeight = viewport.scrollHeight
       lastScrollTop = viewport.scrollTop
       measureBottom()
+
+      // No remembered position, or the reader left at the end: land on the newest message, but only
+      // once the windowed measurements stop moving. Until then the height is an estimate.
+      if (landAtEnd && !positioned) settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
 
       // The page restores a remembered row on its own frame; re-read the bottom once it has.
       requestAnimationFrame(() => {
@@ -211,11 +246,24 @@ export function AnswerTimeline(props: {
       // to the end while the reader is still pinned there. Nothing else measures the bottom while
       // content grows, because that would clear `stick` before the follow-up scroll runs.
       follow = new ResizeObserver(() => {
-        if (!stick || !viewport) return
+        if (!viewport || !(landAtEnd || stick)) return
 
         const height = viewport.scrollHeight
         const delta = height - lastContentHeight
         lastContentHeight = height
+
+        if (!positioned) {
+          // The windowed page is still measuring the rows above the fold, so its height grows every
+          // frame. Scroll once the measurements stop moving, not after each one.
+          if (settleTimer !== undefined) clearTimeout(settleTimer)
+          settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
+
+          if (performance.now() < settleDeadline) return
+
+          // A session that is streaming never holds still; stop waiting and follow it live.
+          landOnEnd()
+          return
+        }
 
         // Growth always keeps the end visible. A large shrink, such as a thinking block collapsing
         // when it finishes, must follow too or the reader is left above the fold looking at content
@@ -232,6 +280,7 @@ export function AnswerTimeline(props: {
   })
 
   onCleanup(() => follow?.disconnect())
+  onCleanup(() => cancelSettle())
 
   onCleanup(() => {
     if (saveTimer !== undefined) clearTimeout(saveTimer)

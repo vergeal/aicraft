@@ -21,14 +21,46 @@ export function createLinkCheck(active: Accessor<boolean>, check: (href: string)
     ready.forEach((resolve) => resolve())
   })
 
+  // Markdown asks again for the same path on every streamed delta. A confirmed path stays confirmed, and a check
+  // already in flight answers everyone who asks while it runs. A miss is asked again, since the file may appear.
+  const confirmed = new Set<string>()
+  const inflight = new Map<string, Promise<boolean>>()
+
   const exists = (href: string): boolean | Promise<boolean> => {
     if (!untrack(active)) return new Promise<void>((resolve) => waiting.push(resolve)).then(() => exists(href))
+    if (confirmed.has(href)) return true
+    const running = inflight.get(href)
+    if (running) return running
     const started = hidden
     const result = untrack(() => check(href))
 
-    if (result === true || result === false) return result
+    if (result === true || result === false) {
+      if (result) confirmed.add(href)
 
-    return result.then((found) => (found || (untrack(active) && hidden === started) ? found : exists(href)))
+      return result
+    }
+
+    const pending = result.then(
+      (found) => {
+        inflight.delete(href)
+
+        if (found) {
+          confirmed.add(href)
+
+          return found
+        }
+
+        return untrack(active) && hidden === started ? found : exists(href)
+      },
+      (error) => {
+        inflight.delete(href)
+
+        throw error
+      },
+    )
+    inflight.set(href, pending)
+
+    return pending
   }
 
   return exists

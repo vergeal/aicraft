@@ -792,6 +792,24 @@ export function Markdown(
   // The code block languages the blocks were decorated for; false before the first run.
   let decoratedMatch: MarkdownCodeBlockMatch | undefined | false = false
   let streamed = false
+  // The inputs the last run applied. A streamed delta wakes this effect on every Markdown block in the timeline,
+  // so a run that changes nothing must return before it touches the DOM.
+  let applied:
+    | {
+        text: string
+        resultText: string | undefined
+        ready: boolean
+        streaming: boolean
+        codeBlocks: MarkdownCodeBlocks | undefined
+        match: MarkdownCodeBlockMatch | undefined
+        sessionLinks: ((sessionID: string) => string | undefined) | undefined
+        projectExists: ((directory: string) => boolean) | undefined
+        localFileExists: MarkdownLocalFileExists | undefined
+        readImage: ReadMarkdownImage | undefined
+        openLocalFile: OpenMarkdownLocalFile | undefined
+        labels: { copy: string; copied: string }
+      }
+    | undefined
 
   const [projection] = createResource(
     () => {
@@ -983,20 +1001,69 @@ export function Markdown(
     const result = html.latest ?? html()
     const projected = currentProjection()
     const content = local.text ? pendingBlocks(result, projected, local.cacheKey, owner, local.deferUntilReady) : []
+    const codeBlocks = markdown?.codeBlocks
+    const match = codeBlocks?.current()
+    const sessionLinks = markdown?.sessionTitle
+    const projectExists = markdown?.projectExists
+    const localFileExists = markdown?.localFileExists
+    const providerReadImage = markdown?.readImage
+    const openLocalFile = markdown?.openLocalFile
+    const labels = {
+      copy: i18n.t("ui.message.copy"),
+      copied: i18n.t("ui.message.copied"),
+    }
+    const streaming = local.streaming ?? false
+    const ready = !!(result?.ready && result.text === local.text)
 
     if (!container) return
 
     if (isServer) return
 
-    if (readImage !== markdown?.readImage) {
+    // Nothing this run owns changed: keep the DOM as it is instead of deleting and restoring
+    // `data-markdown-ready` and rescanning the whole container for every streamed delta.
+    if (
+      applied !== undefined &&
+      applied.text === local.text &&
+      applied.resultText === result?.text &&
+      applied.ready === ready &&
+      applied.streaming === streaming &&
+      applied.codeBlocks === codeBlocks &&
+      applied.match === match &&
+      applied.sessionLinks === sessionLinks &&
+      applied.projectExists === projectExists &&
+      applied.localFileExists === localFileExists &&
+      applied.readImage === providerReadImage &&
+      applied.openLocalFile === openLocalFile &&
+      applied.labels.copy === labels.copy &&
+      applied.labels.copied === labels.copied &&
+      content.length === renderedBlocks.length &&
+      content.every((block, index) => renderedBlocks[index] === block) &&
+      container.hasAttribute("data-markdown-ready") === ready
+    )
+      return
+
+    applied = {
+      text: local.text,
+      resultText: result?.text,
+      ready,
+      streaming,
+      codeBlocks,
+      match,
+      sessionLinks,
+      projectExists,
+      localFileExists,
+      readImage: providerReadImage,
+      openLocalFile,
+      labels,
+    }
+
+    if (readImage !== providerReadImage) {
       images?.dispose()
-      readImage = markdown?.readImage
+      readImage = providerReadImage
       images = readImage ? createMarkdownImages(readImage) : undefined
     }
 
     delete container.dataset.markdownReady
-    const codeBlocks = markdown?.codeBlocks
-    const match = codeBlocks?.current()
 
     const plugins =
       codeBlocks && match && (match.render.size > 0 || match.actions.size > 0)
@@ -1018,20 +1085,12 @@ export function Markdown(
       return
     }
 
-    const labels = {
-      copy: i18n.t("ui.message.copy"),
-      copied: i18n.t("ui.message.copied"),
-    }
-
     const nextCodeKeys = new Set(content.filter((block) => block.mode === "code").map((block) => block.key))
     activeCodeKeys.forEach((key) => {
       if (!nextCodeKeys.has(key)) disposeCode(key)
     })
     activeCodeKeys.clear()
     nextCodeKeys.forEach((key) => activeCodeKeys.add(key))
-    const sessionLinks = markdown?.sessionTitle
-    const projectExists = markdown?.projectExists
-    const localFileExists = markdown?.localFileExists
 
     const pending = content.flatMap((block, index) => {
       const current = container.children[index]
@@ -1055,7 +1114,7 @@ export function Markdown(
       })
 
     if (sessionLinks) markSessionLinks(container, sessionLinks)
-    markProjectLinks(container, markdown?.projectExists)
+    markProjectLinks(container, projectExists)
 
     while (container.children.length > content.length) {
       const child = container.lastElementChild
@@ -1096,7 +1155,7 @@ export function Markdown(
     if (!fragmentLinkCleanup) fragmentLinkCleanup = setupFragmentLinks(container)
 
     if (!faviconCleanup) faviconCleanup = setupExternalLinkFavicons(container)
-    container.toggleAttribute("data-local-links", !!markdown?.openLocalFile)
+    container.toggleAttribute("data-local-links", !!openLocalFile)
 
     if (!result?.ready || result.text !== local.text) return
 

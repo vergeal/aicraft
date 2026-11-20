@@ -16,13 +16,6 @@ const SAVE_DELAY = 200
 // from a settled scroll, so this is the timer that lets a detached view resume following by reaching the end.
 const SCROLL_SETTLE_DELAY = 120
 
-// A fresh page estimates the height of rows it has not measured yet, so the height keeps moving for
-// the first frames. This is how long it must hold still before the first landing on the end.
-const SETTLE_DELAY = 120
-
-// Never wait longer than this for the measurements to settle, so a streaming session still follows.
-const SETTLE_TIMEOUT = 1000
-
 /** The conversation column: the session header, the answer area, and the composer's bottom lane. */
 export function AnswerTimeline(props: {
   header: JSX.Element
@@ -33,8 +26,6 @@ export function AnswerTimeline(props: {
   collapseTiming?: CollapseTiming
   foldedReplies?: FoldedReplies
   bottomInset: number
-  /** Every row must stay mounted while the reader searches the transcript. */
-  searching?: () => boolean
   /** Session identity for the remembered reading position. */
   positionKey?: () => string
   /**
@@ -62,8 +53,6 @@ export function AnswerTimeline(props: {
   const language = useLanguage()
   const [visible, setVisible] = createSignal<HTMLDivElement>()
   const [viewportElement, setViewportElement] = createSignal<HTMLDivElement>()
-  // An off-window reveal unmounts the page's rows, so it mounts everything for the frames the reveal needs.
-  const [revealAll, setRevealAll] = createSignal(false)
   let viewport: HTMLDivElement | undefined
   // Where the reader stopped last time. Re-read on each activation: the cached view outlives its DOM node, so a value
   // captured at first mount would describe a session the reader has long since left.
@@ -85,20 +74,32 @@ export function AnswerTimeline(props: {
   const LAND_WINDOW = 3000
   const wantsLanding = () => landAtEnd && performance.now() < landDeadline
 
-  // The page has landed on the end once its windowed measurements stopped moving. Until then the
-  // growing height is an estimate, and chasing it would slide the transcript down the screen.
+  // Whether this activation has taken the view to the end. Until it has, the content arriving is the view's first
+  // rows mounting, not the reader's session streaming, and every height change of that first paint must keep the end in
+  // view without exposing the positions in between.
   let positioned = false
   // The bottom edge only needs to be read when the machine asks for it; the offsets are tracked here so the scroll
   // event passes the geometry it already read and the machine never forces a layout of its own.
   let lastScrollTop = 0
   let lastMaxScroll = 0
   let lastContentHeight = 0
-  let settleTimer: ReturnType<typeof setTimeout> | undefined
-  let settleDeadline = 0
   let scrollSettleTimer: ReturnType<typeof setTimeout> | undefined
   let contentObserver: ResizeObserver | undefined
 
   const following = () => props.follow.following()
+
+  // Where the reader left the transcript is a fact about the viewport, not the follow intent. The machine can still
+  // read `following` after an upward wheel (a downward one never detaches), so `bottom` taken from it is true for a
+  // reader who sits mid-transcript. Saving that true makes the next activation skip the restore and land on the end.
+  const atEnd = () => {
+    if (!viewport) return false
+    // A session that has not loaded its rows yet has scrollHeight === clientHeight, where "at the end" is trivially
+    // true. Recording that would mark a reader who never moved as having left at the bottom, and the next activation
+    // would skip the restore and land on the end.
+    if (viewport.scrollHeight <= viewport.clientHeight + END_EPSILON) return false
+
+    return viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - END_EPSILON
+  }
 
   const flushPosition = () => {
     if (!lastPosition) return
@@ -107,7 +108,7 @@ export function AnswerTimeline(props: {
 
   const rememberPosition = (position: { key: string; offset: number }) => {
     if (holdPosition) return
-    lastPosition = { ...position, bottom: following() }
+    lastPosition = { ...position, bottom: atEnd() }
 
     if (saveTimer !== undefined) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => {
@@ -116,50 +117,17 @@ export function AnswerTimeline(props: {
     }, SAVE_DELAY)
   }
 
-  const virtualize = () => !!viewport && !props.searching?.() && !revealAll()
-
+  // Every loaded row is in the document, so a reveal scrolls straight to its target.
   const reveal = (id: string, partID?: string) => {
     if (!viewport) return false
-    if (!virtualize()) return revealInTimeline(viewport, id, partID)
 
-    // Solid commits the full page synchronously; two frames let the rows and their Markdown lay out.
-    setRevealAll(true)
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        if (!viewport) {
-          setRevealAll(false)
-          return
-        }
-
-        const done = () => requestAnimationFrame(() => setRevealAll(false))
-
-        // A row that never appears must not leave the page stuck on a full mount.
-        if (!revealInTimeline(viewport, id, partID, done)) setRevealAll(false)
-      }),
-    )
-
-    return true
+    return revealInTimeline(viewport, id, partID)
   }
 
   const revealTarget = (target: string) => {
     if (!viewport) return false
-    if (!virtualize()) return revealInTimeline(viewport, target)
 
-    setRevealAll(true)
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        if (!viewport) {
-          setRevealAll(false)
-          return
-        }
-
-        const done = () => requestAnimationFrame(() => setRevealAll(false))
-
-        if (!revealInTimeline(viewport, target, undefined, done)) setRevealAll(false)
-      }),
-    )
-
-    return true
+    return revealInTimeline(viewport, target)
   }
 
   const jumpToLatest = () => {
@@ -167,17 +135,11 @@ export function AnswerTimeline(props: {
     viewport?.scrollTo({ top: viewport.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" })
   }
 
-  const cancelSettle = () => {
-    if (settleTimer !== undefined) clearTimeout(settleTimer)
-    settleTimer = undefined
-  }
-
-  // A landing is only allowed while the machine still follows. A reader who left the end before the windowed
-  // measurements settled is never pulled back by the landing timer.
+  // Content grew, or the view activated, and the newest content must stay in view. Every loaded row is a real box, so
+  // the write happens in the frame that observed the new height: a ResizeObserver callback runs after layout and before
+  // paint, which is what keeps the intermediate positions off screen. A landing is only allowed while the machine still
+  // follows, or while this activation still owes its own landing; a reader who left the end is never pulled back.
   const landOnEnd = () => {
-    cancelSettle()
-    // `landAtEnd` is the activation's own intent; `following()` is the fallback for a live view. The clamp after a
-    // reinsert can flip `following()` off without the reader touching anything, which used to cancel the landing.
     if (!viewport || (!wantsLanding() && !following())) return
 
     positioned = true
@@ -201,13 +163,12 @@ export function AnswerTimeline(props: {
     }, SCROLL_SETTLE_DELAY)
   }
 
-  // The remembered row is not loaded, so there is nothing to restore. Land on the newest content instead of leaving the
-  // view at the windowed list's start offset, which reads as a jump to the top of the transcript.
+  // The remembered row is in an older page that is not loaded yet, so there is nothing to measure here. Landing on
+  // the end throws the reader across the transcript (18k-22k px in the capture) and away from where they stopped, so
+  // hold the current position instead and let a later page-in land the restore once the row appears.
   const restoreMissed = () => {
     holdPosition = true
-    landAtEnd = true
     props.follow.dispatch({ type: "follow" })
-    landOnEnd()
     props.onRestoreMiss?.()
   }
 
@@ -220,7 +181,6 @@ export function AnswerTimeline(props: {
         if (!isActive) return
 
         positioned = false
-        cancelSettle()
         // Same timing as the page's restore: release follow and re-arm the landing after the DOM insert, before the
         // reinsertion's scroll event reaches the machine.
         queueMicrotask(() => {
@@ -231,12 +191,7 @@ export function AnswerTimeline(props: {
           // Only a view the reader left at the end may land there; a remembered middle row must stay put.
           landAtEnd = !saved || saved.bottom
           landDeadline = performance.now() + LAND_WINDOW
-          if (landAtEnd) {
-            // Land before the browser paints the clamped top, then re-land once the rows have measured. Waiting the
-            // settle delay first shows the reader the top for a frame, which reads as a jump.
-            landOnEnd()
-            settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
-          }
+          if (landAtEnd) landOnEnd()
         })
       },
       { defer: false },
@@ -267,15 +222,12 @@ export function AnswerTimeline(props: {
     requestAnimationFrame(() => {
       if (!viewport) return
 
-      settleDeadline = performance.now() + SETTLE_TIMEOUT
-
       lastContentHeight = viewport.scrollHeight
       lastScrollTop = viewport.scrollTop
       lastMaxScroll = viewport.scrollHeight - viewport.clientHeight
 
-      // No remembered position, or the reader left at the end: land on the newest message, but only
-      // once the windowed measurements stop moving. Until then the height is an estimate.
-      if ((wantsLanding() || following()) && !positioned) settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
+      // No remembered position, or the reader left at the end: land on the newest message at once.
+      if ((wantsLanding() || following()) && !positioned) landOnEnd()
 
       // Streamed text and disclosures grow the rows without changing the message list identity, so
       // follow the observed layout instead of the list. Only a view the machine still follows is pulled;
@@ -292,18 +244,21 @@ export function AnswerTimeline(props: {
 
         const height = viewport.scrollHeight
         const delta = height - lastContentHeight
+        // Whether the reader was already at the end before this height change. Paging an older page in
+        // above the viewport also grows the height, and that is not a reason to pin to the end: pinning
+        // there drags a reader who sits mid-transcript down to the new bottom.
+        const atEndBefore = viewport.scrollTop + viewport.clientHeight >= lastContentHeight - END_EPSILON
         lastContentHeight = height
 
+        // Landing is the activation's own intent. The machine can read `following` here even though the
+        // reader sits mid-transcript, because the clamp after a reinsert flips it on, so the intent alone
+        // must decide before the rows settle. A restored middle row is neither.
+        const landing = wantsLanding() || (following() && atEndBefore)
+
         if (!positioned) {
-          // The windowed page is still measuring the rows above the fold, so its height grows every
-          // frame. Scroll once the measurements stop moving, not after each one.
-          if (settleTimer !== undefined) clearTimeout(settleTimer)
-          settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
-
-          if (performance.now() < settleDeadline) return
-
-          // A session that is streaming never holds still; stop waiting and follow it live.
-          landOnEnd()
+          // The first rows of this activation are still mounting, so every height change is content arriving rather
+          // than the reader's session streaming. Land on the end in this same observation, before the frame paints.
+          if (landing) landOnEnd()
           return
         }
 
@@ -313,7 +268,10 @@ export function AnswerTimeline(props: {
         // would drag the viewport up and down every frame.
         if (delta <= 0 && delta > -200) return
 
-        viewport.scrollTop = height
+        // Pin only a reader who was at the end, and only after the windowed measurements have settled. Before that
+        // every height change is an estimate being replaced, so pinning on each one slides the transcript down the
+        // screen (the capture shows 1500px jumps from this observer alone).
+        if (atEndBefore && positioned) viewport.scrollTop = height
       })
 
       for (const child of Array.from(viewport.children)) contentObserver.observe(child)
@@ -321,7 +279,6 @@ export function AnswerTimeline(props: {
   })
 
   onCleanup(() => contentObserver?.disconnect())
-  onCleanup(() => cancelSettle())
   onCleanup(() => {
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
   })
@@ -420,8 +377,6 @@ export function AnswerTimeline(props: {
           collapseTiming={props.collapseTiming}
           foldedReplies={props.foldedReplies}
           viewport={viewportElement}
-          searching={props.searching}
-          revealAll={revealAll}
           following={following}
           active={props.active}
           restore={() => {

@@ -272,7 +272,9 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
         return
       }
 
-      const key = `group:${draft.turn}:${run[0]?.key ?? ""}`
+      // The group key names its first row, not the turn's position in the loaded window: a page-in shifts every turn
+      // number, and a disclosure keyed by that number would reopen the wrong step.
+      const key = `group:${run[0]?.key ?? ""}`
       runs.push({ key, members: run, notice: false })
       turnChildren.push({ kind: "group", key })
       run = []
@@ -340,7 +342,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
 
     if (input) entries.push({ kind: "node", key: input.key })
 
-    if (turnChildren.length > 0) entries.push({ kind: "fold", turn: draft.turn })
+    if (turnChildren.length > 0) entries.push({ kind: "fold", turn: draft.turn, key: `fold:${draft.nodes[0]!.key}` })
 
     if (answer) entries.push({ kind: "node", key: answer.key })
 

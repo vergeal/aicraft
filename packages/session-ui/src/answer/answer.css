@@ -23,7 +23,8 @@
 .answer-scope .answer-markdown {
   font-family: var(--answer-font-sans);
   font-size: 14px;
-  line-height: 24px;
+  /* Body text uses the shared base line box: 24px read loose for 14px prose and made every answer ~9% taller. */
+  line-height: var(--line-height-base, 22px);
   color: var(--answer-ink);
 }
 

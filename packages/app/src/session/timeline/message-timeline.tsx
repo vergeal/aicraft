@@ -94,8 +94,6 @@ type MessageTimelineProps = {
   setPage?: (fn: (direction: 1 | -1) => void) => void
   reveal?: { target: () => string | undefined; done: () => void }
   search?: JSX.Element
-  /** A non-empty query is reading the transcript's DOM, so no row may be unmounted. */
-  searching?: () => boolean
 }
 
 export function MessageTimeline(props: MessageTimelineProps) {
@@ -495,7 +493,6 @@ function MessageTimelineView(
       collapseTiming={props.data.collapseTiming()}
       foldedReplies={props.data.foldedReplies()}
       bottomInset={props.bottomInset ?? 0}
-      searching={props.searching}
       positionKey={() => props.data.sessionKey()}
       active={() => props.active !== false}
       follow={props.follow}

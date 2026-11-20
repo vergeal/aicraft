@@ -112,7 +112,9 @@ export interface TimelineGroup {
 
 export type TimelineEntry =
   | { readonly kind: "node"; readonly key: string }
-  | { readonly kind: "fold"; readonly turn: number }
+  // The key is derived from the turn's first row, not its position: paging older messages in shifts every turn number,
+  // which made a remembered fold key point at a different turn after activation and lost the reader's place.
+  | { readonly kind: "fold"; readonly turn: number; readonly key: string }
 
 /** What a turn renders, in order, between its input and its final answer. */
 export type TimelineChild = { readonly kind: "group"; readonly key: string } | { readonly kind: "node"; readonly key: string }

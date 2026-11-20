@@ -448,7 +448,7 @@ export const Streaming = {
   ),
 }
 
-// Enough settled turns that a full mount would be obvious in the row count.
+// Every settled turn is rendered, so the reading position and restore can be exercised on a long transcript.
 const longSession: SessionMessageInfo[] = Array.from({ length: 40 }, (_, index) => {
   const created = TIME + index * 10_000
   const turn = `long_${index}`
@@ -472,23 +472,23 @@ const longSession: SessionMessageInfo[] = Array.from({ length: 40 }, (_, index) 
 export const Windowed = {
   render: () => {
     const [viewport, setViewport] = createSignal<HTMLDivElement>()
+    const [active, setActive] = createSignal(true)
+    // Mirrors the host: the page reports the row under the top edge and the host remembers it across activations.
+    let saved: { key: string; offset: number } | undefined
+
+    ;(globalThis as unknown as { __setAnswerActive?: (next: boolean) => void }).__setAnswerActive = setActive
 
     return (
       <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
-        <AnswerPage messages={() => longSession} viewport={viewport} />
-      </div>
-    )
-  },
-}
-
-// A query reads the transcript's DOM, so the page must stop windowing and mount every row.
-export const WindowedSearching = {
-  render: () => {
-    const [viewport, setViewport] = createSignal<HTMLDivElement>()
-
-    return (
-      <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
-        <AnswerPage messages={() => longSession} viewport={viewport} searching={() => true} />
+        <AnswerPage
+          messages={() => longSession}
+          viewport={viewport}
+          active={active}
+          restore={() => saved}
+          onPositionChange={(position) => {
+            saved = position
+          }}
+        />
       </div>
     )
   },
@@ -503,40 +503,6 @@ export const WindowedRestore = {
     return (
       <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
         <AnswerPage messages={() => longSession} viewport={viewport} restore={() => restore} following={() => false} />
-      </div>
-    )
-  },
-}
-
-// Mirrors the host's reveal: mount every row, scroll the target into view, then resume windowing.
-export const WindowedReveal = {
-  render: () => {
-    const [viewport, setViewport] = createSignal<HTMLDivElement>()
-    const [revealAll, setRevealAll] = createSignal(false)
-
-    const reveal = () => {
-      const root = viewport()
-
-      if (!root) return
-      setRevealAll(true)
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          root
-            .querySelector<HTMLElement>('[data-message-id="msg_user_long_29"]')
-            ?.scrollIntoView({ block: "center", behavior: "auto" })
-          requestAnimationFrame(() => setRevealAll(false))
-        }),
-      )
-    }
-
-    return (
-      <div>
-        <button type="button" onClick={reveal}>
-          定位第 30 条
-        </button>
-        <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
-          <AnswerPage messages={() => longSession} viewport={viewport} revealAll={revealAll} />
-        </div>
       </div>
     )
   },

@@ -257,7 +257,8 @@ story("renders the running turn without a settled header", async ({ mount, page 
   await expect(root.locator('[data-slot="answer-running"]')).toHaveCount(1)
   await expect(root.locator('[data-component="text-shimmer"][data-active="true"]').first()).toBeVisible()
 
-  await running.locator('[data-slot="answer-group"] button').first().click()
+  // The running step opens itself, so its rows are already in the document.
+  await expect(running.locator('[data-slot="answer-group"] button').first()).toHaveAttribute("aria-expanded", "true")
   await running.locator("[data-disclosure-row]").first().click()
   await expect(root.locator('[data-slot="answer-disclosure"][data-state="running"]')).toHaveCount(1)
   await expect(root.locator('[data-slot="answer-reasoning-spinner"]')).toHaveCount(1)
@@ -278,28 +279,24 @@ story("renders the running turn without a settled header", async ({ mount, page 
   expect(offset).toBeLessThanOrEqual(1)
 })
 
-story("mounts only the rows near the viewport and follows a scroll", async ({ mount, page }) => {
+story("renders every loaded row instead of a window", async ({ mount, page }) => {
   await mount("answer-page--windowed")
   const viewport = page.getByTestId("answer-window")
-  const mounted = () => viewport.locator("[data-answer-key]").count()
+  const rows = viewport.locator("[data-answer-key]")
 
-  // Forty settled turns lay out far more rows than one window; only a slice may stay mounted.
-  await expect.poll(mounted).toBeLessThan(60)
-  await expect(viewport.locator('[data-slot="user-message-text"]').first()).toContainText("第 1 个问题")
+  // Forty settled turns are all in the document, so a DOM-based search sees the whole transcript.
+  await expect.poll(() => rows.count()).toBeGreaterThan(60)
+  await expect(viewport.locator('[data-slot="user-message-text"]').last()).toContainText("第 40 个问题")
+
+  const mounted = await rows.count()
 
   await viewport.evaluate((element) => {
     element.scrollTop = element.scrollHeight
   })
 
   await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').last().textContent()).toContain("第 40 个问题")
-  await expect.poll(mounted).toBeLessThan(60)
-
-  // Scrolling back replaces the window instead of keeping every row it mounted on the way down.
-  await viewport.evaluate((element) => {
-    element.scrollTop = 0
-  })
-
-  await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').first().textContent()).toContain("第 1 个问题")
+  // Scrolling mounts and unmounts nothing: the row count does not change.
+  expect(await rows.count()).toBe(mounted)
 })
 
 story("opens at a restored row instead of the first message", async ({ mount, page }) => {
@@ -308,8 +305,6 @@ story("opens at a restored row instead of the first message", async ({ mount, pa
   const row = viewport.locator('[data-message-id="msg_user_long_29"]')
 
   await expect(row).toBeVisible()
-  // The first message is not even mounted: the window starts at the remembered row.
-  await expect(viewport.locator('[data-slot="user-message-text"]').first()).not.toContainText("第 1 个问题")
 
   const offset = await row.evaluate((element) => {
     const host = element.closest("[data-testid='answer-window']")
@@ -319,40 +314,8 @@ story("opens at a restored row instead of the first message", async ({ mount, pa
     return element.getBoundingClientRect().top - host.getBoundingClientRect().top
   })
 
-  expect(offset).toBeLessThan(40)
-})
-
-story("mounts every row while the reader searches", async ({ mount, page }) => {
-  await mount("answer-page--windowed-searching")
-  const viewport = page.getByTestId("answer-window")
-
-  // A DOM-based search must see the rows that sit outside the viewport.
-  await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').count()).toBe(40)
-  await expect(viewport.locator('[data-slot="user-message-text"]').last()).toContainText("第 40 个问题")
-})
-
-story("keeps a revealed row in place once windowing resumes", async ({ mount, page }) => {
-  await mount("answer-page--windowed-reveal")
-  const viewport = page.getByTestId("answer-window")
-
-  await page.getByRole("button", { name: "定位第 30 条" }).click()
-  const row = viewport.locator('[data-message-id="msg_user_long_29"]')
-
-  await expect(row).toBeVisible()
-  // Windowing resumes: the earlier rows unmount again instead of staying mounted for the reveal.
-  await expect.poll(() => viewport.locator("[data-answer-key]").count()).toBeLessThan(60)
-
-  const inside = await row.evaluate((element) => {
-    const host = element.closest("[data-testid='answer-window']")
-
-    if (!host) return false
-    const target = element.getBoundingClientRect()
-    const frame = host.getBoundingClientRect()
-
-    return target.top >= frame.top - 1 && target.bottom <= frame.bottom + 1
-  })
-
-  expect(inside).toBe(true)
+  expect(Math.abs(offset)).toBeLessThan(40)
+  expect(await viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
 })
 
 story("keeps the reading position when the cached view is detached and reattached", async ({ mount, page }) => {
@@ -378,11 +341,12 @@ story("keeps the reading position when the cached view is detached and reattache
 
   const before = await probe()
 
-  // A session switch removes the cached view from its parent, which zeroes the scroll offset.
+  // A session switch deactivates the cached view and removes it from its parent, which zeroes the scroll offset.
   await page.evaluate(() => {
     const host = document.querySelector('[data-testid="answer-window"]')
 
     if (!(host instanceof HTMLElement) || !host.parentElement) return
+    ;(globalThis as unknown as { __setAnswerActive?: (next: boolean) => void }).__setAnswerActive?.(false)
     const parent = host.parentElement
     const next = host.nextSibling
 
@@ -392,11 +356,20 @@ story("keeps the reading position when the cached view is detached and reattache
 
   await expect.poll(() => page.locator('[data-testid="answer-window"]').count()).toBe(0)
 
-  await page.evaluate(() => (globalThis as unknown as { __reattach?: () => void }).__reattach?.())
+  // Coming back re-inserts the node and reactivates it, which is the moment the host re-reads the saved row.
+  await page.evaluate(() => {
+    const state = globalThis as unknown as {
+      __reattach?: () => void
+      __setAnswerActive?: (next: boolean) => void
+    }
+
+    state.__reattach?.()
+    state.__setAnswerActive?.(true)
+  })
 
   const after = await probe()
 
-  // Windowing re-estimates unmounted rows, so the offset may shift a few pixels; the row must not.
+  // Every row is a measured box, so both the offset and the row under the top edge survive the reattach.
   expect(Math.abs(after.scrollTop - before.scrollTop)).toBeLessThanOrEqual(4)
   expect(after.topKey).toBe(before.topKey)
 })

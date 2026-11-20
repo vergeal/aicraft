@@ -127,7 +127,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
       enabled: item.ctx.sdk.connection.status() === "connected",
       queryFn: async ({ signal }: { signal: AbortSignal }) => {
         const response = await item.ctx.sdk.api.session.list(
-          { limit: INDEX_LIMIT, order: "desc", parentID: null },
+          { limit: INDEX_LIMIT, order: "desc", parentID: null, archived: false },
           { signal },
         )
         setPaging("cursor", ServerConnection.key(item.conn), response.cursor?.next ?? undefined)

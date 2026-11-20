@@ -1,4 +1,4 @@
-import { For, Show, createContext, createEffect, createMemo, createSignal, createUniqueId, on, onCleanup, useContext, type JSX } from "solid-js"
+import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, untrack, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
 import type { SessionMessageInfo } from "@opencode/client/promise"
@@ -11,8 +11,16 @@ import { hasMarkdownSyntax, Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
 import { childrenOf, projectTimeline } from "./project"
 import { toolDescription, toolError, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
-import { entryLayout, estimateEntryHeight, positionAt, visibleRange } from "./virtual"
+import { entryLayout, estimateEntryHeight, learnedEntryHeights, positionAt, visibleRange } from "./virtual"
+import {
+  createRestoreState,
+  restorePinning,
+  transitionRestore,
+  type RestoreEvent,
+  type RestoreState,
+} from "./restore-machine"
 import type {
+  ContextSource,
   GroupItem,
   NodePayload,
   ProcessActivity,
@@ -54,8 +62,14 @@ export interface AnswerPageProps {
   readonly revealAll?: () => boolean
   /** The reader still follows the newest content, so layout changes must not restore an anchor. */
   readonly following?: () => boolean
-  /** The row and offset the reader last stopped at. Restored once the rows exist. */
-  readonly restore?: { readonly key: string; readonly offset: number }
+  /**
+   * The view is the routed session. A cached view outlives its DOM node: on a session switch the element leaves the
+   * document, which zeroes its scroll offset, and it comes back on the next activation. Every activation therefore
+   * starts a fresh restore attempt instead of trusting anything read at first mount.
+   */
+  readonly active?: () => boolean
+  /** The row and offset the reader last stopped at. Re-read on each activation, so a cached view remembers its place. */
+  readonly restore?: () => { readonly key: string; readonly offset: number } | undefined
   /**
    * The remembered row is not loaded, so restoring it is impossible. The host must settle the view at the newest
    * content: leaving it alone would park the reader at the windowed list's start offset, which reads as a jump to the
@@ -354,15 +368,24 @@ export function AnswerPage(props: AnswerPageProps) {
 
   const rowIndex = createMemo(() => new Map(keys().map((key, position) => [key, position] as const)))
   const rowGaps = createMemo(() => entries().map((_, position) => flowGapPx(snapshot(), entries(), position)))
-  const estimates = createMemo(
-    () => new Map(entries().map((entry) => [entryKey(entry), estimateEntryHeight(entry, snapshot())] as const)),
-  )
 
   // Measured border boxes, keyed by row identity. A key leaves the cache with its row, which is what
   // lets a regrouped or folded row re-estimate instead of keeping a stale height.
   const [rowSizes, setRowSizes] = createStore<Record<string, number>>({})
   const [scrollTop, setScrollTop] = createSignal(0)
   const [viewportHeight, setViewportHeight] = createSignal(0)
+
+  // An unmeasured row is estimated from its own family's measured median where one exists. A fixed guess is 2-3x off
+  // for a long answer, and that error is what moves the total height (and the reader) every time a row measures.
+  const learnedHeights = createMemo(() => learnedEntryHeights(entries(), snapshot(), (key) => rowSizes[key]))
+  const estimates = createMemo(
+    () =>
+      new Map(
+        entries().map(
+          (entry) => [entryKey(entry), estimateEntryHeight(entry, snapshot(), learnedHeights())] as const,
+        ),
+      ),
+  )
 
   const virtualize = () => !!props.viewport?.() && !props.searching?.() && !props.revealAll?.()
 
@@ -444,68 +467,135 @@ export function AnswerPage(props: AnswerPageProps) {
     if (anchor) props.onPositionChange?.(anchor)
   }
 
-  // A restored row only exists once the page renders it, so the first restore waits for the rows.
-  let restored = false
-  // Rows above the target shrink from their estimate as they measure, which would drag the restored
-  // row upward. Hold it on the target for the frames the layout settles, then let the anchor take over.
-  let pinned: { key: string; offset: number; lastTop?: number; stable?: number } | undefined
+  // A restore attempt belongs to one activation: it waits for the rows, then holds the target until the layout
+  // settles. A cached view reuses this scope across activations, so the attempt is re-armed rather than read once.
+  let pendingRestore: { key: string; offset: number } | undefined
+  const [restoreState, setRestoreState] = createSignal<RestoreState>(createRestoreState())
   let pinFrame: number | undefined
-  let pinTimer: ReturnType<typeof setTimeout> | undefined
 
-  const releasePin = () => {
-    pinned = undefined
+  const cancelPin = () => {
     if (pinFrame !== undefined) cancelAnimationFrame(pinFrame)
-    if (pinTimer !== undefined) clearTimeout(pinTimer)
     pinFrame = undefined
-    pinTimer = undefined
   }
 
-  const pinRestore = (position: { key: string; offset: number }) => {
-    pinned = { ...position }
+  const dispatchRestore = (event: RestoreEvent) => {
+    const current = restoreState()
+    const next = transitionRestore(current, event)
 
-    const step = () => {
-      pinFrame = undefined
-      const root = props.viewport?.()
-      const target = pinned
+    if (next !== current) setRestoreState(next)
+    // A miss is final for this activation: the host lands on the newest content and holds the remembered row.
+    if (next.status === "missed") props.onRestoreMiss?.()
 
-      if (!target || !root) return releasePin()
+    return next
+  }
 
-      const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find(
-        (node) => node.dataset.answerKey === target.key,
-      )
+  // Rows above the target shrink from their estimate as they measure, which would drag the restored row upward.
+  // Hold it on the target for the frames the layout settles, then let the anchor take over.
+  const stepRestore = () => {
+    pinFrame = undefined
+    const current = restoreState()
 
-      if (row) {
-        // Measure the row itself: layout tops are estimates for every row above the window, and their
-        // accumulated error is what used to park the reader a message away from where they stopped.
-        const frame = root.getBoundingClientRect()
-        const delta = row.getBoundingClientRect().top - frame.top + target.offset
+    if (current.status !== "pinning") return
 
-        if (Math.abs(delta) > 1) root.scrollTop += delta
+    const root = props.viewport?.()
 
-        target.stable = Math.abs(delta) <= 1 ? (target.stable ?? 0) + 1 : 0
-      } else {
-        // The row is outside the window: land near it with the estimate, then measure once it renders.
-        const index = keys().indexOf(target.key)
+    if (!root) return cancelPin()
 
-        if (index < 0) return releasePin()
+    const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find(
+      (node) => node.dataset.answerKey === current.key,
+    )
 
-        root.scrollTop = layout().tops[index]! + target.offset
-        target.stable = 0
-      }
+    if (!row) {
+      // The row is outside the window: land near it with the estimate, then measure once it renders.
+      const index = keys().indexOf(current.key)
 
+      if (index < 0) return dispatchRestore({ type: "missing" })
+
+      root.scrollTop = layout().tops[index]! + current.offset
       rememberAnchor(root.scrollTop)
+      dispatchRestore({ type: "frame", found: false, delta: 0 })
 
-      // A few unchanged frames mean the measured layout has settled.
-      if ((target.stable ?? 0) >= 3) return releasePin()
-
-      pinFrame = requestAnimationFrame(step)
+      return continueRestore()
     }
 
-    pinFrame = requestAnimationFrame(step)
-    pinTimer = setTimeout(releasePin, 1000)
+    // Measure the row itself: layout tops are estimates for every row above the window, and their
+    // accumulated error is what used to park the reader a message away from where they stopped.
+    const frame = root.getBoundingClientRect()
+    const delta = row.getBoundingClientRect().top - frame.top + current.offset
+
+    if (Math.abs(delta) > 1) root.scrollTop += delta
+
+    rememberAnchor(root.scrollTop)
+    dispatchRestore({ type: "frame", found: true, delta })
+
+    continueRestore()
   }
 
-  onCleanup(releasePin)
+  const continueRestore = () => {
+    if (restorePinning(restoreState())) pinFrame = requestAnimationFrame(stepRestore)
+  }
+
+  onCleanup(cancelPin)
+
+  // Each activation starts one restore attempt. The cached view keeps its scope but loses its DOM node on a session
+  // switch, so anything decided at first mount is stale by the time the session comes back.
+  //
+  // The scroll position has one ordered set of moments, and each depends on the one before it:
+  //   1. `active` flips: the effect below deactivates the previous attempt.
+  //   2. Solid commits, reinserting the cached node; reading `scrollTop` here shows the clamp the browser applied.
+  //   3. This function runs from a microtask: after the insert, so rows are measurable, and before the paint and
+  //      the browser's own scroll event, which reports that clamp as "arrived at the end".
+  //   4. `stepRestore()` runs synchronously on the first frame, so the zeroed offset is never painted.
+  //   5. `AnswerTimeline`'s activation effect runs in the same microtask: it releases follow for a remembered middle
+  //      row, or re-arms the end landing for a view that left at the end.
+  // A new writer must slot into this order. Anything that scrolls before (3) fights the clamp; anything after the
+  // browser's event is undone by the machine's `scrolled()`.
+  const attemptRestore = () => {
+    const root = props.viewport?.()
+    const currentKeys = keys()
+
+    if (!root || currentKeys.length === 0) return
+    // One attempt per activation: the layout effect below calls this again once rows exist, and a running or
+    // finished restore must not start over.
+    if (restoreState().status !== "idle") return
+
+    const target = pendingRestore
+
+    if (target && currentKeys.includes(target.key)) {
+      dispatchRestore({ type: "activate", position: target })
+      stepRestore()
+
+      return
+    }
+
+    dispatchRestore({ type: "activate", position: undefined })
+
+    // The remembered row is not loaded: the host lands on the newest content instead of leaving the view at the
+    // windowed list's start offset, which reads as a jump to the top of the transcript.
+    if (target) return props.onRestoreMiss?.()
+
+    // No remembered row: open at the newest content, where a following view belongs.
+    if (props.following?.() === true) root.scrollTop = root.scrollHeight
+  }
+
+  createRenderEffect(
+    on(
+      () => props.active?.() !== false,
+      (isActive) => {
+        if (!isActive) return
+
+        // A new activation invalidates the previous attempt: its pin, its settled state, and its remembered row.
+        cancelPin()
+        dispatchRestore({ type: "deactivate" })
+        pendingRestore = props.restore?.()
+        // Run after the DOM insert this activation triggers but before the browser paints and dispatches the scroll
+        // event the reinsertion causes. That event reports the clamped offset as "arrived at the end", which would
+        // otherwise pull a restored middle row back to the bottom.
+        queueMicrotask(attemptRestore)
+      },
+      { defer: false },
+    ),
+  )
 
   createEffect(() => {
     const root = props.viewport?.()
@@ -517,11 +607,9 @@ export function AnswerPage(props: AnswerPageProps) {
     // content under the reader. The virtualized timeline disables it for the same reason.
     root.style.overflowAnchor = "none"
 
-    // The cached view is removed from its parent on a session switch, which zeroes its scroll offset.
-    // Only that detach may put the reader back: a reader who scrolled to the top must stay there.
-    let lastTop = root.scrollTop
-    let detached = false
-
+    // The cached view is removed from its parent on a session switch and reinserted on the next activation. That
+    // detach is owned by the activation effect above, which restores the remembered row before the browser paints;
+    // this effect only mirrors geometry and keeps the anchor current while the view is live.
     const sync = () => {
       if (!root.isConnected) return
 
@@ -530,30 +618,6 @@ export function AnswerPage(props: AnswerPageProps) {
     }
     sync()
 
-    const parent = root.parentElement
-    const reconnect = parent
-      ? new MutationObserver(() => {
-          if (!root.isConnected) {
-            detached = true
-            return
-          }
-
-          if (detached) {
-            detached = false
-
-            // Rows above the window are estimates, so an absolute offset lands somewhere else; the
-            // remembered row does not move. A reader resting at the end simply goes back to the end.
-            if (props.following?.() === true) root.scrollTop = root.scrollHeight
-            else if (anchor) pinRestore(anchor)
-            else if (root.scrollTop === 0 && lastTop > 0) root.scrollTop = lastTop
-          }
-
-          sync()
-        })
-      : undefined
-    reconnect?.observe(parent!, { childList: true })
-    onCleanup(() => reconnect?.disconnect())
-
     let frame: number | undefined
     const onScroll = () => {
       if (frame !== undefined) return
@@ -561,7 +625,6 @@ export function AnswerPage(props: AnswerPageProps) {
         frame = undefined
         // Detaching zeroes scrollTop, which is not the reader scrolling to the top.
         if (!root.isConnected) return
-        lastTop = root.scrollTop
         setScrollTop(root.scrollTop)
         // A real scroll moves the anchor with the reader, so a later content change holds this place.
         rememberAnchor(root.scrollTop)
@@ -589,18 +652,17 @@ export function AnswerPage(props: AnswerPageProps) {
 
     const top = root.scrollTop
     const previous = anchor
+    // Read without subscribing: the pin writes this signal every frame, and re-running the content effect for each
+    // of those frames would re-enter the restore it is guarding.
+    const pinning = untrack(() => restorePinning(restoreState()))
 
-    if (!restored) {
-      restored = true
-      const target = props.restore
-      if (target && currentKeys.includes(target.key)) pinRestore(target)
-      else if (target) props.onRestoreMiss?.()
-    }
+    // The rows may not have existed when the activation began, so this is the second chance to restore.
+    untrack(attemptRestore)
 
     // A real scroll already moved the anchor; only a content change may restore it.
     const scrolled = Math.abs(top - anchorTop) > 1
 
-    if (!pinned && !scrolled && previous && currentKeys.includes(previous.key) && props.following?.() === false) {
+    if (!pinning && !scrolled && previous && currentKeys.includes(previous.key) && props.following?.() === false) {
       const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find(
         (node) => node.dataset.answerKey === previous.key,
       )
@@ -619,7 +681,7 @@ export function AnswerPage(props: AnswerPageProps) {
       }
     }
 
-    if (!pinned) rememberAnchor(root.scrollTop)
+    if (!pinning) rememberAnchor(root.scrollTop)
   })
 
   createEffect(() => {
@@ -1235,7 +1297,18 @@ function Payload(props: {
         <NoticeRow
           text={props.payload.text}
           detail={props.payload.detail}
+          notice={props.payload.notice}
           cacheKey={props.cacheKey}
+          rowOpen={props.rowOpen}
+          onToggleRow={props.onToggleRow}
+        />
+      )
+    case "context":
+      return (
+        <ContextRow
+          cacheKey={props.cacheKey}
+          sources={props.payload.sources}
+          change={props.payload.change}
           rowOpen={props.rowOpen}
           onToggleRow={props.onToggleRow}
         />
@@ -1259,25 +1332,29 @@ function Payload(props: {
 function NoticeRow(props: {
   text: string
   detail?: string
+  notice?: "instructions-updated"
   cacheKey: string
   rowOpen?: boolean
   onToggleRow?: (next: boolean) => void
 }) {
+  const i18n = useI18n()
   const expanded = () => props.rowOpen ?? false
+  const title = () =>
+    props.notice === "instructions-updated" ? i18n.t("ui.answer.notice.instructionsUpdated") : props.text
 
   if (!props.detail)
     return (
       <div class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[24px]" style={{ color: "var(--answer-ink-tertiary)" }}>
         <FlowIcon name="answer-context" />
         <bdi dir="auto" class="min-w-0 truncate">
-          {props.text}
+          {title()}
         </bdi>
       </div>
     )
 
   return (
     <DisclosureRow
-      title={props.text}
+      title={title()}
       state="ok"
       expanded={expanded()}
       leading={<FlowIcon name="answer-context" />}
@@ -1291,6 +1368,113 @@ function NoticeRow(props: {
       />
     </DisclosureRow>
   )
+}
+
+/** Sources of the context a Step injected ahead of the conversation, each expandable to its text. */
+function ContextRow(props: {
+  cacheKey: string
+  sources: readonly ContextSource[]
+  change: "inject" | "change"
+  rowOpen?: boolean
+  onToggleRow?: (next: boolean) => void
+}) {
+  const i18n = useI18n()
+  const rows = useContext(RowDisclosureContext)
+  const expanded = () => props.rowOpen ?? false
+  const label = (key: string) => {
+    const known = CONTEXT_LABELS[key]
+    if (known) return i18n.t(known)
+    return key.startsWith("api/") ? key.slice(4) : key
+  }
+  // A source that breaks down into files lists the files directly; anything else is one entry of its own.
+  const entries = () =>
+    props.sources.flatMap((source) =>
+      source.items && source.items.length > 0
+        ? source.items.map((item, index) => ({
+            key: `${props.cacheKey}:context:${source.key}:${index}`,
+            title: item.name,
+            chars: item.chars,
+            text: item.text,
+          }))
+        : [
+            {
+              key: `${props.cacheKey}:context:${source.key}`,
+              title: label(source.key),
+              chars: source.chars,
+              text: source.text,
+            },
+          ],
+    )
+  return (
+    <DisclosureRow
+      title={i18n.t(props.change === "inject" ? "ui.answer.context.inject" : "ui.answer.context.change")}
+      summary={expanded() ? undefined : props.sources.map((source) => label(source.key)).join(i18n.t("ui.answer.step.comma"))}
+      state="ok"
+      expanded={expanded()}
+      leading={<FlowIcon name="answer-context" />}
+      onToggle={() => props.onToggleRow?.(!expanded())}
+    >
+      <div data-slot="answer-context-sources" class="answer-tree flex flex-col gap-1 py-1">
+        <For each={entries()}>
+          {(entry) => {
+            const open = () => rows?.open(entry.key) ?? false
+            const chars = () => i18n.t("ui.answer.context.chars", { count: String(entry.chars) })
+            return (
+              <Show
+                when={entry.text}
+                fallback={
+                  <div
+                    class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[var(--line-height-compact)]"
+                    style={{ color: "var(--answer-ink-secondary)" }}
+                  >
+                    <FlowIcon name="file-document" />
+                    <bdi dir="auto" class="min-w-0 truncate">
+                      {entry.title}
+                    </bdi>
+                    <span class="ms-auto shrink-0 tabular-nums" style={{ color: "var(--answer-ink-tertiary)" }}>
+                      {chars()}
+                    </span>
+                  </div>
+                }
+              >
+                {(text) => (
+                  <DisclosureRow
+                    title={entry.title}
+                    summary={chars()}
+                    state="ok"
+                    expanded={open()}
+                    leading={<FlowIcon name="file-document" />}
+                    onToggle={() => rows?.toggle(entry.key, !open())}
+                  >
+                    <Markdown
+                      text={text()}
+                      cacheKey={`${entry.key}:text`}
+                      deferUntilReady
+                      class="answer-markdown ps-[30px] py-1 [overflow-wrap:anywhere]"
+                    />
+                  </DisclosureRow>
+                )}
+              </Show>
+            )
+          }}
+        </For>
+      </div>
+    </DisclosureRow>
+  )
+}
+
+const CONTEXT_LABELS: Record<string, UiI18nOrdinaryKey> = {
+  system: "ui.answer.context.system",
+  "core/project": "ui.answer.context.project",
+  session: "ui.answer.context.session",
+  "core/language": "ui.answer.context.language",
+  "core/date": "ui.answer.context.date",
+  "core/environment": "ui.answer.context.environment",
+  "core/instructions": "ui.answer.context.instructions",
+  "core/mcp-guidance": "ui.answer.context.mcp",
+  "core/skill-guidance": "ui.answer.context.skills",
+  "core/codemode": "ui.answer.context.codemode",
+  "core/reference-guidance": "ui.answer.context.references",
 }
 
 function FlowIcon(props: { name: IconName }) {

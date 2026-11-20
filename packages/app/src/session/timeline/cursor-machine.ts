@@ -170,6 +170,21 @@ export function transitionTimelineCursor(
   ])
 }
 
+/**
+ * The newest visible prompt advanced since the last observation.
+ *
+ * Message IDs are ordered within one session only. A switch to another session is therefore never an advance:
+ * comparing IDs across sessions used to read as one and dropped the reader on the end of the new transcript.
+ */
+export function latestPromptAdvanced(
+  previous: readonly [sessionKey: string, messageID: string | undefined],
+  next: readonly [sessionKey: string, messageID: string | undefined],
+) {
+  if (previous[0] !== next[0]) return false
+
+  return previous[1] !== undefined && next[1] !== undefined && next[1] > previous[1]
+}
+
 /** The prompt navigation steps from, while the reader has not scrolled since choosing it. */
 export function freshCursorMessageID(state: TimelineCursorState) {
   return state.status === "selected" && state.fresh ? state.messageID : undefined

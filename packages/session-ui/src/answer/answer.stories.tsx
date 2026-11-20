@@ -280,6 +280,41 @@ export const InjectedContextMultiple = {
   ),
 }
 
+// Every step resends the same system prefix; only the sources whose text changed are reported.
+const contextChanges: SessionMessageInfo[] = (() => {
+  const step = (id: string, created: number, sources: { key: string; text: string }[]) => ({
+    ...assistant(id, [tool(`tool_${id}`, "read", { filePath: "README.md" }, "completed")], created, created + 1_000),
+    metadata: {
+      context: sources.map((source) => ({ key: source.key, chars: source.text.length, text: source.text })),
+    },
+  }) satisfies SessionMessageInfo
+
+  return [
+    { id: "msg_user_cch", type: "user", text: "上下文只在变化时显示。", time: { created: TIME } },
+    step("msg_cch_1", TIME + 1_000, [
+      { key: "system", text: "系统提示 A" },
+      { key: "core/instructions", text: "项目指令 A" },
+    ]),
+    step("msg_cch_2", TIME + 3_000, [
+      { key: "system", text: "系统提示 A" },
+      { key: "core/instructions", text: "项目指令 A" },
+    ]),
+    step("msg_cch_3", TIME + 5_000, [
+      { key: "system", text: "系统提示 A" },
+      { key: "core/instructions", text: "项目指令 B" },
+    ]),
+    idle("msg_idle_cch", TIME + 6_000),
+  ]
+})()
+
+export const ContextChanges = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => contextChanges} />
+    </div>
+  ),
+}
+
 export const Lists = {
   render: () => (
     <div class="h-dvh">
@@ -467,7 +502,7 @@ export const WindowedRestore = {
 
     return (
       <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
-        <AnswerPage messages={() => longSession} viewport={viewport} restore={restore} following={() => false} />
+        <AnswerPage messages={() => longSession} viewport={viewport} restore={() => restore} following={() => false} />
       </div>
     )
   },

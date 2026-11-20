@@ -31,7 +31,6 @@ import {
   type TimelineHistoryEvent,
 } from "./history-machine"
 import { createTimelineModel } from "./model"
-import { readPosition } from "./position"
 
 export function createSessionTimelineInteraction(session: SessionModel) {
   const location = useLocation<{ reveal?: string }>()
@@ -182,6 +181,10 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     revealMessage: (id) => revealMessage(id),
     detach,
     toEnd: () => {
+      // The route re-applies its hash as an initial apply on a session switch. When the restored view left follow,
+      // the page owns the position, so landing here would undo the restore.
+      if (!follow.following()) return
+
       follow.dispatch({ type: "follow" })
       scrollToEnd()
 
@@ -371,26 +374,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
 
   createEffect(
     on(session.identity.sessionKey, () => setState("scroll", { overflow: false, jump: false }), { defer: true }),
-  )
-  createEffect(
-    on(
-      () => session.identity.params.id,
-      (id, previous) => {
-        // A switch resets the cursor, so only a `#message-<id>` or other hash can hold the new session elsewhere.
-        if (!id || !previous || id === previous || location.hash) return
-
-        // A reader who stopped mid-transcript comes back there; only an unseen session opens at its end.
-        const position = readPosition(session.identity.sessionKey())
-
-        if (position && !position.bottom) {
-          follow.dispatch({ type: "detach" })
-          return
-        }
-
-        follow.dispatch({ type: "follow" })
-        scrollToEnd()
-      },
-    ),
   )
   createEffect(() => {
     const id = session.identity.params.id

@@ -3,7 +3,24 @@ import type { SessionMessageAssistant } from "@opencode/client/promise"
 /** Where a node stands in the group tree, outermost first. Ported from the DSH conversation model. */
 export type GroupTree = "exchange" | "input" | "turn" | "process"
 
-export type NodeKind = "input" | "assistant" | "reasoning" | "tool" | "notice" | "error" | "retry"
+export type NodeKind = "input" | "assistant" | "reasoning" | "tool" | "notice" | "context" | "error" | "retry"
+
+/** One entry inside an injected source, such as a single instruction file. */
+export type ContextItem = {
+  readonly name: string
+  readonly chars: number
+  /** Absent on steps recorded before the transcript captured injected text. */
+  readonly text?: string
+}
+
+/** One source a Step injected ahead of the conversation, as the server reported it. */
+export type ContextSource = {
+  readonly key: string
+  readonly chars: number
+  /** Absent on steps recorded before the transcript captured injected text. */
+  readonly text?: string
+  readonly items?: readonly ContextItem[]
+}
 
 export type ToolContent = Extract<SessionMessageAssistant["content"][number], { type: "tool" }>
 
@@ -14,7 +31,14 @@ export type NodePayload =
   | { readonly kind: "reasoning"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "tool"; readonly tool: ToolContent }
   /** `detail` is the injected body, shown when the reader expands the notice. */
-  | { readonly kind: "notice"; readonly text: string; readonly detail?: string }
+  | { readonly kind: "notice"; readonly text: string; readonly detail?: string; readonly notice?: "instructions-updated" }
+  /** Context the Step injected ahead of the conversation, listed by source. */
+  | {
+      readonly kind: "context"
+      readonly sources: readonly ContextSource[]
+      /** The first injection of a turn's baseline, or a later change to what was injected. */
+      readonly change: "inject" | "change"
+    }
   | { readonly kind: "error"; readonly text: string }
   | { readonly kind: "retry"; readonly attempt: number; readonly text: string }
 

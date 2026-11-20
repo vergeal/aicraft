@@ -9,6 +9,7 @@ import {
   freshCursorMessageID,
   hasFreshCursorOrSeek,
   LATEST_ADVANCED_EVENT,
+  latestPromptAdvanced,
   pendingCursorMessageID,
   SCROLL_MOVED_EVENT,
   SESSION_CHANGED_EVENT,
@@ -197,5 +198,24 @@ describe("cursor machine", () => {
     expect(transitionTimelineCursor(replay([jump("msg_1")]), DISPOSED_CURSOR_EVENT).effects).toEqual([
       { type: "seek.cancel" },
     ])
+  })
+})
+
+describe("latest prompt advance", () => {
+  test("only an id ordered inside the same session counts", () => {
+    expect(latestPromptAdvanced(["s1", "msg_1"], ["s1", "msg_2"])).toBe(true)
+    expect(latestPromptAdvanced(["s1", "msg_2"], ["s1", "msg_1"])).toBe(false)
+    expect(latestPromptAdvanced(["s1", "msg_1"], ["s1", "msg_1"])).toBe(false)
+  })
+
+  test("a session switch is never an advance, whatever the ids compare to", () => {
+    // The regression: `msg_9` in one session against `msg_1` in the next read as an advance and landed on the end.
+    expect(latestPromptAdvanced(["s1", "msg_1"], ["s2", "msg_9"])).toBe(false)
+    expect(latestPromptAdvanced(["s1", "msg_9"], ["s2", "msg_1"])).toBe(false)
+  })
+
+  test("a session without a visible prompt cannot advance", () => {
+    expect(latestPromptAdvanced(["s1", "msg_1"], ["s1", undefined])).toBe(false)
+    expect(latestPromptAdvanced(["s1", undefined], ["s1", "msg_2"])).toBe(false)
   })
 })

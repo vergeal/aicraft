@@ -81,7 +81,7 @@
   top: 11.5px;
   inset-inline-start: calc(var(--answer-tree-indent) / -2);
   width: calc(var(--answer-tree-indent) / 2 - 3px);
-  border-top: 1px solid var(--answer-guide);
+  border-top: 0.5px solid var(--answer-guide);
 }
 
 /* The rail: one segment per entry, down to the next entry's midline, and none after the last. */
@@ -90,11 +90,18 @@
   position: absolute;
   top: 12px;
   bottom: calc((var(--answer-tree-gap) + 12px) * -1);
-  inset-inline-start: calc(var(--answer-tree-indent) / -2 - 0.5px);
-  width: 1px;
+  inset-inline-start: calc(var(--answer-tree-indent) / -2);
+  width: 0.5px;
   background: var(--answer-guide);
 }
 
 .answer-scope .answer-tree > *:last-child::after {
   display: none;
+}
+
+/* The document glyph fills its 14-unit grid, so at 18px it reads heavier than the step icons drawn
+   inside a smaller area. Keep source rows at the same visual weight as the rest of the transcript. */
+.answer-scope [data-slot="answer-context-sources"] [data-slot="leading-idle"] [data-slot="icon-svg"] {
+  width: 16px;
+  height: 16px;
 }

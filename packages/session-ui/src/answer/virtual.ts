@@ -1,36 +1,100 @@
 import type { Snapshot, TimelineEntry } from "./types"
 
-/**
- * A first-frame height for a row that has not mounted yet. Once the row mounts its measured
- * border box replaces this, so the estimate only has to keep the scrollbar close for one frame.
- */
-export function estimateEntryHeight(entry: TimelineEntry, snapshot: Snapshot): number {
-  if (entry.kind === "fold") {
-    const turn = snapshot.turns.get(entry.turn)
+/** Which family an unmeasured row belongs to, so a similar row's measured height can stand in for it. */
+export type EntryHeightKind =
+  | "fold-open"
+  | "fold-closed"
+  | "input"
+  | "assistant"
+  | "reasoning"
+  | "tool"
+  | "notice"
+  | "error"
+  | "retry"
+  | "other"
 
-    // An open turn still shows its whole process; a settled one keeps its answer under the header.
-    return turn?.status === "open" ? 360 : 200
-  }
+export function entryHeightKind(entry: TimelineEntry, snapshot: Snapshot): EntryHeightKind {
+  if (entry.kind === "fold") return snapshot.turns.get(entry.turn)?.status === "open" ? "fold-open" : "fold-closed"
 
   switch (snapshot.nodes.get(entry.key)?.payload.kind) {
     case "input":
-      return 64
+      return "input"
     case "assistant":
-      return 180
+      return "assistant"
     case "reasoning":
-      return 44
+      return "reasoning"
     case "tool":
-      return 64
+      return "tool"
     case "notice":
-      return 32
+      return "notice"
     case "error":
-      return 48
+      return "error"
     case "retry":
-      return 40
+      return "retry"
     default:
-      return 56
+      return "other"
   }
 }
+
+const FALLBACK_HEIGHT: Readonly<Record<EntryHeightKind, number>> = {
+  "fold-open": 360,
+  "fold-closed": 200,
+  input: 64,
+  assistant: 180,
+  reasoning: 44,
+  tool: 64,
+  notice: 32,
+  error: 48,
+  retry: 40,
+  other: 56,
+}
+
+/**
+ * A first-frame height for a row that has not mounted yet. Once the row mounts its measured
+ * border box replaces this, so the estimate only has to keep the scrollbar close for one frame.
+ * A measured median from the same family is used when one exists, which keeps the total close
+ * while a windowed page measures its first rows.
+ */
+export function estimateEntryHeight(
+  entry: TimelineEntry,
+  snapshot: Snapshot,
+  learned?: ReadonlyMap<EntryHeightKind, number>,
+): number {
+  const kind = entryHeightKind(entry, snapshot)
+
+  return learned?.get(kind) ?? FALLBACK_HEIGHT[kind]
+}
+
+/** The median measured height per row family, ignoring families with too few samples to trust. */
+export function learnedEntryHeights(
+  entries: readonly TimelineEntry[],
+  snapshot: Snapshot,
+  measured: (key: string) => number | undefined,
+): Map<EntryHeightKind, number> {
+  const buckets = new Map<EntryHeightKind, number[]>()
+
+  for (const entry of entries) {
+    const size = measured(entry.kind === "fold" ? `fold:${entry.turn}` : `node:${entry.key}`)
+
+    if (size === undefined) continue
+    const kind = entryHeightKind(entry, snapshot)
+    const values = buckets.get(kind)
+
+    if (values) values.push(size)
+    else buckets.set(kind, [size])
+  }
+
+  const result = new Map<EntryHeightKind, number>()
+
+  for (const [kind, values] of buckets) {
+    if (values.length < 2) continue
+    values.sort((a, b) => a - b)
+    result.set(kind, values[values.length >> 1]!)
+  }
+
+  return result
+}
+
 
 export type EntryLayout = {
   /** Content top of each row. A row's own leading gap lives inside its box. */

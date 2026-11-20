@@ -7,6 +7,7 @@ import {
   createTimelineCursorState,
   DISPOSED_CURSOR_EVENT,
   LATEST_ADVANCED_EVENT,
+  latestPromptAdvanced,
   pendingCursorMessageID,
   SESSION_CHANGED_EVENT,
   transitionTimelineCursor,
@@ -172,9 +173,9 @@ export function createTimelineCursor(input: {
   })
   createEffect(
     on(
-      () => input.visibleUserMessages().at(-1)?.id,
-      (lastID, previousID) => {
-        if (lastID && previousID && lastID > previousID) dispatch(LATEST_ADVANCED_EVENT)
+      () => [input.sessionKey(), input.visibleUserMessages().at(-1)?.id] as const,
+      (next, previous) => {
+        if (previous && latestPromptAdvanced(previous, next)) dispatch(LATEST_ADVANCED_EVENT)
       },
       { defer: true },
     ),

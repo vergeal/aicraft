@@ -33,6 +33,35 @@ const decodeNotice = Schema.decodeUnknownOption(
   }),
 )
 
+const decodeContext = Schema.decodeUnknownOption(
+  Schema.Struct({
+    metadata: Schema.Struct({
+      context: Schema.Array(
+        Schema.Struct({
+          key: Schema.String,
+          chars: Schema.Number,
+          text: Schema.optionalKey(Schema.String),
+          items: Schema.optionalKey(
+            Schema.Array(
+              Schema.Struct({
+                name: Schema.String,
+                chars: Schema.Number,
+                text: Schema.optionalKey(Schema.String),
+              }),
+            ),
+          ),
+        }),
+      ),
+    }),
+  }),
+)
+
+/** Context the Step injected ahead of the conversation, as its assistant message recorded it. */
+function injectedContext(message: SessionMessageInfo) {
+  const sources = Option.getOrUndefined(decodeContext(message))?.metadata.context
+  return sources && sources.length > 0 ? sources : undefined
+}
+
 /**
  * Notice copy, or undefined when the message carries none (so its type tag never reaches the reader).
  * An injected context carries a one-line description and the full body in `text`; the body is what the
@@ -41,6 +70,9 @@ const decodeNotice = Schema.decodeUnknownOption(
 function noticeCopy(message: SessionMessageInfo) {
   const value = Option.getOrUndefined(decodeNotice(message))
   const body = value?.text?.trim()
+  // Instruction updates carry an English description from the event; show localized copy instead.
+  if (message.metadata?.notice === "instructions" || value?.description?.trim().startsWith("Instructions updated: "))
+    return { text: "", detail: body, notice: "instructions-updated" as const }
   const text = value?.description?.trim() || firstLine(body) || undefined
 
   if (!text) return undefined
@@ -62,6 +94,8 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
   const nodes: TimelineNode[] = []
   let anchor = 0
   let current: TurnDraft | undefined
+  /** What the previous step injected, so an unchanged baseline is not reported as a new event. */
+  let injected: Map<string, string> | undefined
 
   const openTurn = (startedAt?: number): TurnDraft => {
     if (current) return current
@@ -121,6 +155,30 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
     const streaming = message.time.completed === undefined
 
     if (streaming) draft.streaming = true
+
+    const context = injectedContext(message)
+
+    if (context) {
+      // Every step resends the same system prefix; only the sources that changed since the previous step are an event.
+      const signatures = new Map(context.map((source) => [source.key, JSON.stringify(source)]))
+      const changed = context.filter((source) => injected?.get(source.key) !== signatures.get(source.key))
+
+      if (changed.length > 0) {
+        push(
+          draft,
+          {
+            kind: "context",
+            // A change row lists only what differs; the first injection of a turn is the baseline itself.
+            sources: injected === undefined ? context : changed,
+            change: injected === undefined ? "inject" : "change",
+          },
+          `context:${message.id}`,
+          message.id,
+          "turn",
+        )
+        injected = signatures
+      }
+    }
 
     if (message.time.completed !== undefined) draft.completedAt = message.time.completed
 
@@ -205,7 +263,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
 
       // An injected context is a step of its own, so it keeps a group and its entries; a bare summary
       // row still lays flat.
-      const injected = run.some((node) => node.payload.kind === "notice")
+      const injected = run.some((node) => node.payload.kind === "notice" || node.payload.kind === "context")
 
       if (!injected && !run.some((node) => node.groupTree === "process")) {
         for (const node of run) turnChildren.push({ kind: "node", key: node.key })
@@ -243,7 +301,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
         continue
       }
 
-      if (node.groupTree !== "process" && node.payload.kind !== "notice") continue
+      if (node.groupTree !== "process" && node.payload.kind !== "notice" && node.payload.kind !== "context") continue
 
       if (summaryMessage !== undefined && node.messageID !== summaryMessage) {
         flush()
@@ -363,7 +421,7 @@ function summarizeGroup(
       continue
     }
 
-    if (member.payload.kind === "notice") {
+    if (member.payload.kind === "notice" || member.payload.kind === "context") {
       if (!counts.has("context")) order.push("context")
       counts.set("context", (counts.get("context") ?? 0) + 1)
 

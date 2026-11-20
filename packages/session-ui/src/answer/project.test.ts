@@ -265,6 +265,52 @@ describe("answer projection", () => {
     expect(after.entries).toEqual(before.entries)
   })
 
+  test("keeps legacy context sources recorded before injected text was captured", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      {
+        ...assistant("msg_2", 2, [tool("tool_1")], 5),
+        metadata: {
+          context: [
+            { key: "system", chars: 1000 },
+            { key: "core/instructions", chars: 17325 },
+          ],
+        },
+      } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.nodes.get("context:msg_2")?.payload).toEqual({
+      kind: "context",
+      change: "inject",
+      sources: [
+        { key: "system", chars: 1000 },
+        { key: "core/instructions", chars: 17325 },
+      ],
+    })
+  })
+
+  test("shows an instruction update through localized notice copy", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      {
+        id: "msg_2",
+        type: "system",
+        text: "指令有变化：core/project",
+        description: "Instructions updated: core/project",
+        metadata: { notice: "instructions" },
+        time: { created: 2 },
+      } satisfies SessionMessageInfo,
+      assistant("msg_3", 3, [text("answer")], 4),
+    ])
+
+    expect(snapshot.nodes.get("notice:msg_2")?.payload).toEqual({
+      kind: "notice",
+      text: "",
+      detail: "指令有变化：core/project",
+      notice: "instructions-updated",
+    })
+  })
+
   test("gives an injected notice its own context group", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),
@@ -284,8 +330,70 @@ describe("answer projection", () => {
     ])
   })
 
-  test("keeps the injected context body as a notice detail", () => {
+  test("shows the context a step injected from its assistant message", () => {
     const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      {
+        ...assistant("msg_2", 2, [tool("tool_1")], 5),
+        metadata: {
+          context: [
+            {
+              key: "core/instructions",
+              chars: 12,
+              text: "来自 a.md 的指令",
+              items: [{ name: "a.md", chars: 8, text: "项目说明" }],
+            },
+            { key: "session", chars: 30, text: "会话说明" },
+          ],
+        },
+      } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.nodes.get("context:msg_2")?.payload).toEqual({
+      kind: "context",
+      change: "inject",
+      sources: [
+        {
+          key: "core/instructions",
+          chars: 12,
+          text: "来自 a.md 的指令",
+          items: [{ name: "a.md", chars: 8, text: "项目说明" }],
+        },
+        { key: "session", chars: 30, text: "会话说明" },
+      ],
+    })
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group"])
+    expect([...snapshot.groups.values()][0]?.counts).toEqual([
+      { kind: "context", count: 1 },
+      { kind: "read", count: 1 },
+    ])
+  })
+
+  test("reports the injected context only when it changes", () => {
+    const sources = (instructions: string) => [
+      { key: "system", chars: 4, text: "sys\n" },
+      { key: "core/instructions", chars: instructions.length, text: instructions },
+    ]
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      { ...assistant("msg_2", 2, [tool("tool_1")], 3), metadata: { context: sources("a") } } satisfies SessionMessageInfo,
+      { ...assistant("msg_3", 4, [tool("tool_2")], 5), metadata: { context: sources("a") } } satisfies SessionMessageInfo,
+      { ...assistant("msg_4", 6, [tool("tool_3")], 7), metadata: { context: sources("b") } } satisfies SessionMessageInfo,
+    ])
+
+    // The first injection lists the whole baseline; a change lists only the source that differs.
+    expect(snapshot.nodes.get("context:msg_2")?.payload).toMatchObject({
+      change: "inject",
+      sources: sources("a"),
+    })
+    expect(snapshot.nodes.has("context:msg_3")).toBe(false)
+    expect(snapshot.nodes.get("context:msg_4")?.payload).toMatchObject({
+      change: "change",
+      sources: [{ key: "core/instructions", chars: 1, text: "b" }],
+    })
+  })
+
+  test("keeps the injected context body as a notice detail", () => {    const snapshot = projectTimeline([
       user("msg_1", "go", 1),
       {
         id: "msg_2",

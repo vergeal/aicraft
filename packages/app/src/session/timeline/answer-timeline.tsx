@@ -73,6 +73,17 @@ export function AnswerTimeline(props: {
   // A restore that could not find its row leaves the view at the newest content, not where the reader stopped. Hold the
   // saved record until the reader's own gesture moves, or a failed restore would erase the anchor worth paging back to.
   let holdPosition = false
+  // A view the reader left at the end must land there again. Reinserting it clamps `scrollTop` to 0 before the rows
+  // re-measure, and that clamp reaches the machine as an ordinary scroll away from the end, so a landing guarded only
+  // by `following()` is skipped and the view stays at the top. Track the intent of this activation instead; any real
+  // input clears it.
+  let landAtEnd = false
+  // The intent expires: the clamp that inverts `following()` only happens right after activation, and a later
+  // detachment is the reader. Without a deadline a drag of the scrollbar thumb, which never reaches the viewport's
+  // pointer handlers, would be pulled back to the end forever.
+  let landDeadline = 0
+  const LAND_WINDOW = 3000
+  const wantsLanding = () => landAtEnd && performance.now() < landDeadline
 
   // The page has landed on the end once its windowed measurements stopped moving. Until then the
   // growing height is an estimate, and chasing it would slide the transcript down the screen.
@@ -165,7 +176,9 @@ export function AnswerTimeline(props: {
   // measurements settled is never pulled back by the landing timer.
   const landOnEnd = () => {
     cancelSettle()
-    if (!viewport || !following()) return
+    // `landAtEnd` is the activation's own intent; `following()` is the fallback for a live view. The clamp after a
+    // reinsert can flip `following()` off without the reader touching anything, which used to cancel the landing.
+    if (!viewport || (!wantsLanding() && !following())) return
 
     positioned = true
     viewport.scrollTop = viewport.scrollHeight
@@ -192,6 +205,7 @@ export function AnswerTimeline(props: {
   // view at the windowed list's start offset, which reads as a jump to the top of the transcript.
   const restoreMissed = () => {
     holdPosition = true
+    landAtEnd = true
     props.follow.dispatch({ type: "follow" })
     landOnEnd()
     props.onRestoreMiss?.()
@@ -215,7 +229,14 @@ export function AnswerTimeline(props: {
           if (saved && !saved.bottom) props.onRestore?.()
           if (viewport) lastContentHeight = viewport.scrollHeight
           // Only a view the reader left at the end may land there; a remembered middle row must stay put.
-          if ((!saved || saved.bottom) && following()) settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
+          landAtEnd = !saved || saved.bottom
+          landDeadline = performance.now() + LAND_WINDOW
+          if (landAtEnd) {
+            // Land before the browser paints the clamped top, then re-land once the rows have measured. Waiting the
+            // settle delay first shows the reader the top for a frame, which reads as a jump.
+            landOnEnd()
+            settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
+          }
         })
       },
       { defer: false },
@@ -231,6 +252,7 @@ export function AnswerTimeline(props: {
     })
     props.setPage?.((direction) => {
       if (!viewport) return
+      landAtEnd = false
       // A page key is the reader's own move: express it as intent so the machine can detach before the scroll lands.
       props.follow.dispatch({
         type: "scroll.intent",
@@ -253,7 +275,7 @@ export function AnswerTimeline(props: {
 
       // No remembered position, or the reader left at the end: land on the newest message, but only
       // once the windowed measurements stop moving. Until then the height is an estimate.
-      if (following() && !positioned) settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
+      if ((wantsLanding() || following()) && !positioned) settleTimer = setTimeout(landOnEnd, SETTLE_DELAY)
 
       // Streamed text and disclosures grow the rows without changing the message list identity, so
       // follow the observed layout instead of the list. Only a view the machine still follows is pulled;
@@ -263,7 +285,7 @@ export function AnswerTimeline(props: {
 
         const state = props.follow.peek()
         if (state.type === "anchored") return
-        if (state.type === "detached") return
+        if (state.type === "detached" && !wantsLanding()) return
         // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click
         // lands on whatever moved under the pointer instead.
         if (state.gesture === "pointer") return
@@ -353,6 +375,9 @@ export function AnswerTimeline(props: {
         onWheel={(event) => {
           if (!viewport) return
           holdPosition = false
+          // Only an upward gesture means the reader is leaving the end; a downward one inside an already-detached view
+          // must not cancel the landing this activation still owes.
+          if (event.deltaY < 0) landAtEnd = false
           props.follow.dispatch({
             type: "scroll.intent",
             upward: event.deltaY < 0,
@@ -361,6 +386,7 @@ export function AnswerTimeline(props: {
         }}
         onTouchStart={(event) => {
           holdPosition = false
+          landAtEnd = false
           const target = event.target instanceof Element ? event.target : undefined
           const nested = target?.closest("[data-scrollable]")
           props.follow.dispatch({ type: "touch.start", nested: !!nested && nested !== viewport })
@@ -368,6 +394,7 @@ export function AnswerTimeline(props: {
         onTouchMove={() => {
           if (!viewport) return
           holdPosition = false
+          landAtEnd = false
           props.follow.dispatch({
             type: "touch.drag",
             overflow: viewport.scrollHeight - viewport.clientHeight > MIN_OVERFLOW,
@@ -376,6 +403,7 @@ export function AnswerTimeline(props: {
         onTouchEnd={() => props.follow.dispatch({ type: "touch.end", scrolling: false })}
         onPointerDown={() => {
           holdPosition = false
+          landAtEnd = false
           props.follow.dispatch({ type: "pointer.down" })
         }}
         onPointerUp={() => props.follow.dispatch({ type: "pointer.up" })}

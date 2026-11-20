@@ -64,7 +64,7 @@ export function ReplicaPrimaryNav() {
     const directory = ctx.projects.last()?.worktree ?? ctx.projects.list()[0]?.worktree
 
     if (!directory) return
-    void tabs.newDraft({ server: key, directory })
+    void tabs.openDraft({ server: key, directory })
   }
 
   return (

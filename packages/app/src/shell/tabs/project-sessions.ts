@@ -12,7 +12,7 @@ export function createProjectSessionActions() {
   return {
     openProjectNewSession(conn: ServerConnection.Any, directory: string) {
       global.serverCtx(ServerConnection.key(conn))?.projects.touch(directory)
-      void tabs.newDraft({ server: ServerConnection.key(conn), directory })
+      void tabs.openDraft({ server: ServerConnection.key(conn), directory })
     },
     openProjectSession(
       conn: ServerConnection.Any,

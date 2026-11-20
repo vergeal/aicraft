@@ -10,6 +10,7 @@ import {
   type ClosedTab,
 } from "./closed"
 import {
+  findDraftTab,
   findSessionTab,
   sessionIDHasOpenTab,
   tabHref,
@@ -136,6 +137,18 @@ test("finds open root and routed session tabs", () => {
   expect(sessionIDHasOpenTab(tabs, server, "child")).toBe(true)
   expect(sessionIDHasOpenTab(tabs, server, "closed")).toBe(false)
   expect(sessionIDHasOpenTab(tabs, ServerConnection.Key.make("other"), "root")).toBe(false)
+})
+
+test("finds the newest draft open for the same place", () => {
+  const other = { server: ServerConnection.Key.make("other"), directory: "/project" }
+  const first: Tab = { type: "draft", draftID: "first", server, directory: "/project" }
+  const elsewhere: Tab = { type: "draft", draftID: "elsewhere", server, directory: "/other" }
+  const newest: Tab = { type: "draft", draftID: "newest", server, directory: "/project" }
+  const tabs = [first, elsewhere, sessionTab("open"), newest]
+
+  expect(findDraftTab(tabs, { server, directory: "/project" })).toBe(newest)
+  expect(findDraftTab(tabs, { server, directory: "/missing" })).toBeUndefined()
+  expect(findDraftTab(tabs, other)).toBeUndefined()
 })
 
 test("a tab owns the route that shows it, including its child session, whichever tab was remembered", () => {

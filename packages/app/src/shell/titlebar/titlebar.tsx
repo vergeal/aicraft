@@ -259,7 +259,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   }
 
                   const model = tabs.stateValue<ComposerState>(sessionTab, "prompt")?.model.current()
-                  void tabs.newDraft(
+                  void tabs.openDraft(
                     { server: sessionTab.server, directory: activeSession.location.directory },
                     "",
                     model,
@@ -274,7 +274,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   if (activeTab?.type !== "draft") return false
 
                   const model = tabs.stateValue<ComposerState>(activeTab, "prompt")?.model.current()
-                  void tabs.newDraft({ server: activeTab.server, directory: activeTab.directory }, "", model)
+                  void tabs.openDraft({ server: activeTab.server, directory: activeTab.directory }, "", model)
 
                   return true
                 }
@@ -300,7 +300,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                     projects?.list()[0]
 
                   if (conn && project) {
-                    void tabs.newDraft({ server: ServerConnection.key(conn), directory: project.worktree }, "")
+                    void tabs.openDraft({ server: ServerConnection.key(conn), directory: project.worktree })
 
                     return true
                   }

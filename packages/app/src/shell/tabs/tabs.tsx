@@ -80,6 +80,14 @@ export function sessionIDHasOpenTab(tabs: Tab[], server: ServerConnection.Key, s
   return !!findSessionTab(tabs, server, sessionID)
 }
 
+/** The newest draft already open for a place, so opening "new session" there returns to it instead of clearing the composer. */
+export function findDraftTab(tabs: Tab[], draft: Omit<DraftTab, "type" | "draftID">) {
+  return tabs.findLast(
+    (tab): tab is DraftTab =>
+      tab.type === "draft" && tab.server === draft.server && tab.directory === draft.directory,
+  )
+}
+
 /** Whether the route shows this tab, including a session tab that shows one of its child sessions. */
 export function tabMatchesRoute(tab: Tab, route: LayoutRoute) {
   if (route.type === "draft") return tab.type === "draft" && tab.draftID === route.draftID
@@ -501,6 +509,21 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
         })
 
         return tab
+      },
+      // "New session" returns to the draft already open for that place: unsent text lives in that tab, and
+      // opening a second empty draft would make the composer look like it was cleared.
+      async openDraft(
+        draft: Omit<DraftTab, "type" | "draftID">,
+        prompt?: string,
+        model?: PromptModel,
+        options?: { navigate?: boolean },
+      ) {
+        const existing = findDraftTab(store, draft)
+
+        if (!existing) return actions.newDraft(draft, prompt, model, options)
+        if (options?.navigate !== false) navigateTab(existing)
+
+        return existing
       },
       updateDraft(draftID: string, draft: Partial<Omit<DraftTab, "type" | "draftID">>) {
         void startTransition(() => {

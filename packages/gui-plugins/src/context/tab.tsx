@@ -341,6 +341,10 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     { equals: same },
   )
 
+  // The raw transcript lists every loaded message, one accordion item each. A collapsed `<details>` still renders its
+  // subtree, so each cached session view kept a full copy of it while the reader never saw it.
+  const [rawOpen, setRawOpen] = createSignal(false)
+
   const formatter = createMemo(() => createSessionContextFormatter(i18n.locale()))
   const cny = createMemo(() => createCNY(i18n.locale()))
   const usd = createMemo(() => createUSD(i18n.locale()))
@@ -495,13 +499,17 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       { key: "window.compositionTools", value: weight.tools },
     ]
 
-    return parts
-      .filter((part) => part.value > 0)
-      .map((part) => ({
-        key: part.key,
-        percent: (part.value / total) * 100,
-        tokens: Math.round((part.value / total) * used),
-      }))
+    return parts.flatMap((part) =>
+      part.value > 0
+        ? [
+            {
+              key: part.key,
+              percent: (part.value / total) * 100,
+              tokens: Math.round((part.value / total) * used),
+            },
+          ]
+        : [],
+    )
   })
 
   const perTurnTokens = createMemo(() => {
@@ -1318,7 +1326,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
         </section>
 
         {/* Diagnostics */}
-        <details class={`${card} overflow-hidden`}>
+        <details class={`${card} overflow-hidden`} onToggle={(event) => setRawOpen(event.currentTarget.open)}>
           <summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-[12px] text-v2-text-text-muted">
             <Icon name="chevron-right" size="small" class="shrink-0 text-v2-text-text-faint" />
             <span>{ctx.t("diag.title")}</span>
@@ -1351,13 +1359,15 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 {ctx.t("diag.loaded", { loaded: counts().loaded })}
               </span>
             </div>
-            <Accordion multiple class="max-h-[320px] overflow-y-auto rounded-md border border-v2-border-border-muted">
-              <For each={messages()}>
-                {(message) => (
-                  <RawMessage message={message} onRendered={restoreScroll} time={formatter().time} />
-                )}
-              </For>
-            </Accordion>
+            <Show when={rawOpen()}>
+              <Accordion multiple class="max-h-[320px] overflow-y-auto rounded-md border border-v2-border-border-muted">
+                <For each={messages()}>
+                  {(message) => (
+                    <RawMessage message={message} onRendered={restoreScroll} time={formatter().time} />
+                  )}
+                </For>
+              </Accordion>
+            </Show>
 
             <div class="flex items-center gap-2 pt-1 text-[12px] text-v2-text-text-muted">
               <span>{ctx.t("diag.export")}</span>

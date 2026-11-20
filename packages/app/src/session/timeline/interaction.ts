@@ -254,14 +254,28 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     requestFill()
   }
 
+  // Prefetch two screens ahead of the top edge. Paging on reaching the very top shows the reader the fetched edge of
+  // the transcript: they scroll, the page loads, and the view stops until they scroll again.
+  const prefetchDistance = () => (scroller ? Math.max(HISTORY_SCROLL_THRESHOLD, scroller.clientHeight * 2) : HISTORY_SCROLL_THRESHOLD)
+
   const onHistoryScroll = () => {
     if (
       !scroller ||
-      scroller.scrollTop >= HISTORY_SCROLL_THRESHOLD ||
+      scroller.scrollTop >= prefetchDistance() ||
       !canRequestScrollPage(untrack(historyState)) ||
       untrack(follow.following)
     )
       return
+    dispatchHistory(SCROLL_TOP_EVENT)
+  }
+
+  // A page lands above the reader, adding its height to `scrollTop`. Pull again while the top is still within the
+  // prefetch distance so a flick that keeps going never reaches the fetched edge; the distance check ends the loop
+  // because the prepend moves `scrollTop` by the page's own height.
+  const prefetchMore = () => {
+    if (!scroller || untrack(follow.following)) return
+    if (scroller.scrollTop >= prefetchDistance()) return
+    if (!canRequestScrollPage(untrack(historyState))) return
     dispatchHistory(SCROLL_TOP_EVENT)
   }
 
@@ -292,7 +306,7 @@ export function createSessionTimelineInteraction(session: SessionModel) {
             !!scroller &&
             (effect.probe === "fill"
               ? follow.following() && scroller.scrollHeight <= scroller.clientHeight + 1
-              : !follow.following() && scroller.scrollTop < HISTORY_SCROLL_THRESHOLD)
+              : !follow.following() && scroller.scrollTop < prefetchDistance())
         },
         () => {
           historyProbe = undefined
@@ -330,6 +344,8 @@ export function createSessionTimelineInteraction(session: SessionModel) {
 
         if (historyLoad === load) historyLoad = undefined
         dispatchHistory(event)
+        // Keep the buffer ahead of the reader instead of waiting for the next scroll event at the very top.
+        prefetchMore()
       }
 
       historyLoad = load

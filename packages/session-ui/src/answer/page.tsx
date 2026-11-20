@@ -387,7 +387,10 @@ export function AnswerPage(props: AnswerPageProps) {
       ),
   )
 
-  const virtualize = () => !!props.viewport?.() && !props.searching?.() && !props.revealAll?.()
+  // Windowing must not depend on the viewport still being mounted. A cached view keeps rendering after it leaves the
+  // document, and the viewport element is cleared with it; falling back to a full render there put every loaded
+  // message of every cached session in memory. The last measured offsets stay, so the same window keeps rendering.
+  const virtualize = () => !props.searching?.() && !props.revealAll?.()
 
   const layout = createMemo(() =>
     entryLayout(keys(), (key, position) => rowSizes[key] ?? (estimates().get(key) ?? 80) + (rowGaps()[position] ?? 0)),

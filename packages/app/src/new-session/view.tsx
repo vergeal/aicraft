@@ -1,8 +1,15 @@
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { Icon } from "@opencode/ui/icon"
-import { Show, createMemo, createSignal, type JSX } from "solid-js"
+import { Slash } from "@opencode/ui/slash"
+import { Keybind } from "@opencode/ui/keybind"
+import { useCommand } from "@/shell/commands/command"
+import { Show, For, createMemo, createSignal, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
+import { createResizeObserver } from "@solid-primitives/resize-observer"
+import { getFilename } from "@opencode/util/path"
+import { displayName } from "@opencode/ui/project-avatar"
+import { ProjectFolder } from "@opencode/ui/project-folder"
 import { Schema } from "effect"
 import { createPresence } from "@/runtime/presence"
 import { Composer } from "@/composer/composer"
@@ -13,7 +20,7 @@ import {
   type PromptProject,
   type PromptProjectController,
 } from "@/new-session/project/selector"
-import { NewSessionProjectPopover } from "@/new-session/project/popover"
+import type { useNewSessionLocationDialog } from "@/new-session/location/dialog"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { useProviders } from "@/providers/catalog/providers"
@@ -23,7 +30,6 @@ import { Persistence } from "@/runtime/persistence/schema"
 import { useSettings } from "@/settings/model"
 import type { NewSessionWorkspaceController } from "./workspace/controller"
 import { NewSessionBranch } from "./workspace/selector"
-import { NewSessionWorkspacePopover } from "./workspace/popover"
 import { NewSessionBrickBreaker } from "./brick-breaker"
 import { NewSessionPinBoard, type PinBoardHandle } from "./pin-board"
 import { NewSessionWordmark, type LodgerBall } from "./wordmark"
@@ -53,6 +59,7 @@ export function NewSessionView(props: {
   composer: ComposerModel
   project: PromptProjectController
   workspace: NewSessionWorkspaceController
+  location: ReturnType<typeof useNewSessionLocationDialog>
 }) {
   const [onboarding, setOnboarding, , onboardingReady] = persisted(
     Persist.global("workspace-onboarding"),
@@ -61,8 +68,17 @@ export function NewSessionView(props: {
   )
 
   const settings = useSettings()
+  const language = useLanguage()
 
   const [wordmark, setWordmark] = createStore<WordmarkState>({ mode: "flat", game: false })
+
+  const location = (project?: PromptProject) =>
+    props.location({
+      project,
+      onWorkspace: (value) => {
+        if (value !== "main") setOnboarding("used", true)
+      },
+    })
 
   // Imperative handles for the brick breaker; they are not reactive state.
   const handles: BrickBreakerHandles = {}
@@ -93,30 +109,50 @@ export function NewSessionView(props: {
               }}
             />
             <div class="mt-8 flex flex-col gap-3">
-              <div data-slot="new-session-composer" class="relative z-10">
-                <Composer
-                  model={props.composer}
-                  header={
-                    <Show when={props.project.selected()}>
-                      {(project) => (
-                        <NewSessionLocation
-                          project={project()}
-                          controller={props.project}
-                          workspace={props.workspace}
-                          branch={
-                            <NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />
-                          }
-                          onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
-                          onDone={props.composer.restoreFocus}
-                          onSelectWorkspace={(value) => {
-                            if (value !== "main") setOnboarding("used", true)
-                          }}
-                        />
-                      )}
-                    </Show>
-                  }
-                />
+              <div data-slot="new-session-composer" class="flex flex-col gap-1">
+                <div class="relative z-10">
+                  <Composer model={props.composer} />
+                </div>
+                <Show when={props.project.selected()}>
+                  {(project) => (
+                    <NewSessionLocation
+                      project={project()}
+                      workspace={props.workspace.bar.visible() ? props.workspace.selection.value() : "main"}
+                      root={props.workspace.project.root()}
+                      branch={<NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />}
+                      onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
+                      onClick={() => location()}
+                      onWorktree={project().id && project().vcs === "git" ? () => location(project()) : undefined}
+                    />
+                  )}
+                </Show>
               </div>
+              <Show when={props.project.projects().length > 0}>
+                <div
+                  data-slot="new-session-recent-projects"
+                  class="flex flex-wrap items-center gap-2"
+                  role="group"
+                  aria-label={language.t("session.new.project.recent")}
+                >
+                  <For each={props.project.projects().slice(0, 6)}>
+                    {(project) => (
+                      <button
+                        type="button"
+                        data-action="prompt-project-card"
+                        aria-pressed={props.project.isSelected(project)}
+                        class="flex h-7 min-w-0 items-center gap-2 rounded-lg border-[0.5px] border-v2-border-border-base px-2 text-[13px] font-[400] leading-[var(--line-height-base)] tracking-[-0.04px] text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none aria-[pressed=true]:text-v2-text-text-base"
+                        onClick={() => {
+                          props.project.select(project)
+                          props.composer.restoreFocus()
+                        }}
+                      >
+                        <ProjectFolder class="shrink-0" />
+                        <span class="min-w-0 truncate">{displayName(project)}</span>
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </Show>
               <Show when={props.project.empty()}>
                 <PromptProjectAddButton controller={props.project} />
               </Show>
@@ -238,45 +274,210 @@ function NewSessionTips(props: { selection: ComposerModel["model"]["selection"];
   )
 }
 
+// Keeps as many leading segments as fit, then "…/", then the last two segments. The cut always lands on a slash.
+function fitPath(value: string, width: number, font: string) {
+  const separator = value.includes("/") ? "/" : "\\"
+  const parts = value.split(separator)
+  const context = document.createElement("canvas").getContext("2d")
+
+  if (!context) return { text: value, minimum: 0 }
+  context.font = font
+  const fits = (text: string) => context.measureText(text).width <= width
+  const first = parts[0] === "" ? 2 : 1
+
+  const candidates = Array.from({ length: Math.max(0, parts.length - 2 - first) }, (_, index) =>
+    [...parts.slice(0, parts.length - 3 - index), "…", ...parts.slice(-2)].join(separator),
+  )
+
+  const minimum = candidates.at(-1) ?? value
+
+  return {
+    text: !width || fits(value) ? value : (candidates.find(fits) ?? minimum),
+    minimum: context.measureText(minimum).width,
+  }
+}
+
 const TRIGGER =
   "flex h-7 items-center gap-1.5 rounded-full text-start ps-1.5 pe-2 text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none"
 
-/** The composer tray: project and worktree pickers plus the session's Git context. */
+/** The composer tray: project and worktree pickers, Git context, and the session's directory. */
 function NewSessionLocation(props: {
   project: PromptProject
-  controller: PromptProjectController
-  workspace: NewSessionWorkspaceController
+  /** "main", "create", or a worktree directory. */
+  workspace: string
+  root: string
   branch?: JSX.Element
   onboarding: boolean
-  onDone: () => void
-  /** A workspace other than the local checkout marks the onboarding tip as seen. */
-  onSelectWorkspace?: (value: string) => void
+  onClick: () => void
+  /** Opens the project's worktree step; without it the project has no worktrees to choose. */
+  onWorktree?: () => void
 }) {
   const language = useLanguage()
+  const command = useCommand()
+  const [layout, setLayout] = createStore({ width: 0, font: "" })
+
+  command.register("new-session-worktree", () => [
+    {
+      id: "session.location.select",
+      title: language.t("session.location.worktree"),
+      category: language.t("command.category.workspace"),
+      keybind: "mod+alt+o",
+      disabled: !props.onWorktree,
+      onSelect: props.onWorktree,
+    },
+  ])
+
+  const worktree = () => {
+    if (props.workspace === "main") return
+
+    if (props.workspace === "create") return language.t("workspace.new")
+
+    return getFilename(props.workspace)
+  }
+
+  const path = () => {
+    if (props.workspace === "create") return
+
+    return props.workspace === "main" ? props.root : props.workspace
+  }
+
+  const fitted = createMemo(() => fitPath(path() ?? "", layout.width, layout.font))
 
   return (
-    <div class="relative flex h-full w-full min-w-0 items-center gap-3 text-[13px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px]">
-      <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-1">
-        <NewSessionProjectPopover
-          project={props.project}
-          controller={props.controller}
-          triggerClass={`${TRIGGER} min-w-0`}
-          tooltip={language.t("session.new.project.trigger.tooltip")}
-          onDone={props.onDone}
-        />
-        <Show when={props.workspace.bar.visible()}>
-          <NewSessionWorkspacePopover
-            workspace={props.workspace}
-            triggerClass={`${TRIGGER} min-w-0`}
-            onboarding={props.onboarding}
-            onDone={props.onDone}
-            onSelect={props.onSelectWorkspace}
-          />
-        </Show>
+    <div class="relative flex min-h-9 min-w-0 items-center gap-3 ps-2 pe-2 text-[13px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px]">
+      <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-0 gap-y-1 py-1.5">
+        <div class="flex min-w-0 max-w-full items-center">
+          <Tooltip
+            placement="top"
+            openDelay={800}
+            value={
+              <span class="flex items-center gap-2">
+                {language.t("session.new.project.trigger.tooltip")}
+                <Show when={command.keybindParts("project.select").length}>
+                  <Keybind keys={command.keybindParts("project.select")} variant="neutral" />
+                </Show>
+              </span>
+            }
+            class="flex min-w-0"
+          >
+            <button
+              type="button"
+              data-action="prompt-project"
+              aria-haspopup="dialog"
+              aria-description={language.t("session.new.project.trigger.tooltip")}
+              class={`${TRIGGER} min-w-0`}
+              onClick={props.onClick}
+            >
+              <ProjectFolder class="shrink-0" />
+              <span class="min-w-0 truncate">{displayName(props.project)}</span>
+            </button>
+          </Tooltip>
+          <Show when={props.onWorktree}>
+            {(onWorktree) => (
+              <>
+                <Slash gap={2} />
+                <Tooltip
+                  appearance={props.onboarding ? "large" : undefined}
+                  placement="top"
+                  openDelay={800}
+                  value={
+                    <div class="flex flex-col gap-1 text-start">
+                      <Show when={props.onboarding}>
+                        <div class="flex items-center gap-1.5 font-[530] text-v2-text-text-base">
+                          <Icon name="outline-worktree" size="small" class="shrink-0 text-v2-text-text-accent" />
+                          <span>{language.t("workspace.onboarding.title")}</span>
+                        </div>
+                        <span class="font-[400] text-v2-text-text-muted">
+                          {language.t("workspace.onboarding.description")}
+                        </span>
+                      </Show>
+                      <span
+                        class="flex items-center justify-between gap-2"
+                        classList={{ "font-[400] text-v2-text-text-muted": props.onboarding }}
+                      >
+                        {language.t("session.location.worktree")}
+                        <Show when={command.keybindParts("session.location.select").length}>
+                          <Keybind keys={command.keybindParts("session.location.select")} variant="neutral" />
+                        </Show>
+                      </span>
+                    </div>
+                  }
+                  contentClass={props.onboarding ? "max-w-[280px]" : undefined}
+                  class="flex min-w-12 shrink-[1000]"
+                >
+                  <button
+                    type="button"
+                    data-action="prompt-worktree"
+                    aria-haspopup="dialog"
+                    aria-description={language.t("session.location.worktree")}
+                    class={`${TRIGGER} min-w-0`}
+                    onClick={onWorktree()}
+                  >
+                    <Icon
+                      name={props.workspace === "create" ? "plus" : worktree() ? "outline-worktree" : "monitor"}
+                      size="small"
+                      class="shrink-0 text-v2-icon-icon-muted"
+                    />
+                    <span class="min-w-0 truncate">
+                      {worktree() ?? language.t("session.new.workspace.triggerLocal")}
+                    </span>
+                    <Show when={props.onboarding}>
+                      <span
+                        data-slot="workspace-onboarding-dot"
+                        aria-hidden="true"
+                        class="size-1.5 shrink-0 rounded-full bg-v2-text-text-accent"
+                      />
+                    </Show>
+                  </button>
+                </Tooltip>
+              </>
+            )}
+          </Show>
+        </div>
         {props.branch}
       </div>
+      {/* An open tooltip can outlive this row; keep its path instead of a stale Show accessor. */}
+      <Show when={path()} keyed>
+        {(directory) => (
+          <div
+            class="flex min-w-0 flex-1 justify-end pe-1.5 @max-[560px]:hidden"
+            style={{ "min-width": `min(50%, ${Math.ceil(fitted().minimum) + 6}px)` }}
+          >
+            <Tooltip
+              placement="top"
+              value={directory}
+              disabled={fitted().text === directory && fitted().minimum <= layout.width}
+              class="flex min-w-0 flex-1"
+              contentClass="max-w-[calc(100vw-32px)] break-all"
+            >
+              <span
+                ref={(row) =>
+                  createResizeObserver(row, () =>
+                    setLayout({
+                      width: row.clientWidth,
+                      font: getComputedStyle(row).font,
+                    }),
+                  )
+                }
+                class="flex min-w-0 flex-1 items-center justify-end"
+                dir="ltr"
+              >
+                <span
+                  data-slot="new-session-location-path"
+                  class="min-w-0 cursor-text select-text overflow-hidden whitespace-nowrap text-v2-text-text-faint [direction:rtl] [text-align:end]"
+                  onCopy={(event) => {
+                    if (!event.clipboardData || window.getSelection()?.toString() !== fitted().text) return
+                    event.clipboardData.setData("text/plain", directory)
+                    event.preventDefault()
+                  }}
+                >
+                  <bdi dir="ltr">{fitted().text}</bdi>
+                </span>
+              </span>
+            </Tooltip>
+          </div>
+        )}
+      </Show>
     </div>
   )
 }
-
-

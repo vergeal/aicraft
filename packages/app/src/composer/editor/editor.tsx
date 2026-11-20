@@ -89,8 +89,6 @@ export type ComposerEditorProps = {
   attachShortcut?: string
   exitShellKeybind?: string[]
   suggestionBoundary?: () => HTMLElement | undefined
-  /** Sits above the prompt inside the card: the draft's project and workspace context. */
-  header?: JSX.Element
 }
 
 export function ComposerEditor(props: ComposerEditorProps) {
@@ -302,11 +300,6 @@ export function ComposerEditor(props: ComposerEditorProps) {
         onDragOver={props.controller.onDragOver}
         onDrop={props.controller.onDrop}
       >
-        <Show when={props.header}>
-          <div data-slot="composer-header" class="flex h-10 shrink-0 items-center px-2">
-            {props.header}
-          </div>
-        </Show>
         <div
           ref={content}
           data-slot="composer-content"

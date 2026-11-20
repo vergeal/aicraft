@@ -359,8 +359,6 @@ function measureTopRow(
 
 export function AnswerPage(props: AnswerPageProps) {
   const snapshot = createMemo(() => projectTimeline(props.messages()))
-  // The page's own box: its size change is what a reader's row has to survive.
-  const [scope, setScope] = createSignal<HTMLDivElement>()
   const [folded, setFolded] = createStore<Record<string, boolean | undefined>>({})
   const [openGroups, setOpenGroups] = createStore<Record<string, boolean | undefined>>({})
   // Row disclosures live here rather than in the row components: streamed projection rebuilds those
@@ -416,67 +414,47 @@ export function AnswerPage(props: AnswerPageProps) {
     return true
   }
 
-  // The row under the top edge of the viewport, with the distance from that edge to the row's top. Both come from a
-  // measured box, so the pair names a place in the transcript instead of an offset in a prefix sum of heights.
-  let anchor: { key: string; offset: number } | undefined
-  // The element that anchor was measured from, kept so a later correction reads it instead of scanning every row.
-  let anchorRow: HTMLElement | undefined
-  // Whether there is a row this page can hold in place. Until there is, the browser's own anchoring has to stay on:
-  // turning it off without a replacement leaves streamed growth pushing the viewport away from the reader.
-  const [anchored, setAnchored] = createSignal(false)
-
-  const holdAnchor = (next: { key: string; offset: number }, row: HTMLElement) => {
-    anchor = next
-    anchorRow = row
-    setAnchored(true)
-    props.onPositionChange?.(next)
-  }
-
-  const rememberAnchor = () => {
+  // This page never holds a scroll position. `AnswerTimeline` owns that: its follow state decides when the newest
+  // content is kept in view, and the browser's own anchoring keeps a reader's row while content above it changes
+  // height. What this page contributes is the reader's place, so the next activation can put them back there.
+  const reportPosition = () => {
     const root = props.viewport?.()
     const measured = root ? measureTopRow(root) : undefined
 
-    // No row covers the edge until the next frame paints a scroll that has not landed yet; keep the last real anchor.
-    if (!measured && anchor !== undefined) return
-
-    if (measured) {
-      holdAnchor({ key: measured.key, offset: measured.offset }, measured.row)
-      return
-    }
-
-    anchor = undefined
-    anchorRow = undefined
-    setAnchored(false)
+    if (measured) props.onPositionChange?.({ key: measured.key, offset: measured.offset })
   }
 
-  // A write this code makes is not the reader moving: the scroll event it causes must not become the new anchor, or the
-  // provisional position of an unfinished first layout would replace the row the reader actually left. The landed
-  // offset identifies it, so a reader's scroll that follows in the same frame is still measured.
-  let writtenTop: number | undefined
+  const findRow = (root: HTMLElement, key: string) =>
+    [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find((node) => node.dataset.answerKey === key)
 
-  const writeScrollTop = (root: HTMLElement, value: number) => {
-    if (Math.round(root.scrollTop) === Math.round(value)) return
-
-    root.scrollTop = value
-    writtenTop = Math.round(root.scrollTop)
-  }
-
-  // Content above the reader changed height, so the row under the top edge has to go back where it was. Every loaded row
-  // is a real box, so this is a measured correction rather than an estimate, and it runs from the content's
-  // ResizeObserver: after layout, before paint, so the shift itself is never painted.
-  const realign = () => {
-    const root = props.viewport?.()
-    if (!root || !anchor) return
-
-    const row = anchorRow?.isConnected ? anchorRow : findRow(root, anchor.key)
-    if (!row) return
-
-    anchorRow = row
+  const rowInView = (root: HTMLElement, row: HTMLElement) => {
     const frame = root.getBoundingClientRect()
-    const delta = row.getBoundingClientRect().top - frame.top + anchor.offset
+    const box = row.getBoundingClientRect()
 
-    if (Math.abs(delta) > 1) writeScrollTop(root, root.scrollTop + delta)
+    return box.bottom > frame.top && box.top < frame.bottom
   }
+
+  // A turn that finishes under the reader's eyes stays open: folding it takes the steps they are reading with it. The
+  // decision is made once, on the frame the turn closes, so scrolling later never reopens a turn already folded.
+  let lastRunning: number | undefined
+
+  createEffect(() => {
+    const open = running()
+    const finished = lastRunning
+
+    lastRunning = open?.turn
+
+    if (finished === undefined || finished === open?.turn) return
+    const key = foldKeys().get(finished)
+    const root = props.viewport?.()
+
+    if (!key || !root) return
+    const row = findRow(root, key)
+
+    if (!row || !rowInView(root, row)) return
+
+    setFolded(key, false)
+  })
 
   // A restore attempt belongs to one activation: it waits for the DOM insert, then places the remembered row once.
   let pendingRestore: { key: string; offset: number } | undefined
@@ -501,19 +479,8 @@ export function AnswerPage(props: AnswerPageProps) {
     if (next === "missed") props.onRestoreMiss?.()
   }
 
-  const findRow = (root: HTMLElement, key: string) =>
-    [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find((node) => node.dataset.answerKey === key)
-
   // Every loaded row is in the DOM, so the remembered row is placed from its own measured box in one write. Nothing
   // above it is an estimate that will later change, so the write is final and needs no pin.
-  //
-  // The scroll position has one ordered set of moments, and each depends on the one before it:
-  //   1. `active` flips: the effect below deactivates the previous attempt.
-  //   2. Solid commits, reinserting the cached node; reading `scrollTop` here shows the clamp the browser applied.
-  //   3. This function runs from a microtask: after the insert, so every row is measurable, and before the paint and
-  //      the browser's own scroll event, which reports that clamp as "arrived at the end".
-  //   4. `AnswerTimeline`'s activation effect runs in the same microtask: it releases follow for a remembered middle
-  //      row, or re-arms the end landing for a view that left at the end.
   const attemptRestore = () => {
     const root = props.viewport?.()
     const currentKeys = keys()
@@ -526,11 +493,9 @@ export function AnswerPage(props: AnswerPageProps) {
     if (!target) {
       dispatchRestore({ type: "activate" })
 
-      // No remembered row: open at the newest content, where a following view belongs. The row under the edge is what
-      // this page holds from here on, so streamed growth has an anchor to work against instead of moving the viewport.
-      if (props.following?.() === true) writeScrollTop(root, root.scrollHeight)
-
-      rememberAnchor()
+      // No remembered row: open at the newest content, where a following view belongs. The timeline keeps the end in
+      // view from here; this write only skips the first layout, where there is nothing yet for it to land from.
+      if (props.following?.() === true) root.scrollTop = root.scrollHeight
 
       return
     }
@@ -564,12 +529,10 @@ export function AnswerPage(props: AnswerPageProps) {
     const frame = root.getBoundingClientRect()
     const delta = row.getBoundingClientRect().top - frame.top + target.offset
 
-    if (Math.abs(delta) > 1) writeScrollTop(root, root.scrollTop + delta)
+    if (Math.abs(delta) > 1) root.scrollTop += delta
 
-    // The remembered row is the anchor, not whatever sits under the edge right now: this attempt runs before the rows
-    // above it finish laying out, so the offset just written is provisional and `realign` has to hold this row once
-    // the final layout arrives.
-    holdAnchor({ key: target.key, offset: target.offset }, row)
+    // Record the row the reader was put back on, so the next activation restores the same place.
+    props.onPositionChange?.(target)
   }
 
   createRenderEffect(
@@ -591,38 +554,8 @@ export function AnswerPage(props: AnswerPageProps) {
     ),
   )
 
-  // The timeline owns its position while it can hold one: following keeps the end in view, and a reader keeps their
-  // row where it is. The browser's own anchoring would move it a second time, on its own schedule, which is the drift
-  // the reader sees while rows above them finish rendering.
-  //
-  // Without an anchor there is nothing to hold, and turning the browser's anchoring off would leave streamed growth
-  // pushing the viewport away from the reader. So the fallback stays on until a row is actually held.
-  createEffect(() => {
-    const root = props.viewport?.()
-    const holds = props.following?.() === true || anchored()
-
-    if (!root) return
-
-    root.style.overflowAnchor = holds ? "none" : ""
-  })
-
-  // While the reader holds a position, content that grows or shrinks above it must not move it. The page's own box
-  // changes size for exactly those changes, and the correction lands in the same frame, before the new layout paints.
-  createEffect(() => {
-    const root = props.viewport?.()
-    // `scope` is set after the first render, so this effect has to track it: reading it once on the first run, before
-    // the box exists, would leave the correction unobserved for the whole activation.
-    const element = scope()
-
-    if (!root || !element) return
-    if (props.following?.() === true) return
-
-    const observer = new ResizeObserver(() => realign())
-    observer.observe(element)
-
-    onCleanup(() => observer.disconnect())
-  })
-
+  // Only the reader's own movement is recorded here. Every write belongs to the timeline, so nothing in this page can
+  // fight its landing or drag a reader who did not move.
   createEffect(() => {
     const root = props.viewport?.()
 
@@ -636,29 +569,17 @@ export function AnswerPage(props: AnswerPageProps) {
       frame = requestAnimationFrame(() => {
         frame = undefined
         if (!root.isConnected) return
-
-        // The position is where this page just put it, so the move is not the reader's; keep the anchor it chose.
-        const landed = writtenTop
-        writtenTop = undefined
-
-        if (landed !== undefined && Math.round(root.scrollTop) === landed) return
-
-        rememberAnchor()
+        // A following view sits at the end, and that place is already remembered as the end. Measuring its top row on
+        // every streamed frame would force a layout per frame for a position nothing reads.
+        if (props.following?.() === true) return
+        reportPosition()
       })
     }
-    // A wheel, pointer or touch means the reader took the scroll; the anchor moves with them from here.
-    const release = () => rememberAnchor()
 
     root.addEventListener("scroll", onScroll, { passive: true })
-    root.addEventListener("wheel", release, { passive: true })
-    root.addEventListener("pointerdown", release, { passive: true })
-    root.addEventListener("touchstart", release, { passive: true })
 
     onCleanup(() => {
       root.removeEventListener("scroll", onScroll)
-      root.removeEventListener("wheel", release)
-      root.removeEventListener("pointerdown", release)
-      root.removeEventListener("touchstart", release)
       if (frame !== undefined) cancelAnimationFrame(frame)
     })
   })
@@ -746,7 +667,7 @@ export function AnswerPage(props: AnswerPageProps) {
         toggle: (key, next) => setOpenRows(key, next),
       }}
     >
-      <div ref={setScope} class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
+      <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
         <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
           <For each={keys()}>{(key) => renderEntry(key)}</For>
         </div>

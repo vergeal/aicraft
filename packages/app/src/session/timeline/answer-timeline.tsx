@@ -1,7 +1,6 @@
 import { Show, createRenderEffect, createSignal, on, onCleanup, onMount, type JSX } from "solid-js"
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Icon } from "@opencode/ui/icon"
-import { prefersReducedMotion } from "@opencode/ui/motion"
 import { ScrollView } from "@opencode/ui/scroll-view"
 import { AnswerPage, type CollapseTiming, type FoldedReplies, type TranscriptView } from "@opencode/session-ui/answer"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -132,7 +131,9 @@ export function AnswerTimeline(props: {
 
   const jumpToLatest = () => {
     props.follow.dispatch({ type: "follow" })
-    viewport?.scrollTo({ top: viewport.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" })
+    // A smooth scroll aims at the height it started from, so content that streams in during the animation leaves it
+    // short of the end and the click reads as one screen of movement. Land on the end in one write instead.
+    if (viewport) viewport.scrollTop = viewport.scrollHeight
   }
 
   // Content grew, or the view activated, and the newest content must stay in view. Every loaded row is a real box, so
@@ -201,9 +202,11 @@ export function AnswerTimeline(props: {
   onMount(() => {
     props.setRevealMessage?.(reveal)
     props.setRevealPart?.(revealTarget)
-    props.setScrollToEnd?.((behavior) => {
+    props.setScrollToEnd?.((_behavior) => {
       props.follow.dispatch({ type: "follow" })
-      viewport?.scrollTo({ top: viewport.scrollHeight, behavior })
+      // The same reason as `jumpToLatest`: a scroll animation targets the height it started from, and a growing reply
+      // outruns it. One write lands on the end, and the follow state keeps it there.
+      if (viewport) viewport.scrollTop = viewport.scrollHeight
     })
     props.setPage?.((direction) => {
       if (!viewport) return
@@ -237,7 +240,6 @@ export function AnswerTimeline(props: {
 
         const state = props.follow.peek()
         if (state.type === "anchored") return
-        if (state.type === "detached" && !wantsLanding()) return
         // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click
         // lands on whatever moved under the pointer instead.
         if (state.gesture === "pointer") return
@@ -271,7 +273,9 @@ export function AnswerTimeline(props: {
         // Pin only a reader who was at the end, and only after the windowed measurements have settled. Before that
         // every height change is an estimate being replaced, so pinning on each one slides the transcript down the
         // screen (the capture shows 1500px jumps from this observer alone).
-        if (atEndBefore && positioned) viewport.scrollTop = height
+        // Following is the reader's own intent to stay at the end, so streamed growth must never move content up
+        // under them. A reader who merely sits near the end keeps the stricter rule.
+        if ((following() || atEndBefore) && positioned) viewport.scrollTop = height
       })
 
       for (const child of Array.from(viewport.children)) contentObserver.observe(child)

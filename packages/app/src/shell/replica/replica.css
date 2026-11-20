@@ -1,13 +1,13 @@
 /* v6 workbench: the window is one continuous surface. Three columns share the frame with the titlebar,
    and every size below comes from the v6 token table rather than ad-hoc component values. */
 [data-replica] {
-  /* The sidebar header and the content topbar share one 36px row across the window. The traffic lights keep their own
+  /* The sidebar header and the content topbar share one 32px row across the window. The traffic lights keep their own
      inset inside that row, so the bar stays a title strip rather than a second toolbar. */
-  --titlebar-height: 36px;
+  --titlebar-height: 32px;
   --navigation-sidebar-width: 280px;
   --navigation-sidebar-width-current: var(--navigation-sidebar-width);
 
-  --sidebar-header-height: 36px;
+  --sidebar-header-height: 32px;
   --sidebar-header-padding-inline: 14px;
   /* macOS draws the traffic lights here; other platforms keep a normal inset. */
   --sidebar-header-lead: 14px;
@@ -240,18 +240,6 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
 /* The sidebar header, the content topbar and the top of the workspace are one continuous surface: no rule,
    border or shadow is drawn between them, so the top of the window reads as a single undivided area. */
 
-/* 导航面的光不该在分界处断掉：标题栏是唯一横跨两栏的元素，所以在它身上让同一束渐变往内容区淡出一段，
-   两块区域在顶部先连成一片，分界就不再读作一条直线。取色与导航列的渐变完全同源。
-   Windows 单独处理（见文件末尾）：那里要把三块面按同一个原点对齐，才能做到完全同色。 */
-html[data-color-scheme="dark"]:not([data-os="windows"]) [data-slot="replica-main"] [data-slot="replica-titlebar"] {
-  background-image: linear-gradient(
-    to right,
-    rgb(0 221 143 / 10%),
-    rgb(0 188 230 / 4%) 180px,
-    rgb(0 188 230 / 0%) 380px
-  );
-}
-
 [data-slot="replica-titlebar"] [data-replica-control] {
   -webkit-app-region: no-drag;
 }
@@ -344,9 +332,9 @@ html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
   pointer-events: none;
 }
 
-/* On Windows the workspace panel already sits on its own tint inside a gutter, so the dividing hairline only reads
-   as a groove between the navigation column and the panel. Drop it there; other platforms keep the seam. */
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-sidebar-slot"]::after {
+/* The workspace panel already sits on its own tint inside a gutter, so the dividing hairline only reads as a groove
+   between the navigation column and the panel. Every desktop window drops it; web keeps the seam. */
+html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::after {
   display: none;
 }
 
@@ -846,48 +834,52 @@ html[data-os="macos"]
   }
 }
 
-/* Windows draws acrylic behind the chrome, but over a desktop it reads as a grey film rather than glass: the
-   wallpaper loses its detail and the chrome sits a step away from the opaque conversation. Windows keeps an opaque
-   window instead — one solid tint per column, no transparency and no light wash. macOS keeps its vibrancy sheet and
-   Linux the compositor's blur. */
-html[data-replica-window="translucent"][data-os="windows"]:not([data-color-scheme="dark"]) [data-replica] {
-  --color-rail: #f7f7f7;
+/* The navigation column, the titlebar and the gutter around the workspace are one surface: they all take
+   `--color-rail`, so the top of the window reads as a single undivided area. Each platform keeps its own rail value
+   — Windows an opaque solid, macOS its vibrancy sheet, Linux the compositor's blur — so the colour is shared without
+   forcing one platform's material on the others. `data-color-scheme` is here for specificity: the glass blocks above
+   set these three tokens per theme, and this rule has to outrank them to land one step instead of two. */
+html[data-replica-window="translucent"][data-color-scheme] [data-replica] {
   --color-titlebar: var(--color-rail);
   --color-navigation: var(--color-rail);
   --color-sidebar: var(--color-rail);
+}
+
+/* Windows draws acrylic behind the chrome, but over a desktop it reads as a grey film rather than glass: the
+   wallpaper loses its detail and the chrome sits a step away from the opaque conversation. Windows keeps an opaque
+   window instead — a solid rail, no transparency and no light wash. */
+html[data-replica-window="translucent"][data-os="windows"]:not([data-color-scheme="dark"]) [data-replica] {
+  --color-rail: #f7f7f7;
   background: var(--color-rail);
 }
 
 html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-replica] {
   --color-rail: #1a1a1a;
-  --color-titlebar: var(--color-rail);
-  --color-navigation: var(--color-rail);
-  --color-sidebar: var(--color-rail);
   background: transparent;
 }
 
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-shell"] {
+html[data-replica-window="translucent"] [data-slot="replica-shell"] {
   /* One tint behind every column: a subpixel seam opened by the sidebar's clip during a resize would otherwise show
      this layer as a darker hairline between the navigation column and the workspace. */
   background: var(--color-titlebar);
 }
 
 /* The workspace panel is inset from the chrome, so the gutter around it reads as part of the top bar rather than a
-   second canvas. The panel itself keeps `--v2-background-bg-base`, which sits a step above this tint in dark mode. */
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-main"] {
+   second canvas. The panel itself keeps `--v2-background-bg-base`, which sits a step below this tint in dark mode. */
+html[data-replica-window="translucent"] [data-slot="replica-main"] {
   background-color: var(--color-titlebar);
 }
 
 /* The workspace panel steps slightly below the chrome tint instead of above it, so the card reads as the recessed
    surface the chrome wraps around. Only the main column is retinted; dialogs and menus portal outside it. */
-html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-slot="replica-main"] {
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-main"] {
   --v2-background-bg-base: rgb(20 20 20);
 }
 
 /* Painted explicitly as well: the dark shell normally forces these panels transparent so they inherit the canvas,
-   which would keep the design-system tone and ignore the variable above. Windows gives the workspace its own
-   surface and edge instead, so the rounded card is visible against the chrome. */
-html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"]
+   which would keep the design-system tone and ignore the variable above. The inset card gives the workspace its own
+   surface and edge, so it stays visible against the chrome. */
+html[data-replica-window="translucent"][data-color-scheme="dark"]
   [data-slot="replica-main"] :is(
     [data-component="new-session"],
     [data-slot="session-panel"],
@@ -900,7 +892,7 @@ html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="da
 
 /* The workspace fills the window on three sides. Only its top-left corner is rounded, where it meets the
    navigation column and the titlebar; the other corners square off against the window edges. */
-html[data-replica-window="translucent"][data-os="windows"]
+html[data-replica-window="translucent"]
   [data-slot="replica-main"] :is(
     [data-component="new-session"],
     [data-slot="session-panel"],
@@ -916,28 +908,27 @@ html[data-replica-window="translucent"][data-os="windows"]
 
 /* The new-session page (a fresh tab) is a plain filled surface: it squares off at every corner instead of carrying
    the workspace's rounded top-left corner. */
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-main"] [data-component="new-session"] {
+html[data-replica-window="translucent"] [data-slot="replica-main"] [data-component="new-session"] {
   border-radius: 0;
 }
 
 /* The review panel sits against the window's right and bottom edges, so its four rounded corners would open a wedge
-   of chrome around it. Windows squares it off like the workspace. */
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-main"] #review-panel {
+   of chrome around it. It squares off like the workspace. */
+html[data-replica-window="translucent"] [data-slot="replica-main"] #review-panel {
   border-radius: 0;
 }
 
-/* The navigation column shares the titlebar tint, so the chrome reads as one bar across the top while the workspace
-   sits below it. Windows takes the navigation tint itself rather than the titlebar alias: the light glass column
+/* The navigation column takes the shared rail tint, so the chrome reads as one bar across the top while the
+   workspace sits below it. It uses the navigation token rather than the titlebar alias: the light glass column
    normally adds an 8% white wash over the material, and beside the titlebar that made the top row read as two
    translucent halves. */
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-sidebar"] {
+html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
   background: var(--color-navigation);
 }
 
-/* The replica titlebar is transparent elsewhere so the workspace canvas continues behind it. On Windows the window
-   root paints a darker fill, so a transparent titlebar read as a see-through band next to the opaque navigation
-   column. Give it the column's opaque tint; the window controls sit in a transparent overlay above it. */
-html[data-replica-window="translucent"][data-os="windows"] [data-replica] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
+/* The titlebar paints the shared rail tint rather than staying transparent, so it reads as chrome instead of a
+   see-through band over the workspace canvas; the window controls sit in a transparent overlay above it. */
+html[data-replica-window="translucent"] [data-replica] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
   background-color: var(--color-titlebar);
 }
 
@@ -962,11 +953,10 @@ html[data-replica-window="translucent"][data-os="windows"] [data-replica] {
   --sidebar-header-lead: 6px;
 }
 
-/* Windows keeps one flat tint above the workspace panel: the navigation column, the titlebar and the strip of
-   chrome between the titlebar and the rounded panel are the same colour with no gradient, so the top of the window
-   reads as a single undivided area. */
-html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-slot="replica-sidebar"],
-html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
+/* One flat tint above the workspace panel: the navigation column and the titlebar take no gradient in dark mode, so
+   the top of the window reads as a single undivided area on every desktop platform. */
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"],
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
   background-image: none;
 }
 

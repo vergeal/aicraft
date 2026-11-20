@@ -123,17 +123,15 @@ function ReplicaLayer(props: ParentProps) {
   })
 
   // The traffic lights sit in the top-left corner of the sidebar header. That header starts at the window's top edge and
-  // is a fixed 44px tall, so the buttons' centre is always 22px down and needs no DOM measurement.
+  // is a fixed 32px tall, so the buttons' centre is always 16px down and needs no DOM measurement.
   const mac = () => platform.platform === "desktop" && platform.os === "macos"
-  // Windows shows the workspace as an inset rounded panel under the chrome, the way the reference apps do.
-  const windows = () => platform.platform === "desktop" && platform.os === "windows"
 
   createEffect(() => {
     if (!mac()) return
 
     const scale = platform.webviewZoom?.() ?? 1
 
-    void platform.setTrafficLightsPosition?.({ x: 14, y: Math.round(22 * scale - 7) })
+    void platform.setTrafficLightsPosition?.({ x: 14, y: Math.round(16 * scale - 7) })
   })
 
   // Hand the buttons back at the window's default position when the shell unmounts.
@@ -277,15 +275,27 @@ function ReplicaLayer(props: ParentProps) {
       data-resizing={resizing() ? "" : undefined}
       style={{
         "--navigation-sidebar-width-current": showSidebar() ? `${sidebarSize()}px` : "0px",
-        /* Windows fills the workspace to the window edges and keeps only a rounded top-left corner, the way the
-           reference apps do. The values live on the shell root so the sidebar hairline and the workspace share one
-           origin. */
+        /* Every desktop window fills the workspace to the window edges and keeps only a rounded top-left corner, the
+           way the reference apps do. The values live on the shell root so the sidebar hairline and the workspace share
+           one origin. Web squares off instead: it has no window frame to align against. */
         "--shell-inline-inset": "0px",
         "--shell-top-inset": "0px",
         "--shell-bottom-inset": "0px",
-        "--shell-panel-radius": windows() ? "12px" : "0px",
+        "--shell-panel-radius": platform.platform === "desktop" ? "12px" : "0px",
       }}
     >
+      {/* DEBUG guide (kept for future alignment checks): a line through the traffic lights' centre. The lights are
+          native and sit at y = 16 * zoom - 7 (14pt tall), which puts their centre at CSS 16px. Uncomment to show it.
+      <Show when={mac()}>
+        <div
+          data-slot="traffic-light-guide"
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-x-0 z-[999] h-px bg-[#ff2d92]"
+          style={{ top: "16px" }}
+        />
+      </Show>
+      */}
+
       <div data-slot="replica-shell">
         <div
           data-slot="replica-sidebar-slot"

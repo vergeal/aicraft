@@ -8,7 +8,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { useSessionLayout } from "@/session/session-layout"
 
 /** The review toggle's pane fill, scaled from the panel's edge to `open` of its width. */
-export const reviewGlyphFill = (open: number) => `matrix(${open} 0 0 1 ${2.917 * (1 - open)} 0)`
+export const reviewGlyphFill = (open: number) => `matrix(${open} 0 0 1 ${0.835 * (1 - open)} 0)`
 
 export function SessionReviewToggle(props: { onToggle: () => void; glyph?: (fill: SVGPathElement) => void }) {
   const command = useCommand()
@@ -67,14 +67,23 @@ export function SessionHeaderActions(props: { state: SessionHeaderActionsState }
             aria-controls="review-panel"
             icon={
               props.state.reviewGlyph ? (
-                <svg data-slot="icon-svg" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <g transform="matrix(-1 0 0 1 20 0)">
-                    <path ref={props.state.reviewGlyph} d="M2.917 2.916H7.917V17.083H2.917Z" fill="currentColor" />
+                <svg data-slot="icon-svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <g transform="matrix(-1 0 0 1 16 0)">
                     <path
-                      d="M2.917 2.916H17.084V17.083H2.917ZM7.917 2.916V17.083"
-                      stroke="currentColor"
-                      stroke-linecap="square"
+                      ref={props.state.reviewGlyph}
+                      d="M3.5 1.835H6.5V14.165H3.5C2.03 14.165 0.835 12.97 0.835 11.5V4.5C0.835 3.03 2.03 1.835 3.5 1.835Z"
+                      fill="currentColor"
                     />
+                    <rect
+                      x="1.5"
+                      y="2.5"
+                      width="13"
+                      height="11"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="1.33"
+                    />
+                    <path d="M6.5 2.5V13.5" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" />
                   </g>
                 </svg>
               ) : (

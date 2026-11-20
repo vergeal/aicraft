@@ -75,10 +75,7 @@ type MessageTimelineProps = {
   screen: SessionScreen
   background: SessionBackground
   actions?: SessionUserActions
-  scroll: { overflow: boolean; jump: boolean }
-  onResumeScroll: (behavior?: ScrollBehavior) => void
   setScrollRef: (el: HTMLDivElement | undefined) => void
-  onScheduleScrollState: (el: HTMLDivElement) => void
   follow: TimelineFollow
   onUserScroll: (target?: EventTarget | null) => void
   onHistoryScroll: () => void
@@ -498,7 +495,6 @@ function MessageTimelineView(
       follow={props.follow}
       setScrollRef={props.setScrollRef}
       setVisibleRef={props.setVisibleRef}
-      onScheduleScrollState={props.onScheduleScrollState}
       onUserScroll={props.onUserScroll}
       onHistoryScroll={props.onHistoryScroll}
       onContentResize={props.onContentResize}

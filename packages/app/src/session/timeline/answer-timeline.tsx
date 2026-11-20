@@ -40,7 +40,6 @@ export function AnswerTimeline(props: {
   onRestoreMiss?: () => void
   setScrollRef: (element: HTMLDivElement | undefined) => void
   setVisibleRef?: (element: HTMLDivElement | undefined) => void
-  onScheduleScrollState: (element: HTMLDivElement) => void
   onUserScroll: (target?: EventTarget | null) => void
   onHistoryScroll: () => void
   onContentResize: () => void
@@ -61,22 +60,10 @@ export function AnswerTimeline(props: {
   // A restore that could not find its row leaves the view at the newest content, not where the reader stopped. Hold the
   // saved record until the reader's own gesture moves, or a failed restore would erase the anchor worth paging back to.
   let holdPosition = false
-  // A view the reader left at the end must land there again. Reinserting it clamps `scrollTop` to 0 before the rows
-  // re-measure, and that clamp reaches the machine as an ordinary scroll away from the end, so a landing guarded only
-  // by `following()` is skipped and the view stays at the top. Track the intent of this activation instead; any real
-  // input clears it.
-  let landAtEnd = false
-  // The intent expires: the clamp that inverts `following()` only happens right after activation, and a later
-  // detachment is the reader. Without a deadline a drag of the scrollbar thumb, which never reaches the viewport's
-  // pointer handlers, would be pulled back to the end forever.
-  let landDeadline = 0
+  // A landing owes exactly one write. The intent itself lives in the follow machine's `landing` state; this timer only
+  // expires it, so a scrollbar drag (which never reaches the viewport's pointer handlers) is not pulled back forever.
   const LAND_WINDOW = 3000
-  const wantsLanding = () => landAtEnd && performance.now() < landDeadline
-
-  // Whether this activation has taken the view to the end. Until it has, the content arriving is the view's first
-  // rows mounting, not the reader's session streaming, and every height change of that first paint must keep the end in
-  // view without exposing the positions in between.
-  let positioned = false
+  let landingTimer: ReturnType<typeof setTimeout> | undefined
   // The bottom edge only needs to be read when the machine asks for it; the offsets are tracked here so the scroll
   // event passes the geometry it already read and the machine never forces a layout of its own.
   let lastScrollTop = 0
@@ -129,22 +116,46 @@ export function AnswerTimeline(props: {
     return revealInTimeline(viewport, target)
   }
 
-  const jumpToLatest = () => {
-    props.follow.dispatch({ type: "follow" })
-    // A smooth scroll aims at the height it started from, so content that streams in during the animation leaves it
-    // short of the end and the click reads as one screen of movement. Land on the end in one write instead.
+  // The end is one value and one write: every path that goes there uses this, so no two callers can disagree about what
+  // "the end" is. A smooth scroll would aim at the height it started from, and a growing reply outruns it.
+  const stickToEnd = () => {
     if (viewport) viewport.scrollTop = viewport.scrollHeight
   }
 
-  // Content grew, or the view activated, and the newest content must stay in view. Every loaded row is a real box, so
-  // the write happens in the frame that observed the new height: a ResizeObserver callback runs after layout and before
-  // paint, which is what keeps the intermediate positions off screen. A landing is only allowed while the machine still
-  // follows, or while this activation still owes its own landing; a reader who left the end is never pulled back.
-  const landOnEnd = () => {
-    if (!viewport || (!wantsLanding() && !following())) return
+  // A landing write reports back so the machine can stop owing it, and clears the deadline that would otherwise expire
+  // an already-satisfied intent three seconds later.
+  const settleLanding = () => {
+    props.follow.dispatch({ type: "landed" })
+    if (landingTimer !== undefined) clearTimeout(landingTimer)
+    landingTimer = undefined
+  }
 
-    positioned = true
-    viewport.scrollTop = viewport.scrollHeight
+  // Content grew, or the view activated, and the newest content must stay in view. Every loaded row is a real box, so
+  // the write happens in the frame that observed the new height: the write is one assignment, and the landing reports
+  // back once it lands. A reader who left the end is never pulled back.
+  const landOnEnd = () => {
+    if (!viewport || !following()) return
+
+    stickToEnd()
+    settleLanding()
+  }
+
+  const jumpToLatest = () => {
+    props.follow.dispatch({ type: "follow" })
+    stickToEnd()
+  }
+
+  // This activation owes the view a landing. The intent lives in the follow machine's `landing` state, so the clamp a
+  // reinsert produces cannot be mistaken for the reader leaving the end. The timer only expires the intent, which keeps
+  // a scrollbar drag (which never reaches the viewport's pointer handlers) from being pulled back forever.
+  const startLanding = () => {
+    if (landingTimer !== undefined) clearTimeout(landingTimer)
+    props.follow.dispatch({ type: "landing.start", deadline: performance.now() + LAND_WINDOW })
+    landingTimer = setTimeout(() => {
+      landingTimer = undefined
+      props.follow.dispatch({ type: "landing.expire", now: performance.now() })
+    }, LAND_WINDOW)
+    landOnEnd()
   }
 
   const scheduleSettled = () => {
@@ -181,18 +192,22 @@ export function AnswerTimeline(props: {
       (isActive) => {
         if (!isActive) return
 
-        positioned = false
-        // Same timing as the page's restore: release follow and re-arm the landing after the DOM insert, before the
-        // reinsertion's scroll event reaches the machine.
+        // Same timing as the page's restore: decide the landing after the DOM insert, before the reinsertion's scroll
+        // event reaches the machine.
         queueMicrotask(() => {
           const saved = savedPosition()
-          // A remembered mid-transcript row is the reader's own intent: let the host release follow before it restores.
-          if (saved && !saved.bottom) props.onRestore?.()
           if (viewport) lastContentHeight = viewport.scrollHeight
-          // Only a view the reader left at the end may land there; a remembered middle row must stay put.
-          landAtEnd = !saved || saved.bottom
-          landDeadline = performance.now() + LAND_WINDOW
-          if (landAtEnd) landOnEnd()
+
+          if (!saved || saved.bottom) {
+            startLanding()
+
+            return
+          }
+
+          // A remembered mid-transcript row is the reader's own intent: the host releases follow and restores it, so
+          // this activation does not owe a landing.
+          props.follow.dispatch({ type: "landing.cancel" })
+          props.onRestore?.()
         })
       },
       { defer: false },
@@ -204,14 +219,13 @@ export function AnswerTimeline(props: {
     props.setRevealPart?.(revealTarget)
     props.setScrollToEnd?.((_behavior) => {
       props.follow.dispatch({ type: "follow" })
-      // The same reason as `jumpToLatest`: a scroll animation targets the height it started from, and a growing reply
-      // outruns it. One write lands on the end, and the follow state keeps it there.
-      if (viewport) viewport.scrollTop = viewport.scrollHeight
+      stickToEnd()
     })
     props.setPage?.((direction) => {
       if (!viewport) return
-      landAtEnd = false
-      // A page key is the reader's own move: express it as intent so the machine can detach before the scroll lands.
+      // A page key is the reader's own move: it ends any landing the activation still owed and detaches before the
+      // scroll lands.
+      props.follow.dispatch({ type: "landing.cancel" })
       props.follow.dispatch({
         type: "scroll.intent",
         upward: direction < 0,
@@ -230,52 +244,38 @@ export function AnswerTimeline(props: {
       lastMaxScroll = viewport.scrollHeight - viewport.clientHeight
 
       // No remembered position, or the reader left at the end: land on the newest message at once.
-      if ((wantsLanding() || following()) && !positioned) landOnEnd()
+      if (following()) landOnEnd()
 
-      // Streamed text and disclosures grow the rows without changing the message list identity, so
-      // follow the observed layout instead of the list. Only a view the machine still follows is pulled;
-      // a reader who left the end keeps their position while rows above them change height.
+      // Streamed text and disclosures grow the rows without changing the message list identity, so follow the observed
+      // layout instead of the list. A following view (including one still landing) absorbs every growth; a reader who
+      // left the end keeps their position while rows above them change height.
       contentObserver = new ResizeObserver(() => {
         if (!viewport) return
 
         const state = props.follow.peek()
         if (state.type === "anchored") return
-        // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click
-        // lands on whatever moved under the pointer instead.
-        if (state.gesture === "pointer") return
+        // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click lands on
+        // whatever moved under the pointer instead.
+        if (state.type !== "landing" && state.gesture === "pointer") return
 
         const height = viewport.scrollHeight
         const delta = height - lastContentHeight
-        // Whether the reader was already at the end before this height change. Paging an older page in
-        // above the viewport also grows the height, and that is not a reason to pin to the end: pinning
-        // there drags a reader who sits mid-transcript down to the new bottom.
+        // Whether the reader was already at the end before this height change. Paging an older page in above the
+        // viewport also grows the height, and that is not a reason to pin to the end: pinning there drags a reader who
+        // sits mid-transcript down to the new bottom.
         const atEndBefore = viewport.scrollTop + viewport.clientHeight >= lastContentHeight - END_EPSILON
         lastContentHeight = height
 
-        // Landing is the activation's own intent. The machine can read `following` here even though the
-        // reader sits mid-transcript, because the clamp after a reinsert flips it on, so the intent alone
-        // must decide before the rows settle. A restored middle row is neither.
-        const landing = wantsLanding() || (following() && atEndBefore)
-
-        if (!positioned) {
-          // The first rows of this activation are still mounting, so every height change is content arriving rather
-          // than the reader's session streaming. Land on the end in this same observation, before the frame paints.
-          if (landing) landOnEnd()
-          return
-        }
-
-        // Growth always keeps the end visible. A large shrink, such as a thinking block collapsing
-        // when it finishes, must follow too or the reader is left above the fold looking at content
-        // that just disappeared. Small back-and-forth changes are renderer noise: following those
-        // would drag the viewport up and down every frame.
+        // Small back-and-forth changes are renderer noise: following those would drag the viewport up and down every
+        // frame. A large shrink, such as a thinking block collapsing when it finishes, still follows, or the reader is
+        // left above the fold looking at content that just disappeared.
         if (delta <= 0 && delta > -200) return
 
-        // Pin only a reader who was at the end, and only after the windowed measurements have settled. Before that
-        // every height change is an estimate being replaced, so pinning on each one slides the transcript down the
-        // screen (the capture shows 1500px jumps from this observer alone).
-        // Following is the reader's own intent to stay at the end, so streamed growth must never move content up
-        // under them. A reader who merely sits near the end keeps the stricter rule.
-        if ((following() || atEndBefore) && positioned) viewport.scrollTop = height
+        if (following() || atEndBefore) {
+          stickToEnd()
+          // A landing settles on its first write, whether that write came from the activation frame or from here.
+          if (props.follow.peek().type === "landing") settleLanding()
+        }
       })
 
       for (const child of Array.from(viewport.children)) contentObserver.observe(child)
@@ -285,6 +285,7 @@ export function AnswerTimeline(props: {
   onCleanup(() => contentObserver?.disconnect())
   onCleanup(() => {
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
+    if (landingTimer !== undefined) clearTimeout(landingTimer)
   })
 
   onCleanup(() => {
@@ -327,7 +328,6 @@ export function AnswerTimeline(props: {
           lastMaxScroll = max
 
           scheduleSettled()
-          props.onScheduleScrollState(viewport)
           props.onContentResize()
           props.onHistoryScroll()
         }}
@@ -336,9 +336,6 @@ export function AnswerTimeline(props: {
         onWheel={(event) => {
           if (!viewport) return
           holdPosition = false
-          // Only an upward gesture means the reader is leaving the end; a downward one inside an already-detached view
-          // must not cancel the landing this activation still owes.
-          if (event.deltaY < 0) landAtEnd = false
           props.follow.dispatch({
             type: "scroll.intent",
             upward: event.deltaY < 0,
@@ -347,7 +344,6 @@ export function AnswerTimeline(props: {
         }}
         onTouchStart={(event) => {
           holdPosition = false
-          landAtEnd = false
           const target = event.target instanceof Element ? event.target : undefined
           const nested = target?.closest("[data-scrollable]")
           props.follow.dispatch({ type: "touch.start", nested: !!nested && nested !== viewport })
@@ -355,7 +351,6 @@ export function AnswerTimeline(props: {
         onTouchMove={() => {
           if (!viewport) return
           holdPosition = false
-          landAtEnd = false
           props.follow.dispatch({
             type: "touch.drag",
             overflow: viewport.scrollHeight - viewport.clientHeight > MIN_OVERFLOW,
@@ -364,7 +359,6 @@ export function AnswerTimeline(props: {
         onTouchEnd={() => props.follow.dispatch({ type: "touch.end", scrolling: false })}
         onPointerDown={() => {
           holdPosition = false
-          landAtEnd = false
           props.follow.dispatch({ type: "pointer.down" })
         }}
         onPointerUp={() => props.follow.dispatch({ type: "pointer.up" })}

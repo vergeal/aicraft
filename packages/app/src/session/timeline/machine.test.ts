@@ -177,3 +177,51 @@ test.each<{ name: string; state: FollowState; event: FollowEvent }>([
 ])("a steady $name scroll returns the same state", (input) => {
   expect(transitionFollow(input.state, input.event)).toBe(input.state)
 })
+
+const landing = () => replay([{ type: "landing.start", deadline: 1_000 }])
+
+test("a reinsertion clamp does not cancel the landing it owes", () => {
+  const owed = landing()
+
+  // A cached view is reinserted with `scrollTop` clamped to 0 before its rows measure. That clamp, and the settled
+  // scroll after it, report an ordinary move away from the end; the activation still owes its landing.
+  expect(transitionFollow(owed, scroll(0, 5_000))).toBe(owed)
+  expect(transitionFollow(owed, { type: "scroll.settled", atReachableEnd: false })).toBe(owed)
+  expect(isFollowing(owed)).toBe(true)
+})
+
+test("a landing write settles into following", () => {
+  const followed = transitionFollow(landing(), { type: "landed" })
+
+  expect(followed).toBe(createFollowState())
+  expect(followed).toBe(transitionFollow(landing(), { type: "landed" }))
+})
+
+test("a landing write with nothing owed writes no state", () => {
+  const following = createFollowState()
+
+  expect(transitionFollow(following, { type: "landed" })).toBe(following)
+})
+
+test.each<{ name: string; event: FollowEvent }>([
+  { name: "upward wheel", event: { type: "scroll.intent", upward: true, overflow: true } },
+  { name: "pointer press", event: { type: "pointer.down" } },
+  { name: "touch start", event: { type: "touch.start", nested: false } },
+  { name: "programmatic release", event: { type: "release" } },
+  { name: "explicit cancel", event: { type: "landing.cancel" } },
+])("the reader's $name ends a pending landing", (input) => {
+  const next = transitionFollow(landing(), input.event)
+
+  expect(isFollowing(next)).toBe(false)
+  expect(next.type).toBe("detached")
+})
+
+test("an expired landing lets go", () => {
+  const owed = landing()
+
+  expect(transitionFollow(owed, { type: "landing.expire", now: 999 })).toBe(owed)
+  expect(transitionFollow(owed, { type: "landing.expire", now: 1_000 })).toEqual({
+    type: "detached",
+    endPending: false,
+  })
+})

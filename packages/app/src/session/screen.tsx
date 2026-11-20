@@ -308,10 +308,7 @@ function SessionScreenContent(props: {
             screen={props.screen}
             background={composer.requests.background}
             actions={actions}
-            scroll={timeline.scroll}
-            onResumeScroll={timeline.actions.resume}
             setScrollRef={timeline.view.setScrollRef}
-            onScheduleScrollState={timeline.view.scheduleScrollState}
             follow={timeline.follow}
             onUserScroll={timeline.view.markUserScroll}
             onHistoryScroll={timeline.view.onHistoryScroll}
@@ -326,7 +323,6 @@ function SessionScreenContent(props: {
             reveal={timeline.view.reveal}
             setScrollToEnd={timeline.view.setScrollToEnd}
             setPage={timeline.view.setPage}
-            searching={timelineSearch.searching}
             search={
               <Show when={active()}>
                 <TimelineSearchBar controller={timelineSearch} />

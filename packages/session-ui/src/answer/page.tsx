@@ -493,9 +493,8 @@ export function AnswerPage(props: AnswerPageProps) {
     if (!target) {
       dispatchRestore({ type: "activate" })
 
-      // No remembered row: open at the newest content, where a following view belongs. The timeline keeps the end in
-      // view from here; this write only skips the first layout, where there is nothing yet for it to land from.
-      if (props.following?.() === true) root.scrollTop = root.scrollHeight
+      // No remembered row: the view opens at the newest content, and the timeline's own landing keeps the end in view.
+      // This page writes no position here.
 
       return
     }

@@ -28,6 +28,14 @@ export type FollowState =
   | { readonly type: "detached"; readonly gesture?: FollowGesture; readonly endPending: boolean }
   /** Holds a revealed tool call in place. */
   | { readonly type: "anchored"; readonly anchor: FollowAnchor }
+  /**
+   * This activation still owes the view a landing on the newest content. A cached view is reinserted with `scrollTop`
+   * clamped to 0 before its rows measure, so the intent cannot be read back from `following`: the clamp arrives as an
+   * ordinary scroll away from the end. Until one landing write completes, every height change is a first row mounting,
+   * not the reader's session streaming. `deadline` bounds the wait so a scrollbar drag, which never reaches the
+   * viewport's pointer handlers, is not pulled back to the end forever.
+   */
+  | { readonly type: "landing"; readonly deadline: number }
 
 export type FollowEvent =
   /** A programmatic scroll to the end, such as a route change or a growing composer at the end. */
@@ -59,6 +67,14 @@ export type FollowEvent =
     }
   /** The scroll came to rest. `atReachableEnd` is probed only when `needsEndProbe` asks for it. */
   | { readonly type: "scroll.settled"; readonly atReachableEnd: boolean }
+  /** This activation starts owing a landing. `deadline` is the moment the intent expires. */
+  | { readonly type: "landing.start"; readonly deadline: number }
+  /** The activation does not owe a landing: its remembered row is mid-transcript and the host restores it instead. */
+  | { readonly type: "landing.cancel" }
+  /** A landing write completed, so the view sits at the end and follows from here. */
+  | { readonly type: "landed" }
+  /** The landing intent expired before any write could satisfy it. */
+  | { readonly type: "landing.expire"; readonly now: number }
 
 type Unanchored = Exclude<FollowState, { type: "anchored" }>
 
@@ -74,11 +90,20 @@ export function createFollowState(): FollowState {
 export function transitionFollow(state: FollowState, event: FollowEvent): FollowState {
   if (event.type === "anchor") return { type: "anchored", anchor: event.anchor }
 
+  if (event.type === "landing.start") return { type: "landing", deadline: event.deadline }
+
+  if (event.type === "landing.cancel") return state.type === "landing" ? detached(undefined, false) : state
+
+  if (event.type === "landed") return state.type === "landing" ? following(undefined) : state
+
+  if (event.type === "landing.expire")
+    return state.type === "landing" && event.now >= state.deadline ? detached(undefined, false) : state
+
   if (event.type === "return.start")
     return {
       type: "returning",
       attempt: event.attempt,
-      gesture: state.type === "anchored" ? undefined : contact(state.gesture),
+      gesture: state.type === "anchored" || state.type === "landing" ? undefined : contact(state.gesture),
     }
 
   if (event.type === "return.run")
@@ -94,25 +119,41 @@ export function transitionFollow(state: FollowState, event: FollowEvent): Follow
 
   if (state.type === "anchored") return releaseAnchor(state, event)
 
-  if (event.type === "detach") return state.type === "detached" ? state : detached(state.gesture, false)
+  if (event.type === "detach")
+    return state.type === "detached"
+      ? state
+      : detached(state.type === "landing" ? undefined : state.gesture, false)
 
-  if (event.type === "release") return withGesture(state, contact(state.gesture))
+  if (event.type === "release")
+    return state.type === "landing" ? detached(undefined, false) : withGesture(state, contact(state.gesture))
 
   if (event.type === "scroll.intent")
-    return event.upward && event.overflow && state.type !== "detached" ? detached(state.gesture, false) : state
+    return event.upward && event.overflow && state.type !== "detached"
+      ? detached(state.type === "landing" ? undefined : state.gesture, false)
+      : state
 
-  if (event.type === "pointer.down") return touchHeld(state.gesture) ? state : withGesture(state, "pointer")
+  if (event.type === "pointer.down")
+    return state.type === "landing"
+      ? detached("pointer", false)
+      : touchHeld(state.gesture)
+        ? state
+        : withGesture(state, "pointer")
 
-  if (event.type === "pointer.up") return state.gesture === "pointer" ? withGesture(state, undefined) : state
+  if (event.type === "pointer.up")
+    return state.type !== "landing" && state.gesture === "pointer" ? withGesture(state, undefined) : state
 
   if (event.type === "touch.start") return withGesture(state, event.nested ? "nested-touch" : "touch")
 
   // A nested scrollport owns its drag. If it chains into the timeline, the timeline's own upward scroll detaches.
   if (event.type === "touch.drag")
-    return state.type !== "detached" && state.gesture === "touch" && event.overflow ? detached("touch", false) : state
+    return state.type !== "detached" && state.type !== "landing" && state.gesture === "touch" && event.overflow
+      ? detached("touch", false)
+      : state
 
   if (event.type === "touch.end")
-    return touchHeld(state.gesture) ? withGesture(state, event.scrolling ? "momentum" : undefined) : state
+    return state.type !== "landing" && touchHeld(state.gesture)
+      ? withGesture(state, event.scrolling ? "momentum" : undefined)
+      : state
 
   if (event.type === "scroll") return scrolled(state, event)
 
@@ -120,7 +161,7 @@ export function transitionFollow(state: FollowState, event: FollowEvent): Follow
 }
 
 export function isFollowing(state: FollowState) {
-  return state.type === "following" || state.type === "returning"
+  return state.type === "following" || state.type === "returning" || state.type === "landing"
 }
 
 export function followAnchor(state: FollowState) {
@@ -153,6 +194,10 @@ function releaseAnchor(state: FollowState, event: FollowEvent): FollowState {
 // was already there. Merely resting near the end is not enough, otherwise a later scroll would overwrite an upward
 // intent expressed a pixel short of the bottom.
 function scrolled(state: Unanchored, event: Extract<FollowEvent, { type: "scroll" }>): FollowState {
+  // The reinsertion clamp and the first rows measuring are not the reader moving: this activation owns the position
+  // until one landing write completes.
+  if (state.type === "landing") return state
+
   const arrived = event.scrollTop > event.previousTop + END_EPSILON || event.maxScroll < event.previousMaxScroll
   const movedUp = event.scrollTop < event.previousTop - END_EPSILON
 
@@ -178,6 +223,8 @@ function scrolled(state: Unanchored, event: Extract<FollowEvent, { type: "scroll
 }
 
 function settled(state: Unanchored, atReachableEnd: boolean): FollowState {
+  // A landing owes its own write; a settled scroll while it is pending cannot decide the activation is over.
+  if (state.type === "landing") return state
   if (touchHeld(state.gesture)) return state
   const gesture = contact(state.gesture)
 
@@ -195,6 +242,8 @@ function detached(gesture: FollowGesture | undefined, endPending: boolean): Foll
 }
 
 function withGesture(state: Unanchored, gesture: FollowGesture | undefined): FollowState {
+  // Reader input during a landing is the reader taking the position: the landing is over before its write lands.
+  if (state.type === "landing") return detached(gesture, false)
   if (state.gesture === gesture) return state
 
   if (state.type === "following") return following(gesture)

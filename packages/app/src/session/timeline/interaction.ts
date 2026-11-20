@@ -1,7 +1,7 @@
 import type { SessionMessageUser } from "@opencode/client/promise"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLocation } from "@solidjs/router"
-import { createEffect, createMemo, createSignal, on, onCleanup, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { frameLoop } from "@opencode/ui/motion"
 import type { SessionModel } from "../model"
@@ -37,7 +37,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
   const timeline = createTimelineModel({ session })
 
   const [state, setState] = createStore<{
-    scroll: { overflow: boolean; jump: boolean }
     /** The composer region's height; the timeline scrolls on underneath it and fades out at its top. */
     inset: number
     refs: {
@@ -46,10 +45,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
       visible: HTMLDivElement | undefined
     }
   }>({
-    scroll: {
-      overflow: false,
-      jump: false,
-    },
     inset: 0,
     refs: {
       scroller: undefined,
@@ -76,8 +71,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
 
   let page = (_direction: 1 | -1) => {}
 
-  let scrollStateFrame: (() => void) | undefined
-  let scrollStateTarget: HTMLDivElement | undefined
   const [historyState, setHistoryState] = createSignal(createTimelineHistoryState())
   let historyProbe: (() => void) | undefined
   let historyLoad: { controller: AbortController; timer: ReturnType<typeof setTimeout> } | undefined
@@ -124,52 +117,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
   const setActiveMessage = (message: SessionMessageUser | undefined) =>
     cursor.dispatch({ type: "message.select", messageID: message?.id, following: untrack(follow.following) })
 
-  const jumpThreshold = (element: HTMLDivElement) => Math.max(400, element.clientHeight)
-
-  const measureScrollState = (element: HTMLDivElement) => {
-    const max = element.scrollHeight - element.clientHeight
-    const distance = max - element.scrollTop
-    const overflow = max > 1
-
-    return { overflow, jump: overflow && distance > jumpThreshold(element) }
-  }
-
-  const applyScrollState = (next: { overflow: boolean; jump: boolean }) => {
-    if (state.scroll.overflow === next.overflow && state.scroll.jump === next.jump) return
-    setState("scroll", next)
-  }
-
-  // Reads in the shared frame loop's read phase, before any frame's writes, so a panel resizing the timeline on
-  // every frame does not force an extra layout here. A scroll event can pass the geometry it already read instead,
-  // which keeps scrolling free of layout reads entirely.
-  const scheduleScrollState = (element: HTMLDivElement, measured?: { overflow: boolean; jump: boolean }) => {
-    if (measured) {
-      applyScrollState(measured)
-
-      return
-    }
-
-    scrollStateTarget = element
-
-    if (scrollStateFrame !== undefined) return
-    let next: { overflow: boolean; jump: boolean } | undefined
-    scrollStateFrame = frameLoop.addMeasured(
-      () => {
-        const target = scrollStateTarget
-        scrollStateTarget = undefined
-        next = target && measureScrollState(target)
-      },
-      () => {
-        scrollStateFrame = undefined
-
-        if (!next) return false
-        applyScrollState(next)
-
-        return false
-      },
-    )
-  }
-
   const cursor = createTimelineCursor({
     sessionKey: session.identity.sessionKey,
     sessionID: () => session.identity.params.id,
@@ -187,8 +134,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
 
       follow.dispatch({ type: "follow" })
       scrollToEnd()
-
-      if (scroller) scheduleScrollState(scroller)
     },
     historySeekable: () => canSeekHistory(historyState()),
     seekHistory: () => dispatchHistory(SEEK_REQUESTED_EVENT),
@@ -212,8 +157,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
 
       return false
     })
-
-    if (scroller) scheduleScrollState(scroller)
   }
 
   const navigateMessage = (offset: number) => {
@@ -250,7 +193,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     setState("refs", "scroller", element)
 
     if (!element) return
-    scheduleScrollState(element)
     requestFill()
   }
 
@@ -388,9 +330,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     historyLoad = undefined
   }
 
-  createEffect(
-    on(session.identity.sessionKey, () => setState("scroll", { overflow: false, jump: false }), { defer: true }),
-  )
   createEffect(() => {
     const id = session.identity.params.id
 
@@ -423,7 +362,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
 
       if (stick) scrollToEnd()
 
-      if (scroller) scheduleScrollState(scroller)
       requestFill()
     },
   )
@@ -431,8 +369,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     dispatchHistory(DISPOSED_HISTORY_EVENT)
 
     resumeFrame?.()
-
-    scrollStateFrame?.()
   })
 
   return {
@@ -456,7 +392,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     lastUserMessage: timeline.lastUserMessage,
     resource: timeline.resource,
     ready: timeline.ready,
-    scroll: state.scroll,
     scroller: () => state.refs.scroller,
     /** The part of the timeline not covered by the composer region. */
     visible: () => state.refs.visible,
@@ -465,9 +400,7 @@ export function createSessionTimelineInteraction(session: SessionModel) {
       anchor,
       markUserScroll,
       onHistoryScroll,
-      scheduleScrollState,
       contentResized: () => {
-        if (scroller) scheduleScrollState(scroller)
         requestFill()
       },
       setDockRef: (element: HTMLDivElement | undefined) => {

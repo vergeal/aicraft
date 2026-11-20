@@ -15,7 +15,6 @@ import { entryLayout, estimateEntryHeight, learnedEntryHeights, positionAt, visi
 import {
   createRestoreState,
   restorePinning,
-  restoreVeiled,
   transitionRestore,
   type RestoreEvent,
   type RestoreState,
@@ -500,8 +499,7 @@ export function AnswerPage(props: AnswerPageProps) {
 
     const root = props.viewport?.()
 
-    // The host went away mid-pin: end the attempt so the veil cannot outlive the viewport that owns it.
-    if (!root) return dispatchRestore({ type: "deactivate" })
+    if (!root) return cancelPin()
 
     const row = [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find(
       (node) => node.dataset.answerKey === current.key,
@@ -787,13 +785,7 @@ export function AnswerPage(props: AnswerPageProps) {
         toggle: (key, next) => setOpenRows(key, next),
       }}
     >
-      <div
-        class={`answer-scope flex flex-col ${props.class ?? ""}`}
-        data-component="answer-page"
-        // Keep the layout and hide the paint while the pin settles: the frames that move rows are never shown, and
-        // the reveal happens with the position already decided.
-        style={{ visibility: restoreVeiled(restoreState()) ? "hidden" : undefined }}
-      >
+      <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
         <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
           <Show when={virtualize()} fallback={<For each={keys()}>{(key) => renderEntry(key)}</For>}>
             <div aria-hidden="true" style={{ height: `${leadingSpacer()}px`, "flex-shrink": 0 }} />

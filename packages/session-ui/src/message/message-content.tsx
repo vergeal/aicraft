@@ -1303,6 +1303,10 @@ export function AssistantTextContent(props: {
   }
 }
 
+// The reasoning body is a fixed-height frame, so streaming text stays pinned to its newest line unless the
+// reader scrolled up inside it.
+const REASONING_FOLLOW_DISTANCE = 24
+
 export function AssistantReasoningContent(props: {
   id: string
   content: SessionMessageAssistantReasoning
@@ -1314,6 +1318,54 @@ export function AssistantReasoningContent(props: {
 }) {
   const i18n = useI18n()
   const heading = createMemo(() => (props.streaming ? reasoningHeading(props.content.text) : ""))
+
+  let body: HTMLDivElement | undefined
+  let detach: (() => void) | undefined
+  let follow = props.streaming
+  let frame: number | undefined
+
+  const stick = () => {
+    if (frame !== undefined) return
+    frame = requestAnimationFrame(() => {
+      frame = undefined
+
+      if (follow && body) body.scrollTop = body.scrollHeight
+    })
+  }
+
+  createEffect(
+    on(
+      () => props.content.text,
+      () => {
+        if (props.streaming) stick()
+      },
+    ),
+  )
+
+  const attach = (element: HTMLDivElement | undefined) => {
+    detach?.()
+    detach = undefined
+    body = element
+
+    if (!element) return
+
+    const track = () => {
+      follow = element.scrollHeight - element.scrollTop - element.clientHeight <= REASONING_FOLLOW_DISTANCE
+    }
+
+    element.addEventListener("scroll", track, { passive: true })
+    detach = () => element.removeEventListener("scroll", track)
+
+    if (props.streaming) element.scrollTop = element.scrollHeight
+  }
+
+  onCleanup(() => {
+    detach?.()
+    detach = undefined
+
+    if (frame !== undefined) cancelAnimationFrame(frame)
+    frame = undefined
+  })
 
   const duration = createMemo(() => {
     const time = props.content.time
@@ -1370,7 +1422,15 @@ export function AssistantReasoningContent(props: {
           </div>
         )}
       >
-        <PacedMarkdown text={props.content.text} cacheKey={props.id} streaming={props.streaming} />
+        <div
+          ref={attach}
+          data-component="reasoning-content"
+          tabIndex={0}
+          role="region"
+          aria-label={i18n.t("ui.scrollView.ariaLabel")}
+        >
+          <PacedMarkdown text={props.content.text} cacheKey={props.id} streaming={props.streaming} />
+        </div>
       </BasicTool>
     </div>
   )

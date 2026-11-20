@@ -46,6 +46,8 @@ interface Input {
   readonly assistantMessageID: SessionMessage.ID
   readonly agent: Agent.ID
   readonly model: SessionRunnerModel.Resolved
+  /** What this request injected ahead of the conversation, reported by the started Step. */
+  readonly context?: ReadonlyArray<SessionModelRequest.ContextSource>
   readonly prepared: Omit<SessionModelRequest.Prepared, "event">
   readonly retry: (
     cause: AIError,
@@ -88,6 +90,7 @@ export const make = Effect.gen(function* () {
       providerMetadataKey: input.model.model.route.providerMetadataKey ?? input.model.model.provider,
       pendingSnapshot: Fiber.join(pendingStartSnapshot),
       started,
+      context: input.context,
       toolIcon: input.toolIcon,
     })
     const toolRuns: Array<{

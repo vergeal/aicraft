@@ -293,6 +293,7 @@ import type {
   ExperimentalArtifactsViewOutput,
   ExperimentalJobListInput,
   ExperimentalJobListOutput,
+  ExperimentalDiagnosticsServerOutput,
   ShellListInput,
   ShellListOutput,
   ShellCreateInput,
@@ -1417,6 +1418,19 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ).then((value) => value.data),
+      },
+      diagnostics: {
+        server: (requestOptions?: RequestOptions) =>
+          request<ExperimentalDiagnosticsServerOutput>(
+            {
+              method: "GET",
+              path: `/api/experimental/diagnostics/server`,
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ),
       },
       migration: {
         v1: {

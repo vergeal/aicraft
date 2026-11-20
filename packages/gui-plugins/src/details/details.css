@@ -51,8 +51,8 @@
   padding: 4px 12px;
   border-radius: 4px;
   color: var(--v2-text-text-base);
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: var(--line-height-compact);
   text-align: start;
 }
@@ -100,7 +100,7 @@ button.session-service-row:focus-visible,
 
 .session-summary-heading {
   color: var(--v2-text-text-faint);
-  font-weight: 440;
+  font-weight: 400;
   user-select: none;
 }
 
@@ -185,7 +185,7 @@ button.session-service-row:focus-visible,
   box-shadow: var(--v2-elevation-floating);
   color: var(--v2-text-text-base);
   font-size: 13px;
-  font-weight: 440;
+  font-weight: 400;
   line-height: var(--line-height-compact);
 }
 
@@ -228,8 +228,8 @@ button.session-service-row:focus-visible,
   border-radius: 6px;
   background: var(--v2-background-bg-layer-01);
   color: var(--v2-text-text-base);
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: var(--line-height-compact);
   clip-path: inset(0 0 calc(100% - var(--flyout-height)) 0 round 6px);
   transition: clip-path 0.3s var(--spring-snap);
@@ -358,7 +358,7 @@ button.session-service-row:focus-visible,
 
 .session-service-drawer {
   color: var(--v2-text-text-base);
-  font-size: 15px;
+  font-size: 14px;
   line-height: var(--line-height-compact);
 }
 
@@ -369,13 +369,13 @@ button.session-service-row:focus-visible,
   padding: 0;
   color: var(--v2-text-text-faint);
   font-size: inherit;
-  font-weight: 440;
+  font-weight: 400;
   line-height: var(--line-height-compact);
   overflow-wrap: anywhere;
 
   strong {
     padding: 8px 12px;
-    font-weight: 440;
+    font-weight: 400;
     user-select: none;
   }
 }
@@ -503,7 +503,7 @@ button.session-service-dot {
   margin-inline-end: -5px;
   padding-inline: 5px;
   font-size: 12px;
-  font-weight: 440;
+  font-weight: 400;
   line-height: 18px;
   letter-spacing: 0.05px;
 }

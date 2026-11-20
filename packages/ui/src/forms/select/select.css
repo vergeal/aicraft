@@ -141,7 +141,7 @@
   text-align: start;
   font-style: normal;
   font-weight: 400;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 18px;
   letter-spacing: -0.04px;
   color: var(--v2-text-text-base);
@@ -225,7 +225,7 @@
 
 [data-component="select-v2"][data-appearance="inline"] [data-slot="select-v2-value-text"] {
   padding: 0;
-  font-weight: 530;
+  font-weight: 500;
 }
 
 [data-component="select-v2"][data-appearance="inline"] [data-slot="select-v2-chevron"] {

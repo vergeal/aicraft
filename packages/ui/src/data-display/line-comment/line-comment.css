@@ -54,7 +54,7 @@
 [data-component="line-comment-v2"][data-variant="display"] [data-slot="line-comment-v2-text"] {
   margin: 0;
   width: 100%;
-  font-size: 15px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 400;
   line-height: var(--line-height-compact);
@@ -68,7 +68,7 @@
 [data-component="line-comment-v2"][data-variant="display"] [data-slot="line-comment-v2-meta"] {
   font-size: 12px;
   font-style: normal;
-  font-weight: 530;
+  font-weight: 500;
   line-height: var(--line-height-tight);
   letter-spacing: 0.05px;
   color: var(--v2-text-text-faint);
@@ -148,7 +148,7 @@
   resize: none;
   border: none;
   background: transparent;
-  font-size: 15px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 400;
   line-height: var(--line-height-compact);
@@ -177,7 +177,7 @@
   min-width: 0;
   font-size: 12px;
   font-style: normal;
-  font-weight: 530;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0.05px;
   color: var(--v2-text-text-faint);
@@ -215,7 +215,7 @@
     padding-inline-start: 12px;
     color: var(--v2-text-text-muted);
     font-size: 13px;
-    font-weight: 440;
+    font-weight: 400;
     line-height: var(--line-height-base);
     letter-spacing: -0.04px;
 

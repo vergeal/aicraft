@@ -1,11 +1,12 @@
 export * as ServerFetch from "./fetch"
 
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Tracer } from "effect"
 import { HttpEffect, HttpMiddleware, HttpRouter, HttpServer } from "effect/http"
 import { SessionRestart } from "@opencode/core/session/execution/restart"
 import type { LayerNode } from "@opencode/util/effect/layer-node"
 import { isAllowedCorsOrigin } from "./cors"
-import { withoutParentSpan } from "./request-tracing"
+import { makeTracer } from "./diagnostics/spans"
+import { requestTrace, withoutParentSpan } from "./request-tracing"
 import { createRoutes } from "./routes"
 import type { ServerOptions } from "./options"
 
@@ -40,17 +41,23 @@ export interface BootOptions {
  * next boot, and the sweep is a no-op when nothing is suspended.
  */
 export const make = Effect.fn("ServerFetch.make")(function* (options: ServerOptions = {}, boot: BootOptions = {}) {
+  // Keep the active tracer and record a copy of every span into this process's diagnostics buffer.
+  const tracer = makeTracer(yield* Effect.service(Tracer.Tracer))
   // Handlers capture the build context; without the caller's span, each request is its own trace.
   const context = yield* Layer.build(
     createRoutes(options, () => [], boot.overrides ?? []).pipe(Layer.provide(HttpServer.layerServices)),
-  ).pipe(withoutParentSpan)
+  ).pipe(withoutParentSpan, Effect.withTracer(tracer))
   // Forked so the returned handler is never delayed; resumed drains are already
   // logged and durably recorded by the execution layer.
-  yield* Effect.forkDetach(Context.get(context, SessionRestart.Service).resumeSuspendedSessions)
+  yield* Effect.forkDetach(
+    Context.get(context, SessionRestart.Service).resumeSuspendedSessions.pipe(Effect.withTracer(tracer)),
+  )
   return Context.get(context, HttpRouter.HttpRouter)
     .asHttpEffect()
     .pipe(
       HttpMiddleware.cors({ allowedOrigins: (origin) => isAllowedCorsOrigin(origin, options), maxAge: 86_400 }),
+      requestTrace,
+      Effect.withTracer(tracer),
       HttpEffect.toWebHandlerWith(context),
     )
 })

@@ -22,7 +22,7 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   await expect(trigger).toHaveAttribute("aria-expanded", "true")
   const groups = root.locator('[data-slot="answer-fold"]').first().locator('[data-slot="answer-group"]')
 
-  await expect(groups).toHaveCount(2)
+  await expect(groups).toHaveCount(1)
   await expect(groups.first().locator(":scope > button")).toHaveAttribute("aria-expanded", "false")
   await groups.first().locator(":scope > button").click()
   await expect(root.locator('[data-slot="answer-disclosure"]')).toHaveCount(3)
@@ -151,16 +151,20 @@ story("titles the group that follows a step reply", async ({ mount }) => {
   await expect(title).not.toContainText("{")
 })
 
-story("titles each group that follows a step reply", async ({ mount }) => {
+story("titles a one-call step by its own row and a multi-row step by its group", async ({ mount }) => {
   const root = await mount("answer-page--flow-sequence")
 
   await expandTurn(root).click()
 
-  const titles = await root
+  const groupTitles = await root
     .locator('[data-slot="answer-group"] [data-component="text-shimmer"]')
     .evaluateAll((elements: Element[]) => elements.map((element) => element.getAttribute("aria-label")))
+  const rowTitles = await root
+    .locator('[data-slot="answer-row"] [data-slot="answer-row-title"]')
+    .evaluateAll((elements: Element[]) => elements.map((element) => element.textContent))
 
-  expect(titles).toEqual(["Analysis completed", "Read files", "Ran commands"])
+  expect(groupTitles).toEqual(["Read files"])
+  expect(rowTitles).toEqual(["Thinking", "Run command"])
 })
 
 story("copies tool output and the inspected call", async ({ mount, page }) => {
@@ -230,23 +234,25 @@ story("keeps step summaries outside every group", async ({ mount }) => {
   await expect(root.locator('[data-slot="answer-group"] [data-slot="answer-row"][data-kind="assistant"]')).toHaveCount(0)
 })
 
-story("keeps the running title fixed while the detail is long", async ({ mount, page }) => {
+story("keeps a running row's title clear of a long detail", async ({ mount, page }) => {
   await page.setViewportSize({ width: 360, height: 800 })
   const root = await mount("answer-page--long-detail")
-  const leading = root.locator('[data-slot="answer-group-leading"]').first()
-  const content = root.locator('[data-slot="answer-group-content"]').first()
-  const before = await content.boundingBox()
-  const icon = await leading.boundingBox()
+  const row = root.locator('[data-slot="answer-row"] [data-disclosure-row]').first()
+  const title = row.locator('[data-slot="answer-row-title"]')
+  const summary = row.locator('[data-slot="answer-row-summary"]')
+  const before = await summary.boundingBox()
+  const icon = await row.locator('[data-slot="leading-idle"]').boundingBox()
 
-  // A long detail truncates its own text instead of squeezing the icon slot under the title.
+  // A long detail truncates its own text instead of squeezing the icon slot or the title.
   expect(icon?.width ?? 0).toBeGreaterThanOrEqual(17)
   expect(before?.x ?? 0).toBeGreaterThanOrEqual((icon ? icon.x + icon.width : 0) - 1)
+  await expect(title).toBeVisible()
 
   await page.waitForTimeout(400)
-  const after = await content.boundingBox()
+  const after = await summary.boundingBox()
 
   expect(Math.abs((after?.x ?? 0) - (before?.x ?? 0))).toBeLessThanOrEqual(1)
-  await expect(content.locator("span").last()).toHaveCSS("overflow", "hidden")
+  await expect(summary).toHaveCSS("overflow", "hidden")
 })
 
 story("renders the running turn without a settled header", async ({ mount, page }) => {
@@ -316,6 +322,20 @@ story("opens at a restored row instead of the first message", async ({ mount, pa
 
   expect(Math.abs(offset)).toBeLessThan(40)
   expect(await viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+})
+
+story("does not record a restore the loaded transcript cannot reach", async ({ mount, page }) => {
+  await mount("answer-page--windowed-restore-unreachable")
+
+  // An unreachable offset waits for more rows before giving up, past the deadline that ends the attempt. A clamped
+  // write that claimed success would have reported the top row it landed on long before that.
+  await page.waitForTimeout(2000)
+
+  const recorded = await page.evaluate(
+    () => (globalThis as unknown as { __answerPositions?: unknown[] }).__answerPositions?.length ?? 0,
+  )
+
+  expect(recorded).toBe(0)
 })
 
 story("keeps the reading position when the cached view is detached and reattached", async ({ mount, page }) => {

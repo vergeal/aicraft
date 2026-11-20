@@ -181,6 +181,9 @@ export function AnswerTimeline(props: {
   const restoreMissed = () => {
     holdPosition = true
     props.follow.dispatch({ type: "follow" })
+    // Settle at the newest content. A view left at its clamped offset reads as a jump to the first message, so the
+    // miss ends with the end in view while the saved record stays held for a later page-in.
+    stickToEnd()
     props.onRestoreMiss?.()
   }
 

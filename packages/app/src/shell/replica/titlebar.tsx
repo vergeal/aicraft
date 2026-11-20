@@ -18,6 +18,7 @@ import { useLayout } from "@/shell/state/layout"
 import { findSessionTab, useTabs } from "@/shell/tabs/tabs"
 import { SidebarToggle } from "@/shell/sidebar-toggle"
 import { WindowsMenuBar } from "@/shell/titlebar/windows-menu"
+import { PerfMonitor } from "./perf-monitor"
 
 const BUTTON =
   "flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)] disabled:opacity-40 disabled:pointer-events-none"
@@ -278,9 +279,9 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
           />
         </span>
 
-        <Show when={usage()}>
-          {(value) => (
-            <div class="ms-auto flex shrink-0 items-center">
+        <div class="ms-auto flex shrink-0 items-center gap-1">
+          <Show when={usage()}>
+            {(value) => (
               <Tooltip
                 placement="bottom"
                 value={
@@ -322,9 +323,12 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
                   <span class="shrink-0 tabular-nums text-[var(--color-text-tertiary)]">{cny()(value().cost)}</span>
                 </button>
               </Tooltip>
-            </div>
-          )}
-        </Show>
+            )}
+          </Show>
+          <Show when={import.meta.env.DEV}>
+            <PerfMonitor />
+          </Show>
+        </div>
       </div>
     </header>
   )

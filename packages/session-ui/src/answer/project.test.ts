@@ -63,6 +63,18 @@ describe("answer projection", () => {
     expect(snapshot.nodes.get("tool:msg_2:tool_1")?.partID).toBe("tool_1")
   })
 
+  test("reuses the payload of every row a delta did not touch", () => {
+    const toolContent = tool("tool_1")
+    const settled = [user("msg_1", "go", 1), assistant("msg_2", 2, [toolContent], 10)]
+    const first = projectTimeline([...settled, assistant("msg_3", 11, [text("answer")])])
+    const second = projectTimeline([...settled, assistant("msg_3", 11, [text("answer, streamed further")])], first)
+
+    // Same text in a rebuilt message object still reuses the payload: the check is by value.
+    expect(second.nodes.get("input:msg_1")?.payload).toBe(first.nodes.get("input:msg_1")?.payload)
+    expect(second.nodes.get("tool:msg_2:tool_1")?.payload).toBe(first.nodes.get("tool:msg_2:tool_1")?.payload)
+    expect(second.nodes.get("assistant:msg_3:0")?.payload).not.toBe(first.nodes.get("assistant:msg_3:0")?.payload)
+  })
+
   test("ranks a group by category count and keeps one contiguous run", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),

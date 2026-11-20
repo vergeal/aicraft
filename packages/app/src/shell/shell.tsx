@@ -177,12 +177,9 @@ function ReplicaLayer(props: ParentProps) {
     const width = draggingWidth
     draggingWidth = undefined
 
-    // Commit first, then drop the dragging override: removing it while the root still held the old width would revert
-    // the column to that width for a frame.
+    // Commit the width. The slot's own style now carries it, so the store write is the only hand-off needed: removing
+    // the inline value here would drop the column back to the stylesheet's default for a frame.
     if (width !== undefined) preferences.appearance.setSidebarWidth(width)
-
-    const slot = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar-slot"]')
-    slot?.style.removeProperty("flex-basis")
   }
 
   // Every column follows the pointer live: the sidebar slot and the main column are flex items, so both reflow each
@@ -203,6 +200,7 @@ function ReplicaLayer(props: ParentProps) {
   // Settings ships its own category column and search, so the navigation sidebar would duplicate it.
   const showSidebar = () => !mobile() && sidebarOpen() && layout.route().type !== "settings"
   const welcome = () => layout.route().type === "home"
+  const settingsOpen = () => layout.route().type === "settings"
 
   command.register("sidebar", () => [
     {
@@ -274,7 +272,6 @@ function ReplicaLayer(props: ParentProps) {
       class="relative flex min-h-0 min-w-0 flex-1 select-none flex-col [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text"
       data-resizing={resizing() ? "" : undefined}
       style={{
-        "--navigation-sidebar-width-current": showSidebar() ? `${sidebarSize()}px` : "0px",
         /* Every desktop window fills the workspace to the window edges and keeps only a rounded top-left corner, the
            way the reference apps do. The values live on the shell root so the sidebar hairline and the workspace share
            one origin. Web squares off instead: it has no window frame to align against. */
@@ -301,6 +298,9 @@ function ReplicaLayer(props: ParentProps) {
           data-slot="replica-sidebar-slot"
           data-collapsed={showSidebar() ? undefined : ""}
           class="relative flex min-h-0 min-w-0"
+          /* The width stays on the slot itself. An inherited custom property on the shell root invalidated the style of
+             every element in the window on each toggle, so a collapse or expand restyled the whole transcript. */
+          style={{ "flex-basis": showSidebar() ? `${sidebarSize()}px` : "0px" }}
         >
           <ReplicaSidebar />
           <Show when={showSidebar()}>
@@ -321,7 +321,11 @@ function ReplicaLayer(props: ParentProps) {
           data-ui="main-workspace"
           class="relative flex min-h-0 min-w-0 flex-col"
         >
-          <ReplicaTitleBar sidebarOpen={sidebarOpen()} />
+          {/* Settings is a full-workspace surface: it draws its own page heading, so the window bar would only push
+              it down by 32px and repeat the title one row above it. */}
+          <Show when={!settingsOpen()}>
+            <ReplicaTitleBar sidebarOpen={sidebarOpen()} />
+          </Show>
 
           <Show
             when={welcome()}

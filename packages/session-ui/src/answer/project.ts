@@ -6,6 +6,7 @@ import type {
   ActivityCount,
   GroupItem,
   GroupTree,
+  NodePayload,
   ProcessActivity,
   Snapshot,
   TimelineChild,
@@ -85,10 +86,57 @@ function firstLine(text: string | undefined) {
 }
 
 /**
+ * Keeps the previous payload when this projection produced the same row content. Rendering reads
+ * `node.payload`, so reusing it stops a streamed delta from invalidating every other row's props.
+ * The comparisons are by value: a store may mutate a nested record in place, and an identity check
+ * would then carry a stale payload forward.
+ */
+function reusePayload(previous: NodePayload | undefined, next: NodePayload): NodePayload {
+  if (!previous) return next
+
+  // Each case re-checks `previous.kind`: TypeScript cannot carry one variable's discriminant narrowing
+  // over to the other, and an unchecked field read would be a lie.
+  switch (next.kind) {
+    case "input":
+      return previous.kind === "input" && previous.text === next.text ? previous : next
+    case "assistant":
+    case "reasoning":
+      return (previous.kind === "assistant" || previous.kind === "reasoning") &&
+        previous.text === next.text &&
+        previous.streaming === next.streaming
+        ? previous
+        : next
+    case "tool":
+      // The tool record is the row's state; a different record is a different row.
+      return previous.kind === "tool" && previous.tool === next.tool ? previous : next
+    case "notice":
+      return previous.kind === "notice" &&
+        previous.text === next.text &&
+        previous.detail === next.detail &&
+        previous.notice === next.notice
+        ? previous
+        : next
+    case "context":
+      // Sources come from one decoded metadata value: a new array means the step reported something new.
+      return previous.kind === "context" && previous.change === next.change && previous.sources === next.sources
+        ? previous
+        : next
+    case "error":
+      return previous.kind === "error" && previous.text === next.text ? previous : next
+    case "retry":
+      return previous.kind === "retry" && previous.attempt === next.attempt && previous.text === next.text
+        ? previous
+        : next
+  }
+}
+
+/**
  * Project the loaded message window into ordered turns: one input, one process run, and the answer
  * per turn. Streaming parts keep their identity, so a delta updates a row instead of replacing it.
+ * `previous` is the last projection: a row whose payload did not change keeps that payload object, so a
+ * streamed delta only wakes the row it touched instead of every memo in the transcript.
  */
-export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapshot {
+export function projectTimeline(messages: readonly SessionMessageInfo[], previous?: Snapshot): Snapshot {
   const drafts: TurnDraft[] = []
   const turns = new Map<number, TimelineTurn>()
   const nodes: TimelineNode[] = []
@@ -114,7 +162,16 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
     partID?: string,
     hidden?: boolean,
   ) => {
-    const node: TimelineNode = { key, turn: draft.turn, anchor: anchor++, payload, messageID, partID, groupTree, hidden }
+    const node: TimelineNode = {
+      key,
+      turn: draft.turn,
+      anchor: anchor++,
+      payload: reusePayload(previous?.nodes.get(key)?.payload, payload),
+      messageID,
+      partID,
+      groupTree,
+      hidden,
+    }
     draft.nodes.push(node)
     nodes.push(node)
 
@@ -214,7 +271,10 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
       push(draft, { kind: "tool", tool: content }, `tool:${message.id}:${content.id}`, message.id, "process", content.id)
     }
 
-    if (message.retry)
+    // A retry schedule and the failure it retries describe the same step, so only one of them owns the
+    // reason: a pending retry shows the retry row, and a final failure shows the error row. Messages
+    // written before a retry cleared its error must not show the same reason twice.
+    if (message.retry && !message.error)
       push(
         draft,
         { kind: "retry", attempt: message.retry.attempt, text: message.retry.error.message },
@@ -224,8 +284,12 @@ export function projectTimeline(messages: readonly SessionMessageInfo[]): Snapsh
       )
 
     if (message.error) {
-      draft.failure = isInterruptedError(message.error) ? "stopped" : "failed"
-      push(draft, { kind: "error", text: message.error.message }, `error:${message.id}`, message.id, "turn")
+      const interrupted = isInterruptedError(message.error)
+      draft.failure = interrupted ? "stopped" : "failed"
+      // A stopped turn already says it stopped; repeating "Step interrupted" under a failure title only
+      // restates the state in worse words.
+      if (!interrupted)
+        push(draft, { kind: "error", text: message.error.message }, `error:${message.id}`, message.id, "turn")
     }
   }
 

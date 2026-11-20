@@ -192,7 +192,7 @@
   [data-slot="session-activity-shell-command"] {
     font-family: var(--v2-font-family-code);
     font-size: 13px;
-    font-weight: 440;
+    font-weight: 400;
     line-height: var(--line-height-compact);
     letter-spacing: -0.04px;
     color: var(--v2-text-text-base);
@@ -231,7 +231,7 @@
       display: block;
       font-family: var(--v2-font-family-code);
       font-size: 13px;
-      font-weight: 440;
+      font-weight: 400;
       line-height: var(--line-height-compact);
       letter-spacing: -0.04px;
       color: var(--v2-text-text-base);

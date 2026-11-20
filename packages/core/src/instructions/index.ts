@@ -36,6 +36,7 @@ export interface Source {
   readonly initial: (value: Schema.Json) => string | undefined
   readonly changed: (previous: Schema.Json, current: Schema.Json) => string | undefined
   readonly removed: (previous: Schema.Json) => string | undefined
+  readonly parts?: (value: Schema.Json) => ReadonlyArray<RenderedPart> | undefined
 }
 
 export declare namespace Source {
@@ -49,7 +50,15 @@ export declare namespace Source {
       readonly changed: (previous: A, current: A) => string | undefined
       readonly removed?: (previous: A) => string
     }
+    /** Optional breakdown of one source into the items it is made of, for the transcript. */
+    readonly parts?: (current: A) => ReadonlyArray<RenderedPart>
   }
+}
+
+/** One entry inside a source, such as a single instruction file. */
+export interface RenderedPart {
+  readonly name: string
+  readonly text: string
 }
 
 /** Ordered sources; identical values render identical bytes. */
@@ -118,6 +127,14 @@ export function make<A>(source: Source.Definition<A>): List {
           ? undefined
           : requireText(source.key, "removed", source.render.removed(decoded))
       },
+      ...(source.parts
+        ? {
+            parts: (value: Schema.Json) => {
+              const decoded = decodeValue(value)
+              return decoded === undefined ? undefined : source.parts?.(decoded)
+            },
+          }
+        : {}),
     },
   ]
 }
@@ -163,13 +180,16 @@ export function diff(observed: ReadResult, previous?: Values): Effect.Effect<Adm
 export interface Rendered {
   readonly key: Key
   readonly text: string
+  readonly parts?: ReadonlyArray<RenderedPart>
 }
 
 export function renderInitial(value: List, values: Readonly<Record<string, Schema.Json>>): ReadonlyArray<Rendered> {
   return value.flatMap((source) => {
     if (!Object.hasOwn(values, source.key)) return []
     const text = source.initial(values[source.key])
-    return text === undefined ? [] : [{ key: source.key, text }]
+    if (text === undefined) return []
+    const parts = source.parts?.(values[source.key])
+    return [{ key: source.key, text, ...(parts && parts.length > 0 ? { parts } : {}) }]
   })
 }
 

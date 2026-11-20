@@ -85,8 +85,9 @@ export const layer = (options?: Options) =>
           render: {
             initial: render,
             changed: renderUpdate,
-            removed: () => "Previously loaded instructions no longer apply.",
+            removed: () => "之前加载的指令文件已不再适用，请忽略。",
           },
+          parts: (files) => files.map((file) => ({ name: fileName(file.path), text: file.content })),
         })
 
       const list = Effect.fn("InstructionDiscovery.list")(function* () {
@@ -122,6 +123,11 @@ export const node = configured()
 
 function render(files: ReadonlyArray<File>) {
   return files.map((file) => `来自以下文件的指令：${file.path}\n${file.content}`).join("\n\n")
+}
+
+/** The last path segment, so an instruction file is listed by its name in the transcript. */
+function fileName(path: string) {
+  return path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || path
 }
 
 function renderUpdate(previous: ReadonlyArray<File>, current: ReadonlyArray<File>) {

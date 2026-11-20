@@ -84,8 +84,8 @@
   overflow-wrap: break-word;
   color: var(--v2-text-text-base);
   font-family: var(--font-family-sans);
-  font-size: var(--font-size-base); /* 15px */
-  line-height: 160%;
+  font-size: var(--content-font-size, 14px);
+  line-height: 1.6;
   /* Shells such as the app's turn off selection for chrome; Markdown is content, so it stays selectable. */
   -webkit-user-select: text;
   user-select: text;
@@ -119,41 +119,42 @@
 
   /* Headings: Sized by level, distinguished by color and spacing */
   h1 {
-    font-size: 17px;
+    font-size: calc(var(--content-font-size, 14px) + 7px);
     color: var(--v2-text-text-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     margin-top: 28px;
     margin-bottom: 12px;
-    line-height: var(--line-height-large);
+    line-height: calc(var(--content-font-size, 14px) + 16px);
+    letter-spacing: -0.01em;
   }
 
   h2 {
-    font-size: 17px;
+    font-size: calc(var(--content-font-size, 14px) + 5px);
     color: var(--v2-text-text-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     margin-top: 24px;
     margin-bottom: 10px;
-    line-height: var(--line-height-large);
+    line-height: calc(var(--content-font-size, 14px) + 14px);
   }
 
   h3 {
-    font-size: 15px;
+    font-size: calc(var(--content-font-size, 14px) + 4px);
     color: var(--v2-text-text-base);
     font-weight: var(--font-weight-bold);
     margin-top: 20px;
     margin-bottom: 8px;
-    line-height: var(--line-height-large);
+    line-height: calc(var(--content-font-size, 14px) + 12px);
   }
 
   h4,
   h5,
   h6 {
-    font-size: 15px;
+    font-size: var(--content-font-size, 14px);
     color: var(--v2-text-text-muted);
     font-weight: var(--font-weight-medium);
     margin-top: 20px;
     margin-bottom: 8px;
-    line-height: var(--line-height-large);
+    line-height: calc(var(--content-font-size, 14px) + 10px);
   }
 
   /* A heading's own bottom margin sets the gap to its section, so a block's larger top margin can't push the heading away from it. */
@@ -484,7 +485,7 @@
     unicode-bidi: isolate;
     font-family: var(--font-family-mono);
     color: var(--markdown-inline-code-ink);
-    font-weight: 350;
+    font-weight: 400;
     /* A 4px side pad keeps the tint off the glyphs. It is not paid back by a negative margin: paying
        it back pulled neighbouring text into the chip, which reads as letters touching.
        The bottom pad is a font-metric correction, not rhythm: an inline box is as tall as the font's
@@ -528,7 +529,7 @@
     border-collapse: separate;
     border-spacing: 0;
     color: var(--v2-text-text-base);
-    font-size: 15px;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
     font-weight: 400;
     line-height: var(--line-height-compact);
@@ -554,7 +555,7 @@
   th {
     padding: 8px 12px;
     color: var(--v2-text-text-muted);
-    font-weight: 530;
+    font-weight: 500;
   }
 
   td {
@@ -630,7 +631,7 @@
     color: var(--v2-text-text-base);
     user-select: none;
     font-size: 12px;
-    font-weight: 530;
+    font-weight: 500;
     line-height: 14px;
     letter-spacing: 0.05px;
     font-variant-numeric: tabular-nums;

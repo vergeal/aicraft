@@ -14,6 +14,7 @@ import { SessionSchema } from "../schema.js"
 import { SessionError } from "@opencode/schema/session-error"
 import { Money } from "@opencode/schema/money"
 import { contentFilterError } from "../to-session-error.js"
+import type { SessionModelRequest } from "../model-request.js"
 import type { Tool } from "../../tool.js"
 import { stringify } from "../../tool/runtime.js"
 
@@ -26,6 +27,8 @@ type Input = {
   readonly pendingSnapshot?: Effect.Effect<Snapshot.ID | undefined>
   readonly started: number
   readonly assistantMessageID: SessionMessage.ID
+  /** What the request injected ahead of the conversation, reported by `Step.Started`. */
+  readonly context?: ReadonlyArray<SessionModelRequest.ContextSource>
   /** Resolves a tool's declared mark from its advertised name, so the part carries it without a UI lookup table. */
   readonly toolIcon?: (name: string) => string | undefined
 }
@@ -133,6 +136,7 @@ export const createLLMEventPublisher = (bus: Pick<Bus.Interface, "publish">, inp
       assistantMessageID,
       snapshot,
       started: input.started,
+      ...(input.context && input.context.length > 0 ? { context: [...input.context] } : {}),
     })
     return assistantMessageID
   })

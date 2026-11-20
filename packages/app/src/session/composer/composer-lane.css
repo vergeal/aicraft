@@ -16,7 +16,7 @@
   background: var(--v2-material-surface-strong);
   backdrop-filter: var(--v2-material-blur-thick);
   box-shadow: var(--v2-elevation-raised);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   letter-spacing: -0.04px;

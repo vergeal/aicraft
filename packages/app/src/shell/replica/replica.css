@@ -5,7 +5,6 @@
      inset inside that row, so the bar stays a title strip rather than a second toolbar. */
   --titlebar-height: 32px;
   --navigation-sidebar-width: 280px;
-  --navigation-sidebar-width-current: var(--navigation-sidebar-width);
 
   --sidebar-header-height: 32px;
   --sidebar-header-padding-inline: 14px;
@@ -74,11 +73,18 @@
   --radius-card: 12px;
   --radius-popover: 12px;
   --radius-message: 17px;
-  --radius-composer: 19px;
+  --radius-composer: 18px;
+  --radius-composer-single-line: 26px;
   --radius-dialog: 18px;
 
-  /* The dock leaves 14px under the card; a taller blur would be clipped by the work area's bottom edge. */
-  --shadow-composer: 0 2px 12px rgba(0, 0, 0, 0.05);
+  /* The draft scrolls inside the card once it outgrows this height. A single line already fills a short card, so
+     the composer keeps this with the radius steps rather than with the fixed heights above. */
+  --composer-text-max-height: 336px;
+
+  /* The dock leaves 14px under the card; a taller blur would be clipped by the work area's bottom edge.
+     One stroke plus two soft layers: the card lifts off the conversation without greying it. */
+  --shadow-composer:
+    0 0 0 1px rgb(0 0 0 / 4%), 0 2px 8px rgb(0 0 0 / 4%), 0 4px 80px 8px rgb(0 0 0 / 2.3%);
   --shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.1);
   --shadow-dialog: 0 16px 44px rgba(0, 0, 0, 0.15);
 
@@ -125,6 +131,11 @@
   --color-send-fg: var(--v2-text-text-contrast);
   /* A dark glass surface swallows a dark divider the same way the light one swallows #eeeeee. */
   --color-divider-glass: rgb(255 255 255 / 10%);
+
+  /* A dark fill swallows the card's own edge, so the composer keeps a faint inner light along its boundary. */
+  --shadow-composer:
+    0 0 0 1px rgb(0 0 0 / 4%), 0 2px 8px rgb(0 0 0 / 4%), 0 4px 80px 8px rgb(0 0 0 / 2.3%),
+    inset 0 0 1px 0 rgb(255 255 255 / 20%);
 }
 
 /* One titlebar split at the sidebar boundary: window controls on the left, conversation title on the right. */
@@ -309,7 +320,8 @@ html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
 [data-slot="replica-sidebar-slot"] {
   position: relative;
   display: flex;
-  flex: 0 0 var(--navigation-sidebar-width-current);
+  /* The live width is written on the slot itself, so toggling the column never restyles the tree that inherits it. */
+  flex: 0 0 var(--navigation-sidebar-width);
   min-width: 0;
   min-height: 0;
   transition:
@@ -702,6 +714,31 @@ html[data-os="macos"]
   border: 1px solid var(--color-border);
   border-radius: var(--radius-composer);
   box-shadow: var(--shadow-composer);
+  transition:
+    border-radius 160ms ease,
+    border-color 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-replica] [data-ui="composer"],
+  [data-replica] [data-slot="replica-compose-card"] {
+    transition: none;
+  }
+}
+
+/* One line is a capsule. Attachments or a second line mean the card is no longer a single row of text, so its corner
+   steps down to the resting radius. The editor marks its own shape from its measured height. */
+[data-replica] [data-ui="composer"]:has([data-component="composer-editor"][data-lines="single"]),
+[data-slot="replica-compose-card"]:has([data-component="composer-editor"][data-lines="single"]),
+[data-replica]
+  [data-slot="composer-morph"][data-dock-border-underlay]:has([data-component="composer-editor"][data-lines="single"]) {
+  border-radius: var(--radius-composer-single-line);
+}
+
+/* Focus deepens the hairline instead of drawing an accent ring: the prompt already owns the whole card. */
+[data-replica] [data-ui="composer"]:has([data-component="composer-editor"]:focus),
+[data-slot="replica-compose-card"]:has([data-component="composer-editor"]:focus) {
+  border-color: var(--v2-border-border-strong);
 }
 
 /* The shell owns the card edge: the border, radius and shadow are drawn once on the wrapper, so the shared

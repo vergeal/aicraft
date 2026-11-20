@@ -1,4 +1,5 @@
 import type { ElectronAPI } from "./api-types"
+import type { DiagnosticsMainSnapshot } from "../shared/diagnostics"
 import { cancellable, invoke, listen, send } from "./ipc-client"
 
 type Mutable<Value> =
@@ -118,6 +119,10 @@ export const api: ElectronAPI = {
     ),
   setBackgroundColor: (color) => invoke("AppSetBackgroundColor", { color }),
   exportDebugLogs: () => invoke("AppExportDebugLogs"),
+  writeDiagnostics: (input) => invoke("AppWriteDiagnostics", input),
+  // SAFETY: main answers with its own `DiagnosticsMainSnapshot`, whose fields are JSON-native, so the
+  // structured clone arrives as decoded values.
+  readDiagnosticsMain: () => invoke("AppReadDiagnosticsMain") as Promise<DiagnosticsMainSnapshot>,
   setForceFocus: (enabled) => invoke("AppSetForceFocus", { enabled }),
   getSpellcheckEnabled: () => invoke("AppGetSpellcheckEnabled"),
   setSpellcheckEnabled: (enabled) => invoke("AppSetSpellcheckEnabled", { enabled }),

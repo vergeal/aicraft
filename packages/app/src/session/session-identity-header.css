@@ -91,7 +91,7 @@
 
 /* The title carries the weight; its font utilities are unreliable inside the sticky header. */
 .session-header-title h1 {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 20px;
   letter-spacing: -0.02em;
@@ -111,7 +111,7 @@
   inline-size: max-content;
   padding-inline: 4px;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 20px;
   letter-spacing: -0.02em;

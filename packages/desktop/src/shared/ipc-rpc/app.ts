@@ -41,6 +41,15 @@ export const AppSetBackgroundColor = Rpc.make("AppSetBackgroundColor", {
 
 export const AppExportDebugLogs = Rpc.make("AppExportDebugLogs", { success: Schema.String })
 
+export const AppWriteDiagnostics = Rpc.make("AppWriteDiagnostics", {
+  payload: { name: Schema.String, content: Schema.String },
+  success: Schema.String,
+})
+
+// The main-process half of a diagnostics dump. The shape is `DiagnosticsMainSnapshot`; it is a plain
+// JSON value, so the boundary does not re-validate main's own capture.
+export const AppReadDiagnosticsMain = Rpc.make("AppReadDiagnosticsMain", { success: Schema.Unknown })
+
 export const AppSetForceFocus = Rpc.make("AppSetForceFocus", {
   payload: { enabled: Schema.Boolean },
 })
@@ -80,6 +89,8 @@ export const AppRpcs = RpcGroup.make(
   AppResolveAppPath,
   AppSetBackgroundColor,
   AppExportDebugLogs,
+  AppWriteDiagnostics,
+  AppReadDiagnosticsMain,
   AppSetForceFocus,
   AppGetSpellcheckEnabled,
   AppSetSpellcheckEnabled,

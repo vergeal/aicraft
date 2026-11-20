@@ -1,5 +1,6 @@
 import type { Platform } from "@opencode/app/desktop"
 import type { ElectronAPI } from "../api-types"
+import type { DiagnosticsMainSnapshot } from "../../shared/diagnostics"
 import { setPinchZoomEnabled, setZoomLevel, webviewZoom, zoomLevel } from "../window/zoom"
 import { windowFullscreen } from "../window/fullscreen"
 import { DragCancelEvent } from "../../shared/ipc-transport"
@@ -14,7 +15,15 @@ export type DesktopWindowState = {
   version: string
 }
 
-export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWindowState): Platform {
+/**
+ * The desktop platform plus readings the shared `Platform` type does not declare yet. Consumers that
+ * only know `Platform` keep working; diagnostics reads this by its narrower type.
+ */
+export type DesktopPlatform = Platform & {
+  readDiagnosticsMain(): Promise<DiagnosticsMainSnapshot>
+}
+
+export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWindowState): DesktopPlatform {
   const os = desktopOS()
 
   return {
@@ -25,6 +34,8 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
     ...createDesktopFiles(api, os),
     ...createDesktopStorage(api),
     exportDebugLogs: () => api.exportDebugLogs(),
+    writeDiagnostics: (input) => api.writeDiagnostics(input),
+    readDiagnosticsMain: () => api.readDiagnosticsMain(),
     setForceFocus: (enabled) => api.setForceFocus(enabled),
     recordFatalRendererError: (error) => api.recordFatalRendererError(error),
     restart: async () => api.relaunch(),

@@ -507,3 +507,26 @@ export const WindowedRestore = {
     )
   },
 }
+
+// A remembered offset the loaded transcript cannot scroll to. Restoring it only clamps, so the page must not record the
+// top row it lands on: doing that replaces the reader's place and every later activation opens at the first message.
+export const WindowedRestoreUnreachable = {
+  render: () => {
+    const [viewport, setViewport] = createSignal<HTMLDivElement>()
+    const restore = { key: "node:input:msg_user_long_39", offset: 200_000 }
+    const positions: Array<{ key: string; offset: number }> = []
+    ;(globalThis as unknown as { __answerPositions?: typeof positions }).__answerPositions = positions
+
+    return (
+      <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
+        <AnswerPage
+          messages={() => longSession}
+          viewport={viewport}
+          restore={() => restore}
+          following={() => false}
+          onPositionChange={(position) => positions.push(position)}
+        />
+      </div>
+    )
+  },
+}

@@ -18,6 +18,11 @@
   padding: 32px 24px 64px;
 }
 
+/* A catalog that fills several columns needs more than the reading measure; the head stays one line long. */
+.module-page-inner[data-wide] {
+  max-width: 1180px;
+}
+
 .module-page-head {
   display: flex;
   align-items: flex-start;

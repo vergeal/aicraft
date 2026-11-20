@@ -374,6 +374,32 @@ export type JobStatus = "running" | "completed" | "error" | "cancelled"
 
 export type JobTime = { started: number; completed?: number }
 
+export type DiagnosticsSpan = {
+  traceID: string
+  spanID: string
+  parentSpanID?: string | undefined
+  name: string
+  startWall: number
+  durationMs: number
+  attributes: { [x: string]: any }
+  status: "ok" | "error"
+}
+
+export type DiagnosticsSlowQuery = {
+  sql: string
+  durationMs: number
+  at: number
+  traceID?: string | undefined
+  spanID?: string | undefined
+  span?: string | undefined
+}
+
+export type DiagnosticsLlmTrace = {
+  traceID: string
+  totalMs: number
+  segments: Array<{ phase: string; spans: number; durationMs: number }>
+}
+
 export type ReferenceGitSource = { type: "git"; repository: string; branch?: string }
 
 export type VcsBranch = { current?: string; default?: string }
@@ -1027,6 +1053,14 @@ export type JobImage = {
   model: string
 }
 
+export type DiagnosticsServer = {
+  spans: Array<DiagnosticsSpan>
+  slowQueries: Array<DiagnosticsSlowQuery>
+  llm: Array<DiagnosticsLlmTrace>
+  dropped: number
+  windowSeconds: number
+}
+
 export type VcsInfo = { provider?: string; branch: VcsBranch }
 
 export type WebSearchProvider = { id: WebSearchID; name: string }
@@ -1495,6 +1529,12 @@ export type SessionStepStarted = {
     model: ModelRef
     snapshot?: SnapshotID
     started: number
+    context?: Array<{
+      key: string
+      chars: number
+      text: string
+      items?: Array<{ name: string; chars: number; text: string }>
+    }>
   }
 }
 
@@ -4888,6 +4928,8 @@ export type ExperimentalJobListInput = {
 }
 
 export type ExperimentalJobListOutput = { data: Array<JobInfo> }["data"]
+
+export type ExperimentalDiagnosticsServerOutput = DiagnosticsServer
 
 export type ShellListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 

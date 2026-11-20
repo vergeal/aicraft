@@ -25,6 +25,8 @@ export interface Interface {
   readonly startNetwork: Effect.Effect<void>
   readonly startCrashReporter: Effect.Effect<void>
   readonly exportDebug: Effect.Effect<string>
+  /** Writes a renderer diagnostics dump under `userData/diagnostics` and returns its absolute path. */
+  readonly writeDiagnostics: (name: string, content: string) => Effect.Effect<string>
 }
 
 export class Service extends Context.Service<Service, Interface>()("opencode/desktop/DesktopLogging") {}
@@ -57,9 +59,24 @@ const serviceLayer = Layer.effect(
         Effect.catch((error) => Effect.logWarning("failed to start crash reporter", { error })),
       ),
       exportDebug,
+      writeDiagnostics: Effect.fn("DesktopLogging.writeDiagnostics")(function* (name: string, content: string) {
+        const dir = path.join(app.getPath("userData"), "diagnostics")
+        // The renderer picks the file name; keep it inside the diagnostics folder.
+        const file = path.join(dir, path.basename(name))
+        yield* fs.makeDirectory(dir, { recursive: true })
+        yield* fs.writeFile(file, new TextEncoder().encode(content))
+        yield* scoped("diagnostics", Effect.logInfo("wrote diagnostics dump", { path: file }))
+
+        return file
+      }, Effect.orDie),
     })
   }),
 )
+
+/** The current run's log directory. Empty until the logging layer has started. */
+export function logsDirectory() {
+  return run
+}
 
 const nativeLogger = Logger.make((options) => {
   try {

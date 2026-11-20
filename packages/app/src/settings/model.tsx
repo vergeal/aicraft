@@ -428,11 +428,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       const mono = monoFontFamily(store.appearance?.mono)
       root.style.setProperty("--font-family-mono", mono)
       root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
-      // The shipped scale is 15/15/18px at the default size of 14, so every step scales from that anchor.
+      // UI chrome keeps the design scale (14px) so menus, lists and controls stay stable;
+      // only the conversation body follows the reader's size setting.
       const px = (value: number) => `${Math.round(((value * fontSize()) / 14) * 100) / 100}px`
-      root.style.setProperty("--font-size-small", px(15))
-      root.style.setProperty("--font-size-base", px(15))
-      root.style.setProperty("--font-size-large", px(18))
+      root.style.setProperty("--font-size-small", "14px")
+      root.style.setProperty("--font-size-base", "14px")
+      root.style.setProperty("--font-size-large", "18px")
+      root.style.setProperty("--font-size-x-large", "20px")
+      root.style.setProperty("--content-font-size", px(14))
       // Inline code can first appear during history backfill. Load its selected
       // face with the shell so that font discovery does not resize that mount.
       void document.fonts?.load(`400 13px ${mono}`).catch(() => undefined)

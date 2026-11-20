@@ -160,10 +160,25 @@ export function ComposerEditor(props: ComposerEditorProps) {
     observer.observe(controlsViewport)
     observer.observe(controlsContent)
     updateOverflow()
-    // Typing and width changes both resize the editor, so it is the only element that needs watching.
-    const scrollObserver = new ResizeObserver(updateScroll)
+    // Typing and width changes both resize the editor, so it is the only element that needs watching. The content
+    // box also grows for attachments and a history preview, and both make the card more than one line tall.
+    const markShape = () => {
+      if (!editor || !content) return
+      const style = getComputedStyle(editor)
+      const singleLine =
+        parseFloat(style.lineHeight) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+      const lines = content.scrollHeight <= singleLine + 1 ? "single" : "multi"
+
+      if (editor.dataset.lines !== lines) editor.dataset.lines = lines
+    }
+    const scrollObserver = new ResizeObserver(() => {
+      updateScroll()
+      markShape()
+    })
 
     if (editor) scrollObserver.observe(editor)
+    if (content) scrollObserver.observe(content)
+    markShape()
     onCleanup(() => {
       observer.disconnect()
       scrollObserver.disconnect()
@@ -343,7 +358,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             data-component="composer-scroll"
             data-scrollable
             class="relative overflow-y-auto"
-            classList={{ "max-h-[180px]": historyLayout.height === undefined }}
+            classList={{ "max-h-[var(--composer-text-max-height)]": historyLayout.height === undefined }}
             onScroll={updateScroll}
             ref={viewport}
           >
@@ -355,6 +370,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
                 decoration = createCodeDecoration(element)
               }}
               data-component="composer-editor"
+              data-lines="single"
               role="textbox"
               aria-multiline="true"
               aria-label={i18n.t("ui.promptInput.label")}
@@ -488,6 +504,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             />
             <Show when={empty()}>
               <div
+                data-slot="composer-placeholder"
                 dir={state.mode === "normal" ? "auto" : "ltr"}
                 class="pointer-events-none absolute inset-x-0 top-0 ps-3 pe-[var(--composer-scroll-end)] pt-3 text-[15px] font-[400] leading-5 text-v2-text-text-muted"
                 classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell" }}
@@ -888,7 +905,7 @@ function ComposerAttachments(props: {
       <div data-component="composer-attachments" data-slot="composer-attachments" class="relative">
         <div
           data-slot="composer-attachments-scroll"
-          class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar px-3 pt-3 pb-1"
+          class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar px-2 pt-3 pb-0"
         >
           <For each={props.comments ?? []}>
             {(comment) => (

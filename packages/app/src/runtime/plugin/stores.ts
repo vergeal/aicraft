@@ -212,21 +212,26 @@ export function createSessionStore<T extends object>(input: {
 
   // Drops the stores of sessions whose tabs closed. The routed session keeps its store, and so does one no tab has
   // listed yet: a deep link or a new session routes and preloads before the titlebar adds its tab.
-  createRenderEffect(() => {
-    const keys = new Set(input.sessions.list().map((session) => session.key))
-    const routed = input.sessions.current()?.key
+  // The effect lives under the same owner as the stores: without one it outlives every store built with it.
+  const prune = createRoot((dispose) => {
+    createRenderEffect(() => {
+      const keys = new Set(input.sessions.list().map((session) => session.key))
+      const routed = input.sessions.current()?.key
 
-    untrack(() =>
-      entries.forEach((entry, key) => {
-        if (keys.has(key)) return void listed.add(key)
+      untrack(() =>
+        entries.forEach((entry, key) => {
+          if (keys.has(key)) return void listed.add(key)
 
-        if (key === routed || !listed.has(key)) return
-        entry.dispose()
-        entries.delete(key)
-        listed.delete(key)
-      }),
-    )
-  })
+          if (key === routed || !listed.has(key)) return
+          entry.dispose()
+          entries.delete(key)
+          listed.delete(key)
+        }),
+      )
+    })
+
+    return dispose
+  }, input.owner)
 
   const create = (session: SessionRef) => {
     // The first ref stands in until the host lists the key, and again if its tab closes before the store drops.
@@ -266,6 +271,7 @@ export function createSessionStore<T extends object>(input: {
       return created.handle
     },
     dispose() {
+      prune()
       entries.forEach((entry) => entry.dispose())
       entries.clear()
       listed.clear()

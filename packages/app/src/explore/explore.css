@@ -41,7 +41,7 @@
 
 .explore-section-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   line-height: var(--line-height-base);
   color: var(--v2-text-text-base);
@@ -373,7 +373,7 @@
 .explore-catalog-group-title {
   margin: 0 0 10px;
   padding-inline: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   line-height: var(--line-height-base);
   color: var(--v2-text-text-base);
@@ -643,7 +643,7 @@
   margin: 0;
   padding-bottom: 8px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   line-height: var(--line-height-base);
   color: var(--v2-text-text-base);
@@ -1170,7 +1170,7 @@
 [data-component="textarea-v2"].explore-skill-summary [data-slot="textarea-v2-textarea"] {
   min-height: 0;
   padding: 0;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--v2-text-text-muted);
   resize: none;
@@ -1196,7 +1196,7 @@
 [data-component="textarea-v2"].explore-skill-markdown [data-slot="textarea-v2-textarea"] {
   min-height: 360px;
   padding: 0;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.75;
   letter-spacing: normal;
   resize: none;
@@ -1298,4 +1298,156 @@
 
 .module-skill-doc [data-slot="artifact-markdown-content"] {
   min-width: 0;
+}
+
+/* ---------- explore catalog: a search field above a dense grid, so a large catalog stays scannable ---------- */
+
+/* The filter row sticks to the top of the page's scrollport: a catalog of thousands never hides its search. */
+.explore-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-block: 8px;
+  background: var(--v2-background-bg-base);
+}
+
+.explore-search {
+  display: flex;
+  min-width: 200px;
+  flex: 1 1 260px;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  color: var(--v2-text-text-muted);
+}
+
+.explore-search:focus-within {
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+}
+
+.explore-search-icon {
+  flex: none;
+  color: var(--v2-text-text-faint);
+}
+
+.explore-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--v2-text-text-base);
+  font: inherit;
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+.explore-search input::placeholder {
+  color: var(--v2-text-text-faint);
+}
+
+/* The shelves: one segmented control at the top of the page, so the catalog is split before it is listed. */
+.explore-tabs {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-01);
+}
+
+.explore-tab {
+  display: inline-flex;
+  height: 26px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--v2-text-text-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: var(--line-height-compact);
+  cursor: default;
+}
+
+.explore-tab .count {
+  color: var(--v2-text-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) {
+  .explore-tab:hover {
+    color: var(--v2-text-text-base);
+  }
+}
+
+.explore-tab[data-selected] {
+  background: var(--v2-background-bg-layer-02);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  color: var(--v2-text-text-base);
+}
+
+.explore-tab[data-selected] .count {
+  color: var(--v2-text-text-muted);
+}
+
+.explore-tab:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+}
+
+.explore-toolbar-count {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  line-height: var(--line-height-compact);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rows pack into columns; each one opens its own page instead of expanding in place. */
+.module-grid.explore-grid {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: start;
+}
+
+/* An entry's own page: the same facts and sections the card body used, on the reading measure. */
+.explore-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explore-detail .explore-catalog-about,
+.explore-detail .explore-catalog-facts,
+.explore-detail .explore-catalog-section,
+.explore-detail .explore-catalog-toggle,
+.explore-detail .explore-plugin-error,
+.explore-detail .explore-plugin-retry,
+.explore-detail .explore-note {
+  margin-top: 0;
+}
+
+.explore-detail .explore-catalog-facts {
+  padding-block: 0;
+}
+
+.explore-detail .explore-note {
+  margin-top: 4px;
+}
+
+.explore-more {
+  display: flex;
+  justify-content: center;
 }

@@ -21,7 +21,7 @@
   [data-slot="dialog-content"]
   [data-slot="dialog-header"]
   [data-slot="dialog-title"] {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 20px;
 }
@@ -144,7 +144,7 @@
 .session-settings-body [data-component="textarea-v2"] [data-slot="textarea-v2-textarea"] {
   flex: 1;
   padding: 12px 16px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: var(--line-height-base);
   letter-spacing: 0;
   resize: none;

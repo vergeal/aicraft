@@ -54,15 +54,15 @@
 
   [data-slot="project"] {
     font-weight: 400;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
     letter-spacing: -0.04px;
     color: var(--v2-text-text-muted);
   }
 
   [data-slot="title"] {
-    font-weight: 530;
-    font-size: 15px;
+    font-weight: 500;
+    font-size: 14px;
     line-height: 1.5;
     letter-spacing: -0.04px;
     color: var(--v2-text-text-base);
@@ -81,7 +81,7 @@
     /* Paths wrap after separators; a single folder name too long for the line still breaks instead of clipping. */
     overflow-wrap: anywhere;
     font-weight: 400;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
     letter-spacing: -0.04px;
     color: var(--v2-text-text-muted);
@@ -89,7 +89,7 @@
 
   [data-slot="server"] {
     font-weight: 400;
-    font-size: 15px;
+    font-size: 14px;
     line-height: var(--line-height-compact);
     letter-spacing: -0.04px;
     color: var(--v2-text-text-muted);

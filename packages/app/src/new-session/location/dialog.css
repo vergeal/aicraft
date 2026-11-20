@@ -85,7 +85,7 @@
   border-radius: 9999px;
   background: transparent;
   font: inherit;
-  font-size: 15px;
+  font-size: 14px;
   text-align: start;
   cursor: pointer;
 }
@@ -131,7 +131,7 @@
 
 .new-session-location-count {
   color: var(--v2-text-text-faint);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
   line-height: var(--line-height-compact);
   font-variant-numeric: tabular-nums;

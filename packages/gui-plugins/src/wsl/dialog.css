@@ -99,9 +99,9 @@
   justify-content: center;
   margin: 0;
   font-style: normal;
-  font-weight: 530;
-  font-size: 17px;
-  line-height: 20px;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 28px;
   letter-spacing: -0.13px;
   font-variant-numeric: tabular-nums;
   font-variation-settings: "slnt" 0;
@@ -117,9 +117,9 @@
   max-width: 300px;
   margin: 0;
   font-style: normal;
-  font-weight: 440;
-  font-size: 15px;
-  line-height: 20px;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 28px;
   text-align: center;
   letter-spacing: -0.04px;
   font-variant-numeric: tabular-nums;
@@ -132,7 +132,7 @@
   max-width: 360px;
   margin: 4px 0 0;
   font-style: normal;
-  font-weight: 440;
+  font-weight: 400;
   font-size: 13px;
   line-height: 18px;
   text-align: center;
@@ -159,8 +159,8 @@
   flex: none;
   user-select: none;
   font-style: normal;
-  font-weight: 440;
-  font-size: 15px;
+  font-weight: 400;
+  font-size: 14px;
   line-height: 18px;
   letter-spacing: -0.04px;
   font-variation-settings: "slnt" 0;
@@ -226,8 +226,8 @@
 
 .settings-wsl-distro-label {
   font-style: normal;
-  font-weight: 440;
-  font-size: 15px;
+  font-weight: 400;
+  font-size: 14px;
   line-height: 18px;
   letter-spacing: -0.04px;
   font-variant-numeric: tabular-nums;
@@ -238,7 +238,7 @@
 .settings-wsl-distro-status {
   flex: none;
   font-style: normal;
-  font-weight: 440;
+  font-weight: 400;
   font-size: 13px;
   line-height: 14px;
   letter-spacing: 0.05px;
@@ -264,8 +264,8 @@
 
 .settings-wsl-distro-empty {
   padding: 16px;
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.4;
   color: var(--v2-text-text-muted);
 }
@@ -322,8 +322,8 @@
 .settings-wsl-catalog-title {
   user-select: none;
   font-style: normal;
-  font-weight: 440;
-  font-size: 15px;
+  font-weight: 400;
+  font-size: 14px;
   line-height: 18px;
   letter-spacing: -0.04px;
   font-variation-settings: "slnt" 0;
@@ -333,7 +333,7 @@
 .settings-wsl-catalog-description {
   user-select: none;
   font-style: normal;
-  font-weight: 440;
+  font-weight: 400;
   font-size: 13px;
   line-height: 14px;
   letter-spacing: 0.05px;
@@ -385,8 +385,8 @@
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-muted);
   text-align: center;

@@ -5,6 +5,7 @@ import { AppRpcs } from "../../shared/ipc-rpc"
 import { openExternalURL } from "../files"
 import { checkAppExists, resolveAppPath } from "../files/apps"
 import { setForceFocus } from "../native/debug"
+import { mainDiagnostics } from "../native/diagnostics"
 import { showCliInstaller } from "../native/install-cli"
 import { DesktopLogging, scoped } from "../native/logging"
 import { createMenu, sendMenuCommand } from "../native/menu"
@@ -51,6 +52,8 @@ export const appHandlers = AppRpcs.toLayer(
       AppGetSpellcheckEnabled: () => Effect.sync(getSpellcheckEnabled),
       AppSetSpellcheckEnabled: ({ enabled }) => Effect.sync(() => setSpellcheckEnabled(enabled)),
       AppExportDebugLogs: () => logging.exportDebug,
+      AppWriteDiagnostics: ({ name, content }) => logging.writeDiagnostics(name, content),
+      AppReadDiagnosticsMain: () => Effect.sync(() => mainDiagnostics.snapshot()),
       AppSetForceFocus: ({ enabled }, context) => promise(() => setForceFocus(sender(handoff, context), enabled)),
       AppRecordFatalRendererError: ({ error }) =>
         scoped("renderer", Effect.logError("fatal renderer error", { ...error })),

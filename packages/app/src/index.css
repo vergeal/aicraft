@@ -202,7 +202,7 @@
 
   [data-component="menu-v2-content"].desktop-app-menu {
     min-width: 160px;
-    padding: 2px;
+    padding: 4px;
   }
 
   [data-component="menu-v2-content"].desktop-app-menu:not(.desktop-app-menu-sub) {
@@ -218,20 +218,21 @@
   [data-component="menu-v2-content"].desktop-app-menu [data-slot="menu-v2-group-label"] {
     display: flex;
     align-items: center;
-    height: 28px;
-    padding: 0 12px;
-    font-size: var(--font-size-x-small);
+    height: 26px;
+    padding: 0 calc(var(--spacing) * 2);
+    font-size: var(--font-size-xx-small);
     font-weight: var(--font-weight-medium);
     line-height: 1;
+    letter-spacing: 0.02em;
     color: var(--text-weak);
   }
 
   [data-component="menu-v2-content"].desktop-app-menu [data-component="menu-v2-item"] {
-    min-height: 28px;
-    padding: 0 12px;
-    gap: 8px;
+    min-height: 30px;
+    padding: 0 calc(var(--spacing) * 2);
+    gap: var(--spacing);
     font-weight: var(--font-weight-regular);
-    line-height: 1;
+    line-height: var(--line-height-base);
   }
 
   [data-component="menu-v2-content"].desktop-app-menu [data-slot="menu-v2-item-content"] {
@@ -241,7 +242,7 @@
   [data-component="menu-v2-content"].desktop-app-menu [data-slot="menu-v2-item-shortcut"] {
     margin-left: auto;
     color: var(--text-weak);
-    font-size: var(--font-size-x-small);
+    font-size: var(--font-size-xx-small);
     font-weight: var(--font-weight-regular);
     white-space: nowrap;
   }
@@ -431,9 +432,9 @@
 
 /* The desktop menu portal mounts on the document body, and the menu stylesheet is unlayered with its own
    `[data-appearance="standard"]` row radius, so it outranks the component-layer rules under `.desktop-app-menu`
-   above. Match that specificity plus the appearance attribute so a dropdown row keeps the same 10px control radius as
-   the titlebar buttons and menu labels. The portal sits outside `[data-replica]`, so the radius is a literal rather
-   than `--radius-control`. */
+   above. Match that specificity plus the appearance attribute so a dropdown row keeps the same 8px row radius as
+   the rest of the menu system. The portal sits outside `[data-replica]`, so the step is read from the shared
+   `--radius-lg` token rather than a replica-local one. */
 [data-component="menu-v2-content"][data-appearance].desktop-app-menu [data-component="menu-v2-item"] {
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }

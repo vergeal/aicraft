@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@tsconfig/node22/tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "noEmit": true,
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "strict": true,
+    "types": ["bun"]
+  },
+  "include": ["src", "test"]
+}

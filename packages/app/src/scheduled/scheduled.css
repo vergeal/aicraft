@@ -147,7 +147,7 @@
   color: var(--v2-text-text-muted);
   font-size: 10px;
   line-height: var(--line-height-compact);
-  font-weight: 550;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -202,7 +202,7 @@
 .scheduled-stat-value {
   margin-top: 4px;
   overflow: hidden;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -213,7 +213,7 @@
 
 .scheduled-stat-path {
   font-size: 12.5px;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 /* Blocks --------------------------------------------------------------- */
@@ -359,7 +359,7 @@
   [data-slot="dialog-content"]
   [data-slot="dialog-header"]
   [data-slot="dialog-title"] {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 20px;
 }
 

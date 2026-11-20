@@ -6,6 +6,8 @@ import { SessionMessage } from "@opencode/core/session/message"
 import { AgentAttachment, Base64, FileAttachment, SkillAttachment } from "@opencode/schema/prompt"
 import { Skill } from "@opencode/schema/skill"
 import { toLLMMessages } from "@opencode/core/session/runner/to-llm-message"
+import { SessionModelRequest } from "@opencode/core/session/model-request"
+import { Instructions } from "@opencode/core/instructions/index"
 import { Agent } from "@opencode/core/agent"
 import { Shell } from "@opencode/schema/shell"
 import { Location } from "@opencode/schema/location"
@@ -1228,6 +1230,46 @@ Earlier work
         text: "Checking.",
         providerMetadata: { provider: { phase: "commentary" } },
       },
+    ])
+  })
+})
+
+describe("baseTranscript", () => {
+  test("tags every injected system part with the source it contributes", () => {
+    const transcript = SessionModelRequest.baseTranscript({
+      agent: { system: "agent" },
+      model: { model: { route: {}, provider: "provider" }, ref: model },
+      tools: { definitions: [] },
+      initial: [
+        {
+          key: Instructions.Key.make("core/instructions"),
+          text: "files",
+          parts: [{ name: "a.md", text: "first" }],
+        },
+        { key: Instructions.Key.make("core/date"), text: "date" },
+        { key: Instructions.Key.make("core/environment"), text: "environment" },
+      ],
+      project: "project",
+      sessionPrompt: "session",
+      messages: [],
+    } as unknown as Parameters<typeof SessionModelRequest.baseTranscript>[0])
+
+    const sources = SessionModelRequest.contextSources(transcript.system)
+    expect(sources.map((source) => source.key)).toEqual([
+      "system",
+      "core/project",
+      "session",
+      "core/instructions",
+      "core/date",
+      "core/environment",
+    ])
+    expect(sources.every((source) => source.chars > 0 && source.text.length > 0)).toBe(true)
+    // A source with parts reports the files it is made of, each with its own text.
+    expect(sources[3]?.items).toEqual([{ name: "a.md", chars: "first".length, text: "first" }])
+    // The baseline is one system part carrying several sources, so its split must be per source.
+    expect(sources.slice(4).map(({ key, chars }) => ({ key, chars }))).toEqual([
+      { key: "core/date", chars: "date".length },
+      { key: "core/environment", chars: "environment".length },
     ])
   })
 })

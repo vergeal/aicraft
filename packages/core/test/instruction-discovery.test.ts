@@ -263,7 +263,7 @@ describe("ConfigInstructionPlugin.Plugin", () => {
           yield* Effect.promise(() => fs.rm(sharedFile))
           yield* emitAndWait({ type: "delete", path: sharedFile })
           expect((yield* readUpdate(yield* discovery.load(), initialized)).text).toBe(
-            "Previously loaded instructions no longer apply.",
+            "之前加载的指令文件已不再适用，请忽略。",
           )
         }).pipe(
           Effect.provide(

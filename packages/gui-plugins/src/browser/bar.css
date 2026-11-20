@@ -15,8 +15,8 @@
   outline-offset: 0;
   transition: outline-color 85ms ease-out;
   color: var(--v2-text-text-base);
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: var(--line-height-compact);
   letter-spacing: -0.04px;
   cursor: text;
@@ -124,7 +124,7 @@
     background: var(--v2-background-bg-layer-02);
     color: var(--v2-text-text-muted);
     font-size: 12px;
-    font-weight: 530;
+    font-weight: 500;
     line-height: var(--line-height-tight);
     letter-spacing: 0.05px;
     font-variant-numeric: tabular-nums;
@@ -185,8 +185,8 @@
   padding-inline: 8px;
   border-radius: 6px;
   color: var(--v2-text-text-base);
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: var(--line-height-compact);
   letter-spacing: -0.04px;
   text-align: start;
@@ -226,7 +226,7 @@
   mark {
     background: none;
     color: inherit;
-    font-weight: 530;
+    font-weight: 500;
   }
 }
 
@@ -249,8 +249,8 @@
   box-shadow: var(--v2-elevation-floating);
   outline: none;
   color: var(--v2-text-text-base);
-  font-size: 15px;
-  font-weight: 440;
+  font-size: 14px;
+  font-weight: 400;
   line-height: var(--line-height-base);
   letter-spacing: -0.04px;
   user-select: none;

@@ -7,6 +7,7 @@ import { DesktopInitialization } from "./lifecycle/desktop-initialization"
 import { installContextMenu } from "./lifecycle/environment"
 import { ApplicationLifecycle } from "./lifecycle"
 import { DesktopLogging } from "./native/logging"
+import { mainDiagnostics } from "./native/diagnostics"
 import { BackgroundService } from "./service/background-service"
 import { DesktopCli } from "./service/desktop-cli"
 import { marks } from "./lifecycle/marks"
@@ -19,6 +20,9 @@ const runIpc = Effect.fn("Desktop.runIpc")(function* () {
   const plugins = yield* Plugins.Service
   marks.layers = Date.now()
   yield* Effect.logInfo("layers ready", { marks })
+  // Before the IPC port is handed out, so the first replies are measured too.
+  yield* Effect.sync(() => mainDiagnostics.start())
+  yield* Effect.addFinalizer(() => Effect.sync(() => mainDiagnostics.stop()))
   const ipc = yield* Ipc.registerIpcHandlers
   // Main GUI plugins start with the window: servers they restore feed the first paint's server
   // list, and menu items they contribute are present at startup. Their heavy modules load lazily on

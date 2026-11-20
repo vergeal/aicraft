@@ -53,7 +53,7 @@ export function preloadRoute(url: string) {
 
   if (pathname === "/knowledge") return KnowledgeScreen.preload().then(() => undefined)
 
-  if (pathname === "/explore") return ExploreScreen.preload().then(() => undefined)
+  if (pathname === "/explore" || pathname.startsWith("/explore/")) return ExploreScreen.preload().then(() => undefined)
 
   if (pathname === "/scheduled") return ScheduledScreen.preload().then(() => undefined)
 
@@ -72,6 +72,8 @@ export function AppRoutes() {
       <Route path="/settings" component={SettingsScreen} />
       <Route path="/knowledge" component={KnowledgeScreen} />
       <Route path="/explore" component={ExploreScreen} />
+      <Route path="/explore/:section" component={ExploreScreen} />
+      <Route path="/explore/:section/:id" component={ExploreScreen} />
       <Route path="/scheduled" component={ScheduledScreen} />
       <Route path="/inbox" component={InboxScreen} />
       <Route

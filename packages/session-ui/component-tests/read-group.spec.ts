@@ -38,26 +38,30 @@ story("collapses each run of reads inside a Used group into one row", async ({ m
   expect(box?.height).toBe(28)
 })
 
-story("truncates long read rows and expands them in place", async ({ mount }) => {
+story("expands a read row into one tree node per file", async ({ mount }) => {
   const root = await mount("current-read-group--used-group", { args: { width: "420" } })
   const reads = root.locator('[data-component="read-tool-group"]')
-  await expect(reads.first()).not.toHaveAttribute("role", "button")
   const row = reads.filter({ hasText: "runner.ts" })
-  const files = row.locator('[data-slot="basic-tool-tool-subtitle"]')
+  await expect(reads.first()).toHaveAttribute("role", "button")
   await expect(row).toHaveAttribute("role", "button")
   await expect(row).toHaveAttribute("aria-expanded", "false")
-  await expect(files).toHaveCSS("text-overflow", "ellipsis")
+  await expect(row.locator('[data-component="read-tool-group-children"]')).toHaveCount(0)
   const collapsed = (await row.boundingBox())!.height
   await row.click()
   await expect(row).toHaveAttribute("aria-expanded", "true")
-  await expect(files).toHaveCSS("white-space", "normal")
+  await expect(row.locator('[data-slot="basic-tool-tool-subtitle"]')).toHaveText(/^\d+ files$/)
+  const nodes = row.locator('[data-slot="read-tool-group-node"]')
+  await expect(nodes.first()).toBeVisible()
+  await expect(nodes).toHaveCount((await row.getAttribute("data-timeline-part-ids"))!.split(",").length)
+  await expect(nodes.last()).toHaveAttribute("data-last", "true")
   expect((await row.boundingBox())!.height).toBeGreaterThan(collapsed)
-  expect(await files.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
   await row.press("Enter")
   await expect(row).toHaveAttribute("aria-expanded", "false")
+  await expect(nodes).toHaveCount(0)
   expect((await row.boundingBox())!.height).toBe(collapsed)
   await row.press(" ")
   await expect(row).toHaveAttribute("aria-expanded", "true")
+  await expect(nodes.first()).toBeVisible()
 })
 
 story("merges adjacent reads when tools render outside a Used group", async ({ mount }) => {

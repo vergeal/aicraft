@@ -47,7 +47,8 @@
      sidebar sinks in light and lifts in dark, which is the one thing a single layer token cannot express. */
   --settings-sidebar-bg: light-dark(var(--v2-grey-200), var(--v2-grey-1100));
   --settings-card-bg: light-dark(var(--v2-grey-50), var(--v2-grey-800));
-  --settings-card-border: var(--v2-border-border-muted);
+  /* L2: cards and inputs share the same hairline, one step over the divider. */
+  --settings-card-border: var(--v2-border-border-base);
 
   /* Rings are outlines, not shadows: an outline stays outside layout, follows outline-offset and survives
      forced-colors. */
@@ -114,21 +115,32 @@
 
 /* In the replica workbench Settings is the main workspace, not a page inside one: it shares the workbench surface
    with the conversation sidebar instead of drawing a second rounded card beside it. The second-level navigation
-   stays inside this workspace, so the columns remain rail, conversations and Settings. */
+   stays inside this workspace, so the columns remain rail, conversations and Settings. It still paints the page
+   fill, because its sticky page heading has to cover scrolled content with the exact same colour. */
 [data-replica] .settings-screen {
   width: 100%;
   height: 100%;
   margin: 0;
   border-radius: 0;
-  background: transparent;
+  background: var(--v2-background-bg-base);
   box-shadow: none;
 }
 
-/* The header sits on the workbench surface, so it paints that surface instead of the page base. The page base is a
-   step lighter in both schemes, which showed as a raised band above the panel. It stays opaque so sticky scrolling
-   content cannot show through. */
+/* The heading paints the page fill so it matches the body it sits on; painting the workbench tint instead left a
+   band one step darker than the page. It stays opaque so sticky scrolling content cannot show through. */
 [data-replica] .settings-screen .settings-tab-header {
-  background: var(--color-main);
+  background: var(--v2-background-bg-base);
+}
+
+/* Settings hides the window bar, so the heading carries the drag region in its top inset: the strip sits inside the
+   24px space above the title, where it covers no control, and stays against the window edge while the heading sticks. */
+[data-replica] .settings-screen .settings-tab-header::before {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 12px;
+  content: "";
+  -webkit-app-region: drag;
 }
 
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
@@ -950,38 +962,6 @@
   overflow: visible;
 }
 
-.settings-panel > .settings-tab-header,
-.settings-panel > .settings-tab-body,
-.settings-panel > .settings-about-content {
-  animation: settings-panel-in 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes settings-panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-:root[data-motion="reduce"] .settings-panel > .settings-tab-header,
-:root[data-motion="reduce"] .settings-panel > .settings-tab-body,
-:root[data-motion="reduce"] .settings-panel > .settings-about-content {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .settings-panel > .settings-tab-header,
-  .settings-panel > .settings-tab-body,
-  .settings-panel > .settings-about-content {
-    animation: none;
-  }
-}
-
 .settings-panel :is(input, textarea, [contenteditable="true"]) {
   user-select: text;
 }
@@ -1015,10 +995,9 @@
 }
 
 .settings-tab-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.3px;
-  line-height: 32px;
+  line-height: 28px;
   color: var(--v2-text-text-base);
 }
 

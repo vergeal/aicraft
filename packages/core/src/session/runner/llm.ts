@@ -303,6 +303,7 @@ const layer = Layer.effect(
           assistantMessageID,
           agent: loaded.agent.id,
           model: loaded.model,
+          context: SessionModelRequest.contextSources(prepared.request.system),
           toolIcon: (name) => iconByName.get(name),
           prepared: {
             ...prepared,

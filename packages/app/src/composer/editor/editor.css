@@ -23,6 +23,13 @@
   content: "\200B";
 }
 
+/* The attachment strip and the draft are two rows of one card: the strip ends flush and the draft starts 6px later,
+   so they read as one stack instead of two separately padded blocks. */
+[data-slot="composer-content"]:has(> [data-component="composer-attachments"]) [data-component="composer-editor"],
+[data-slot="composer-content"]:has(> [data-component="composer-attachments"]) [data-slot="composer-placeholder"] {
+  padding-top: 6px;
+}
+
 /* One quiet surface: a faint fill and a hairline, no drop shadow and no second edge. Focus only strengthens the
    hairline - no accent ring, so clicking the prompt does not flash a coloured frame around it. Only the prompt
    reacts; a focused chip already draws its own ring inside the toolbar. */
@@ -101,7 +108,7 @@
   border-radius: var(--radius-md);
   background: var(--composer-code-inline-surface);
   color: var(--composer-code-inline-ink);
-  font-weight: 350;
+  font-weight: 400;
 }
 
 /* A code tick only paints the markdown; it must not occupy a character box or the draft reads as if

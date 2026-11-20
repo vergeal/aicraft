@@ -3,12 +3,12 @@
   min-width: 8rem;
   overflow: hidden;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-popover);
   box-shadow: var(--shadow-xs-border);
   background-clip: padding-box;
   background-color: var(--v2-material-surface-strong);
   backdrop-filter: var(--v2-material-blur-thick);
-  padding: 4px;
+  padding: var(--spacing);
   z-index: 100;
   transform-origin: var(--kb-menu-content-transform-origin);
 
@@ -38,16 +38,17 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
+    gap: var(--spacing);
+    min-height: 30px;
+    padding: 0 calc(var(--spacing) * 2);
+    border-radius: var(--radius-lg);
     cursor: default;
     outline: none;
 
     font-family: var(--font-family-sans);
     font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--line-height-large);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-base);
     letter-spacing: var(--letter-spacing-normal);
     color: var(--text-strong);
 
@@ -87,23 +88,27 @@
   }
 
   [data-slot="context-menu-item-description"] {
-    font-size: var(--font-size-x-small);
+    font-size: var(--font-size-xx-small);
     color: var(--text-weak);
   }
 
   [data-slot="context-menu-separator"] {
     height: 1px;
-    margin: 4px -4px;
+    margin: var(--spacing) calc(var(--spacing) * -1);
     border-top-color: var(--v2-border-border-muted);
+    transform: scaleY(0.5);
   }
 
   [data-slot="context-menu-group-label"] {
-    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 calc(var(--spacing) * 2);
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-x-small);
+    font-size: var(--font-size-xx-small);
     font-weight: var(--font-weight-medium);
-    line-height: var(--line-height-large);
-    letter-spacing: var(--letter-spacing-normal);
+    line-height: 1;
+    letter-spacing: 0.02em;
     color: var(--text-weak);
   }
 

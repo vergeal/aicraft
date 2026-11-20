@@ -64,7 +64,7 @@ export const layer = Layer.effect(
             render: {
               initial: render,
               changed: update,
-              removed: () => "MCP server instructions are no longer available.",
+              removed: () => "MCP 服务器说明已不可用。",
             },
           })
         const [instructions, tools] = yield* Effect.all([mcp.instructions(), mcp.tools()], {

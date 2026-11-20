@@ -1,14 +1,17 @@
 - After changing the public Protocol or Server `HttpApi`, run `bun run generate` from `packages/client`. Do not edit generated client files directly.
 - Keep runtime dependencies directed from Schema to Core and Protocol, then from Core and Protocol to Server. Client runtime code may depend on Schema and Protocol but never Core or Server; `sdk` composes Client, Core, and Server.
 - This repository does not use Changesets. Do not add `.changeset` files; follow the existing release workflow instead.
-- The default branch is `dev`. Base branches and worktrees on `origin/dev`, target PRs at `dev`, and diff against `origin/dev` unless told otherwise.
 
-## Live TUI Testing
+## 项目形态
 
-- Run `bun run dev:live` from a development worktree to test its TUI against the currently elected `opencode` background server and live sessions.
-- Pass a directory after the script when needed, for example `bun run dev:live /path/to/project`.
-- The script discovers the server with `opencode service status`, injects its private local credential from `opencode service get password`, and uses the `dev` TUI storage channel so tabs and other client-local state match the installed client.
-- Prefer `dev:live` over plain `bun run dev` for this workflow. An implicit managed-service connection may replace the live server when the worktree client version differs; explicit `--server` warns and continues without replacing it.
+- 这是 OpenCode 的二次开发仓库（`vergeal/opencode`），上游是 `anomalyco/opencode`。产品主线是 **Electron 桌面客户端**（`packages/desktop` + `packages/app`），不是 TUI。
+- 默认启动客户端：仓库根目录 `bun run dev:desktop`。只改客户端时不要动 TUI、CLI 交互或上游发布流程。
+- 上游 `dev` 只作为同步来源；本地 `dev` 已落后，不要以它为基线。开发基线是 `origin/master`，客户端功能分支从最新 `master` 切出（当前主线分支 `timeline-scroll`）。
+- 不向上游提 PR；提交在自己的 fork 上完成。diff 与 rebase 都以 `origin/master` 为准，不要使用 `origin/dev`。
+
+## 修复报告
+
+- 每次修复完成后，把报告用 `deliver`（intent `note`）发给 `@session:ses_e08960bd5ffe14vXpyronycjZK`（标题 `@opencode/desktop/qa#1`）。
 
 ## Live Desktop Diagnostics
 
@@ -16,19 +19,15 @@
 - Without `noDefaults`, Playwright applies light-mode media emulation during attachment. An app following the system theme then flashes light until the connection closes. The option also preserves the existing focus and other media preferences.
 - Do not emulate a color scheme or reduced-motion preference on the user's live window unless explicitly requested; use an isolated test context for those scenarios.
 
-## TUI Stories
+## 客户端界面
 
-- When a user asks for a TUI story, add a fixture-driven story under `packages/tui/src/feature-plugins/system/storybook` and register it in `index.tsx`.
-- Render the real production component rather than a visual copy. Keep submissions and other side effects local to the story so it is safe to explore repeatedly.
-- Expose the meaningful state dimensions through story keybindings and list them in `StoryFooter`; include a reset command when combinations can leave the fixture in a confusing state.
-- Run a specific story with `OPENCODE_STORY=<story-id> bun run dev:live` from the development worktree, and exercise narrow and wide terminal sizes when layout is relevant.
-
-## TUI Theme Tokens
-
-- Choose theme tokens by semantic role, not by their current color. Do not use raw `theme.hue` values or borrow an unrelated semantic token to achieve a preferred appearance.
-- Use `text.feedback` and `background.feedback` only for outcome or status feedback such as errors, warnings, success messages, and informational messages. Use `formfield` states for form-control text, ordinals, and selection markers, and `action` states for actions.
-- If the theme does not expose a token for the required semantic role, extend the theme schema, defaults, resolution, and types with that role before using it in a component. Do not repurpose the nearest-looking existing token.
-- When changing the public theme token surface, verify the built-in light and dark defaults and the custom-theme fallback path in addition to the affected TUI component.
+- 所有界面与组件必须遵循 `.opencode/ui/` 的设计规范，它对本项目的优先级高于通用样式习惯。先读 `README.md` 与 `01-principles.md`，按改动面读对应篇目，交付前对照 `checklist.md`。
+- 视觉决策（颜色、字号、间距、圆角、阴影、动效、图标、密度、导航）以 `.opencode/ui` 为准；`packages/app/AGENTS.md` 的 Typography / Fonts / Scrolling 是实现层约束，冲突时以设计规范为准，并同步修正那份文件。
+- 禁止在组件里写死色值、字号、间距、圆角魔法数；优先使用产品已有的语义变量（`--font-*`、`--line-height-*`、`color-mix()` 等）。`.opencode/ui/tokens.css` 里的 `--p-*`、`--c-*`、`--density-*` 是设计侧的命名参考，落到产品代码时映射到已存在的变量，不要凭空引入未定义的 token。新增 token 必须通过 `19-governance.md` 的四问门槛。
+- 状态样式由语义属性驱动（`aria-*`、`data-state`），不要用 `.is-active` 这类与可访问状态无关的类名表达状态。
+- 用户可见文案一律走 i18n：新增 key 时同时写 `zh.ts` 的简体中文；不得硬编码英文。
+- 任何界面改动都要在 Electron 客户端里实际验证（根目录 `bun run dev:desktop`），不要只在 Web 或 TUI 下确认。
+- 本项目不开发 TUI：不要新增 TUI 功能、实验或故事，也不要为其录制测试。
 
 ## Branch Names
 
@@ -36,15 +35,15 @@ Use a short branch name of at most three words, separated by hyphens. Do not use
 
 Examples: `session-recovery`, `fix-scroll-state`, `regenerate-sdk`.
 
-## Commits and PR Titles
+## Commits
 
-Use conventional commit-style messages and PR titles: `type(scope): summary`.
+Use conventional commit messages: `type(scope): summary`.
 
-Valid types are `feat`, `fix`, `docs`, `chore`, `refactor`, and `test`. Scopes are optional; use the affected package or area when helpful, e.g. `core`, `opencode`, `tui`, `app`, `desktop`, `sdk`, or `plugin`.
+Valid types are `feat`, `fix`, `docs`, `chore`, `refactor`, and `test`. Scopes are optional; use the affected package or area when helpful, e.g. `app`, `desktop`, `session-ui`, `ui`, `core`, `server`, `sdk`, or `plugin`.
 
-Examples: `fix(tui): simplify thinking toggle styling`, `docs: update contributing guide`, `chore(sdk): regenerate types`.
+Examples: `fix(app): land a reopened timeline at the end it left`, `docs: update contributing guide`, `chore(sdk): regenerate types`.
 
-For user-facing `feat`, `fix` and `perf` PRs, add a small looping animated SVG of the change under `### Visual` in the PR body (a `svg` code block, 240×72, for example a dock growing out of the composer or spinners turning in step). Draw with `currentColor` and opacity so it works in light and dark, make the unanimated state a good still (it is shown under reduced motion), animate with CSS or SMIL only, and keep it under 8 KB with no scripts or external references. The desktop beta's "What's new" dialog shows it.
+Do not add upstream release-note SVGs, `.changeset` files, or beta "What's new" entries; this fork does not publish to the upstream beta.
 
 ## Style Guide
 
@@ -185,11 +184,12 @@ const table = sqliteTable("session", {
 - Avoid mocks as much as possible, you shouldn't be using globalThis.\* at all unless it's the only option.
 - Test actual implementation, do not duplicate logic into tests
 - Tests cannot run from repo root (guard: `do-not-run-tests-from-root`); run from package directories such as `packages/core`.
-- Before writing or changing tests, read the matching skill in `.opencode/skills`: `unit-tests` (bun test), `tui-tests` (OpenTUI renderer tests), `app-e2e-tests` (Playwright in `packages/app/e2e`) or `component-tests` (Playwright on stories, `packages/stories`). They cover what has made tests slow or flaky in CI.
+- 不要跑全量测试：改了什么就测什么，从包目录跑单个文件（例如 `packages/core` 下 `bun test test/session-runner.test.ts`）。单条命令超时不超过 30s，尽量控制在 5s 内；超时后重跑检查，不要无限等待。
+- Before writing or changing tests, read the `AGENTS.md` that owns the suite: `packages/app/e2e/AGENTS.md` (Playwright keeper suites in `regression/`), `packages/session-ui` (component tests in `component-tests/`), or `packages/desktop/AGENTS.md` (Electron main-process and IPC tests). There is no test skill under `.opencode/skills`; only `agent-orchestration` lives there.
 
 ## Checks
 
-- Run `bun run check` from the repository root as the canonical full lint and type-check verification.
+- 迭代时只验证改动的包：在包目录跑 `bun typecheck`，并跑 `bun run lint:changed`。`bun run check`（全量 lint + typecheck）只作为提交前的最终验证，不要在每次小改动后反复跑。
 - During focused iteration, run `bun typecheck` from the affected package directory (for example, `packages/core`). Never run `tsc` directly.
 - Local `typecheck` scripts use `bun check`. CI and package publishing run `typecheck:tsc`, which uses the official TypeScript compiler (`@typescript/native`). When the two disagree, `tsc` is the source of truth; reproduce with `bun run typecheck:tsc` from the package directory.
 - `bun check` aims to match TypeScript 7.1, not the `7.0.2` that `process.versions.typescript` reports (oven-sh/bun#46536). When `bun check` and `tsc` from the pinned `@typescript/native` report different errors, file a minimal, dependency-free repro at https://github.com/oven-sh/bun/issues, with the output of both. `bun check` writes no declaration files, so declaration-emit errors such as TS5088 or TS2883 are expected to appear only in `tsc`; do not report those.

@@ -852,7 +852,8 @@ export function CurrentReadToolGroup(props: {
   const [state, setState] = createStore({ truncated: false })
   const disclosure = createDisclosure({ open: () => props.open, onOpenChange: (open) => props.onOpenChange?.(open) })
   const open = disclosure.open
-  const expandable = () => open() || state.truncated
+  // A run of files is a tree node even when the collapsed row fits; truncation alone is not the only reason to open it.
+  const expandable = () => open() || files().length > 1 || state.truncated
 
   const pending = createMemo(() =>
     props.tools.some((tool) => tool.state.status === "streaming" || tool.state.status === "running"),
@@ -907,20 +908,27 @@ export function CurrentReadToolGroup(props: {
                   <TextShimmer text={i18n.t("ui.tool.read")} active={pending()} />
                 </span>
                 <span ref={list} data-slot="basic-tool-tool-subtitle">
-                  <Index each={files()}>
-                    {(file, index) => (
-                      <>
-                        <Show when={index > 0}> </Show>
-                        <span data-slot="read-tool-group-file" data-timeline-part-id={file().id}>
-                          {file().name}
-                          <For each={file().args}>
-                            {(arg) => <span data-slot="basic-tool-tool-arg">{` ${arg}`}</span>}
-                          </For>
-                          <Show when={index < files().length - 1}>,</Show>
-                        </span>
-                      </>
-                    )}
-                  </Index>
+                  <Show
+                    when={open()}
+                    fallback={
+                      <Index each={files()}>
+                        {(file, index) => (
+                          <>
+                            <Show when={index > 0}> </Show>
+                            <span data-slot="read-tool-group-file" data-timeline-part-id={file().id}>
+                              {file().name}
+                              <For each={file().args}>
+                                {(arg) => <span data-slot="basic-tool-tool-arg">{` ${arg}`}</span>}
+                              </For>
+                              <Show when={index < files().length - 1}>,</Show>
+                            </span>
+                          </>
+                        )}
+                      </Index>
+                    }
+                  >
+                    {i18n.plural("ui.tool.readFiles", files().length)}
+                  </Show>
                 </span>
               </div>
             </div>
@@ -932,6 +940,25 @@ export function CurrentReadToolGroup(props: {
           </span>
         </Show>
       </div>
+      <Show when={open()}>
+        <div data-component="read-tool-group-children">
+          <Index each={files()}>
+            {(file, index) => (
+              <div
+                data-slot="read-tool-group-node"
+                data-timeline-part-id={file().id}
+                data-last={index === files().length - 1 ? "true" : undefined}
+              >
+                <span data-slot="read-tool-group-branch" aria-hidden="true" />
+                <span data-slot="read-tool-group-node-name">{file().name}</span>
+                <For each={file().args}>
+                  {(arg) => <span data-slot="basic-tool-tool-arg">{` ${arg}`}</span>}
+                </For>
+              </div>
+            )}
+          </Index>
+        </div>
+      </Show>
     </div>
   )
 }

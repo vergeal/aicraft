@@ -35,6 +35,12 @@ const capture = (
     readonly interruptProgress?: boolean
     readonly beforeTextDelta?: Effect.Effect<void>
     readonly pendingSnapshot?: Effect.Effect<Snapshot.ID | undefined>
+    readonly context?: ReadonlyArray<{
+      readonly key: string
+      readonly chars: number
+      readonly text: string
+      readonly items?: ReadonlyArray<{ readonly name: string; readonly chars: number; readonly text: string }>
+    }>
   },
 ) => {
   const published: Array<{ readonly type: string; readonly data: unknown }> = []
@@ -68,6 +74,7 @@ const capture = (
       pendingSnapshot: options?.pendingSnapshot,
       started: 0,
       assistantMessageID: SessionMessage.ID.create(),
+      context: options?.context,
     }),
   }
 }
@@ -83,6 +90,18 @@ const hostedResult = LLMEvent.toolResult({
       { type: "file", uri: `data:image/png;base64,${base64}`, mime: "image/png", name: "pixel.png" },
     ],
   },
+})
+
+test("reports the injected context on the started step", async () => {
+  const context = [
+    { key: "core/instructions", chars: 8, text: "项目说明", items: [{ name: "a.md", chars: 4, text: "说明" }] },
+    { key: "session", chars: 30, text: "会话说明" },
+  ]
+  const { published, publisher } = capture("anthropic", { context })
+  await Effect.runPromise(publisher.publish(call))
+
+  const started = published.find((event) => event.type === "session.step.started.1")
+  expect(started?.data).toMatchObject({ context })
 })
 
 test("local tool success serializes media base64 once through canonical content", async () => {

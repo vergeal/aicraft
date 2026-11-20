@@ -98,7 +98,7 @@
 
 [data-slot="mobile-tabs-drawer"] [data-titlebar-tab] [data-slot="tab-title"] {
   color: var(--v2-text-text-base);
-  font-weight: 530;
+  font-weight: 500;
 }
 
 [data-slot="mobile-tabs-drawer"] [data-titlebar-tab] [data-slot="tab-project"] {

@@ -101,8 +101,31 @@ function SkillDocument(props: { text: string; cacheKey: string }) {
   )
 }
 
-/** An installed skill: the card head names it, and the body opens its rules and the actions on it. */
-export function InstalledSkillCard(props: { skill: SkillInfo; open: boolean; onToggle: () => void }) {
+/** A row in the explore list: it opens the skill's own page. */
+export function InstalledSkillCard(props: { skill: SkillInfo; onOpen: () => void }) {
+  const language = useLanguage()
+
+  return (
+    <article class="module-card">
+      <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
+        <span class="module-card-glyph">
+          <SkillIcon size={16} />
+        </span>
+        <span class="module-card-title">
+          <strong class="truncate">{props.skill.name}</strong>
+          <span class="module-card-meta">
+            <span class="module-tag">{language.t("explore.skills.title")}</span>
+            <span dir="ltr">@{props.skill.id}</span>
+          </span>
+        </span>
+        <Icon name="outline-chevron-right" size="small" class="module-card-trail" />
+      </button>
+    </article>
+  )
+}
+
+/** An installed skill's own page: its rules and the actions on it. */
+export function InstalledSkillDetail(props: { skill: SkillInfo }) {
   const language = useLanguage()
   const data = useData()
   const serverSdk = useServerSDK()
@@ -238,96 +261,99 @@ export function InstalledSkillCard(props: { skill: SkillInfo; open: boolean; onT
   }
 
   return (
-    <article class="module-card" data-open={props.open ? "" : undefined}>
-      <button type="button" class="module-card-head" aria-expanded={props.open} onClick={() => props.onToggle()}>
+    <div class="explore-detail">
+      <Show when={props.skill.description}>
+        {(description) => <p class="explore-catalog-about">{description()}</p>}
+      </Show>
+
+      <div class="explore-catalog-toggle">
+        <div class="explore-catalog-toggle-copy">
+          <span class="explore-catalog-toggle-title">{language.t("settings.skills.autoinvoke.title")}</span>
+          <p class="explore-catalog-toggle-description">
+            {language.t(
+              isVirtual(props.skill) ? "settings.skills.autoinvoke.builtin" : "settings.skills.autoinvoke.description",
+            )}
+          </p>
+        </div>
+        <Switch
+          checked={autoinvokeOn()}
+          disabled={isVirtual(props.skill) || local.toggling}
+          hideLabel
+          onChange={(enabled) => void toggleAutoinvoke(enabled)}
+        >
+          {language.t("settings.skills.autoinvoke.title")}
+        </Switch>
+      </div>
+
+      <Show when={!isVirtual(props.skill)}>
+        <span class="explore-catalog-path" dir="ltr" title={props.skill.path}>
+          {props.skill.path}
+        </span>
+      </Show>
+
+      <SkillDocument text={props.skill.content} cacheKey={`${props.skill.id}:${props.skill.path}`} />
+
+      <Show when={!isVirtual(props.skill)}>
+        <p class="explore-note">{language.t("explore.skills.remove.hint")}</p>
+      </Show>
+
+      <div class="module-card-foot">
+        <Button size="small" variant="ghost-muted" onClick={() => void copyReference()}>
+          @{props.skill.id}
+        </Button>
+        <Show when={!isVirtual(props.skill)}>
+          <Button
+            size="small"
+            variant="ghost-muted"
+            icon="outline-code-brackets"
+            disabled={!platform.openPath}
+            onClick={() => void openInEditor()}
+          >
+            {language.t("settings.skills.openEditor")}
+          </Button>
+          <Button
+            size="small"
+            variant="ghost-muted"
+            icon="folder"
+            disabled={!platform.revealPath && !platform.openPath}
+            onClick={reveal}
+          >
+            {language.t("settings.skills.reveal")}
+          </Button>
+          <Button size="small" variant="ghost-danger" icon="trash" onClick={() => void remove()}>
+            {language.t("explore.skills.remove")}
+          </Button>
+        </Show>
+      </div>
+    </div>
+  )
+}
+
+/** A row in the explore list: it opens the catalog skill's own page. */
+export function CatalogSkillCard(props: { entry: CatalogSkill; onOpen: () => void }) {
+  const language = useLanguage()
+
+  return (
+    <article class="module-card">
+      <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
         <span class="module-card-glyph">
           <SkillIcon size={16} />
         </span>
         <span class="module-card-title">
-          <strong class="truncate">{props.skill.name}</strong>
+          <strong class="truncate">{props.entry.title}</strong>
           <span class="module-card-meta">
             <span class="module-tag">{language.t("explore.skills.title")}</span>
-            <span dir="ltr">@{props.skill.id}</span>
+            <span dir="ltr">{props.entry.id}</span>
           </span>
         </span>
-        <Icon name="chevron-down" size="small" class="module-card-trail" />
+        <Icon name="outline-chevron-right" size="small" class="module-card-trail" />
       </button>
-
-      <Show when={props.open}>
-        <div class="module-card-body">
-          <Show when={props.skill.description}>
-            {(description) => <p class="explore-catalog-about">{description()}</p>}
-          </Show>
-
-          <div class="explore-catalog-toggle">
-            <div class="explore-catalog-toggle-copy">
-              <span class="explore-catalog-toggle-title">{language.t("settings.skills.autoinvoke.title")}</span>
-              <p class="explore-catalog-toggle-description">
-                {language.t(
-                  isVirtual(props.skill)
-                    ? "settings.skills.autoinvoke.builtin"
-                    : "settings.skills.autoinvoke.description",
-                )}
-              </p>
-            </div>
-            <Switch
-              checked={autoinvokeOn()}
-              disabled={isVirtual(props.skill) || local.toggling}
-              hideLabel
-              onChange={(enabled) => void toggleAutoinvoke(enabled)}
-            >
-              {language.t("settings.skills.autoinvoke.title")}
-            </Switch>
-          </div>
-
-          <Show when={!isVirtual(props.skill)}>
-            <span class="explore-catalog-path" dir="ltr" title={props.skill.path}>
-              {props.skill.path}
-            </span>
-          </Show>
-
-          <SkillDocument text={props.skill.content} cacheKey={`${props.skill.id}:${props.skill.path}`} />
-
-          <Show when={!isVirtual(props.skill)}>
-            <p class="explore-note">{language.t("explore.skills.remove.hint")}</p>
-          </Show>
-
-          <div class="module-card-foot">
-            <Button size="small" variant="ghost-muted" onClick={() => void copyReference()}>
-              @{props.skill.id}
-            </Button>
-            <Show when={!isVirtual(props.skill)}>
-              <Button
-                size="small"
-                variant="ghost-muted"
-                icon="outline-code-brackets"
-                disabled={!platform.openPath}
-                onClick={() => void openInEditor()}
-              >
-                {language.t("settings.skills.openEditor")}
-              </Button>
-              <Button
-                size="small"
-                variant="ghost-muted"
-                icon="folder"
-                disabled={!platform.revealPath && !platform.openPath}
-                onClick={reveal}
-              >
-                {language.t("settings.skills.reveal")}
-              </Button>
-              <Button size="small" variant="ghost-danger" icon="trash" onClick={() => void remove()}>
-                {language.t("explore.skills.remove")}
-              </Button>
-            </Show>
-          </div>
-        </div>
-      </Show>
     </article>
   )
 }
 
-/** A catalog skill this project has not installed yet: the card installs it and shows what it would write. */
-export function CatalogSkillCard(props: { entry: CatalogSkill; open: boolean; onToggle: () => void }) {
+/** A catalog skill's own page: what it writes and the install action. */
+export function CatalogSkillDetail(props: { entry: CatalogSkill }) {
   const language = useLanguage()
   const dialog = useDialog()
   const data = useData()
@@ -352,35 +378,17 @@ export function CatalogSkillCard(props: { entry: CatalogSkill; open: boolean; on
     ))
 
   return (
-    <article class="module-card" data-open={props.open ? "" : undefined}>
-      <button type="button" class="module-card-head" aria-expanded={props.open} onClick={() => props.onToggle()}>
-        <span class="module-card-glyph">
-          <SkillIcon size={16} />
-        </span>
-        <span class="module-card-title">
-          <strong class="truncate">{props.entry.title}</strong>
-          <span class="module-card-meta">
-            <span class="module-tag">{language.t("explore.skills.title")}</span>
-            <span dir="ltr">{props.entry.id}</span>
-          </span>
-        </span>
-        <Icon name="chevron-down" size="small" class="module-card-trail" />
-      </button>
+    <div class="explore-detail">
+      <p class="explore-catalog-about">{props.entry.description}</p>
 
-      <Show when={props.open}>
-        <div class="module-card-body">
-          <p class="explore-catalog-about">{props.entry.description}</p>
+      <SkillDocument text={props.entry.instructions} cacheKey={props.entry.id} />
 
-          <SkillDocument text={props.entry.instructions} cacheKey={props.entry.id} />
-
-          <div class="module-card-foot">
-            <Button variant="contrast" size="small" icon="plus" onClick={install}>
-              {language.t("explore.skills.install")}
-            </Button>
-          </div>
-        </div>
-      </Show>
-    </article>
+      <div class="module-card-foot">
+        <Button variant="contrast" size="small" icon="plus" onClick={install}>
+          {language.t("explore.skills.install")}
+        </Button>
+      </div>
+    </div>
   )
 }
 

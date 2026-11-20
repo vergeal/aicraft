@@ -29,7 +29,7 @@ import type {
 import type { Agent } from "@opencode/schema/agent"
 import type { Model } from "@opencode/schema/model"
 import type { Content } from "@opencode/schema/tool"
-import { Cause, Context, Effect, Layer, Result, Stream } from "effect"
+import { Cause, Context, Effect, Layer, Option, Result, Schema, Stream } from "effect"
 import { HttpClientRequest, HttpClientResponse } from "effect/http"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
 import { App } from "../app.js"
@@ -115,26 +115,87 @@ export const baseTranscript = (input: {
   readonly messages: ReadonlyArray<SessionMessage.Info>
 }) => {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
+  const agentPrompt = input.agent.system
+    ? input.agent.system
+    : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name))
+  const projectBlock = input.project ? ProjectInstructions.block(input.project) : undefined
+  const sessionPrompt = input.sessionPrompt ? sessionBlock(input.sessionPrompt) : undefined
   return {
     providerMetadataKey,
     // The Project's and Session's instructions sit before the baseline: both are stable, while the baseline carries
     // the date and environment that change and would otherwise invalidate the cached prefix behind them.
     system: [
-      SystemPart.make(
-        input.agent.system
-          ? input.agent.system
-          : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name)),
+      withContext(SystemPart.make(agentPrompt), [contextSource("system", agentPrompt)]),
+      ...(projectBlock
+        ? [withContext(SystemPart.make(projectBlock), [contextSource(ProjectInstructions.key, projectBlock)])]
+        : []),
+      ...(sessionPrompt ? [withContext(SystemPart.make(sessionPrompt), [contextSource("session", sessionPrompt)])] : []),
+      withContext(
+        {
+          ...SystemPart.make(Instructions.join(input.initial)),
+          metadata: { experimental: { instructions: input.initial } },
+        },
+        input.initial.map(renderedSource),
       ),
-      ...(input.project ? [SystemPart.make(ProjectInstructions.block(input.project))] : []),
-      ...(input.sessionPrompt ? [SystemPart.make(sessionBlock(input.sessionPrompt))] : []),
-      {
-        ...SystemPart.make(Instructions.join(input.initial)),
-        metadata: { experimental: { instructions: input.initial } },
-      },
     ].filter((part) => part.text.length > 0),
     messages: toLLMMessages(input.messages, input.model.ref, providerMetadataKey),
   }
 }
+
+/** One entry inside an injected source, such as a single instruction file. */
+export const ContextItem = Schema.Struct({
+  name: Schema.String,
+  chars: Schema.Number,
+  text: Schema.String,
+})
+
+/** One source the request injected ahead of the conversation, in system order. */
+export const ContextSource = Schema.Struct({
+  key: Schema.String,
+  chars: Schema.Number,
+  text: Schema.String,
+  items: Schema.optionalKey(Schema.Array(ContextItem)),
+})
+export type ContextSource = typeof ContextSource.Type
+
+const ContextMetadata = Schema.Struct({
+  context: Schema.Struct({ sources: Schema.Array(ContextSource) }),
+})
+
+const contextSource = (key: string, text: string): ContextSource => ({ key, chars: text.length, text })
+
+const renderedSource = (source: Instructions.Rendered): ContextSource => ({
+  key: source.key,
+  chars: source.text.length,
+  text: source.text,
+  ...(source.parts?.length
+    ? {
+        items: source.parts.map((part) => ({
+          name: part.name,
+          chars: part.text.length,
+          text: part.text,
+        })),
+      }
+    : {}),
+})
+
+/**
+ * Tags a system part with the sources it injects and the text each one contributed, so a Step can show them.
+ */
+const withContext = (part: SystemPart, sources: ReadonlyArray<ContextSource>) => ({
+  ...part,
+  metadata: {
+    ...part.metadata,
+    context: { sources },
+  },
+})
+
+/** What the finished request injected ahead of the conversation, for the transcript. */
+export const contextSources = (system: ReadonlyArray<SystemPart>): Array<ContextSource> =>
+  system.flatMap((part) => {
+    const sources = Option.getOrUndefined(Schema.decodeUnknownOption(ContextMetadata)(part.metadata))?.context.sources
+    return sources ? [...sources] : []
+  })
 
 const sessionBlock = (prompt: string) =>
   [

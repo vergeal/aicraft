@@ -103,6 +103,10 @@ export type FatalRendererErrorLog = {
   os?: DesktopOS
 }
 
+export type MainDiagnosticsSnapshot = {
+  clock: { wall: number; uptime: number; capturedAt: string }
+} & Record<string, unknown>
+
 type PlatformBase = {
   requestMicrophone?(): Promise<boolean>
   setVoiceCallActive?(active: boolean): Promise<void>
@@ -216,6 +220,12 @@ type PlatformBase = {
 
   /** Export collected diagnostic logs (desktop only) */
   exportDebugLogs?(): Promise<string>
+
+  /** Write a renderer diagnostics dump and return its absolute path (desktop only) */
+  writeDiagnostics?(input: { name: string; content: string }): Promise<string>
+
+  /** Read the main-process half of a diagnostics dump (desktop only, dev builds) */
+  readDiagnosticsMain?(): Promise<MainDiagnosticsSnapshot>
 
   /** Force focus styles on interactive elements through desktop devtools (desktop only) */
   setForceFocus?(enabled: boolean): Promise<void>

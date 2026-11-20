@@ -1128,6 +1128,16 @@ export type ExperimentalSessionLogOutput =
             readonly model: Model.Ref
             readonly snapshot?: Snapshot.ID | undefined
             readonly started: number
+            readonly context?:
+              | ReadonlyArray<{
+                  readonly key: string
+                  readonly chars: number
+                  readonly text: string
+                  readonly items?:
+                    | ReadonlyArray<{ readonly name: string; readonly chars: number; readonly text: string }>
+                    | undefined
+                }>
+              | undefined
           }
         }
       | {
@@ -2703,6 +2713,38 @@ export type ExperimentalJobListOperation<E = never> = (
   input?: ExperimentalJobListInput,
 ) => Effect.Effect<ExperimentalJobListOutput, E>
 
+export type ExperimentalDiagnosticsServerOutput = {
+  readonly spans: ReadonlyArray<{
+    readonly traceID: string
+    readonly spanID: string
+    readonly parentSpanID?: string | undefined
+    readonly name: string
+    readonly startWall: number
+    readonly durationMs: number
+    readonly attributes: { readonly [x: string]: unknown }
+    readonly status: "ok" | "error"
+  }>
+  readonly slowQueries: ReadonlyArray<{
+    readonly sql: string
+    readonly durationMs: number
+    readonly at: number
+    readonly traceID?: string | undefined
+    readonly spanID?: string | undefined
+    readonly span?: string | undefined
+  }>
+  readonly llm: ReadonlyArray<{
+    readonly traceID: string
+    readonly totalMs: number
+    readonly segments: ReadonlyArray<{ readonly phase: string; readonly spans: number; readonly durationMs: number }>
+  }>
+  readonly dropped: number
+  readonly windowSeconds: number
+}
+export type ExperimentalDiagnosticsServerOperation<E = never> = () => Effect.Effect<
+  ExperimentalDiagnosticsServerOutput,
+  E
+>
+
 export interface ExperimentalApi<E = never> {
   readonly persistentPty: {
     readonly read: ExperimentalPersistentPtyReadOperation<E>
@@ -2733,6 +2775,7 @@ export interface ExperimentalApi<E = never> {
     readonly delete: ExperimentalArtifactsDeleteOperation<E>
   }
   readonly job: { readonly list: ExperimentalJobListOperation<E> }
+  readonly diagnostics: { readonly server: ExperimentalDiagnosticsServerOperation<E> }
 }
 
 export type ShellListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }

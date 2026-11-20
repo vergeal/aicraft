@@ -40,8 +40,13 @@ function QueryProvider(props: ParentProps) {
 function BodyTypography() {
   createRenderEffect(() => {
     if (typeof document === "undefined") return
-    document.body.classList.remove("text-12-regular")
-    document.body.classList.add("font-(family-name:--font-family-text)", "text-[15px]", "font-[400]")
+    document.body.classList.remove("text-12-regular", "text-[15px]")
+    document.body.classList.add(
+      "font-(family-name:--font-family-text)",
+      "text-(length:--font-size-base)",
+      "font-[400]",
+      "leading-[var(--line-height-base)]",
+    )
   })
 
   return null

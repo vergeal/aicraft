@@ -360,6 +360,23 @@ export namespace Step {
       snapshot: Snapshot.ID.pipe(optional),
       /** Request dispatch time, before waiting for provider output. */
       started: NonNegativeInt,
+      /** What the request injected ahead of the conversation, so the transcript can show it. */
+      context: Schema.Array(
+        Schema.Struct({
+          key: Schema.String,
+          chars: NonNegativeInt,
+          text: Schema.String,
+          items: optional(
+            Schema.Array(
+              Schema.Struct({
+                name: Schema.String,
+                chars: NonNegativeInt,
+                text: Schema.String,
+              }),
+            ),
+          ),
+        }),
+      ).pipe(optional),
     },
   })
   export type Started = typeof Started.Type

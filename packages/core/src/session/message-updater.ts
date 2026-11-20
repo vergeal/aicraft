@@ -235,6 +235,7 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
                 draft.time.streamed = undefined
                 draft.time.completed = undefined
                 if (event.data.snapshot) draft.snapshot = { ...draft.snapshot, start: event.data.snapshot }
+                if (event.data.context) draft.metadata = { ...draft.metadata, context: event.data.context }
               }),
             )
             return
@@ -254,7 +255,7 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
               type: "assistant",
               agent: event.data.agent,
               model: event.data.model,
-              metadata: event.metadata,
+              metadata: { ...event.metadata, ...(event.data.context ? { context: event.data.context } : {}) },
               time: { created: DateTime.makeUnsafe(event.data.started) },
               content: [],
               snapshot: event.data.snapshot ? { start: event.data.snapshot } : undefined,
@@ -413,6 +414,9 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
       },
       "session.retry.scheduled": (event) => {
         return updateOwnedAssistant(event.data.assistantMessageID, (draft) => {
+          // A scheduled retry supersedes the failure it retries: the reason lives on `retry`, so the
+          // message never carries the same failure as both a final error and a pending retry.
+          draft.error = undefined
           draft.retry = {
             attempt: event.data.attempt,
             at: DateTime.makeUnsafe(event.data.at),

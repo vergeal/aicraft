@@ -1,8 +1,13 @@
 import type { PluginInfo } from "@opencode/client"
-import { createSignal, For } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { render } from "solid-js/web"
 import type { CatalogPlugin } from "../src/explore/catalog"
-import { CatalogPluginCard, InstalledPluginCard } from "../src/explore/plugins"
+import {
+  CatalogPluginCard,
+  CatalogPluginDetail,
+  InstalledPluginCard,
+  InstalledPluginDetail,
+} from "../src/explore/plugins"
 import { LanguageProvider } from "../src/runtime/i18n/language"
 import { PlatformProvider, type Platform } from "../src/runtime/platform/platform"
 
@@ -95,8 +100,8 @@ const webPlatform: Platform = {
 }
 
 /**
- * Mounts the real plugin cards over fixture data. The list groups installed and available entries the way the page
- * does, and each card owns the body it opens.
+ * Mounts the real plugin rows over fixture data. A row opens that plugin's own page the way the explore route does,
+ * and the page's back button returns to the list.
  */
 export function mountExplorePlugins(input?: {
   catalog?: readonly CatalogPlugin[]
@@ -109,35 +114,44 @@ export function mountExplorePlugins(input?: {
     input?.selected ? `installed:${input.selected.id}` : undefined,
   )
 
-  const toggle = (key: string) => setOpen((current) => (current === key ? undefined : key))
-
   const host = document.createElement("div")
   host.dataset.testid = "explore-plugins-fixture"
   host.style.cssText = "position:fixed;inset:24px;display:flex;flex-direction:column;min-height:0;overflow:hidden"
   document.body.appendChild(host)
 
+  // The real route swaps the list for the entry's own page, so the fixture renders exactly one of the two.
+  const list = () => (
+    <>
+      <For each={installed}>
+        {(plugin) => <InstalledPluginCard plugin={plugin} onOpen={() => setOpen(`installed:${plugin.id}`)} />}
+      </For>
+      <For each={catalog.filter((entry) => !installed.some((plugin) => plugin.id === entry.id))}>
+        {(entry) => <CatalogPluginCard entry={entry} onOpen={() => setOpen(`catalog:${entry.id}`)} />}
+      </For>
+    </>
+  )
+
+  const page = (key: string) => {
+    const [kind, id] = key.split(":")
+
+    if (kind === "installed") {
+      const plugin = installed.find((plugin) => plugin.id === id)
+
+      return plugin ? <InstalledPluginDetail plugin={plugin} /> : undefined
+    }
+
+    const entry = catalog.find((entry) => entry.id === id)
+
+    return entry ? <CatalogPluginDetail entry={entry} /> : undefined
+  }
+
   const dispose = render(
     () => (
       <LanguageProvider locale="en">
         <PlatformProvider value={webPlatform}>
-          <For each={installed}>
-            {(plugin) => (
-              <InstalledPluginCard
-                plugin={plugin}
-                open={open() === `installed:${plugin.id}`}
-                onToggle={() => toggle(`installed:${plugin.id}`)}
-              />
-            )}
-          </For>
-          <For each={catalog.filter((entry) => !installed.some((plugin) => plugin.id === entry.id))}>
-            {(entry) => (
-              <CatalogPluginCard
-                entry={entry}
-                open={open() === `catalog:${entry.id}`}
-                onToggle={() => toggle(`catalog:${entry.id}`)}
-              />
-            )}
-          </For>
+          <Show when={open()} fallback={list()}>
+            {(key) => page(key())}
+          </Show>
         </PlatformProvider>
       </LanguageProvider>
     ),

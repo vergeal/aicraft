@@ -20,7 +20,7 @@
   [data-slot="checkbox-v2-error"] {
     color: var(--v2-state-fg-danger);
     font-size: 12px;
-    font-weight: 440;
+    font-weight: 400;
     line-height: var(--line-height-compact);
   }
 
@@ -95,7 +95,7 @@
     user-select: none;
     color: var(--v2-text-text-base);
     font-size: 13px;
-    font-weight: 440;
+    font-weight: 400;
     line-height: var(--line-height-base);
     letter-spacing: -0.04px;
     font-variation-settings: "slnt" 0;
@@ -104,7 +104,7 @@
   [data-slot="checkbox-v2-description"] {
     color: var(--v2-text-text-muted);
     font-size: 11px;
-    font-weight: 440;
+    font-weight: 400;
     line-height: var(--line-height-tight);
     letter-spacing: 0.05px;
     user-select: none;

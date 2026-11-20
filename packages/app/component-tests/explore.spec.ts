@@ -20,7 +20,7 @@ story.beforeEach(async ({ mount, page }) => {
   }
 })
 
-story("lists the available plugins and opens one card in place", async ({ page }) => {
+story("lists the available plugins and opens one on its own page", async ({ page }) => {
   const result = await page.evaluate(async (fixture) => {
     const { mountExplorePlugins } = await import(fixture)
     const mounted = mountExplorePlugins()
@@ -47,16 +47,13 @@ story("lists the available plugins and opens one card in place", async ({ page }
     const opened = {
       about: host.querySelector(".explore-catalog-about")?.textContent?.trim(),
       hasFacts: !!host.querySelector(".explore-catalog-facts"),
-      expanded: cards()[0]?.getAttribute("data-open") !== null,
+      detail: !!host.querySelector(".explore-detail"),
+      cards: cards().length,
     }
-
-    cards()[0]?.querySelector<HTMLButtonElement>(".module-card-head")?.click()
-    await frame()
-    const closed = !cards()[0]?.querySelector(".module-card-body")
 
     mounted.unmount()
 
-    return { initial, opened, closed }
+    return { initial, opened }
   }, fixture)
 
   expect(result.initial.cards).toBe(3)
@@ -64,8 +61,8 @@ story("lists the available plugins and opens one card in place", async ({ page }
   expect(result.initial.noHorizontalOverflow).toBe(true)
   expect(result.opened.about).toBe("The full alpha introduction.")
   expect(result.opened.hasFacts).toBe(true)
-  expect(result.opened.expanded).toBe(true)
-  expect(result.closed).toBe(true)
+  expect(result.opened.detail).toBe(true)
+  expect(result.opened.cards).toBe(0)
 })
 
 story("shows a catalog bundle and hides it once installed", async ({ page }) => {

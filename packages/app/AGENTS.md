@@ -1,7 +1,8 @@
 ## Priorities
 
 - Prioritise, in this order: stability, simplicity, performance.
-- Before changing session or timeline code, benchmark it against `origin/dev` with strobe (`packages/app/perf/README.md`): `strobe bench packages/app/perf/<area>.bench.ts --base origin/dev --head .`.
+- 界面与组件的视觉规则以仓库根的 `.opencode/ui/` 设计规范为准（根 `AGENTS.md` 的「客户端界面」）。本文件下面的 Typography、Fonts、Scrolling 是实现层约束，与设计规范冲突时以设计规范为准。
+- Before changing session or timeline code, benchmark it against `origin/master` with strobe (`packages/app/perf/README.md`): `strobe bench packages/app/perf/<area>.bench.ts --base origin/master --head .`.
 
 ## Debugging
 
@@ -9,11 +10,9 @@
 
 ## Local Dev
 
+- 主开发目标是 Electron 客户端：仓库根目录 `bun run dev:desktop`。界面与交互改动都在这里验收，不要在 TUI 或纯 Web 下确认后就交付。
 - `opencode dev web` proxies `https://app.opencode.ai`, so local UI/CSS changes will not show there.
-- For local UI changes, run the backend and app dev servers separately.
-- Backend (from the repository root): `bun dev serve --port 4096`
-- App (from `packages/app`): `bun dev -- --port 4444`
-- Open `http://localhost:4444` to verify UI changes (it targets the backend at `http://localhost:4096`).
+- 只有在排查 Web 专属问题（LAN、浏览器兼容、非安全上下文）时才起 Web 双服务：后端用 `bun dev serve --port 4096`（仓库根目录），app 用 `bun dev -- --port 4444`（`packages/app`），然后打开 `http://localhost:4444`。
 
 ## Insecure Origins (HTTP LAN)
 
@@ -65,7 +64,7 @@ A flash, a blanked area, a dialog that resizes or a reset scroll on first open a
 
 ## Typography
 
-- Use `--line-height-compact` (`18px`) for `13px` compact UI text and `--line-height-base` (`22px`) for body text.
+- Use `--line-height-compact` (`20px`) for `13px` compact UI text and `--line-height-base` (`22px`) for body text.
 - Do not use `leading-none`, `line-height: 1`, or a `13px` line height for normal text. Inter descenders clip inside truncation and overflow containers.
 - Keep control and row heights explicit. Fix font metrics directly rather than using transforms, negative margins, or clip-padding compensation.
 
@@ -84,7 +83,7 @@ Users choose three fonts in Settings > Appearance. Every surface uses one of the
 - Never write a literal family (`Inter`, `"IBM Plex Mono"`, `monospace`, `Menlo`, `system-ui`) in production CSS, classes, inline styles, canvas `font` strings or widget options. A literal ignores the user's setting.
 - Never add an `@font-face`, font file, or font package outside `packages/app/src/index.css`. That file is the only place the app ships faces: Inter (variable), IBM Plex Mono Text (weights below 600), Bold (600 and up) and Text Italic, JetBrains Mono Regular (weights below 600) and Bold (600 and up), and JetBrainsMono Nerd Font Mono Regular and Bold. If a design needs a face that is not shipped, add it there and say why in the PR.
 - On macOS every font row defaults to the system stack; on Windows and Linux the UI font defaults to Inter and the code and terminal fonts default to IBM Plex Mono. JetBrains Mono stays bundled as a choice in the picker. `sansDefaultFor()`, `monoDefaultFor()`, `terminalDefaultFor()` and the matching `*FontFamily()` helpers in `src/settings/model.tsx` own that switch; do not test for macOS in a component.
-- Show shell commands with the timeline shell metrics: code font, `13px`, weight `440`, `-0.04px` letter spacing. Do not invent another size for the same content.
+- Show shell commands with the timeline shell metrics: code font, `13px`, weight `400`, `-0.04px` letter spacing. Do not invent another size for the same content.
 - Prefer weight tokens (`font-medium`, `var(--font-weight-medium)`) over literal weights. Mono at `600` or more renders the bold face, so reserve it for real emphasis.
 - Do not read font settings directly. `src/settings/model.tsx` writes them to the CSS variables above, and the plugin host passes the terminal font through `appearance.font`.
 
@@ -147,11 +146,4 @@ A test must pay for its upkeep. Before adding one, answer three questions: which
 
 ## Browser Automation
 
-Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
-
-Core workflow:
-
-1. `agent-browser open <url>` - Navigate to page
-2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
-3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
-4. Re-snapshot after page changes
+Open web pages in the system Chrome, not inside an agent window: `open -a "Google Chrome" <url>`. For scripted checks against the running desktop app, attach Playwright over CDP with `noDefaults: true` (see Live Desktop Diagnostics in the root `AGENTS.md`). The `agent-browser` CLI is not installed in this fork; do not write instructions or scripts that assume it.

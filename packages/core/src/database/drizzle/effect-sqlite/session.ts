@@ -22,6 +22,7 @@ import {
 } from "../sqlite-core/effect/session.js"
 import type { SelectedFieldsOrdered } from "drizzle-orm/sqlite-core/query-builders/select.types"
 import type { PreparedQueryConfig, SQLiteExecuteMethod, SQLiteTransactionConfig } from "drizzle-orm/sqlite-core/session"
+import { SlowQuery } from "../../slow-query.js"
 
 export interface EffectSQLiteQueryEffectHKT extends QueryEffectHKTBase {
   readonly error: EffectDrizzleQueryError
@@ -120,13 +121,13 @@ export class EffectSQLiteSession<TRelations extends AnyRelations> extends SQLite
 
   private execute(query: Query, params: unknown[], method: SQLiteExecuteMethod | "values") {
     const statement = this.client.unsafe(query.sql, params)
-    if (method === "values") return statement.values.pipe(Effect.withTracerEnabled(false))
+    // Every drizzle statement runs through here, including raw `sql` and `db.run`, so this is the one
+    // place that can time them all. Only the statement text and the active span are recorded.
+    const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) => SlowQuery.measure(query.sql, effect)
+    if (method === "values") return timed(statement.values).pipe(Effect.withTracerEnabled(false))
     if (method === "get")
-      return statement.withoutTransform.pipe(
-        Effect.map((rows) => rows[0]),
-        Effect.withTracerEnabled(false),
-      )
-    return statement.withoutTransform.pipe(Effect.withTracerEnabled(false))
+      return timed(statement.withoutTransform.pipe(Effect.map((rows) => rows[0]))).pipe(Effect.withTracerEnabled(false))
+    return timed(statement.withoutTransform).pipe(Effect.withTracerEnabled(false))
   }
 
   private isInTransaction() {

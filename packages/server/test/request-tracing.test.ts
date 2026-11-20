@@ -1,9 +1,15 @@
 import { expect, test } from "bun:test"
-import { Effect, Option, Scope, Tracer } from "effect"
+import { Effect, Logger, Option, References, Scope, Tracer } from "effect"
 import { HttpMiddleware, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http"
 import { it } from "../../core/test/lib/effect"
 import { ServerProcess } from "../src/process"
-import { withoutParentSpan } from "../src/request-tracing"
+import {
+  CurrentRequestTrace,
+  parseTraceparent,
+  requestTrace,
+  withoutParentSpan,
+  type TraceContext,
+} from "../src/request-tracing"
 
 test("requests ignore ambient parents and continue inbound trace context", async () => {
   const spans: Tracer.NativeSpan[] = []
@@ -84,4 +90,123 @@ it.live("handler spans nest under their request, not under server startup", () =
     expect(create?.traceId).toBe(request!.traceId)
     expect(create?.traceId).not.toBe(startup?.traceId)
   }).pipe(Effect.withTracer(tracer), Effect.scoped)
+})
+
+const inbound = "00-11111111111111111111111111111111-2222222222222222-01"
+
+test("decodes only well-formed W3C traceparent values", () => {
+  expect(parseTraceparent(inbound)).toEqual({
+    traceID: "11111111111111111111111111111111",
+    spanID: "2222222222222222",
+    sampled: true,
+  })
+  expect(parseTraceparent("00-11111111111111111111111111111111-2222222222222222-00")?.sampled).toBe(false)
+  expect(parseTraceparent(undefined)).toBeUndefined()
+  expect(parseTraceparent("")).toBeUndefined()
+  expect(parseTraceparent("01-11111111111111111111111111111111-2222222222222222-01")).toBeUndefined()
+  expect(parseTraceparent("00-1111-2222222222222222-01")).toBeUndefined()
+  expect(parseTraceparent("00-11111111111111111111111111111111-2222-01")).toBeUndefined()
+  expect(parseTraceparent("00-11111111111111111111111111111111-2222222222222222-0g")).toBeUndefined()
+  expect(parseTraceparent("00-11111111111111111111111111111111-2222222222222222-01-extra")).toBeUndefined()
+  expect(parseTraceparent("00-00000000000000000000000000000000-2222222222222222-01")).toBeUndefined()
+  expect(parseTraceparent("00-11111111111111111111111111111111-0000000000000000-01")).toBeUndefined()
+  expect(parseTraceparent("00-1111111111111111111111111111111A-2222222222222222-01")).toBeUndefined()
+})
+
+test("records an accepted traceparent on the request span, its logs and handlers", async () => {
+  const spans: Tracer.NativeSpan[] = []
+  const annotations: Array<Record<string, unknown>> = []
+  const logger = Logger.make<unknown, void>((options) => {
+    annotations.push({ ...options.fiber.getRef(References.CurrentLogAnnotations) })
+  })
+  const tracer = Tracer.make({
+    span(options) {
+      const span = new Tracer.NativeSpan(options)
+      spans.push(span)
+      return span
+    },
+  })
+  const seen: Array<Option.Option<TraceContext>> = []
+  const app = Effect.gen(function* () {
+    yield* Scope.Scope
+    return yield* HttpMiddleware.tracer(
+      requestTrace(
+        Effect.gen(function* () {
+          seen.push(yield* CurrentRequestTrace)
+          yield* Effect.log("handled")
+          return HttpServerResponse.empty()
+        }),
+      ),
+    )
+  })
+  const request = (traceparent: string) =>
+    app.pipe(
+      Effect.provideService(
+        HttpServerRequest.HttpServerRequest,
+        HttpServerRequest.fromWeb(new Request("http://localhost/trace", { headers: { traceparent } })),
+      ),
+      withoutParentSpan,
+      Effect.provide(Logger.layer([logger], { mergeWithExisting: false })),
+      Effect.provideService(Tracer.Tracer, tracer),
+      Effect.scoped,
+    )
+
+  await Effect.runPromise(request(inbound))
+
+  expect(Option.getOrUndefined(seen[0]!)).toEqual({
+    traceID: "11111111111111111111111111111111",
+    spanID: "2222222222222222",
+    sampled: true,
+  })
+  const span = spans.find((candidate) => candidate.kind === "server")!
+  expect(span.attributes.get("opencode.trace.id")).toBe("11111111111111111111111111111111")
+  expect(span.attributes.get("opencode.trace.parent_span_id")).toBe("2222222222222222")
+  expect(annotations).toEqual([{ traceID: "11111111111111111111111111111111", spanID: "2222222222222222" }])
+})
+
+test("leaves a request without a usable traceparent unchanged", async () => {
+  const spans: Tracer.NativeSpan[] = []
+  const annotations: Array<Record<string, unknown>> = []
+  const logger = Logger.make<unknown, void>((options) => {
+    annotations.push({ ...options.fiber.getRef(References.CurrentLogAnnotations) })
+  })
+  const tracer = Tracer.make({
+    span(options) {
+      const span = new Tracer.NativeSpan(options)
+      spans.push(span)
+      return span
+    },
+  })
+  const seen: Array<Option.Option<TraceContext>> = []
+  const app = Effect.gen(function* () {
+    yield* Scope.Scope
+    return yield* HttpMiddleware.tracer(
+      requestTrace(
+        Effect.gen(function* () {
+          seen.push(yield* CurrentRequestTrace)
+          yield* Effect.log("handled")
+          return HttpServerResponse.empty()
+        }),
+      ),
+    )
+  })
+
+  await Effect.runPromise(
+    app.pipe(
+      Effect.provideService(
+        HttpServerRequest.HttpServerRequest,
+        HttpServerRequest.fromWeb(new Request("http://localhost/trace", { headers: { traceparent: "b3" } })),
+      ),
+      withoutParentSpan,
+      Effect.provide(Logger.layer([logger], { mergeWithExisting: false })),
+      Effect.provideService(Tracer.Tracer, tracer),
+      Effect.scoped,
+    ),
+  )
+
+  expect(Option.isNone(seen[0]!)).toBe(true)
+  expect(annotations).toEqual([{}])
+  const span = spans.find((candidate) => candidate.kind === "server")!
+  expect(span.attributes.get("opencode.trace.id")).toBeUndefined()
+  expect(span.attributes.get("opencode.trace.parent_span_id")).toBeUndefined()
 })

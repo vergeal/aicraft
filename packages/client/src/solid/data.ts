@@ -985,6 +985,7 @@ export function createData(config: CreateDataInput) {
             existing.time.streamed = undefined
             existing.time.completed = undefined
             if (event.data.snapshot) existing.snapshot = { ...existing.snapshot, start: event.data.snapshot }
+            if (event.data.context) existing.metadata = { ...existing.metadata, context: event.data.context }
             return
           }
           const currentAssistant = message.activeAssistant(draft)
@@ -997,7 +998,7 @@ export function createData(config: CreateDataInput) {
             type: "assistant",
             agent: event.data.agent,
             model: event.data.model,
-            metadata: event.metadata,
+            metadata: { ...event.metadata, ...(event.data.context ? { context: event.data.context } : {}) },
             content: [],
             snapshot: event.data.snapshot ? { start: event.data.snapshot } : undefined,
             time: { created: event.data.started },

@@ -169,7 +169,7 @@
 
   [data-slot="sources-step-detail"] {
     font-family: var(--font-family-mono);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 400;
     line-height: var(--line-height-compact);
     letter-spacing: -0.04px;
@@ -245,7 +245,7 @@
   }
 
   [data-slot="sources-result-title"] {
-    font-size: 15px;
+    font-size: 14px;
     line-height: var(--line-height-compact);
     color: var(--v2-text-text-base);
   }

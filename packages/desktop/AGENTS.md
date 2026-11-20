@@ -12,6 +12,8 @@
 
 ## Code
 
+- 主进程与渲染进程的界面都遵循仓库根的 `.opencode/ui/` 设计规范（根 `AGENTS.md` 的「客户端界面」）。视觉决策以设计规范为准，本文件与 `packages/app/AGENTS.md` 只补充实现层约束。
+- 本地验证用仓库根目录的 `bun run dev:desktop`；不要通过 TUI 或纯 Web 验收桌面交互。
 - Follow Solid best practices, leave a comment when violating this: https://www.brenelz.com/posts/solid-js-best-practices/
 - Renderer code follows the Suspense rules in `packages/app/AGENTS.md`: never read a resource in render without the `state` guard. An unguarded read makes the UI flash on first load.
 - Fonts follow the Fonts section of `packages/app/AGENTS.md`: use the UI, code and terminal font roles from the design system. Never add font files, `@font-face` rules or literal font families here.

@@ -22,9 +22,9 @@
 
 .answer-scope .answer-markdown {
   font-family: var(--answer-font-sans);
-  font-size: 14px;
-  /* Body text uses the shared base line box: 24px read loose for 14px prose and made every answer ~9% taller. */
-  line-height: var(--line-height-base, 22px);
+  font-size: var(--content-font-size, 14px);
+  /* Body text adds 8px to the content size, matching the 14/22 and 16/24 pairs in the type scale. */
+  line-height: calc(var(--content-font-size, 14px) + 8px);
   color: var(--answer-ink);
 }
 
@@ -42,13 +42,77 @@
 /* A prompt bubble wraps the code it holds: the bubble clips its own box, so the shared sideways scroll
    would hide everything past one long line instead of revealing it on scroll. */
 .answer-scope [data-slot="user-message-text"] .answer-input-markdown {
-  font-size: 14px;
-  line-height: 22px;
+  font-size: var(--content-font-size, 14px);
+  line-height: calc(var(--content-font-size, 14px) + 8px);
   color: inherit;
+  /* The bubble keeps a typed line break, but the rendered tree also separates its blocks with newlines in the
+     markup. Under the bubble's `pre-wrap` each of those seams became an empty line as tall as the text. The
+     container collapses whitespace again; the paragraph below keeps the line break the writer typed. */
+  white-space: normal;
 }
 
 .answer-scope [data-slot="user-message-text"] .answer-input-markdown p {
-  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* One spacing model for the bubble's blocks: only the top edge carries a gap. Two neighbours can therefore never
+   add their margins, the first block starts flush, and the last one ends flush inside the bubble's own padding. */
+.answer-scope [data-slot="user-message-text"] .answer-input-markdown [data-markdown-block] > * {
+  margin-block: 0;
+}
+
+.answer-scope [data-slot="user-message-text"] .answer-input-markdown [data-markdown-block] > * + * {
+  margin-block-start: 8px;
+}
+
+/* A heading opens a section, so it takes one step more air above and belongs to the block under it, which closes
+   the gap again. */
+.answer-scope
+  [data-slot="user-message-text"]
+  .answer-input-markdown
+  [data-markdown-block]
+  > :is(h1, h2, h3, h4, h5, h6) {
+  margin-block-start: 16px;
+}
+
+.answer-scope
+  [data-slot="user-message-text"]
+  .answer-input-markdown
+  [data-markdown-block]
+  > :is(h1, h2, h3, h4, h5, h6)
+  + * {
+  margin-block-start: 6px;
+}
+
+/* A prompt that opens with a heading keeps the bubble's own top padding as its only lead-in. This sits after the
+   heading rule and before the block seam below, so a heading can still open a later block with its own gap. */
+.answer-scope
+  [data-slot="user-message-text"]
+  .answer-input-markdown
+  [data-markdown-block]
+  > :first-child {
+  margin-block-start: 0;
+}
+
+/* A long prompt arrives as several markdown blocks; the seam between them keeps the same gap. */
+.answer-scope
+  [data-slot="user-message-text"]
+  .answer-input-markdown
+  > [data-markdown-block]
+  + [data-markdown-block]
+  > :first-child {
+  margin-block-start: 8px;
+}
+
+/* A code block and a diagram carry their own outer margin inside the wrapper; the block gap above already
+   separates them from the text, so those inner edges collapse to nothing. */
+.answer-scope
+  [data-slot="user-message-text"]
+  .answer-input-markdown
+  [data-markdown-block]
+  > *
+  :is(pre, [data-slot="markdown-code-content"], [data-component="markdown-mermaid"]) {
+  margin-block: 0;
 }
 
 .answer-scope [data-slot="user-message-text"] .answer-input-markdown :is(pre, pre code) {

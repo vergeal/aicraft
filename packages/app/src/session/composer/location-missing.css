@@ -30,8 +30,8 @@
   }
 
   [data-slot="location-title"] {
-    font-size: 15px;
-    font-weight: 530;
+    font-size: 14px;
+    font-weight: 500;
     line-height: var(--line-height-base);
     color: var(--v2-text-text-base);
   }
@@ -47,7 +47,7 @@
   }
 
   [data-slot="location-description"] {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 400;
     line-height: var(--line-height-base);
     color: var(--v2-text-text-muted);

@@ -1,6 +1,7 @@
 import type { DesktopMenuAction, DesktopZoomLevel } from "@opencode/app/desktop-menu"
 import type { DesktopNativeBundle } from "@opencode/app/i18n/desktop-native"
 import type { WindowBootstrap } from "../shared/window-bootstrap"
+import type { DiagnosticsMainSnapshot } from "../shared/diagnostics"
 import type {
   ClipboardImage,
   DirectoryPickerOptions,
@@ -158,6 +159,10 @@ export type ElectronAPI = {
   onKnowledgeImportProgress(cb: (progress: KnowledgeImportProgress) => void): () => void
   setBackgroundColor(color: string): Promise<void>
   exportDebugLogs(): Promise<string>
+  /** Write a renderer diagnostics dump under the app's diagnostics folder; resolves with its absolute path. */
+  writeDiagnostics(input: { name: string; content: string }): Promise<string>
+  /** Read the main-process capture that a dump carries under `sections.main`. */
+  readDiagnosticsMain(): Promise<DiagnosticsMainSnapshot>
   setForceFocus(enabled: boolean): Promise<void>
   getSpellcheckEnabled(): Promise<boolean>
   setSpellcheckEnabled(enabled: boolean): Promise<void>

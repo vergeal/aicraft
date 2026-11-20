@@ -2,6 +2,7 @@ import type { MessagePortMain, WebContents } from "electron"
 import { Context, Effect, Layer, Option, Queue, Schema, Stream } from "effect"
 import { RpcMessage, RpcServer } from "effect/rpc"
 import { bindIpcEvents } from "./ipc-events"
+import { ipcDiagnostics } from "./native/diagnostics-ipc"
 
 type PortBinding = {
   readonly id: number
@@ -72,7 +73,9 @@ export const IpcServerProtocolLive = Layer.unwrap(
             const onMessage = (event: Electron.MessageEvent) => {
               // SAFETY: the other end of this port is the renderer's ipc-client, which posts only RPC client
               // messages; the RPC server decodes each request's payload with that RPC's schema.
-              Queue.offerUnsafe(inbound, [id, event.data as RpcMessage.FromClientEncoded] as const)
+              const message = event.data as RpcMessage.FromClientEncoded
+              ipcDiagnostics.request(id, message)
+              Queue.offerUnsafe(inbound, [id, message] as const)
             }
 
             const onClose = () => runFork(disconnect(id))
@@ -101,6 +104,7 @@ export const IpcServerProtocolLive = Layer.unwrap(
             disconnects,
             send: (clientId, response) =>
               Effect.sync(() => {
+                ipcDiagnostics.response(clientId, response)
                 bindings.get(clientId)?.port.postMessage(response)
               }),
             end: disconnect,

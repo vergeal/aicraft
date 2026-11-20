@@ -358,7 +358,9 @@ function measureTopRow(
 }
 
 export function AnswerPage(props: AnswerPageProps) {
-  const snapshot = createMemo(() => projectTimeline(props.messages()))
+  // The previous projection is passed back in so unchanged rows keep their payload object: a streamed
+  // delta then only invalidates the row it touched instead of every memo in the transcript.
+  const snapshot = createMemo<Snapshot>((previous) => projectTimeline(props.messages(), previous))
   const [folded, setFolded] = createStore<Record<string, boolean | undefined>>({})
   const [openGroups, setOpenGroups] = createStore<Record<string, boolean | undefined>>({})
   // Row disclosures live here rather than in the row components: streamed projection rebuilds those
@@ -479,13 +481,28 @@ export function AnswerPage(props: AnswerPageProps) {
     if (next === "missed") props.onRestoreMiss?.()
   }
 
+  // Where the remembered row would put the top edge, and whether the loaded height can scroll that far. A row can be
+  // present while its offset is not: a folded process row, markdown still rendering, or a page that changed the height
+  // above it. Writing such an offset only clamps, parking the reader at the top of a shorter transcript.
+  const placement = (root: HTMLDivElement, target: { key: string; offset: number }) => {
+    const row = findRow(root, target.key)
+
+    if (!row) return undefined
+
+    const wanted = root.scrollTop + row.getBoundingClientRect().top - root.getBoundingClientRect().top + target.offset
+    const scrollTop = Math.min(Math.max(wanted, 0), Math.max(0, root.scrollHeight - root.clientHeight))
+
+    // A target above the top edge is the closest the loaded height gets, not a shorter transcript; only a target past
+    // the last offset means the content above or below the row is not there to scroll through.
+    return { scrollTop, reachable: wanted <= 0 || Math.abs(wanted - scrollTop) <= 1 }
+  }
+
   // Every loaded row is in the DOM, so the remembered row is placed from its own measured box in one write. Nothing
   // above it is an estimate that will later change, so the write is final and needs no pin.
   const attemptRestore = () => {
     const root = props.viewport?.()
-    const currentKeys = keys()
 
-    if (!root || currentKeys.length === 0) return
+    if (!root || keys().length === 0) return
     if (restoreState() !== "idle") return
 
     const target = pendingRestore
@@ -499,14 +516,19 @@ export function AnswerPage(props: AnswerPageProps) {
       return
     }
 
-    if (!currentKeys.includes(target.key)) {
-      // The remembered row is in an older page that is not loaded yet. Wait for the page-in instead of landing at the
-      // newest content, away from where the reader stopped.
+    const placed = placement(root, target)
+
+    // A missing row (an older page) and an offset the current height cannot reach (a folded or still-rendering row)
+    // both wait for the transcript to grow enough. Writing the clamped offset instead would record the top of the
+    // shortened transcript as the reader's place, so every later activation opened at the first row.
+    if (!placed?.reachable) {
       missTimer ??= setTimeout(() => {
         missTimer = undefined
 
         if (restoreState() !== "idle") return
-        if (keys().includes(target.key)) return attemptRestore()
+        const current = props.viewport?.()
+
+        if (current && placement(current, target)?.reachable) return attemptRestore()
 
         dispatchRestore({ type: "miss" })
       }, RESTORE_LOAD_MS)
@@ -516,19 +538,7 @@ export function AnswerPage(props: AnswerPageProps) {
 
     dispatchRestore({ type: "activate" })
 
-    const row = findRow(root, target.key)
-
-    if (!row) {
-      // The key is loaded but its row has not been committed yet; reset to idle so the page-in effect can retry.
-      dispatchRestore({ type: "reset" })
-
-      return
-    }
-
-    const frame = root.getBoundingClientRect()
-    const delta = row.getBoundingClientRect().top - frame.top + target.offset
-
-    if (Math.abs(delta) > 1) root.scrollTop += delta
+    if (Math.abs(placed.scrollTop - root.scrollTop) > 1) root.scrollTop = placed.scrollTop
 
     // Record the row the reader was put back on, so the next activation restores the same place.
     props.onPositionChange?.(target)
@@ -571,6 +581,9 @@ export function AnswerPage(props: AnswerPageProps) {
         // A following view sits at the end, and that place is already remembered as the end. Measuring its top row on
         // every streamed frame would force a layout per frame for a position nothing reads.
         if (props.following?.() === true) return
+        // An activation that still waits for its remembered row has not decided where the reader belongs. The
+        // reinsertion clamps the view to the top, and saving that would replace the position the restore needs.
+        if (pendingRestore && restoreState() === "idle") return
         reportPosition()
       })
     }
@@ -836,18 +849,39 @@ function FoldRow(props: {
                     }
 
                     const group = createMemo(() => props.snapshot.groups.get(key))
+                    // A group with one row has nothing to summarize: a heading around it would restate that row
+                    // and opening it would show the same line twice. Lay the row itself down instead.
+                    const solo = createMemo(() => {
+                      const items = group()?.items
+
+                      return items?.length === 1 && items[0].kind === "row" ? items[0] : undefined
+                    })
 
                     return (
                       <Show when={group()}>
                         {(groupValue) => (
-                          <GroupSeat
-                            group={groupValue()}
-                            snapshot={props.snapshot}
-                            view={props.view}
-                            flat={flat()}
-                            open={props.groupOpen(key)}
-                            onToggle={(next) => props.toggleGroup(key, next)}
-                          />
+                          <Show
+                            when={solo()}
+                            fallback={
+                              <GroupSeat
+                                group={groupValue()}
+                                snapshot={props.snapshot}
+                                view={props.view}
+                                flat={flat()}
+                                open={props.groupOpen(key)}
+                                onToggle={(next) => props.toggleGroup(key, next)}
+                              />
+                            }
+                          >
+                            {(item) => (
+                              <GroupItemRow
+                                item={item()}
+                                snapshot={props.snapshot}
+                                view={props.view}
+                                live={!groupValue().closed}
+                              />
+                            )}
+                          </Show>
                         )}
                       </Show>
                     )
@@ -1192,18 +1226,55 @@ function Payload(props: {
         />
       )
     case "error":
-      return (
-        <div class="text-[13px] leading-[24px] break-words text-v2-state-fg-danger [overflow-wrap:anywhere]">
-          {props.payload.text}
-        </div>
-      )
+      return <ErrorRow text={props.payload.text} />
     case "retry":
-      return (
-        <div class="text-[13px] leading-[24px]" style={{ color: "var(--answer-ink-secondary)" }}>
-          {props.payload.attempt} · <bdi dir="auto">{props.payload.text}</bdi>
-        </div>
-      )
+      return <RetryRow attempt={props.payload.attempt} text={props.payload.text} />
   }
+}
+
+/** A final step failure reads as one quiet block: a short danger title over the provider's reason. */
+function ErrorRow(props: { text: string }) {
+  const i18n = useI18n()
+
+  return (
+    <div
+      role="alert"
+      data-slot="answer-error"
+      class="flex min-w-0 items-start gap-[8px] rounded-[12px] border-[0.5px] border-v2-border-border-muted bg-v2-background-bg-layer-01 px-[12px] py-[8px] text-[13px] leading-[var(--line-height-base)]"
+    >
+      <span class="mt-[2px] shrink-0 text-v2-state-fg-danger">
+        <Icon name="outline-hexagonal-warning" />
+      </span>
+      <div class="flex min-w-0 flex-1 flex-col gap-[2px]">
+        <span class="font-[530] text-v2-state-fg-danger">{i18n.t("ui.answer.error.title")}</span>
+        <span class="min-w-0 break-words [overflow-wrap:anywhere]" style={{ color: "var(--answer-ink-secondary)" }}>
+          {props.text}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** A scheduled retry stays one line: the attempt it is on, shimmering while it waits. */
+function RetryRow(props: { attempt: number; text: string }) {
+  const i18n = useI18n()
+
+  return (
+    <div
+      role="status"
+      data-slot="answer-retry"
+      class="flex min-w-0 items-center gap-[6px] text-[13px] leading-[var(--line-height-compact)]"
+      style={{ color: "var(--answer-ink-secondary)" }}
+    >
+      <Spinner width={18} height={18} class="size-[18px] shrink-0" />
+      <span class="shrink-0 font-[530]">
+        <TextShimmer text={i18n.t("ui.answer.retry", { attempt: props.attempt })} active />
+      </span>
+      <span class="min-w-0 truncate" style={{ color: "var(--answer-ink-tertiary)" }}>
+        <bdi dir="auto">{props.text}</bdi>
+      </span>
+    </div>
+  )
 }
 
 /** An injected context keeps its body behind a disclosure; a plain notice stays one truncated line. */
@@ -1431,10 +1502,11 @@ function DisclosureRow(props: {
       >
         <LeadingSlot icon={props.leading} open={props.expanded} scope="row" />
         <span class="flex h-[24px] min-w-0 items-center overflow-hidden">
-          <bdi dir="auto" class="min-w-0 shrink truncate">{props.title}</bdi>
+          <bdi dir="auto" data-slot="answer-row-title" class="min-w-0 shrink truncate">{props.title}</bdi>
           <Show when={props.summary}>
             {(value) => (
               <span
+                data-slot="answer-row-summary"
                 class={`min-w-0 flex-1 truncate ${props.summaryDanger ? "text-v2-state-fg-danger" : ""}`}
               >
                 {i18n.t("ui.answer.separator")}

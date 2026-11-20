@@ -31,12 +31,12 @@
   h1 {
     font-size: 22px;
     line-height: 28px;
-    font-weight: 530;
+    font-weight: 500;
     margin-block-end: 8px;
   }
 
   p {
-    font-size: 15px;
+    font-size: 14px;
     line-height: var(--line-height-base);
     color: var(--v2-text-text-muted);
   }
@@ -54,9 +54,9 @@
   }
 
   label {
-    font-size: 15px;
+    font-size: 14px;
     line-height: var(--line-height-compact);
-    font-weight: 530;
+    font-weight: 500;
   }
 
   [data-component="text-input-v2"] {
@@ -100,7 +100,7 @@
     border: 0.5px solid var(--v2-border-border-base);
     border-radius: 6px;
     padding: 8px 16px;
-    font-size: 15px;
+    font-size: 14px;
     line-height: var(--line-height-base);
     background: var(--v2-background-bg-layer-01);
     user-select: all;

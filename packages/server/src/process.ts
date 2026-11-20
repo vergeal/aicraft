@@ -10,14 +10,15 @@ import { hasPersistentPtyConnectTicketURL } from "@opencode/protocol/groups/pers
 import { hasMcpClientTicketURL } from "@opencode/protocol/groups/mcp"
 import { isPairingConnectURL } from "@opencode/protocol/groups/server"
 import { Global } from "@opencode/util/global"
-import { Cause, Context, Effect, Exit, Latch, Layer, Option, Ref, Scope } from "effect"
+import { Cause, Context, Effect, Exit, Latch, Layer, Option, Ref, Scope, Tracer } from "effect"
 import { HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
 import { NetAddress } from "effect/net"
 import { createServer } from "node:http"
 import { ServerAuth } from "./auth"
 import { isAllowedCorsOrigin } from "./cors"
+import { makeTracer } from "./diagnostics/spans"
 import { authorizedRequest, unauthorizedResponse } from "./middleware/authorization"
-import { withoutParentSpan } from "./request-tracing"
+import { requestTrace, withoutParentSpan } from "./request-tracing"
 import { createRoutes } from "./routes"
 import { ServerInfo } from "./server-info"
 import { Status } from "./service-status"
@@ -38,10 +39,12 @@ type App = Effect.Effect<
 
 export type Transform = (app: App) => App
 
-const errorResponseLogger = HttpMiddleware.make((app) =>
-  HttpMiddleware.logger(
-    Effect.tap(app, (response) =>
-      response.status < 400 ? HttpMiddleware.withLoggerDisabled(Effect.void) : Effect.void,
+const requestLogger = HttpMiddleware.make((app) =>
+  requestTrace(
+    HttpMiddleware.logger(
+      Effect.tap(app, (response) =>
+        response.status < 400 ? HttpMiddleware.withLoggerDisabled(Effect.void) : Effect.void,
+      ),
     ),
   ),
 )
@@ -68,6 +71,9 @@ export const start = Effect.fn("ServerProcess.start")(function* <E, R>(
   const urls = () => [...localURLs(), ...(remoteURLs?.() ?? [])]
   const application = yield* Ref.make(Option.none<App>())
   const app = dispatch(password, status, application, options.app?.version ?? "unknown", urls, Global.Path.tmp)
+  // Keep the tracer that is already active (the OTel layer, when one is configured) and record a copy
+  // of every span into this process's own buffer, which `diagnostics.server` serves.
+  const tracer = makeTracer(yield* Effect.service(Tracer.Tracer))
   // Request fibers may continue inbound trace context, but must not inherit the server startup parent.
   yield* bound.http
     .serve(
@@ -75,9 +81,9 @@ export const start = Effect.fn("ServerProcess.start")(function* <E, R>(
         HttpMiddleware.compression(),
         HttpMiddleware.cors({ allowedOrigins: (origin) => isAllowedCorsOrigin(origin, options), maxAge: 86_400 }),
       ),
-      errorResponseLogger,
+      requestLogger,
     )
-    .pipe(Effect.provide(NodeHttpServer.layerHttpServices), withoutParentSpan)
+    .pipe(Effect.provide(NodeHttpServer.layerHttpServices), withoutParentSpan, Effect.withTracer(tracer))
   if (lifecycle)
     yield* lifecycle.onListen(bound.http.address, shutdown.open.pipe(Effect.asVoid)).pipe(
       Effect.flatMap((cleanup) =>
@@ -127,6 +133,8 @@ export const start = Effect.fn("ServerProcess.start")(function* <E, R>(
     }
   }).pipe(
     withoutParentSpan,
+    // Background fibers forked from boot (schedules, resumed drains) inherit the recording tracer.
+    Effect.withTracer(tracer),
     Effect.catchCause((cause) => {
       if (!lifecycle || Cause.hasInterruptsOnly(cause)) return Effect.failCause(cause)
       return status.fail.pipe(

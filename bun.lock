@@ -61,6 +61,7 @@
         "@ibm/plex": "6.4.1",
         "@kobalte/core": "catalog:",
         "@opencode/client": "workspace:*",
+        "@opencode/diagnostics": "workspace:*",
         "@opencode/gui-plugins": "workspace:*",
         "@opencode/plugin": "workspace:*",
         "@opencode/schema": "workspace:*",
@@ -325,6 +326,16 @@
         "@lydell/node-pty-linux-x64": "1.2.0-beta.12",
         "@lydell/node-pty-win32-arm64": "1.2.0-beta.12",
         "@lydell/node-pty-win32-x64": "1.2.0-beta.12",
+      },
+    },
+    "packages/diagnostics": {
+      "name": "@opencode/diagnostics",
+      "version": "2.2.5",
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/bun": "catalog:",
+        "@typescript/native": "catalog:",
+        "typescript": "catalog:",
       },
     },
     "packages/gui-plugins": {
@@ -1799,6 +1810,8 @@
     "@opencode/core": ["@opencode/core@workspace:packages/core"],
 
     "@opencode/desktop": ["@opencode/desktop@workspace:packages/desktop"],
+
+    "@opencode/diagnostics": ["@opencode/diagnostics@workspace:packages/diagnostics"],
 
     "@opencode/files": ["@opencode/files@workspace:services/files"],
 

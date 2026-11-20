@@ -7,6 +7,13 @@
  */
 export const RESTORE_STABLE_FRAMES = 3
 export const RESTORE_FRAME_LIMIT = 180
+/**
+ * How long the restored page may stay veiled before it is shown anyway.
+ *
+ * The veil hides the frames in which the pin is still moving rows, so the reader never sees the correction. It is
+ * bounded because a transcript that keeps measuring would otherwise leave the page blank for the whole frame budget.
+ */
+export const RESTORE_VEIL_FRAMES = 8
 
 export type RestoreState =
   | { readonly status: "idle" }
@@ -14,6 +21,8 @@ export type RestoreState =
       readonly status: "pinning"
       readonly key: string
       readonly offset: number
+      /** Still covered by the veil; cleared once the pin has had its frames or the veil budget runs out. */
+      readonly veiled: boolean
       readonly stable: number
       readonly frames: number
     }
@@ -48,7 +57,14 @@ export function transitionRestore(state: RestoreState, event: RestoreEvent): Res
     if (state.status !== "idle") return state
 
     return event.position
-      ? { status: "pinning", key: event.position.key, offset: event.position.offset, stable: 0, frames: 0 }
+      ? {
+          status: "pinning",
+          key: event.position.key,
+          offset: event.position.offset,
+          veiled: true,
+          stable: 0,
+          frames: 0,
+        }
       : SETTLED
   }
 
@@ -62,10 +78,15 @@ export function transitionRestore(state: RestoreState, event: RestoreEvent): Res
   // A few unchanged frames mean the windowed layout has settled; the frame limit is the budget for one that never does.
   if (stable >= RESTORE_STABLE_FRAMES || frames >= RESTORE_FRAME_LIMIT) return SETTLED
 
-  return { ...state, stable, frames }
+  return { ...state, veiled: state.veiled && frames < RESTORE_VEIL_FRAMES, stable, frames }
 }
 
 /** Whether this activation still owns the scroll position, so the anchor must not fight it. */
 export function restorePinning(state: RestoreState) {
   return state.status === "pinning"
+}
+
+/** Whether the page is still covered while the pin settles, so the reader never sees the correction. */
+export function restoreVeiled(state: RestoreState) {
+  return state.status === "pinning" && state.veiled
 }

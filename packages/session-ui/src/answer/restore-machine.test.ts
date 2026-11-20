@@ -3,6 +3,8 @@ import {
   createRestoreState,
   RESTORE_FRAME_LIMIT,
   RESTORE_STABLE_FRAMES,
+  RESTORE_VEIL_FRAMES,
+  restoreVeiled,
   transitionRestore,
   type RestoreState,
 } from "./restore-machine"
@@ -67,5 +69,25 @@ describe("restore", () => {
 
     expect(transitionRestore(state, { type: "frame", found: true, delta: 0 })).toBe(state)
     expect(transitionRestore(activate(undefined), { type: "missing" }).status).toBe("settled")
+  })
+
+  test("the veil covers the frames that move rows and lifts on its own budget", () => {
+    // A row that keeps moving never settles early, so the veil is all that keeps the correction unseen.
+    const before = frames(activate(target), RESTORE_VEIL_FRAMES - 1, 40)
+    expect(restoreVeiled(before)).toBe(true)
+    expect(before.status).toBe("pinning")
+
+    const after = frames(activate(target), RESTORE_VEIL_FRAMES, 40)
+    expect(restoreVeiled(after)).toBe(false)
+    // The pin outlives the veil: the position is still owned, the page is just visible again.
+    expect(after.status).toBe("pinning")
+    expect(RESTORE_VEIL_FRAMES).toBeLessThan(RESTORE_FRAME_LIMIT)
+  })
+
+  test("a settled or absent activation is never veiled", () => {
+    expect(restoreVeiled(frames(activate(target), RESTORE_STABLE_FRAMES, 0))).toBe(false)
+    expect(restoreVeiled(activate(undefined))).toBe(false)
+    expect(restoreVeiled(createRestoreState())).toBe(false)
+    expect(restoreVeiled(transitionRestore(activate(target), { type: "missing" }))).toBe(false)
   })
 })

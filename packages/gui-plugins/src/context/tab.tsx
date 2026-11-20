@@ -344,6 +344,8 @@ export default function SessionContextTab(props: { session: MountedSession }) {
   // The raw transcript lists every loaded message, one accordion item each. A collapsed `<details>` still renders its
   // subtree, so each cached session view kept a full copy of it while the reader never saw it.
   const [rawOpen, setRawOpen] = createSignal(false)
+  const rawPage = 50
+  const rawShown = createSignal(rawPage)
 
   const formatter = createMemo(() => createSessionContextFormatter(i18n.locale()))
   const cny = createMemo(() => createCNY(i18n.locale()))
@@ -396,6 +398,16 @@ export default function SessionContextTab(props: { session: MountedSession }) {
   })
 
   const filter = createSignal<"all" | "failed" | "slow">("all")
+
+  // One row per call, and a long session has hundreds. Render the newest page first and let the reader pull the
+  // rest, so opening the panel never builds the whole table at once.
+  const callsPage = 50
+  const callsShown = createSignal(callsPage)
+
+  const revealCalls = (mode: "all" | "failed" | "slow") => {
+    filter[1](mode)
+    callsShown[1](callsPage)
+  }
 
   const shownCalls = createMemo(() => {
     const mode = filter[0]()
@@ -999,7 +1011,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 "border-transparent bg-v2-background-bg-accent text-v2-text-text-contrast": filter[0]() === "all",
                 "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "all",
               }}
-              onClick={() => filter[1]("all")}
+              onClick={() => revealCalls("all")}
             >
               {ctx.t("calls.filterAll")}
               <span class="ms-1 opacity-60">{summary().total}</span>
@@ -1011,7 +1023,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 "border-transparent bg-v2-background-bg-accent text-v2-text-text-contrast": filter[0]() === "failed",
                 "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "failed",
               }}
-              onClick={() => filter[1]("failed")}
+              onClick={() => revealCalls("failed")}
             >
               {ctx.t("calls.filterFailed")}
               <span class="ms-1 opacity-60">{summary().failed}</span>
@@ -1023,7 +1035,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 "border-transparent bg-v2-background-bg-accent text-v2-text-text-contrast": filter[0]() === "slow",
                 "border-v2-border-border-muted text-v2-text-text-muted": filter[0]() !== "slow",
               }}
-              onClick={() => filter[1]("slow")}
+              onClick={() => revealCalls("slow")}
             >
               {ctx.t("calls.filterSlow")}
               <span class="ms-1 opacity-60">{summary().slow}</span>
@@ -1060,7 +1072,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 </div>
               }
             >
-              <For each={shownCalls()}>
+              <For each={shownCalls().slice(0, callsShown[0]())}>
                 {(call) => {
                   const open = () => openCall[0]() === call.message.id
 
@@ -1224,6 +1236,17 @@ export default function SessionContextTab(props: { session: MountedSession }) {
                 }}
               </For>
             </Show>
+
+            <Show when={shownCalls().length > callsShown[0]()}>
+              <button
+                type="button"
+                class="flex w-full items-center justify-center gap-1.5 border-t border-v2-border-border-muted px-2.5 py-2 text-[12px] text-v2-text-text-accent hover:bg-v2-overlay-simple-overlay-hover"
+                onClick={() => callsShown[1](callsShown[0]() + callsPage)}
+              >
+                {ctx.t("common.loadMore")}
+                <span class="text-v2-text-text-faint">{shownCalls().length - callsShown[0]()}</span>
+              </button>
+            </Show>
           </div>
 
           <Show when={rateStats()}>
@@ -1361,11 +1384,21 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </div>
             <Show when={rawOpen()}>
               <Accordion multiple class="max-h-[320px] overflow-y-auto rounded-md border border-v2-border-border-muted">
-                <For each={messages()}>
+                <For each={messages().slice(0, rawShown[0]())}>
                   {(message) => (
                     <RawMessage message={message} onRendered={restoreScroll} time={formatter().time} />
                   )}
                 </For>
+                <Show when={messages().length > rawShown[0]()}>
+                  <button
+                    type="button"
+                    class="flex w-full items-center justify-center gap-1.5 border-t border-v2-border-border-muted px-2.5 py-2 text-[12px] text-v2-text-text-accent hover:bg-v2-overlay-simple-overlay-hover"
+                    onClick={() => rawShown[1](rawShown[0]() + rawPage)}
+                  >
+                    {ctx.t("common.loadMore")}
+                    <span class="text-v2-text-text-faint">{messages().length - rawShown[0]()}</span>
+                  </button>
+                </Show>
               </Accordion>
             </Show>
 

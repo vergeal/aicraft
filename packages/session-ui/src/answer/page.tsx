@@ -719,7 +719,7 @@ function RunningStatus(props: { elapsedMs?: number }) {
     <div
       role="status"
       data-slot="answer-running"
-      class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[13px] leading-[24px]"
+      class="relative flex min-h-[33px] min-w-0 w-full flex-col items-start justify-center border-b-[0.5px] border-v2-border-border-muted pb-2 text-[length:var(--content-font-size,14px)] leading-[24px]"
     >
       <div class="flex h-[24px] min-w-0 items-center gap-[6px]" style={{ color: "var(--answer-ink-secondary)" }}>
         <span class="grid size-[18px] shrink-0 place-items-center overflow-hidden [&_svg]:size-[18px] [&_svg]:translate-y-[0.5px]">
@@ -992,7 +992,7 @@ function GroupSeat(props: {
         aria-expanded={open()}
         aria-controls={bodyID}
         hidden={props.flat}
-        class="group/heading flex min-w-0 w-full items-center gap-[6px] text-start text-[14px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="group/heading flex min-w-0 w-full items-center gap-[6px] text-start text-[length:var(--content-font-size,14px)] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-tertiary)" }}
         onClick={(event) => {
           event.currentTarget.focus()
@@ -1126,7 +1126,7 @@ function RunHeader(props: {
         aria-expanded={props.open}
         disabled={!props.expandable}
         aria-label={props.expandable ? i18n.t(props.open ? "ui.sessionTurn.steps.hide" : "ui.sessionTurn.steps.show") : undefined}
-        class="flex min-h-[33px] min-w-0 w-full items-center gap-1.5 border-b-[0.5px] border-v2-border-border-muted pb-2 text-start text-[14px] leading-[normal] disabled:cursor-default enabled:hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="flex min-h-[33px] min-w-0 w-full items-center gap-1.5 border-b-[0.5px] border-v2-border-border-base pb-2 text-start text-[length:var(--content-font-size,14px)] leading-[normal] disabled:cursor-default enabled:hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-tertiary)" }}
         onClick={(event) => {
           event.currentTarget.focus()
@@ -1269,7 +1269,7 @@ function ErrorRow(props: { text: string }) {
     <div
       role="alert"
       data-slot="answer-error"
-      class="flex min-w-0 items-start gap-[8px] rounded-[12px] border-[0.5px] border-v2-border-border-muted bg-v2-background-bg-layer-01 px-[12px] py-[8px] text-[13px] leading-[var(--line-height-base)]"
+      class="flex min-w-0 items-start gap-[8px] rounded-[12px] border-[0.5px] border-v2-border-border-muted bg-v2-background-bg-layer-01 px-[12px] py-[8px] text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+8px)]"
     >
       <span class="mt-[2px] shrink-0 text-v2-state-fg-danger">
         <Icon name="outline-hexagonal-warning" />
@@ -1292,7 +1292,7 @@ function RetryRow(props: { attempt: number; text: string }) {
     <div
       role="status"
       data-slot="answer-retry"
-      class="flex min-w-0 items-center gap-[6px] text-[13px] leading-[var(--line-height-compact)]"
+      class="flex min-w-0 items-center gap-[6px] text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+6px)]"
       style={{ color: "var(--answer-ink-secondary)" }}
     >
       <Spinner width={18} height={18} class="size-[18px] shrink-0" />
@@ -1322,7 +1322,7 @@ function NoticeRow(props: {
 
   if (!props.detail)
     return (
-      <div class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[24px]" style={{ color: "var(--answer-ink-tertiary)" }}>
+      <div class="flex min-w-0 items-center gap-1.5 text-[length:var(--content-font-size,14px)] leading-[24px]" style={{ color: "var(--answer-ink-tertiary)" }}>
         <FlowIcon name="answer-context" />
         <bdi dir="auto" class="min-w-0 truncate">
           {title()}
@@ -1402,7 +1402,7 @@ function ContextRow(props: {
                 when={entry.text}
                 fallback={
                   <div
-                    class="flex min-w-0 items-center gap-1.5 text-[13px] leading-[var(--line-height-compact)]"
+                    class="flex min-w-0 items-center gap-1.5 text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+6px)]"
                     style={{ color: "var(--answer-ink-secondary)" }}
                   >
                     <FlowIcon name="file-document" />
@@ -1520,7 +1520,7 @@ function DisclosureRow(props: {
         data-disclosure-row=""
         aria-expanded={props.expanded}
         aria-controls={id}
-        class="group/row flex min-w-0 cursor-pointer items-center gap-[6px] text-[13px] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="group/row flex min-w-0 cursor-pointer items-center gap-[6px] text-[length:var(--content-font-size,14px)] leading-[24px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-secondary)" }}
         onClick={props.onToggle}
         onKeyDown={(event) => {

@@ -103,7 +103,6 @@ describe("settings schema", () => {
         newIcons: false,
         foldUserMessages: false,
         newQuestionUI: false,
-        sidebarOrganize: "list",
         mobileTitlebarPosition: "top",
         followUpBehavior: "queue",
         transcriptView: "detailed",
@@ -147,7 +146,6 @@ describe("settings schema", () => {
         backgroundActivity: "invalid",
         timelineWidth: "invalid",
         newQuestionUI: "invalid",
-        sidebarOrganize: "off",
       },
       appearance: { fontSize: "large", mono: "Custom Mono", tabLayout: "vertical", showProjectName: true },
       permissions: { autoApprove: true, autoApproveProjects: { on: true, off: false, bad: "yes" } },
@@ -165,7 +163,6 @@ describe("settings schema", () => {
       backgroundActivity: "left",
       timelineWidth: "comfortable",
       newQuestionUI: false,
-      sidebarOrganize: "list",
     })
     expect(settings.appearance).toEqual({
       fontSize: 14,

@@ -1,10 +1,10 @@
-import { produce, reconcile, unwrap } from "solid-js/store"
+import { produce, reconcile } from "solid-js/store"
 import { createEffect, createMemo } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Effect, Option, Predicate, Schema, SchemaGetter } from "effect"
 import { createSimpleContext } from "@opencode/ui/context"
 import { setNewIcons } from "@opencode/ui/icon"
-import { timelinePresets, type TimelineCategory, type TimelineDetail } from "@opencode/session-ui/timeline/detail"
+import { timelinePresets, type TimelineCategory } from "@opencode/session-ui/timeline/detail"
 import { persisted } from "@/runtime/persistence/storage"
 import { Persistence } from "@/runtime/persistence/schema"
 import { ScopedKey, type ServerScope } from "@/runtime/server/scope"
@@ -181,7 +181,6 @@ const generalSchema = Persistence.struct({
   foldUserMessages: Schema.Boolean,
   // The redesigned keyboard-first question dock, off until it ships.
   newQuestionUI: Schema.Boolean,
-  sidebarOrganize: Schema.Literals(["projects", "list"]),
   mobileTitlebarPosition: Schema.Literals(["top", "bottom"]),
   // Owned by the review plugin, which copies it out once; kept so settings rewrites cannot drop it first.
   mobileDiffWrap: Persistence.optional(Schema.Boolean),
@@ -375,7 +374,6 @@ export const defaultSettings: Settings = {
     newIcons: false,
     foldUserMessages: false,
     newQuestionUI: false,
-    sidebarOrganize: "list",
     mobileTitlebarPosition: "top",
     followUpBehavior: "queue",
     transcriptView: isDesktopRuntime() ? "standard" : "detailed",
@@ -478,24 +476,15 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       },
       general: {
         timelineDetail: withFallback(() => store.general?.timelineDetail, defaultSettings.general.timelineDetail),
-        setTimelineDetail(value: TimelineDetail) {
-          setStore("general", "timelineDetail", structuredClone(unwrap(value)))
-        },
         showCustomAgents,
         setShowCustomAgents(value: boolean) {
           setStore("general", "showCustomAgents", value)
         },
         showTurnDiffs: withFallback(() => store.general?.showTurnDiffs, defaultSettings.general.showTurnDiffs),
-        setShowTurnDiffs(value: boolean) {
-          setStore("general", "showTurnDiffs", value)
-        },
         backgroundActivity: withFallback(
           () => store.general?.backgroundActivity,
           defaultSettings.general.backgroundActivity,
         ),
-        setBackgroundActivity(value: BackgroundActivity) {
-          setStore("general", "backgroundActivity", value)
-        },
         timelineWidth,
         setTimelineWidth(value: TimelineWidth) {
           setStore("general", "timelineWidth", value)
@@ -511,10 +500,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         newQuestionUI: withFallback(() => store.general?.newQuestionUI, defaultSettings.general.newQuestionUI),
         setNewQuestionUI(value: boolean) {
           setStore("general", "newQuestionUI", value)
-        },
-        sidebarOrganize: withFallback(() => store.general?.sidebarOrganize, defaultSettings.general.sidebarOrganize),
-        setSidebarOrganize(value: "projects" | "list") {
-          setStore("general", "sidebarOrganize", value)
         },
         mobileTitlebarPosition: withFallback(
           () => store.general?.mobileTitlebarPosition,
@@ -536,9 +521,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
           setStore("general", "collapseTiming", value)
         },
         foldedReplies: withFallback(() => store.general?.foldedReplies, defaultSettings.general.foldedReplies),
-        setFoldedReplies(value: "all" | "final") {
-          setStore("general", "foldedReplies", value)
-        },
       },
       visibility: {
         customAgents: showCustomAgents,
@@ -561,9 +543,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
           setStore("appearance", "terminal", value.trim() ? value : "")
         },
         tabLayout: withFallback(() => store.appearance?.tabLayout, defaultSettings.appearance.tabLayout),
-        setTabLayout(value: TabLayout) {
-          setStore("appearance", "tabLayout", value)
-        },
         sidebarOpen: withFallback(() => store.appearance?.sidebarOpen, true),
         setSidebarOpen(value: boolean) {
           setStore("appearance", "sidebarOpen", value)

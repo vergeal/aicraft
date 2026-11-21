@@ -7,7 +7,6 @@
   [data-slot="image-preview-body"][data-zoomed],
   [data-slot="image-preview-body"][data-dragging],
   .session-service-config,
-  [data-component="timeline-detail-control"] input[type="range"],
   .project-settings-server-link,
   .project-settings-icon,
   .settings-back,

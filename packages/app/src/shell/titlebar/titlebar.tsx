@@ -210,12 +210,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             const tabsStore = tabs.store
 
             createEffect(() => {
-              if (
-                settings.appearance.tabLayout() === "vertical" &&
-                settings.general.sidebarOrganize() === "projects" &&
-                !mobile()
-              )
-                return
+              if (settings.appearance.tabLayout() === "vertical" && !mobile()) return
 
               if (tabs.preview()) tabs.keepPreview()
             })

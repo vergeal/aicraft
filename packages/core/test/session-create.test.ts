@@ -474,6 +474,25 @@ describe("Session.create", () => {
     }),
   )
 
+  it.effect("inherits the parent agent and model through children and lets a caller override them", () =>
+    Effect.gen(function* () {
+      const session = yield* Session.Service
+      const model = Model.Ref.make({
+        id: Model.ID.make("sonnet"),
+        providerID: Provider.ID.anthropic,
+        variant: Model.VariantID.make("fast"),
+      })
+      const parent = yield* session.create({ location, agent: Agent.ID.make("build"), model })
+
+      expect(yield* session.create({ parentID: parent.id })).toMatchObject({ agent: "build", model })
+
+      const override = Model.Ref.make({ id: Model.ID.make("haiku"), providerID: Provider.ID.anthropic })
+      expect(
+        yield* session.create({ parentID: parent.id, agent: Agent.ID.make("plan"), model: override }),
+      ).toMatchObject({ agent: "plan", model: override })
+    }),
+  )
+
   it.effect("stores permission rules, inherits them through children and forks, and replaces them", () =>
     Effect.gen(function* () {
       const session = yield* Session.Service

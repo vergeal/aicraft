@@ -60,7 +60,11 @@ export const Plugin = {
                 )
 
               const created = yield* ctx.session
-                .create({ title: input.title, metadata: { createdBy: { sessionID: context.sessionID } } })
+                .create({
+                  parentID: context.sessionID,
+                  title: input.title,
+                  metadata: { createdBy: { sessionID: context.sessionID } },
+                })
                 .pipe(Effect.mapError((error) => new ToolFailure({ message: "Failed to create a session", error })))
 
               if (input.prompt) {

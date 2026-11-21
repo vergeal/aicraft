@@ -314,12 +314,14 @@ const layer = Layer.effect(
               location,
               subpath: RelativePath.make(path.relative(project.directory, location.directory).replaceAll("\\", "/")),
               title: input.title,
-              agent: input.agent,
+              // A child starts on the parent's agent and model, so it keeps the provider account the
+              // parent is already using instead of falling back to the default selection.
+              agent: input.agent ?? parent?.agent,
               // Children inherit metadata and permissions the way they inherit
               // location, so host policies that read them treat the family uniformly.
               metadata: input.metadata ?? parent?.metadata,
               permissions: input.permissions ?? parent?.permissions,
-              model: input.model,
+              model: input.model ?? parent?.model,
             },
             { location },
           )

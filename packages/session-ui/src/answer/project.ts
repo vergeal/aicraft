@@ -25,6 +25,9 @@ type TurnDraft = {
   failure?: "stopped" | "failed"
   streaming?: boolean
   idle?: boolean
+  /** Kept so a later step can replace the failure or retry notice of the step it continues. */
+  errorNode?: TimelineNode
+  retryNode?: TimelineNode
 }
 
 const decodeNotice = Schema.decodeUnknownOption(
@@ -178,6 +181,22 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     return node
   }
 
+  // A later step supersedes the one before it, so the turn's failure and retry notice belong to its last step.
+  const drop = (draft: TurnDraft, node: TimelineNode) => {
+    const local = draft.nodes.indexOf(node)
+    if (local >= 0) draft.nodes.splice(local, 1)
+    const global = nodes.indexOf(node)
+    if (global >= 0) nodes.splice(global, 1)
+  }
+
+  const supersede = (draft: TurnDraft) => {
+    if (draft.errorNode) drop(draft, draft.errorNode)
+    if (draft.retryNode) drop(draft, draft.retryNode)
+    draft.errorNode = undefined
+    draft.retryNode = undefined
+    draft.failure = undefined
+  }
+
   for (const message of messages) {
     if (message.type === "user") {
       current = { turn: drafts.length + 1, nodes: [], startedAt: message.time.created }
@@ -197,6 +216,9 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     if (message.type === "idle") {
       draft.idle = true
+      // A settled turn cannot still be waiting to retry; a late label must not outlive the execution.
+      if (draft.retryNode) drop(draft, draft.retryNode)
+      draft.retryNode = undefined
 
       continue
     }
@@ -210,6 +232,9 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     }
 
     const streaming = message.time.completed === undefined
+
+    // Each message is a step of the turn; the reader sees only the last step's failure.
+    supersede(draft)
 
     if (streaming) draft.streaming = true
 
@@ -275,7 +300,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     // reason: a pending retry shows the retry row, and a final failure shows the error row. Messages
     // written before a retry cleared its error must not show the same reason twice.
     if (message.retry && !message.error)
-      push(
+      draft.retryNode = push(
         draft,
         { kind: "retry", attempt: message.retry.attempt, text: message.retry.error.message },
         `retry:${message.id}`,
@@ -289,7 +314,13 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
       // A stopped turn already says it stopped; repeating "Step interrupted" under a failure title only
       // restates the state in worse words.
       if (!interrupted)
-        push(draft, { kind: "error", text: message.error.message }, `error:${message.id}`, message.id, "turn")
+        draft.errorNode = push(
+          draft,
+          { kind: "error", text: message.error.message },
+          `error:${message.id}`,
+          message.id,
+          "turn",
+        )
     }
   }
 

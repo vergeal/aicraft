@@ -971,6 +971,9 @@ export function createData(config: CreateDataInput) {
         return
       case "session.step.started":
         message.update(event.data.sessionID, (draft, index) => {
+          // A new attempt retires every pending retry label in this session, including a step whose
+          // message id changed, so a label can never outlive the retry it describes.
+          for (const item of draft) if (item.type === "assistant" && item.retry) item.retry = undefined
           const position = index.get(event.data.assistantMessageID)
           const existing = position === undefined ? undefined : draft[position]
           if (existing?.type === "assistant") {
@@ -1012,6 +1015,8 @@ export function createData(config: CreateDataInput) {
         return
       case "session.step.ended": {
         message.editAssistant(event.data.sessionID, event.data.assistantMessageID, (assistant) => {
+          // A settled step is not waiting to be retried, even when its retry notice arrived late.
+          assistant.retry = undefined
           assistant.time.completed = event.created
           assistant.finish = event.data.finish
           assistant.rawFinish = event.data.rawFinish
@@ -1172,8 +1177,8 @@ export function createData(config: CreateDataInput) {
       case "session.execution.interrupted":
         setSessionActive(event.data.sessionID, "idle")
         message.update(event.data.sessionID, (draft) => {
-          const currentAssistant = message.activeAssistant(draft)
-          if (currentAssistant) currentAssistant.retry = undefined
+          // The execution is over, so no step in it can still be waiting to retry.
+          for (const item of draft) if (item.type === "assistant" && item.retry) item.retry = undefined
         })
         if (event.type === "session.execution.interrupted" && event.data.reason === "shutdown") return
         // Mirror the projected idle marker so turn boundaries match before the next message read.

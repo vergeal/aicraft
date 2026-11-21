@@ -532,4 +532,53 @@ describe("answer projection", () => {
     expect(group?.items.map((item) => item.kind)).toEqual(["repeat", "row", "row"])
     expect(group?.items[0]?.kind === "repeat" ? group.items[0].members.length : 0).toBe(2)
   })
+
+  test("lets a later step replace an earlier step's failure", () => {
+    const failed = {
+      ...assistant("msg_2", 2, [], 3),
+      error: { type: "ProviderError", message: "OpenAI Chat stream ended without finish_reason" },
+    } satisfies SessionMessageInfo
+
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      failed,
+      assistant("msg_3", 4, [text("continuing")]),
+    ])
+
+    expect([...snapshot.nodes.values()].map((node) => node.payload.kind)).toEqual(["input", "assistant"])
+    expect(snapshot.turns.get(1)?.status).toBe("open")
+  })
+
+  test("keeps the last step's failure", () => {
+    const failed = {
+      ...assistant("msg_2", 2, [], 3),
+      error: { type: "ProviderError", message: "OpenAI Chat stream ended without finish_reason" },
+    } satisfies SessionMessageInfo
+
+    const snapshot = projectTimeline([user("msg_1", "go", 1), failed])
+
+    expect([...snapshot.nodes.values()].map((node) => node.payload.kind)).toEqual(["input", "error"])
+    expect(snapshot.turns.get(1)?.status).toBe("failed")
+  })
+
+  test("drops a retry label once the execution settles", () => {
+    const retrying = {
+      ...assistant("msg_2", 2, []),
+      retry: {
+        attempt: 2,
+        at: 100,
+        error: { type: "ProviderError", message: "OpenAI Chat stream ended without finish_reason" },
+      },
+    } satisfies SessionMessageInfo
+
+    const pending = projectTimeline([user("msg_1", "go", 1), retrying])
+    expect(pending.nodes.get("retry:msg_2")?.payload.kind).toBe("retry")
+
+    const settled = projectTimeline([
+      user("msg_1", "go", 1),
+      retrying,
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 4 } } satisfies SessionMessageInfo,
+    ])
+    expect([...settled.nodes.values()].map((node) => node.payload.kind)).toEqual(["input"])
+  })
 })

@@ -1,6 +1,9 @@
 import { Select } from "@opencode/ui/select"
 import { Textarea } from "@opencode/ui/textarea"
 import { TextInput } from "@opencode/ui/text-input"
+import { Button } from "@opencode/ui/button"
+import { Icon } from "@opencode/ui/icon"
+import { Loader } from "@opencode/ui/loader"
 import { Show, createMemo, type Component } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import type { LocalProject } from "@/shell/state/layout"
@@ -32,10 +35,12 @@ export const SettingsProjectGeneral: Component<{
       <div class="settings-tab-header">
         <div class="settings-tab-header-row">
           <div class="settings-project-heading">
-            <ProjectFolder class="settings-project-heading-icon" />
+            <span class="settings-project-heading-badge" aria-hidden="true">
+              <ProjectFolder class="settings-project-heading-icon" />
+            </span>
             <div class="settings-tab-header-copy">
               <h2 class="settings-tab-title truncate">
-                <bdi dir="auto">{model.store.name || model.defaultName()}</bdi>
+                <bdi dir="auto">{model.defaultName()}</bdi>
               </h2>
               <div class="settings-project-subtitle">
                 <bdi dir="ltr" class="settings-project-path">
@@ -50,28 +55,39 @@ export const SettingsProjectGeneral: Component<{
             </div>
           </div>
           <div class="settings-tab-header-actions">
+            <ProjectSaveActions model={model} />
             <ProjectOptions server={props.server} project={props.project} />
           </div>
         </div>
       </div>
 
-      <div class="settings-tab-body" aria-busy={model.store.saving > 0}>
+      <div class="settings-tab-body settings-project-page" aria-busy={model.saving()}>
         <ProjectFolderMissing />
+        <Show when={model.error()}>
+          {(message) => (
+            <div class="settings-project-save-error" role="alert">
+              <Icon name="outline-hexagonal-warning" aria-hidden="true" />
+              <span>{message()}</span>
+            </div>
+          )}
+        </Show>
         <SettingsList>
           <SettingsRow
             title={language.t("project.settings.name.title")}
             description={language.t("project.settings.name.description")}
+            class="settings-project-field"
           >
-            <div class="project-settings-name">
+            <div class="settings-project-name">
               <TextInput
                 data-action="settings-project-name"
+                class="!w-full"
                 type="text"
-                appearance="base"
-                value={model.store.name}
+                appearance="large"
+                value={model.draft().name}
                 placeholder={model.folderName()}
                 aria-label={language.t("project.settings.name.title")}
-                onInput={(event) => model.setStore("name", event.currentTarget.value)}
-                onBlur={model.saveName}
+                disabled={model.saving()}
+                onInput={(event) => model.setField("name", event.currentTarget.value)}
               />
             </div>
           </SettingsRow>
@@ -88,12 +104,12 @@ export const SettingsProjectGeneral: Component<{
                 rows={6}
                 autoResize
                 autoResizeMax={360}
-                value={model.store.prompt}
+                value={model.draft().prompt}
                 placeholder={language.t("project.settings.prompt.placeholder")}
                 aria-label={language.t("project.settings.prompt.title")}
                 spellcheck={false}
-                onInput={(event) => model.setStore("prompt", event.currentTarget.value)}
-                onBlur={model.savePrompt}
+                disabled={model.saving()}
+                onInput={(event) => model.setField("prompt", event.currentTarget.value)}
               />
             </SettingsRow>
           </Show>
@@ -107,12 +123,12 @@ export const SettingsProjectGeneral: Component<{
               <Textarea
                 class="!w-full [&_[data-slot=textarea-v2-textarea]]:font-mono"
                 rows={5}
-                value={model.store.startup}
+                value={model.draft().startup}
                 placeholder={language.t("dialog.project.edit.worktree.startup.placeholder")}
                 aria-label={language.t("dialog.project.edit.worktree.startup")}
                 spellcheck={false}
-                onInput={(event) => model.setStore("startup", event.currentTarget.value)}
-                onBlur={model.saveStartup}
+                disabled={model.saving()}
+                onInput={(event) => model.setField("startup", event.currentTarget.value)}
               />
               <div class="settings-project-field-hint flex flex-col">
                 <span>{inlineVariables(language.t("project.settings.worktree.startup.hint.base"))}</span>
@@ -136,6 +152,39 @@ export const SettingsProjectGeneral: Component<{
           )}
         </Show>
       </div>
+    </>
+  )
+}
+
+// The page writes only on request, so the header carries the two controls that decide a draft: discard and save.
+// The check is a short receipt, not a fourth phase, so it replaces the label for a moment instead of adding chrome.
+const ProjectSaveActions: Component<{ model: ReturnType<typeof createEditProjectModel> }> = (props) => {
+  const language = useLanguage()
+
+  return (
+    <>
+      <Show when={props.model.dirty() && !props.model.saving()}>
+        <Button size="small" variant="ghost" onClick={() => props.model.discard()}>
+          {language.t("common.cancel")}
+        </Button>
+      </Show>
+      <Button
+        size="small"
+        variant="contrast"
+        class="settings-project-save"
+        data-action="settings-project-save"
+        disabled={!props.model.dirty() || props.model.saving()}
+        onClick={() => props.model.save()}
+      >
+        <Show
+          when={!props.model.saving()}
+          fallback={<Loader class="size-4" aria-hidden="true" />}
+        >
+          <Show when={props.model.status() === "saved"} fallback={language.t("common.save")}>
+            <Icon name="check" aria-hidden="true" />
+          </Show>
+        </Show>
+      </Button>
     </>
   )
 }

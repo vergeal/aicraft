@@ -3,43 +3,24 @@ import { Switch } from "@opencode/ui/switch"
 import { Tabs } from "@opencode/ui/tabs"
 import { Button } from "@opencode/ui/button"
 import { useQuery } from "@tanstack/solid-query"
-import {
-  type Component,
-  For,
-  Show,
-  createEffect,
-  createMemo,
-  createResource,
-  createSignal,
-  onCleanup,
-  type JSX,
-} from "solid-js"
+import { type Component, For, Show, createEffect, createMemo, createSignal, onCleanup, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useMcpToggle } from "@/providers/connect/mcp"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { useServerSDK } from "@/runtime/server/client"
 import { useData } from "@/runtime/server/current"
-import { pluginLabels } from "@/providers/catalog/plugin"
-import { ExternalLink } from "@/runtime/platform/external-link"
 import { ProjectFolderMissing } from "./project-folder-missing"
 import { configuredLanguageServers } from "./project-lsp"
 import { SettingsList } from "@/settings/list"
 import { SettingsPageHeader } from "@/settings/page-header"
 import "./project.css"
 
-type SkillItem = {
-  name: string
-  path: string
-}
-
-const skillKey = (item: SkillItem) => `${item.name}\n${item.path}`
-
 const ExtensionCard: Component<{ children: JSX.Element }> = (props) => (
   <SettingsList variant="catalog">{props.children}</SettingsList>
 )
 
 const ExtensionRow: Component<{
-  icon: "mcp" | "cube" | "post-skill" | "code"
+  icon: "mcp" | "code"
   name: string
   description?: JSX.Element
   children?: JSX.Element
@@ -58,11 +39,7 @@ const ExtensionRow: Component<{
   </div>
 )
 
-const ProjectSectionHeader: Component<{
-  kind: "mcps" | "plugins" | "skills"
-  empty: boolean
-  action: JSX.Element
-}> = (props) => {
+const ProjectSectionHeader: Component<{ empty: boolean; action: JSX.Element }> = (props) => {
   const language = useLanguage()
 
   return (
@@ -70,12 +47,12 @@ const ProjectSectionHeader: Component<{
       <div class="project-settings-extension-section-copy">
         <span>
           {props.empty
-            ? language.t(`project.settings.extensions.empty.${props.kind}.title`)
+            ? language.t("project.settings.extensions.empty.mcps.title")
             : language.t("project.settings.extensions.added")}
         </span>
         <Show when={props.empty}>
           <span class="project-settings-extension-empty-description">
-            {language.t(`project.settings.extensions.empty.${props.kind}.description`)}
+            {language.t("project.settings.extensions.empty.mcps.description")}
           </span>
         </Show>
       </div>
@@ -212,6 +189,8 @@ const ProjectLanguageServers: Component = () => {
   )
 }
 
+// MCP servers and language servers are the two things a project configures for itself; plugins and skills belong to
+// the catalog, so this page shows only the two tabs it can actually change.
 export const ProjectSettingsExtensions: Component<{
   subtab?: "mcps" | "plugins" | "skills" | "lsps"
   onSubtab: (value: "mcps" | "plugins" | "skills" | "lsps") => void
@@ -222,15 +201,13 @@ export const ProjectSettingsExtensions: Component<{
   const data = useData()
   const toggleMcp = useMcpToggle(() => directorySDK().directory)
 
+  // A stored `plugins` or `skills` subtab predates this page's two tabs; the first tab is the honest fallback.
+  const tab = () => (props.subtab === "lsps" ? "lsps" : "mcps")
+
   createEffect(() => {
     if (serverSDK.connection.status() !== "connected") return
     const ref = { directory: directorySDK().directory }
-    void Promise.all([
-      data.location.mcp.server.sync(),
-      data.location.skill.sync(),
-      data.location.mcp.server.sync(ref),
-      data.location.skill.sync(ref),
-    ]).catch(() => undefined)
+    void Promise.all([data.location.mcp.server.sync(), data.location.mcp.server.sync(ref)]).catch(() => undefined)
   })
 
   const globalMcpNames = createMemo(() =>
@@ -249,62 +226,6 @@ export const ProjectSettingsExtensions: Component<{
   const mcpEnabled = (name: string) =>
     data.location.mcp.server.list({ directory: directorySDK().directory })?.find((server) => server.name === name)
       ?.status.status === "connected"
-
-  // Reading `.latest` rethrows a failed fetch, such as the project's plugin list after its folder is deleted, so these
-  // lists fall back to empty instead of crashing the page.
-  const [globalPluginList] = createResource(
-    () => serverSDK.connection.status() === "connected",
-    () =>
-      serverSDK.api.plugin
-        .list()
-        .then((result) => result.data)
-        .catch(() => []),
-    { initialValue: [] },
-  )
-
-  const [projectPluginList] = createResource(
-    () => (serverSDK.connection.status() === "connected" ? directorySDK().directory : undefined),
-    (directory) =>
-      serverSDK.api.plugin
-        .list({ location: { directory } })
-        .then((result) => result.data)
-        .catch(() => []),
-    { initialValue: [] },
-  )
-
-  const globalPlugins = createMemo(() => pluginLabels(globalPluginList.latest ?? []))
-
-  const projectPlugins = createMemo(() => {
-    const shared = new Set(globalPlugins())
-
-    return pluginLabels(projectPluginList.latest ?? []).filter((name) => !shared.has(name))
-  })
-
-  // A plugin lists the skills it contributes on its own page, so the installed list only holds the user's skills and
-  // the built-in parts that have no page to show them. Built-in skills such as the browser or orchestrator guidance
-  // stay listed, because their plugin never appears on the Explore page.
-  const contributedSkills = createMemo(() => {
-    const ids = new Set<string>()
-
-    for (const plugin of [...(globalPluginList.latest ?? []), ...(projectPluginList.latest ?? [])]) {
-      if (plugin.source.type === "builtin" || !plugin.id) continue
-      ids.add(plugin.id)
-    }
-
-    return ids
-  })
-
-  const listed = (item: { plugin?: string }) => !item.plugin || !contributedSkills().has(item.plugin)
-
-  const serverSkills = createMemo(() => (data.location.skill.list() ?? []).filter(listed))
-
-  const projectSkills = createMemo(() => {
-    const shared = new Set(serverSkills().map(skillKey))
-
-    return (data.location.skill.list({ directory: directorySDK().directory }) ?? []).filter(
-      (item) => !shared.has(skillKey(item)) && listed(item),
-    )
-  })
 
   const mcpRows = (items: string[]) => (
     <For each={items}>
@@ -326,12 +247,6 @@ export const ProjectSettingsExtensions: Component<{
     </For>
   )
 
-  const pluginRows = (items: string[]) => <For each={items}>{(name) => <ExtensionRow icon="cube" name={name} />}</For>
-
-  const skillRows = (items: SkillItem[]) => (
-    <For each={items}>{(item) => <ExtensionRow icon="post-skill" name={item.name} />}</For>
-  )
-
   return (
     <>
       <SettingsPageHeader
@@ -343,23 +258,20 @@ export const ProjectSettingsExtensions: Component<{
         <ProjectFolderMissing />
         <Tabs
           variant="pill"
-          value={props.subtab ?? "mcps"}
+          value={tab()}
           onChange={(value) => {
-            if (value === "mcps" || value === "plugins" || value === "skills" || value === "lsps") props.onSubtab(value)
+            if (value === "mcps" || value === "lsps") props.onSubtab(value)
           }}
           class="project-settings-extension-tabs settings-subtabs"
         >
           <Tabs.List>
             <Tabs.Trigger value="mcps">{language.t("settings.extensions.tab.mcps")}</Tabs.Trigger>
-            <Tabs.Trigger value="plugins">{language.t("settings.extensions.tab.plugins")}</Tabs.Trigger>
-            <Tabs.Trigger value="skills">{language.t("settings.extensions.tab.skills")}</Tabs.Trigger>
             <Tabs.Trigger value="lsps">{language.t("project.settings.extensions.tab.lsps")}</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="mcps">
             <div class="project-settings-extension-section">
               <ProjectSectionHeader
-                kind="mcps"
                 empty={projectMcpNames().length === 0}
                 action={<span>{language.t("settings.extensions.manageConfig")}</span>}
               />
@@ -367,38 +279,6 @@ export const ProjectSettingsExtensions: Component<{
                 <ExtensionCard>{mcpRows(projectMcpNames())}</ExtensionCard>
               </Show>
               <SharedSection count={globalMcpNames().length}>{mcpRows(globalMcpNames())}</SharedSection>
-            </div>
-          </Tabs.Content>
-
-          <Tabs.Content value="plugins">
-            <div class="project-settings-extension-section">
-              <ProjectSectionHeader
-                kind="plugins"
-                empty={projectPlugins().length === 0}
-                action={<span>{language.t("settings.extensions.manageConfig")}</span>}
-              />
-              <Show when={projectPlugins().length > 0}>
-                <ExtensionCard>{pluginRows(projectPlugins())}</ExtensionCard>
-              </Show>
-              <SharedSection count={globalPlugins().length}>{pluginRows(globalPlugins())}</SharedSection>
-            </div>
-          </Tabs.Content>
-
-          <Tabs.Content value="skills">
-            <div class="project-settings-extension-section">
-              <ProjectSectionHeader
-                kind="skills"
-                empty={projectSkills().length === 0}
-                action={
-                  <ExternalLink class="settings-extension-link" href="https://opencode.ai/v2/docs/skills">
-                    {language.t("settings.extensions.addSkills")}
-                  </ExternalLink>
-                }
-              />
-              <Show when={projectSkills().length > 0}>
-                <ExtensionCard>{skillRows(projectSkills())}</ExtensionCard>
-              </Show>
-              <SharedSection count={serverSkills().length}>{skillRows(serverSkills())}</SharedSection>
             </div>
           </Tabs.Content>
           <Tabs.Content value="lsps">

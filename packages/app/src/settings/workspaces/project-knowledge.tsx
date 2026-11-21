@@ -1,4 +1,5 @@
 import { Button } from "@opencode/ui/button"
+import { Icon } from "@opencode/ui/icon"
 import { Switch } from "@opencode/ui/switch"
 import { useMutation, useQuery } from "@tanstack/solid-query"
 import { For, Show, createMemo, type Component } from "solid-js"
@@ -103,10 +104,19 @@ export const ProjectKnowledge: Component<{ projectID: string }> = (props) => {
         when={libraries.libraries().length > 0}
         fallback={
           <div class="project-settings-knowledge-empty">
-            <span>{language.t("project.settings.knowledge.empty")}</span>
-            <span class="project-settings-knowledge-description">
-              {language.t("project.settings.knowledge.empty.hint")}
-            </span>
+            <div class="project-settings-knowledge-empty-head">
+              <span class="project-settings-knowledge-empty-icon" aria-hidden="true">
+                <Icon name="file-document" />
+              </span>
+              <div class="project-settings-knowledge-empty-copy">
+                <span class="project-settings-knowledge-empty-title">
+                  {language.t("project.settings.knowledge.empty")}
+                </span>
+                <span class="project-settings-knowledge-description">
+                  {language.t("project.settings.knowledge.empty.hint")}
+                </span>
+              </div>
+            </div>
           </div>
         }
       >

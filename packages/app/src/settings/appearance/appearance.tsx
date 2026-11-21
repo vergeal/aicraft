@@ -53,7 +53,7 @@ const FontSetting: Component<{
 
   return (
     <SettingsRow title={language.t(config().title)} description={language.t(config().description)}>
-      <div class="w-full sm:w-[220px]">
+      <div class="settings-font-field">
         <FontPicker
           action={config().action}
           label={language.t(config().title)}

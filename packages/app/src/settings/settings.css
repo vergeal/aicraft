@@ -2664,9 +2664,14 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   }
 }
 
-/* One hover layer: the row already reacts, and a second band on the key button made a single hover paint twice. */
+/* One hover layer: the row already reacts, and a second band on the key button made a single hover paint twice.
+   Recording paints a rounded block that bleeds into the card's padding, so the wash has a shape instead of a
+   square edge-to-edge band, and the rail below sits on the block's own edge rather than 16px away. */
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording] {
   position: relative;
+  margin-inline: calc(-1 * var(--settings-space-2));
+  padding-inline: var(--settings-space-2);
+  border-radius: var(--settings-radius-sm);
   background: var(--v2-overlay-simple-overlay-pressed);
 }
 
@@ -2675,7 +2680,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording]::before {
   position: absolute;
   inset-block: var(--settings-space-3);
-  inset-inline-start: calc(-1 * var(--settings-space-4));
+  inset-inline-start: 0;
   width: 2px;
   border-radius: 2px;
   background: var(--v2-system-accent);

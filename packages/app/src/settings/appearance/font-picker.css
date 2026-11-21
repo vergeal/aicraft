@@ -7,7 +7,8 @@ button[data-component="font-picker"] {
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   height: var(--settings-row-control);
   padding-block: 4px;
   padding-inline: 8px 4px;

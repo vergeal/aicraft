@@ -197,6 +197,20 @@
   gap: 12px;
 }
 
+/* A tinted tile gives the folder mark the same weight as the title block, so the header has a left edge instead of
+   two bare lines. */
+.settings-project-heading-badge {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--settings-radius-md);
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-icon-icon-muted);
+}
+
 .settings-project-heading-icon[data-component="project-folder"] {
   width: 20px;
   height: 20px;
@@ -289,7 +303,48 @@
 }
 
 .settings-project-name {
-  width: min(280px, 100%);
+  width: min(320px, 100%);
+}
+
+/* The page writes on request, so the save control keeps one width while its label becomes a spinner or a check;
+   without the floor the header would shift on every save. */
+.settings-project-save {
+  min-width: 64px;
+  justify-content: center;
+}
+
+/* A failed write keeps the draft and reports itself above the fields, not only in a toast that can scroll away. */
+.settings-project-save-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--settings-radius-md);
+  background: var(--v2-state-bg-danger);
+  color: var(--v2-state-fg-danger);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-base);
+  overflow-wrap: anywhere;
+}
+
+.settings-project-save-error [data-slot="icon-svg"] {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* The page's fields are inputs, not inline selects: a 12px radius and a 2px ring drawn just inside the control read
+   as a rounded field. The shared 1px outline plus 6px radius read as a square box here. */
+.settings-project-page [data-component="text-input-v2"],
+.settings-project-page [data-component="textarea-v2"] {
+  border-radius: var(--settings-radius-md);
+}
+
+.settings-project-page [data-component="text-input-v2"]:where(:focus-within):not([data-disabled], [data-invalid]),
+.settings-project-page [data-component="textarea-v2"]:where(:focus-within):not([data-disabled], [data-invalid]) {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+  box-shadow: none;
 }
 
 /* ---------------------------------------------------------------- project list row */
@@ -443,8 +498,42 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  padding-block: 10px;
+  gap: 10px;
+  padding-block: 12px;
+}
+
+/* The empty state is the only thing this card shows when no library exists, so it gets a mark and a two-line block
+   instead of two bare sentences. */
+.project-settings-knowledge-empty-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-settings-knowledge-empty-icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--settings-radius-sm);
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-icon-icon-muted);
+}
+
+.project-settings-knowledge-empty-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-settings-knowledge-empty-title {
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
 }
 
 :root[data-motion="reduce"] {

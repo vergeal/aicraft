@@ -58,49 +58,50 @@ story.describe("touch timeline", () => {
   })
 })
 
-story("desktop message actions still appear on hover and keyboard focus", async ({ mount, page }) => {
+story("desktop keeps user actions visible and reveals response actions on hover", async ({ mount, page }) => {
   const timeline = await mount("current-session-timeline-rows--conversation", { args: { scenario: "interruption" } })
   expect(await page.evaluate(() => matchMedia("(hover: hover)").matches)).toBe(true)
 
-  for (const action of [
-    { slot: "user-message-copy-wrapper", name: "More actions" },
-    { slot: "text-part-copy-wrapper", name: "Copy response" },
-  ]) {
-    const actions = timeline.locator(`[data-slot="${action.slot}"]`)
-    await expect(actions).toHaveCount(1)
-    await expect(actions).toHaveCSS("opacity", "0")
-    await expect(actions).toHaveCSS("pointer-events", "none")
-    await actions.locator("..").hover()
-    await expect(actions).toHaveCSS("opacity", "1")
-    await expect(actions).toHaveCSS("pointer-events", "auto")
+  // The user message's row stays on screen without a pointer or focus over the message.
+  await page.mouse.move(0, 0)
+  const user = timeline.locator('[data-slot="user-message-copy-wrapper"]')
+  await expect(user).toHaveCount(1)
+  await expect(user).toHaveCSS("opacity", "1")
+  await expect(user).toHaveCSS("pointer-events", "auto")
+  await expect(user.getByRole("button", { name: "More actions", exact: true })).toBeVisible()
 
-    if (action.slot === "text-part-copy-wrapper") {
-      await expect(actions).toHaveCSS("height", "20px")
-      await expect(actions).toHaveCSS("margin-top", "8px")
-      await expect(actions).toHaveCSS("gap", "4px")
-      const meta = actions.locator('[data-slot="text-part-meta"]')
-      await expect(meta).toHaveCSS("font-size", "12px")
-      await expect(meta).toHaveCSS("line-height", "18px")
-      await expect(meta).toHaveCSS("gap", "4px")
-      await expect(meta.locator('[data-slot="text-part-meta-item"]')).toHaveText(["Build", "Claude Sonnet 4", "4s"])
-      const separators = meta.locator('[data-slot="text-part-meta-separator"]')
-      await expect(separators).toHaveCount(2)
+  // The response's copy row still reveals on hover and keyboard focus.
+  const actions = timeline.locator('[data-slot="text-part-copy-wrapper"]')
+  await expect(actions).toHaveCount(1)
+  await expect(actions).toHaveCSS("opacity", "0")
+  await expect(actions).toHaveCSS("pointer-events", "none")
+  await actions.locator("..").hover()
+  await expect(actions).toHaveCSS("opacity", "1")
+  await expect(actions).toHaveCSS("pointer-events", "auto")
+  await expect(actions).toHaveCSS("height", "20px")
+  await expect(actions).toHaveCSS("margin-top", "8px")
+  await expect(actions).toHaveCSS("gap", "4px")
+  const meta = actions.locator('[data-slot="text-part-meta"]')
+  await expect(meta).toHaveCSS("font-size", "13px")
+  await expect(meta).toHaveCSS("line-height", "20px")
+  await expect(meta).toHaveCSS("gap", "4px")
+  await expect(meta.locator('[data-slot="text-part-meta-item"]')).toHaveText(["Build", "Claude Sonnet 4", "4s"])
+  const separators = meta.locator('[data-slot="text-part-meta-separator"]')
+  await expect(separators).toHaveCount(2)
 
-      for (const separator of await separators.all()) {
-        await expect(separator).toHaveText("\u00B7")
-      }
-
-      const copy = actions.getByRole("button", { name: action.name, exact: true })
-      await expect(copy).toHaveCSS("width", "20px")
-      await expect(copy).toHaveCSS("height", "20px")
-      await expect(copy.locator('[data-slot="icon-svg"]')).toHaveCSS("width", "14px")
-    }
-
-    await page.mouse.move(0, 0)
-    await expect(actions).toHaveCSS("opacity", "0")
-    await actions.getByRole("button", { name: action.name, exact: true }).focus()
-    await expect(actions).toHaveCSS("opacity", "1")
-    await expect(actions).toHaveCSS("pointer-events", "auto")
-    await page.getByRole("button", { name: "Reset", exact: true }).focus()
+  for (const separator of await separators.all()) {
+    await expect(separator).toHaveText("\u00B7")
   }
+
+  const copy = actions.getByRole("button", { name: "Copy response", exact: true })
+  await expect(copy).toHaveCSS("width", "20px")
+  await expect(copy).toHaveCSS("height", "20px")
+  await expect(copy.locator('[data-slot="icon-svg"]')).toHaveCSS("width", "14px")
+
+  await page.mouse.move(0, 0)
+  await expect(actions).toHaveCSS("opacity", "0")
+  await copy.focus()
+  await expect(actions).toHaveCSS("opacity", "1")
+  await expect(actions).toHaveCSS("pointer-events", "auto")
+  await page.getByRole("button", { name: "Reset", exact: true }).focus()
 })

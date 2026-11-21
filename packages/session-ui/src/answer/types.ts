@@ -26,7 +26,7 @@ export type ToolContent = Extract<SessionMessageAssistant["content"][number], { 
 
 /** What one row renders. Rendering dispatches on the payload's kind, never on a raw message type. */
 export type NodePayload =
-  | { readonly kind: "input"; readonly text: string }
+  | { readonly kind: "input"; readonly text: string; readonly created: number }
   | { readonly kind: "assistant"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "reasoning"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "tool"; readonly tool: ToolContent }

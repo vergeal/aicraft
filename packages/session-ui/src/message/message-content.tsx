@@ -32,7 +32,6 @@ import { CommentCard, commentCardTarget, quoteTooltip } from "./comment-card"
 import { TimelineSeparator } from "../components/timeline-separator"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { IconButton } from "@opencode/ui/icon-button"
-import { Menu } from "@opencode/ui/menu"
 import { Icon } from "@opencode/ui/icon"
 import { Button } from "@opencode/ui/button"
 import { TextReveal } from "@opencode/ui/text-reveal"
@@ -56,15 +55,7 @@ import type { SessionUserActions, SessionUserAttachmentReference, SessionUserCom
 import { agentLabel } from "./agent-label"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
 import { attached, imageAttachmentPlaceholderStyle, typeLabel } from "../components/message-file"
-import {
-  createMessageActionState,
-  transitionMessageAction,
-  viewMessageActions,
-  type MessageAction,
-  type MessageActionCapabilities,
-  type MessageActionEvent,
-} from "./action-machine"
-
+import { UserMessageActions } from "./user-message-actions"
 import { writeClipboard } from "../components/markdown-clipboard"
 
 export { writeClipboard }
@@ -333,12 +324,6 @@ export function CurrentUserMessageDisplay(props: {
   const skills = createMemo(() => props.message.skills ?? [])
   const comments = createMemo(() => props.comments ?? [])
 
-  const sent = createMemo(() =>
-    new Intl.DateTimeFormat(i18n.locale(), { dateStyle: "medium", timeStyle: "short" }).format(
-      props.message.time.created,
-    ),
-  )
-
   // Mobile shows the current agent and model in the composer and switch notices, so repeating them per message is noise.
   const mobile = createMediaQuery("(max-width: 767px)")
 
@@ -413,127 +398,16 @@ export function CurrentUserMessageDisplay(props: {
     ),
   )
 
-  const [action, setAction] = createSignal(createMessageActionState())
-
-  const capabilities = createMemo<MessageActionCapabilities>(() => ({
-    pending: pending(),
-    canPending: !!props.actions?.pending,
-    canRevert: !!props.actions?.revert,
-    canFork: !!props.actions?.fork,
-  }))
-
-  const actionView = createMemo(() => viewMessageActions(action(), capabilities()))
-
-  const runAction = (kind: MessageAction) => {
-    const input = { sessionID: props.sessionID, messageID: props.message.id }
-
-    if (kind === "queue") return props.actions?.pending?.queue(input)
-
-    if (kind === "remove") return props.actions?.pending?.remove(input)
-
-    if (kind === "revert") return props.actions?.revert?.(input)
-
-    return props.actions?.fork?.(input)
-  }
-
-  const dispatch = (event: MessageActionEvent) => {
-    const next = transitionMessageAction(action(), event)
-    setAction(next.state)
-    next.effects.forEach((effect) => {
-      // The executor turns a synchronous throw into a rejection, so every outcome settles the attempt.
-      void new Promise<void>((resolve) => resolve(runAction(effect.action))).then(
-        () => dispatch({ type: "succeeded", attempt: effect.attempt }),
-        () => dispatch({ type: "failed", attempt: effect.attempt }),
-      )
-    })
-  }
-
-  const request = (kind: MessageAction) => dispatch({ type: "requested", action: kind, capabilities: capabilities() })
-
-  onCleanup(() => dispatch({ type: "disposed" }))
-
   const renderActions = () => (
-    <span data-slot="user-message-actions">
-      <Show when={props.actions?.pending}>
-        <UserMessageTransition active={pending()}>
-          <MessageActionButton
-            icon="arrow-down-to-line"
-            size="small"
-            label={i18n.t("ui.message.moveToQueue")}
-            disabled={actionView().disabled.queue}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => {
-              event.stopPropagation()
-              request("queue")
-            }}
-            aria-label={i18n.t("ui.message.moveToQueue")}
-          />
-          <MessageActionButton
-            icon="outline-trash"
-            size="small"
-            label={i18n.t("ui.message.deletePending")}
-            disabled={actionView().disabled.remove}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => {
-              event.stopPropagation()
-              request("remove")
-            }}
-            aria-label={i18n.t("ui.message.deletePending")}
-          />
-        </UserMessageTransition>
-      </Show>
-      <Show when={props.actions?.revert}>
-        <UserMessageTransition active={!pending()}>
-          <MessageActionButton
-            icon="reset"
-            size="small"
-            label={i18n.t("ui.message.revertMessage")}
-            disabled={actionView().disabled.revert}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => {
-              event.stopPropagation()
-              request("revert")
-            }}
-            aria-label={i18n.t("ui.message.revertMessage")}
-          />
-        </UserMessageTransition>
-      </Show>
-      <Menu gutter={4} placement="bottom-end">
-        <Tooltip appearance="compact" value={i18n.t("ui.message.moreActions")} placement="top" gutter={4}>
-          <Menu.Trigger
-            as={IconButton}
-            icon={<Icon name="outline-dots" size="small" />}
-            size="small"
-            variant="ghost-muted"
-            onMouseDown={(event: MouseEvent) => event.preventDefault()}
-            onClick={(event: MouseEvent) => event.stopPropagation()}
-            aria-label={i18n.t("ui.message.moreActions")}
-          />
-        </Tooltip>
-        <Menu.Portal>
-          <Menu.Content>
-            <Menu.Group>
-              <Menu.GroupLabel>
-                <time dateTime={new Date(props.message.time.created).toISOString()}>{sent()}</time>
-              </Menu.GroupLabel>
-            </Menu.Group>
-            <Menu.Separator />
-            <Menu.Item disabled={actionView().disabled.fork} onSelect={() => request("fork")}>
-              {i18n.t("ui.message.forkMessage")}
-            </Menu.Item>
-            <Menu.Item disabled={!props.text} onSelect={() => void writeClipboard(props.text)}>
-              {i18n.t("ui.message.copyMessage")}
-            </Menu.Item>
-            {/* Like the iOS app, a Voice message also offers the full prompt the session received. */}
-            <Show when={props.voice}>
-              <Menu.Item onSelect={() => void writeClipboard(props.message.text)}>
-                {i18n.t("ui.message.copyFullMessage")}
-              </Menu.Item>
-            </Show>
-          </Menu.Content>
-        </Menu.Portal>
-      </Menu>
-    </span>
+    <UserMessageActions
+      sessionID={props.sessionID}
+      messageID={props.message.id}
+      createdAt={props.message.time.created}
+      pending={pending()}
+      actions={props.actions}
+      text={props.text}
+      fullText={props.voice ? props.message.text : undefined}
+    />
   )
 
   const renderAttachments = () => (
@@ -748,7 +622,9 @@ export function CurrentUserMessageDisplay(props: {
         </div>
       </Show>
       {/* Like the TUI, a pending steer of only attachments still offers its actions. */}
-      <Show when={props.text || comments().length > 0 || pending()}>
+      <Show
+        when={props.text || attachments().length > 0 || references().length > 0 || comments().length > 0 || pending()}
+      >
         <div data-slot="user-message-copy-wrapper">
           <span data-slot="user-message-meta-wrap">
             <span data-slot="user-message-meta">

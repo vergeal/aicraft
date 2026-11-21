@@ -335,18 +335,12 @@
 
   [data-slot="user-message-copy-wrapper"] {
     height: calc(20px * var(--user-run-meta, 1));
-    margin-top: calc(8px * var(--user-run-meta, 1));
+    margin-top: calc(6px * var(--user-run-meta, 1));
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
     width: 100%;
-
-    /* Hover actions show and hide at once, without a fade. */
-    @media (hover: hover) {
-      opacity: 0;
-      pointer-events: none;
-    }
 
     [data-component="tooltip-v2-trigger"] {
       display: inline-flex;

@@ -211,7 +211,14 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     if (message.type === "user") {
       current = { turn: drafts.length + 1, nodes: [], startedAt: message.time.created }
       drafts.push(current)
-      push(current, { kind: "input", text: message.text }, `input:${message.id}`, message.id, "exchange", `${message.id}:text:0`)
+      push(
+        current,
+        { kind: "input", text: message.text, created: message.time.created },
+        `input:${message.id}`,
+        message.id,
+        "exchange",
+        `${message.id}:text:0`,
+      )
 
       continue
     }

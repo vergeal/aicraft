@@ -9,6 +9,8 @@ import { Spinner } from "@opencode/ui/spinner"
 import { useI18n, type UiI18nOrdinaryKey } from "@opencode/ui/context/i18n"
 import { hasMarkdownSyntax, Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
+import { UserMessageActions } from "../message/user-message-actions"
+import type { SessionUserActions } from "../actions"
 import { File } from "../components/file"
 import { changedFileDiff } from "../components/apply-patch-file"
 import { resolveFileDiff } from "../components/session-diff"
@@ -46,11 +48,19 @@ type RowDisclosure = {
 
 const RowDisclosureContext = createContext<RowDisclosure>()
 
+/** The session and its message actions, so an input row can offer revert, fork and its sent time. */
+type MessageActionsValue = { sessionID?: string; actions?: SessionUserActions }
+
+const MessageActionsContext = createContext<MessageActionsValue>({})
+
 export interface AnswerPageProps {
   readonly messages: () => readonly SessionMessageInfo[]
   readonly view?: TranscriptView
   readonly collapseTiming?: CollapseTiming
   readonly foldedReplies?: FoldedReplies
+  /** The session these messages belong to, so a row's actions address the right session. */
+  readonly sessionID?: string
+  readonly actions?: SessionUserActions
   readonly class?: string
   /** The scroll container this page renders into. Placement is skipped until it exists. */
   readonly viewport?: () => HTMLDivElement | undefined
@@ -695,18 +705,20 @@ export function AnswerPage(props: AnswerPageProps) {
   }
 
   return (
-    <RowDisclosureContext.Provider
-      value={{
-        open: (key) => openRows[key],
-        toggle: (key, next) => setOpenRows(key, next),
-      }}
-    >
-      <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
-        <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
-          <For each={keys()}>{(key) => renderEntry(key)}</For>
+    <MessageActionsContext.Provider value={{ sessionID: props.sessionID, actions: props.actions }}>
+      <RowDisclosureContext.Provider
+        value={{
+          open: (key) => openRows[key],
+          toggle: (key, next) => setOpenRows(key, next),
+        }}
+      >
+        <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
+          <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
+            <For each={keys()}>{(key) => renderEntry(key)}</For>
+          </div>
         </div>
-      </div>
-    </RowDisclosureContext.Provider>
+      </RowDisclosureContext.Provider>
+    </MessageActionsContext.Provider>
   )
 }
 
@@ -741,7 +753,7 @@ function runningElapsed(turn: TimelineTurn | undefined, now: number) {
   return turn?.startedAt === undefined ? undefined : Math.max(0, now - turn.startedAt)
 }
 
-/** Turn spacing: process rows 4px, an assistant response 16px, a process head 12px. */
+/** Turn spacing: process rows 4px, a user message 16px, an assistant response 16px, a process head 12px. */
 /**
  * The leading gap of one row in pixels. It is padding inside the row box rather than a margin, so the
  * measured border box already covers it and the window offsets stay exact.
@@ -754,7 +766,7 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
 
   if (!current || !previous) return 0
 
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 8
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 16
 
   if (current.kind === "fold") return 12
 
@@ -1174,6 +1186,7 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
     >
       <Payload
         payload={props.node.payload}
+        messageID={props.node.messageID ?? ""}
         cacheKey={key}
         view={props.view}
         live={props.live}
@@ -1186,12 +1199,15 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
 
 function Payload(props: {
   payload: NodePayload
+  messageID: string
   cacheKey: string
   view: TranscriptView
   live: boolean
   rowOpen?: boolean
   onToggleRow?: (next: boolean) => void
 }): JSX.Element {
+  const messageActions = useContext(MessageActionsContext)
+
   switch (props.payload.kind) {
     case "input":
       return (
@@ -1206,6 +1222,13 @@ function Payload(props: {
               <Markdown text={props.payload.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
             </Show>
           </div>
+          <UserMessageActions
+            sessionID={messageActions.sessionID}
+            messageID={props.messageID}
+            createdAt={props.payload.created}
+            actions={messageActions.actions}
+            text={props.payload.text}
+          />
         </div>
       )
     case "assistant":

@@ -3,6 +3,7 @@ import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Icon } from "@opencode/ui/icon"
 import { ScrollView } from "@opencode/ui/scroll-view"
 import { AnswerPage, type CollapseTiming, type FoldedReplies, type TranscriptView } from "@opencode/session-ui/answer"
+import type { SessionUserActions } from "@opencode/session-ui/actions"
 import { useLanguage } from "@/runtime/i18n/language"
 import { revealInTimeline } from "./answer-reveal"
 import type { TimelineFollow } from "./follow"
@@ -21,6 +22,9 @@ export function AnswerTimeline(props: {
   showHeader: boolean
   activity: JSX.Element
   messages: () => readonly SessionMessageInfo[]
+  /** The session these messages belong to, so a message action addresses the right session. */
+  sessionID?: () => string | undefined
+  actions?: SessionUserActions
   view?: TranscriptView
   collapseTiming?: CollapseTiming
   foldedReplies?: FoldedReplies
@@ -373,6 +377,8 @@ export function AnswerTimeline(props: {
         </Show>
         <AnswerPage
           messages={props.messages}
+          sessionID={props.sessionID?.()}
+          actions={props.actions}
           view={props.view}
           collapseTiming={props.collapseTiming}
           foldedReplies={props.foldedReplies}

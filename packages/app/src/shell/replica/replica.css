@@ -254,9 +254,7 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   padding-inline-start: var(--sidebar-header-lead);
   padding-inline-end: 8px;
   background: var(--color-sidebar);
-  /* Only the fade animates. Easing flex-basis relayouts the whole window on every frame of the toggle, which this
-     column does not need: its width is committed once, after the fade. See `.opencode/ui/06-motion` §3. */
-  transition: opacity 160ms ease;
+  transition: flex-basis 220ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 [data-slot="replica-titlebar-side"] :where(button, a, input, [role="button"]) {
@@ -268,11 +266,6 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
 [data-slot="replica-titlebar-side"][data-collapsed] {
   flex-basis: 0;
   padding-inline: 0;
-  opacity: 0;
-  /* Keep the width through the fade, then drop it in a single frame so no reflow lands inside the animation. */
-  transition:
-    opacity 160ms ease,
-    flex-basis 0s 160ms;
 }
 
 /* The workspace's head: canvas, the conversation title, and the window actions at its trailing edge. */
@@ -377,9 +370,9 @@ html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
   flex: 0 0 var(--navigation-sidebar-width);
   min-width: 0;
   min-height: 0;
-  /* The width is committed in one frame instead of eased: a flex-basis transition relayouts the transcript on every
-     frame of the toggle, which is what made collapsing stall on a long session. */
-  transition: opacity 160ms ease;
+  transition:
+    flex-basis 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 160ms ease;
 }
 
 /* The dividing hairline is painted as an overlay rather than a border or an inset shadow: children paint their own
@@ -415,10 +408,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
-  /* Hold the column's width while it fades, then take the space back in one frame. */
-  transition:
-    opacity 160ms ease,
-    flex-basis 0s 160ms;
 }
 
 [data-slot="replica-sidebar-slot"][data-collapsed]::after {

@@ -58,16 +58,6 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
     return session?.title
   }
 
-  /** The agent the conversation runs on, named the way the reference names its default mode. */
-  const mode = () => {
-    const route = layout.route()
-
-    if (route.type !== "session") return language.t("replica.mode.standard")
-    const agent = global.serverCtx(route.server)?.data.session.get(route.sessionId)?.agent
-
-    return !agent || agent === "build" ? language.t("replica.mode.standard") : agent
-  }
-
   /** The open conversation's review panel, the side region the layout opened for this tab. */
   const reviewTab = () => {
     const route = layout.route()
@@ -258,13 +248,6 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
               void commitRename(true)
             }}
           />
-          <span
-            data-ui="titlebar-mode"
-            class="flex h-[22px] shrink-0 items-center gap-1.5 rounded-full bg-[var(--v2-background-bg-layer-02)] px-2 text-[12px] leading-4 whitespace-nowrap text-[var(--color-text-secondary)] shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]"
-          >
-            <Icon name="outline-sliders" size="small" class="shrink-0 text-[var(--color-icon-secondary)]" />
-            <span class="max-w-[160px] truncate">{mode()}</span>
-          </span>
         </span>
 
         <div class="ms-auto flex shrink-0 items-center gap-2">

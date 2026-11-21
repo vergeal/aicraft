@@ -1419,7 +1419,6 @@ export const dict = {
   "replica.titlebar.back": "后退",
   "replica.titlebar.forward": "前进",
   "replica.titlebar.sidebar": "切换侧栏",
-  "replica.mode.standard": "标准模式",
   "replica.context.tokens": "Token",
   "replica.context.cost": "花费",
   "replica.context.usage": "上下文",

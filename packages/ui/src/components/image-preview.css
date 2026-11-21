@@ -114,7 +114,9 @@
 
   [data-slot="image-preview-body"] {
     position: absolute;
-    inset: 44px clamp(8px, 3vw, 36px);
+    /* The top inset leaves room for the floating toolbar; the bottom needs only breathing space now that the
+       controls no longer sit there. */
+    inset: 56px clamp(8px, 3vw, 36px) 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -146,18 +148,21 @@
     -webkit-user-drag: none;
   }
 
+  /* The toolbar floats over the top end of the image, on the same glass as a dialog surface, so zooming and closing
+     read as one control group in the place the window's own controls live. */
   [data-slot="image-preview-controls"] {
     position: absolute;
-    bottom: 12px;
-    inset-inline: 0;
+    z-index: 1;
+    top: 12px;
+    inset-inline-end: 12px;
     width: fit-content;
-    margin-inline: auto;
     display: flex;
     align-items: center;
     gap: 2px;
     padding: 2px;
-    border-radius: 8px;
-    background: var(--v2-background-bg-layer-01);
+    border-radius: var(--radius-popover);
+    background: var(--v2-material-surface-strong);
+    backdrop-filter: var(--v2-material-blur-thick);
     box-shadow: var(--v2-elevation-floating);
   }
 

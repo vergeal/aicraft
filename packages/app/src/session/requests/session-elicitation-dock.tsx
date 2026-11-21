@@ -101,6 +101,7 @@ export function SessionElicitationDock(props: {
 
   const submit = () => {
     if (sending()) return
+
     const answer = Object.fromEntries(
       fields().flatMap((field): Array<[string, FormValue]> => {
         if (field.type === "external") return [[field.key, true]]
@@ -148,13 +149,13 @@ export function SessionElicitationDock(props: {
         header={
           <>
             <div data-slot="question-header-top">
-              <div data-slot="question-header-title">
+              <div data-slot="question-header-title" data-multiline>
                 <bdi>{props.request.title}</bdi>
               </div>
             </div>
             <Show when={message()}>
               {(text) => (
-                <div data-slot="question-details">
+                <div data-slot="question-details" data-scrollable>
                   <div data-slot="question-text">
                     <bdi>
                       <LinkedText text={text()} />

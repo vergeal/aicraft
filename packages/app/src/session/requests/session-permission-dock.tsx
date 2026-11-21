@@ -46,30 +46,27 @@ export function SessionPermissionDock(props: {
         </div>
       }
       footer={
-        <>
-          <div />
-          <div data-slot="permission-footer-actions">
-            <Button
-              variant="neutral"
-              size="normal"
-              onClick={() => props.onDecide("reject")}
-              disabled={props.responding}
-            >
-              {language.t("ui.permission.deny")}
-            </Button>
-            <Button
-              variant="neutral"
-              size="normal"
-              onClick={() => props.onDecide("always")}
-              disabled={props.responding}
-            >
-              {language.t("ui.permission.allowAlways")}
-            </Button>
-            <Button variant="submit" size="normal" onClick={() => props.onDecide("once")} disabled={props.responding}>
-              {language.t("ui.permission.allowOnce")}
-            </Button>
-          </div>
-        </>
+        <div data-slot="permission-footer-actions">
+          <Button
+            variant="danger"
+            size="normal"
+            onClick={() => props.onDecide("reject")}
+            disabled={props.responding}
+          >
+            {language.t("ui.permission.deny")}
+          </Button>
+          <Button
+            variant="neutral"
+            size="normal"
+            onClick={() => props.onDecide("always")}
+            disabled={props.responding}
+          >
+            {language.t("ui.permission.allowAlways")}
+          </Button>
+          <Button variant="submit" size="normal" onClick={() => props.onDecide("once")} disabled={props.responding}>
+            {language.t("ui.permission.allowOnce")}
+          </Button>
+        </div>
       }
     >
       <div data-slot="permission-row">

@@ -550,7 +550,7 @@ export const SessionQuestionDockExperimental: Component<{ request: FormInfo; onS
     void store.listHeight
 
     if (!el || !row || !listRef) return
-    el.style.clipPath = `inset(${row.offsetTop}px 0 ${listRef.offsetHeight - row.offsetTop - row.offsetHeight}px round 6px)`
+    el.style.clipPath = `inset(${row.offsetTop}px 0 ${listRef.offsetHeight - row.offsetTop - row.offsetHeight}px round 8px)`
   })
 
   onCleanup(() => {
@@ -938,7 +938,7 @@ export const SessionQuestionDockExperimental: Component<{ request: FormInfo; onS
     const width = widths.next + (widths.submit - widths.next) * s
     const wide = widths.submit > widths.next ? submitFace : nextFace
     const cut = Math.max(widths.next, widths.submit) - width
-    const clip = cut < 0.5 ? "" : `inset(0 ${rtl ? cut.toFixed(2) : 0}px 0 ${rtl ? 0 : cut.toFixed(2)}px round 6px)`
+    const clip = cut < 0.5 ? "" : `inset(0 ${rtl ? cut.toFixed(2) : 0}px 0 ${rtl ? 0 : cut.toFixed(2)}px round 8px)`
 
     const by = footer.fade()
     showFace(nextFace, nextLabel, unit((1 - s) / by), unit(1 - s / by), nextFace === wide ? clip : "")
@@ -1205,7 +1205,7 @@ export const SessionQuestionDockExperimental: Component<{ request: FormInfo; onS
                   data-slot="question-text"
                   style={{
                     display: store.minimized ? "-webkit-box" : undefined,
-                    "-webkit-line-clamp": store.minimized ? "3" : undefined,
+                    "-webkit-line-clamp": store.minimized ? "2" : undefined,
                     "-webkit-box-orient": store.minimized ? "vertical" : undefined,
                     overflow: store.minimized ? "hidden" : undefined,
                   }}
@@ -1214,9 +1214,6 @@ export const SessionQuestionDockExperimental: Component<{ request: FormInfo; onS
                     <LinkedText text={question()?.question ?? ""} />
                   </bdi>
                 </div>
-                <Show when={!store.minimized && multi()}>
-                  <div data-slot="question-hint">{language.t("ui.question.multiHint")}</div>
-                </Show>
               </div>
             </div>
           </>
@@ -1227,6 +1224,9 @@ export const SessionQuestionDockExperimental: Component<{ request: FormInfo; onS
               {language.t("ui.common.dismiss")}
             </Button>
             <div data-slot="question-footer-actions">
+              <Show when={!store.minimized && multi()}>
+                <div data-slot="question-footer-hint">{language.t("ui.question.multiHint")}</div>
+              </Show>
               {/* Back stays in place while hidden, so it can come and go without moving anything. */}
               <div
                 data-slot="question-footer-back"

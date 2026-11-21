@@ -34,11 +34,11 @@
   [data-slot="question-body"] {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     flex: 1;
     min-block-size: 0;
     overflow: clip;
-    padding: 8px;
+    padding: 12px 12px 0;
   }
 
   [data-slot="question-header"] {
@@ -48,7 +48,7 @@
     flex-shrink: 0;
     min-block-size: 0;
     min-inline-size: 0;
-    padding-inline: 10px;
+    padding-inline: 0;
   }
 
   [data-slot="question-header-top"] {
@@ -88,11 +88,11 @@
   /* Holds the question text at its sprung height, and the outgoing copy of it while questions switch. It reaches into
      the header's side padding, so text sliding past a side fades out in that gutter instead of over the text at rest. */
   [data-slot="question-details-frame"] {
-    --question-gutter: 10px;
+    --question-gutter: 12px;
     position: relative;
     min-block-size: 0;
     min-inline-size: 0;
-    max-block-size: max(48px, calc((var(--question-prompt-max-height, 100dvh) - 120px) * 0.45));
+    max-block-size: calc(2 * var(--line-height-base));
     margin-inline: calc(-1 * var(--question-gutter));
     padding-inline: var(--question-gutter);
     overflow-x: clip;
@@ -228,7 +228,7 @@
 
   /* Reaches into the body's side padding like the question text's frame, for the same gutter. */
   [data-slot="question-options"] {
-    --question-gutter: 8px;
+    --question-gutter: 12px;
     flex: 1 1 auto;
     min-block-size: 0;
     min-inline-size: 0;
@@ -254,7 +254,7 @@
   [data-slot="question-options-list"] {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
     position: relative;
     isolation: isolate;
     transform-origin: 50% 0;
@@ -269,7 +269,7 @@
     background:
       linear-gradient(var(--v2-question-answer-bg-selected), var(--v2-question-answer-bg-selected)),
       var(--v2-background-bg-layer-01);
-    clip-path: inset(0 0 100% round 6px);
+    clip-path: inset(0 0 100% round 8px);
     pointer-events: none;
 
     &[data-shown="false"] {
@@ -287,7 +287,7 @@
     position: relative;
     padding: 10px;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     outline: none;
     background: transparent;
     color: var(--v2-text-text-base);
@@ -449,7 +449,7 @@
     padding: 0;
     gap: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     box-shadow: none;
     outline: none;
@@ -496,21 +496,52 @@
     box-sizing: border-box;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
     flex-shrink: 0;
-    padding-block: 7px 8px;
-    padding-inline: 12px;
+    padding: 8px 12px 12px;
   }
 
   [data-slot="question-footer-actions"] {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
+    min-inline-size: 0;
+  }
+
+  [data-slot="question-footer-hint"] {
+    min-inline-size: 0;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: var(--line-height-tight);
+    color: var(--v2-text-text-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 560px) {
+    [data-slot="question-footer-hint"] {
+      display: none;
+    }
   }
 
   /* While a switch runs, the dock draws the footer buttons frame by frame; at rest these rules place them. */
+  /* A hidden Back keeps its animation hooks but takes no horizontal room, so the footer hint stays beside Submit
+     instead of floating a button-width away from it. The advance button owns the right edge, so collapsing this
+     box never moves Submit: only the hint and the actions' left edge follow. */
   [data-slot="question-footer-back"][data-shown="false"] {
     visibility: hidden;
     opacity: 0;
+    inline-size: 0;
+    overflow: clip;
+    margin-inline-end: -8px;
+
+    & > * {
+      inline-size: 0;
+      min-inline-size: 0;
+    }
   }
 
   [data-slot="question-advance"] {

@@ -1,3 +1,41 @@
+/* ── The shared dock shell ──────────────────────────────────────────────────────────────────────────────────────
+   Every request dock is one card: a light glass fill over the conversation, the same thick backdrop blur and the
+   same 12px panel radius as the dialog surface, with a floating elevation because it rides above the timeline
+   rather than sitting in it. A kind only changes density and colour inside this shell. The rules below repeat the
+   kind selectors so they win over the older surface block in message-part.css (same specificity, later in the
+   cascade); `--v2-material-*` degrades to its opaque twin under reduced transparency in base.css. */
+[data-component="dock-prompt"],
+[data-component="dock-prompt"][data-kind="permission"],
+[data-component="dock-prompt"][data-variant="experimental"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  max-inline-size: 100%;
+  max-block-size: var(--question-prompt-max-height, 100dvh);
+  background-color: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
+  border-radius: var(--radius-popover);
+  box-shadow: var(--v2-elevation-floating);
+  overflow: clip;
+  isolation: isolate;
+  font-family: var(--v2-font-family-sans);
+}
+
+[data-color-scheme="dark"] [data-component="dock-prompt"][data-kind="permission"],
+[data-color-scheme="dark"] [data-component="dock-prompt"][data-variant="experimental"] {
+  background-color: var(--v2-material-surface-strong);
+}
+
+/* A title is a single line: the dock never grows to fit a long question heading, the readable text sits under it. */
+[data-component="dock-prompt"] [data-slot="question-header-title"]:not([data-multiline]) {
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 [data-component="dock-prompt"][data-kind="question"]:not([data-variant="experimental"]) {
   --v2-question-answer-bg-selected: color-mix(in srgb, var(--v2-border-border-focus) 15%, transparent);
   --question-feedback-duration: 120ms;
@@ -11,19 +49,17 @@
   font-family: var(--v2-font-family-sans);
   isolation: isolate;
 
+  /* The shell owns the surface now: the body only lays content out, so there is one card, not a card in a card. */
   [data-slot="question-body"] {
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     flex: 1;
     min-block-size: 0;
     overflow: clip;
-    padding: 8px 12px 12px;
-    background-color: var(--v2-background-bg-base);
-    border-radius: 10px;
-    box-shadow: var(--v2-elevation-raised);
+    padding: 12px 12px 0;
   }
 
   [data-slot="question-header"] {
@@ -69,13 +105,18 @@
     }
   }
 
+  /* Two lines of explanation at most. Only the open dock scrolls; a minimized dock has already clamped the text
+     itself, so capping it there would cut a half line. */
   [data-slot="question-details"] {
     display: flex;
     flex-direction: column;
     gap: 8px;
     min-block-size: 0;
     min-inline-size: 0;
-    max-block-size: max(48px, calc((var(--question-prompt-max-height, 100dvh) - 120px) * 0.45));
+  }
+
+  [data-slot="question-details"][data-scrollable] {
+    max-block-size: calc(2 * var(--line-height-compact));
     overflow-y: auto;
     scrollbar-width: none;
 
@@ -179,7 +220,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     flex: 1 1 auto;
     min-block-size: 0;
     min-inline-size: 0;
@@ -204,7 +245,7 @@
     inline-size: 100%;
     padding: 10px;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background-color: var(--v2-background-bg-layer-01);
     box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
     color: var(--v2-text-text-base);
@@ -412,7 +453,7 @@
     padding: 0;
     gap: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     box-shadow: none;
     outline: none;
@@ -454,6 +495,8 @@
     }
   }
 
+  /* The footer is part of the card, not a shelf under it: no border, no second fill, no negative margin. The hint
+     rides on the action side so the shortcut reminder sits next to the keys it explains. */
   [data-slot="question-footer"] {
     position: relative;
     z-index: 0;
@@ -461,22 +504,35 @@
     box-sizing: border-box;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
     flex-shrink: 0;
-    padding-block: 16px 8px;
-    padding-inline: 8px;
-    margin-block-start: -9px;
-    border: 0.5px solid var(--v2-border-border-base);
-    border-start-start-radius: 0;
-    border-start-end-radius: 0;
-    border-end-start-radius: 10px;
-    border-end-end-radius: 10px;
-    background-color: var(--v2-background-bg-layer-01);
+    padding: 8px 12px 12px;
   }
 
   [data-slot="question-footer-actions"] {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
+    min-inline-size: 0;
+  }
+
+  [data-slot="question-footer-hint"] {
+    min-inline-size: 0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: var(--line-height-tight);
+    color: var(--v2-text-text-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 560px) {
+    [data-slot="question-footer-hint"] {
+      display: none;
+    }
   }
 
   /* While a switch runs, the dock draws the footer buttons frame by frame; at rest these rules place them. */
@@ -548,6 +604,141 @@
     [data-slot="question-option"],
     .question-custom-field[data-component="text-input-v2"] {
       transition: none;
+    }
+  }
+}
+
+/* ── Permission ─────────────────────────────────────────────────────────────────────────────────────────────────
+   A permission request is not a question, even though it shares the shell: it opens with a warning badge, keeps
+   the muted approval colours, and puts the one destructive action on a danger label, so it never reads as another
+   answer list. These selectors repeat the kind to win over the older permission block in message-part.css, which
+   loads earlier at the same specificity. */
+[data-component="dock-prompt"][data-kind="permission"] {
+  max-block-size: var(--question-prompt-max-height, 100dvh);
+
+  [data-slot="permission-body"] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-block-size: 0;
+    padding: 12px 12px 0;
+  }
+
+  [data-slot="permission-header"] {
+    padding: 0;
+  }
+
+  [data-slot="permission-row"] {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    column-gap: 8px;
+    align-items: start;
+  }
+
+  [data-slot="permission-row"][data-variant="header"] {
+    align-items: center;
+  }
+
+  /* The badge states the kind before the title does, the way a macOS alert leads with its icon. */
+  [data-slot="permission-icon"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 20px;
+    block-size: 20px;
+    border-radius: 6px;
+    background-color: var(--v2-state-bg-warning);
+    color: var(--v2-state-fg-warning);
+  }
+
+  [data-slot="permission-icon"] [data-slot="icon-svg"] {
+    color: var(--v2-state-fg-warning);
+  }
+
+  [data-slot="permission-header-title"] {
+    min-inline-size: 0;
+    font-family: var(--v2-font-family-sans);
+    font-size: 14px;
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-base);
+    color: var(--v2-text-text-base);
+  }
+
+  [data-slot="permission-content"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-block-size: 0;
+  }
+
+  [data-slot="permission-hint"] {
+    font-family: var(--v2-font-family-sans);
+    font-size: 14px;
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-base);
+    color: var(--v2-text-text-muted);
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+
+  [data-slot="permission-action"] {
+    font-family: var(--v2-font-family-code);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: var(--line-height-base);
+    letter-spacing: -0.04px;
+    color: var(--v2-text-text-base);
+  }
+
+  /* The arguments and the matched paths are data, not prose, so each sits in one quiet code panel. */
+  [data-slot="permission-input"],
+  [data-slot="permission-patterns"] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-block-size: 160px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background-color: var(--v2-background-bg-layer-01);
+    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+    overflow-y: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    code {
+      font-family: var(--v2-font-family-code);
+      font-size: 13px;
+      font-weight: 400;
+      line-height: var(--line-height-compact);
+      letter-spacing: -0.04px;
+      white-space: pre-wrap;
+    }
+  }
+
+  [data-slot="permission-footer"] {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    padding: 8px 12px 12px;
+  }
+
+  [data-slot="permission-footer-actions"] {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    [data-component="button-v2"] {
+      padding-left: 12px;
+      padding-right: 12px;
     }
   }
 }

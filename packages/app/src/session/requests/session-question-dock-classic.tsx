@@ -674,7 +674,7 @@ export const SessionQuestionDockClassic: Component<{ request: FormInfo; onSubmit
                 data-slot="question-text"
                 style={{
                   display: store.minimized ? "-webkit-box" : undefined,
-                  "-webkit-line-clamp": store.minimized ? "3" : undefined,
+                  "-webkit-line-clamp": store.minimized ? "2" : undefined,
                   "-webkit-box-orient": store.minimized ? "vertical" : undefined,
                   overflow: store.minimized ? "hidden" : undefined,
                 }}
@@ -683,11 +683,6 @@ export const SessionQuestionDockClassic: Component<{ request: FormInfo; onSubmit
                   <LinkedText text={question()?.question ?? ""} />
                 </bdi>
               </div>
-              <Show when={!store.minimized}>
-                <div data-slot="question-hint">
-                  {language.t(multi() ? "ui.question.classic.multiHint" : "ui.question.singleHint")}
-                </div>
-              </Show>
             </div>
           </>
         }
@@ -697,6 +692,11 @@ export const SessionQuestionDockClassic: Component<{ request: FormInfo; onSubmit
               {language.t("ui.common.dismiss")}
             </Button>
             <div data-slot="question-footer-actions">
+              <Show when={!store.minimized}>
+                <div data-slot="question-footer-hint">
+                  {language.t(multi() ? "ui.question.classic.multiHint" : "ui.question.singleHint")}
+                </div>
+              </Show>
               <Show when={store.tab > 0}>
                 <Tooltip
                   placement="top"

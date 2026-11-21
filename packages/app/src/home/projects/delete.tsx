@@ -1,6 +1,5 @@
-import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { displayName } from "@opencode/ui/project-avatar"
 import { Project } from "@opencode/schema/project"
 import { useQueryClient } from "@tanstack/solid-query"
@@ -35,8 +34,6 @@ export function useDeleteProject() {
     if (!projectID || projectID === Project.ID.global || !ctx) return
 
     const confirm = async () => {
-      dialog.close()
-
       try {
         await ctx.sdk.api.project.remove({ projectID })
         const sessionIDs = tabs.store.flatMap((tab) => {
@@ -61,22 +58,14 @@ export function useDeleteProject() {
     }
 
     void dialog.show(() => (
-      <Dialog fit>
-        <DialogHeader hideClose>
-          <DialogTitleGroup
-            title={language.t("project.delete.title")}
-            description={language.t("project.delete.confirm", { name: displayName(project) })}
-          />
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-            {language.t("common.cancel")}
-          </Button>
-          <Button variant="danger" onClick={confirm}>
-            {language.t("project.delete.button")}
-          </Button>
-        </DialogFooter>
-      </Dialog>
+      <ConfirmDialog
+        title={language.t("project.delete.title")}
+        description={language.t("project.delete.confirm", { name: displayName(project) })}
+        confirmLabel={language.t("project.delete.button")}
+        cancelLabel={language.t("common.cancel")}
+        tone="danger"
+        onConfirm={() => void confirm()}
+      />
     ))
   }
 }

@@ -23,7 +23,8 @@ import { arrayMove } from "@/runtime/array-move"
 import { ActivityRing } from "@opencode/ui/activity-ring"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
+import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
@@ -43,6 +44,7 @@ import { pathKey } from "@/workspaces/path-key"
 import { SessionTabAvatarView } from "@/shell/layout/session-tab-avatar"
 import { sessionTabTitle } from "./tab-title"
 import { sessionTitle } from "@/session/title"
+import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { createSessionInbox, inboxArchived, inboxBusy, type InboxEntry, type InboxStatus } from "./inbox-model"
 
 // Drop containers: a session reorders inside its own container and changes sections by landing in another one.
@@ -267,16 +269,26 @@ export function SidebarInbox() {
     if (ready() && state.since === undefined) setState("since", Date.now())
   })
 
-  const deleteDialog = (entry: InboxEntry) =>
-    dialog.show(() => (
-      <DeleteDialog
-        entry={entry}
+  const deleteDialog = (entry: InboxEntry) => {
+    const children = sessionTreeIDs(entry.ctx.data.session.list(), entry.session.id).length - 1
+
+    return dialog.show(() => (
+      <ConfirmDialog
+        title={language.t("session.delete.title")}
+        description={language.t("session.delete.confirm", {
+          name: sessionTitle(entry.session.title) ?? language.t("command.session.new"),
+        })}
+        details={children > 0 ? [language.plural("session.delete.details.sessions", children)] : undefined}
+        confirmLabel={language.t("session.delete.button")}
+        cancelLabel={language.t("common.cancel")}
+        tone="danger"
         onConfirm={async () => {
           await inbox.remove(entry)
           pins.remove([entry.session.id])
         }}
       />
     ))
+  }
 
   const rows = (list: InboxEntry[], container: string, options: { disabled?: boolean } = {}) => (
     <For each={list.map((entry) => entry.key)}>
@@ -797,54 +809,34 @@ export function ArchivedSessionsDialog() {
                   }}
                   onArchive={() => void inbox.archive(entry)}
                   onUnarchive={() => void inbox.unarchive(entry)}
-                  onDelete={() =>
-                    dialog.show(() => (
-                      <DeleteDialog
-                        entry={entry}
+                  onDelete={() => {
+                    const children = sessionTreeIDs(entry.ctx.data.session.list(), entry.session.id).length - 1
+
+                    void dialog.show(() => (
+                      <ConfirmDialog
+                        title={language.t("session.delete.title")}
+                        description={language.t("session.delete.confirm", {
+                          name: sessionTitle(entry.session.title) ?? language.t("command.session.new"),
+                        })}
+                        details={
+                          children > 0 ? [language.plural("session.delete.details.sessions", children)] : undefined
+                        }
+                        confirmLabel={language.t("session.delete.button")}
+                        cancelLabel={language.t("common.cancel")}
+                        tone="danger"
                         onConfirm={async () => {
                           await inbox.remove(entry)
                           pins.remove([entry.session.id])
                         }}
                       />
                     ))
-                  }
+                  }}
                 />
               )}
             </For>
           </div>
         </Show>
       </DialogBody>
-    </Dialog>
-  )
-}
-
-function DeleteDialog(props: { entry: InboxEntry; onConfirm: () => Promise<void> }) {
-  const language = useLanguage()
-  const dialog = useDialog()
-
-  const confirm = async () => {
-    await props.onConfirm()
-    dialog.close()
-  }
-
-  return (
-    <Dialog fit>
-      <DialogHeader hideClose>
-        <DialogTitleGroup
-          title={language.t("session.delete.title")}
-          description={language.t("session.delete.confirm", {
-            name: sessionTitle(props.entry.session.title) ?? language.t("command.session.new"),
-          })}
-        />
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-          {language.t("common.cancel")}
-        </Button>
-        <Button variant="danger" onClick={confirm}>
-          {language.t("session.delete.button")}
-        </Button>
-      </DialogFooter>
     </Dialog>
   )
 }

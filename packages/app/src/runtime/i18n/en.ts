@@ -1589,6 +1589,8 @@ export const dict = {
   "session.delete.title": "Delete session",
   "session.delete.confirm": 'Delete session "{{name}}"?',
   "session.delete.button": "Delete session",
+  "session.delete.details.sessions.one": "1 child session will be deleted too",
+  "session.delete.details.sessions.other": "{{count}} child sessions will be deleted too",
 
   "workspace.new": "New worktree",
   "common.viewAll": "View all",

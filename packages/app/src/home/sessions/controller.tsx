@@ -1,7 +1,6 @@
 import type { SessionInfo } from "@opencode/client/promise"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { Button } from "@opencode/ui/button"
-import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { useQuery, useQueryClient } from "@tanstack/solid-query"
 import { type Accessor, createEffect, createMemo, createSignal, type JSX, on, startTransition, untrack } from "solid-js"
 import { usePinnedSessions } from "@/session/pins"
@@ -312,34 +311,6 @@ export function createHomeSessionsController(home: HomeController) {
       })
   }
 
-  function DeleteDialog(props: { server: ServerConnection.Key; session: SessionInfo }) {
-    const name = () => sessionTitle(props.session.title) ?? language.t("command.session.new")
-
-    const confirm = async () => {
-      dialog.close()
-      await remove(props.server, props.session)
-    }
-
-    return (
-      <Dialog fit>
-        <DialogHeader hideClose>
-          <DialogTitleGroup
-            title={language.t("session.delete.title")}
-            description={language.t("session.delete.confirm", { name: name() })}
-          />
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-            {language.t("common.cancel")}
-          </Button>
-          <Button variant="danger" onClick={confirm}>
-            {language.t("session.delete.button")}
-          </Button>
-        </DialogFooter>
-      </Dialog>
-    )
-  }
-
   return {
     copy: {
       language,
@@ -453,8 +424,25 @@ export function createHomeSessionsController(home: HomeController) {
         isPinned: (session: SessionInfo) => pins.isPinned(session.id),
         toggle: (session: SessionInfo) => pins.toggle(session.id),
       },
-      showDelete: (server: ServerConnection.Key, session: SessionInfo) =>
-        dialog.show(() => <DeleteDialog server={server} session={session} />),
+      showDelete: (server: ServerConnection.Key, session: SessionInfo) => {
+        const conn = home.server.list().find((item) => ServerConnection.key(item) === server)
+        const ctx = conn ? home.server.context(conn) : undefined
+        const children = ctx ? sessionTreeIDs(ctx.data.session.list(), session.id).length - 1 : 0
+
+        return dialog.show(() => (
+          <ConfirmDialog
+            title={language.t("session.delete.title")}
+            description={language.t("session.delete.confirm", {
+              name: sessionTitle(session.title) ?? language.t("command.session.new"),
+            })}
+            details={children > 0 ? [language.plural("session.delete.details.sessions", children)] : undefined}
+            confirmLabel={language.t("session.delete.button")}
+            cancelLabel={language.t("common.cancel")}
+            tone="danger"
+            onConfirm={() => void remove(server, session)}
+          />
+        ))
+      },
       settings: (server: ServerConnection.Key, session: SessionInfo) =>
         dialog.show(() => <SessionSettingsDialog server={server} session={session} />),
     },

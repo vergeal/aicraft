@@ -1,6 +1,4 @@
-import { Button } from "@opencode/ui/button"
-import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { useDialog } from "@opencode/ui/context/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { createSignal } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
@@ -16,7 +14,6 @@ export function DialogDeleteCustomProvider(props: {
   onDeleted?: () => void
 }) {
   const language = useLanguage()
-  const dialog = useDialog()
   const server = useServerSDK()
 
   const [state, setState] = createSignal<CustomProviderState>(
@@ -38,7 +35,6 @@ export function DialogDeleteCustomProvider(props: {
           title: language.t("settings.providers.custom.toast.deleted", { provider: effect.name }),
         })
         props.onDeleted?.()
-        dialog.close()
       },
       (cause: unknown) => {
         setState(transition(state(), { type: "delete.failed", attempt: effect.attempt, message: "" }, { taken: [] }).state)
@@ -53,31 +49,15 @@ export function DialogDeleteCustomProvider(props: {
     result.effects.forEach(run)
   }
 
-  // `deleting` owns the request, so a repeated confirm finds nothing to start.
-  const pending = () => state().type === "deleting"
-
   return (
-    <Dialog class="settings-provider-custom-delete-dialog">
-      <DialogHeader closeLabel={language.t("common.close")}>
-        <DialogTitleGroup
-          title={language.t("settings.providers.custom.delete.title", { provider: props.name })}
-          description={language.t("settings.providers.custom.delete.description", { provider: props.providerID })}
-        />
-      </DialogHeader>
-      <DialogFooter>
-        <Button size="normal" variant="ghost-muted" onClick={() => dialog.close()}>
-          {language.t("common.cancel")}
-        </Button>
-        <Button
-          size="normal"
-          variant="danger"
-          disabled={pending()}
-          onClick={() => dispatch({ type: "delete.confirmed" })}
-        >
-          {language.t("settings.providers.custom.delete.confirm")}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    <ConfirmDialog
+      title={language.t("settings.providers.custom.delete.title", { provider: props.name })}
+      description={language.t("settings.providers.custom.delete.description", { provider: props.providerID })}
+      confirmLabel={language.t("settings.providers.custom.delete.confirm")}
+      cancelLabel={language.t("common.cancel")}
+      tone="danger"
+      onConfirm={() => dispatch({ type: "delete.confirmed" })}
+    />
   )
 }
 

@@ -20,9 +20,8 @@ import { createTabComposerState } from "@/composer/persistence"
 import { base64Encode } from "@opencode/util/encode"
 import { showToast } from "@/shell/notifications/toast"
 import { adjacentTabKey, mergeVisibleTabOrder } from "./tab-order"
-import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { sessionTitle } from "@/session/title"
 import { errorMessage } from "@/shell/layout/helpers"
@@ -184,47 +183,22 @@ function SessionTabEntry(
     }
   }
 
-  function DeleteDialog() {
-    const confirm = async () => {
-      const value = session()
-      const ctx = props.serverCtx
+  const remove = async () => {
+    const value = session()
+    const ctx = props.serverCtx
 
-      dialog.close()
+    if (!value || !ctx) return
+    const ids = sessionTreeIDs(ctx.data.session.list(), value.id)
 
-      if (!value || !ctx) return
-      const ids = sessionTreeIDs(ctx.data.session.list(), value.id)
-
-      try {
-        await ctx.data.session.remove(value.id)
-        notifySessionTabsRemoved({ server: props.tab.server, directory: value.location.directory, sessionIDs: ids })
-      } catch (cause) {
-        showToast({
-          title: language.t("session.delete.failed.title"),
-          description: errorMessage(cause, language.t("session.delete.failed.title")),
-        })
-      }
+    try {
+      await ctx.data.session.remove(value.id)
+      notifySessionTabsRemoved({ server: props.tab.server, directory: value.location.directory, sessionIDs: ids })
+    } catch (cause) {
+      showToast({
+        title: language.t("session.delete.failed.title"),
+        description: errorMessage(cause, language.t("session.delete.failed.title")),
+      })
     }
-
-    return (
-      <Dialog fit>
-        <DialogHeader hideClose>
-          <DialogTitleGroup
-            title={language.t("session.delete.title")}
-            description={language.t("session.delete.confirm", {
-              name: sessionTitle(session()?.title) ?? language.t("session.tab.session"),
-            })}
-          />
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-            {language.t("common.cancel")}
-          </Button>
-          <Button variant="danger" onClick={confirm}>
-            {language.t("session.delete.button")}
-          </Button>
-        </DialogFooter>
-      </Dialog>
-    )
   }
 
   createEffect(() => props.onVisibleChange(visible()))
@@ -331,7 +305,25 @@ function SessionTabEntry(
         }
         fallbackDirectory={pending()?.draft.directory ?? persisted()?.directory}
         onRename={rename}
-        onDelete={() => dialog.show(() => <DeleteDialog />)}
+        onDelete={() => {
+          const value = session()
+          const ctx = props.serverCtx
+          const children = value && ctx ? sessionTreeIDs(ctx.data.session.list(), value.id).length - 1 : 0
+
+          void dialog.show(() => (
+            <ConfirmDialog
+              title={language.t("session.delete.title")}
+              description={language.t("session.delete.confirm", {
+                name: sessionTitle(value?.title) ?? language.t("session.tab.session"),
+              })}
+              details={children > 0 ? [language.plural("session.delete.details.sessions", children)] : undefined}
+              confirmLabel={language.t("session.delete.button")}
+              cancelLabel={language.t("common.cancel")}
+              tone="danger"
+              onConfirm={() => void remove()}
+            />
+          ))
+        }}
         onSessionSettings={() => {
           const value = session()
 

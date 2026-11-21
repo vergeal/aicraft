@@ -12,6 +12,7 @@ import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { useDialog } from "@opencode/ui/context/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { containsDirectory, getFilename } from "@opencode/util/path"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServer } from "@/runtime/server/current"
@@ -351,7 +352,11 @@ export const SettingsWorkspaces: Component<{
           inspectionID={current}
           inspect={() => inspect(workspace, context)}
           inspectionMessages={inspectionMessages}
-          onDelete={() => transact(() => remove(workspace, true, context))}
+          onDelete={() => {
+            // The dialog releases the confirm transaction as it closes; claim it again before running the removal.
+            setStore("transaction", "confirm")
+            return transact(() => remove(workspace, true, context))
+          }}
         />
       ),
       releaseConfirmation,
@@ -661,7 +666,6 @@ function DialogDeleteWorkspace(props: {
   inspectionMessages: (result: WorkspaceDeleteInspection) => string[]
   onDelete: () => Promise<void>
 }) {
-  const dialog = useDialog()
   const language = useLanguage()
 
   const status = useQuery(() => ({
@@ -680,48 +684,27 @@ function DialogDeleteWorkspace(props: {
     return props.inspectionMessages(status.data.result)
   }
 
-  const active = () => status.data?.result.active === true
-
-  const remove = () => {
-    const deleting = props.onDelete()
-    dialog.close()
-    void deleting
-  }
-
   return (
-    <Dialog fit>
-      <DialogHeader>
-        <DialogTitleGroup
-          title={language.t("workspace.delete.confirm", { name: getFilename(props.workspace.directory) })}
-          description={
-            <div class="flex flex-col gap-2">
-              <div class="flex flex-col gap-1">
-                <span class="text-11-regular text-v2-text-text-faint">
-                  {language.t(status.isPending ? "workspace.status.checking" : "workspace.delete.location")}
-                </span>
-                <code class="block w-fit max-w-full rounded-[4px] bg-v2-background-bg-layer-02 px-2 py-1 font-mono text-[13px] font-normal leading-[var(--line-height-compact)] text-v2-text-text-base break-all">
-                  {props.workspace.directory}
-                </code>
-              </div>
-              <div>{language.t("settings.workspaces.delete.warning")}</div>
-              <For each={descriptions()}>{(description) => <div>{description}</div>}</For>
-            </div>
-          }
-        />
-      </DialogHeader>
-      <DialogFooter>
-        <Button type="button" variant="neutral" autofocus onClick={() => dialog.close()}>
-          {language.t("common.cancel")}
-        </Button>
-        <Button
-          type="button"
-          variant="danger"
-          disabled={status.isPending || status.isError || active()}
-          onClick={remove}
-        >
-          {language.t("workspace.delete.button")}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    <ConfirmDialog
+      title={language.t("workspace.delete.confirm", { name: getFilename(props.workspace.directory) })}
+      description={
+        <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-1">
+            <span class="text-11-regular text-v2-text-text-faint">
+              {language.t(status.isPending ? "workspace.status.checking" : "workspace.delete.location")}
+            </span>
+            <code class="block w-fit max-w-full rounded-[4px] bg-v2-background-bg-layer-02 px-2 py-1 font-mono text-[13px] font-normal leading-[var(--line-height-compact)] text-v2-text-text-base break-all">
+              {props.workspace.directory}
+            </code>
+          </div>
+          <div>{language.t("settings.workspaces.delete.warning")}</div>
+          <For each={descriptions()}>{(description) => <div>{description}</div>}</For>
+        </div>
+      }
+      confirmLabel={language.t("workspace.delete.button")}
+      cancelLabel={language.t("common.cancel")}
+      tone="danger"
+      onConfirm={() => void props.onDelete()}
+    />
   )
 }

@@ -1,5 +1,6 @@
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
@@ -658,36 +659,21 @@ function RemoveLibraryDialog(props: { name: string; onConfirm: () => void }) {
 }
 
 function RemoveFilesDialog(props: { count: number; flagged?: boolean; onConfirm: () => void }) {
-  const dialog = useDialog()
   const language = useLanguage()
 
   return (
-    <Dialog fit>
-      <DialogHeader hideClose>
-        <DialogTitleGroup
-          title={language.t(props.flagged ? "knowledge.flags.removeAll.title" : "knowledge.files.delete")}
-          description={language.plural(
-            props.flagged ? "knowledge.flags.removeAll.confirm" : "knowledge.files.delete.confirm",
-            props.count,
-            { count: props.count },
-          )}
-        />
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-          {language.t("common.cancel")}
-        </Button>
-        <Button
-          variant="danger"
-          onClick={() => {
-            dialog.close()
-            props.onConfirm()
-          }}
-        >
-          {language.t("knowledge.files.delete")}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    <ConfirmDialog
+      title={language.t(props.flagged ? "knowledge.flags.removeAll.title" : "knowledge.files.delete")}
+      description={language.plural(
+        props.flagged ? "knowledge.flags.removeAll.confirm" : "knowledge.files.delete.confirm",
+        props.count,
+        { count: props.count },
+      )}
+      confirmLabel={language.t("knowledge.files.delete")}
+      cancelLabel={language.t("common.cancel")}
+      tone="danger"
+      onConfirm={props.onConfirm}
+    />
   )
 }
 

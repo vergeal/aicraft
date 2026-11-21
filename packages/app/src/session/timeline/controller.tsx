@@ -1,6 +1,5 @@
 import type { SessionMessageInfo } from "@opencode/client/promise"
-import { DialogFooter, DialogHeader, DialogTitleGroup, Dialog } from "@opencode/ui/dialog"
-import { Button } from "@opencode/ui/button"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { useNavigate } from "@solidjs/router"
 import { createEffect, createMemo, on, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -298,36 +297,6 @@ export function createTimelineController(input: { session: TimelineSessionSource
     return true
   }
 
-  function DeleteDialog(props: { sessionID: string }) {
-    const name = createMemo(
-      () => sessionTitle(data.session.get(props.sessionID)?.title) ?? language.t("session.tab.session"),
-    )
-
-    const confirm = async () => {
-      await remove(props.sessionID)
-      dialog.close()
-    }
-
-    return (
-      <Dialog fit>
-        <DialogHeader hideClose>
-          <DialogTitleGroup
-            title={language.t("session.delete.title")}
-            description={language.t("session.delete.confirm", { name: name() })}
-          />
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-            {language.t("common.cancel")}
-          </Button>
-          <Button variant="danger" onClick={confirm}>
-            {language.t("session.delete.button")}
-          </Button>
-        </DialogFooter>
-      </Dialog>
-    )
-  }
-
   createEffect(
     on(
       () => [input.session.data.parentID(), childTaskDescription()] as const,
@@ -366,7 +335,22 @@ export function createTimelineController(input: { session: TimelineSessionSource
     action: {
       rename,
       export: exportSession,
-      showDelete: (id: string) => dialog.show(() => <DeleteDialog sessionID={id} />),
+      showDelete: (id: string) => {
+        const name = sessionTitle(data.session.get(id)?.title) ?? language.t("session.tab.session")
+        const children = sessionTreeIDs(data.session.list(), id).length - 1
+
+        return dialog.show(() => (
+          <ConfirmDialog
+            title={language.t("session.delete.title")}
+            description={language.t("session.delete.confirm", { name })}
+            details={children > 0 ? [language.plural("session.delete.details.sessions", children)] : undefined}
+            confirmLabel={language.t("session.delete.button")}
+            cancelLabel={language.t("common.cancel")}
+            tone="danger"
+            onConfirm={() => void remove(id)}
+          />
+        ))
+      },
       navigateParent: () => {
         const id = input.session.data.parentID()
 

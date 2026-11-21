@@ -1,7 +1,6 @@
 import { ClientError, type ScheduleInfo } from "@opencode/client/promise"
-import { Button } from "@opencode/ui/button"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { getFilename } from "@opencode/util/path"
 import { Option, Schema } from "effect"
 import { createEffect, createMemo, createSignal, on } from "solid-js"
@@ -412,12 +411,13 @@ export function createScheduled() {
 
   const confirmRemove = (task: ScheduleInfo) =>
     dialog.show(() => (
-      <DeleteDialog
-        name={taskName(task, language)}
-        onConfirm={() => {
-          dialog.close()
-          void remove(task)
-        }}
+      <ConfirmDialog
+        title={language.t("scheduled.detail.delete.title")}
+        description={language.t("scheduled.detail.delete.description", { name: taskName(task, language) })}
+        confirmLabel={language.t("scheduled.detail.delete.button")}
+        cancelLabel={language.t("common.cancel")}
+        tone="danger"
+        onConfirm={() => void remove(task)}
       />
     ))
 
@@ -462,26 +462,3 @@ function readTimeZone(value: string | undefined) {
   }
 }
 
-function DeleteDialog(props: { name: string; onConfirm: () => void }) {
-  const language = useLanguage()
-  const dialog = useDialog()
-
-  return (
-    <Dialog fit>
-      <DialogHeader hideClose>
-        <DialogTitleGroup
-          title={language.t("scheduled.detail.delete.title")}
-          description={language.t("scheduled.detail.delete.description", { name: props.name })}
-        />
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="neutral" autofocus onClick={() => dialog.close()}>
-          {language.t("common.cancel")}
-        </Button>
-        <Button variant="danger" onClick={props.onConfirm}>
-          {language.t("scheduled.detail.delete.button")}
-        </Button>
-      </DialogFooter>
-    </Dialog>
-  )
-}

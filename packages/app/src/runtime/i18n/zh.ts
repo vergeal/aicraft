@@ -751,6 +751,8 @@ export const dict = {
   "session.delete.title": "删除会话",
   "session.delete.confirm": '删除会话 "{{name}}"？',
   "session.delete.button": "删除会话",
+  "session.delete.details.sessions.one": "1 个子会话也会一并删除",
+  "session.delete.details.sessions.other": "{{count}} 个子会话也会一并删除",
 
   "workspace.new": "新建工作区",
   "workspace.delete.failed.title": "删除工作区失败",

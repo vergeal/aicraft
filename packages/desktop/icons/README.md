@@ -24,9 +24,13 @@ fills 62% of the icon body. The three channels share that geometry and differ on
 
 | Channel | Surface | Ring / core |
 | --- | --- | --- |
-| `prod` | `#131010` | `#00E08A → #00D4A0 → #00B4FF` gradient, core `#99F6E4` |
+| `prod` | `#171B22` edge → `#262F3C` centre lift | `#00E08A → #00D4A0 → #00B4FF` gradient, core `#99F6E4` |
 | `beta` | `#3A3A3E` | same gradient, core `#99F6E4` |
 | `dev` | `#00C79B` | inverted: ring and core `#0B1714` |
+
+`prod`'s surface is a radial lift (centre at 50%/46%, reaching the edge colour at 66% radius) instead of a flat fill, so the
+icon reads as a deep blue-grey with a slight lift rather than near-black on a dark desktop. To retune it, retint the surface
+pixels of the existing artwork in place; the ring, keyline, shadow and anti-aliased edges must not be redrawn.
 
 `dev` currently ships the `beta` artwork (same surface and mark) as a temporary state; the inverted dev palette above is the
 design to restore when the channels need to be told apart again.

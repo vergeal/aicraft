@@ -248,3 +248,13 @@
 .settings-provider-group .settings-provider-accounts {
   margin-inline-start: calc(var(--settings-space-4) + 40px);
 }
+
+/*
+ * The popular row lays its copy out as a line so the note rides beside the name, but the shared copy block centers its
+ * children for a stacked column. Centering inside a row would float a provider that has no note into the middle of
+ * the card, so every row starts at the icon and keeps the note one readable step from the name.
+ */
+.settings-providers .settings-provider-row--popular .settings-provider-copy {
+  justify-content: flex-start;
+  gap: 10px;
+}

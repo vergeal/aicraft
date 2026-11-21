@@ -211,16 +211,6 @@ export function createSessionTimelineInteraction(session: SessionModel) {
     dispatchHistory(SCROLL_TOP_EVENT)
   }
 
-  // A page lands above the reader, adding its height to `scrollTop`. Pull again while the top is still within the
-  // prefetch distance so a flick that keeps going never reaches the fetched edge; the distance check ends the loop
-  // because the prepend moves `scrollTop` by the page's own height.
-  const prefetchMore = () => {
-    if (!scroller || untrack(follow.following)) return
-    if (scroller.scrollTop >= prefetchDistance()) return
-    if (!canRequestScrollPage(untrack(historyState))) return
-    dispatchHistory(SCROLL_TOP_EVENT)
-  }
-
   // Runs inside the virtualizer's ref and resize effects, so it reads untracked: they must not rerun on each phase.
   const requestFill = () => {
     if (!canRequestFillProbe(untrack(historyState)) || !untrack(follow.following)) return
@@ -280,14 +270,15 @@ export function createSessionTimelineInteraction(session: SessionModel) {
         ),
       }
 
-      // Every outcome settles in the machine, which drops a result whose attempt is no longer current.
+      // Every outcome settles in the machine, which drops a result whose attempt is no longer current. A landed page
+      // answers the reader's own scroll; paging again from here would empty the whole transcript in one burst whenever
+      // a page is shorter than the prefetch distance (folded rows are), because the prepend never moves `scrollTop`
+      // far enough to end the loop. The next scroll event pages the next page instead.
       const settle = (event: TimelineHistoryEvent) => {
         clearTimeout(load.timer)
 
         if (historyLoad === load) historyLoad = undefined
         dispatchHistory(event)
-        // Keep the buffer ahead of the reader instead of waiting for the next scroll event at the very top.
-        prefetchMore()
       }
 
       historyLoad = load

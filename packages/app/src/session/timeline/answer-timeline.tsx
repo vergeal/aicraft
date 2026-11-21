@@ -263,10 +263,6 @@ export function AnswerTimeline(props: {
 
         const height = viewport.scrollHeight
         const delta = height - lastContentHeight
-        // Whether the reader was already at the end before this height change. Paging an older page in above the
-        // viewport also grows the height, and that is not a reason to pin to the end: pinning there drags a reader who
-        // sits mid-transcript down to the new bottom.
-        const atEndBefore = viewport.scrollTop + viewport.clientHeight >= lastContentHeight - END_EPSILON
         lastContentHeight = height
 
         // Small back-and-forth changes are renderer noise: following those would drag the viewport up and down every
@@ -274,7 +270,10 @@ export function AnswerTimeline(props: {
         // left above the fold looking at content that just disappeared.
         if (delta <= 0 && delta > -200) return
 
-        if (following() || atEndBefore) {
+        // Only a following view absorbs growth. An older page paged in above a detached reader grows the height while
+        // the reader keeps their own offset, so pinning to the end here would drag them down for every page that lands
+        // and hide the position they scrolled to. Reaching the end again re-follows through the scroll event.
+        if (following()) {
           stickToEnd()
           // A landing settles on its first write, whether that write came from the activation frame or from here.
           if (props.follow.peek().type === "landing") settleLanding()

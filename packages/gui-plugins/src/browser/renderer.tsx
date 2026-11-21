@@ -57,6 +57,33 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     openFile: (session, path) => model()?.openFile(session, path),
   })
 
+  // A link in the session opens in the pane, as a link in a browser would. Dialogs keep the system browser, because
+  // the sign-in round trips they start must land back in the app.
+  const followLink = (event: MouseEvent) => {
+    if (event.defaultPrevented || event.button !== 0) return
+    const anchor = event.target instanceof Element ? event.target.closest("a[target=_blank]") : undefined
+
+    if (!(anchor instanceof HTMLAnchorElement) || anchor.closest('[data-component="dialog-v2"]')) return
+    const url = URL.canParse(anchor.href) ? new URL(anchor.href) : undefined
+    const session = sessions.current()
+    const value = model()
+
+    if (
+      !url ||
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      !session ||
+      !session.server.builtin ||
+      !value?.available(session)
+    )
+      return
+
+    event.preventDefault()
+    value.openURL(session, url.href)
+  }
+
+  document.addEventListener("click", followLink, true)
+  onCleanup(() => document.removeEventListener("click", followLink, true))
+
   ctx.add(Command, (): Command | undefined => {
     const pane = model()?.pane()
 

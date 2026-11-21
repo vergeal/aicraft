@@ -1199,7 +1199,7 @@ function Payload(props: {
           <div
             dir="auto"
             data-slot="user-message-text"
-            class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[14px] leading-[22px] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
+            class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+8px)] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
             style={{ color: "var(--answer-ink)" }}
           >
             <Show when={hasMarkdownSyntax(props.payload.text)} fallback={<>{props.payload.text}</>}>

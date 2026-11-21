@@ -1754,8 +1754,6 @@ export const dict = {
   "replica.titlebar.back": "Back",
   "replica.titlebar.forward": "Forward",
   "replica.titlebar.sidebar": "Toggle sidebar",
-  "replica.titlebar.more": "More actions",
-  "replica.titlebar.panel": "Toggle review panel",
   "replica.mode.standard": "Standard",
   "replica.context.tokens": "Tokens",
   "replica.context.cost": "Cost",

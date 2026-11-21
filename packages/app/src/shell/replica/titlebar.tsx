@@ -4,10 +4,7 @@ import { makeEventListener } from "@solid-primitives/event-listener"
 import { Icon } from "@opencode/ui/icon"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { useLanguage } from "@/runtime/i18n/language"
-import { base64Encode } from "@opencode/util/encode"
 import { useGlobal } from "@/runtime/server/runtime"
-import { useServers } from "@/runtime/server/registry"
-import { SessionRouteKey, SessionStateKey } from "@/runtime/server/scope"
 import { useCommand } from "@/shell/commands/command"
 import { goBackCommand, goForwardCommand } from "@/shell/titlebar/history-commands"
 import { createTitlebarHistory } from "@/shell/titlebar/history-store"
@@ -29,7 +26,6 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
   const language = useLanguage()
   const layout = useLayout()
   const global = useGlobal()
-  const servers = useServers()
   const tabs = useTabs()
   const command = useCommand()
   const history = createTitlebarHistory()
@@ -91,26 +87,6 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
 
     if (!tab) return
     tabs.setRegion(tab, "side", !tabs.region(tab, "side"))
-  }
-
-  const openContext = () => {
-    const route = layout.route()
-
-    if (route.type !== "session") return
-    const session = global.serverCtx(route.server)?.data.session.get(route.sessionId)
-
-    if (!session) return
-
-    layout.panel.open(
-      SessionStateKey.from(
-        servers.scope(route.server),
-        SessionRouteKey.fromRoute(base64Encode(session.location.directory), session.id),
-      ),
-      "context:main",
-    )
-
-    const tab = findSessionTab(tabs.store, route.server, route.sessionId)
-    if (tab) tabs.setRegion(tab, "side", true)
   }
 
   // The conversation title is edited in place, the way session rows and tab titles do it: double-click opens
@@ -310,30 +286,6 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
               </button>
             </Tooltip>
           </Show>
-          <Tooltip placement="bottom" value={language.t("replica.titlebar.more")}>
-            <button
-              type="button"
-              data-session-only
-              data-replica-control
-              class={BUTTON}
-              aria-label={language.t("replica.titlebar.more")}
-              onClick={() => command.trigger("command.palette")}
-            >
-              <Icon name="outline-dots" size="small" />
-            </button>
-          </Tooltip>
-          <Tooltip placement="bottom" value={language.t("replica.titlebar.panel")}>
-            <button
-              type="button"
-              data-replica-control
-              data-ui="titlebar-panel"
-              class={BUTTON}
-              aria-label={language.t("replica.titlebar.panel")}
-              onClick={openContext}
-            >
-              <Icon name="window-analytics" size="small" />
-            </button>
-          </Tooltip>
           <Show when={import.meta.env.DEV && !props.empty}>
             <PerfMonitor />
           </Show>

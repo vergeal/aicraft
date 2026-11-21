@@ -6,7 +6,7 @@ story("shows a delegating row while subagent input streams", async ({ mount }) =
   const delegating = timeline.locator('[data-component="task-tool-delegating"]')
   await expect(delegating).toBeVisible()
   await expect(delegating).toHaveText("Delegating agent…")
-  await expect(delegating).toHaveCSS("line-height", "16px")
+  await expect(delegating).toHaveCSS("line-height", "20px")
   await expect(delegating.locator('[data-component="session-progress-indicator-v2"]')).toBeVisible()
   await expect(timeline.locator('[data-component="task-tool-card"]')).toHaveCount(0)
   await expect(timeline.locator('[data-timeline-row="Thinking"]')).toHaveCount(0)

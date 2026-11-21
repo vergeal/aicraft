@@ -10,3 +10,4 @@ These packages are not bundled with OpenCode or loaded automatically. Do not add
 | [DBRO](dbro/README.md)       | `plugins/dbro`   | `.craf` |
 | [Orchestrator](orchestrator/README.md) | `plugins/orchestrator` | `.craf` |
 | [Figma](figma/README.md)     | `plugins/figma`  | Git package  |
+| [Memory](memory/README.md)   | `plugins/memory` | `.craf`      |

@@ -29,6 +29,10 @@ const ScheduledScreen = lazy(() => import("@/scheduled/route").then((module) => 
 
 const InboxScreen = lazy(() => import("@/inbox/route").then((module) => ({ default: module.InboxScreen })))
 
+const PluginSurfaceScreen = lazy(() =>
+  import("@/shell/routes/plugin-surface").then((module) => ({ default: module.PluginSurfaceScreen })),
+)
+
 const ConnectServerScreen = lazy(() =>
   import("@/servers/connect/screen").then((module) => ({ default: module.ConnectServerScreen })),
 )
@@ -59,6 +63,8 @@ export function preloadRoute(url: string) {
 
   if (pathname === "/inbox") return InboxScreen.preload().then(() => undefined)
 
+  if (/^\/plugins\/[^/]+\/[^/]+$/.test(pathname)) return PluginSurfaceScreen.preload().then(() => undefined)
+
   if (/^\/server\/[^/]+\/session\/[^/]+$/.test(pathname))
     return TargetSessionRouteContent.preload().then(() => undefined)
 
@@ -76,6 +82,7 @@ export function AppRoutes() {
       <Route path="/explore/:section/:id" component={ExploreScreen} />
       <Route path="/scheduled" component={ScheduledScreen} />
       <Route path="/inbox" component={InboxScreen} />
+      <Route path="/plugins/:plugin/:surface" component={PluginSurfaceScreen} />
       <Route
         path="/server/:serverKey/session/:id"
         component={() => (

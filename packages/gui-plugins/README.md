@@ -246,6 +246,7 @@ SDK icon fields take an `IconName` from `@opencode/plugin/gui`: the names of the
 | [`MenuItem`](../plugin/src/gui/registries.ts)        | window  | An item of a host menu: the side panel + menu, Add server, a server row                                                                                                                                                              |
 | [`Panel`](../plugin/src/gui/registries.ts)           | window  | Tabs in the session's side region                                                                                                                                                                                                    |
 | [`SettingsPage`](../plugin/src/gui/registries.ts)    | window  | A settings page, a section on a host page, or rows in a host section                                                                                                                                                                 |
+| [`MainSurface`](../plugin/src/gui/registries.ts)     | window  | A first-level page in the app's primary navigation, at `/plugins/<plugin>/<id>`                                                                                                                                                      |
 | [`Server`](../plugin/src/gui/registries.ts)          | window  | A source of servers, such as SSH hosts                                                                                                                                                                                               |
 | [`LinkHandler`](../plugin/src/gui/registries.ts)     | window  | Opens local links, such as file paths in messages, and says whether their target exists                                                                                                                                              |
 | [`TitlebarItem`](../plugin/src/gui/registries.ts)    | window  | A pill in the titlebar or the tabs footer                                                                                                                                                                                            |
@@ -311,6 +312,25 @@ to the displayed repository or worktree instead of adding a second menu item.
 | `ctx.windows` (main)         | `Windows`                                                                          | The app's main windows                                           |
 | `ctx.embeds` (main)          | `Embeds`                                                                           | `create(view, window)` places a web page                         |
 | `ctx.cli` (main)             | `Cli`                                                                              | The opencode CLI the app runs                                    |
+
+### Main surfaces
+
+A plugin can own a first-level page in the app's primary navigation.
+
+```tsx
+ctx.add(MainSurface, {
+  id: "overview",
+  get title() {
+    return ctx.t("surface.overview")
+  },
+  icon: "rail-compass",
+  render: () => <Overview />,
+})
+```
+
+- The host lists the row after the app's own destinations, at `/plugins/<plugin id>/<surface id>`, with the same row style. `order` sorts rows (ascending, ties keep contribution order), `badge()` shows a count above zero, and `hidden: true` keeps the row out while a direct address still renders the page.
+- The row lives only while the plugin contributes it. Disabling, failing or removing the plugin takes the row away and leaves its address showing the host's unavailable page. A `render` that throws also shows that page and records the error under the plugin; its other contributions keep running.
+- Read `title` from a getter, as above, or contribute the item in the function form, so the row follows the language.
 
 ### Built-in only
 

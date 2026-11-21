@@ -62,6 +62,7 @@ export type LayoutRoute =
   | { type: "knowledge" }
   | { type: "scheduled" }
   | { type: "inbox" }
+  | { type: "plugin"; plugin: string; surface: string }
   | { type: "draft"; draftID: string }
   | { type: "session"; sessionId: string; server: ServerConnection.Key }
 
@@ -97,6 +98,9 @@ export const currentRoute = (pathname: string, search: string): LayoutRoute => {
   if (parts[0] === "scheduled") return { type: "scheduled" }
 
   if (parts[0] === "inbox") return { type: "inbox" }
+
+  if (parts[0] === "plugins" && parts.length === 3 && parts[1] && parts[2])
+    return { type: "plugin", plugin: decodeURIComponent(parts[1]), surface: decodeURIComponent(parts[2]) }
 
   if (parts[0] === "new-session") {
     const draftID = new URLSearchParams(search).get("draftId")

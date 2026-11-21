@@ -9,10 +9,10 @@ import "./module-page.css"
  * One fused module page: a single scroll surface whose title, groups and cards all live in the content area.
  * The sidebar no longer draws a second list for these destinations.
  */
-export function ModulePage(props: ParentProps<{ label?: string; wide?: boolean }>) {
+export function ModulePage(props: ParentProps<{ label?: string; wide?: boolean; full?: boolean }>) {
   return (
     <PagePanel>
-      <div class="module-page" data-scrollable aria-label={props.label}>
+      <div class="module-page" data-scrollable data-full={props.full ? "" : undefined} aria-label={props.label}>
         <div class="module-page-inner" data-wide={props.wide ? "" : undefined}>
           {props.children}
         </div>

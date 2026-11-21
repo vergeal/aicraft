@@ -2,10 +2,13 @@ import { For, Show } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { Icon } from "@opencode/ui/icon"
 import type { IconName } from "@opencode/ui/icons/catalog"
+import { MainSurface } from "@opencode/plugin/gui"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
 import { useLanguage } from "@/runtime/i18n/language"
+import { usePluginHost } from "@/runtime/plugin/host"
+import { mainSurfaceEntries, mainSurfacePath } from "@/runtime/plugin/main-surface"
 import { useSettingsDialog } from "@/settings/command"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
@@ -32,6 +35,8 @@ const ROW =
 const ICON_BUTTON =
   "flex size-[30px] shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-icon-primary)]"
 
+const BADGE = "shrink-0 rounded-full bg-[var(--color-accent-blue)] px-1.5 text-[11px] leading-4 text-white tabular-nums"
+
 /** Opens a draft in the most recent project: the sidebar's primary button starts here. */
 export function useNewSessionDraft() {
   const global = useGlobal()
@@ -52,17 +57,26 @@ export function useNewSessionDraft() {
   }
 }
 
-/** The sidebar's first-level navigation: four destinations stacked under the primary button. */
+/** The sidebar's first-level navigation: the app's destinations, then the plugins' main surfaces. */
 export function ReplicaPrimaryNav() {
   const language = useLanguage()
   const layout = useLayout()
   const navigate = useNavigate()
   const inbox = createSessionInbox()
+  const host = usePluginHost()
 
   const pending = () =>
     inbox.entries().filter((entry) => entry.status === "approval" || entry.status === "input").length
 
+  const surfaces = () => mainSurfaceEntries(host.items(MainSurface))
+
   const active = (id: Destination["id"]) => layout.route().type === id
+
+  const pluginActive = (plugin: string, id: string) => {
+    const route = layout.route()
+
+    return route.type === "plugin" && route.plugin === plugin && route.surface === id
+  }
 
   return (
     <nav
@@ -84,12 +98,33 @@ export function ReplicaPrimaryNav() {
             <Icon name={item.icon} class="size-4 shrink-0" />
             <span class="min-w-0 flex-1 truncate">{language.t(item.labelKey)}</span>
             <Show when={item.id === "inbox" && pending() > 0}>
-              <span
-                class="shrink-0 rounded-full bg-[var(--color-accent-blue)] px-1.5 text-[11px] leading-4 text-white tabular-nums"
-                aria-hidden="true"
-              >
+              <span class={BADGE} aria-hidden="true">
                 {pending()}
               </span>
+            </Show>
+          </button>
+        )}
+      </For>
+      <For each={surfaces()}>
+        {(item) => (
+          <button
+            type="button"
+            data-replica-control
+            data-state={pluginActive(item.plugin, item.value.id) ? "pressed" : undefined}
+            aria-current={pluginActive(item.plugin, item.value.id) ? "page" : undefined}
+            class={ROW}
+            onClick={() => navigate(mainSurfacePath(item.plugin, item.value.id))}
+          >
+            <Icon name={item.value.icon} class="size-4 shrink-0" />
+            <span class="min-w-0 flex-1 truncate">{item.value.title}</span>
+            <Show when={item.value.badge?.()} keyed>
+              {(count) => (
+                <Show when={count > 0}>
+                  <span class={BADGE} aria-hidden="true">
+                    {count}
+                  </span>
+                </Show>
+              )}
             </Show>
           </button>
         )}

@@ -1029,6 +1029,56 @@ export const TitlebarItem = Registry.define<TitlebarItem>("titlebar-item")
 export const ComposerPill = Registry.define<ComposerPill>("composer-pill")
 
 /**
+ * A first-level page a plugin contributes to the app's primary navigation. The host lists it after the app's own
+ * destinations at `/plugins/<plugin>/<id>`, with the same row, and renders it in the main workspace. The row is
+ * withdrawn with the plugin, so disabling or removing it takes the row away and the address shows an unavailable page.
+ */
+export interface MainSurface {
+  /**
+   * The page's id, unique within the plugin. The address is `/plugins/<plugin>/<id>`; use lowercase letters, digits
+   * and hyphens so the address stays readable.
+   */
+  readonly id: string
+  /**
+   * The navigation label. Read it from a getter, or contribute the item in the function form, so it follows the
+   * language.
+   */
+  readonly title: string
+  /** The navigation icon. */
+  readonly icon: IconName
+  /** Surfaces list in ascending order after the app's own destinations; ties keep contribution order. Defaults to 0. */
+  readonly order?: number
+  /**
+   * A count shown as the row's badge. Zero or less shows none. Reactive: read your own state where the host calls it.
+   */
+  badge?: () => number
+  /** Keeps the row out of the navigation. A direct address still renders the page. */
+  readonly hidden?: boolean
+  /**
+   * Renders the page in the main workspace, as its whole content area. A throw renders the host's unavailable page and
+   * records the error under your plugin; the plugin keeps running.
+   */
+  render(): JSX.Element
+}
+
+/**
+ * The registry of first-level pages in the app's primary navigation.
+ *
+ * @example
+ * ```tsx
+ * ctx.add(MainSurface, {
+ *   id: "overview",
+ *   get title() {
+ *     return ctx.t("surface.overview")
+ *   },
+ *   icon: "rail-compass",
+ *   render: () => <Overview />,
+ * })
+ * ```
+ */
+export const MainSurface = Registry.define<MainSurface>("main-surface")
+
+/**
  * The content page of one inbox message this plugin published. The host routes a message to its publisher's renderer;
  * a plugin that contributes none gets the host's default page, which shows the title and summary only.
  */

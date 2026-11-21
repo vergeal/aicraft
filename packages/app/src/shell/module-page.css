@@ -23,6 +23,26 @@
   max-width: 1180px;
 }
 
+/* A plugin's page owns the whole content area: the host adds no reading measure and no page padding, so the plugin's
+   own layout reaches the edges it was designed for. The scrollbar gutter goes with the measure; a full page that
+   scrolls draws the shared thumb without reserving 8px it does not need. */
+/* A full page owns its own scrolling: the host surface must not scroll, or every panel inside it moves together.
+   The inner box is a flex child with a definite height so a plugin's `height: 100%` resolves against the content
+   area instead of its content. */
+.module-page[data-full] {
+  display: flex;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+.module-page[data-full] > .module-page-inner {
+  flex: 1;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .module-page-head {
   display: flex;
   align-items: flex-start;

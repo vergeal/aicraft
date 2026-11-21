@@ -1,5 +1,6 @@
 import { Overlay, Portal, Root, Trigger } from "@kobalte/core/dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup } from "./dialog"
+import { ConfirmDialog } from "./confirm-dialog"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { onMount, type JSX } from "solid-js"
@@ -12,8 +13,18 @@ Compose with \`DialogHeader\`, \`DialogTitle\`, \`DialogTitleGroup\`, \`DialogBo
 ### API
 - \`Dialog\`: \`size\` (normal | large | x-large), \`variant\`, \`fit\`.
 - \`DialogHeader\`: row container with optional \`closeLabel\` and \`hideClose\`.
+- \`DialogBody\`: body container with the shared 16px inset; pass \`flush\` when the body owns its layout.
 - \`DialogTitle\`: accessible single-line header title.
 - \`DialogTitleGroup\`: column with \`title\` and required \`description\`.
+
+### Sizes
+- \`normal\`: 640px wide, content height capped by the viewport.
+- \`large\`: 720px wide, height capped at 560px.
+- \`x-large\`: 880px wide, height capped at 600px.
+
+### Confirm
+\`ConfirmDialog\` wraps the shared confirm structure: \`title\`, \`description\`, optional \`details\`,
+\`confirmLabel\`, \`cancelLabel\`, \`tone\` (\`danger | default\`), \`onConfirm\`, and \`onCancel\`.
 
 ### Accessibility
 - Focus trapping and aria attributes provided by Kobalte Dialog.
@@ -228,4 +239,59 @@ function OpenFromButton() {
 
 export const OpenedFromButton = {
   render: () => <OpenFromButton />,
+}
+
+export const Confirm = {
+  render: () => (
+    <OpenStoryDialog
+      render={() => (
+        <ConfirmDialog
+          title="Publish changes"
+          description="The draft becomes the published version for everyone."
+          confirmLabel="Publish"
+          cancelLabel="Cancel"
+          onConfirm={() => {}}
+        />
+      )}
+    />
+  ),
+}
+
+export const ConfirmDanger = {
+  render: () => (
+    <OpenStoryDialog
+      render={() => (
+        <ConfirmDialog
+          title="Delete session"
+          description="This session and every message inside it will be removed."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          tone="danger"
+          onConfirm={() => {}}
+        />
+      )}
+    />
+  ),
+}
+
+export const ConfirmWithDetails = {
+  render: () => (
+    <OpenStoryDialog
+      render={() => (
+        <ConfirmDialog
+          title="Remove library"
+          description="The files stay on disk. Only the library is removed."
+          details={[
+            "Detaches 42 indexed files",
+            "Clears the summaries for this library",
+            "Keeps the remembered review decisions",
+          ]}
+          confirmLabel="Remove"
+          cancelLabel="Cancel"
+          tone="danger"
+          onConfirm={() => {}}
+        />
+      )}
+    />
+  ),
 }

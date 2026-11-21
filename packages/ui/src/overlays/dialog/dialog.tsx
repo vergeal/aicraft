@@ -43,11 +43,11 @@ export function DialogFooter(props: ParentProps) {
   return <div data-slot="dialog-footer">{props.children}</div>
 }
 
-export function DialogBody(props: ParentProps & { class?: ComponentProps<"div">["class"] }) {
-  const [local] = splitProps(props, ["class", "children"])
+export function DialogBody(props: ParentProps & { class?: ComponentProps<"div">["class"]; flush?: boolean }) {
+  const [local] = splitProps(props, ["class", "children", "flush"])
 
   return (
-    <div data-slot="dialog-body" class={local.class}>
+    <div data-slot="dialog-body" data-flush={local.flush ? "" : undefined} class={local.class}>
       {local.children}
     </div>
   )

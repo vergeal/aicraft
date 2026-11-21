@@ -1,10 +1,12 @@
 [data-component="context-menu-content"],
 [data-component="context-menu-sub-content"] {
-  min-width: 8rem;
+  min-width: 160px;
   overflow: hidden;
   border: none;
   border-radius: var(--radius-popover);
-  box-shadow: var(--shadow-xs-border);
+  box-shadow:
+    0 0 0 0.5px var(--v2-border-border-base),
+    var(--v2-elevation-floating);
   background-clip: padding-box;
   background-color: var(--v2-material-surface-strong);
   backdrop-filter: var(--v2-material-blur-thick);
@@ -38,7 +40,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: var(--spacing);
+    gap: calc(var(--spacing) * 2);
     min-height: 30px;
     padding: 0 calc(var(--spacing) * 2);
     border-radius: var(--radius-lg);
@@ -46,11 +48,11 @@
     outline: none;
 
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-small);
     font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
     letter-spacing: var(--letter-spacing-normal);
-    color: var(--text-strong);
+    color: var(--v2-text-text-base);
 
     transition-property: background-color, color;
     transition-duration: var(--transition-duration);
@@ -58,18 +60,18 @@
     user-select: none;
 
     &:hover {
-      background-color: var(--surface-raised-base-hover);
+      background-color: var(--v2-overlay-simple-overlay-hover);
     }
 
     &[data-disabled] {
-      color: var(--text-weak);
+      color: var(--v2-text-text-faint);
       pointer-events: none;
     }
   }
 
   [data-slot="context-menu-sub-trigger"] {
     &[data-expanded] {
-      background: var(--surface-raised-base-hover);
+      background: var(--v2-overlay-simple-overlay-hover);
       outline: none;
       border: none;
     }
@@ -89,7 +91,7 @@
 
   [data-slot="context-menu-item-description"] {
     font-size: var(--font-size-xx-small);
-    color: var(--text-weak);
+    color: var(--v2-text-text-faint);
   }
 
   [data-slot="context-menu-separator"] {
@@ -109,7 +111,7 @@
     font-weight: var(--font-weight-medium);
     line-height: 1;
     letter-spacing: 0.02em;
-    color: var(--text-weak);
+    color: var(--v2-text-text-faint);
   }
 
   [data-slot="context-menu-arrow"] {

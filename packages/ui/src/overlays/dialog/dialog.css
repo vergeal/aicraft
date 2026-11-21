@@ -22,14 +22,14 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    width: 640px;
+    width: min(calc(100vw - 32px), 640px);
     height: auto;
     min-height: 0;
     max-height: calc(100vh - 48px);
     background: var(--v2-material-surface-strong);
     backdrop-filter: var(--v2-material-blur-thick);
     box-shadow: var(--v2-elevation-overlay);
-    border-radius: 12px;
+    border-radius: var(--radius-popover);
     overflow: hidden;
     pointer-events: auto;
 
@@ -57,7 +57,7 @@
         align-self: stretch;
         width: 100%;
         gap: 0;
-        padding: 16px;
+        padding: calc(var(--spacing) * 4);
         flex-shrink: 0;
 
         [data-slot="dialog-header-title"] {
@@ -139,8 +139,8 @@
         flex-direction: row;
         justify-content: flex-end;
         align-items: flex-start;
-        padding: 16px;
-        gap: 8px;
+        padding: calc(var(--spacing) * 4);
+        gap: calc(var(--spacing) * 2);
         align-self: stretch;
         flex-shrink: 0;
       }
@@ -176,12 +176,32 @@
   }
 
   &[data-size="large"] [data-slot="dialog-container"] {
-    width: 640px;
-    height: 480px;
+    width: min(calc(100vw - 32px), 720px);
+    height: min(calc(100vh - 48px), 560px);
   }
 
   &[data-size="x-large"] [data-slot="dialog-container"] {
     width: min(calc(100vw - 32px), 880px);
     height: min(calc(100vh - 92px), 600px);
+  }
+}
+
+/* Body inset lives in the base layer so a caller that already lays its content out (a padding utility, its own
+   class, or `data-flush`) still wins without having to know about this default. */
+@layer base {
+  [data-component="dialog-v2"] [data-slot="dialog-body"] {
+    padding: 0 calc(var(--spacing) * 4) calc(var(--spacing) * 4);
+  }
+
+  /* The footer opens with its own inset, so the body only closes the gap above it. */
+  [data-component="dialog-v2"]
+    [data-slot="dialog-content"]:has([data-slot="dialog-footer"])
+    [data-slot="dialog-body"] {
+    padding-block-end: 0;
+  }
+
+  /* An opt-out for bodies that own their layout from edge to edge, such as search and command palettes. */
+  [data-component="dialog-v2"] [data-slot="dialog-body"][data-flush] {
+    padding: 0;
   }
 }

@@ -545,7 +545,10 @@ function summarizeGroup(
   return base
 }
 
-/** Two steps fold together only when they repeat the same activity on the same target. */
+/**
+ * Two steps fold together only when they repeat the same activity on the same target. This covers every
+ * step kind, not only edits: a run of reads on one file, one command, one thought, or one notice folds too.
+ */
 function repeatSignature(node: TimelineNode) {
   if (node.payload.kind === "tool") return `${toolActivity(node.payload.tool.name)}|${toolSummary(node.payload.tool)}`
 
@@ -566,8 +569,8 @@ function activityOf(node: TimelineNode): ProcessActivity {
 
 /**
  * The group body in order: consecutive steps with the same signature become one repeat item, so a burst
- * of edits to one file reads as one row. A run of one stays a plain row, and a step with no signature
- * (or a different neighbour) never merges.
+ * of reads or edits on one target reads as one row. A run of one stays a plain row, and a step with no
+ * signature (or a different neighbour) never merges.
  */
 function groupItems(groupKey: string, members: readonly TimelineNode[]): GroupItem[] {
   const runs: { key: string; activity: ProcessActivity; signature: string; members: string[] }[] = []

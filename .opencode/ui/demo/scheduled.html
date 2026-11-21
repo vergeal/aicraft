@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>定时任务 · 模块设计</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="modules.css" />
+  </head>
+  <body>
+    <div class="window" id="window" data-collapse="off">
+      <header class="topbar">
+        <div class="topbar-side">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button class="icon-button" type="button" aria-label="收起侧栏">
+            <svg class="ico" aria-hidden="true"><use href="#i-collapse" /></svg>
+          </button>
+        </div>
+        <div class="topbar-main" data-note="与主界面同一条顶栏；右段是模块自己的动作">
+          <span class="topbar-title">定时任务</span>
+          <span class="mode"><strong>5</strong> 个任务</span>
+          <span class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="搜索定时任务">
+              <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="更多操作">
+              <svg class="ico" aria-hidden="true"><use href="#i-more" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="切换审查面板">
+              <svg class="ico" aria-hidden="true"><use href="#i-panel" /></svg>
+            </button>
+          </span>
+        </div>
+      </header>
+
+      <div class="body">
+        <aside class="sidebar" aria-label="导航">
+          <div class="brand">
+            <svg class="mark" aria-hidden="true"><use href="#i-brand" /></svg>
+            <span class="brand-name">长虹 AI</span>
+            <span class="tag">预览版</span>
+          </div>
+
+          <button class="primary-action" type="button" aria-label="新会话">
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-plus" /></svg>
+            <span>新会话</span>
+          </button>
+
+          <nav class="nav" aria-label="一级导航">
+            <button class="nav-item" type="button" aria-label="收件箱">
+              <svg class="ico" aria-hidden="true"><use href="#i-inbox" /></svg>
+              <span>收件箱</span>
+              <span class="badge">3</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="定时任务" aria-current="page">
+              <svg class="ico" aria-hidden="true"><use href="#i-clock" /></svg>
+              <span>定时任务</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="知识库">
+              <svg class="ico" aria-hidden="true"><use href="#i-book" /></svg>
+              <span>知识库</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="探索">
+              <svg class="ico" aria-hidden="true"><use href="#i-compass" /></svg>
+              <span>探索</span>
+            </button>
+          </nav>
+
+          <div class="section-head">
+            工作区
+            <span class="actions">
+              <button class="icon-button" type="button" aria-label="搜索会话">
+                <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="筛选">
+                <svg class="ico" aria-hidden="true"><use href="#i-filter" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="新建项目">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-plus" /></svg>
+              </button>
+            </span>
+          </div>
+
+          <div class="tree">
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+              <span class="label">opencode</span>
+              <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+            <div class="children">
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">主界面视觉设计评价</span>
+                <span class="when">刚刚</span>
+              </button>
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">时间线滚动位置修复</span>
+                <span class="when">2 天</span>
+              </button>
+            </div>
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+              <span class="label">长虹 OA 系统</span>
+              <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+            <div class="children">
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">oa/audit</span>
+                <span class="when">8 分钟</span>
+              </button>
+            </div>
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+              <span class="label">agents</span>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+          </div>
+
+          <button class="account" type="button" aria-label="账户与连接">
+            <span class="avatar" aria-hidden="true">长</span>
+            <span class="meta">
+              <span class="who">已连接 · 本地</span>
+              <span class="where">deepseek-flash</span>
+            </span>
+            <span class="status-dot" aria-hidden="true"></span>
+          </button>
+        </aside>
+
+        <main class="main">
+          <div class="module" data-mode="default">
+            <header class="module-head" data-note="新建任务放在页头右侧，列表里不再重复">
+              <div class="head-copy">
+                <p class="head-desc">按计划唤醒会话执行的提示词。</p>
+              </div>
+              <div class="head-actions">
+                <div class="search">
+                  <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+                  <span>搜索定时任务</span>
+                </div>
+                <button class="btn btn-primary" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-plus" /></svg>
+                  新建定时任务
+                </button>
+              </div>
+            </header>
+
+            <div class="module-toolbar" data-note="状态即分组；计数同时出现在标签内">
+              <div class="segmented" role="tablist" aria-label="筛选定时任务">
+                <button type="button" role="tab" aria-selected="true">全部<span class="num">5</span></button>
+                <button type="button" role="tab" aria-selected="false">运行中<span class="num" data-count-active>3</span></button>
+                <button type="button" role="tab" aria-selected="false">已暂停<span class="num" data-count-paused>1</span></button>
+                <button type="button" role="tab" aria-selected="false">已完成<span class="num">1</span></button>
+              </div>
+              <span class="toolbar-meta">按下次运行排序</span>
+            </div>
+
+            <div class="module-body">
+              <aside class="module-list" aria-label="定时任务列表" data-note="每行一次启停：开关是唯一的状态操作">
+                <div class="list-head" data-group="active">
+                  运行中
+                  <span class="spacer"></span>
+                  <span data-count-active-head>3</span>
+                </div>
+
+                <button class="item" type="button" aria-current="true" data-first-item>
+                  <span class="item-glyph" data-tone="success">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-clock" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">每日构建巡检</span>
+                    <span class="item-meta">每天 09:00<span class="sep"></span><span data-first-status>运行中</span><span class="sep"></span><span data-first-next>下次 明天 09:00</span></span>
+                  </span>
+                  <span class="switch" role="switch" aria-checked="true" aria-label="启用每日构建巡检" data-first-switch></span>
+                </button>
+
+                <button class="item" type="button">
+                  <span class="item-glyph" data-tone="success">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-clock" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">每周一生成周报</span>
+                    <span class="item-meta">每周一 09:00<span class="sep"></span>运行中<span class="sep"></span>下次 周一 09:00</span>
+                  </span>
+                  <span class="switch" role="switch" aria-checked="true" aria-label="启用每周一生成周报"></span>
+                </button>
+
+                <button class="item" type="button">
+                  <span class="item-glyph" data-tone="success">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-clock" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">依赖漏洞扫描</span>
+                    <span class="item-meta">每天 18:00<span class="sep"></span>运行中<span class="sep"></span>下次 今天 18:00</span>
+                  </span>
+                  <span class="switch" role="switch" aria-checked="true" aria-label="启用依赖漏洞扫描"></span>
+                </button>
+
+                <div class="list-head" data-group="paused">
+                  已暂停
+                  <span class="spacer"></span>
+                  <span data-count-paused-head>1</span>
+                </div>
+
+                <button class="item" type="button">
+                  <span class="item-glyph">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-clock" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">清理过期分支</span>
+                    <span class="item-meta">每周五 17:00<span class="sep"></span>已暂停</span>
+                  </span>
+                  <span class="switch" role="switch" aria-checked="false" aria-label="启用清理过期分支"></span>
+                </button>
+
+                <div class="list-head">
+                  已完成
+                  <span class="spacer"></span>
+                  <span>1</span>
+                </div>
+
+                <button class="item" type="button">
+                  <span class="item-glyph">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-check" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">发布说明归档</span>
+                    <span class="item-meta">每月 1 日<span class="sep"></span>已完成</span>
+                  </span>
+                  <span class="item-trail"><span class="dot" data-tone="done"></span></span>
+                </button>
+              </aside>
+
+              <section class="module-detail">
+                <div class="detail-variant detail-default">
+                  <div class="detail-scroll">
+                    <div class="detail-inner" data-note="详情解释下一次何时跑、跑了什么、最近结果">
+                      <div class="detail-head">
+                        <h2 class="detail-title">每日构建巡检</h2>
+                        <span class="chip" data-tone="success">
+                          <svg class="ico" aria-hidden="true"><use href="#i-play" /></svg>
+                          运行中
+                        </span>
+                        <span class="chip">
+                          <svg class="ico" aria-hidden="true"><use href="#i-refresh" /></svg>
+                          每天 09:00
+                        </span>
+                      </div>
+                      <p class="detail-sub">按计划检查主分支构建，失败时在收件箱留下待办。</p>
+
+                      <dl class="facts">
+                        <div class="fact">
+                          <dt>执行计划</dt>
+                          <dd>每天 09:00</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>下次运行</dt>
+                          <dd>明天 09:00 · 12 小时后</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>工作目录</dt>
+                          <dd class="mono">~/Projects/opencode</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>时区</dt>
+                          <dd>Asia/Shanghai</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>运行次数</dt>
+                          <dd>48</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>最近结果</dt>
+                          <dd>已运行 · 今天 09:00</dd>
+                        </div>
+                      </dl>
+
+                      <section class="detail-section">
+                        <h3>最近记录</h3>
+                        <div class="log">
+                          <div class="log-row">
+                            <span class="time">今天 09:00</span>
+                            <span class="outcome"><span class="dot"></span>已运行</span>
+                            <span class="duration">3m 41s</span>
+                          </div>
+                          <div class="log-row">
+                            <span class="time">昨天 09:00</span>
+                            <span class="outcome"><span class="dot" data-tone="danger"></span>失败</span>
+                            <span class="duration">1m 12s</span>
+                          </div>
+                          <div class="log-row">
+                            <span class="time">前天 09:00</span>
+                            <span class="outcome"><span class="dot"></span>已运行</span>
+                            <span class="duration">3m 38s</span>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section class="detail-section">
+                        <h3>提示词</h3>
+                        <div class="box">检查 opencode 主分支的最新构建。如果失败，找出第一个失败的测试，写进收件箱，附上失败命令和日志片段。</div>
+                      </section>
+
+                      <section class="detail-section">
+                        <h3>最近输出</h3>
+                        <div class="box box-mono">构建通过：opencode / main
+测试 2128 个文件，0 失败
+耗时 3m 41s</div>
+                      </section>
+                    </div>
+                  </div>
+                  <footer class="detail-footer">
+                    <button class="btn btn-danger" type="button">
+                      <svg class="ico" aria-hidden="true"><use href="#i-trash" /></svg>
+                      删除
+                    </button>
+                    <span class="spacer"></span>
+                    <button class="btn btn-ghost" type="button">
+                      <svg class="ico" aria-hidden="true"><use href="#i-pause" /></svg>
+                      暂停
+                    </button>
+                    <button class="btn btn-primary" type="button">
+                      <svg class="ico" aria-hidden="true"><use href="#i-play" /></svg>
+                      立即运行
+                    </button>
+                  </footer>
+                </div>
+
+                <div class="detail-variant detail-interact">
+                  <div class="detail-scroll">
+                    <div class="detail-inner" data-note="关键交互态：暂停后下次运行改为暂停中，恢复后重算">
+                      <div class="detail-head">
+                        <h2 class="detail-title">每日构建巡检</h2>
+                        <span class="chip" data-tone="warning">
+                          <svg class="ico" aria-hidden="true"><use href="#i-pause" /></svg>
+                          已暂停
+                        </span>
+                        <span class="chip">
+                          <svg class="ico" aria-hidden="true"><use href="#i-refresh" /></svg>
+                          每天 09:00
+                        </span>
+                      </div>
+                      <p class="detail-sub">按计划检查主分支构建，失败时在收件箱留下待办。</p>
+
+                      <div class="callout">
+                        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-info" /></svg>
+                        任务已暂停，不会再被计划唤醒。恢复后会从当前时间重新计算下次运行。
+                      </div>
+
+                      <dl class="facts">
+                        <div class="fact">
+                          <dt>执行计划</dt>
+                          <dd>每天 09:00</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>下次运行</dt>
+                          <dd>暂停中</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>工作目录</dt>
+                          <dd class="mono">~/Projects/opencode</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>时区</dt>
+                          <dd>Asia/Shanghai</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>运行次数</dt>
+                          <dd>48</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>最近结果</dt>
+                          <dd>已运行 · 今天 09:00</dd>
+                        </div>
+                      </dl>
+
+                      <section class="detail-section">
+                        <h3>最近记录</h3>
+                        <div class="log">
+                          <div class="log-row">
+                            <span class="time">今天 09:00</span>
+                            <span class="outcome"><span class="dot"></span>已运行</span>
+                            <span class="duration">3m 41s</span>
+                          </div>
+                          <div class="log-row">
+                            <span class="time">昨天 09:00</span>
+                            <span class="outcome"><span class="dot" data-tone="danger"></span>失败</span>
+                            <span class="duration">1m 12s</span>
+                          </div>
+                          <div class="log-row">
+                            <span class="time">前天 09:00</span>
+                            <span class="outcome"><span class="dot"></span>已运行</span>
+                            <span class="duration">3m 38s</span>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                  <footer class="detail-footer">
+                    <button class="btn btn-danger" type="button">
+                      <svg class="ico" aria-hidden="true"><use href="#i-trash" /></svg>
+                      删除
+                    </button>
+                    <span class="spacer"></span>
+                    <button class="btn btn-primary" type="button">
+                      <svg class="ico" aria-hidden="true"><use href="#i-play" /></svg>
+                      恢复
+                    </button>
+                  </footer>
+                </div>
+              </section>
+            </div>
+
+            <div class="empty">
+              <span class="empty-glyph"><svg class="ico" aria-hidden="true"><use href="#i-clock" /></svg></span>
+              <h2>还没有定时任务</h2>
+              <p>设置一个提示词和执行计划，到点会自动唤醒会话。</p>
+              <div class="actions">
+                <button class="btn btn-primary" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-plus" /></svg>
+                  新建定时任务
+                </button>
+              </div>
+              <span class="muted">任务创建后先处于暂停状态，确认无误再启用。</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="demo-bar">
+      <span class="hint">
+        定时任务 · 状态分组 / 行内启停 / 下次执行 · <kbd>A</kbd> 标注 · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 切态
+      </span>
+      <div class="segmented" role="tablist" aria-label="切换状态">
+        <button type="button" role="tab" aria-selected="true" data-mode-button="default">默认</button>
+        <button type="button" role="tab" aria-selected="false" data-mode-button="empty">空态</button>
+        <button type="button" role="tab" aria-selected="false" data-mode-button="interact">交互态</button>
+      </div>
+      <button class="btn btn-ghost" type="button" data-collapse-button aria-pressed="false">折叠态</button>
+      <button class="btn btn-ghost" type="button" data-annotate-button aria-pressed="false">标注</button>
+    </div>
+
+    <script>
+      window.pageMode = (mode) => {
+        const paused = mode === "interact"
+        const active = paused ? "2" : "3"
+        const off = paused ? "2" : "1"
+        for (const el of document.querySelectorAll("[data-count-active]")) el.textContent = active
+        for (const el of document.querySelectorAll("[data-count-paused]")) el.textContent = off
+        for (const el of document.querySelectorAll("[data-count-active-head]")) el.textContent = active
+        for (const el of document.querySelectorAll("[data-count-paused-head]")) el.textContent = off
+        document.querySelector("[data-first-switch]")?.setAttribute("aria-checked", String(!paused))
+        const status = document.querySelector("[data-first-status]")
+        if (status) status.textContent = paused ? "已暂停" : "运行中"
+        const next = document.querySelector("[data-first-next]")
+        if (next) next.hidden = paused
+        const nextSep = next?.previousElementSibling
+        if (nextSep?.classList.contains("sep")) nextSep.hidden = paused
+        const first = document.querySelector("[data-first-item]")
+        const group = document.querySelector(`[data-group="${paused ? "paused" : "active"}"]`)
+        if (first?.hasAttribute("data-paused") !== paused) {
+          if (paused) first?.setAttribute("data-paused", "")
+          else first?.removeAttribute("data-paused")
+        }
+        if (first && group) group.insertAdjacentElement("afterend", first)
+      }
+    </script>
+    <script src="modules.js"></script>
+  </body>
+</html>

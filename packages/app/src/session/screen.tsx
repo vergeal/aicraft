@@ -47,7 +47,6 @@ import { SessionIdentityHeader, SessionLocation } from "./session-identity-heade
 import { SessionHeaderDrag, windowDragEnabled } from "./header/drag-area"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useServer } from "@/runtime/server/current"
-import { reviewGlyphFill, SessionReviewToggle } from "./header/session-header-actions"
 import { createTimelineCache } from "./timeline/cache"
 import { createPanelMotion, holdLandingWidth, panelOpacity, setPanelResizing } from "@/shell/panel-motion"
 
@@ -149,6 +148,10 @@ function SessionScreenContent(props: {
 
   const sideVisible = createMemo(() => isDesktop() && screen.side.open())
 
+  // A panel that reads as its own screen takes the whole content area instead of sharing the row with the
+  // conversation: the chat beside it is hidden and the region drops its card edge.
+  const fullSide = createMemo(() => sideVisible() && !!region.pane("side").selected()?.provider.full)
+
   const location = {
     directory: () => session.data.info()?.location.directory,
     project: createMemo(() => {
@@ -166,8 +169,6 @@ function SessionScreenContent(props: {
   // Once opened, the side region stays mounted and is skipped by content-visibility when a close settles, so neither
   // direction mounts its contents mid-flight, and a reopen reuses their style and layout.
   let sideContent: HTMLDivElement | undefined
-  let sideGlyph: SVGPathElement | undefined
-  let sideClosed = 0
   // While the left sidebar moves the side panel's edge, its contents keep the width they land at, and centred content,
   // like a Markdown preview, keeps its place rather than jumping by half the change. The side region's content box is
   // the one element whose own width reads the hold.
@@ -176,17 +177,11 @@ function SessionScreenContent(props: {
     "blocks",
     () => sideContent?.querySelector<HTMLElement>('[data-slot="session-review-content"]'),
   )
-  // The toggle's pane fills from the panel's edge as far as the panel is open.
-  const paintSideGlyph = () => sideGlyph?.setAttribute("transform", reviewGlyphFill(1 - sideClosed))
-
   const sideMotion = createPanelMotion({
     open: sideVisible,
     identity: session.layout.tabKey,
     // The chat's real width moves the side panel's edge, whose contents keep their open width pinned to it.
     paint: (closed) => {
-      sideClosed = closed
-      paintSideGlyph()
-
       // Dims the contents as they leave and fades them in as they arrive.
       if (sideContent) sideContent.style.opacity = panelOpacity(closed)
 
@@ -204,8 +199,6 @@ function SessionScreenContent(props: {
     element: () => sidePresence,
     distance: screen.side.width,
   })
-
-  const hideTimelineScrollbar = () => setStore("timelineScrollbarHidden", true)
 
   const revealTimelineScrollbar = (event: Event) => {
     if (!store.timelineScrollbarHidden) return
@@ -456,28 +449,20 @@ function SessionScreenContent(props: {
 
   return (
     <>
-      <div class="flex-1 min-h-0 flex flex-col gap-2 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
-        <div ref={screen.panel.ref} data-pane-row class="relative flex-1 min-h-0 flex flex-col md:flex-row gap-2">
-          {/* Keep the control outside panel animations. */}
-          <Show when={isDesktop() && messagesReady() && session.identity.params.id}>
-            <div
-              class="absolute end-[var(--session-header-inset-end,12px)] top-0 z-30 h-12 flex items-center"
-              data-slot="session-review-toggle"
-              onPointerDown={hideTimelineScrollbar}
-              onClick={hideTimelineScrollbar}
-            >
-              <SessionReviewToggle
-                onToggle={region.toggle}
-                glyph={(fill) => {
-                  sideGlyph = fill
-                  paintSideGlyph()
-                }}
-              />
-            </div>
-          </Show>
+      <div
+        class="flex-1 min-h-0 flex flex-col gap-2 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]"
+        classList={{ "gap-0 pe-0 pb-0 pt-0": fullSide() }}
+      >
+        <div
+          ref={screen.panel.ref}
+          data-pane-row
+          class="relative flex-1 min-h-0 flex flex-col md:flex-row gap-2"
+          classList={{ "gap-0": fullSide() }}
+        >
           <div
             ref={chat}
             class="relative z-10 min-w-0 shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none"
+            classList={{ hidden: fullSide() }}
             data-slot="session-chat-panel"
             data-scrollbar-hidden={store.timelineScrollbarHidden}
             onPointerMove={revealTimelineScrollbar}
@@ -496,7 +481,7 @@ function SessionScreenContent(props: {
 
             {/* Hidden rather than unmounted: removing it makes the transcript frame the last child, and structural
                 selectors in the transcript then restyle every element in it as the side panel starts to close. */}
-            <div classList={{ hidden: !screen.panel.resizable() }} onPointerDown={() => screen.size.start()}>
+            <div classList={{ hidden: !screen.panel.resizable() || fullSide() }} onPointerDown={() => screen.size.start()}>
               <ResizeHandle
                 direction="horizontal"
                 size={screen.panel.resizedWidth()}
@@ -537,7 +522,8 @@ function SessionScreenContent(props: {
                         sidebar={sidebar}
                         present={sideMotion.present()}
                         size={screen.size}
-                        contentWidth={screen.side.contentWidth}
+                        contentWidth={() => (fullSide() ? "100%" : screen.side.contentWidth())}
+                        full={fullSide()}
                         drag={drag}
                       />
                     </div>

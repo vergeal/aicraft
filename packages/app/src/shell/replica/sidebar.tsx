@@ -13,6 +13,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
+import { Tooltip } from "@opencode/ui/tooltip"
 import { displayName } from "@opencode/ui/project-avatar"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ServerConnection } from "@/runtime/server/registry"
@@ -29,15 +30,16 @@ import { SessionSettingsDialog } from "@/session/settings-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
+import { homeProjectDirectories } from "@/shell/layout/helpers"
+import { addProjects } from "@/home/projects/add"
+import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { showToast } from "@/shell/notifications/toast"
 import { sessionHref } from "@/shell/routes/session"
 import { createWorktree } from "@/workspaces/create"
 import { createSessionInbox, inboxArchived, type InboxEntry, type InboxStatus } from "@/shell/titlebar/inbox-model"
 import { deliveryFrom, playDeliveryFlight, playUndoDrop } from "./envelope-flight"
-import { HEADER, LIST, ROW, SECTION } from "./sidebar-tokens"
-import { ReplicaPrimaryFooter, ReplicaPrimaryNav } from "./primary-nav"
-import { SidebarToggle } from "@/shell/sidebar-toggle"
-import { WindowsMenuBar } from "@/shell/titlebar/windows-menu"
+import { LIST, ROW, SECTION } from "./sidebar-tokens"
+import { ReplicaPrimaryFooter, ReplicaPrimaryNav, useNewSessionDraft } from "./primary-nav"
 import { createdFrom, creatorName, playBranchGrowth } from "./session-branch"
 import { replicaRow } from "./overlay"
 
@@ -56,10 +58,11 @@ const STATUS_LABEL = {
   done: "sidebar.inbox.status.done",
 } as const
 
-/** Pinned and recent rows sort inside their own section, so each list owns one sortable group. */
-const PINNED_GROUP = "replica-sidebar-pinned"
-
 const RECENT_GROUP = "replica-sidebar-recent"
+
+/** The workspace head's actions: 24px targets, so the three sit quietly beside one 13px label. */
+const HEAD_BUTTON =
+  "flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-icon-primary)]"
 
 /**
  * Sessions opened in this window. `time.viewed` cannot answer "has this been opened": the server records a view only
@@ -108,13 +111,15 @@ function StatusMark(props: { status: InboxStatus }) {
 }
 
 /**
- * The navigation column of the workbench: one 44px header that reaches the window's top edge, the first-level
- * destinations under it, and the conversation list. Module pages draw their own navigation inside the content area.
+ * The navigation column of the workbench: the window bar's left segment sits directly above it and carries the
+ * traffic lights and the collapse control, so the column starts with the product mark.
  */
 export function ReplicaSidebar() {
   return (
     <aside data-slot="replica-sidebar" data-ui="navigation-sidebar" class="flex min-h-0 flex-col">
-      <ReplicaSidebarHeader />
+      <ReplicaSidebarBrand />
+
+      <ReplicaNewSessionButton />
 
       <ReplicaPrimaryNav />
 
@@ -125,13 +130,47 @@ export function ReplicaSidebar() {
   )
 }
 
-/** The sidebar's top row, which the traffic lights sit in: the collapse toggle and the menu bar. */
-function ReplicaSidebarHeader() {
+/** The product mark, sitting under the window controls where the brand belongs. */
+function ReplicaSidebarBrand() {
+  const language = useLanguage()
+
   return (
-    <div data-slot="replica-sidebar-header" data-ui="sidebar-header" class={HEADER}>
-      <SidebarToggle />
-      <WindowsMenuBar />
+    <div data-slot="replica-sidebar-brand" class="mb-3 flex h-8 shrink-0 items-center gap-2 px-4">
+      <img src="/assets/product-mark.png" alt="" aria-hidden="true" width="20" height="20" class="size-5 shrink-0" />
+      <span class="min-w-0 truncate text-[13px] leading-5 font-[500] tracking-[-0.01em] text-[var(--color-text-primary)]">
+        {language.t("replica.rail.product")}
+      </span>
+      <span class="shrink-0 rounded-full px-1.5 text-[12px] leading-[18px] text-[var(--color-text-tertiary)] shadow-[inset_0_0_0_0.5px_var(--color-border)]">
+        {language.t("replica.rail.preview")}
+      </span>
     </div>
+  )
+}
+
+/**
+ * The primary action: a filled, inverted button so starting a conversation is the one obvious move on the column.
+ * Its overlay carries the contrast hover and press washes, which lighten a dark fill and dim a light one.
+ */
+function ReplicaNewSessionButton() {
+  const language = useLanguage()
+  const newSession = useNewSessionDraft()
+
+  return (
+    <button
+      type="button"
+      data-replica-control
+      data-slot="replica-new-session"
+      aria-label={language.t("replica.rail.newSession")}
+      class="group relative mx-2 mb-3 flex h-9 shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-[var(--radius-card)] bg-[var(--v2-background-bg-inverse)] px-2 text-[13px] leading-5 font-[500] text-[var(--v2-text-text-inverse)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--v2-border-border-base)]"
+      onClick={() => newSession()}
+    >
+      <span
+        aria-hidden="true"
+        class="absolute inset-0 bg-[var(--v2-overlay-simple-overlay-contrast-hover)] opacity-0 transition-opacity group-hover:opacity-100 group-active:bg-[var(--v2-overlay-simple-overlay-contrast-pressed)] group-active:opacity-100"
+      />
+      <Icon name="plus" class="relative size-4 shrink-0" />
+      <span class="relative min-w-0 truncate">{language.t("replica.rail.newSession")}</span>
+    </button>
   )
 }
 
@@ -495,6 +534,28 @@ function ConversationNav() {
   const inbox = createSessionInbox()
   const pins = usePinnedSessions()
   const dialog = useDialog()
+  const pickDirectory = useDirectoryPicker()
+
+  const openSearch = () =>
+    void import("@/shell/commands/session-search").then(({ DialogSessionSearch }) =>
+      dialog.show(() => <DialogSessionSearch />),
+    )
+
+  const addProject = () => {
+    const conn = global.servers.list()[0]
+
+    if (!conn) return
+    const key = ServerConnection.key(conn)
+    const ctx = global.serverCtx(key)
+
+    if (!ctx) return
+    pickDirectory({
+      server: conn,
+      title: language.t("command.project.open"),
+      multiple: true,
+      onSelect: (result) => void addProjects(ctx, homeProjectDirectories(result)),
+    })
+  }
 
   // A cross-session delivery sends a letter from the sender's row to the recipient's. Only `deliver` stamps the
   // envelope into the payload, so a person's own prompt never triggers it.
@@ -593,22 +654,18 @@ function ConversationNav() {
 
   const [order, setOrder] = persisted(Persist.global("replica.sidebar.sessions"), SidebarSessionOrder, { recent: [] })
 
-  const pinned = createMemo(() => {
-    const byID = new Map(inbox.entries().map((entry) => [entry.session.id, entry]))
+  // The workspace head's filter: every project, or only the ones holding a pinned session.
+  const [onlyPinned, setOnlyPinned] = createSignal(false)
 
-    return pins.ids().flatMap((id) => {
-      const entry = byID.get(id)
-
-      return entry && !inboxArchived(entry) ? [entry] : []
-    })
-  })
+  // A pinned session keeps its place in the tree and is marked on its project row instead of moving to its own
+  // section, so the workspace reads as one tree in the reference's shape.
+  const pinnedIDs = () => new Set(pins.ids())
 
   // A dragged order wins for the sessions it lists. A session that arrives afterwards joins the top in creation
   // order, so sending a message never reorders the list under the pointer.
   const recent = createMemo(() => {
-    const pinnedIDs = new Set(pins.ids())
     // Archiving keeps the session in the local store, so the row has to leave the list here as well as from the index.
-    const list = inbox.entries().filter((entry) => !pinnedIDs.has(entry.session.id) && !inboxArchived(entry))
+    const list = inbox.entries().filter((entry) => !inboxArchived(entry))
     const byID = new Map(list.map((entry) => [entry.session.id, entry]))
     const ranked = new Set(order.recent)
     const fresh = list
@@ -656,7 +713,15 @@ function ConversationNav() {
       else groups.set(key, { key, name, entries: [entry] })
     }
 
-    return [...groups.values()]
+    const pinned = pinnedIDs()
+
+    return [...groups.values()].flatMap((group) => {
+      const marked = group.entries.some((entry) => pinned.has(entry.session.id))
+
+      if (onlyPinned() && !marked) return []
+
+      return [{ ...group, pinned: marked }]
+    })
   })
 
   // Rows leave the list through its top and bottom edges, so fade them there rather than cutting them off. The fade
@@ -671,7 +736,7 @@ function ConversationNav() {
 
   createEffect(
     on(
-      () => [pinned().length, projectGroups().length],
+      () => projectGroups().length,
       () => updateFades(list()),
       { defer: true },
     ),
@@ -767,6 +832,50 @@ function ConversationNav() {
           void inbox.loadMore()
         }}
       >
+        <div data-slot="replica-workspace-head" class="flex h-7 items-center ps-1">
+          <h2 class={SECTION}>{language.t("replica.workspace.name")}</h2>
+          <div class="ms-auto flex items-center gap-0.5">
+            <Tooltip placement="top" openDelay={400} value={language.t("replica.workspace.search")}>
+              <button
+                type="button"
+                data-replica-control
+                aria-label={language.t("replica.workspace.search")}
+                class={HEAD_BUTTON}
+                onClick={openSearch}
+              >
+                <Icon name="magnifying-glass" size="small" />
+              </button>
+            </Tooltip>
+            <Tooltip
+              placement="top"
+              openDelay={400}
+              value={language.t(onlyPinned() ? "replica.workspace.filter.all" : "replica.workspace.filter.pinned")}
+            >
+              <button
+                type="button"
+                data-replica-control
+                data-state={onlyPinned() ? "pressed" : undefined}
+                aria-pressed={onlyPinned()}
+                aria-label={language.t("replica.workspace.filter")}
+                class={HEAD_BUTTON}
+                onClick={() => setOnlyPinned((value) => !value)}
+              >
+                <Icon name="filter" size="small" />
+              </button>
+            </Tooltip>
+            <Tooltip placement="top" openDelay={400} value={language.t("replica.workspace.newProject")}>
+              <button
+                type="button"
+                data-replica-control
+                aria-label={language.t("replica.workspace.newProject")}
+                class={HEAD_BUTTON}
+                onClick={addProject}
+              >
+                <Icon name="folder-plus" size="small" />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
         <DragDropProvider
           sensors={[
             PointerSensor.configure({
@@ -785,18 +894,6 @@ function ConversationNav() {
 
             const group = String(source.group ?? "")
 
-            if (group === PINNED_GROUP) {
-              pins.reorder(
-                arrayMove(
-                  pinned().map((entry) => entry.session.id),
-                  source.initialIndex,
-                  source.index,
-                ),
-              )
-
-              return
-            }
-
             if (group !== RECENT_GROUP) return
             setOrder(
               "recent",
@@ -808,76 +905,60 @@ function ConversationNav() {
             )
           }}
         >
-          {pinned().length > 0 && (
-            <section class="mb-2 flex flex-col">
-              <h2 class={SECTION}>{language.t("replica.section.pinned")}</h2>
-              <div class={LIST}>
-                <Key each={pinned()} by={(entry) => entry.key}>
-                  {(entry) => (
-                    <SessionRow
-                      entry={entry}
-                      active={() => active(entry())}
-                      group={PINNED_GROUP}
-                      index={pinned().findIndex((item) => item.key === entry().key)}
-                      onOpen={open}
-                      onArchive={archive}
-                      onDelete={confirmDelete}
-                    />
-                  )}
-                </Key>
-              </div>
-            </section>
-          )}
-
           <Show when={projectGroups().length > 0}>
-            <section class="flex flex-col">
-              <h2 class={SECTION}>{language.t("replica.section.recent")}</h2>
-              <div class="flex flex-col gap-[2px]">
-                <Key each={projectGroups()} by={(group) => group.key}>
-                  {(group) => (
-                    <div class="flex flex-col">
-                      <button
-                        type="button"
-                        data-replica-control
-                        data-slot="replica-project-row"
-                        aria-expanded={!foldedProjects().has(group().key)}
-                        class={ROW}
-                        onClick={() => toggleProject(group().key)}
-                      >
-                        <Icon
-                          name={foldedProjects().has(group().key) ? "folder" : "folder-open"}
-                          class="size-4 shrink-0 text-[var(--color-icon-secondary)]"
-                        />
-                        <span class="min-w-0 flex-1 truncate">{group().name}</span>
-                        <Icon
-                          name="chevron-down"
-                          size="small"
-                          class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
-                        />
-                      </button>
-                      {/* The sessions fold open by grid rows, so the column grows instead of the list appearing at once. */}
-                      <div class="replica-project-sessions" data-collapsed={foldedProjects().has(group().key)}>
-                        <div class={`${LIST} ps-3 min-h-0 overflow-hidden`}>
-                          <Key each={group().entries} by={(entry) => entry.key}>
-                            {(entry) => (
-                              <SessionRow
-                                entry={entry}
-                                active={() => active(entry())}
-                                group={RECENT_GROUP}
-                                index={recent().findIndex((item) => item.key === entry().key)}
-                                onOpen={open}
-                                onArchive={archive}
-                                onDelete={confirmDelete}
-                              />
-                            )}
-                          </Key>
-                        </div>
+            <div class="flex flex-col gap-[2px]">
+              <Key each={projectGroups()} by={(group) => group.key}>
+                {(group) => (
+                  <div class="flex flex-col">
+                    <button
+                      type="button"
+                      data-replica-control
+                      data-slot="replica-project-row"
+                      aria-expanded={!foldedProjects().has(group().key)}
+                      class={ROW}
+                      onClick={() => toggleProject(group().key)}
+                    >
+                      <Icon
+                        name={foldedProjects().has(group().key) ? "folder" : "folder-open"}
+                        class="size-4 shrink-0 text-[var(--color-icon-secondary)]"
+                      />
+                      <span class="min-w-0 flex-1 truncate">{group().name}</span>
+                      <Show when={group().pinned}>
+                        <Icon name="pin" size="small" class="shrink-0 text-[var(--color-icon-secondary)]" />
+                      </Show>
+                      <Icon
+                        name="chevron-down"
+                        size="small"
+                        class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
+                      />
+                    </button>
+                    {/* The sessions fold open by grid rows, so the column grows instead of the list appearing at once. */}
+                    <div class="replica-project-sessions" data-collapsed={foldedProjects().has(group().key)}>
+                      <div class={`${LIST} ps-3 min-h-0 overflow-hidden`}>
+                        <Key each={group().entries} by={(entry) => entry.key}>
+                          {(entry) => (
+                            <SessionRow
+                              entry={entry}
+                              active={() => active(entry())}
+                              group={RECENT_GROUP}
+                              index={recent().findIndex((item) => item.key === entry().key)}
+                              onOpen={open}
+                              onArchive={archive}
+                              onDelete={confirmDelete}
+                            />
+                          )}
+                        </Key>
                       </div>
                     </div>
-                  )}
-                </Key>
-              </div>
-            </section>
+                  </div>
+                )}
+              </Key>
+            </div>
+          </Show>
+          <Show when={projectGroups().length === 0}>
+            <p class="px-1 py-2 text-[13px] leading-5 text-[var(--color-text-tertiary)]">
+              {language.t(onlyPinned() ? "replica.workspace.filter.empty" : "replica.project.empty")}
+            </p>
           </Show>
         </DragDropProvider>
       </div>

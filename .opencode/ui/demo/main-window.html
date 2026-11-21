@@ -1,0 +1,1719 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>主界面 · 设计演示</title>
+    <!-- 所有色值/尺寸/圆角/字号都来自设计规范的 token，页面里不写裸色值。 -->
+    <link rel="stylesheet" href="../tokens.css" />
+    <style>
+      /* =====================================================================
+         0 · 演示外壳（不属于产品界面）
+         ===================================================================== */
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--s-6);
+        background: var(--p-gray-1000);
+        font-family: var(--font-sans);
+        color: var(--c-text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .window {
+        position: relative;
+        width: min(1240px, calc(100vw - 48px));
+        height: min(780px, calc(100vh - 104px));
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: var(--r-md);
+        background: var(--c-bg-canvas);
+        box-shadow:
+          /* 顶部 1px 内高光：窗口边缘的一道极细亮边 */
+          inset 0 1px 0 0 color-mix(in srgb, var(--p-white) 4%, transparent),
+          0 0 0 var(--hairline) var(--c-border-subtle),
+          0 24px 80px rgb(0 0 0 / 0.55);
+      }
+
+      /* 导航区整列（顶栏左段 + 侧栏）共用一块底色，接缝处不会出现色差 */
+      .window::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--layout-sidebar);
+        pointer-events: none;
+        /* 顶冷底紫两层极淡 wash，避免大面积深灰发脏（05 §4） */
+        background:
+          radial-gradient(120% 46% at 50% 0%, color-mix(in srgb, var(--p-blue-500) 6%, transparent), transparent 68%),
+          radial-gradient(120% 34% at 50% 100%, color-mix(in srgb, var(--p-violet-600) 4%, transparent), transparent 70%),
+          var(--c-bg-surface);
+      }
+
+      /* =====================================================================
+         0.5 · 全局顶栏：横贯整窗，左侧与侧栏同宽，底部 0.5px 分割线
+         ===================================================================== */
+      .topbar {
+        position: relative;
+        z-index: 2;
+        flex: 0 0 auto;
+        height: 44px;
+        display: flex;
+        /* 顶栏本身透明：左段透出导航区整列底色，右段由 .topbar-main 自己铺 canvas */
+        background: transparent;
+        /* 用 shadow 画 0.5px，避免 border 在低倍屏被取整成 1px 或消失 */
+        box-shadow: 0 var(--hairline) 0 var(--c-border);
+      }
+      .topbar-side {
+        flex: 0 0 var(--layout-sidebar);
+        width: var(--layout-sidebar);
+        display: flex;
+        align-items: center;
+        padding: 0 var(--s-4) 0 var(--s-5);
+      }
+      .topbar-side .icon-button {
+        margin-inline-start: auto;
+      }
+      .topbar-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+        padding: 0 var(--s-7);
+        background: var(--c-bg-canvas);
+      }
+      .topbar-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--c-text);
+        font-size: var(--fs-14);
+        line-height: var(--lh-14);
+        font-weight: 500;
+      }
+      .mode {
+        flex: 0 0 auto;
+        height: var(--h-sm);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: 0 var(--s-3);
+        border-radius: var(--r-full);
+        background: var(--c-bg-layer-2);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border-subtle);
+        color: var(--c-text-secondary);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        white-space: nowrap;
+      }
+      .mode .ico {
+        color: var(--c-text-tertiary);
+      }
+      .topbar-actions {
+        margin-inline-start: auto;
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+      }
+
+      /* 空态：没有顶栏，只留红绿灯与最右侧的审查切换。
+         宽屏下收起侧栏的入口一并隐去；窄屏折叠栏需要它，故在 1024 断点恢复。 */
+      .window[data-screen="home"] .topbar {
+        box-shadow: none;
+      }
+      .window[data-screen="home"] .topbar-main {
+        background: transparent;
+      }
+      .window[data-screen="home"] [data-session-only],
+      .window[data-screen="home"] .topbar-side .icon-button {
+        display: none;
+      }
+
+      .body {
+        position: relative;
+        z-index: 1;
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+      }
+
+      .demo-bar {
+        width: min(1240px, calc(100vw - 48px));
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+        color: var(--c-text-dimmed);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+      }
+      .demo-bar .hint {
+        margin-inline-end: auto;
+      }
+      .demo-bar kbd {
+        font-family: var(--font-sans);
+        font-size: var(--fs-11);
+        line-height: var(--lh-11);
+        padding: 1px 4px;
+        border-radius: var(--r-xs);
+        background: var(--c-bg-layer-2);
+        color: var(--c-text-tertiary);
+      }
+
+      .segmented {
+        display: inline-flex;
+        gap: 2px;
+        padding: var(--s-1);
+        border-radius: var(--r-sm);
+        background: var(--c-bg-layer-2);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border);
+      }
+      .segmented button {
+        height: 24px;
+        padding: 0 var(--s-4);
+        border: 0;
+        border-radius: var(--r-xs);
+        background: transparent;
+        color: var(--c-text-secondary);
+        font: 400 var(--fs-12) / var(--lh-12) var(--font-sans);
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .segmented button:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .segmented button[aria-selected="true"] {
+        color: var(--c-text);
+        background: var(--c-bg-layer-3);
+        box-shadow: var(--c-elevation-stroke);
+      }
+      .segmented button:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+
+      /* =====================================================================
+         1 · 图标：24 网格、描边 2、随字号继承颜色
+         ===================================================================== */
+      .ico {
+        width: var(--icon-md);
+        height: var(--icon-md);
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .ico-sm {
+        width: var(--icon-sm);
+        height: var(--icon-sm);
+      }
+
+      /* =====================================================================
+         2 · 侧栏 280：导航最重，选中必须有形状信号（左竖条 + 底色）
+         ===================================================================== */
+      .sidebar {
+        width: var(--layout-sidebar);
+        flex: 0 0 var(--layout-sidebar);
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding-top: var(--s-4);
+        box-shadow: var(--hairline) 0 0 var(--c-border-subtle);
+      }
+
+      /* 窗口条：交通灯 + 折叠，正好 44，交通灯中心落在 22 */
+      .traffic {
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+        /* 与 16px 图标同一个视觉盒，红线与图标的中心永远是同一条 */
+        height: var(--icon-md);
+      }
+      .traffic i {
+        width: 12px;
+        height: 12px;
+        border-radius: var(--r-full);
+        background: var(--p-gray-700);
+      }
+      .traffic i:nth-child(1) {
+        background: color-mix(in srgb, var(--p-red-500) 78%, var(--p-gray-850));
+      }
+      .traffic i:nth-child(2) {
+        background: color-mix(in srgb, var(--p-amber-400) 82%, var(--p-gray-850));
+      }
+      .traffic i:nth-child(3) {
+        background: color-mix(in srgb, var(--p-green-500) 74%, var(--p-gray-850));
+      }
+      .icon-button {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: var(--r-sm);
+        background: transparent;
+        color: var(--c-text-tertiary);
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .icon-button:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .icon-button:active {
+        background: var(--c-active);
+      }
+      .icon-button:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+      /* 品牌块：mark 20 + 名称 + 预览版，是侧栏唯一的彩色元素 */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+        height: var(--h-lg);
+        padding: 0 var(--s-5);
+        margin-bottom: var(--s-5);
+      }
+      .brand-name {
+        font-size: var(--fs-13);
+        line-height: var(--lh-13);
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        color: var(--c-text);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tag {
+        flex: 0 0 auto;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 var(--s-2);
+        border-radius: var(--r-full);
+        background: var(--c-bg-layer-2);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border);
+        color: var(--c-text-tertiary);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+      }
+
+      /* 主操作：唯一强按钮，黑白填充（02 §6） */
+      .primary-action {
+        margin: 0 var(--s-4) var(--s-5);
+        height: var(--h-xl);
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: 0 var(--s-4);
+        border: 0;
+        border-radius: var(--r-md);
+        background: var(--c-primary-fill);
+        color: var(--c-primary-text);
+        font: 500 var(--fs-13) / var(--lh-13) var(--font-sans);
+        cursor: pointer;
+        transition: background-color var(--dur-base) var(--ease-out);
+      }
+      .primary-action:hover {
+        background: var(--c-primary-fill-hover);
+      }
+      .primary-action:active {
+        transform: translateY(0.5px);
+      }
+      .primary-action:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+      .primary-action .ico {
+        color: var(--c-primary-text);
+      }
+      .primary-action .keys {
+        margin-inline-start: auto;
+        font-size: var(--fs-11);
+        line-height: var(--lh-11);
+        color: color-mix(in srgb, var(--c-primary-text) 55%, transparent);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 一级导航：32 行高、圆角 8、gap 6 */
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0 var(--s-4);
+        margin-bottom: var(--s-6);
+      }
+      .nav-item {
+        position: relative;
+        height: var(--h-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: 0 var(--s-4);
+        border: 0;
+        border-radius: var(--r-sm);
+        background: transparent;
+        color: var(--c-text-secondary);
+        font: 400 var(--fs-13) / var(--lh-13) var(--font-sans);
+        text-align: start;
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .nav-item span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .nav-item:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .nav-item:active {
+        background: var(--c-active);
+      }
+      .nav-item[aria-current="page"] {
+        color: var(--c-text);
+        background: var(--c-selected);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border-subtle);
+      }
+      /* 形状信号：2px 竖条，色弱也能认出选中 */
+      .nav-item[aria-current="page"]::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        border-radius: var(--r-full);
+        background: var(--c-text);
+      }
+      .nav-item:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: -2px;
+      }
+      .nav-item .count {
+        margin-inline-start: auto;
+        flex: 0 0 auto;
+        min-width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 var(--s-2);
+        border-radius: var(--r-full);
+        background: var(--c-info);
+        color: var(--c-text-on-color);
+        font-size: var(--fs-11);
+        line-height: var(--lh-11);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 分组标题：13/20 label-tertiary，不用分隔线 */
+      .section-head {
+        display: flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 var(--s-4) 0 var(--s-5);
+        color: var(--c-text-tertiary);
+        font-size: var(--fs-13);
+        line-height: var(--lh-13);
+      }
+      .section-head .actions {
+        margin-inline-start: auto;
+        display: flex;
+        gap: 2px;
+      }
+      .section-head .icon-button {
+        width: 24px;
+        height: 24px;
+      }
+      .section-head .icon-button .ico {
+        width: var(--icon-sm);
+        height: var(--icon-sm);
+      }
+
+      /* 项目树：项目行 30、会话行 30、缩进 18 */
+      .tree {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+        padding: var(--s-2) var(--s-4) var(--s-5);
+      }
+      .tree::-webkit-scrollbar {
+        width: var(--scrollbar-w);
+      }
+      .tree::-webkit-scrollbar-thumb {
+        border-radius: var(--r-full);
+        background: var(--scrollbar-thumb);
+      }
+
+      .group + .group {
+        margin-top: var(--s-5);
+      }
+      .group-title {
+        display: flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 var(--s-4);
+        color: var(--c-text-dimmed);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+      }
+
+      .row {
+        position: relative;
+        height: var(--h-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: 0 var(--s-3);
+        border: 0;
+        border-radius: var(--r-sm);
+        background: transparent;
+        color: var(--c-text-secondary);
+        font: 400 var(--fs-13) / var(--lh-13) var(--font-sans);
+        text-align: start;
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .row .label {
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row .ico {
+        color: var(--c-text-tertiary);
+      }
+      .row:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .row:hover .ico {
+        color: var(--c-text-secondary);
+      }
+      .row[aria-current="page"] {
+        color: var(--c-text);
+        background: var(--c-selected);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border-subtle);
+      }
+      /* 形状信号：与一级导航同一条 2px 竖条，色弱也认得出选中 */
+      .row[aria-current="page"]::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        border-radius: var(--r-full);
+        background: var(--c-text);
+      }
+      .row[aria-current="page"] .ico {
+        color: var(--c-text-secondary);
+      }
+      .row:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: -2px;
+      }
+      .row .chev {
+        margin-inline-start: auto;
+        color: var(--c-text-dimmed);
+        transition: transform var(--dur-base) var(--ease-out);
+      }
+      .row[aria-expanded="false"] .chev {
+        transform: rotate(-90deg);
+      }
+      .row .pin {
+        flex: 0 0 auto;
+        color: var(--c-text-dimmed);
+      }
+      .row .when {
+        flex: 0 0 auto;
+        margin-inline-start: auto;
+        color: var(--c-text-dimmed);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        font-variant-numeric: tabular-nums;
+      }
+      .row .reveal {
+        display: none;
+        margin-inline-start: auto;
+        gap: 2px;
+      }
+      .row:hover .reveal,
+      .row:focus-within .reveal {
+        display: flex;
+      }
+      .row:hover .when {
+        display: none;
+      }
+
+      .children {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-inline-start: 18px;
+        margin-top: 2px;
+      }
+      .children[hidden] {
+        display: none;
+      }
+      .children .row .ico {
+        width: var(--icon-sm);
+        height: var(--icon-sm);
+      }
+
+      /* 底部账户行：连接状态用状态色，唯一允许的彩色点 */
+      .account {
+        flex: 0 0 auto;
+        /* 折叠态 tree 不参与布局时，账户行仍然沉在底部 */
+        margin-top: auto;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: 0 var(--s-4);
+        border: 0;
+        background: transparent;
+        box-shadow: 0 -0.5px 0 var(--c-border-subtle);
+        color: var(--c-text-secondary);
+        font: 400 var(--fs-13) / var(--lh-13) var(--font-sans);
+        text-align: start;
+        cursor: pointer;
+        transition: background-color var(--dur-base) var(--ease-out);
+      }
+      .account:hover {
+        background: var(--c-hover);
+      }
+      .account:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: -2px;
+      }
+      .avatar {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--r-full);
+        background: var(--c-bg-layer-3);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border);
+        color: var(--c-text-secondary);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+      }
+      .account .meta {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .account .who {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--c-text);
+      }
+      .account .where {
+        color: var(--c-text-tertiary);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        margin-inline-start: auto;
+        flex: 0 0 auto;
+        border-radius: var(--r-full);
+        background: var(--c-success);
+      }
+
+      /* =====================================================================
+         3 · 主区骨架
+         ===================================================================== */
+      .main {
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--c-bg-canvas);
+      }
+      .screen {
+        display: none;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+      }
+      .window[data-screen="home"] .screen-home,
+      .window[data-screen="session"] .screen-session {
+        display: flex;
+      }
+
+      /* =====================================================================
+         4 · 空态：品牌轻、输入重
+         ===================================================================== */
+      .home {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        padding: 0 var(--s-8) 6vh;
+      }
+      /* 极淡品牌光，只在空态，作为唯一的装饰层 */
+      .halo {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 780px;
+        height: 400px;
+        translate: -50% -50%;
+        border-radius: var(--r-full);
+        /* 两束偏冷的光错开叠在一起，比单个圆斑更像环境光 */
+        background:
+          radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--p-blue-500) 18%, transparent), transparent 100%),
+          radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--p-violet-600) 12%, transparent), transparent 100%);
+        filter: blur(64px);
+        opacity: 0.65;
+        pointer-events: none;
+      }
+      .welcome {
+        position: relative;
+        width: 762px;
+        max-width: 100%;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .welcome-head {
+        display: flex;
+        align-items: center;
+        gap: var(--s-5);
+        margin-bottom: var(--s-4);
+        padding-inline-start: var(--s-2);
+      }
+      .welcome-head .word {
+        font-size: var(--fs-24);
+        line-height: var(--lh-24);
+        font-weight: var(--fw-semibold);
+        letter-spacing: -0.02em;
+        color: var(--c-text);
+      }
+      .welcome-sub {
+        margin: 0 0 var(--s-9);
+        padding-inline-start: var(--s-2);
+        color: var(--c-text-tertiary);
+        font-size: var(--fs-14);
+        line-height: var(--lh-14);
+      }
+
+      /* =====================================================================
+         5 · Composer：内容宽 + 32，圆角 24，单行大圆角 / 多行收一档
+         ===================================================================== */
+      .composer {
+        position: relative;
+        border-radius: var(--r-2xl);
+        background: var(--c-bg-layer-1);
+        /* 0.5px 描边 + 顶部内高光 + 贴地投影 + 一层柔和的外扩（05 §3） */
+        box-shadow:
+          inset 0 0 0 var(--hairline) var(--c-border-strong),
+          inset 0 1px 0 0 color-mix(in srgb, var(--p-white) 6%, transparent),
+          0 2px 4px rgb(0 0 0 / 0.28),
+          0 16px 48px -16px rgb(0 0 0 / 0.5);
+      }
+      .composer:focus-within {
+        box-shadow:
+          inset 0 0 0 1px color-mix(in srgb, var(--c-border-focus) 50%, transparent),
+          inset 0 1px 0 0 color-mix(in srgb, var(--p-white) 8%, transparent),
+          0 2px 4px rgb(0 0 0 / 0.3),
+          0 16px 48px -16px rgb(0 0 0 / 0.55);
+      }
+
+      .composer-context {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: var(--s-4) var(--s-4) 0;
+      }
+      .chip {
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: 0 var(--s-3);
+        border: 0;
+        border-radius: var(--r-sm);
+        background: transparent;
+        color: var(--c-text-secondary);
+        font: 400 var(--fs-12) / var(--lh-12) var(--font-sans);
+        white-space: nowrap;
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .chip:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .chip:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+      .chip .ico {
+        color: var(--c-text-tertiary);
+      }
+      .chip .sep {
+        color: var(--c-text-dimmed);
+        margin: 0 1px;
+      }
+      .composer-context .right {
+        margin-inline-start: auto;
+        color: var(--c-text-dimmed);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .composer-context .right kbd {
+        font-family: var(--font-sans);
+        font-size: var(--fs-11);
+        line-height: var(--lh-11);
+        padding: 1px 4px;
+        border-radius: var(--r-xs);
+        background: var(--c-bg-layer-2);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border);
+        color: var(--c-text-tertiary);
+      }
+
+      .composer-input {
+        min-height: 56px;
+        display: flex;
+        align-items: flex-start;
+        padding: var(--s-3) var(--s-6) var(--s-2);
+      }
+      .composer-input textarea {
+        width: 100%;
+        min-height: 24px;
+        max-height: 336px;
+        resize: none;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--c-text);
+        font: 400 var(--fs-14) / var(--lh-14) var(--font-sans);
+        letter-spacing: -0.01em;
+      }
+      .composer-input textarea::placeholder {
+        color: var(--c-text-dimmed);
+      }
+
+      .composer-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: var(--s-2) var(--s-3) var(--s-3);
+      }
+      .composer-actions .right {
+        margin-inline-start: auto;
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .round-button {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: var(--r-full);
+        background: transparent;
+        color: var(--c-text-tertiary);
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .round-button:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .round-button:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+      .send {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: var(--r-full);
+        background: var(--c-primary-fill);
+        color: var(--c-primary-text);
+        cursor: pointer;
+        transition: background-color var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out);
+      }
+      .send:hover {
+        background: var(--c-primary-fill-hover);
+      }
+      .send:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+      /* 三态只换图标/透明度，宽度不变 */
+      .send[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .send .ico {
+        width: var(--icon-sm);
+        height: var(--icon-sm);
+        stroke-width: 2.4;
+      }
+
+      .welcome-recent {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        margin-top: var(--s-6);
+        padding-inline-start: var(--s-2);
+        color: var(--c-text-dimmed);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        min-width: 0;
+      }
+      .welcome-recent .items {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        overflow: hidden;
+      }
+      .linkish {
+        border: 0;
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        padding: var(--s-1) var(--s-2);
+        border-radius: var(--r-xs);
+        background: transparent;
+        color: var(--c-text-tertiary);
+        font: 400 var(--fs-12) / var(--lh-12) var(--font-sans);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .linkish:hover {
+        color: var(--c-text);
+        background: var(--c-hover);
+      }
+      .linkish:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: var(--focus-offset);
+      }
+      .welcome-recent .dot {
+        color: var(--c-text-dimmed);
+      }
+
+      /* =====================================================================
+         6 · 会话态：块间 16、块内 4，正文 730
+         ===================================================================== */
+      .thread {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+      .thread::-webkit-scrollbar {
+        width: var(--scrollbar-w);
+      }
+      .thread::-webkit-scrollbar-thumb {
+        border-radius: var(--r-full);
+        background: var(--scrollbar-thumb);
+      }
+      .thread-inner {
+        width: var(--layout-reading-max);
+        max-width: 100%;
+        margin: 0 auto;
+        padding: var(--s-9) 0 var(--s-10);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-6);
+      }
+
+      .ask {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .ask .bubble {
+        max-width: 78%;
+        padding: var(--s-3) var(--s-4);
+        border-radius: var(--r-lg);
+        /* 右下收角：一眼看出是自己发的那一侧 */
+        border-end-end-radius: var(--r-sm);
+        background: var(--c-bg-layer-2);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border-subtle);
+        color: var(--c-text);
+        font-size: var(--fs-14);
+        line-height: var(--lh-14);
+      }
+
+      .answer {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-2);
+      }
+      .prose {
+        margin: 0;
+        color: var(--c-text);
+        font-size: var(--fs-14);
+        line-height: var(--lh-14);
+      }
+      .prose strong {
+        font-weight: 600;
+      }
+      .prose code {
+        font-family: var(--font-mono);
+        font-size: var(--fs-13);
+        line-height: var(--lh-13);
+        padding: 1px 4px;
+        border-radius: var(--r-xs);
+        background: var(--c-bg-subtle);
+        color: var(--c-text);
+      }
+
+      /* 工具调用：折叠成一行摘要，12/18，悬停才提示可展开 */
+      .tool {
+        height: 28px;
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: 0 var(--s-3);
+        border: 0;
+        border-radius: var(--r-sm);
+        background: transparent;
+        color: var(--c-text-tertiary);
+        font: 400 var(--fs-12) / var(--lh-12) var(--font-sans);
+        text-align: start;
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+      }
+      .tool:hover {
+        color: var(--c-text-secondary);
+        background: var(--c-hover);
+      }
+      .tool:focus-visible {
+        outline: var(--focus-width) solid var(--c-border-focus);
+        outline-offset: -2px;
+      }
+      .tool .label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tool .spacer {
+        flex: 1 1 auto;
+      }
+      .tool .when {
+        flex: 0 0 auto;
+        color: var(--c-text-dimmed);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .code {
+        border-radius: var(--r-md);
+        background: var(--c-bg-subtle);
+        box-shadow: inset 0 0 0 var(--hairline) var(--c-border-subtle);
+        overflow: hidden;
+      }
+      .code-head {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        height: 32px;
+        padding: 0 var(--s-4);
+        background: color-mix(in srgb, var(--c-bg-layer-2) 45%, transparent);
+        color: var(--c-text-tertiary);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        box-shadow: 0 0.5px 0 var(--c-border-subtle);
+      }
+      .code-head .name {
+        font-family: var(--font-mono);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        color: var(--c-text-secondary);
+      }
+      .code-head .action {
+        margin-inline-start: auto;
+      }
+      .code pre {
+        margin: 0;
+        padding: var(--s-5) var(--s-6);
+        overflow-x: auto;
+        color: var(--c-text-secondary);
+        font-family: var(--font-mono);
+        font-size: var(--fs-12);
+        line-height: var(--lh-13);
+      }
+      .tok-key {
+        color: var(--c-text-link);
+      }
+      .tok-num {
+        color: var(--c-success);
+      }
+      .tok-com {
+        color: var(--c-text-dimmed);
+      }
+
+      /* 会话底部的输入区：粘在底部，顶部用 canvas 渐隐压住滚动内容 */
+      .dock {
+        flex: 0 0 auto;
+        padding: var(--s-4) var(--s-8) var(--s-6);
+        background: linear-gradient(to bottom, transparent, var(--c-bg-canvas) 24px);
+      }
+      .dock .inner {
+        width: calc(var(--layout-reading-max) + 32px);
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .dock .composer {
+        border-radius: var(--r-xl);
+        /* 底栏贴着窗口下沿，只留近地投影，避免大范围光晕压在内容上 */
+        box-shadow:
+          inset 0 0 0 var(--hairline) var(--c-border-strong),
+          inset 0 1px 0 0 color-mix(in srgb, var(--p-white) 5%, transparent),
+          0 1px 3px rgb(0 0 0 / 0.3);
+      }
+      .dock .composer-input {
+        min-height: 40px;
+        padding-block: var(--s-2);
+      }
+      .dock .composer-input textarea {
+        min-height: 22px;
+      }
+      .dock-note {
+        margin-top: var(--s-3);
+        text-align: center;
+        color: var(--c-text-dimmed);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        font-variant-numeric: tabular-nums;
+      }
+      .dock-note kbd {
+        font-family: var(--font-sans);
+        padding: 1px 4px;
+        border-radius: var(--r-xs);
+        background: var(--c-bg-layer-2);
+        color: var(--c-text-tertiary);
+      }
+
+      /* =====================================================================
+         7 · 标注层（按 A 切换）
+         ===================================================================== */
+      .annotate [data-note] {
+        position: relative;
+        outline: 1px dashed color-mix(in srgb, var(--p-blue-400) 45%, transparent);
+        outline-offset: -1px;
+      }
+      .annotate [data-note]::after {
+        content: attr(data-note);
+        position: absolute;
+        z-index: 5;
+        inset-inline-start: 0;
+        top: 0;
+        translate: 0 -100%;
+        margin-top: -2px;
+        padding: 1px 5px;
+        border-radius: var(--r-xs);
+        background: color-mix(in srgb, var(--p-blue-500) 78%, var(--c-bg-canvas));
+        color: var(--p-white);
+        font-family: var(--font-sans);
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        white-space: nowrap;
+        pointer-events: none;
+      }
+      /* 顶栏标签放在标题与操作之间的空白里，避开两侧内容 */
+      .annotate .topbar-main[data-note]::after {
+        inset-inline-start: auto;
+        inset-inline-end: calc(var(--h-md) * 2 + var(--s-4) + var(--s-7));
+        top: 50%;
+        translate: 0 -50%;
+        margin-top: 0;
+      }
+      /* 消息流顶部本身有留白，标签放内侧 */
+      .annotate .thread-inner[data-note]::after {
+        top: 2px;
+        translate: none;
+        margin-top: 0;
+      }
+
+      /* =====================================================================
+         8 · 响应式：1024 折叠为图标栏，768 一下侧栏让位
+         ===================================================================== */
+      @media (max-width: 1024px) {
+        .sidebar {
+          width: var(--layout-sidebar-collapsed);
+          flex-basis: var(--layout-sidebar-collapsed);
+        }
+        .window::before {
+          width: var(--layout-sidebar-collapsed);
+        }
+        /* 顶栏左段与侧栏一起收窄；折叠栏放不下三枚交通灯 */
+        .topbar-side {
+          flex-basis: var(--layout-sidebar-collapsed);
+          width: var(--layout-sidebar-collapsed);
+          justify-content: center;
+          padding: 0;
+        }
+        /* 空态原本收起侧栏入口也隐去，折叠栏没有它就无法展开，这里恢复 */
+        .window[data-screen="home"] .topbar-side .icon-button {
+          display: inline-flex;
+        }
+        .topbar-side .icon-button {
+          margin-inline-start: 0;
+        }
+        .traffic {
+          display: none;
+        }
+        .topbar-main {
+          padding: 0 var(--s-5);
+        }
+        .brand {
+          justify-content: center;
+          padding: 0;
+        }
+        .brand-name,
+        .tag,
+        .primary-action span,
+        .primary-action .keys,
+        .nav-item span,
+        .nav-item .count,
+        .section-head,
+        .tree,
+        .account .meta,
+        .account .status-dot {
+          display: none;
+        }
+        .primary-action {
+          justify-content: center;
+          padding: 0;
+        }
+        .nav-item {
+          justify-content: center;
+        }
+        .account {
+          justify-content: center;
+          padding: 0;
+        }
+        /* 正文列 730 在窄屏仍能放下，不拉满，避免贴边 */
+        .welcome,
+        .dock .inner {
+          width: 100%;
+        }
+        .dock,
+        .home {
+          padding-inline: var(--s-6);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 图标 sprite：24 网格、描边 2，与品牌 mark 同一套线条语言 -->
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+      <defs>
+        <!-- 彩色 mark：品牌资产用固定品牌色，不参与主题 token（logo/README「品牌色是独立体系」） -->
+        <linearGradient id="brand-ring" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#00e08a" />
+          <stop offset="0.55" stop-color="#00d4a0" />
+          <stop offset="1" stop-color="#00b4ff" />
+        </linearGradient>
+        <symbol id="i-brand-color" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#brand-ring)" stroke-width="2" />
+          <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#99f6e4" stroke="none" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+        <symbol id="i-inbox" viewBox="0 0 24 24">
+          <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z" />
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </symbol>
+        <symbol id="i-book" viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+        </symbol>
+        <symbol id="i-compass" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="m16 8-2.5 6.5L7 17l2.5-6.5Z" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.6-3.6" />
+        </symbol>
+        <symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54Z" /></symbol>
+        <symbol id="i-folder-plus" viewBox="0 0 24 24">
+          <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+          <path d="M12 10v6M9 13h6" />
+        </symbol>
+        <symbol id="i-folder-open" viewBox="0 0 24 24">
+          <path d="M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+          <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+        </symbol>
+        <symbol id="i-bubble" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24">
+          <path d="M12 17v5" />
+          <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1Z" />
+        </symbol>
+        <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+        <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></symbol>
+        <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></symbol>
+        <symbol id="i-more" viewBox="0 0 24 24">
+          <circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" />
+        </symbol>
+        <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" /></symbol>
+        <symbol id="i-paperclip" viewBox="0 0 24 24">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+        </symbol>
+        <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-5-6-5M12 19h8" /></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24">
+          <rect x="9" y="9" width="12" height="12" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </symbol>
+        <symbol id="i-branch" viewBox="0 0 24 24">
+          <path d="M6 3v12" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" />
+          <path d="M18 9a9 9 0 0 1-9 9" />
+        </symbol>
+        <symbol id="i-sparkle" viewBox="0 0 24 24">
+          <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+        <symbol id="i-mode" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="2.5" />
+        </symbol>
+        <symbol id="i-collapse" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="3" />
+          <path d="M9 4v16" />
+        </symbol>
+        <!-- 审查面板：竖线在右侧，与「收起侧栏」区分开 -->
+        <symbol id="i-panel" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="3" />
+          <path d="M15 4v16" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="window" id="window" data-screen="home">
+      <!-- 会话态：贯穿整窗的顶栏；空态：退成一条无底的窗口条 -->
+      <header class="topbar">
+        <div class="topbar-side">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button class="icon-button" type="button" aria-label="收起侧栏">
+            <svg class="ico" aria-hidden="true"><use href="#i-collapse" /></svg>
+          </button>
+        </div>
+        <div class="topbar-main" data-note="空态无顶栏 · 会话态贯穿">
+          <span class="topbar-title" data-session-only>新会话</span>
+          <span class="mode" data-session-only>
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-mode" /></svg>
+            标准模式
+          </span>
+          <span class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="更多操作" data-session-only>
+              <svg class="ico" aria-hidden="true"><use href="#i-more" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="切换审查面板">
+              <svg class="ico" aria-hidden="true"><use href="#i-panel" /></svg>
+            </button>
+          </span>
+        </div>
+      </header>
+
+      <div class="body">
+        <!-- =================================================================
+             侧栏
+             ================================================================= -->
+        <aside class="sidebar" aria-label="导航">
+          <div class="brand">
+            <svg class="ico" style="width: 20px; height: 20px" aria-hidden="true">
+              <use href="#i-brand-color" />
+            </svg>
+            <span class="brand-name">长虹 AI</span>
+            <span class="tag">预览版</span>
+          </div>
+
+          <button class="primary-action" type="button" aria-label="新会话">
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-plus" /></svg>
+            <span>新会话</span>
+            <span class="keys">⌘N</span>
+          </button>
+
+          <nav class="nav" aria-label="一级导航">
+            <button class="nav-item" type="button" aria-label="收件箱">
+              <svg class="ico" aria-hidden="true"><use href="#i-inbox" /></svg>
+              <span>收件箱</span>
+              <span class="count">2</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="定时任务">
+              <svg class="ico" aria-hidden="true"><use href="#i-clock" /></svg>
+              <span>定时任务</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="知识库">
+              <svg class="ico" aria-hidden="true"><use href="#i-book" /></svg>
+              <span>知识库</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="探索">
+              <svg class="ico" aria-hidden="true"><use href="#i-compass" /></svg>
+              <span>探索</span>
+            </button>
+          </nav>
+
+          <div class="section-head">
+            工作区
+            <span class="actions">
+              <button class="icon-button" type="button" aria-label="搜索会话">
+                <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="筛选">
+                <svg class="ico" aria-hidden="true"><use href="#i-filter" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="新建项目">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-plus" /></svg>
+              </button>
+            </span>
+          </div>
+
+          <div class="tree">
+            <div class="group">
+              <button class="row" type="button" data-project>
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+                <span class="label">opencode</span>
+                <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+                <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+              </button>
+              <div class="children">
+                <button class="row" type="button" data-tab="home" aria-current="page">
+                  <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                  <span class="label">主界面视觉设计评价</span>
+                  <span class="reveal">
+                    <span class="icon-button" aria-hidden="true">
+                      <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                    </span>
+                  </span>
+                  <span class="when">刚刚</span>
+                </button>
+                <button class="row" type="button" data-tab="session">
+                  <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                  <span class="label">时间线滚动位置修复</span>
+                  <span class="when">2 天</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-title">最近</div>
+              <button class="row" type="button" data-project aria-expanded="false">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+                <span class="label">deepseek-harness</span>
+                <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+              </button>
+              <div class="children" hidden>
+                <button class="row" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                  <span class="label">插件启动失败排查</span>
+                  <span class="when">3 天</span>
+                </button>
+              </div>
+
+              <button class="row" type="button" data-project>
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+                <span class="label">长虹 OA 系统</span>
+                <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+              </button>
+              <div class="children">
+                <button class="row" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                  <span class="label">长虹文档链接校验</span>
+                  <span class="when">3 天</span>
+                </button>
+              </div>
+
+              <button class="row" type="button" data-project aria-expanded="false">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+                <span class="label">agents</span>
+                <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+              </button>
+              <div class="children" hidden>
+                <button class="row" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                  <span class="label">工作流整理</span>
+                  <span class="when">上周</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button class="account" type="button" aria-label="账户与连接">
+            <span class="avatar" aria-hidden="true">长</span>
+            <span class="meta">
+              <span class="who">已连接 · 本地</span>
+              <span class="where">deepseek-flash</span>
+            </span>
+            <span class="status-dot" aria-hidden="true"></span>
+          </button>
+        </aside>
+
+        <!-- =================================================================
+             主区
+             ================================================================= -->
+        <main class="main" id="main">
+          <!-- 空态 ---------------------------------------------------------- -->
+          <section class="screen screen-home" aria-label="新会话">
+            <div class="home">
+              <div class="halo" aria-hidden="true"></div>
+              <div class="welcome" data-note="内容列 730 · composer 762">
+                <div class="welcome-head">
+                  <svg class="ico" style="width: 28px; height: 28px" aria-hidden="true">
+                    <use href="#i-brand-color" />
+                  </svg>
+                  <span class="word">长虹 AI</span>
+                  <span class="tag">预览版</span>
+                </div>
+                <p class="welcome-sub">在任意项目里开始一段对话，或直接描述你想构建的东西。</p>
+
+                <div class="composer" data-note="圆角 24 · 描边 0.5px">
+                  <div class="composer-context">
+                    <button class="chip" type="button">
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-folder" /></svg>
+                      opencode
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                    </button>
+                    <span class="sep">/</span>
+                    <button class="chip" type="button">
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-branch" /></svg>
+                      master
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                    </button>
+                    <span class="right">⌘K 命令</span>
+                  </div>
+
+                  <div class="composer-input">
+                    <textarea rows="1" placeholder="描述你想构建的内容，/ 调用指令，@ 文件或对话" aria-label="输入内容"></textarea>
+                  </div>
+
+                  <div class="composer-actions">
+                    <button class="round-button" type="button" aria-label="添加附件">
+                      <svg class="ico" aria-hidden="true"><use href="#i-paperclip" /></svg>
+                    </button>
+                    <button class="chip" type="button">
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-sparkle" /></svg>
+                      Build
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                    </button>
+                    <span class="right">
+                      <button class="chip" type="button">
+                        deepseek-flash
+                        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                      </button>
+                      <button class="send" type="button" disabled aria-label="发送">
+                        <svg class="ico" aria-hidden="true"><use href="#i-arrow-up" /></svg>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="welcome-recent">
+                  <span>最近</span>
+                  <span class="items">
+                    <button class="linkish" type="button">opencode</button>
+                    <span class="dot" aria-hidden="true">·</span>
+                    <button class="linkish" type="button">deepseek-harness</button>
+                    <span class="dot" aria-hidden="true">·</span>
+                    <button class="linkish" type="button">长虹 OA 系统</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 会话态 -------------------------------------------------------- -->
+          <section class="screen screen-session" aria-label="会话">
+            <div class="thread">
+              <div class="thread-inner" data-note="块间 16 · 块内 4">
+                <div class="ask">
+                  <div class="bubble">重新打开会话时，滚动条总是跳回顶部。能修一下吗？</div>
+                </div>
+
+                <div class="answer">
+                  <button class="tool" type="button">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-terminal" /></svg>
+                    <span class="label">读取 session/screen-layout.ts</span>
+                    <span class="spacer"></span>
+                    <span class="when">0.4s</span>
+                  </button>
+                  <p class="prose">
+                    原因在恢复时机：<code>scrollTop</code> 在 ref 阶段就写了，那时元素还没进文档，高度为 0。挪到
+                    <code>onMount</code> 之后，并用记录的锚点行校正一次。
+                  </p>
+
+                  <div class="code">
+                    <div class="code-head">
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-terminal" /></svg>
+                      <span class="name">screen-layout.ts</span>
+                      <button class="icon-button action" type="button" aria-label="复制">
+                        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-copy" /></svg>
+                      </button>
+                    </div>
+                    <pre><code><span class="tok-com">// 等列表量出真实高度后再落位</span>
+  <span class="tok-key">onMount</span>(() =&gt; {
+    <span class="tok-key">requestAnimationFrame</span>(() =&gt; restore(anchor))
+  })</code></pre>
+                  </div>
+
+                  <button class="tool" type="button">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-check" /></svg>
+                    <span class="label">改完 1 个文件 · 校验通过</span>
+                    <span class="spacer"></span>
+                    <span class="when">2.1s</span>
+                  </button>
+
+                  <p class="prose">现在重开会话，位置会落回你上次离开的那一行。</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="dock">
+              <div class="inner">
+                <div class="composer">
+                  <div class="composer-input">
+                    <textarea rows="1" placeholder="继续追问，或补充上下文…" aria-label="输入内容"></textarea>
+                  </div>
+                  <div class="composer-actions">
+                    <button class="round-button" type="button" aria-label="添加附件">
+                      <svg class="ico" aria-hidden="true"><use href="#i-paperclip" /></svg>
+                    </button>
+                    <button class="chip" type="button">
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-sparkle" /></svg>
+                      Build
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                    </button>
+                    <span class="right">
+                      <button class="chip" type="button">
+                        deepseek-flash
+                        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                      </button>
+                      <button class="send" type="button" disabled aria-label="发送">
+                        <svg class="ico" aria-hidden="true"><use href="#i-arrow-up" /></svg>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+                <div class="dock-note"><kbd>⏎</kbd> 发送 · <kbd>⇧⏎</kbd> 换行</div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- 演示控制条（不属于界面本身） -->
+    <div class="demo-bar">
+      <span class="hint">
+        设计演示 · 深色 · 空态无顶栏 / 侧栏 280 / 内容列 730 / 主 CTA 黑白 / 品牌色只出现在 mark 与状态点 ·
+        <kbd>A</kbd> 标注
+      </span>
+      <div class="segmented" role="tablist" aria-label="切换界面">
+        <button type="button" role="tab" aria-selected="true" data-screen-button="home">空态</button>
+        <button type="button" role="tab" aria-selected="false" data-screen-button="session">会话</button>
+      </div>
+    </div>
+
+    <script>
+      const windowEl = document.getElementById("window")
+      const buttons = [...document.querySelectorAll("[data-screen-button]")]
+
+      const topbarTitle = document.querySelector(".topbar-title")
+      const screenTitles = { home: "新会话", session: "时间线滚动位置修复" }
+
+      const select = (name) => {
+        windowEl.dataset.screen = name
+        topbarTitle.textContent = screenTitles[name]
+        for (const button of buttons) {
+          button.setAttribute("aria-selected", String(button.dataset.screenButton === name))
+        }
+        // 侧栏的选中项跟着当前屏走，避免标题与高亮对不上
+        for (const row of document.querySelectorAll('.row[data-tab]')) {
+          if (row.dataset.tab === name) row.setAttribute("aria-current", "page")
+          else row.removeAttribute("aria-current")
+        }
+      }
+
+      for (const button of buttons) {
+        button.addEventListener("click", () => select(button.dataset.screenButton))
+      }
+
+      // 折叠态只剩图标：用原生 title 补全名称（展开态有可见文字，不再重复）
+      const narrow = matchMedia("(max-width: 1024px)")
+      const labels = [...document.querySelectorAll(".nav-item[aria-label], .primary-action[aria-label]")]
+      const syncTitles = () => {
+        for (const el of labels) {
+          if (narrow.matches) el.setAttribute("title", el.getAttribute("aria-label"))
+          else el.removeAttribute("title")
+        }
+      }
+      narrow.addEventListener("change", syncTitles)
+      syncTitles()
+
+      addEventListener("keydown", (event) => {
+        if (event.key === "a" || event.key === "A") {
+          if (event.metaKey || event.ctrlKey || event.altKey) return
+          document.body.classList.toggle("annotate")
+        }
+        if (event.key === "1") select("home")
+        if (event.key === "2") select("session")
+      })
+    </script>
+  </body>
+</html>

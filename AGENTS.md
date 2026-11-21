@@ -9,10 +9,6 @@
 - 上游 `dev` 只作为同步来源；本地 `dev` 已落后，不要以它为基线。开发基线是 `origin/master`，客户端功能分支从最新 `master` 切出（当前主线分支 `timeline-scroll`）。
 - 不向上游提 PR；提交在自己的 fork 上完成。diff 与 rebase 都以 `origin/master` 为准，不要使用 `origin/dev`。
 
-## 修复报告
-
-- 每次修复完成后，把报告用 `deliver`（intent `note`）发给 `@session:ses_e08960bd5ffe14vXpyronycjZK`（标题 `@opencode/desktop/qa#1`）。
-
 ## Live Desktop Diagnostics
 
 - When attaching Playwright to a running desktop app, use `chromium.connectOverCDP(endpoint, { noDefaults: true })`.

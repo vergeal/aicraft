@@ -1,11 +1,11 @@
 /* v6 workbench: the window is one continuous surface. Three columns share the frame with the titlebar,
    and every size below comes from the v6 token table rather than ad-hoc component values. */
 [data-replica] {
-  /* The sidebar header and the content topbar share one 32px row across the window. The traffic lights keep their own
-     inset inside that row, so the bar stays a title strip rather than a second toolbar. */
-  --titlebar-height: 32px;
-  --navigation-sidebar-width: 280px;
+  /* The window bar spans the whole window at the reference's 44px, split at the sidebar boundary: its left segment
+     heads the navigation column, its right segment heads the workspace. */
+  --titlebar-height: 44px;
 
+  --navigation-sidebar-width: 280px;
   --sidebar-header-height: 32px;
   --sidebar-header-padding-inline: 14px;
   /* macOS draws the traffic lights here; other platforms keep a normal inset. */
@@ -73,7 +73,7 @@
   --radius-card: 12px;
   --radius-popover: 12px;
   --radius-message: 17px;
-  --radius-composer: 18px;
+  --radius-composer: 20px;
   --radius-composer-single-line: 26px;
   --radius-dialog: 18px;
 
@@ -107,17 +107,19 @@
    navigation column lifts one quiet step above it (#1a1a1a). Both are pure neutral greys: the previous
    cool-blue canvas beside a blue-violet sidebar made the split read as two different materials. */
 [data-color-scheme="dark"] [data-replica] {
-  --color-titlebar: rgb(17 17 17 / 86%);
-  --color-rail: rgb(17 17 17 / 86%);
-  --color-sidebar: rgb(26 26 26 / 95%);
-  /* The column reads washed out below 90% over a bright desktop, so the shell paints it almost solid. */
-  --color-navigation: rgb(26 26 26 / 92%);
-  --color-main: #111111;
+  --color-titlebar: rgb(21 21 23 / 86%);
+  --color-rail: rgb(21 21 23 / 86%);
+  /* The navigation column takes the design system's surface (#232324) over the canvas (#151517): one step of
+     lightness, the same step the reference draws between the two halves of the window. */
+  --color-sidebar: rgb(35 35 36 / 95%);
+  --color-navigation: rgb(35 35 36 / 92%);
+  --color-main: #151517;
   --color-composer: var(--v2-background-bg-layer-01);
   --replica-composer-fill: var(--v2-background-bg-layer-01);
   --color-hover: rgb(255 255 255 / 8%);
-  /* Pressed rows need a clear step above the navigation surface, not an 8% wash. */
-  --color-selected: rgb(255 255 255 / 12%);
+  /* The selected row steps up to the design system's layer-3 (#353638) instead of a wash: a wash of white over the
+     surface never separated the row from its neighbours. */
+  --color-selected: #353638;
   --color-border: rgb(255 255 255 / 10%);
   --color-divider: rgb(255 255 255 / 10%);
   --color-text-primary: var(--v2-text-text-base);
@@ -172,14 +174,14 @@ html[data-replica-window="translucent"] [data-replica] {
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
   /* 暗色玻璃要兜住亮壁纸，否则浅色文字压在透出来的亮背景上；rail 与导航列保持同一片材质，只差一档明度。 */
-  --color-titlebar: rgb(33 33 33 / 90%);
-  --color-rail: rgb(33 33 33 / 90%);
-  --color-navigation: rgb(26 26 26 / 92%);
-  --color-sidebar: rgb(26 26 26 / 92%);
+  --color-titlebar: rgb(21 21 23 / 90%);
+  --color-rail: rgb(21 21 23 / 90%);
+  --color-navigation: rgb(35 35 36 / 95%);
+  --color-sidebar: rgb(35 35 36 / 95%);
   /* The glass group above redeclares these as ink washes for the light theme; without this pair a dark window
      inherits the 5% black hover and every button's fill disappears on the near-black chrome. */
   --color-hover: rgb(255 255 255 / 8%);
-  --color-selected: rgb(255 255 255 / 12%);
+  --color-selected: #353638;
 }
 
 /* 实现 A 的窗户是纯中性灰：面板与抬升面只差明度，没有任何色相偏移。之前那层「受光」蓝紫渐变把导航面染成了
@@ -222,30 +224,89 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   backdrop-filter: var(--color-material-blur);
 }
 
-/* The content topbar is the same surface as the canvas it heads, closed off by a 0.5px hairline instead of a card
-   edge. It stays draggable so the window can move from anywhere along its top row, and its controls opt out. */
+/* The window bar spans the whole window, split at the sidebar boundary: the left segment heads the navigation column
+   and shares its surface, the right segment heads the workspace on the canvas. A 0.5px hairline closes the bar off
+   against the content; the bar itself stays draggable so the window can move from anywhere along the top row. */
 [data-slot="replica-titlebar"] {
   position: relative;
   z-index: 10;
   display: flex;
   flex: none;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
   height: var(--titlebar-height);
   min-height: var(--titlebar-height);
-  padding-inline: 12px;
-  /* Windows paints its caption buttons over the right edge; everywhere else this inset resolves to 12px. */
-  padding-right: calc(100vw - env(titlebar-area-width, 100vw) + 12px);
-  background: var(--color-main);
+  background: transparent;
   font-family: var(--font-family-sans, var(--font-family-ui));
+  box-shadow: 0 0.5px 0 var(--color-divider);
   -webkit-app-region: drag;
 }
 
-/* 标题栏不再铺自己的底，也没有了底部那条 0.5px 分隔线：工作区的画布、白光和氛围光都从这一行底下继续过来，
-   顶部读作同一片面，而不是一条贴在上边的带子。选择器带上 replica-main 和 data-replica，是为了压过
-   reduced-transparency 分支里给标题栏重新铺实色底的那条规则。 */
-[data-replica] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
-  background-color: transparent;
+/* The navigation column's head: its width follows the column, its surface is the column's own, so the bar's left half
+   and the column below read as one piece of chrome rather than two stacked tints. */
+[data-slot="replica-titlebar-side"] {
+  display: flex;
+  flex: 0 0 var(--navigation-sidebar-width);
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  padding-inline-start: var(--sidebar-header-lead);
+  padding-inline-end: 8px;
+  background: var(--color-sidebar);
+  /* Only the fade animates. Easing flex-basis relayouts the whole window on every frame of the toggle, which this
+     column does not need: its width is committed once, after the fade. See `.opencode/ui/06-motion` §3. */
+  transition: opacity 160ms ease;
+}
+
+[data-slot="replica-titlebar-side"] :where(button, a, input, [role="button"]) {
+  -webkit-app-region: no-drag;
+}
+
+/* Collapsed, the segment gives its width back to the workspace; the way to reopen the column moves into the bar's
+   right half. */
+[data-slot="replica-titlebar-side"][data-collapsed] {
+  flex-basis: 0;
+  padding-inline: 0;
+  opacity: 0;
+  /* Keep the width through the fade, then drop it in a single frame so no reflow lands inside the animation. */
+  transition:
+    opacity 160ms ease,
+    flex-basis 0s 160ms;
+}
+
+/* The workspace's head: canvas, the conversation title, and the window actions at its trailing edge. */
+[data-slot="replica-titlebar-main"] {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline: 20px;
+  background: var(--color-main);
+}
+
+/* A new chat keeps the window bar as a draggable strip, not a toolbar: the bar stays transparent so the left segment
+   keeps the column's own translucent surface, and only the workspace segment paints the canvas. Conversation-only
+   controls are hidden, but the collapse control stays so navigation is never lost. */
+[data-slot="replica-titlebar"][data-empty] {
+  box-shadow: none;
+  background: transparent;
+}
+
+html[data-replica-window="translucent"] [data-slot="replica-titlebar"][data-empty] {
+  background: transparent;
+}
+
+[data-slot="replica-titlebar"][data-empty] [data-slot="replica-titlebar-main"] {
+  background: var(--color-main);
+}
+
+/* A new chat hides what describes a conversation, but keeps the way back to the column: the collapse control and
+   the window's own chrome stay, so the empty state does not lose navigation. */
+[data-slot="replica-titlebar"][data-empty] [data-session-only],
+[data-slot="replica-titlebar"][data-empty] [data-component="desktop-menu-bar"] {
+  display: none;
 }
 
 /* The sidebar header, the content topbar and the top of the workspace are one continuous surface: no rule,
@@ -270,13 +331,6 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
 [data-slot="replica-titlebar-main"] .session-location-tooltip {
   flex-shrink: 0;
   max-inline-size: min(60%, 560px);
-}
-
-[data-slot="replica-titlebar-main"] {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  min-width: 0;
 }
 
 [data-slot="replica-shell"] {
@@ -306,9 +360,8 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"] {
 
 html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
   --color-hover: rgb(255 255 255 / 8%);
-  /* Pressed rows step above the navigation surface instead of cutting into it: in dark mode a darker fill reads as a
-     hole, while a lifted wash reads as the selected level. */
-  --color-selected: rgb(255 255 255 / 12%);
+  /* The selected row steps up to layer-3 instead of a white wash: a wash never separated the row from the surface. */
+  --color-selected: #353638;
   --color-text-secondary: #c2c2c2;
   --color-text-tertiary: #8f8f8f;
   --color-icon-secondary: #8f8f8f;
@@ -324,9 +377,9 @@ html[data-color-scheme="dark"] [data-slot="replica-sidebar"] {
   flex: 0 0 var(--navigation-sidebar-width);
   min-width: 0;
   min-height: 0;
-  transition:
-    flex-basis 220ms cubic-bezier(0.2, 0, 0, 1),
-    opacity 160ms ease;
+  /* The width is committed in one frame instead of eased: a flex-basis transition relayouts the transcript on every
+     frame of the toggle, which is what made collapsing stall on a long session. */
+  transition: opacity 160ms ease;
 }
 
 /* The dividing hairline is painted as an overlay rather than a border or an inset shadow: children paint their own
@@ -362,16 +415,31 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
+  /* Hold the column's width while it fades, then take the space back in one frame. */
+  transition:
+    opacity 160ms ease,
+    flex-basis 0s 160ms;
 }
 
 [data-slot="replica-sidebar-slot"][data-collapsed]::after {
   display: none;
 }
 
-/* Dragging writes the width every frame, so the transition would lag behind the pointer. */
-[data-replica][data-resizing] [data-slot="replica-titlebar"],
+/* Dragging writes the width every frame, so the transition would lag behind the pointer: both the column and the
+   bar's left segment follow the pointer without easing. */
+[data-replica][data-resizing] [data-slot="replica-titlebar-side"],
 [data-replica][data-resizing] [data-slot="replica-sidebar-slot"] {
   transition: none;
+}
+
+/* The toggle's only motion is a fade; reduced motion keeps the state change without it. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="replica-titlebar-side"],
+  [data-slot="replica-titlebar-side"][data-collapsed],
+  [data-slot="replica-sidebar-slot"],
+  [data-slot="replica-sidebar-slot"][data-collapsed] {
+    transition: none;
+  }
 }
 
 /* While dragging, the whole frame keeps the resize cursor and stops selecting the panels' text. */
@@ -395,18 +463,48 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
   width: 100%;
   min-width: 0;
   min-height: 0;
+  /* The column starts 8px below the window bar, as the reference does, so the product mark has the same air above it
+     as it has to either side. */
+  padding-block-start: 8px;
   background: var(--color-sidebar);
   /* The navigation text follows the appearance font instead of the replica's fixed system stack. */
   font-family: var(--font-family-sans, var(--font-family-ui));
 }
 
-/* 导航面的光泽画在导航列自己身上，而不是铺满整个窗口再按一个宽度变量去裁：列的宽度由 flex 盒决定，拖动时
-   渐变就跟着列一起变，不需要任何人每帧把宽度同步给 CSS，也就不会出现「拖动时渐变停在原处」。取色自应用
-   图标的圆环：左上青绿 rgb(0 221 143)、往右下过渡到青蓝 rgb(0 188 230)，到 78% 归零。 */
+/* The selected row carries two signals, not just a fill: the design system's selected surface plus a 2px bar along
+   the start edge, so the current row is legible without relying on colour alone. */
+[data-slot="replica-row"][data-state="pressed"],
+[data-slot="replica-primary-nav"] [data-state="pressed"] {
+  position: relative;
+  background: var(--color-selected);
+  box-shadow: inset 0 0 0 0.5px var(--color-border);
+}
+
+[data-slot="replica-row"][data-state="pressed"]::before,
+[data-slot="replica-primary-nav"] [data-state="pressed"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 9999px;
+  background: var(--color-text-primary);
+  pointer-events: none;
+}
+
+/* The navigation column's surface is a plain neutral step above the canvas, with the reference's two faint washes:
+   one cool light from the top edge, one violet from the bottom. No coloured gloss: a green-to-blue gradient over the
+   whole column read as a second material instead of a surface level. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
-  /* 只有一束彩光，右缘不再向内压黑：那条 28px 的暗带读起来是贴在分界上的一道阴影，而不是材质的转折。
-     彩光从青绿走到青蓝，尾部不归零：整列都在同一束色里，只有浓度往下递减，否则下半截会掉回一块死灰。 */
-  background-image: linear-gradient(160deg, rgb(0 221 143 / 22%), rgb(0 188 230 / 15%) 45%, rgb(0 188 230 / 7%));
+  background-image:
+    radial-gradient(120% 46% at 50% 0%, rgb(59 130 246 / 6%), transparent 68%),
+    radial-gradient(120% 34% at 50% 100%, rgb(139 92 246 / 4%), transparent 70%);
+  background-repeat: no-repeat;
+}
+
+/* The bar's left segment carries the same cool wash the column starts with, so the seam at 44px is invisible. */
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar-side"] {
+  background-image: radial-gradient(120% 46% at 50% 0%, rgb(59 130 246 / 6%), transparent 68%);
   background-repeat: no-repeat;
 }
 
@@ -426,12 +524,9 @@ html[data-os="macos"] [data-replica] {
   --sidebar-header-lead: 88px;
 }
 
-/* Collapsed, the sidebar is gone and the lights float over the content topbar's corner: give its first control the
+/* Collapsed, the sidebar is gone and the lights float over the workspace bar's corner: give its first control the
    same room so nothing runs under them. */
-html[data-os="macos"]
-  [data-slot="replica-sidebar-slot"][data-collapsed]
-  + [data-slot="replica-main"]
-  [data-slot="replica-titlebar"] {
+html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [data-slot="replica-titlebar-main"] {
   padding-inline-start: 92px;
 }
 
@@ -620,7 +715,7 @@ html[data-os="macos"]
 /* Without the title row the first prompt would start on the window bar's edge. It keeps the gap the composer leaves
    at the other end, and rows scrolling up fade out at the top edge instead of ending on a hard cut. */
 [data-replica] [data-session-first-message] {
-  padding-block-start: 20px;
+  padding-block-start: 32px;
 }
 
 [data-replica] [data-slot="session-timeline-scroll"] > .scroll-view__viewport {
@@ -638,6 +733,32 @@ html[data-os="macos"]
   background: var(--color-main);
   /* The conversation follows the appearance font the user selected; the chrome keeps the system stack. */
   font-family: var(--font-family-sans, var(--font-family-ui));
+}
+
+/* A new chat carries one soft wash of light behind the mark. Two cool beams sit slightly apart so the empty canvas
+   reads as lit air rather than a spotlight circle; the layer never intercepts the pointer. */
+[data-slot="replica-main"][data-empty]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset-block-start: 46%;
+  inset-inline-start: 50%;
+  width: min(760px, 92%);
+  height: 380px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--v2-blue-500) 7%, transparent), transparent 100%),
+    radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--v2-purple-600) 5%, transparent), transparent 100%);
+  filter: blur(64px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+[data-color-scheme="dark"] [data-slot="replica-main"][data-empty]::before {
+  background:
+    radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--v2-blue-500) 11%, transparent), transparent 100%),
+    radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--v2-purple-600) 8%, transparent), transparent 100%);
 }
 
 [data-color-scheme="dark"] [data-slot="replica-main"] {
@@ -671,6 +792,13 @@ html[data-os="macos"]
    否则光被一层实色盖住。这里只留透明，让工作区的光透上来。 */
 [data-color-scheme="dark"] [data-slot="replica-main"] [data-slot="page-panel"] {
   background: transparent;
+}
+
+/* The empty state's composer is the reference's 24px card; the docked composer in a conversation keeps 20px, so the
+   two surfaces are tuned apart instead of sharing one radius. */
+[data-replica] [data-component="new-session"] {
+  --radius-composer: 24px;
+  --radius-composer-single-line: 24px;
 }
 
 /* The conversation scroll area owns its own scrollbar; the window never scrolls. */
@@ -815,10 +943,10 @@ html[data-os="macos"]
   }
 
   html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
-    --color-titlebar: rgb(17 17 17);
-    --color-rail: rgb(17 17 17);
-    --color-sidebar: rgb(26 26 26);
-    --color-navigation: rgb(26 26 26);
+    --color-titlebar: rgb(21 21 23);
+    --color-rail: rgb(21 21 23);
+    --color-sidebar: rgb(35 35 36);
+    --color-navigation: rgb(35 35 36);
     /* Dark mode clears the frame so the shell can carry the navigation surface; an opaque window paints it. */
     background: var(--color-rail);
   }
@@ -832,7 +960,7 @@ html[data-os="macos"]
 
   html[data-replica-window="translucent"][data-color-scheme="dark"]:has([data-replica]),
   html[data-replica-window="translucent"][data-color-scheme="dark"] #root:has([data-replica]) {
-    background-color: rgb(21 21 21) !important;
+    background-color: rgb(21 21 23) !important;
   }
 
   /* Translucent mode clears these elements so the frame tint shows through once. With solid tints each paints its
@@ -876,10 +1004,10 @@ html[data-os="macos"]
    — Windows an opaque solid, macOS its vibrancy sheet, Linux the compositor's blur — so the colour is shared without
    forcing one platform's material on the others. `data-color-scheme` is here for specificity: the glass blocks above
    set these three tokens per theme, and this rule has to outrank them to land one step instead of two. */
+/* The bar's right segment sits on the chrome tint; the navigation column keeps its own surface token, one step above
+   the canvas, so the two halves stay distinguishable instead of collapsing into a single flat grey. */
 html[data-replica-window="translucent"][data-color-scheme] [data-replica] {
   --color-titlebar: var(--color-rail);
-  --color-navigation: var(--color-rail);
-  --color-sidebar: var(--color-rail);
 }
 
 /* Windows draws acrylic behind the chrome, but over a desktop it reads as a grey film rather than glass: the
@@ -901,21 +1029,20 @@ html[data-replica-window="translucent"] [data-slot="replica-shell"] {
   background: var(--color-titlebar);
 }
 
-/* The workspace panel is inset from the chrome, so the gutter around it reads as part of the top bar rather than a
-   second canvas. The panel itself keeps `--v2-background-bg-base`, which sits a step below this tint in dark mode. */
+/* The workspace is the canvas itself: the full window height below the bar, squared off against every edge. No
+   inset card, no rounded corner, no gutter of chrome around it. */
 html[data-replica-window="translucent"] [data-slot="replica-main"] {
-  background-color: var(--color-titlebar);
+  background-color: var(--color-main);
 }
 
-/* The workspace panel steps slightly below the chrome tint instead of above it, so the card reads as the recessed
-   surface the chrome wraps around. Only the main column is retinted; dialogs and menus portal outside it. */
+/* The workspace canvas sits a step below the navigation surface: the design system's near-black rather than the
+   chrome tint. Only the main column is retinted; dialogs and menus portal outside it. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-main"] {
-  --v2-background-bg-base: rgb(20 20 20);
+  --v2-background-bg-base: rgb(21 21 23);
 }
 
 /* Painted explicitly as well: the dark shell normally forces these panels transparent so they inherit the canvas,
-   which would keep the design-system tone and ignore the variable above. The inset card gives the workspace its own
-   surface and edge, so it stays visible against the chrome. */
+   which would keep the design-system tone and ignore the variable above. */
 html[data-replica-window="translucent"][data-color-scheme="dark"]
   [data-slot="replica-main"] :is(
     [data-component="new-session"],
@@ -924,11 +1051,24 @@ html[data-replica-window="translucent"][data-color-scheme="dark"]
     [data-slot="page-panel"],
     [data-testid="settings-screen"]
   ) {
-  background-color: rgb(20 20 20);
+  background-color: rgb(21 21 23);
 }
 
-/* The workspace fills the window on three sides. Only its top-left corner is rounded, where it meets the
-   navigation column and the titlebar; the other corners square off against the window edges. */
+/* A new chat keeps the panel transparent: the welcome is drawn over the canvas wash behind the mark, and an opaque
+   panel would paint over that light and leave the empty state flat. */
+html[data-replica-window="translucent"][data-color-scheme="dark"]
+  [data-slot="replica-main"][data-empty]
+  [data-component="new-session"] {
+  background-color: transparent;
+}
+
+/* The empty state is the canvas itself, not a card floating on it. */
+[data-slot="replica-main"][data-empty] [data-component="new-session"] {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* The workspace fills the window on every side, so its panels square off instead of carrying a corner radius. */
 html[data-replica-window="translucent"]
   [data-slot="replica-main"] :is(
     [data-component="new-session"],
@@ -937,10 +1077,7 @@ html[data-replica-window="translucent"]
     [data-slot="page-panel"],
     .settings-screen
   ) {
-  border-start-start-radius: 12px;
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
-  border-end-start-radius: 0;
+  border-radius: 0;
 }
 
 /* The new-session page (a fresh tab) is a plain filled surface: it squares off at every corner instead of carrying
@@ -960,39 +1097,40 @@ html[data-replica-window="translucent"] [data-slot="replica-main"] #review-panel
    normally adds an 8% white wash over the material, and beside the titlebar that made the top row read as two
    translucent halves. */
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
+  background-color: var(--color-navigation);
+}
+
+/* The bar's left segment carries the column's surface, so the column reads as one piece from the window's top edge
+   down. The right segment keeps the workspace canvas instead of the chrome tint: the workspace is not chrome. */
+html[data-replica-window="translucent"] [data-slot="replica-titlebar-side"] {
   background: var(--color-navigation);
 }
 
-/* The titlebar paints the shared rail tint rather than staying transparent, so it reads as chrome instead of a
-   see-through band over the workspace canvas; the window controls sit in a transparent overlay above it. */
-html[data-replica-window="translucent"] [data-replica] [data-slot="replica-main"] [data-slot="replica-titlebar"] {
-  background-color: var(--color-titlebar);
+html[data-replica-window="translucent"] [data-slot="replica-titlebar-main"] {
+  background: var(--color-main);
 }
 
-/* The back/forward controls open the topbar at the workspace's left edge, so they align with the panel below
+/* The back/forward controls open the workspace bar at its own left edge, so they align with the panel below
    instead of sitting one gutter in from it. */
-html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-titlebar"] {
-  padding-inline-start: 0;
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-titlebar-main"] {
+  padding-inline-start: 12px;
 }
 
-/* Collapsed, the toggle moves into the topbar and the workspace starts at the window edge. Keep the 6px gap it has
-   in the sidebar header so it never sits flush against the frame. */
+/* Collapsed, the toggle moves into the workspace bar and the workspace starts at the window edge. Keep the 6px gap
+   it has in the column's head so it never sits flush against the frame. */
 html[data-replica-window="translucent"][data-os="windows"]
-  [data-slot="replica-sidebar-slot"][data-collapsed]
-  + [data-slot="replica-main"]
-  [data-slot="replica-titlebar"] {
+  [data-slot="replica-titlebar-side"][data-collapsed]
+  + [data-slot="replica-titlebar-main"] {
   padding-inline-start: 6px;
 }
 
-/* Both the sidebar header and the collapsed topbar lead with the toggle, so it holds one 6px gap from the window's
-   start edge in either state. */
+/* Both the column's head and the collapsed workspace bar lead with the toggle, so it holds one 6px gap from the
+   window's start edge in either state. */
 html[data-replica-window="translucent"][data-os="windows"] [data-replica] {
   --sidebar-header-lead: 6px;
 }
 
-/* One flat tint above the workspace panel: the navigation column and the titlebar take no gradient in dark mode, so
-   the top of the window reads as a single undivided area on every desktop platform. */
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"],
+/* The bar keeps its flat surfaces in dark mode: no gradient glides across the split between its two halves. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar"] {
   background-image: none;
 }

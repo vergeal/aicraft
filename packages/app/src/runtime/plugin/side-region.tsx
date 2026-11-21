@@ -49,6 +49,8 @@ export function SideRegion(props: {
    * review's diffs included, on every frame of a resize drag.
    */
   contentWidth: Accessor<string>
+  /** Takes the whole content area while it shows a full panel: no card edge, and the conversation beside it is hidden. */
+  full?: boolean
   drag: PaneDrag
 }) {
   const layout = useLayout()
@@ -96,7 +98,7 @@ export function SideRegion(props: {
   guardClosingFocus({
     root,
     closing: () => !tabsOpen() && tabsVisible(),
-    target: () => document.querySelector<HTMLElement>('[data-slot="session-review-toggle"] button') ?? undefined,
+    target: () => document.querySelector<HTMLElement>('[data-slot="session-review-toggle"]') ?? undefined,
   })
 
   return (
@@ -108,8 +110,11 @@ export function SideRegion(props: {
         aria-label={language.t("session.panel.reviewAndFiles")}
         aria-hidden={!tabsOpen()}
         data-focused={props.region.focus.focused() || undefined}
-        class="relative h-full shrink-0 min-w-0 flex overflow-hidden bg-v2-background-bg-base rounded-[var(--shell-panel-radius,10px)] shadow-[var(--v2-elevation-raised)] outline-none"
-        classList={{ "flex-1": tabsVisible() }}
+        class="relative h-full shrink-0 min-w-0 flex overflow-hidden bg-v2-background-bg-base outline-none"
+        classList={{
+          "flex-1": tabsVisible(),
+          "rounded-[var(--shell-panel-radius,10px)] shadow-[var(--v2-elevation-raised)]": !props.full,
+        }}
         style={{ width: panelWidth() }}
       >
         {/* Takes the pointer while the panel closes. Inherited pointer-events or inert would restyle every element in

@@ -1,4 +1,4 @@
-import { Show, createEffect, createMemo, createSignal } from "solid-js"
+import { Show, createEffect, createMemo, createSignal, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Button } from "@opencode/ui/button"
@@ -24,6 +24,8 @@ export function Composer(props: {
   borderUnderlay?: boolean
   readOnly?: boolean
   suggestionBoundary?: () => HTMLElement | undefined
+  /** Drawn above the editor inside the card: the empty state keeps its project and branch context in the frame. */
+  context?: JSX.Element
 }) {
   const dialog = useDialog()
   const command = useCommand()
@@ -54,7 +56,14 @@ export function Composer(props: {
   }
 
   return (
-    <div data-ui="composer" class="flex flex-col gap-3">
+    <div data-ui="composer" class="flex flex-col">
+      <Show when={props.context}>
+        {(context) => (
+          <div data-slot="composer-context" class="shrink-0">
+            {context()}
+          </div>
+        )}
+      </Show>
       <ComposerEditor
         controller={props.model}
         borderUnderlay={props.borderUnderlay}

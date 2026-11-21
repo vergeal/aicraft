@@ -417,3 +417,66 @@ story("folds a burst of identical steps into one row", async ({ mount }) => {
   await expect(trigger).toHaveAttribute("aria-expanded", "true")
   await expect(repeat.locator('[data-slot="answer-row"][data-kind="tool"]')).toHaveCount(2)
 })
+
+story("keeps reads of different files as their own rows", async ({ mount }) => {
+  const root = await mount("answer-page--reads-across-files")
+
+  await expandTurn(root).click()
+
+  const group = root.locator('[data-slot="answer-group"]').first()
+  await group.locator(":scope > button").click()
+
+  // Same tool, different targets: the steps are not identical, so each read keeps its own row.
+  const rows = group.locator(":scope > div > *")
+  await expect(rows).toHaveCount(3)
+  await expect(group).not.toContainText("×")
+})
+
+story("shows an edit as a diff instead of input and output", async ({ mount }) => {
+  const root = await mount("answer-page--edit-diff")
+
+  await expandTurn(root).click()
+
+  const row = root.locator("[data-disclosure-row]").first()
+  await row.click()
+
+  await expect(root.locator('[data-slot="answer-diff"]')).toHaveCount(1)
+  await expect(root.locator('[data-slot="answer-io-card"]')).toHaveCount(0)
+
+  // GitHub-style lines: one removal, one addition, and syntax tokens inside them.
+  const added = root.locator('[data-slot="answer-diff"] [data-line][data-line-type="change-addition"]')
+  await expect(added).toHaveCount(1)
+  await expect(added).toContainText("of every kind")
+  await expect(root.locator('[data-slot="answer-diff"] [data-line][data-line-type="change-deletion"]')).toContainText(
+    "same activity on the same target.",
+  )
+  await expect(root.locator('[data-slot="answer-diff"] [data-line] [style*="--syntax-"]')).not.toHaveCount(0)
+})
+
+story("keeps a turn open when the reader opened a step inside it", async ({ mount, page }) => {
+  await page.setViewportSize({ width: 360, height: 420 })
+  await mount("answer-page--reader-opened-step")
+  const window = page.getByTestId("answer-window")
+
+  await window.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  const running = window.locator('[data-slot="answer-running"]')
+  const top = await running.evaluate((element) => element.getBoundingClientRect().top)
+
+  // The reader scrolled into the steps, so the turn's own header is above the viewport.
+  expect(top).toBeLessThan(0)
+
+  const row = window.locator('[data-slot="answer-row"][data-kind="tool"] [data-disclosure-row]').last()
+  await row.click()
+  await expect(window.locator('[data-slot="answer-io-card"]')).toHaveCount(1)
+
+  await page.evaluate(() => {
+    ;(globalThis as unknown as { __finishAnswerTurn?: () => void }).__finishAnswerTurn?.()
+  })
+
+  // Settling the turn folds it by default, but the step the reader opened is still being read: the turn stays open.
+  const header = window.locator('[data-slot="answer-run-header"] button')
+  await expect(header).toHaveAttribute("aria-expanded", "true")
+  await expect(window.locator('[data-slot="answer-io-card"]')).toHaveCount(1)
+})

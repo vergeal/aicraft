@@ -321,8 +321,9 @@ export function createDefaultOptions<T>(style: FileDiffOptions<T, undefined>["di
 
 export const styleVariables = {
   "--diffs-font-family": "var(--font-family-mono)",
-  "--diffs-font-size": "var(--font-size-small)",
-  "--diffs-line-height": "24px",
+  // A host may scope the code ramps it embeds; the review panel keeps the app's small size by default.
+  "--diffs-font-size": "var(--diffs-code-font-size, var(--font-size-small))",
+  "--diffs-line-height": "var(--diffs-code-line-height, 24px)",
   "--diffs-tab-size": 2,
   "--diffs-font-features": "var(--font-family-mono--font-feature-settings)",
   "--diffs-header-font-family": "var(--font-family-sans)",

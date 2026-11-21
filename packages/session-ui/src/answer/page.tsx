@@ -9,6 +9,9 @@ import { Spinner } from "@opencode/ui/spinner"
 import { useI18n, type UiI18nOrdinaryKey } from "@opencode/ui/context/i18n"
 import { hasMarkdownSyntax, Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
+import { File } from "../components/file"
+import { changedFileDiff } from "../components/apply-patch-file"
+import { resolveFileDiff } from "../components/session-diff"
 import { childrenOf, projectTimeline } from "./project"
 import { toolDescription, toolError, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
@@ -440,6 +443,23 @@ export function AnswerPage(props: AnswerPageProps) {
   // decision is made once, on the frame the turn closes, so scrolling later never reopens a turn already folded.
   let lastRunning: number | undefined
 
+  // A step the reader opened inside a turn is what they are reading. It keeps the turn open when the turn settles,
+  // even with the turn's own header scrolled out of view, because folding it would take the opened step away.
+  const readerOpenedTurn = (turn: number) => {
+    const inTurn = (key: string) => snapshot().nodes.get(key)?.turn === turn
+    const groups = snapshot().groups
+    // A group's members all belong to one turn, so any member decides.
+    const inTurnGroup = (key: string) => groups.get(key)?.members.some(inTurn) ?? false
+
+    const inTurnRepeat = (key: string) =>
+      [...groups].some(([group, value]) => key.startsWith(`repeat:${group}:`) && value.members.some(inTurn))
+
+    return (
+      Object.entries(openGroups).some(([key, open]) => open === true && inTurnGroup(key)) ||
+      Object.entries(openRows).some(([key, open]) => open === true && (inTurn(key) || inTurnRepeat(key)))
+    )
+  }
+
   createEffect(() => {
     const open = running()
     const finished = lastRunning
@@ -453,7 +473,9 @@ export function AnswerPage(props: AnswerPageProps) {
     if (!key || !root) return
     const row = findRow(root, key)
 
-    if (!row || !rowInView(root, row)) return
+    if (!row) return
+
+    if (!rowInView(root, row) && !readerOpenedTurn(finished)) return
 
     setFolded(key, false)
   })
@@ -921,9 +943,16 @@ function GroupSeat(props: {
   onToggle: (next: boolean) => void
 }) {
   const i18n = useI18n()
+  const rows = useContext(RowDisclosureContext)
   const live = () => !props.group.closed
-  // A step opens itself while it runs and closes when it settles, unless the reader set it themselves.
-  const open = () => props.open ?? live()
+
+  // A step opens itself while it runs and closes when it settles, unless the reader set it themselves. A row the
+  // reader opened inside it counts too: settling the step must not fold away what they are reading.
+  const readerOpened = () =>
+    props.group.members.some((key) => rows?.open(key) === true) ||
+    props.group.items.some((item) => item.kind === "repeat" && rows?.open(item.key) === true)
+
+  const open = () => props.open ?? (live() || readerOpened())
 
   const activity = () => props.group.running ?? props.group.counts[0]?.kind ?? "thinking"
 
@@ -1568,6 +1597,33 @@ function ReasoningRow(props: {
   )
 }
 
+/** Tools whose result is a file change, so their body reads as a diff instead of raw input and output. */
+const EDIT_DIFF_TOOLS = new Set(["edit", "patch", "apply_patch"])
+
+/**
+ * The diffs a tool body shows. The recorded patch is the real file diff, with context and correct line numbers;
+ * an edit that has not recorded one yet still diffs the text it was given, so a running edit reads the same way.
+ */
+function toolDiffs(tool: Extract<NodePayload, { kind: "tool" }>["tool"]) {
+  if (!EDIT_DIFF_TOOLS.has(toolLabel(tool.name))) return []
+
+  const metadata = "metadata" in tool.state ? tool.state.metadata : undefined
+  const recorded = Array.isArray(metadata?.files) ? metadata.files.filter(changedFileDiff) : []
+
+  if (recorded.length > 0) return recorded.map((diff) => ({ file: diff.file, fileDiff: resolveFileDiff(diff) }))
+
+  const input = toolInput(tool)
+
+  if (Predicate.isString(input)) return []
+  const before = input.oldString
+  const after = input.newString
+
+  if (typeof before !== "string" || typeof after !== "string") return []
+  const file = typeof input.path === "string" ? input.path : typeof input.filePath === "string" ? input.filePath : ""
+
+  return [{ file, fileDiff: resolveFileDiff({ file, before, after }) }]
+}
+
 function ToolRow(props: {
   tool: Extract<NodePayload, { kind: "tool" }>["tool"]
   rowOpen?: boolean
@@ -1621,6 +1677,8 @@ function ToolRow(props: {
 
   const output = () => toolOutput(props.tool) ?? toolError(props.tool) ?? ""
 
+  const diffs = createMemo(() => toolDiffs(props.tool))
+
   const summary = () => {
     if (failed()) return toolError(props.tool) ?? undefined
 
@@ -1643,97 +1701,132 @@ function ToolRow(props: {
       }
       onToggle={() => props.onToggleRow?.(!expanded())}
     >
-      <div
-        data-slot="answer-io-card"
-        class="mt-1 ms-[30px] flex flex-col gap-2 rounded-[12px] px-[22px] pt-[10px] pb-[12px]"
-        style={{ background: "var(--answer-surface)" }}
-      >
-        <section class="flex flex-col gap-1">
-          <span
-            class="font-mono text-[11px] leading-[19px]"
-            style={{ color: "var(--answer-ink-tertiary)" }}
-          >
-            {i18n.t("ui.answer.io.input")}
-          </span>
-          <pre
-            class="whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
-            style={{ color: "var(--answer-ink-secondary)" }}
-          >
-            {input()}
-          </pre>
-        </section>
-        <div class="h-[0.5px] w-full bg-v2-border-border-muted" />
-        <section class="flex flex-col gap-1" data-error={failed() ? "" : undefined}>
-          <div class="flex min-w-0 items-center justify-between gap-2">
+      <Show when={!failed() && diffs().length > 0}>
+        <div
+          data-slot="answer-diff"
+          class="mt-1 ms-[30px] flex min-w-0 flex-col gap-2 overflow-hidden rounded-[12px] border-[0.5px] border-v2-border-border-muted"
+          style={{
+            "--diffs-code-font-size": "11px",
+            "--diffs-code-line-height": "19px",
+          }}
+        >
+          <For each={diffs()}>
+            {(entry) => (
+              <div data-slot="answer-diff-file" class="flex min-w-0 flex-col">
+                <Show when={diffs().length > 1}>
+                  <span
+                    class="truncate px-3 pt-[6px] font-mono text-[11px] leading-[19px]"
+                    style={{ color: "var(--answer-ink-tertiary)" }}
+                  >
+                    {entry.file}
+                  </span>
+                </Show>
+                <File
+                  mode="diff"
+                  fileDiff={entry.fileDiff}
+                  virtualize={false}
+                  diffIndicators="classic"
+                  overflow="scroll"
+                  hunkSeparators={entry.fileDiff.isPartial ? "simple" : "line-info-basic"}
+                />
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+      <Show when={failed() || diffs().length === 0}>
+        <div
+          data-slot="answer-io-card"
+          class="mt-1 ms-[30px] flex flex-col gap-2 rounded-[12px] px-[22px] pt-[10px] pb-[12px]"
+          style={{ background: "var(--answer-surface)" }}
+        >
+          <section class="flex flex-col gap-1">
             <span
               class="font-mono text-[11px] leading-[19px]"
               style={{ color: "var(--answer-ink-tertiary)" }}
             >
-              {i18n.t("ui.answer.io.output")}
+              {i18n.t("ui.answer.io.input")}
             </span>
-            <button
-              type="button"
-              data-slot="answer-copy"
-              class="shrink-0 text-[11px] leading-[19px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+            <pre
+              class="whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
               style={{ color: "var(--answer-ink-secondary)" }}
-              onClick={() => void copy(output())}
             >
-              {copied() ? i18n.t("ui.answer.copied") : i18n.t("ui.answer.copy")}
-            </button>
-          </div>
-          <pre
-            class="whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
-            style={{ color: failed() ? "var(--v2-state-fg-danger)" : "var(--answer-ink-secondary)" }}
-          >
-            {output()}
-          </pre>
-        </section>
-        <button
-          type="button"
-          data-slot="answer-inspect"
-          class="mt-1 flex h-[22px] w-fit items-center gap-1 rounded-full border-[0.5px] border-v2-border-border-base px-2 text-[11px] leading-[16px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
-          style={{ color: "var(--answer-ink-secondary)", background: "var(--v2-background-bg-base)" }}
-          onClick={(event) => {
-            const next = event.currentTarget.nextElementSibling
-
-            if (next instanceof HTMLDialogElement) next.showModal()
-          }}
-        >
-          <Icon aria-hidden="true" name="answer-search" width={12} height={12} />
-          {i18n.t("ui.answer.inspect")}
-        </button>
-        <dialog
-          data-slot="answer-inspect-dialog"
-          class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4 backdrop:bg-black/30"
-          style={{ background: "var(--v2-background-bg-base)", color: "var(--answer-ink)" }}
-          onClick={(event) => {
-            if (event.target === event.currentTarget) event.currentTarget.close()
-          }}
-        >
-          <div class="flex flex-col gap-2">
-            <span class="text-[13px] leading-[20px]">{i18n.t(TOOL_ACTIONS[actionKey(props.tool.name)])}</span>
-            <pre class="max-h-[50vh] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]">
               {input()}
-              {"\n\n"}
-              {output()}
             </pre>
-            <form method="dialog" class="flex items-center justify-end gap-3">
+          </section>
+          <div class="h-[0.5px] w-full bg-v2-border-border-muted" />
+          <section class="flex flex-col gap-1" data-error={failed() ? "" : undefined}>
+            <div class="flex min-w-0 items-center justify-between gap-2">
+              <span
+                class="font-mono text-[11px] leading-[19px]"
+                style={{ color: "var(--answer-ink-tertiary)" }}
+              >
+                {i18n.t("ui.answer.io.output")}
+              </span>
               <button
                 type="button"
                 data-slot="answer-copy"
-                class="text-[12px] leading-[20px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+                class="shrink-0 text-[11px] leading-[19px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
                 style={{ color: "var(--answer-ink-secondary)" }}
-                onClick={() => void copy(`${input()}\n\n${output()}`)}
+                onClick={() => void copy(output())}
               >
                 {copied() ? i18n.t("ui.answer.copied") : i18n.t("ui.answer.copy")}
               </button>
-              <button type="submit" class="text-[12px] leading-[20px]" style={{ color: "var(--answer-ink-secondary)" }}>
-                {i18n.t("ui.answer.inspect.close")}
-              </button>
-            </form>
-          </div>
-        </dialog>
-      </div>
+            </div>
+            <pre
+              class="whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
+              style={{ color: failed() ? "var(--v2-state-fg-danger)" : "var(--answer-ink-secondary)" }}
+            >
+              {output()}
+            </pre>
+          </section>
+          <button
+            type="button"
+            data-slot="answer-inspect"
+            class="mt-1 flex h-[22px] w-fit items-center gap-1 rounded-full border-[0.5px] border-v2-border-border-base px-2 text-[11px] leading-[16px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+            style={{ color: "var(--answer-ink-secondary)", background: "var(--v2-background-bg-base)" }}
+            onClick={(event) => {
+              const next = event.currentTarget.nextElementSibling
+
+              if (next instanceof HTMLDialogElement) next.showModal()
+            }}
+          >
+            <Icon aria-hidden="true" name="answer-search" width={12} height={12} />
+            {i18n.t("ui.answer.inspect")}
+          </button>
+          <dialog
+            data-slot="answer-inspect-dialog"
+            class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4 backdrop:bg-black/30"
+            style={{ background: "var(--v2-background-bg-base)", color: "var(--answer-ink)" }}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) event.currentTarget.close()
+            }}
+          >
+            <div class="flex flex-col gap-2">
+              <span class="text-[13px] leading-[20px]">{i18n.t(TOOL_ACTIONS[actionKey(props.tool.name)])}</span>
+              <pre class="max-h-[50vh] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]">
+                {input()}
+                {"\n\n"}
+                {output()}
+              </pre>
+              <form method="dialog" class="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  data-slot="answer-copy"
+                  class="text-[12px] leading-[20px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+                  style={{ color: "var(--answer-ink-secondary)" }}
+                  onClick={() => void copy(`${input()}\n\n${output()}`)}
+                >
+                  {copied() ? i18n.t("ui.answer.copied") : i18n.t("ui.answer.copy")}
+                </button>
+                <button type="submit" class="text-[12px] leading-[20px]" style={{ color: "var(--answer-ink-secondary)" }}>
+                  {i18n.t("ui.answer.inspect.close")}
+                </button>
+              </form>
+            </div>
+          </dialog>
+        </div>
+      </Show>
     </DisclosureRow>
   )
 }

@@ -23,7 +23,7 @@ function TitlebarStory() {
           scheduled
         </button>
       </div>
-      <ReplicaTitleBar sidebarOpen />
+      <ReplicaTitleBar sidebarOpen width={280} />
     </div>
   )
 }

@@ -49,7 +49,7 @@ export default function Layout(props: ParentProps) {
 }
 
 /**
- * Home is the new-chat page itself: the ChangHong wordmark and the composer, rendered in place instead of a
+ * Home is the new-chat page itself: the welcome header and the composer, rendered in place instead of a
  * separate welcome screen. It opens the most recent draft, or starts one when none is open.
  */
 function HomeNewChat() {
@@ -122,8 +122,8 @@ function ReplicaLayer(props: ParentProps) {
     if (platform.platform === "desktop" && platform.os) document.documentElement.dataset.os = platform.os
   })
 
-  // The traffic lights sit in the top-left corner of the sidebar header. That header starts at the window's top edge and
-  // is a fixed 32px tall, so the buttons' centre is always 16px down and needs no DOM measurement.
+  // The traffic lights sit in the window bar's left segment. That segment starts at the window's top edge and is a
+  // fixed 44px tall, so the buttons' centre is always 22px down and needs no DOM measurement.
   const mac = () => platform.platform === "desktop" && platform.os === "macos"
 
   createEffect(() => {
@@ -131,7 +131,7 @@ function ReplicaLayer(props: ParentProps) {
 
     const scale = platform.webviewZoom?.() ?? 1
 
-    void platform.setTrafficLightsPosition?.({ x: 14, y: Math.round(16 * scale - 7) })
+    void platform.setTrafficLightsPosition?.({ x: 14, y: Math.round(22 * scale - 7) })
   })
 
   // Hand the buttons back at the window's default position when the shell unmounts.
@@ -165,6 +165,9 @@ function ReplicaLayer(props: ParentProps) {
       if (draggingWidth === undefined) return
       const slot = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar-slot"]')
       if (slot) slot.style.flexBasis = showSidebar() ? `${draggingWidth}px` : "0px"
+      // The window bar's left segment shares the column's width, so it follows the same frame write.
+      const bar = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar-side"]')
+      if (bar) bar.style.flexBasis = draggingWidth ? `${draggingWidth}px` : "0px"
     })
   }
 
@@ -200,6 +203,9 @@ function ReplicaLayer(props: ParentProps) {
   // Settings ships its own category column and search, so the navigation sidebar would duplicate it.
   const showSidebar = () => !mobile() && sidebarOpen() && layout.route().type !== "settings"
   const welcome = () => layout.route().type === "home"
+  // A new chat keeps the window bar as a draggable strip only: no history controls, title or usage readout above the
+  // welcome, so the empty state starts at the brand mark instead of under a toolbar.
+  const empty = () => welcome() || layout.route().type === "draft"
   const settingsOpen = () => layout.route().type === "settings"
 
   command.register("sidebar", () => [
@@ -278,7 +284,7 @@ function ReplicaLayer(props: ParentProps) {
         "--shell-inline-inset": "0px",
         "--shell-top-inset": "0px",
         "--shell-bottom-inset": "0px",
-        "--shell-panel-radius": platform.platform === "desktop" ? "12px" : "0px",
+        "--shell-panel-radius": "0px",
       }}
     >
       {/* DEBUG guide (kept for future alignment checks): a line through the traffic lights' centre. The lights are
@@ -292,6 +298,16 @@ function ReplicaLayer(props: ParentProps) {
         />
       </Show>
       */}
+
+      {/* Settings is a full-workspace surface: it draws its own page heading, so the window bar would only push
+          it down and repeat the title one row above it. */}
+      <Show when={!settingsOpen()}>
+        <ReplicaTitleBar
+          sidebarOpen={showSidebar()}
+          width={showSidebar() ? sidebarSize() : 0}
+          empty={empty()}
+        />
+      </Show>
 
       <div data-slot="replica-shell">
         <div
@@ -319,14 +335,9 @@ function ReplicaLayer(props: ParentProps) {
         <main
           data-slot="replica-main"
           data-ui="main-workspace"
+          data-empty={empty() ? "" : undefined}
           class="relative flex min-h-0 min-w-0 flex-col"
         >
-          {/* Settings is a full-workspace surface: it draws its own page heading, so the window bar would only push
-              it down by 32px and repeat the title one row above it. */}
-          <Show when={!settingsOpen()}>
-            <ReplicaTitleBar sidebarOpen={sidebarOpen()} />
-          </Show>
-
           <Show
             when={welcome()}
             fallback={

@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>探索 · 模块设计</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="modules.css" />
+  </head>
+  <body>
+    <div class="window" id="window" data-collapse="off">
+      <header class="topbar">
+        <div class="topbar-side">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button class="icon-button" type="button" aria-label="收起侧栏">
+            <svg class="ico" aria-hidden="true"><use href="#i-collapse" /></svg>
+          </button>
+        </div>
+        <div class="topbar-main" data-note="探索也是模块页：顶栏只负责定位与计数">
+          <span class="topbar-title">探索</span>
+          <span class="mode"><strong>4</strong> 项可安装</span>
+          <span class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="搜索插件和技能">
+              <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="更多操作">
+              <svg class="ico" aria-hidden="true"><use href="#i-more" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="切换审查面板">
+              <svg class="ico" aria-hidden="true"><use href="#i-panel" /></svg>
+            </button>
+          </span>
+        </div>
+      </header>
+
+      <div class="body">
+        <aside class="sidebar" aria-label="导航">
+          <div class="brand">
+            <svg class="mark" aria-hidden="true"><use href="#i-brand" /></svg>
+            <span class="brand-name">长虹 AI</span>
+            <span class="tag">预览版</span>
+          </div>
+
+          <button class="primary-action" type="button" aria-label="新会话">
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-plus" /></svg>
+            <span>新会话</span>
+          </button>
+
+          <nav class="nav" aria-label="一级导航">
+            <button class="nav-item" type="button" aria-label="收件箱">
+              <svg class="ico" aria-hidden="true"><use href="#i-inbox" /></svg>
+              <span>收件箱</span>
+              <span class="badge">3</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="定时任务">
+              <svg class="ico" aria-hidden="true"><use href="#i-clock" /></svg>
+              <span>定时任务</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="知识库">
+              <svg class="ico" aria-hidden="true"><use href="#i-book" /></svg>
+              <span>知识库</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="探索" aria-current="page">
+              <svg class="ico" aria-hidden="true"><use href="#i-compass" /></svg>
+              <span>探索</span>
+            </button>
+          </nav>
+
+          <div class="section-head">
+            工作区
+            <span class="actions">
+              <button class="icon-button" type="button" aria-label="搜索会话">
+                <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="筛选">
+                <svg class="ico" aria-hidden="true"><use href="#i-filter" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="新建项目">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-plus" /></svg>
+              </button>
+            </span>
+          </div>
+
+          <div class="tree">
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+              <span class="label">opencode</span>
+              <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+            <div class="children">
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">主界面视觉设计评价</span>
+                <span class="when">刚刚</span>
+              </button>
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">时间线滚动位置修复</span>
+                <span class="when">2 天</span>
+              </button>
+            </div>
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+              <span class="label">长虹 OA 系统</span>
+              <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+            <div class="children">
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">oa/audit</span>
+                <span class="when">8 分钟</span>
+              </button>
+            </div>
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+              <span class="label">agents</span>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+          </div>
+
+          <button class="account" type="button" aria-label="账户与连接">
+            <span class="avatar" aria-hidden="true">长</span>
+            <span class="meta">
+              <span class="who">已连接 · 本地</span>
+              <span class="where">deepseek-flash</span>
+            </span>
+            <span class="status-dot" aria-hidden="true"></span>
+          </button>
+        </aside>
+
+        <main class="main">
+          <div class="module" data-mode="default">
+            <header class="module-head" data-note="发现型页面：页头只留刷新，搜索放在工具栏">
+              <div class="head-copy">
+                <p class="head-desc">给会话装上新的能力。安装、卸载都在卡片上完成。</p>
+              </div>
+              <div class="head-actions">
+                <div class="search">
+                  <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+                  <span>搜索插件和技能</span>
+                </div>
+                <button class="btn btn-ghost" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-refresh" /></svg>
+                  刷新
+                </button>
+              </div>
+            </header>
+
+            <div class="module-toolbar" data-note="插件/技能/已安装是范围，分类 chips 是筛选，两者不同层">
+              <div class="segmented" role="tablist" aria-label="探索范围">
+                <button type="button" role="tab" aria-selected="true">插件<span class="num">6</span></button>
+                <button type="button" role="tab" aria-selected="false">技能<span class="num">4</span></button>
+                <button type="button" role="tab" aria-selected="false">已安装<span class="num">6</span></button>
+              </div>
+              <span class="chip" data-tone="success">全部</span>
+              <span class="chip">开发工具</span>
+              <span class="chip">效率</span>
+              <span class="chip">自动化</span>
+              <span class="toolbar-meta">10 项 · 4 项可安装</span>
+            </div>
+
+            <div class="module-body">
+              <div class="ex-grid" role="list" aria-label="插件" data-note="卡片只放发现信息；安装入口在详情里完成">
+                <button class="plugin" type="button" role="listitem" aria-current="true">
+                  <span class="plugin-top">
+                    <span class="plugin-glyph" data-hue="info">GH</span>
+                    <span class="plugin-copy">
+                      <span class="plugin-name">GitHub 集成 <span class="state" aria-label="运行中"></span></span>
+                      <span class="plugin-desc">在会话里读代码、查看评论并创建合并请求。</span>
+                    </span>
+                  </span>
+                  <span class="plugin-foot">
+                    <span>GitHub</span>
+                    <span class="sep"></span>
+                    <span>开发工具</span>
+                    <span class="spacer"></span>
+                    <span class="installed-mark">
+                      <svg class="ico ico-sm" aria-hidden="true"><use href="#i-check" /></svg>
+                      已安装
+                    </span>
+                  </span>
+                </button>
+
+                <button class="plugin" type="button" role="listitem">
+                  <span class="plugin-top">
+                    <span class="plugin-glyph" data-hue="done">L</span>
+                    <span class="plugin-copy">
+                      <span class="plugin-name">Linear 同步</span>
+                      <span class="plugin-desc">把 Linear 议题带进会话，状态变化会双向同步。</span>
+                    </span>
+                  </span>
+                  <span class="plugin-foot">
+                    <span>Linear</span>
+                    <span class="sep"></span>
+                    <span>效率</span>
+                    <span class="spacer"></span>
+                    <span class="chip">安装</span>
+                  </span>
+                </button>
+
+                <button class="plugin" type="button" role="listitem">
+                  <span class="plugin-top">
+                    <span class="plugin-glyph" data-hue="success">N</span>
+                    <span class="plugin-copy">
+                      <span class="plugin-name">Notion 导出</span>
+                      <span class="plugin-desc">把一段会话的结论整理成 Notion 页面。</span>
+                    </span>
+                  </span>
+                  <span class="plugin-foot">
+                    <span>Notion</span>
+                    <span class="sep"></span>
+                    <span>效率</span>
+                    <span class="spacer"></span>
+                    <span class="chip">安装</span>
+                  </span>
+                </button>
+
+                <button class="plugin" type="button" role="listitem">
+                  <span class="plugin-top">
+                    <span class="plugin-glyph">&gt;_</span>
+                    <span class="plugin-copy">
+                      <span class="plugin-name">本地终端 <span class="state" data-tone="muted" aria-label="已停用"></span></span>
+                      <span class="plugin-desc">在项目目录里执行命令，并把输出回传给会话。</span>
+                    </span>
+                  </span>
+                  <span class="plugin-foot">
+                    <span>内置</span>
+                    <span class="sep"></span>
+                    <span>开发工具</span>
+                    <span class="spacer"></span>
+                    <span class="installed-mark">已安装</span>
+                  </span>
+                </button>
+
+                <button class="plugin" type="button" role="listitem">
+                  <span class="plugin-top">
+                    <span class="plugin-glyph" data-hue="info">S</span>
+                    <span class="plugin-copy">
+                      <span class="plugin-name">Slack 通知</span>
+                      <span class="plugin-desc">任务完成或失败时，把摘要发到指定频道。</span>
+                    </span>
+                  </span>
+                  <span class="plugin-foot">
+                    <span>Slack</span>
+                    <span class="sep"></span>
+                    <span>自动化</span>
+                    <span class="spacer"></span>
+                    <span class="chip">安装</span>
+                  </span>
+                </button>
+
+                <button class="plugin" type="button" role="listitem">
+                  <span class="plugin-top">
+                    <span class="plugin-glyph" data-hue="done">DB</span>
+                    <span class="plugin-copy">
+                      <span class="plugin-name">数据库浏览器</span>
+                      <span class="plugin-desc">只读查询达梦、MySQL 与 PostgreSQL，不需要客户端。</span>
+                    </span>
+                  </span>
+                  <span class="plugin-foot">
+                    <span>社区</span>
+                    <span class="sep"></span>
+                    <span>开发工具</span>
+                    <span class="spacer"></span>
+                    <span class="chip">安装</span>
+                  </span>
+                </button>
+              </div>
+
+              <aside class="ex-detail" aria-label="插件详情" data-note="详情面板固定 360；安装/卸载都在这里收口">
+                <div class="detail-scroll">
+                  <div class="ex-hero">
+                    <span class="plugin-glyph" data-hue="info">GH</span>
+                    <span class="copy">
+                      <h2 class="detail-title">GitHub 集成</h2>
+                      <span class="author">作者 GitHub · 开发工具</span>
+                    </span>
+                  </div>
+                  <p class="detail-sub">在会话里读代码、查看评论并创建合并请求。安装后，模型会按需调用它提供的工具。</p>
+
+                  <div class="state-row">
+                    <span class="dot"></span>
+                    运行中
+                    <span class="spacer"></span>
+                    <span class="meta">已就绪</span>
+                  </div>
+
+                  <section class="detail-section">
+                    <h3>功能</h3>
+                    <div class="feature-list">
+                      <span class="feature">
+                        <svg class="ico" aria-hidden="true"><use href="#i-puzzle" /></svg>
+                        MCP 服务器
+                        <span class="count">1</span>
+                      </span>
+                      <span class="feature">
+                        <svg class="ico" aria-hidden="true"><use href="#i-terminal" /></svg>
+                        工具
+                        <span class="count">3</span>
+                      </span>
+                      <span class="feature">
+                        <svg class="ico" aria-hidden="true"><use href="#i-sparkle" /></svg>
+                        技能
+                        <span class="count">2</span>
+                      </span>
+                      <span class="feature">
+                        <svg class="ico" aria-hidden="true"><use href="#i-panel" /></svg>
+                        图形界面
+                        <span class="count">—</span>
+                      </span>
+                    </div>
+                  </section>
+
+                  <section class="detail-section">
+                    <h3>版本</h3>
+                    <div class="feature-list">
+                      <span class="feature">当前版本<span class="count">2.4.0</span></span>
+                      <span class="feature">来源<span class="count">包</span></span>
+                      <span class="feature">运行环境<span class="count">已就绪</span></span>
+                    </div>
+                  </section>
+                </div>
+                <footer class="detail-footer">
+                  <button class="btn btn-danger" type="button">卸载</button>
+                  <span class="spacer"></span>
+                  <button class="btn btn-ghost" type="button">切换版本</button>
+                </footer>
+              </aside>
+            </div>
+
+            <div class="sheet" aria-hidden="true">
+              <div class="sheet-card" role="dialog" aria-modal="true" aria-label="安装插件">
+                <h2>安装插件</h2>
+                <p>填入插件名称，点一下就能装好。安装完成后会出现在「已安装」里。</p>
+                <div class="field">
+                  <label for="plugin-name">插件名称或链接</label>
+                  <div class="input" id="plugin-name">@linear/mcp</div>
+                </div>
+                <div class="callout" data-tone="info">
+                  <svg class="ico ico-sm" aria-hidden="true"><use href="#i-info" /></svg>
+                  安装时会从本机探索目录取包，解包到 ~/.opencode/ocplugins。
+                </div>
+                <div class="actions">
+                  <button class="btn btn-ghost" type="button">取消</button>
+                  <span class="spacer"></span>
+                  <button class="btn btn-primary" type="button">安装</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="empty">
+              <span class="empty-glyph"><svg class="ico" aria-hidden="true"><use href="#i-compass" /></svg></span>
+              <h2>暂无可安装的插件</h2>
+              <p>有新的插件时会出现在这里。也可以手动填写包名安装。</p>
+              <div class="actions">
+                <button class="btn btn-primary" type="button">安装插件</button>
+                <button class="btn btn-ghost" type="button">刷新</button>
+              </div>
+              <span class="muted">安装会从本机探索目录取包，解包到 ~/.opencode/ocplugins。</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="demo-bar">
+      <span class="hint">
+        探索 · 范围 / 分类 / 卡片 / 详情 / 安装 · <kbd>A</kbd> 标注 · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 切态
+      </span>
+      <div class="segmented" role="tablist" aria-label="切换状态">
+        <button type="button" role="tab" aria-selected="true" data-mode-button="default">默认</button>
+        <button type="button" role="tab" aria-selected="false" data-mode-button="empty">空态</button>
+        <button type="button" role="tab" aria-selected="false" data-mode-button="interact">交互态</button>
+      </div>
+      <button class="btn btn-ghost" type="button" data-collapse-button aria-pressed="false">折叠态</button>
+      <button class="btn btn-ghost" type="button" data-annotate-button aria-pressed="false">标注</button>
+    </div>
+
+    <script src="modules.js"></script>
+  </body>
+</html>

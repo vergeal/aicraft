@@ -32,6 +32,12 @@ export type ClientConnectionOptions = {
 const connectTimeout = 2_000
 const reconnectDelay = 1_000
 const connectionHistoryLimit = 50
+// A publication batch may not hold the main thread longer than this. A burst that overruns it keeps the rest of
+// its events in `pending` and continues on the next task, so streamed events degrade into short frames instead
+// of one multi-second freeze.
+const flushBudget = 8
+// Often enough to stop near the budget, rare enough to stay off the hot path.
+const budgetCheckInterval = 8
 export const defaultIdleTimeout = 45_000
 // Longer than one server keepalive interval: a stream that is silent this long when the page
 // returns to the foreground is probably half-open after the device slept.
@@ -65,12 +71,33 @@ export function createClientConnection(initialApi: OpenCodeClient, options: Clie
   function publish(event: OpenCodeEvent) {
     pending.push(event)
     if (flushTimer) return
-    flushTimer = setTimeout(() => {
-      flushTimer = undefined
-      const events = pending
-      pending = []
-      batch(() => events.forEach(options.onEvent))
-    }, options.flushInterval ?? 10)
+    flushTimer = setTimeout(flush, options.flushInterval ?? 10)
+  }
+
+  function flush() {
+    flushTimer = undefined
+    const started = performance.now()
+    // Events published while this batch runs belong to the next one, so the limit is fixed up front.
+    const limit = pending.length
+    let consumed = 0
+
+    try {
+      batch(() => {
+        while (consumed < limit) {
+          options.onEvent(pending[consumed])
+          consumed += 1
+
+          if (consumed % budgetCheckInterval === 0 && performance.now() - started >= flushBudget) break
+        }
+      })
+    } finally {
+      if (consumed > 0) pending.splice(0, consumed)
+    }
+
+    if (pending.length === 0) return
+    // Drop the timer a publication scheduled for the normal interval: the backlog should continue now.
+    if (flushTimer) clearTimeout(flushTimer)
+    flushTimer = setTimeout(flush, 0)
   }
 
   async function connect(signal: AbortSignal, attempt: number) {

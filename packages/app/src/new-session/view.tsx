@@ -27,12 +27,8 @@ import { useProviders } from "@/providers/catalog/providers"
 import { NEW_SESSION_CONTENT_WIDTH } from "@/new-session/layout"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { Persistence } from "@/runtime/persistence/schema"
-import { useSettings } from "@/settings/model"
 import type { NewSessionWorkspaceController } from "./workspace/controller"
 import { NewSessionBranch } from "./workspace/selector"
-import { NewSessionBrickBreaker } from "./brick-breaker"
-import { NewSessionPinBoard, type PinBoardHandle } from "./pin-board"
-import { NewSessionWordmark, type LodgerBall } from "./wordmark"
 
 const providerTipDismissalDuration = 30 * 24 * 60 * 60 * 1000
 
@@ -43,17 +39,6 @@ export const WorkspaceOnboardingSchema = Persistence.struct({
 export const ProviderTipSchema = Persistence.struct({
   dismissedAt: Schema.Finite,
 })
-
-type WordmarkState = {
-  box?: HTMLDivElement
-  mode: "flat" | "open" | "closing"
-  game: boolean
-}
-
-type BrickBreakerHandles = {
-  board?: PinBoardHandle
-  ball?: LodgerBall
-}
 
 export function NewSessionView(props: {
   composer: ComposerModel
@@ -67,10 +52,7 @@ export function NewSessionView(props: {
     { used: false },
   )
 
-  const settings = useSettings()
   const language = useLanguage()
-
-  const [wordmark, setWordmark] = createStore<WordmarkState>({ mode: "flat", game: false })
 
   const location = (project?: PromptProject) =>
     props.location({
@@ -80,14 +62,9 @@ export function NewSessionView(props: {
       },
     })
 
-  // Imperative handles for the brick breaker; they are not reactive state.
-  const handles: BrickBreakerHandles = {}
-  let panel!: HTMLDivElement
-
   return (
     <div class="@container relative flex flex-col min-h-0 h-full flex-1">
       <div
-        ref={panel}
         data-component="new-session"
         class="relative isolate flex-1 min-h-0 overflow-hidden rounded-[var(--shell-panel-radius,10px)] bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)]"
       >
@@ -97,93 +74,86 @@ export function NewSessionView(props: {
         />
         <div class="absolute inset-0 flex items-center justify-center px-6">
           <div class={NEW_SESSION_CONTENT_WIDTH}>
-            <NewSessionWordmark
-              ref={(box) => setWordmark("box", box)}
-              sound={settings.sounds.interfaceEnabled}
-              onOpen={() => setWordmark("mode", "open")}
-              onClose={() => setWordmark("mode", "closing")}
-              onFlat={() => setWordmark("mode", "flat")}
-              onPlay={(ball) => {
-                handles.ball = ball
-                setWordmark("game", true)
-              }}
-            />
-            <div class="mt-8 flex flex-col gap-3">
-              <div data-slot="new-session-composer" class="flex flex-col gap-1">
-                <div class="relative z-10">
-                  <Composer model={props.composer} />
-                </div>
-                <Show when={props.project.selected()}>
-                  {(project) => (
-                    <NewSessionLocation
-                      project={project()}
-                      workspace={props.workspace.bar.visible() ? props.workspace.selection.value() : "main"}
-                      root={props.workspace.project.root()}
-                      branch={<NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />}
-                      onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
-                      onClick={() => location()}
-                      onWorktree={project().id && project().vcs === "git" ? () => location(project()) : undefined}
-                    />
-                  )}
-                </Show>
+            {/* The welcome header is the product itself: mark, name and the preview tag over the one-line subtitle.
+                It replaces the old wordmark banner so the empty state opens like the reference instead of on a logo. */}
+            <div data-slot="new-session-welcome" class="mb-2 flex items-center gap-3 ps-2">
+              <img
+                src="/assets/product-mark.png"
+                alt=""
+                aria-hidden="true"
+                width="28"
+                height="28"
+                class="size-7 shrink-0"
+              />
+              <span class="min-w-0 truncate text-[24px] leading-8 font-[600] tracking-[-0.02em] text-[var(--v2-text-text-base)]">
+                {language.t("replica.rail.product")}
+              </span>
+              <span class="shrink-0 rounded-full bg-[var(--v2-background-bg-layer-02)] px-2 text-[12px] leading-[18px] text-[var(--v2-text-text-muted)] shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]">
+                {language.t("replica.rail.preview")}
+              </span>
+            </div>
+            <p class="mb-8 ps-2 text-[14px] leading-[22px] text-[var(--v2-text-text-muted)]">
+              {language.t("session.new.welcome.subtitle")}
+            </p>
+            <div class="flex flex-col gap-3">
+              <div data-slot="new-session-composer" class="relative z-10">
+                {/* The card carries its own context row, like the reference: project, worktree/branch and the
+                    resolved path sit inside the frame instead of stacking underneath it. */}
+                <Composer
+                  model={props.composer}
+                  context={
+                    <div class="flex flex-col gap-1.5 px-2 pt-2 pb-1">
+                      <Show when={props.project.selected()}>
+                        {(project) => (
+                          <NewSessionLocation
+                            project={project()}
+                            workspace={props.workspace.bar.visible() ? props.workspace.selection.value() : "main"}
+                            root={props.workspace.project.root()}
+                            branch={<NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />}
+                            onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
+                            onClick={() => location()}
+                            onWorktree={project().id && project().vcs === "git" ? () => location(project()) : undefined}
+                          />
+                        )}
+                      </Show>
+                      <Show when={props.project.projects().length > 0}>
+                        <div
+                          data-slot="new-session-recent-projects"
+                          class="flex flex-wrap items-center gap-1.5 px-1"
+                          role="group"
+                          aria-label={language.t("session.new.project.recent")}
+                        >
+                          <For each={props.project.projects().slice(0, 6)}>
+                            {(project) => (
+                              <button
+                                type="button"
+                                data-action="prompt-project-card"
+                                aria-pressed={props.project.isSelected(project)}
+                                class="flex h-6 min-w-0 items-center gap-1.5 rounded-md border-[0.5px] border-v2-border-border-base px-2 text-[12px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px] text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none aria-[pressed=true]:text-v2-text-text-base"
+                                onClick={() => {
+                                  props.project.select(project)
+                                  props.composer.restoreFocus()
+                                }}
+                              >
+                                <ProjectFolder class="shrink-0" />
+                                <span class="min-w-0 truncate">{displayName(project)}</span>
+                              </button>
+                            )}
+                          </For>
+                        </div>
+                      </Show>
+                      <Show when={props.project.empty()}>
+                        <div class="px-1">
+                          <PromptProjectAddButton controller={props.project} />
+                        </div>
+                      </Show>
+                    </div>
+                  }
+                />
               </div>
-              <Show when={props.project.projects().length > 0}>
-                <div
-                  data-slot="new-session-recent-projects"
-                  class="flex flex-wrap items-center gap-2"
-                  role="group"
-                  aria-label={language.t("session.new.project.recent")}
-                >
-                  <For each={props.project.projects().slice(0, 6)}>
-                    {(project) => (
-                      <button
-                        type="button"
-                        data-action="prompt-project-card"
-                        aria-pressed={props.project.isSelected(project)}
-                        class="flex h-7 min-w-0 items-center gap-2 rounded-lg border-[0.5px] border-v2-border-border-base px-2 text-[13px] font-[400] leading-[var(--line-height-base)] tracking-[-0.04px] text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none aria-[pressed=true]:text-v2-text-text-base"
-                        onClick={() => {
-                          props.project.select(project)
-                          props.composer.restoreFocus()
-                        }}
-                      >
-                        <ProjectFolder class="shrink-0" />
-                        <span class="min-w-0 truncate">{displayName(project)}</span>
-                      </button>
-                    )}
-                  </For>
-                </div>
-              </Show>
-              <Show when={props.project.empty()}>
-                <PromptProjectAddButton controller={props.project} />
-              </Show>
             </div>
           </div>
         </div>
-        <Show when={wordmark.mode !== "flat" && wordmark.box}>
-          {(logo) => (
-            <NewSessionPinBoard
-              logo={logo()}
-              sound={settings.sounds.interfaceEnabled}
-              entrance="chain"
-              closing={wordmark.mode === "closing"}
-              ref={(board) => (handles.board = board)}
-            />
-          )}
-        </Show>
-        <Show when={wordmark.game && handles.board && handles.ball && { board: handles.board, ball: handles.ball }}>
-          {(game) => (
-            <NewSessionBrickBreaker
-              panel={panel}
-              board={game().board}
-              ball={game().ball}
-              sound={settings.sounds.interfaceEnabled}
-              onDone={() => {
-                setWordmark("game", false)
-                props.composer.restoreFocus()
-              }}
-            />
-          )}
-        </Show>
         <NewSessionTips selection={props.composer.model.selection} onDone={props.composer.restoreFocus} />
       </div>
     </div>
@@ -344,8 +314,8 @@ function NewSessionLocation(props: {
   const fitted = createMemo(() => fitPath(path() ?? "", layout.width, layout.font))
 
   return (
-    <div class="relative flex min-h-9 min-w-0 items-center gap-3 ps-2 pe-2 text-[13px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px]">
-      <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-0 gap-y-1 py-1.5">
+    <div class="relative flex min-h-7 min-w-0 items-center gap-3 text-[12px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px]">
+      <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-0 gap-y-1">
         <div class="flex min-w-0 max-w-full items-center">
           <Tooltip
             placement="top"

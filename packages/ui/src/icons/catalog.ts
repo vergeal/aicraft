@@ -410,6 +410,22 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M7 13.75H3.5C2.4 13.75 1.5 12.85 1.5 11.75V4.25C1.5 3.15 2.4 2.25 3.5 2.25H7.2C7.6 2.25 7.9 2.4 8.2 2.65L9.8 4.25H12.5C13.6 4.25 14.5 5.15 14.5 6.25V7.25"/><path d="M11 9.75V13.75M9 11.75H13"/></g>`,
   },
+  // The workspace head's filter: the reference's funnel on the 24 grid. An icon rendered at 16px maps its 2px
+  // stroke onto the same 1.33px weight as `outline16`, so the head's three marks stay one family.
+  filter: {
+    viewBox: "0 0 24 24",
+    body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54Z"/></g>`,
+  },
+  "folder-plus": {
+    viewBox: "0 0 24 24",
+    body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6M9 13h6"/></g>`,
+  },
+  // A project row's pin: the reference's pushpin on the 24 grid. Drawn here at 24 units so its proportions match
+  // the reference exactly; an icon rendered at 16px maps the 2px stroke to the same 1.33px weight as `outline16`.
+  pin: {
+    viewBox: "0 0 24 24",
+    body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1Z"/></g>`,
+  },
   "file-tree": {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M2.5 3V13.5M2.5 6H7.5M2.5 10.5H7.5"/><path d="M10 4.5H13C13.55 4.5 14 4.95 14 5.5V6.5C14 7.05 13.55 7.5 13 7.5H10C9.45 7.5 9 7.05 9 6.5V5.5C9 4.95 9.45 4.5 10 4.5Z"/><path d="M10 9H13C13.55 9 14 9.45 14 10V11C14 11.55 13.55 12 13 12H10C9.45 12 9 11.55 9 11V10C9 9.45 9.45 9 10 9Z"/></g>`,

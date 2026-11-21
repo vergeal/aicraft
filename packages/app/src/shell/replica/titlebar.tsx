@@ -1,10 +1,7 @@
-import { createEffect, createMemo, onCleanup, Show } from "solid-js"
+import { createEffect, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { lastAssistantWithUsage } from "@opencode/client/solid"
-import { createCNY, flashCostBreakdown } from "@opencode/gui-plugins/context/cost"
 import { Icon } from "@opencode/ui/icon"
-import { ProgressCircle } from "@opencode/ui/progress-circle"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { useLanguage } from "@/runtime/i18n/language"
 import { base64Encode } from "@opencode/util/encode"
@@ -24,10 +21,11 @@ const BUTTON =
   "flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)] disabled:opacity-40 disabled:pointer-events-none"
 
 /**
- * The window bar, split at the sidebar boundary. The left half owns the traffic lights and navigation
- * controls; the right half shows the open conversation and the window actions.
+ * The window bar spans the whole window: its left segment is the navigation column's own head and shares the column's
+ * width and surface, and its right segment heads the workspace. Collapsed, the left segment gives its width back and
+ * the way to reopen the column moves into the workspace bar.
  */
-export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
+export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; empty?: boolean }) {
   const language = useLanguage()
   const layout = useLayout()
   const global = useGlobal()
@@ -64,8 +62,37 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
     return session?.title
   }
 
-  const cny = createMemo(() => createCNY(language.locale())) // The ring, the token count and the spend are one control: clicking it opens the built-in context panel next
-  // to the conversation, the same panel the plugin's own indicator opens.
+  /** The agent the conversation runs on, named the way the reference names its default mode. */
+  const mode = () => {
+    const route = layout.route()
+
+    if (route.type !== "session") return language.t("replica.mode.standard")
+    const agent = global.serverCtx(route.server)?.data.session.get(route.sessionId)?.agent
+
+    return !agent || agent === "build" ? language.t("replica.mode.standard") : agent
+  }
+
+  /** The open conversation's review panel, the side region the layout opened for this tab. */
+  const reviewTab = () => {
+    const route = layout.route()
+
+    if (route.type !== "session") return
+    return findSessionTab(tabs.store, route.server, route.sessionId)
+  }
+
+  const reviewOpen = () => {
+    const tab = reviewTab()
+
+    return tab ? tabs.region(tab, "side") : false
+  }
+
+  const toggleReview = () => {
+    const tab = reviewTab()
+
+    if (!tab) return
+    tabs.setRegion(tab, "side", !tabs.region(tab, "side"))
+  }
+
   const openContext = () => {
     const route = layout.route()
 
@@ -170,60 +197,39 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
     onCleanup(cleanup)
   })
 
-  // Shown beside the ring the way the reference reads: 15万 in Chinese, 150K in English.
-  const compact = createMemo(
-    () => new Intl.NumberFormat(language.locale(), { notation: "compact", maximumFractionDigits: 1 }),
-  )
-
-  // Same accounting as the context panel: context after the last compaction, spend across the session family.
-  const usage = () => {
-    const route = layout.route()
-
-    if (route.type !== "session") return
-    const ctx = global.serverCtx(route.server)
-    const session = ctx?.data.session.get(route.sessionId)
-
-    if (!ctx || !session) return
-    const message = lastAssistantWithUsage(ctx.data.session.message.list(session.id), session.revert?.messageID)
-
-    if (!message) return
-    const directory = session.location.directory
-    const model = ctx.data.location.model
-      .list(directory ? { directory } : undefined)
-      ?.findLast(
-        (item) =>
-          item.providerID === message.model.providerID && item.id === message.model.id && item.status !== "deprecated",
-      )
-    const tokens =
-      message.tokens.input +
-      message.tokens.output +
-      message.tokens.reasoning +
-      message.tokens.cache.read +
-      message.tokens.cache.write
-    const family = ctx.data.session.family(session.id)
-    const spend = flashCostBreakdown(
-      session.parentID
-        ? [session.tokens]
-        : (family.length ? family : [session.id]).flatMap((id) => ctx.data.session.get(id)?.tokens ?? []),
-    )
-
-    return {
-      tokens,
-      cost: spend.total,
-      usage: model?.limit.context ? Math.round((tokens / model.limit.context) * 100) : 0,
-    }
-  }
-
   return (
-    <header data-slot="replica-titlebar" data-ui="content-topbar">
-      {/* Collapsed, the sidebar's own header is gone, so the topbar offers the way back in and the menu bar that
-          otherwise sits beside it. Opened, the sidebar header carries both and this row starts at the workspace. */}
-      <Show when={!props.sidebarOpen}>
-        <SidebarToggle />
-        <WindowsMenuBar />
-      </Show>
+    <header data-slot="replica-titlebar" data-ui="content-topbar" data-empty={props.empty ? "" : undefined}>
+      {/* The navigation column's own head. It carries the column's width and surface so the window bar and the
+          column below read as one piece of chrome, and the collapse control sits at its trailing edge. */}
+      <div
+        data-slot="replica-titlebar-side"
+        data-ui="titlebar-side"
+        data-collapsed={props.sidebarOpen ? undefined : ""}
+        style={{ "flex-basis": props.sidebarOpen ? `${props.width}px` : "0px" }}
+      >
+        <Show when={props.sidebarOpen}>
+          <SidebarToggle />
+          <WindowsMenuBar />
+        </Show>
+      </div>
 
-      <div data-slot="replica-titlebar-nav" data-ui="titlebar-nav" class="flex shrink-0 items-center gap-0.5">
+      <div data-slot="replica-titlebar-main" data-ui="titlebar-main">
+        {/* Collapsed, the column's head is gone, so the workspace bar offers the way back in and the menu bar that
+            otherwise sits beside it. Kept in its own group so the empty state can hide the rest of the bar while
+            the way back to the column stays available. */}
+        <Show when={!props.sidebarOpen}>
+          <div data-slot="replica-titlebar-collapsed" class="flex shrink-0 items-center gap-3">
+            <SidebarToggle />
+            <WindowsMenuBar />
+          </div>
+        </Show>
+
+        <div
+          data-slot="replica-titlebar-nav"
+          data-ui="titlebar-nav"
+          data-session-only
+          class="flex shrink-0 items-center gap-0.5"
+        >
         <button
           type="button"
           data-replica-control
@@ -246,11 +252,10 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
         </button>
       </div>
 
-      <div data-slot="replica-titlebar-main" data-ui="titlebar-main">
-        <span class="flex min-w-0 flex-1 items-center gap-2.5">
+        <span data-session-only class="flex min-w-0 flex-1 items-center gap-2.5">
           <span
             ref={titleElement}
-            class="min-w-0 flex-1 truncate text-[13px] leading-[17px] font-medium text-[var(--color-text-main)] outline-none"
+            class="min-w-0 truncate text-[14px] leading-5 font-[500] text-[var(--color-text-main)] outline-none"
             classList={{ "cursor-text select-text": titleState.editing }}
             contenteditable={titleState.editing ? "plaintext-only" : undefined}
             data-ui="titlebar-title"
@@ -277,55 +282,59 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean }) {
               void commitRename(true)
             }}
           />
+          <span
+            data-ui="titlebar-mode"
+            class="flex h-[22px] shrink-0 items-center gap-1.5 rounded-full bg-[var(--v2-background-bg-layer-02)] px-2 text-[12px] leading-4 whitespace-nowrap text-[var(--color-text-secondary)] shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]"
+          >
+            <Icon name="outline-sliders" size="small" class="shrink-0 text-[var(--color-icon-secondary)]" />
+            <span class="max-w-[160px] truncate">{mode()}</span>
+          </span>
         </span>
 
-        <div class="ms-auto flex shrink-0 items-center gap-1">
-          <Show when={usage()}>
-            {(value) => (
-              <Tooltip
-                placement="bottom"
-                value={
-                  <div class="flex flex-col gap-0.5 text-start">
-                    <span>
-                      {language.t("replica.context.tokens")}: {value().tokens.toLocaleString(language.locale())}
-                    </span>
-                    <span>
-                      {language.t("replica.context.cost")}: {cny()(value().cost)}
-                    </span>
-                    <span>
-                      {language.t("replica.context.usage")}: {value().usage}%
-                    </span>
-                  </div>
-                }
+        <div class="ms-auto flex shrink-0 items-center gap-2">
+          <Show when={reviewTab()}>
+            <Tooltip placement="bottom" value={language.t("command.review.toggle")}>
+              <button
+                type="button"
+                data-session-only
+                data-replica-control
+                data-ui="titlebar-review"
+                data-slot="session-review-toggle"
+                class={BUTTON}
+                aria-label={language.t("command.review.toggle")}
+                aria-expanded={reviewOpen()}
+                aria-controls="review-panel"
+                onClick={toggleReview}
               >
-                <button
-                  type="button"
-                  data-ui="titlebar-context"
-                  data-replica-control
-                  aria-label={language.t("replica.context.open")}
-                  class="flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-[12px] leading-4 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-selected)] hover:text-[var(--color-text-main)] active:bg-[var(--color-selected)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-border)]"
-                  onClick={openContext}
-                >
-                  <ProgressCircle
-                    data-ui="titlebar-context-progress"
-                    appearance="indicator"
-                    size={14}
-                    strokeWidth={2}
-                    percentage={value().usage}
-                    style={{
-                      "--progress-circle-background": "var(--color-border)",
-                      "--progress-circle-progress": "var(--color-icon-secondary)",
-                    }}
-                  />
-                  <span data-ui="titlebar-context-tokens" class="shrink-0 tabular-nums">
-                    {compact().format(value().tokens)}
-                  </span>
-                  <span class="shrink-0 tabular-nums text-[var(--color-text-tertiary)]">{cny()(value().cost)}</span>
-                </button>
-              </Tooltip>
-            )}
+                <Icon name={reviewOpen() ? "layout-right-full" : "layout-right"} size="small" />
+              </button>
+            </Tooltip>
           </Show>
-          <Show when={import.meta.env.DEV}>
+          <Tooltip placement="bottom" value={language.t("replica.titlebar.more")}>
+            <button
+              type="button"
+              data-session-only
+              data-replica-control
+              class={BUTTON}
+              aria-label={language.t("replica.titlebar.more")}
+              onClick={() => command.trigger("command.palette")}
+            >
+              <Icon name="outline-dots" size="small" />
+            </button>
+          </Tooltip>
+          <Tooltip placement="bottom" value={language.t("replica.titlebar.panel")}>
+            <button
+              type="button"
+              data-replica-control
+              data-ui="titlebar-panel"
+              class={BUTTON}
+              aria-label={language.t("replica.titlebar.panel")}
+              onClick={openContext}
+            >
+              <Icon name="window-analytics" size="small" />
+            </button>
+          </Tooltip>
+          <Show when={import.meta.env.DEV && !props.empty}>
             <PerfMonitor />
           </Show>
         </div>

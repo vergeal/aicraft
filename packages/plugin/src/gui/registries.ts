@@ -267,6 +267,13 @@ export interface Panel {
   /** Asks for the wider session minimum while the side region is open. Reactive. */
   readonly wide?: boolean
   /**
+   * Whether the side region takes the whole content area while it shows one of this panel's tabs, instead of sharing
+   * the row with the conversation. A full panel reads as its own screen: the conversation beside it is hidden, the
+   * region's card edge is dropped, and the panel's strip spans the top of the content area. Reactive; defaults to
+   * false.
+   */
+  readonly full?: boolean
+  /**
    * Gives the panel a side region width of its own, for content that wants less room or more than other tabs. While the
    * side pane shows one of the panel's tabs, the region takes the width the user last dragged it to on this panel,
    * app-wide, else this one; other tabs keep the conversation's width. The host keeps the conversation at its minimum

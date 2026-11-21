@@ -55,7 +55,7 @@ test("the content beside a panel follows the panel's edge on every frame of a to
     .locator("visible=true")
     .first()
 
-  const review = page.locator('[data-slot="session-review-toggle"] button')
+  const review = page.locator('[data-slot="session-review-toggle"]')
 
   const runs = [
     { toggle: sidebar, before: '[data-slot="vertical-tabs-mount"]', after: "main", gap: 0 },

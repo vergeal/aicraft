@@ -416,6 +416,92 @@ export const RepeatedEdits = {
   ),
 }
 
+const repeatedReads: SessionMessageInfo[] = [
+  { id: "msg_user_reads", type: "user", text: "分别读这几个文件。", time: { created: TIME } },
+  assistant(
+    "msg_reads",
+    [
+      tool("tool_read_a", "read", { filePath: "packages/session-ui/src/answer/page.tsx" }, "completed"),
+      tool("tool_read_b", "read", { filePath: "packages/session-ui/src/answer/project.ts" }, "completed"),
+      tool("tool_read_c", "read", { filePath: "packages/session-ui/src/answer/tool.ts" }, "completed"),
+      { type: "text", text: "三个文件都看过了。" },
+    ],
+    TIME + 1_000,
+    TIME + 9_000,
+  ),
+  idle("msg_idle_reads", TIME + 9_500),
+]
+
+export const ReadsAcrossFiles = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => repeatedReads} />
+    </div>
+  ),
+}
+
+// The recorded patch is what an edit step expands into: a GitHub-style diff instead of raw input and output.
+const editPatch =
+  "diff --git a/packages/session-ui/src/answer/project.ts b/packages/session-ui/src/answer/project.ts\n" +
+  "index 3a03f407..b2f0d1c2 100644\n" +
+  "--- a/packages/session-ui/src/answer/project.ts\n" +
+  "+++ b/packages/session-ui/src/answer/project.ts\n" +
+  "@@ -548,5 +548,5 @@ function summarizeGroup(\n" +
+  " /**\n" +
+  "- * Two steps fold together only when they repeat the same activity on the same target.\n" +
+  "+ * Two steps fold together only when they repeat the same activity on the same target, of every kind.\n" +
+  "  */\n" +
+  " function repeatSignature(node: TimelineNode) {\n" +
+  "   if (node.payload.kind === \"tool\") return `${toolActivity(node.payload.tool.name)}|${toolSummary(node.payload.tool)}`\n"
+
+const editedFile: SessionMessageInfo[] = [
+  { id: "msg_user_edit_diff", type: "user", text: "把折叠条件的注释写清楚。", time: { created: TIME } },
+  assistant(
+    "msg_edit_diff",
+    [
+      {
+        type: "tool",
+        id: "tool_edit_diff",
+        name: "edit",
+        state: {
+          status: "completed",
+          input: {
+            path: "packages/session-ui/src/answer/project.ts",
+            oldString: "* Two steps fold together only when they repeat the same activity on the same target.",
+            newString:
+              "* Two steps fold together only when they repeat the same activity on the same target, of every kind.",
+          },
+          content: [{ type: "text", text: "Updated packages/session-ui/src/answer/project.ts" }],
+          metadata: {
+            files: [
+              {
+                file: "packages/session-ui/src/answer/project.ts",
+                patch: editPatch,
+                additions: 1,
+                deletions: 1,
+                status: "modified",
+              },
+            ],
+          },
+        },
+        time: { created: TIME, completed: TIME + 1_000 },
+      },
+      { type: "text", text: "注释已经说明所有类型都按同类同目标折叠。" },
+    ],
+    TIME + 500,
+    TIME + 2_000,
+  ),
+  idle("msg_idle_edit_diff", TIME + 2_500),
+]
+
+export const EditDiff = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => editedFile} />
+    </div>
+  ),
+}
+
 export const Compact = {
   render: () => (
     <div class="h-dvh">
@@ -526,6 +612,39 @@ export const WindowedRestoreUnreachable = {
           following={() => false}
           onPositionChange={(position) => positions.push(position)}
         />
+      </div>
+    )
+  },
+}
+
+// A long running turn whose steps the reader can open while the turn is still working. Finishing the turn must not fold
+// the step the reader opened, even with the turn's header scrolled out of view.
+const readingSteps: SessionMessageInfo[] = [
+  { id: "msg_user_reading", type: "user", text: "把 24 个文件都读一遍。", time: { created: TIME } },
+  assistant(
+    "msg_reading",
+    Array.from({ length: 24 }, (_, index) =>
+      tool(`tool_reading_${index}`, "read", { filePath: `packages/file-${index}.ts` }, "completed"),
+    ),
+    TIME + 1_000,
+  ),
+]
+
+const readingFinished: SessionMessageInfo[] = [
+  ...readingSteps,
+  assistant("msg_reading_done", [{ type: "text", text: "全部读完了。" }], TIME + 4_000, TIME + 5_000),
+  idle("msg_idle_reading", TIME + 5_500),
+]
+
+export const ReaderOpenedStep = {
+  render: () => {
+    const [viewport, setViewport] = createSignal<HTMLDivElement>()
+    const [finished, setFinished] = createSignal(false)
+    ;(globalThis as unknown as { __finishAnswerTurn?: () => void }).__finishAnswerTurn = () => setFinished(true)
+
+    return (
+      <div ref={setViewport} data-testid="answer-window" class="h-dvh overflow-y-auto">
+        <AnswerPage messages={() => (finished() ? readingFinished : readingSteps)} viewport={viewport} />
       </div>
     )
   },

@@ -130,7 +130,6 @@ describe("settings schema", () => {
         questions: "staplebops-05",
         errorsEnabled: true,
         errors: "nope-03",
-        interfaceEnabled: true,
       },
     })
   })

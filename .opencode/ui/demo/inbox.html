@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>收件箱 · 模块设计</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="modules.css" />
+  </head>
+  <body>
+    <div class="window" id="window" data-collapse="off">
+      <header class="topbar">
+        <div class="topbar-side">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button class="icon-button" type="button" aria-label="收起侧栏">
+            <svg class="ico" aria-hidden="true"><use href="#i-collapse" /></svg>
+          </button>
+        </div>
+        <div class="topbar-main" data-note="模块沿用主界面顶栏：左段 280 与导航列同底">
+          <span class="topbar-title">收件箱</span>
+          <span class="mode"><strong data-count-pending>3</strong> 项待处理</span>
+          <span class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="搜索收件箱">
+              <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="更多操作">
+              <svg class="ico" aria-hidden="true"><use href="#i-more" /></svg>
+            </button>
+            <button class="icon-button" type="button" aria-label="切换审查面板">
+              <svg class="ico" aria-hidden="true"><use href="#i-panel" /></svg>
+            </button>
+          </span>
+        </div>
+      </header>
+
+      <div class="body">
+        <aside class="sidebar" aria-label="导航">
+          <div class="brand">
+            <svg class="mark" aria-hidden="true"><use href="#i-brand" /></svg>
+            <span class="brand-name">长虹 AI</span>
+            <span class="tag">预览版</span>
+          </div>
+
+          <button class="primary-action" type="button" aria-label="新会话">
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-plus" /></svg>
+            <span>新会话</span>
+          </button>
+
+          <nav class="nav" aria-label="一级导航" data-note="一级导航：收件箱当前高亮 + 未读计数">
+            <button class="nav-item" type="button" aria-label="收件箱" aria-current="page">
+              <svg class="ico" aria-hidden="true"><use href="#i-inbox" /></svg>
+              <span>收件箱</span>
+              <span class="badge" data-count-badge>3</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="定时任务">
+              <svg class="ico" aria-hidden="true"><use href="#i-clock" /></svg>
+              <span>定时任务</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="知识库">
+              <svg class="ico" aria-hidden="true"><use href="#i-book" /></svg>
+              <span>知识库</span>
+            </button>
+            <button class="nav-item" type="button" aria-label="探索">
+              <svg class="ico" aria-hidden="true"><use href="#i-compass" /></svg>
+              <span>探索</span>
+            </button>
+          </nav>
+
+          <div class="section-head">
+            工作区
+            <span class="actions">
+              <button class="icon-button" type="button" aria-label="搜索会话">
+                <svg class="ico" aria-hidden="true"><use href="#i-search" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="筛选">
+                <svg class="ico" aria-hidden="true"><use href="#i-filter" /></svg>
+              </button>
+              <button class="icon-button" type="button" aria-label="新建项目">
+                <svg class="ico" aria-hidden="true"><use href="#i-folder-plus" /></svg>
+              </button>
+            </span>
+          </div>
+
+          <div class="tree">
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+              <span class="label">opencode</span>
+              <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+            <div class="children">
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">主界面视觉设计评价</span>
+                <span class="when">刚刚</span>
+              </button>
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">时间线滚动位置修复</span>
+                <span class="when">2 天</span>
+              </button>
+            </div>
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder-open" /></svg>
+              <span class="label">长虹 OA 系统</span>
+              <svg class="ico ico-sm pin" aria-hidden="true"><use href="#i-pin" /></svg>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+            <div class="children">
+              <button class="row" type="button">
+                <svg class="ico" aria-hidden="true"><use href="#i-bubble" /></svg>
+                <span class="label">oa/audit</span>
+                <span class="when">8 分钟</span>
+              </button>
+            </div>
+            <button class="row" type="button">
+              <svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg>
+              <span class="label">agents</span>
+              <svg class="ico ico-sm chev" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+            </button>
+          </div>
+
+          <button class="account" type="button" aria-label="账户与连接">
+            <span class="avatar" aria-hidden="true">长</span>
+            <span class="meta">
+              <span class="who">已连接 · 本地</span>
+              <span class="where">deepseek-flash</span>
+            </span>
+            <span class="status-dot" aria-hidden="true"></span>
+          </button>
+        </aside>
+
+        <main class="main">
+          <div class="module" data-mode="default">
+            <header class="module-head" data-note="页头只放标题、说明与页面级动作">
+              <div class="head-copy">
+                <p class="head-desc">定时任务的产出、失败和权限请求，等待你拍板的事情都在这里。</p>
+              </div>
+              <div class="head-actions">
+                <button class="btn btn-ghost" type="button">
+                  <svg class="ico" aria-hidden="true"><use href="#i-check" /></svg>
+                  全部标记已读
+                </button>
+              </div>
+            </header>
+
+            <div class="module-toolbar" data-note="分类用分段控件，计数就在标签内">
+              <div class="segmented" role="tablist" aria-label="筛选收件箱">
+                <button type="button" role="tab" aria-selected="true">全部<span class="num">6</span></button>
+                <button type="button" role="tab" aria-selected="false">待处理<span class="num" data-count-pending>3</span></button>
+                <button type="button" role="tab" aria-selected="false">失败<span class="num">1</span></button>
+                <button type="button" role="tab" aria-selected="false">已完成<span class="num" data-count-done>2</span></button>
+              </div>
+              <span class="toolbar-meta">按最近更新排序</span>
+            </div>
+
+            <div class="module-body">
+              <aside class="module-list" aria-label="收件箱事项" data-note="列表按状态分组，不堆筛选条">
+                <div class="list-head" data-group="pending">
+                  待处理
+                  <span class="spacer"></span>
+                  <span data-count-pending-head>3</span>
+                </div>
+
+                <button class="item" type="button" aria-current="true" data-first-item>
+                  <span class="item-glyph" data-tone="warning">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-shield" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">需要批准：运行测试并提交</span>
+                    <span class="item-meta">oa/audit<span class="sep"></span>审批</span>
+                  </span>
+                  <span class="item-trail"><span>8 分钟</span><span class="dot" data-tone="warning"></span></span>
+                </button>
+
+                <button class="item" type="button">
+                  <span class="item-glyph" data-tone="info">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-message" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">长虹 AI 需要回答</span>
+                    <span class="item-meta">主界面视觉设计评价<span class="sep"></span>提问</span>
+                  </span>
+                  <span class="item-trail"><span>24 分钟</span><span class="dot"></span></span>
+                </button>
+
+                <button class="item" type="button">
+                  <span class="item-glyph" data-tone="danger">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-alert" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">每日构建失败</span>
+                    <span class="item-meta">每日构建<span class="sep"></span>失败</span>
+                  </span>
+                  <span class="item-trail"><span>1 小时</span><span class="dot" data-tone="danger"></span></span>
+                </button>
+
+                <div class="list-head" data-group="done">
+                  已完成
+                  <span class="spacer"></span>
+                  <span data-count-done-head>2</span>
+                </div>
+
+                <button class="item" type="button">
+                  <span class="item-glyph" data-tone="success">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-doc" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">周报已生成</span>
+                    <span class="item-meta">每周一生成周报<span class="sep"></span>产出</span>
+                  </span>
+                  <span class="item-trail"><span>3 小时</span><span class="dot" data-tone="done"></span></span>
+                </button>
+
+                <button class="item" type="button">
+                  <span class="item-glyph" data-tone="success">
+                    <svg class="ico ico-sm" aria-hidden="true"><use href="#i-book" /></svg>
+                  </span>
+                  <span class="item-main">
+                    <span class="item-title">知识库已完成索引</span>
+                    <span class="item-meta">产品文档<span class="sep"></span>结果</span>
+                  </span>
+                  <span class="item-trail"><span>昨天</span><span class="dot" data-tone="done"></span></span>
+                </button>
+              </aside>
+
+              <section class="module-detail">
+                <div class="detail-variant detail-default">
+                  <div class="detail-scroll">
+                    <div class="detail-inner" data-note="详情 = 事实 + 请求内容 + 决策 + 事件，操作固定在底部">
+                      <div class="detail-head">
+                        <h2 class="detail-title">需要批准：运行测试并提交</h2>
+                        <span class="chip" data-tone="warning">
+                          <svg class="ico" aria-hidden="true"><use href="#i-shield" /></svg>
+                          审批
+                        </span>
+                        <span class="chip">待处理</span>
+                      </div>
+                      <p class="detail-sub">「oa/audit」在继续之前需要你确认一次命令执行。</p>
+
+                      <dl class="facts">
+                        <div class="fact">
+                          <dt>来源</dt>
+                          <dd>oa/audit</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>收到时间</dt>
+                          <dd>8 分钟前</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>资源</dt>
+                          <dd>2 个文件</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>已等待</dt>
+                          <dd>8 分钟</dd>
+                        </div>
+                      </dl>
+
+                      <section class="detail-section">
+                        <h3>请求内容</h3>
+                        <div class="box box-mono">$ bun test --conditions=solid src/session/restore.test.ts
+$ git add -A &amp;&amp; git commit -m "fix(session): land a reopened timeline where it left"</div>
+                      </section>
+
+                      <section class="detail-section">
+                        <h3>需要你决定</h3>
+                        <div class="decision">
+                          <span class="request">
+                            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-lock" /></svg>
+                            这个操作会修改工作区文件，并创建一个提交。批准只对本次执行有效。
+                          </span>
+                          <span class="options">
+                            <button class="btn btn-primary" type="button">批准本次</button>
+                            <button class="btn btn-ghost" type="button">始终允许</button>
+                            <button class="btn btn-danger" type="button">拒绝</button>
+                          </span>
+                          <span class="note">批准后，这个会话会继续执行，并在这里留下结果。</span>
+                        </div>
+                      </section>
+
+                      <section class="detail-section">
+                        <h3>最近事件</h3>
+                        <div class="timeline">
+                          <div class="timeline-item">
+                            <span class="mark" data-tone="danger"></span>
+                            <span class="body">
+                              <span class="line">请求批准：运行测试并提交</span>
+                              <span class="when">8 分钟前 · 由 oa/audit 创建</span>
+                            </span>
+                          </div>
+                          <div class="timeline-item">
+                            <span class="mark"></span>
+                            <span class="body">
+                              <span class="line">会话已暂停，等待你的决定</span>
+                              <span class="when">8 分钟前</span>
+                            </span>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                  <footer class="detail-footer">
+                    <button class="btn btn-ghost" type="button">稍后处理</button>
+                    <button class="btn btn-ghost" type="button">标记已读</button>
+                    <span class="spacer"></span>
+                    <span class="hint"><kbd>⏎</kbd> 批准 · <kbd>⌫</kbd> 拒绝</span>
+                    <button class="btn btn-ghost" type="button">
+                      打开会话
+                      <svg class="ico" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                    </button>
+                  </footer>
+                </div>
+
+                <div class="detail-variant detail-interact">
+                  <div class="detail-scroll">
+                    <div class="detail-inner" data-note="关键交互态：批准后就地留下结果与撤销入口">
+                      <div class="detail-head">
+                        <h2 class="detail-title">需要批准：运行测试并提交</h2>
+                        <span class="chip" data-tone="success">
+                          <svg class="ico" aria-hidden="true"><use href="#i-check" /></svg>
+                          已批准
+                        </span>
+                      </div>
+                      <p class="detail-sub">「oa/audit」已继续执行，结果会回到这里。</p>
+
+                      <div class="callout" data-tone="info">
+                        <svg class="ico ico-sm" aria-hidden="true"><use href="#i-info" /></svg>
+                        你批准了本次执行。命令已开始运行，完成后这一项会自动归档。
+                      </div>
+
+                      <dl class="facts">
+                        <div class="fact">
+                          <dt>处理方式</dt>
+                          <dd>仅此一次</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>处理时间</dt>
+                          <dd>刚刚</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>来源</dt>
+                          <dd>oa/audit</dd>
+                        </div>
+                        <div class="fact">
+                          <dt>结果</dt>
+                          <dd>运行中</dd>
+                        </div>
+                      </dl>
+
+                      <section class="detail-section">
+                        <h3>最近事件</h3>
+                        <div class="timeline">
+                          <div class="timeline-item">
+                            <span class="mark" data-tone="done"></span>
+                            <span class="body">
+                              <span class="line">你批准了本次执行</span>
+                              <span class="when">刚刚 · 仅此一次</span>
+                            </span>
+                          </div>
+                          <div class="timeline-item">
+                            <span class="mark"></span>
+                            <span class="body">
+                              <span class="line">命令已开始运行</span>
+                              <span class="when">刚刚</span>
+                            </span>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                  <footer class="detail-footer">
+                    <button class="btn btn-ghost" type="button">撤销批准</button>
+                    <span class="spacer"></span>
+                    <button class="btn btn-primary" type="button">
+                      打开会话
+                      <svg class="ico" aria-hidden="true"><use href="#i-arrow-right" /></svg>
+                    </button>
+                  </footer>
+                </div>
+              </section>
+            </div>
+
+            <div class="empty">
+              <span class="empty-glyph"><svg class="ico" aria-hidden="true"><use href="#i-inbox" /></svg></span>
+              <h2>暂时没有需要处理的事项</h2>
+              <p>定时任务的产出、失败和权限请求会出现在这里。</p>
+              <div class="actions">
+                <button class="btn btn-primary" type="button">打开定时任务</button>
+              </div>
+              <span class="muted">新的请求到来时会出现在这里，并在侧栏显示计数。</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="demo-bar">
+      <span class="hint">
+        收件箱 · 分类 + 计数 / 状态分组 / 逐条处理 ·
+        <kbd>A</kbd> 标注 · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 切态
+      </span>
+      <div class="segmented" role="tablist" aria-label="切换状态">
+        <button type="button" role="tab" aria-selected="true" data-mode-button="default">默认</button>
+        <button type="button" role="tab" aria-selected="false" data-mode-button="empty">空态</button>
+        <button type="button" role="tab" aria-selected="false" data-mode-button="interact">交互态</button>
+      </div>
+      <button class="btn btn-ghost" type="button" data-collapse-button aria-pressed="false">折叠态</button>
+      <button class="btn btn-ghost" type="button" data-annotate-button aria-pressed="false">标注</button>
+    </div>
+
+    <script>
+      window.pageMode = (mode) => {
+        const settled = mode === "interact"
+        const pending = settled ? "2" : "3"
+        const done = settled ? "3" : "2"
+        for (const el of document.querySelectorAll("[data-count-pending]")) el.textContent = pending
+        for (const el of document.querySelectorAll("[data-count-done]")) el.textContent = done
+        for (const el of document.querySelectorAll("[data-count-pending-head]")) el.textContent = pending
+        for (const el of document.querySelectorAll("[data-count-done-head]")) el.textContent = done
+        const badge = document.querySelector("[data-count-badge]")
+        if (badge) badge.textContent = pending
+        document.querySelector("[data-first-item]")?.toggleAttribute("data-settled", settled)
+        const first = document.querySelector("[data-first-item]")
+        const group = document.querySelector(`[data-group="${settled ? "done" : "pending"}"]`)
+        if (first && group) group.insertAdjacentElement("afterend", first)
+      }
+    </script>
+    <script src="modules.js"></script>
+  </body>
+</html>

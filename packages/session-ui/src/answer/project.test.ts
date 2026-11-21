@@ -476,6 +476,41 @@ describe("answer projection", () => {
     expect(group?.counts).toEqual([{ kind: "edit", count: 5 }])
   })
 
+  test("folds consecutive identical steps of every kind, not only edits", () => {
+    const call = (id: string, name: string, input: Record<string, string>): Content => ({
+      type: "tool",
+      id,
+      name,
+      state: { status: "completed", input, content: [{ type: "text", text: "ok" }], metadata: {} },
+      time: { created: 2, completed: 3 },
+    })
+
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant(
+        "msg_2",
+        2,
+        [
+          call("read_1", "read", { filePath: "src/a.ts" }),
+          call("read_2", "read", { filePath: "src/a.ts" }),
+          call("grep_1", "grep", { pattern: "needle" }),
+          call("grep_2", "grep", { pattern: "needle" }),
+          call("shell_1", "shell", { command: "bun test" }),
+          call("shell_2", "shell", { command: "bun test" }),
+          reasoning("first"),
+          reasoning("second"),
+        ],
+        10,
+      ),
+      assistant("msg_3", 11, [text("answer")], 20),
+    ])
+
+    const group = [...snapshot.groups.values()][0]
+
+    expect(group?.items.map((item) => item.kind)).toEqual(["repeat", "repeat", "repeat", "repeat"])
+    expect(group?.items.map((item) => (item.kind === "repeat" ? item.members.length : 1))).toEqual([2, 2, 2, 2])
+  })
+
   test("keeps a different neighbour out of a repeat run", () => {
     const edit = (id: string): Content => ({
       type: "tool",

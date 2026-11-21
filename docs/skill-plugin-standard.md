@@ -491,7 +491,6 @@ README.md                # 可选
 - `.craf` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
 - 插件包内的 `skills/` 目录不会被自动发现；组合包里的技能必须由入口代码注册，`display.skills` 只是展示。
 - 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.craf` 通过包内 `ocplugin.json` 解决了这一点（3.8），但要等安装器与探索页接线。
-- `AGENTS.md` 的测试小节与 `docs/opencode-ui-standard.md` 仍引用已删除的 `.opencode/skills/*`，与本文描述的实际发现规则不一致。
 
 ## 七、事实来源
 

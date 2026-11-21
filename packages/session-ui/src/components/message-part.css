@@ -7,7 +7,7 @@
   gap: 10px;
 }
 
-/* The transcript follows the reader's content size (`.opencode/ui/03-typography` §2) while the
+/* The transcript follows the reader's content size (`docs/standard/design/03-typography` §2) while the
    heading ladder stays in the shared markdown offsets, so the body/heading ratio is constant. */
 [data-component="assistant-message"] [data-component="markdown"] {
   font-size: var(--content-font-size, 14px);

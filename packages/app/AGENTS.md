@@ -1,7 +1,7 @@
 ## Priorities
 
 - Prioritise, in this order: stability, simplicity, performance.
-- 界面与组件的视觉规则以仓库根的 `.opencode/ui/` 设计规范为准（根 `AGENTS.md` 的「客户端界面」）。本文件下面的 Typography、Fonts、Scrolling 是实现层约束，与设计规范冲突时以设计规范为准。
+- 界面与组件的视觉规则以仓库根的 `docs/standard/design/` 设计规范为准（根 `AGENTS.md` 的「客户端界面」）。本文件下面的 Typography、Fonts、Scrolling 是实现层约束，与设计规范冲突时以设计规范为准。
 - Before changing session or timeline code, benchmark it against `origin/master` with strobe (`packages/app/perf/README.md`): `strobe bench packages/app/perf/<area>.bench.ts --base origin/master --head .`.
 
 ## Debugging

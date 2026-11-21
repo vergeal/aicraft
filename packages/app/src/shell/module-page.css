@@ -1,5 +1,5 @@
 /* Shared frame for the four fused module pages: one scroll surface, state groups, cards, and the search overlay.
-   Values follow .opencode/ui: a 4px rhythm (8/12/16/20/24/32), semantic tokens only, and 0.5px edges drawn
+   Values follow docs/standard/design: a 4px rhythm (8/12/16/20/24/32), semantic tokens only, and 0.5px edges drawn
    with inset shadows rather than borders. */
 
 .module-page {

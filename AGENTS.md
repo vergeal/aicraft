@@ -17,9 +17,9 @@
 
 ## 客户端界面
 
-- 所有界面与组件必须遵循 `.opencode/ui/` 的设计规范，它对本项目的优先级高于通用样式习惯。先读 `README.md` 与 `01-principles.md`，按改动面读对应篇目，交付前对照 `checklist.md`。
-- 视觉决策（颜色、字号、间距、圆角、阴影、动效、图标、密度、导航）以 `.opencode/ui` 为准；`packages/app/AGENTS.md` 的 Typography / Fonts / Scrolling 是实现层约束，冲突时以设计规范为准，并同步修正那份文件。
-- 禁止在组件里写死色值、字号、间距、圆角魔法数；优先使用产品已有的语义变量（`--font-*`、`--line-height-*`、`color-mix()` 等）。`.opencode/ui/tokens.css` 里的 `--p-*`、`--c-*`、`--density-*` 是设计侧的命名参考，落到产品代码时映射到已存在的变量，不要凭空引入未定义的 token。新增 token 必须通过 `19-governance.md` 的四问门槛。
+- 所有界面与组件必须遵循 `docs/standard/design/` 的设计规范，它对本项目的优先级高于通用样式习惯。先读 `README.md` 与 `01-principles.md`，按改动面读对应篇目，交付前对照 `checklist.md`。
+- 视觉决策（颜色、字号、间距、圆角、阴影、动效、图标、密度、导航）以 `docs/standard/design` 为准；`packages/app/AGENTS.md` 的 Typography / Fonts / Scrolling 是实现层约束，冲突时以设计规范为准，并同步修正那份文件。
+- 禁止在组件里写死色值、字号、间距、圆角魔法数；优先使用产品已有的语义变量（`--v2-*`、`--font-*`、`--line-height-*`、`color-mix()` 等）。`docs/standard/design/tokens.css` 里的 `--p-*`、`--c-*`、`--density-*` 是设计侧的命名参考，落到产品代码时映射到已存在的变量，不要凭空引入未定义的 token。新增 token 必须通过 `19-governance.md` 的四问门槛。
 - 状态样式由语义属性驱动（`aria-*`、`data-state`），不要用 `.is-active` 这类与可访问状态无关的类名表达状态。
 - 用户可见文案一律走 i18n：新增 key 时同时写 `zh.ts` 的简体中文；不得硬编码英文。
 - 任何界面改动都要在 Electron 客户端里实际验证（根目录 `bun run dev:desktop`），不要只在 Web 或 TUI 下确认。

@@ -5,7 +5,7 @@
     "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-family-mono--font-feature-settings: normal;
 
-  /* Type scale follows .opencode/ui/03-typography: UI 14, meta 12, micro 11, small heading 18, section 20. */
+  /* Type scale follows docs/standard/design/03-typography: UI 14, meta 12, micro 11, small heading 18, section 20. */
   --font-size-xx-small: 11px;
   --font-size-x-small: 12px;
   --font-size-small: 14px;
@@ -52,7 +52,7 @@
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.625rem;
-  /* Popovers and menus use the 12px panel step from .opencode/ui/05-radius-elevation. */
+  /* Popovers and menus use the 12px panel step from docs/standard/design/05-radius-elevation. */
   --radius-popover: 12px;
 
   --shadow-xs:

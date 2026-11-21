@@ -105,7 +105,7 @@ schema / util / theme       叶子，无内部依赖
 
 ## 2. 设计原则（写进任务里）
 
-从根 `AGENTS.md` 和 `docs/opencode-ui-standard.md` 提炼，派活时按需引用：
+从根 `AGENTS.md` 和 `docs/standard/design/` 提炼，派活时按需引用：
 
 - **一个函数做完就不要再拆**。只有复用、隐藏复杂边界、或名字本身有意义时才提取。
 - **未知值只在拥有它的边界校验一次**，向内传类型化值。不要重复 `typeof` 检查。

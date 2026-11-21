@@ -2,6 +2,8 @@ import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
 import { Tabs } from "@opencode/ui/tabs"
+import { Tooltip } from "@opencode/ui/tooltip"
+import { createMediaQuery } from "@solid-primitives/media"
 import { createEffect, ErrorBoundary, For, on, Show, type ComponentProps, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ErrorPage } from "@/shell/errors/error"
@@ -36,6 +38,8 @@ export function SettingsNavigation(props: {
   const surface = useSettingsSurface()
   const searchable = () => surface.view().type === "root"
   const language = useLanguage()
+  // Below this width the navigation is an icon rail: each row keeps its icon and names itself in a tooltip.
+  const compact = createMediaQuery("(max-width: 1024px)")
 
   const back = () => {
     if (!searchable() && surface.search.back()) return
@@ -125,10 +129,6 @@ export function SettingsNavigation(props: {
       </div>
       <aside class="settings-sidebar" data-searchable={searchable()} aria-label={language.t("settings.nav.label")}>
         <div class="settings-nav">
-          <button type="button" class="settings-back" onClick={back}>
-            <Icon name="arrow-left" size="small" class="settings-back-icon" />
-            <span>{backLabel()}</span>
-          </button>
           <Show when={searchable()}>
             <SettingsSearch />
           </Show>
@@ -147,18 +147,21 @@ export function SettingsNavigation(props: {
                     </Show>
                     <For each={group.items}>
                       {(item) => (
-                        <Tabs.Trigger
-                          value={item.value}
-                          disabled={item.disabled}
-                          onPointerEnter={(event: PointerEvent) => {
-                            if (item.disabled || event.pointerType === "touch") return
-                            item.onPrefetch?.()
-                          }}
-                          onFocus={() => !item.disabled && item.onPrefetch?.()}
-                        >
-                          <Icon name={item.icon} size="large" />
-                          <span class="settings-nav-item-label">{item.label}</span>
-                        </Tabs.Trigger>
+                        <Tooltip value={item.label} placement="right" inactive={!compact()} class="settings-nav-tooltip">
+                          <Tabs.Trigger
+                            value={item.value}
+                            disabled={item.disabled}
+                            aria-label={item.label}
+                            onPointerEnter={(event: PointerEvent) => {
+                              if (item.disabled || event.pointerType === "touch") return
+                              item.onPrefetch?.()
+                            }}
+                            onFocus={() => !item.disabled && item.onPrefetch?.()}
+                          >
+                            <Icon name={item.icon} size="large" />
+                            <span class="settings-nav-item-label">{item.label}</span>
+                          </Tabs.Trigger>
+                        </Tooltip>
                       )}
                     </For>
                   </div>

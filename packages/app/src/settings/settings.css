@@ -30,7 +30,7 @@
   --settings-content-max: 760px;
   --settings-content-inset: 32px;
 
-  --settings-nav: var(--settings-control-xl);
+  --settings-nav: var(--settings-control-lg);
   --settings-nav-item-height: var(--settings-nav);
   --settings-nav-item-radius: var(--settings-radius-sm);
   --settings-nav-icon: 20px;
@@ -45,7 +45,7 @@
   --settings-card-radius: var(--settings-radius-lg);
   /* Three readable depths: the page, the sidebar one step off it, and the cards one step above the sidebar. The
      sidebar sinks in light and lifts in dark, which is the one thing a single layer token cannot express. */
-  --settings-sidebar-bg: light-dark(var(--v2-grey-200), var(--v2-grey-1100));
+  --settings-sidebar-bg: var(--color-sidebar, light-dark(var(--v2-grey-200), var(--v2-grey-1100)));
   --settings-card-bg: light-dark(var(--v2-grey-50), var(--v2-grey-800));
   /* L2: cards and inputs share the same hairline, one step over the divider. */
   --settings-card-border: var(--v2-border-border-base);
@@ -113,13 +113,82 @@
   overflow: hidden;
 }
 
-/* In the replica workbench Settings is the main workspace, not a page inside one: it shares the workbench surface
-   with the conversation sidebar instead of drawing a second rounded card beside it. The second-level navigation
-   stays inside this workspace, so the columns remain rail, conversations and Settings. It still paints the page
-   fill, because its sticky page heading has to cover scrolled content with the exact same colour. */
-[data-replica] .settings-screen {
+/* Settings is the window: the bar and the two columns share one vertical surface, so the bar spans the whole width
+   instead of becoming a column of the page. */
+.settings-surface {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
   width: 100%;
-  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  --settings-rail-width: var(--settings-sidebar-width);
+}
+
+/* The window bar keeps the shell's own metrics: 44px tall, the left segment at the navigation column's width and
+   surface, and no rule under it, so bar and column read as one piece of chrome. */
+[data-settings] [data-slot="replica-titlebar"] {
+  flex: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-settings] [data-slot="replica-titlebar-side"] {
+  flex: 0 0 var(--settings-rail-width);
+  padding-inline-start: var(--sidebar-header-lead);
+}
+
+[data-settings] [data-slot="replica-titlebar-main"] {
+  padding-inline: var(--settings-space-5);
+}
+
+/* The way out of Settings sits in the window bar, past the traffic lights and the navigation column. It keeps the
+   navigation's 13px muted treatment at the bar's 28px control height. */
+.settings-titlebar-back {
+  display: flex;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: var(--settings-radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.04px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: background-color 120ms ease-out;
+}
+
+.settings-titlebar-back:hover,
+.settings-titlebar-back:focus-visible {
+  background: var(--color-hover);
+  color: var(--color-text-main);
+  outline: none;
+}
+
+.settings-titlebar-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-main);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The screen fills the surface under the bar instead of floating as a card inside the window. */
+.settings-surface > .settings-screen {
+  width: 100%;
+  height: auto;
+  flex: 1 1 0;
   margin: 0;
   border-radius: 0;
   background: var(--v2-background-bg-base);
@@ -132,17 +201,6 @@
   background: var(--v2-background-bg-base);
 }
 
-/* Settings hides the window bar, so the heading carries the drag region in its top inset: the strip sits inside the
-   24px space above the title, where it covers no control, and stays against the window edge while the heading sticks. */
-[data-replica] .settings-screen .settings-tab-header::before {
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 12px;
-  content: "";
-  -webkit-app-region: drag;
-}
-
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
 [data-replica] .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] {
   color: var(--color-text-secondary);
@@ -150,7 +208,21 @@
 
 [data-replica] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) {
   background: var(--color-selected);
+  box-shadow: inset 0 0 0 0.5px var(--color-border);
   color: var(--color-text-main);
+}
+
+/* Same two signals the conversation sidebar uses for its current row: the selected fill plus a 2px rail against the
+   start edge, so the row is legible without relying on colour alone. */
+[data-replica] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected])::before {
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 9999px;
+  background: var(--color-text-primary);
+  content: "";
+  pointer-events: none;
 }
 
 [data-replica] .settings-nav-groups
@@ -292,6 +364,13 @@
   border-radius: var(--settings-nav-item-radius);
   color: var(--v2-text-text-muted);
   transition: background-color 120ms ease-out;
+}
+
+/* The rail's tooltip trigger replaces the row button as the wrapper's flex item, so it must fill the row it names. */
+.settings-nav-tooltip {
+  display: flex;
+  width: 100%;
+  height: 100%;
 }
 
 .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger"] {
@@ -1404,7 +1483,65 @@
 /* Both columns scroll internally: .settings-nav-groups and .settings-content own their overflow, so the
    shell never scrolls and the sidebar is no longer sticky inside a page scroller. */
 
-@container settings-screen (max-width: 799px) {
+/* Narrow windows keep the rail, not a vanished menu: every row keeps its icon, names itself in a tooltip, and the
+   column stays at the bar's width so the bar and the column remain one piece. */
+@media (max-width: 1024px) {
+  .settings-surface {
+    --settings-rail-width: 56px;
+  }
+
+  /* The lights float over the bar's corner once the segment is narrower than their 88px lead. */
+  html[data-os="macos"] [data-settings] [data-slot="replica-titlebar-main"] {
+    padding-inline-start: 92px;
+  }
+}
+
+@container settings-screen (max-width: 1024px) {
+  .settings-screen > .settings {
+    grid-template-columns: var(--settings-rail-width) minmax(0, 1fr);
+  }
+
+  .settings-screen
+    > .settings[data-component="tabs-v2"][data-variant="settings"][data-orientation="vertical"]
+    > .settings-sidebar {
+    width: var(--settings-rail-width);
+    min-width: var(--settings-rail-width);
+  }
+
+  .settings-nav {
+    padding-inline: var(--settings-space-2);
+  }
+
+  /* The rail has no room for the search field; Cmd+K still reaches every page. */
+  .settings-nav .settings-search {
+    display: none;
+  }
+
+  .settings-nav-group {
+    gap: 2px;
+  }
+
+  .settings-nav-group-header {
+    height: 16px;
+    min-height: 16px;
+    padding: 0;
+  }
+
+  .settings-nav-group-header > span {
+    display: none;
+  }
+
+  .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger"] {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .settings-nav-group .settings-nav-item-label {
+    display: none;
+  }
+}
+
+@container settings-screen (max-width: 640px) {
   .settings-screen > .settings[data-component="tabs-v2"] {
     display: flex;
     flex-direction: column;

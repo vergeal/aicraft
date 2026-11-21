@@ -3,6 +3,7 @@ import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
 import { TextInput } from "@opencode/ui/text-input"
+import { Tooltip } from "@opencode/ui/tooltip"
 import { For, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -168,21 +169,30 @@ export function ProviderAccountList(props: {
                       >
                         {state.revealed[account.id] ? secret() : maskSecret(secret())}
                       </span>
-                      <IconButton
-                        variant="ghost-muted"
-                        size="small"
-                        class="provider-account-reveal"
-                        icon={<Icon name={state.revealed[account.id] ? "eye-closed" : "eye-open"} />}
-                        aria-label={language.t(
+                      <Tooltip
+                        class="flex shrink-0 items-center"
+                        placement="top"
+                        value={language.t(
                           state.revealed[account.id]
                             ? "dialog.provider.accounts.hide"
                             : "dialog.provider.accounts.reveal",
-                          { account: account.label },
                         )}
-                        aria-pressed={!!state.revealed[account.id]}
-                        disabled={props.disabled}
-                        onClick={() => reveal(account)}
-                      />
+                      >
+                        <IconButton
+                          variant="ghost-muted"
+                          size="small"
+                          class="provider-account-reveal"
+                          icon={<Icon name={state.revealed[account.id] ? "eye-closed" : "eye-open"} />}
+                          aria-label={language.t(
+                            state.revealed[account.id]
+                              ? "dialog.provider.accounts.hide"
+                              : "dialog.provider.accounts.reveal",
+                          )}
+                          aria-pressed={!!state.revealed[account.id]}
+                          disabled={props.disabled}
+                          onClick={() => reveal(account)}
+                        />
+                      </Tooltip>
                     </>
                   )}
                 </Show>

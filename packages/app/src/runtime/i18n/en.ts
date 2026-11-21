@@ -186,6 +186,10 @@ export const dict = {
   "dialog.provider.accounts.removeConfirm": "Remove {{account}}?",
   "dialog.provider.accounts.remove": "Remove",
   "dialog.provider.accounts.options": "{{account}} options",
+  "dialog.provider.accounts.key": "API key",
+  "dialog.provider.accounts.reveal": "Show key",
+  "dialog.provider.accounts.hide": "Hide key",
+  "dialog.provider.accounts.saving": "Saving…",
 
   "provider.connect.title": "Connect {{provider}}",
   "provider.connect.opencode.name": "OpenCode Console",
@@ -1460,6 +1464,7 @@ export const dict = {
   "settings.providers.account.instant": "Changes save immediately",
   "settings.providers.row.menu": "{{provider}} options",
   "settings.providers.account.name": "Account name",
+  "settings.providers.account.name.placeholder": "Account name",
   "settings.providers.account.remove.confirm": "Remove {{account}} and delete its stored credential?",
   "settings.providers.account.removeLast.confirm":
     "Remove {{account}}? It is the only account, so the provider disconnects and its credential is deleted.",
@@ -1825,6 +1830,10 @@ export const dict = {
   "replica.nav.back": "Back to libraries",
   "replica.nav.newTask": "New task",
   "replica.nav.newLibrary": "New library",
+  "replica.surface.unavailable.title": "This page is unavailable",
+  "replica.surface.unavailable.description":
+    "The plugin that provides this page is not running, or it stopped while the page was open.",
+  "replica.surface.unavailable.action": "Go to Home",
   "inbox.title": "Inbox",
   "inbox.description": "Scheduled output, failures, and permission requests waiting for your decision.",
   "inbox.empty": "Nothing needs your attention",

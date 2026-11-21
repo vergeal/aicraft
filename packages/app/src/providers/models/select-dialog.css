@@ -189,3 +189,27 @@
     user-select: none;
   }
 }
+
+/*
+ * The model list is a picker, not a settings list: a row highlights as one rounded block. The shared full-height
+ * divider would cut through the selected row, and rounding only the first and last rows leaves a square block in the
+ * middle, so the list drops the divider and every row carries its own corner radius.
+ */
+.model-dialog [data-component="settings-list"][data-variant="catalog"],
+[data-slot="model-selector-drawer"] [data-component="settings-list"][data-variant="catalog"] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-dialog [data-component="settings-list"][data-variant="catalog"] > [data-component="settings-row"],
+[data-slot="model-selector-drawer"] [data-component="settings-list"][data-variant="catalog"] > [data-component="settings-row"] {
+  border-radius: var(--settings-radius-sm);
+}
+
+.model-dialog [data-component="settings-list"][data-variant="catalog"] > [data-component="settings-row"]::after,
+[data-slot="model-selector-drawer"]
+  [data-component="settings-list"][data-variant="catalog"]
+  > [data-component="settings-row"]::after {
+  display: none;
+}

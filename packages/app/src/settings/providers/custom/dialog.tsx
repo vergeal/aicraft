@@ -63,8 +63,10 @@ export function DialogCustomProvider(props: {
    * changed here so the row's menu does not have to hold a second, denser account surface.
    */
   accounts?: { integrationID: string; activeID?: string; items: readonly ProviderAccount[] }
-  /** Opens the connect dialog on top, so a new account can be added without losing the form underneath. */
-  onAddAccount?: () => void
+  /** The stored secret per account, so each row can mask it and reveal it on request. */
+  accountSecret?: (account: ProviderAccount) => string | undefined
+  /** Adds an account with a name and a key without leaving the sheet. */
+  onCreateAccount?: (input: { label: string; key: string }) => Promise<boolean>
   /** A credential change makes the list that supplies `existingApiKey` stale, so the caller reloads it. */
   onAccountChanged?: () => void
 }) {
@@ -378,7 +380,8 @@ export function DialogCustomProvider(props: {
                         return renamed
                       }}
                       onRemove={(account) => void removeAccount(account)}
-                      onAdd={props.onAddAccount}
+                      secret={props.accountSecret}
+                      create={props.onCreateAccount}
                     />
                   </section>
                 )}

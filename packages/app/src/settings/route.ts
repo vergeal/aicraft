@@ -90,15 +90,16 @@ export function parseSettingsView(
   if (!project && server && !params.has("tab")) return { type: "root", tab: "servers", server, ...transient }
 
   // The desktop's Plugins page is now the Plugins tab of Extensions, so links to it and `layout.settings("plugins")`
-  // land there.
-  if (!project && tab === "plugins") return { type: "root", tab: "extensions", server, subtab: "plugins", ...transient }
+  // land on the first tab Extensions actually has.
+  if (!project && tab === "plugins") return { type: "root", tab: "extensions", server, subtab: "mcps", ...transient }
 
   if (!project && isRootTab(tab))
     return {
       type: "root",
       tab,
       server,
-      subtab: nested === "lsps" || nested === "skills" ? undefined : nested,
+      // Root Extensions shows MCPs and LSPs; skills belong to a project's page.
+      subtab: nested === "skills" ? undefined : nested,
       ...transient,
     }
 

@@ -99,5 +99,31 @@ export function useProviderAccountActions(directory: () => string | undefined) {
         return false
       })
 
-  return { refresh, activate, remove, rename }
+  // A new account is a new key. The name is optional: an empty one lets the server label it the way the connect dialog
+  // would, so adding stays one field for people who do not want two names.
+  const create = (input: { integrationID: string; provider: string; label?: string; key: string }) =>
+    sdk.api.credential
+      .create({
+        integrationID: input.integrationID,
+        label: input.label || undefined,
+        value: { type: "key", key: input.key },
+      })
+      .then(refresh)
+      .then(() => settle(input.integrationID))
+      .then(() =>
+        showToast({
+          variant: "success",
+          icon: "circle-check",
+          title: language.t("provider.connect.toast.connected.title", { provider: input.provider }),
+          description: language.t("provider.connect.toast.connected.description", { provider: input.provider }),
+        }),
+      )
+      .then(() => true)
+      .catch((error) => {
+        fail(formatServerError(error, language.t))
+
+        return false
+      })
+
+  return { refresh, activate, remove, rename, create }
 }

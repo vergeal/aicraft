@@ -1,0 +1,250 @@
+/*
+ * Settings > Providers. The account list is shared with the connect dialog and the custom-provider sheet, so these
+ * rules style the list itself and the surface it adds under a provider row. Everything follows the settings list it
+ * lives in: 8px radius, no hairline between rows, and the shared overlay wash on hover.
+ */
+
+[data-component="provider-accounts"] {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.provider-accounts-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.provider-account {
+  display: flex;
+  min-width: 0;
+  min-height: var(--settings-control-xl, 36px);
+  align-items: center;
+  gap: 2px;
+  padding-inline: 2px;
+  border-radius: var(--settings-radius-sm, 8px);
+}
+
+/* Settings lists use the denser control tier; the connect dialog keeps the roomier one. */
+[data-component="provider-accounts"][data-size="compact"] .provider-account {
+  min-height: var(--settings-control-lg, 32px);
+}
+
+@media (hover: hover) {
+  .provider-account:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+/* A row is a single radio: the name chooses the account, the trailing controls act on it. */
+.provider-account-select {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-self: stretch;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 2px 4px;
+  border: 0;
+  border-radius: var(--settings-radius-xs, 4px);
+  background: transparent;
+  color: var(--v2-text-text-base);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.provider-account-select:focus-visible {
+  outline: var(--settings-focus-outline, 2px solid var(--v2-system-accent));
+  outline-offset: -2px;
+}
+
+.provider-account-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.provider-account-mark {
+  display: flex;
+  width: 16px;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--v2-icon-icon-muted);
+}
+
+.provider-account-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-account-status {
+  flex-shrink: 0;
+  color: var(--v2-state-fg-warning);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+/* The secret is a qualifier, not a peer column: mono, quiet, and never wider than the room an account name leaves. */
+.provider-account-key {
+  max-width: 168px;
+  flex-shrink: 0;
+  overflow: hidden;
+  color: var(--v2-text-text-faint);
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: -0.02px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-account-reveal {
+  flex-shrink: 0;
+}
+
+.provider-account-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.provider-account-rename {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-self: stretch;
+  align-items: center;
+  padding-inline: 2px 4px;
+}
+
+/* Removing an account asks inside its row, so the list keeps its place and the sentence can wrap. */
+.provider-account--confirm {
+  gap: 8px;
+  padding-inline: 2px 4px;
+}
+
+.provider-account-confirm {
+  min-width: 0;
+  flex: 1;
+  color: var(--v2-text-text-base);
+}
+
+.provider-account--add {
+  width: 100%;
+  align-self: stretch;
+  padding-inline: 2px 4px;
+  border: 0;
+  border-radius: var(--settings-radius-sm, 8px);
+  background: transparent;
+  color: var(--v2-text-text-muted);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.provider-account--add:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+@media (hover: hover) {
+  .provider-account--add:not(:disabled):hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-text-text-base);
+  }
+}
+
+.provider-account--add:focus-visible {
+  outline: var(--settings-focus-outline, 2px solid var(--v2-system-accent));
+  outline-offset: -2px;
+}
+
+/* Adding states both parts at once: a name the row can show, and the secret the row will mask. */
+.provider-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: var(--settings-radius-md, 12px);
+  background: var(--v2-background-bg-layer-02);
+}
+
+.provider-account-fields {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.provider-account-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.provider-account-field > span {
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.provider-account-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * The provider page itself.
+ */
+
+/* The accounts a provider stores sit under its row, aligned with the provider name: 28px lead + 12px row gap. */
+.settings-provider-accounts {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-inline-start: 40px;
+  padding-block-end: 4px;
+}
+
+/*
+ * The list insets its children by 16px while a row pulls that back into its own padding, so the hover band and the
+ * divider reach the card edge. A group has to do the same: it owns the divider now, and its row must not pull the
+ * inset a second time.
+ */
+.settings-provider-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-inline: calc(var(--settings-space-4) * -1);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
+}
+
+.settings-provider-group:last-child {
+  border-bottom: none;
+}
+
+.settings-provider-group .settings-provider-row {
+  margin-inline: 0;
+  border-bottom: none;
+}
+
+/* The group starts one inset further left, so its content adds that inset back before the account lines up under the
+   provider name. */
+.settings-provider-group .settings-provider-accounts {
+  margin-inline-start: calc(var(--settings-space-4) + 40px);
+}

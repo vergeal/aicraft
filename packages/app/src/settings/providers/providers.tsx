@@ -23,7 +23,8 @@ import { CONSOLE_INTEGRATION } from "@/providers/connect/controller"
 import { DialogConnectProvider, useProviderConnectController } from "@/providers/connect/dialog"
 import { ProviderModelIcon } from "@/providers/models/provider-group"
 import { SettingsList } from "@/settings/list"
-import { activeProviderAccount, providerAccounts } from "./accounts"
+import { activeProviderAccount, providerAccounts, type ProviderAccount } from "./accounts"
+import { ProviderAccountList } from "./account-list"
 import { useProviderAccountActions } from "./account-actions"
 import { SettingsPageHeader } from "@/settings/page-header"
 import {
@@ -34,6 +35,7 @@ import {
   type ProviderDisconnectEvent,
 } from "./machine"
 import "@/settings/settings.css"
+import "./providers.css"
 
 type ProviderSource = "env" | "api" | "account" | "config" | "custom"
 
@@ -227,39 +229,28 @@ export const SettingsProviders: Component<{
     )
   }
 
-  // Accounts are the provider's, not the row's. Both entry points open the account surface the connect dialog already
-  // draws: Settings does not grow a second account list in a dropdown. `adding` skips the list when the caller already
-  // shows it, as the edit sheet does.
-  const openAccountSheet = (integrationID: string, adding = false) => {
-    setState("held", available())
-    providerConnect.select(integrationID)
-    void dialog.show(
-      () => (
-        <DialogConnectProvider
-          directory={props.directory}
-          defaultLocation={props.directory === undefined}
-          controller={providerConnect}
-          standalone
-          initialAccounts
-          initialAdding={adding}
-          onConnected={(providerID) => dispatch({ type: "provider.reconnected", providerID })}
-        />
-      ),
-      () =>
-        void accountActions
-          .refresh()
-          .catch(() => undefined)
-          .finally(() => {
-            void credentials.refetch()
-            setState("held", undefined)
-          }),
-    )
+  // Accounts belong to the provider, and the list sits under the provider's own row: names, masked keys, reveal,
+  // activation, rename, removal and adding all happen in place. Keeping them here instead of a dialog means the page
+  // never hides what it is asking about.
+  const accountList = (item: ProviderItem) => {
+    const current = integration(item)
+
+    return {
+      integrationID: item.integrationID ?? item.id,
+      activeID: activeProviderAccount(current, isActiveCredential)?.id,
+      items: providerAccounts(current),
+    }
   }
 
-  const manageAccounts = (item: ProviderItem) => openAccountSheet(item.integrationID ?? item.id)
+  // The credential list is the only place the stored secret is readable, and it is what the row masks.
+  const accountKey = (account: ProviderAccount) => {
+    const entry = credentials.data?.find((item) => item.id === account.id)
 
-  // The account list already shows every stored account, so adding one starts at the step that creates it.
-  const addAccount = (provider: CustomProvider) => openAccountSheet(provider.id, true)
+    return entry?.value.type === "key" ? entry.value.key : undefined
+  }
+
+  // An environment variable is the provider's only source, so offering to store a key there would contradict the row.
+  const canStoreKey = (item: ProviderItem) => source(item) !== "env"
 
   const available = createMemo(() => {
     if (state.held) return state.held
@@ -295,14 +286,21 @@ export const SettingsProviders: Component<{
 
   const consoleGroup = createMemo(() => consoleProviderGroup(available()))
 
-  const displayed = createMemo(() => {
+  // Providers the Console groups under one account are folded into that group, and custom providers get their own
+  // section, so "connected" only lists what the catalog connects directly.
+  const groupedIDs = createMemo(() => {
     const group = consoleGroup()
 
-    if (!group) return connected()
-    const grouped = new Set(group.providers.filter((item) => item.id !== group.root.id).map((item) => item.id))
-
-    return connected().filter((item) => !grouped.has(item.id))
+    return new Set(group ? group.providers.filter((item) => item.id !== group.root.id).map((item) => item.id) : [])
   })
+
+  const customIDs = createMemo(() => new Set(custom().map((item) => item.id)))
+
+  const displayed = createMemo(() =>
+    connected().filter((item) => !groupedIDs().has(item.id) && !customIDs().has(item.id)),
+  )
+
+  const customRows = createMemo(() => connected().filter((item) => !groupedIDs().has(item.id) && customIDs().has(item.id)))
 
   const popular = createMemo(() => {
     const connectedIDs = new Set(connected().map((p) => p.id))
@@ -359,7 +357,19 @@ export const SettingsProviders: Component<{
           existingKeyLoading={!credentials.data}
           taken={providerIDs()}
           accounts={provider ? providerAccountList(provider) : undefined}
-          onAddAccount={provider ? () => addAccount(provider) : undefined}
+          accountSecret={accountKey}
+          onCreateAccount={
+            provider
+              ? (input) =>
+                  accountActions
+                    .create({ integrationID: provider.id, provider: provider.name, ...input })
+                    .then((created) => {
+                      void credentials.refetch()
+
+                      return created
+                    })
+              : undefined
+          }
           // Switching an account changes which key discovery borrows, so the credential list has to be reloaded.
           onAccountChanged={() => void credentials.refetch()}
         />
@@ -464,13 +474,235 @@ export const SettingsProviders: Component<{
     })
   }
 
-  // Every row offers exactly one menu, and that menu only holds what the row itself owns. Accounts belong to the
-  // provider, not to the row: a custom provider lists them inside "Edit provider", and any other provider opens the
-  // account page the connect dialog already draws. Keeping the account list in the menu made a second, denser settings
-  // surface out of a dropdown, with the provider's own actions buried under it.
+  // One provider row, shared by every section of the page: the connected list, the custom list and the account
+  // area under it differ only in which ids they pass.
+  function ProviderRow(row: { item: ProviderItem }) {
+    const managedGroup = () => (consoleGroup()?.root.id === row.item.id ? consoleGroup() : undefined)
+
+    return (
+      <Show
+        when={managedGroup()}
+        fallback={
+          <div class="settings-provider-group">
+            <div class="settings-provider-row">
+              <div class="settings-provider-lead">
+                <ProviderModelIcon provider={row.item} class="settings-provider-icon shrink-0" />
+              </div>
+
+              <div class="settings-provider-copy">
+                <div class="settings-provider-main">
+                  <span class="settings-provider-name truncate">{row.item.name}</span>
+                  <Badge>{type(row.item)}</Badge>
+                </div>
+              </div>
+              <Show
+                when={confirmingFor(row.item)}
+                fallback={
+                  <div class="settings-provider-actions">
+                    {/* The row has one control. Accounts, the provider form and its removal all live in
+                        that menu: a row-wide account trigger printed a name that repeated the provider
+                        name above it, and its second dots menu put two identical icons on one row. */}
+                    <Show when={activeProviderAccount(integration(row.item), isActiveCredential)?.status}>
+                      {(status) => (
+                        <Button
+                          size="normal"
+                          variant="ghost-muted"
+                          class="text-[var(--v2-state-fg-warning)]"
+                          title={status().message}
+                          onClick={() => connect(row.item.id)}
+                        >
+                          {language.t("dialog.provider.needsSignIn")}
+                        </Button>
+                      )}
+                    </Show>
+                    {/* A custom provider without the configuration document cannot say where its
+                        credential came from, so it shows no hint instead of the wrong one. */}
+                    <Show when={!customProvider(row.item.id) && readOnly().has(row.item.id)}>
+                      <span class="settings-provider-env-hint">
+                        {language.t("settings.providers.custom.readOnly")}
+                      </span>
+                    </Show>
+                    <Show
+                      when={
+                        !customProvider(row.item.id) &&
+                        !readOnly().has(row.item.id) &&
+                        !canDisconnect(row.item) &&
+                        (configReady() || source(row.item) !== "custom")
+                      }
+                    >
+                      <span class="settings-provider-env-hint">
+                        {source(row.item) === "config"
+                          ? language.t("settings.providers.custom.configured")
+                          : language.t("settings.providers.connected.environmentDescription")}
+                      </span>
+                    </Show>
+                    {/* A provider with nothing to offer keeps no menu: an empty dots button would open
+                        a blank surface. */}
+                    <Show when={canManageAccounts(row.item) || canDisconnect(row.item) || customProvider(row.item.id)}>
+                      <RowMenu item={row.item} name={row.item.name} />
+                    </Show>
+                  </div>
+                }
+              >
+                <ConfirmRemoval />
+              </Show>
+            </div>
+            <Show when={canStoreKey(row.item)}>
+              <div class="settings-provider-accounts">
+                <ProviderAccountList
+                  accounts={accountList(row.item).items}
+                  activeID={accountList(row.item).activeID}
+                  size="compact"
+                  removeConfirm={(account, final) =>
+                    language.t(
+                      final
+                        ? "settings.providers.account.removeLast.confirm"
+                        : "settings.providers.account.remove.confirm",
+                      { account: account.label },
+                    )
+                  }
+                  onActivate={(account) =>
+                    void accountActions
+                      .activate({
+                        integrationID: accountList(row.item).integrationID,
+                        provider: row.item.name,
+                        account,
+                      })
+                      .then(() => credentials.refetch())
+                  }
+                  onRename={async (account, label) => {
+                    const renamed = await accountActions.rename(account, label)
+
+                    if (renamed) void credentials.refetch()
+
+                    return renamed
+                  }}
+                  onRemove={(account) =>
+                    void accountActions
+                      .remove({
+                        integrationID: accountList(row.item).integrationID,
+                        provider: row.item.name,
+                        account,
+                        final: accountList(row.item).items.length === 1,
+                      })
+                      .then(() => credentials.refetch())
+                  }
+                  secret={accountKey}
+                  create={(input) =>
+                    accountActions
+                      .create({
+                        integrationID: accountList(row.item).integrationID,
+                        provider: row.item.name,
+                        ...input,
+                      })
+                      .then((created) => {
+                        void credentials.refetch()
+
+                        return created
+                      })
+                  }
+                />
+              </div>
+            </Show>
+          </div>
+        }
+      >
+        {(group) => (
+          <div class="settings-provider-console group">
+            <div class="settings-provider-console-header">
+              <div class="settings-provider-lead">
+                <span class="settings-provider-lead-icon">
+                  <OpenCodeLogo class="settings-provider-icon size-4 shrink-0" />
+                </span>
+                <div class="settings-provider-console-summary">
+                  <div class="settings-provider-main">
+                    <span class="settings-provider-name truncate">
+                      {language.t("provider.connect.opencode.name")}
+                    </span>
+                    <Badge>{group().workspace}</Badge>
+                  </div>
+                  <Show when={group().providers.length > 1}>
+                    <button
+                      type="button"
+                      class="settings-provider-console-toggle"
+                      aria-expanded={state.consoleExpanded}
+                      onClick={() => setState("consoleExpanded", (value) => !value)}
+                    >
+                      <span>
+                        {language.plural(
+                          "settings.providers.console.available",
+                          group().providers.length,
+                          { count: group().providers.length },
+                        )}
+                      </span>
+                      <Icon
+                        name="chevron-right"
+                        size="small"
+                        classList={{
+                          "settings-provider-console-chevron": true,
+                          open: state.consoleExpanded,
+                        }}
+                      />
+                    </button>
+                  </Show>
+                </div>
+              </div>
+              <Show
+                when={confirmingFor(row.item)}
+                fallback={
+                  <Show
+                    when={canManageAccounts(row.item)}
+                    fallback={
+                      <Button
+                        size="normal"
+                        variant="ghost-muted"
+                        onClick={() =>
+                          requestDisconnect(row.item, language.t("provider.connect.opencode.name"))
+                        }
+                      >
+                        {language.t("common.disconnect")}
+                      </Button>
+                    }
+                  >
+                    <RowMenu item={row.item} name={language.t("provider.connect.opencode.name")} />
+                  </Show>
+                }
+              >
+                <ConfirmRemoval />
+              </Show>
+            </div>
+            <Show when={state.consoleExpanded}>
+              <div class="settings-provider-console-list">
+                <div class="settings-provider-console-separator" aria-hidden="true" />
+                <For each={group().providers}>
+                  {(provider) => (
+                    <button
+                      type="button"
+                      class="settings-provider-console-item"
+                      onClick={() => props.onSelectProvider?.(provider.id)}
+                    >
+                      <span>{provider.name.slice(group().prefix.length)}</span>
+                      <Icon
+                        name="chevron-right"
+                        size="small"
+                        class="settings-provider-console-item-chevron"
+                      />
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </div>
+        )}
+      </Show>
+    )
+  }
+
+  // Every row offers exactly one menu, and that menu only holds what the row itself owns. Accounts are not in it: the
+  // list under the row already shows them, with their names and masked keys, so a second entry point would only hide
+  // them behind a menu.
   function RowMenu(menuProps: { item: ProviderItem; name: string }) {
     const custom = () => customProvider(menuProps.item.id)
-    const accounts = () => canManageAccounts(menuProps.item)
     const disconnect = () => !custom() && canDisconnect(menuProps.item)
 
     return (
@@ -484,11 +716,6 @@ export const SettingsProviders: Component<{
         />
         <Menu.Portal>
           <Menu.Content class="settings-provider-row-menu">
-            <Show when={accounts() && !custom()}>
-              <Menu.Item onSelect={() => manageAccounts(menuProps.item)}>
-                {language.t("settings.providers.account.manage.menu")}
-              </Menu.Item>
-            </Show>
             <Show when={custom()}>
               {(provider) => (
                 <>
@@ -543,215 +770,63 @@ export const SettingsProviders: Component<{
       />
 
       <div class="settings-tab-body settings-tab-body--sectioned settings-providers">
-        <div class="settings-section" data-component="connected-providers-section">
-          <h3 class="settings-section-title">
-            {language.t("settings.providers.section.connected")}
-            <Show when={providers.ready() && displayed().length > 0}>
-              <span class="settings-section-count">{displayed().length}</span>
-            </Show>
-          </h3>
+        <Show when={displayed().length > 0 || customRows().length === 0}>
+          <div class="settings-section" data-component="connected-providers-section">
+            <h3 class="settings-section-title">
+              {language.t("settings.providers.section.connected")}
+              <Show when={providers.ready() && displayed().length > 0}>
+                <span class="settings-section-count">{displayed().length}</span>
+              </Show>
+            </h3>
+            <SettingsList variant="catalog">
+              <Switch>
+                {/* A failed catalog leaves the lists undefined forever, which used to read as "loading". The failure
+                    owns this branch so the retry is reachable. */}
+                <Match when={providers.error() !== undefined}>
+                  <div class="settings-models-status">
+                    <span>{language.t("settings.providers.catalog.failed")}</span>
+                    <Button size="small" variant="neutral" onClick={() => providers.retry()}>
+                      {language.t("common.retry")}
+                    </Button>
+                  </div>
+                </Match>
+                <Match when={!providers.ready()}>
+                  <div class="settings-models-status">
+                    <Loader class="size-4" />
+                    <span>
+                      {language.t("common.loading")}
+                      {language.t("common.loading.ellipsis")}
+                    </span>
+                  </div>
+                </Match>
+                <Match when={displayed().length === 0 && customRows().length === 0}>
+                  <div class="settings-provider-empty">
+                    <span>{language.t("settings.providers.connected.empty")}</span>
+                  </div>
+                </Match>
+              </Switch>
+              <Show when={providers.ready() && displayed().length > 0}>
+                <For each={displayed()}>
+                  {(item) => <ProviderRow item={item} />}
+                </For>
+              </Show>
+            </SettingsList>
+          </div>
+        </Show>
+
+        {/* A custom provider is not a catalog entry: adding, editing and deleting one all write the configuration
+            document, so the custom list and its add row share one card instead of growing off the connected list. */}
+        <div class="settings-section">
+          <Show when={customRows().length > 0}>
+            <h3 class="settings-section-title">
+              {language.t("settings.providers.tag.custom")}
+              <span class="settings-section-count">{customRows().length}</span>
+            </h3>
+          </Show>
           <SettingsList variant="catalog">
-            <Switch>
-              {/* A failed catalog leaves the lists undefined forever, which used to read as "loading". The failure
-                  owns this branch so the retry is reachable. */}
-              <Match when={providers.error() !== undefined}>
-                <div class="settings-models-status">
-                  <span>{language.t("settings.providers.catalog.failed")}</span>
-                  <Button size="small" variant="neutral" onClick={() => providers.retry()}>
-                    {language.t("common.retry")}
-                  </Button>
-                </div>
-              </Match>
-              <Match when={!providers.ready()}>
-                <div class="settings-models-status">
-                  <Loader class="size-4" />
-                  <span>
-                    {language.t("common.loading")}
-                    {language.t("common.loading.ellipsis")}
-                  </span>
-                </div>
-              </Match>
-              <Match when={displayed().length === 0}>
-                <div class="settings-provider-empty">
-                  <span>{language.t("settings.providers.connected.empty")}</span>
-                </div>
-              </Match>
-            </Switch>
-            <Show when={providers.ready() && displayed().length > 0}>
-              <For each={displayed()}>
-                {(item) => {
-                  const managedGroup = () => (consoleGroup()?.root.id === item.id ? consoleGroup() : undefined)
-
-                  return (
-                    <Show
-                      when={managedGroup()}
-                      fallback={
-                        <div class="settings-provider-row group">
-                          <div class="settings-provider-lead">
-                            <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
-                          </div>
-
-                          <div class="settings-provider-copy">
-                            <div class="settings-provider-main">
-                              <span class="settings-provider-name truncate">{item.name}</span>
-                              <Badge>{type(item)}</Badge>
-                            </div>
-                          </div>
-                          <Show
-                            when={confirmingFor(item)}
-                            fallback={
-                              <div class="settings-provider-actions">
-                                {/* The row has one control. Accounts, the provider form and its removal all live in
-                                    that menu: a row-wide account trigger printed a name that repeated the provider
-                                    name above it, and its second dots menu put two identical icons on one row. */}
-                                <Show when={activeProviderAccount(integration(item), isActiveCredential)?.status}>
-                                  {(status) => (
-                                    <Button
-                                      size="normal"
-                                      variant="ghost-muted"
-                                      class="text-[var(--v2-state-fg-warning)]"
-                                      title={status().message}
-                                      onClick={() => connect(item.id)}
-                                    >
-                                      {language.t("dialog.provider.needsSignIn")}
-                                    </Button>
-                                  )}
-                                </Show>
-                                {/* A custom provider without a key has nothing for the edit sheet to save: its key is a
-                                    credential, so the button opens the connect step that asks for one. */}
-                                <Show when={!canDisconnect(item) && customProvider(item.id)}>
-                                  {(provider) => (
-                                    <Button size="normal" variant="neutral" onClick={() => addAccount(provider())}>
-                                      {language.t("settings.providers.custom.keyMissing")}
-                                    </Button>
-                                  )}
-                                </Show>
-                                {/* A custom provider without the configuration document cannot say where its
-                                    credential came from, so it shows no hint instead of the wrong one. */}
-                                <Show when={!customProvider(item.id) && readOnly().has(item.id)}>
-                                  <span class="settings-provider-env-hint">
-                                    {language.t("settings.providers.custom.readOnly")}
-                                  </span>
-                                </Show>
-                                <Show
-                                  when={
-                                    !customProvider(item.id) &&
-                                    !readOnly().has(item.id) &&
-                                    !canDisconnect(item) &&
-                                    (configReady() || source(item) !== "custom")
-                                  }
-                                >
-                                  <span class="settings-provider-env-hint">
-                                    {source(item) === "config"
-                                      ? language.t("settings.providers.custom.configured")
-                                      : language.t("settings.providers.connected.environmentDescription")}
-                                  </span>
-                                </Show>
-                                {/* A provider with nothing to offer keeps no menu: an empty dots button would open
-                                    a blank surface. */}
-                                <Show when={canManageAccounts(item) || canDisconnect(item) || customProvider(item.id)}>
-                                  <RowMenu item={item} name={item.name} />
-                                </Show>
-                              </div>
-                            }
-                          >
-                            <ConfirmRemoval />
-                          </Show>
-                        </div>
-                      }
-                    >
-                      {(group) => (
-                        <div class="settings-provider-console group">
-                          <div class="settings-provider-console-header">
-                            <div class="settings-provider-lead">
-                              <span class="settings-provider-lead-icon">
-                                <OpenCodeLogo class="settings-provider-icon size-4 shrink-0" />
-                              </span>
-                              <div class="settings-provider-console-summary">
-                                <div class="settings-provider-main">
-                                  <span class="settings-provider-name truncate">
-                                    {language.t("provider.connect.opencode.name")}
-                                  </span>
-                                  <Badge>{group().workspace}</Badge>
-                                </div>
-                                <Show when={group().providers.length > 1}>
-                                  <button
-                                    type="button"
-                                    class="settings-provider-console-toggle"
-                                    aria-expanded={state.consoleExpanded}
-                                    onClick={() => setState("consoleExpanded", (value) => !value)}
-                                  >
-                                    <span>
-                                      {language.plural(
-                                        "settings.providers.console.available",
-                                        group().providers.length,
-                                        { count: group().providers.length },
-                                      )}
-                                    </span>
-                                    <Icon
-                                      name="chevron-right"
-                                      size="small"
-                                      classList={{
-                                        "settings-provider-console-chevron": true,
-                                        open: state.consoleExpanded,
-                                      }}
-                                    />
-                                  </button>
-                                </Show>
-                              </div>
-                            </div>
-                            <Show
-                              when={confirmingFor(item)}
-                              fallback={
-                                <Show
-                                  when={canManageAccounts(item)}
-                                  fallback={
-                                    <Button
-                                      size="normal"
-                                      variant="ghost-muted"
-                                      onClick={() =>
-                                        requestDisconnect(item, language.t("provider.connect.opencode.name"))
-                                      }
-                                    >
-                                      {language.t("common.disconnect")}
-                                    </Button>
-                                  }
-                                >
-                                  <RowMenu item={item} name={language.t("provider.connect.opencode.name")} />
-                                </Show>
-                              }
-                            >
-                              <ConfirmRemoval />
-                            </Show>
-                          </div>
-                          <Show when={state.consoleExpanded}>
-                            <div class="settings-provider-console-list">
-                              <div class="settings-provider-console-separator" aria-hidden="true" />
-                              <For each={group().providers}>
-                                {(provider) => (
-                                  <button
-                                    type="button"
-                                    class="settings-provider-console-item"
-                                    onClick={() => props.onSelectProvider?.(provider.id)}
-                                  >
-                                    <span>{provider.name.slice(group().prefix.length)}</span>
-                                    <Icon
-                                      name="chevron-right"
-                                      size="small"
-                                      class="settings-provider-console-item-chevron"
-                                    />
-                                  </button>
-                                )}
-                              </For>
-                            </div>
-                          </Show>
-                        </div>
-                      )}
-                    </Show>
-                  )
-                }}
-              </For>
-            </Show>
+            <For each={customRows()}>
+              {(item) => <ProviderRow item={item} />}
+            </For>
             <div class="settings-provider-add-row" data-slot="settings-provider-add-row">
               {/* Adding, editing and deleting a custom provider all read or write the configuration document, so
                   without it the slot explains the failure and offers the refetch instead of opening a broken form. */}

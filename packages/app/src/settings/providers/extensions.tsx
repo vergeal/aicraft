@@ -1,5 +1,6 @@
 import { Predicate } from "effect"
-import { Component, For, Show, createEffect, createMemo, createResource, type JSX } from "solid-js"
+import { Component, For, Show, createEffect, createMemo, onCleanup, type JSX } from "solid-js"
+import { createQuery } from "@tanstack/solid-query"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Button } from "@opencode/ui/button"
 import { Switch } from "@opencode/ui/switch"
@@ -9,12 +10,10 @@ import { TruncatedText } from "@opencode/ui/truncated-text"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useData } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
-import { ServerConnection } from "@/runtime/server/registry"
 import { useMcpToggle } from "@/providers/connect/mcp"
 import { DialogMcp } from "@/providers/connect/mcp-dialog"
-import { ExtensionPlugins } from "@/runtime/plugin/extension-plugins"
-import { usePlatform } from "@/runtime/platform/platform"
 import { SettingsList } from "@/settings/list"
+import { configuredLanguageServers } from "@/settings/workspaces/project-lsp"
 import type { SettingsView } from "@/settings/surface"
 import { SettingsPageHeader } from "@/settings/page-header"
 import "@/settings/settings.css"
@@ -37,7 +36,6 @@ export const SettingsExtensions: Component<{
   const serverSdk = useServerSDK()
   const data = useData()
   const dialog = useDialog()
-  const platform = usePlatform()
   // MCP connections are per Location, so read and toggle them where the active session runs, as the TUI does. The
   // names come from the default Location so this page lists only the servers available to all projects.
   const location = () => (props.directory ? { directory: props.directory } : data.location.default())
@@ -64,17 +62,30 @@ export const SettingsExtensions: Component<{
     toggleMcp.mutate(name)
   }
 
-  const [pluginList, { refetch: refetchPlugins }] = createResource(
-    () => serverSdk.connection.status() === "connected",
-    () => serverSdk.api.plugin.list().then((result) => result.data),
+  // Language servers come from the same document the MCP note points at, and they are read-only here: enabling or
+  // disabling one belongs to opencode.json, so this tab reports what is configured instead of editing it.
+  const languageServers = createQuery(() => ({
+    queryKey: [serverSdk.scope, "settings-extensions-language-servers"],
+    enabled: serverSdk.connection.status() === "connected",
+    queryFn: () => serverSdk.api.config.get({ location: undefined }),
+  }))
+
+  const configuredLanguageServersState = createMemo(() =>
+    configuredLanguageServers(
+      languageServers.isPending || languageServers.isError ? [] : (languageServers.data ?? []),
+    ),
   )
 
-  // Reading .latest before the first result suspends, so the rows wait for a ready or refreshing list.
-  const loadedPlugins = () =>
-    pluginList.state === "ready" || pluginList.state === "refreshing" ? (pluginList.latest ?? []) : undefined
+  onCleanup(serverSdk.event.on("config.updated", () => void languageServers.refetch()))
 
-  // The desktop window runs the GUIs of its own server's plugins, so only that server's rows control them.
-  const own = () => !!platform.plugins && ServerConnection.builtin(serverSdk.server)
+  function SectionHeading(props: { description: string }) {
+    return (
+      <div class="flex items-center justify-between">
+        <span class="settings-extension-heading">{props.description}</span>
+        <span class="settings-extension-note">{language.t("settings.extensions.manageConfig")}</span>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -87,27 +98,21 @@ export const SettingsExtensions: Component<{
       <div class="settings-tab-body">
         <Tabs
           variant="pill"
-          value={props.subtab ?? "mcps"}
+          // A stored `plugins` or `skills` subtab predates these two tabs; the MCP tab is the honest fallback.
+          value={props.subtab === "lsps" ? "lsps" : "mcps"}
           onChange={(value) => {
-            if (value === "mcps" || value === "plugins") props.onSubtab(value)
+            if (value === "mcps" || value === "lsps") props.onSubtab(value)
           }}
           class="settings-extensions-tabs settings-subtabs"
         >
           <Tabs.List>
             <Tabs.Trigger value="mcps">{language.t("settings.extensions.tab.mcps")}</Tabs.Trigger>
-            <Tabs.Trigger value="plugins">{language.t("settings.extensions.tab.plugins")}</Tabs.Trigger>
+            <Tabs.Trigger value="lsps">{language.t("project.settings.extensions.tab.lsps")}</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="mcps">
             <div class="settings-section">
-              <div class="flex items-center justify-between">
-                <span class="settings-extension-heading">
-                  {language.t("settings.extensions.availableAll")}
-                </span>
-                <span class="settings-extension-note">
-                  {language.t("settings.extensions.manageConfig")}
-                </span>
-              </div>
+              <SectionHeading description={language.t("settings.extensions.availableAll")} />
               <SettingsList variant="catalog">
                 <For each={mcps()}>
                   {(item) => {
@@ -181,21 +186,14 @@ export const SettingsExtensions: Component<{
             </div>
           </Tabs.Content>
 
-          <Tabs.Content value="plugins">
+          <Tabs.Content value="lsps">
             <div class="settings-section">
-              <div class="flex items-center justify-between">
-                <span class="settings-extension-heading">
-                  {language.t("settings.extensions.availableAll")}
-                </span>
-                <span class="settings-extension-note">
-                  {language.t("settings.extensions.manageConfig")}
-                </span>
-              </div>
+              <SectionHeading description={language.t("project.settings.extensions.lsp.description")} />
               <Show
-                when={loadedPlugins()}
+                when={!languageServers.isPending && !languageServers.isError}
                 fallback={
                   <Show
-                    when={pluginList.error}
+                    when={languageServers.isError}
                     fallback={
                       <div class="settings-extension-state">
                         <Loader />
@@ -204,22 +202,54 @@ export const SettingsExtensions: Component<{
                     }
                   >
                     <div class="settings-extension-state">
-                      <span>{language.t("settings.plugins.loadFailed")}</span>
-                      <Button size="small" variant="ghost" onClick={() => void refetchPlugins()}>
+                      <span>{language.t("settings.providers.config.failed")}</span>
+                      <Button size="small" variant="ghost" onClick={() => void languageServers.refetch()}>
                         {language.t("common.retry")}
                       </Button>
                     </div>
                   </Show>
                 }
               >
-                {(plugins) => (
+                <SettingsList variant="catalog">
                   <Show
-                    when={plugins().length > 0}
-                    fallback={<p class="settings-extension-state">{language.t("settings.plugins.empty")}</p>}
+                    when={configuredLanguageServersState().servers.length > 0}
+                    fallback={
+                      <p class="settings-extension-state">
+                        {language.t(
+                          configuredLanguageServersState().disabled
+                            ? "project.settings.extensions.lsp.disabled.title"
+                            : "project.settings.extensions.lsp.empty.title",
+                        )}
+                      </p>
+                    }
                   >
-                    <ExtensionPlugins plugins={plugins()} own={own()} showSource />
+                    <For each={configuredLanguageServersState().servers}>
+                      {(server) => (
+                        <div class="settings-extension-row" data-status={server.disabled ? "disabled" : "connected"}>
+                          <div class="settings-extension-lead">
+                            <span class="settings-mcp-status">
+                              <span
+                                class="mcp-status-dot"
+                                data-status={server.disabled ? "disabled" : "connected"}
+                                aria-hidden="true"
+                              />
+                            </span>
+                            <TruncatedText text={server.name} class="settings-extension-name" />
+                          </div>
+                          <div class="settings-extension-trailing">
+                            <span class="settings-extension-note">
+                              {server.disabled
+                                ? language.t("project.settings.extensions.lsp.status.disabled")
+                                : server.extensions.length > 0
+                                  ? server.extensions.join(", ")
+                                  : language.t("project.settings.extensions.lsp.status.enabled")}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </For>
                   </Show>
-                )}
+                </SettingsList>
               </Show>
             </div>
           </Tabs.Content>

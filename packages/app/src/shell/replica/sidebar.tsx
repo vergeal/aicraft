@@ -60,6 +60,14 @@ const STATUS_LABEL = {
 
 const RECENT_GROUP = "replica-sidebar-recent"
 
+/** Pinned sessions and project rows are their own sortable containers, so each group numbers its own indexes. */
+const PINNED_GROUP = "replica-sidebar-pinned"
+
+const PROJECT_GROUP = "replica-sidebar-projects"
+
+/** One container per project: a session's index counts inside its own project, which is what its DOM order shows. */
+const projectSessionGroup = (key: string) => `${RECENT_GROUP}:${key}`
+
 /** The workspace head's actions: 24px targets, so the three sit quietly beside one 13px label. */
 const HEAD_BUTTON =
   "flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-icon-primary)]"
@@ -71,9 +79,10 @@ const HEAD_BUTTON =
  */
 const openedSessions = new Set<string>()
 
-/** The order a drag leaves the recent list in; pinned order lives in the pin list itself. */
+/** The order a drag leaves the recent list and the project list in; pinned order lives in the pin list itself. */
 const SidebarSessionOrder = Persistence.struct({
   recent: Persistence.array(Schema.String),
+  projects: Persistence.array(Schema.String),
 })
 
 /** The run state at the end of a conversation row: a ring while working, one dot once the result lands. */
@@ -187,6 +196,8 @@ function SessionRow(props: {
   onOpen: (entry: InboxEntry) => void
   onArchive: (entry: InboxEntry) => void
   onDelete: (entry: InboxEntry) => void
+  /** The edge of this row the insertion line sits on, while a drag is over it. */
+  dropEdge?: Accessor<"start" | "end" | undefined>
 }) {
   const language = useLanguage()
 
@@ -219,6 +230,7 @@ function SessionRow(props: {
     },
     accept: (source) => source.data?.group === props.group,
   })
+
 
   const nativeMenu = () => !!platform.showContextMenu
 
@@ -429,6 +441,10 @@ function SessionRow(props: {
         data-session-server={props.entry().server}
         data-session-id={props.entry().session.id}
         data-state={props.active() ? "pressed" : undefined}
+        data-sortable-key={props.entry().key}
+        data-sortable-group={props.group}
+        data-dragging={sortable.isDragging() ? "" : undefined}
+        data-drop-target={props.dropEdge?.()}
         data-renaming={renaming() ? "" : undefined}
         title={createdByTitle()}
         role="button"
@@ -523,6 +539,66 @@ function SessionRow(props: {
         </Menu.Context.Content>
       </Menu.Context.Portal>
     </Menu.Context>
+  )
+}
+
+/**
+ * One project row: a fold button that is also the project's sortable handle. The folder icon brightens when the
+ * project holds the open session, so the tree and the conversation it came from stay connected.
+ */
+function ProjectRow(props: {
+  project: Accessor<{ key: string; name: string; entries: InboxEntry[]; pinned: boolean }>
+  index: number
+  active: Accessor<boolean>
+  folded: Accessor<boolean>
+  onToggle: () => void
+  dropEdge: Accessor<"start" | "end" | undefined>
+}) {
+  const sortable = useSortable({
+    get id() {
+      return `project:${props.project().key}`
+    },
+    get index() {
+      return props.index
+    },
+    get group() {
+      return PROJECT_GROUP
+    },
+    get data() {
+      return { group: PROJECT_GROUP }
+    },
+    accept: (source) => source.data?.group === PROJECT_GROUP,
+  })
+
+
+  return (
+    <button
+      type="button"
+      data-replica-control
+      ref={sortable.ref}
+      data-slot="replica-project-row"
+      data-state={props.active() ? "active" : undefined}
+      data-sortable-key={`project:${props.project().key}`}
+      data-sortable-group={PROJECT_GROUP}
+      data-dragging={sortable.isDragging() ? "" : undefined}
+      data-drop-target={props.dropEdge()}
+      aria-expanded={!props.folded()}
+      class={ROW}
+      onClick={props.onToggle}
+    >
+      <Icon
+        name={props.folded() ? "folder" : "folder-open"}
+        class="replica-project-icon size-4 shrink-0"
+      />
+      <span data-slot="replica-project-name" class="min-w-0 flex-1 truncate">
+        {props.project().name}
+      </span>
+      <Icon
+        name="chevron-down"
+        size="small"
+        class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
+      />
+    </button>
   )
 }
 
@@ -652,13 +728,22 @@ function ConversationNav() {
     }
   })
 
-  const [order, setOrder] = persisted(Persist.global("replica.sidebar.sessions"), SidebarSessionOrder, { recent: [] })
+  const [order, setOrder] = persisted(Persist.global("replica.sidebar.sessions"), SidebarSessionOrder, {
+    recent: [],
+    projects: [],
+  })
 
-  // The workspace head's filter: every project, or only the ones holding a pinned session.
+  // The workspace head's filter: every project, or only the pinned section.
   const [onlyPinned, setOnlyPinned] = createSignal(false)
 
-  // A pinned session keeps its place in the tree and is marked on its project row instead of moving to its own
-  // section, so the workspace reads as one tree in the reference's shape.
+  // Where the insertion line goes while a row is being dragged. dnd-kit reports the dragged row itself as the
+  // operation target, so the slot comes from the pointer: the row stack under it, minus the row being carried.
+  const [dropSlot, setDropSlot] = createSignal<{ key: string; edge: "start" | "end" } | undefined>()
+
+  const slotEdge = (key: string) => (dropSlot()?.key === key ? dropSlot()?.edge : undefined)
+
+  // Pinned sessions live in their own section above the tree, in pin order, so pinning reads as a promotion instead
+  // of a badge. The project tree leaves them out of its rows.
   const pinnedIDs = () => new Set(pins.ids())
 
   // A dragged order wins for the sessions it lists. A session that arrives afterwards joins the top in creation
@@ -690,10 +775,17 @@ function ConversationNav() {
     return ordered
   })
 
+  /** Pinned rows in pin order; a pin whose session has not loaded yet simply has no row. */
+  const pinnedEntries = createMemo(() => {
+    const byID = new Map(recent().map((entry) => [entry.session.id, entry]))
+
+    return pins.ids().flatMap((id) => byID.get(id) ?? [])
+  })
+
   /**
-   * The recent list read as a project tree: one folder row per project with its sessions underneath. Group order
-   * follows the list itself, so the project that spoke last stays on top, and a session keeps the relative position
-   * the fetch and drag order gave it inside its own project.
+   * The recent list read as a project tree: one folder row per project with its sessions underneath. A project the
+   * user dragged keeps that position; the rest follow the list itself, so the project that spoke last stays on top.
+   * Pinned sessions are lifted into their own section, and a group left empty by that lift is dropped.
    */
   const projectGroups = createMemo(() => {
     const groups = new Map<string, { key: string; name: string; entries: InboxEntry[] }>()
@@ -714,14 +806,23 @@ function ConversationNav() {
     }
 
     const pinned = pinnedIDs()
+    const ranked = order.projects
+    const rank = (key: string) => {
+      const index = ranked.indexOf(key)
 
-    return [...groups.values()].flatMap((group) => {
-      const marked = group.entries.some((entry) => pinned.has(entry.session.id))
+      return index === -1 ? ranked.length : index
+    }
 
-      if (onlyPinned() && !marked) return []
+    return [...groups.values()]
+      .flatMap((group) => {
+        const marked = group.entries.some((entry) => pinned.has(entry.session.id))
+        const entries = group.entries.filter((entry) => !pinned.has(entry.session.id))
 
-      return [{ ...group, pinned: marked }]
-    })
+        if (entries.length === 0) return []
+
+        return [{ key: group.key, name: group.name, entries, pinned: marked }]
+      })
+      .toSorted((a, b) => rank(a.key) - rank(b.key))
   })
 
   // Rows leave the list through its top and bottom edges, so fade them there rather than cutting them off. The fade
@@ -736,7 +837,7 @@ function ConversationNav() {
 
   createEffect(
     on(
-      () => projectGroups().length,
+      () => pinnedEntries().length + projectGroups().length,
       () => updateFades(list()),
       { defer: true },
     ),
@@ -770,6 +871,23 @@ function ConversationNav() {
 
     return !!tab && tab.type === "session" && tab.server === entry.server && tab.sessionId === entry.session.id
   }
+
+  /** The project that holds the open session, so its folder can brighten without tinting the whole tree. */
+  const activeProjectKeys = createMemo(() => {
+    const keys = new Set<string>()
+    const tab = currentTab()
+
+    if (!tab || tab.type !== "session") return keys
+
+    const entry = recent().find((item) => item.server === tab.server && item.session.id === tab.sessionId)
+
+    if (!entry) return keys
+
+    const project = entry.ctx.projects.forSession(entry.session)
+    keys.add(project?.id ?? project?.worktree ?? entry.session.location.directory)
+
+    return keys
+  })
 
   const open = (entry: InboxEntry) => {
     const directory = entry.ctx.projects.forSession(entry.session)?.worktree ?? entry.session.location.directory
@@ -887,12 +1005,104 @@ function ConversationNav() {
             ...defaults.filter((plugin) => plugin !== Accessibility),
             Feedback.configure({ dropAnimation: null }),
           ]}
+          onDragMove={(event) => {
+            const source = event.operation.source
+
+            if (!isSortable(source)) return setDropSlot(undefined)
+
+            const { index, initialIndex } = source
+
+            if (index === initialIndex) return setDropSlot(undefined)
+
+            const group = String(source.data?.group ?? "")
+            const y = event.operation.position.current.y
+
+            // dnd-kit already resolves the slot the row would take, which is the only answer that matches where the
+            // drop lands. Project rows sit far apart because each one owns a session list, so their geometry cannot
+            // stand in for the index the way two adjacent rows can.
+            // The feedback plugin's placeholder is a copy of the row and lives in the same list, so it never counts.
+            const seen = new Set<string>()
+            const rows = [...document.querySelectorAll(`[data-sortable-group="${group}"]`)]
+              .filter((row) => row.closest('[data-slot="replica-sidebar"]'))
+              .filter((row) => !row.hasAttribute("data-dnd-placeholder"))
+              .filter((row) => {
+                const key = row.getAttribute("data-sortable-key")
+
+                if (!key || seen.has(key)) return false
+
+                seen.add(key)
+
+                return true
+              })
+
+            if (rows.length === 0) return setDropSlot(undefined)
+
+            // A pointer carried into another project's list must not light a slot in the one it came from.
+            const top = Math.min(...rows.map((row) => row.getBoundingClientRect().top))
+            const bottom = Math.max(...rows.map((row) => row.getBoundingClientRect().bottom))
+
+            if (y < top - 4 || y > bottom + 4) return setDropSlot(undefined)
+
+            const key = rows[index]?.getAttribute("data-sortable-key")
+
+            if (!key) return setDropSlot(undefined)
+
+            setDropSlot({ key, edge: index > initialIndex ? "end" : "start" })
+          }}
           onDragEnd={(event) => {
             const source = event.operation.source
+
+            setDropSlot(undefined)
 
             if (event.canceled || !isSortable(source) || source.initialIndex === source.index) return
 
             const group = String(source.group ?? "")
+
+            if (group === PROJECT_GROUP) {
+              setOrder(
+                "projects",
+                arrayMove(
+                  projectGroups().map((item) => item.key),
+                  source.initialIndex,
+                  source.index,
+                ),
+              )
+
+              return
+            }
+
+            if (group === PINNED_GROUP) {
+              pins.reorder(
+                arrayMove(
+                  pinnedEntries().map((entry) => entry.session.id),
+                  source.initialIndex,
+                  source.index,
+                ),
+              )
+
+              return
+            }
+
+            const projectKey = group.startsWith(`${RECENT_GROUP}:`) ? group.slice(RECENT_GROUP.length + 1) : undefined
+
+            if (projectKey !== undefined) {
+              // A project reorders inside itself. Its slots in the whole list keep their places, so a drag in one
+              // project never moves a row in another, and the pinned section keeps its own order.
+              const entries = projectGroups().find((item) => item.key === projectKey)?.entries
+
+              if (!entries) return
+
+              const ids = entries.map((entry) => entry.session.id)
+              const moved = arrayMove(ids, source.initialIndex, source.index)
+              const current = recent().map((entry) => entry.session.id)
+              const slots = current.flatMap((id, index) => (ids.includes(id) ? [index] : []))
+              const next = [...current]
+
+              slots.forEach((slot, index) => (next[slot] = moved[index]))
+              setOrder("recent", next)
+
+              return
+            }
 
             if (group !== RECENT_GROUP) return
             setOrder(
@@ -905,46 +1115,54 @@ function ConversationNav() {
             )
           }}
         >
-          <Show when={projectGroups().length > 0}>
+          <Show when={pinnedEntries().length > 0}>
             <div class="flex flex-col gap-[2px]">
+              <h3 class={SECTION}>{language.t("replica.workspace.pinned")}</h3>
+              <div class={LIST}>
+                <Key each={pinnedEntries()} by={(entry) => entry.key}>
+                  {(entry, index) => (
+                    <SessionRow
+                      entry={entry}
+                      active={() => active(entry())}
+                      group={PINNED_GROUP}
+                      index={index()}
+                      onOpen={open}
+                      onArchive={archive}
+                      onDelete={confirmDelete}
+                      dropEdge={() => slotEdge(entry().key)}
+                    />
+                  )}
+                </Key>
+              </div>
+            </div>
+          </Show>
+          <Show when={!onlyPinned() && projectGroups().length > 0}>
+            <div class="flex flex-col gap-[2px]" classList={{ "mt-3": pinnedEntries().length > 0 }}>
               <Key each={projectGroups()} by={(group) => group.key}>
-                {(group) => (
+                {(group, index) => (
                   <div class="flex flex-col">
-                    <button
-                      type="button"
-                      data-replica-control
-                      data-slot="replica-project-row"
-                      aria-expanded={!foldedProjects().has(group().key)}
-                      class={ROW}
-                      onClick={() => toggleProject(group().key)}
-                    >
-                      <Icon
-                        name={foldedProjects().has(group().key) ? "folder" : "folder-open"}
-                        class="size-4 shrink-0 text-[var(--color-icon-secondary)]"
-                      />
-                      <span class="min-w-0 flex-1 truncate">{group().name}</span>
-                      <Show when={group().pinned}>
-                        <Icon name="pin" size="small" class="shrink-0 text-[var(--color-icon-secondary)]" />
-                      </Show>
-                      <Icon
-                        name="chevron-down"
-                        size="small"
-                        class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
-                      />
-                    </button>
+                    <ProjectRow
+                      project={group}
+                      index={index()}
+                      active={() => activeProjectKeys().has(group().key)}
+                      folded={() => foldedProjects().has(group().key)}
+                      onToggle={() => toggleProject(group().key)}
+                      dropEdge={() => slotEdge(`project:${group().key}`)}
+                    />
                     {/* The sessions fold open by grid rows, so the column grows instead of the list appearing at once. */}
                     <div class="replica-project-sessions" data-collapsed={foldedProjects().has(group().key)}>
                       <div class={`${LIST} ps-3 min-h-0 overflow-hidden`}>
                         <Key each={group().entries} by={(entry) => entry.key}>
-                          {(entry) => (
+                          {(entry, sessionIndex) => (
                             <SessionRow
                               entry={entry}
                               active={() => active(entry())}
-                              group={RECENT_GROUP}
-                              index={recent().findIndex((item) => item.key === entry().key)}
+                              group={projectSessionGroup(group().key)}
+                              index={sessionIndex()}
                               onOpen={open}
                               onArchive={archive}
                               onDelete={confirmDelete}
+                              dropEdge={() => slotEdge(entry().key)}
                             />
                           )}
                         </Key>
@@ -955,7 +1173,7 @@ function ConversationNav() {
               </Key>
             </div>
           </Show>
-          <Show when={projectGroups().length === 0}>
+          <Show when={onlyPinned() ? pinnedEntries().length === 0 : pinnedEntries().length === 0 && projectGroups().length === 0}>
             <p class="px-1 py-2 text-[13px] leading-5 text-[var(--color-text-tertiary)]">
               {language.t(onlyPinned() ? "replica.workspace.filter.empty" : "replica.project.empty")}
             </p>

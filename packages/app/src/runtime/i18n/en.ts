@@ -1738,6 +1738,7 @@ export const dict = {
 
   "knowledge.title": "Knowledge",
   "replica.workspace.name": "Workspace",
+  "replica.workspace.pinned": "Pinned",
   "replica.workspace.search": "Search sessions",
   "replica.workspace.filter": "Filter sessions",
   "replica.workspace.filter.all": "All sessions",

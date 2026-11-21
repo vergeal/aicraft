@@ -1396,6 +1396,7 @@ export const dict = {
 
   "knowledge.title": "知识库",
   "replica.workspace.name": "工作区",
+  "replica.workspace.pinned": "置顶",
   "replica.workspace.search": "搜索会话",
   "replica.workspace.filter": "筛选会话",
   "replica.workspace.filter.all": "全部会话",

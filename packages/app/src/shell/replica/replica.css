@@ -421,16 +421,6 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
   transition: none;
 }
 
-/* The toggle's only motion is a fade; reduced motion keeps the state change without it. */
-@media (prefers-reduced-motion: reduce) {
-  [data-slot="replica-titlebar-side"],
-  [data-slot="replica-titlebar-side"][data-collapsed],
-  [data-slot="replica-sidebar-slot"],
-  [data-slot="replica-sidebar-slot"][data-collapsed] {
-    transition: none;
-  }
-}
-
 /* While dragging, the whole frame keeps the resize cursor and stops selecting the panels' text. */
 [data-replica][data-resizing] {
   cursor: col-resize;

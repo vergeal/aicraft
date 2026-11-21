@@ -4,7 +4,7 @@
 /* One metric scale for the whole settings surface: a 4px base, an 8/12/16/20/24 rhythm, radius 8/12/16/20/28 and
    three control tiers. Every colour comes from the shared theme layer (--v2-*); this block only names metrics, so no
    rule below restates a colour or a magic number. */
-:is(.settings-screen, [data-component="dialog-v2"][data-variant="settings"]) {
+:is(.settings-surface, .settings-screen, [data-component="dialog-v2"][data-variant="settings"]) {
   --settings-space-1: 4px;
   --settings-space-2: 8px;
   --settings-space-3: 12px;
@@ -136,40 +136,19 @@
 [data-settings] [data-slot="replica-titlebar-side"] {
   flex: 0 0 var(--settings-rail-width);
   padding-inline-start: var(--sidebar-header-lead);
+  /* The segment only changes width when the rail collapses at the narrow breakpoint; it has no drag handle here, so
+     it must not ease that change the way the session sidebar does. */
+  transition: none;
+}
+
+/* The shared bar paints a cool wash on its navigation segment for the session sidebar. Settings has no wash over
+   its column, so the segment drops it and the two surfaces stay one flat colour across the 44px seam. */
+html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings] [data-slot="replica-titlebar-side"] {
+  background-image: none;
 }
 
 [data-settings] [data-slot="replica-titlebar-main"] {
   padding-inline: var(--settings-space-5);
-}
-
-/* The way out of Settings sits in the window bar, past the traffic lights and the navigation column. It keeps the
-   navigation's 13px muted treatment at the bar's 28px control height. */
-.settings-titlebar-back {
-  display: flex;
-  height: 28px;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  padding-inline: 8px;
-  border: 0;
-  border-radius: var(--settings-radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: var(--line-height-compact);
-  letter-spacing: -0.04px;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-  transition: background-color 120ms ease-out;
-}
-
-.settings-titlebar-back:hover,
-.settings-titlebar-back:focus-visible {
-  background: var(--color-hover);
-  color: var(--color-text-main);
-  outline: none;
 }
 
 .settings-titlebar-title {
@@ -988,14 +967,19 @@
   transition: background-color 120ms ease-out;
 }
 
-/* The desktop sidebar renders the back control as a full-width row on the same 30px metric as the navigation items
-   below it; the mobile header keeps the 28px inline button so it still centers on the collapsed-sidebar toggle.
-   The nav list reserves the scrollbar's lane on both edges, so matching its inline margin keeps the same width and
-   the same left edge as the items instead of hanging 8px wider on each side. */
-.settings-nav > .settings-back {
-  width: auto;
+/* The desktop sidebar renders the back control as a full-width row on the same metric as the navigation items below
+   it; the mobile header keeps the 28px inline button so it still centers on the collapsed-sidebar toggle. The row
+   carries the nav list's scrollbar lane on the button itself, so it shares one width and one left edge with the
+   search field and the items instead of hanging 8px wider on each side. */
+.settings-nav > .settings-nav-back-tooltip {
+  display: flex;
+  margin-inline: var(--scrollbar-size, 8px);
+}
+
+.settings-nav .settings-back {
   height: var(--settings-nav);
   margin-inline: var(--scrollbar-size, 8px);
+  padding-inline: var(--settings-space-3);
 }
 
 .settings-back:hover,
@@ -1490,7 +1474,12 @@
     --settings-rail-width: 56px;
   }
 
-  /* The lights float over the bar's corner once the segment is narrower than their 88px lead. */
+  /* The rail is narrower than the lights' lead, so the segment gives that room up and the buttons float over the
+     workspace segment instead. */
+  [data-settings] [data-slot="replica-titlebar-side"] {
+    padding-inline-start: 0;
+  }
+
   html[data-os="macos"] [data-settings] [data-slot="replica-titlebar-main"] {
     padding-inline-start: 92px;
   }
@@ -1534,6 +1523,23 @@
   .settings-sidebar .settings-nav-groups [data-slot="tabs-v2-trigger"] {
     justify-content: center;
     padding: 0;
+  }
+
+  /* The rail keeps the way out as a bare icon on the same metric as the rows; its name lives in the tooltip. */
+  .settings-nav > .settings-nav-back-tooltip {
+    margin-inline: 0;
+    justify-content: center;
+  }
+
+  .settings-nav .settings-back {
+    width: var(--settings-nav);
+    margin-inline: 0;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .settings-back-label {
+    display: none;
   }
 
   .settings-nav-group .settings-nav-item-label {
@@ -1600,7 +1606,7 @@
     margin-inline: 0;
   }
 
-  .settings-nav > .settings-back,
+  .settings-nav > .settings-nav-back-tooltip,
   .settings-sidebar .settings-nav-groups[data-slot="tabs-v2-list"] {
     display: none;
   }

@@ -1,6 +1,5 @@
 import { Tabs } from "@opencode/ui/tabs"
 import { useDialog } from "@opencode/ui/context/dialog"
-import { Icon } from "@opencode/ui/icon"
 import { createEffect, createMemo, For, on, onCleanup, onMount, Show, Switch, Match, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -120,16 +119,7 @@ export function SettingsScreen() {
 
   const connection = (key: string) => servers().find((item) => item.key === key)
 
-  // The window bar's way out, matching the navigation's: a selected search result returns to the page it opened
-  // from first, and the root page closes Settings back to where it opened.
-  const searchable = () => surface.view().type === "root"
   const language = useLanguage()
-  const back = () => {
-    if (!searchable() && surface.search.back()) return
-    surface.back()
-  }
-  const backLabel = () =>
-    !searchable() && surface.search.state.selected ? language.t("settings.backToSettings") : language.t("settings.backToApp")
 
   const project = (server: ServerConnection.Any, directory: string) =>
     global
@@ -193,10 +183,6 @@ export function SettingsScreen() {
       <header data-slot="replica-titlebar" data-ui="content-topbar" data-settings>
         <div data-slot="replica-titlebar-side" data-ui="titlebar-side" aria-hidden="true" />
         <div data-slot="replica-titlebar-main" data-ui="titlebar-main">
-          <button type="button" class="settings-titlebar-back" onClick={back}>
-            <Icon name="arrow-left" size="small" class="settings-back-icon" />
-            <span>{backLabel()}</span>
-          </button>
           <span class="settings-titlebar-title">{language.t("settings.title")}</span>
         </div>
       </header>

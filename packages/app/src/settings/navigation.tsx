@@ -3,8 +3,7 @@ import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
 import { Tabs } from "@opencode/ui/tabs"
 import { Tooltip } from "@opencode/ui/tooltip"
-import { createMediaQuery } from "@solid-primitives/media"
-import { createEffect, ErrorBoundary, For, on, Show, type ComponentProps, type JSX } from "solid-js"
+import { createSignal, createEffect, ErrorBoundary, For, on, onCleanup, onMount, Show, type ComponentProps, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ErrorPage } from "@/shell/errors/error"
 import { CollapsedSidebarToggleSpace } from "@/shell/sidebar-toggle"
@@ -38,8 +37,19 @@ export function SettingsNavigation(props: {
   const surface = useSettingsSurface()
   const searchable = () => surface.view().type === "root"
   const language = useLanguage()
-  // Below this width the navigation is an icon rail: each row keeps its icon and names itself in a tooltip.
-  const compact = createMediaQuery("(max-width: 1024px)")
+  // Below the wide layout the navigation becomes an icon rail: every row keeps its icon and names itself in a
+  // tooltip. The breakpoint is the same one the stylesheet uses to narrow the column, so the rows and the column
+  // can never disagree about which layout they are in.
+  const [compact, setCompact] = createSignal(false)
+
+  onMount(() => {
+    const sync = () => setCompact(window.matchMedia("(max-width: 1024px)").matches)
+
+    sync()
+    window.addEventListener("resize", sync)
+
+    onCleanup(() => window.removeEventListener("resize", sync))
+  })
 
   const back = () => {
     if (!searchable() && surface.search.back()) return
@@ -129,6 +139,18 @@ export function SettingsNavigation(props: {
       </div>
       <aside class="settings-sidebar" data-searchable={searchable()} aria-label={language.t("settings.nav.label")}>
         <div class="settings-nav">
+          <Tooltip
+            value={backLabel()}
+            placement="right"
+            inactive={!compact()}
+            triggerTabIndex={-1}
+            class="settings-nav-back-tooltip"
+          >
+            <button type="button" class="settings-back" onClick={back}>
+              <Icon name="arrow-left" size="small" class="settings-back-icon" />
+              <span class="settings-back-label">{backLabel()}</span>
+            </button>
+          </Tooltip>
           <Show when={searchable()}>
             <SettingsSearch />
           </Show>
@@ -147,7 +169,13 @@ export function SettingsNavigation(props: {
                     </Show>
                     <For each={group.items}>
                       {(item) => (
-                        <Tooltip value={item.label} placement="right" inactive={!compact()} class="settings-nav-tooltip">
+                        <Tooltip
+                          value={item.label}
+                          placement="right"
+                          inactive={!compact()}
+                          triggerTabIndex={-1}
+                          class="settings-nav-tooltip"
+                        >
                           <Tabs.Trigger
                             value={item.value}
                             disabled={item.disabled}

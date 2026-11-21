@@ -219,6 +219,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
    soft colour instead of a hard copy of the wallpaper. Only the translucent window has a material underneath to
    blur; an opaque window (web) would pay for a filter that has nothing behind it to soften. */
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"],
+html[data-replica-window="translucent"] [data-slot="replica-titlebar-side"],
 html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   -webkit-backdrop-filter: var(--color-material-blur);
   backdrop-filter: var(--color-material-blur);
@@ -237,7 +238,9 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   min-height: var(--titlebar-height);
   background: transparent;
   font-family: var(--font-family-sans, var(--font-family-ui));
-  box-shadow: 0 0.5px 0 var(--color-divider);
+  /* No rule across the whole bar: its navigation segment continues the column below it, so a hairline there would
+     cut one surface into two. The workspace segment closes itself off instead (below). */
+  box-shadow: none;
   -webkit-app-region: drag;
 }
 
@@ -268,7 +271,8 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   padding-inline: 0;
 }
 
-/* The workspace's head: canvas, the conversation title, and the window actions at its trailing edge. */
+/* The workspace's head: canvas, the conversation title, and the window actions at its trailing edge. It draws its
+   own bottom rule inside itself, so the navigation segment beside it stays seamless with the column it heads. */
 [data-slot="replica-titlebar-main"] {
   display: flex;
   flex: 1;
@@ -277,6 +281,7 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   min-width: 0;
   padding-inline: 20px;
   background: var(--color-main);
+  box-shadow: inset 0 -0.5px 0 var(--color-divider);
 }
 
 /* A new chat keeps the window bar as a draggable strip, not a toolbar: the bar stays transparent so the left segment
@@ -293,6 +298,7 @@ html[data-replica-window="translucent"] [data-slot="replica-titlebar"][data-empt
 
 [data-slot="replica-titlebar"][data-empty] [data-slot="replica-titlebar-main"] {
   background: var(--color-main);
+  box-shadow: none;
 }
 
 /* A new chat hides what describes a conversation, but keeps the way back to the column: the collapse control and
@@ -473,17 +479,19 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
 
 /* The navigation column's surface is a plain neutral step above the canvas, with the reference's two faint washes:
    one cool light from the top edge, one violet from the bottom. No coloured gloss: a green-to-blue gradient over the
-   whole column read as a second material instead of a surface level. */
+   whole column read as a second material instead of a surface level. The top wash is measured against the window
+   height, not the element's own height, so the bar's 44px segment and the column below it paint the identical
+   gradient and the seam stays invisible. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
   background-image:
-    radial-gradient(120% 46% at 50% 0%, rgb(59 130 246 / 6%), transparent 68%),
-    radial-gradient(120% 34% at 50% 100%, rgb(139 92 246 / 4%), transparent 70%);
+    radial-gradient(120% calc(46vh - 20px) at 50% 0%, rgb(59 130 246 / 6%), transparent 68%),
+    radial-gradient(120% calc(34vh - 15px) at 50% 100%, rgb(139 92 246 / 4%), transparent 70%);
   background-repeat: no-repeat;
 }
 
-/* The bar's left segment carries the same cool wash the column starts with, so the seam at 44px is invisible. */
+/* The bar's left segment heads that column, so it carries the same top wash on the same window-relative geometry. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar-side"] {
-  background-image: radial-gradient(120% 46% at 50% 0%, rgb(59 130 246 / 6%), transparent 68%);
+  background-image: radial-gradient(120% calc(46vh - 20px) at 50% 0%, rgb(59 130 246 / 6%), transparent 68%);
   background-repeat: no-repeat;
 }
 
@@ -584,8 +592,67 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 }
 
 :root[data-motion="reduce"] .replica-project-chevron,
-:root[data-motion="reduce"] .replica-project-sessions {
+:root[data-motion="reduce"] .replica-project-sessions,
+:root[data-motion="reduce"] .replica-project-icon,
+:root[data-motion="reduce"] [data-slot="replica-project-name"],
+:root[data-motion="reduce"] [data-slot="replica-sidebar"] [data-slot="replica-row"][data-dragging],
+:root[data-motion="reduce"] [data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-dragging] {
   transition: none;
+}
+
+/* A drag marks its landing slot with a 2px line instead of moving anything midway, and the dragged row just fades.
+   The selected row already owns ::before for its 2px edge bar, so the insertion line uses ::after and keeps it. */
+[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target],
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target] {
+  position: relative;
+}
+
+[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target]::after,
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target]::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--sidebar-row-padding-inline);
+  height: 2px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-text-primary) 55%, transparent);
+  pointer-events: none;
+}
+
+/* The line sits on the edge the pointer is closer to, so it reads as the gap the row would drop into. */
+[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target="start"]::after,
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target="start"]::after {
+  inset-block-start: -1px;
+}
+
+[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target="end"]::after,
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target="end"]::after {
+  inset-block-end: -1px;
+}
+
+[data-slot="replica-sidebar"] [data-slot="replica-row"][data-dragging],
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-dragging] {
+  opacity: 0.45;
+  transition: opacity 120ms ease;
+}
+
+/* The folder of the project that holds the open session brightens, and its name steps up to primary while the rest
+   of the tree keeps one quieter step. No fill, no edge bar: the icon alone marks the place. */
+[data-slot="replica-project-row"] .replica-project-icon {
+  color: var(--color-icon-secondary);
+  transition: color 120ms ease;
+}
+
+[data-slot="replica-project-row"] [data-slot="replica-project-name"] {
+  color: var(--color-text-secondary);
+  transition: color 120ms ease;
+}
+
+[data-slot="replica-project-row"][data-state="active"] .replica-project-icon {
+  color: var(--color-icon-primary);
+}
+
+[data-slot="replica-project-row"][data-state="active"] [data-slot="replica-project-name"] {
+  color: var(--color-text-primary);
 }
 
 [data-slot="replica-sidebar"] [data-slot="replica-row"] {

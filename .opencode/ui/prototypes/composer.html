@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Composer 设计稿 v2 · opencode</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <style>
+      /* 设计稿 v2：参数仍取自 .opencode/ui（圆角阶梯、字号阶梯、抬升、0.5px 发丝边），
+         视觉密度向参考实现看齐——大一号的字、四个控件的底部条、无 chevron、实心发送键。 */
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: #eceef0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        color: var(--c-text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 52px 48px 88px;
+      }
+
+      .masthead {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgb(0 0 0 / 0.08);
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: var(--fs-24);
+        line-height: var(--lh-24);
+        font-weight: var(--fw-semibold);
+        letter-spacing: -0.02em;
+      }
+      .masthead p {
+        margin: 0;
+        font-size: var(--fs-13);
+        line-height: var(--lh-13);
+        color: var(--c-text-tertiary);
+      }
+      .masthead .spacer {
+        flex: 1;
+      }
+      .masthead code {
+        font-family: var(--font-mono);
+        font-size: var(--fs-12);
+      }
+
+      .panes {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: 28px;
+      }
+
+      .pane {
+        padding: 40px 40px 44px;
+        border-radius: var(--r-lg);
+        background: #f7f8f9;
+        box-shadow: 0 0 0 var(--hairline) var(--c-border);
+      }
+
+      .pane--dark {
+        --c-bg-canvas: #151517;
+        --c-bg-surface: #232324;
+        --c-bg-layer-1: #232324;
+        --c-bg-layer-2: #2c2c2e;
+        --c-bg-layer-3: #353638;
+        --c-text: #f9fafb;
+        --c-text-secondary: #cfd3d6;
+        --c-text-tertiary: #adb2b8;
+        --c-text-dimmed: #8f939a;
+        --c-text-on-color: #ffffff;
+        --c-text-link: #608afe;
+        --c-border-subtle: rgb(255 255 255 / 0.06);
+        --c-border: rgb(255 255 255 / 0.12);
+        --c-border-strong: rgb(255 255 255 / 0.16);
+        --c-border-heavy: rgb(255 255 255 / 0.2);
+        --c-hover: rgb(255 255 255 / 0.08);
+        --c-active: rgb(255 255 255 / 0.14);
+        --c-primary-fill: #f9fafb;
+        --c-primary-fill-hover: #ffffff;
+        --c-primary-text: #0f1115;
+        background: #121214;
+        box-shadow: 0 0 0 var(--hairline) rgb(255 255 255 / 0.08);
+        color: var(--c-text);
+      }
+
+      .pane__label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 32px;
+        font-size: var(--fs-11);
+        line-height: var(--lh-11);
+        font-weight: var(--fw-medium);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-tertiary);
+      }
+      .pane__label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--c-border-subtle);
+      }
+
+      .column {
+        width: 660px;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      /* ---------- 上下文：一个胶囊 + 两段文字 ---------- */
+
+      .context {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 10px;
+        font-size: var(--fs-13);
+        line-height: var(--lh-13);
+        color: var(--c-text-tertiary);
+        white-space: nowrap;
+      }
+      .context__device {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 30px;
+        padding: 0 10px;
+        margin-left: -10px;
+        border: 0;
+        border-radius: var(--r-full);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        transition:
+          background-color var(--dur-fast) var(--ease-out),
+          color var(--dur-fast) var(--ease-out);
+      }
+      .context__device:hover {
+        background: var(--c-hover);
+        color: var(--c-text-secondary);
+      }
+      .context__device svg {
+        width: 15px;
+        height: 15px;
+        opacity: 0.85;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 30px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: var(--r-full);
+        background: var(--c-bg-layer-2);
+        box-shadow: 0 0 0 var(--hairline) var(--c-border-subtle);
+        color: var(--c-text-secondary);
+        font: inherit;
+        font-size: var(--fs-13);
+        cursor: pointer;
+        transition: background-color var(--dur-fast) var(--ease-out);
+      }
+      .pane--dark .chip {
+        background: #26262a;
+        box-shadow: 0 0 0 var(--hairline) rgb(255 255 255 / 0.08);
+      }
+      .chip:hover {
+        background: var(--c-bg-layer-3);
+      }
+      .chip svg {
+        width: 15px;
+        height: 15px;
+        opacity: 0.85;
+      }
+      .context__branch {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: var(--r-full);
+        background: transparent;
+        color: var(--c-text-dimmed);
+        font: inherit;
+        font-size: var(--fs-12);
+        cursor: pointer;
+      }
+      .context__branch:hover {
+        background: var(--c-hover);
+        color: var(--c-text-tertiary);
+      }
+      .context__branch svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---------- 卡片 ---------- */
+
+      .composer {
+        background: var(--c-bg-layer-2);
+        border-radius: 24px;
+        box-shadow:
+          0 2px 6px rgb(0 0 0 / 0.04),
+          0 10px 40px 6px rgb(0 0 0 / 0.03);
+        transition: border-radius var(--dur-base) var(--ease-out);
+      }
+
+      .pane--dark .composer {
+        box-shadow:
+          0 2px 6px rgb(0 0 0 / 0.24),
+          0 12px 48px 8px rgb(0 0 0 / 0.18),
+          inset 0 0 1px 0 rgb(255 255 255 / 0.14);
+      }
+
+      .composer[data-shape="stacked"] {
+        border-radius: 20px;
+      }
+
+      .composer[data-focused] {
+        box-shadow:
+          0 2px 6px rgb(0 0 0 / 0.05),
+          0 12px 48px 6px rgb(0 0 0 / 0.05);
+      }
+      .pane--dark .composer[data-focused] {
+        box-shadow:
+          0 2px 6px rgb(0 0 0 / 0.28),
+          0 14px 52px 8px rgb(0 0 0 / 0.22),
+          inset 0 0 1px 0 rgb(255 255 255 / 0.18);
+      }
+
+      .composer__attachments {
+        display: flex;
+        gap: 8px;
+        padding: 12px 12px 0;
+      }
+      .attachment {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: var(--c-bg-layer-3);
+        box-shadow: 0 0 0 var(--hairline) var(--c-border);
+        display: grid;
+        place-items: center;
+        color: var(--c-text-tertiary);
+      }
+      .attachment svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* 输入：横 20 / 上 18 / 下 10，16/24 */
+      .composer__input {
+        display: block;
+        width: 100%;
+        padding: 20px 20px 14px;
+        border: 0;
+        outline: 0;
+        resize: none;
+        background: transparent;
+        color: var(--c-text);
+        font-family: inherit;
+        font-size: var(--fs-16);
+        line-height: var(--lh-16);
+        letter-spacing: -0.01em;
+        caret-color: var(--c-text-link);
+      }
+      .composer__input::placeholder {
+        color: var(--c-text-tertiary);
+        letter-spacing: 0;
+      }
+      .composer__input--multi {
+        padding-top: 12px;
+      }
+
+      /* 底部条：32px 控件，横 14 / 下 12 */
+      .composer__bar {
+        display: flex;
+        align-items: center;
+        height: 62px;
+        padding: 0 14px 16px;
+        gap: 4px;
+      }
+      .composer__bar-end {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .control {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: var(--r-full);
+        background: transparent;
+        color: var(--c-text-tertiary);
+        font-family: inherit;
+        font-size: var(--fs-14);
+        line-height: var(--lh-14);
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          background-color var(--dur-fast) var(--ease-out),
+          color var(--dur-fast) var(--ease-out);
+      }
+      .control:hover {
+        background: var(--c-hover);
+        color: var(--c-text-secondary);
+      }
+
+      .icon-button {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: var(--r-full);
+        background: transparent;
+        color: var(--c-text-tertiary);
+        cursor: pointer;
+        transition:
+          background-color var(--dur-fast) var(--ease-out),
+          color var(--dur-fast) var(--ease-out);
+      }
+      .icon-button:hover {
+        background: var(--c-hover);
+        color: var(--c-text-secondary);
+      }
+      .icon-button svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* 发送键：32 实心圆，无阴影 */
+      .send {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: var(--r-full);
+        background: var(--c-primary-fill);
+        color: var(--c-primary-text);
+        cursor: pointer;
+        transition:
+          background-color var(--dur-fast) var(--ease-out),
+          opacity var(--dur-fast) var(--ease-out);
+      }
+      .send:hover {
+        background: var(--c-primary-fill-hover);
+      }
+      .send[disabled] {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .send svg {
+        width: 17px;
+        height: 17px;
+      }
+
+      .state {
+        margin-top: 52px;
+      }
+      .state:first-of-type {
+        margin-top: 6px;
+      }
+      .state__label {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 0 0 12px;
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+        color: var(--c-text-tertiary);
+      }
+      .state__label b {
+        font-weight: var(--fw-medium);
+        color: var(--c-text-secondary);
+      }
+      .state__label span {
+        font-family: var(--font-mono);
+        font-size: var(--fs-11);
+        color: var(--c-text-dimmed);
+      }
+
+      .notes {
+        margin-top: 40px;
+        padding-top: 24px;
+        border-top: 1px solid var(--c-border-subtle);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 32px;
+      }
+      .note {
+        display: grid;
+        grid-template-columns: 104px 1fr;
+        gap: 12px;
+        font-size: var(--fs-12);
+        line-height: var(--lh-12);
+      }
+      .note dt {
+        color: var(--c-text-tertiary);
+      }
+      .note dd {
+        margin: 0;
+        color: var(--c-text-secondary);
+      }
+      .note code {
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+
+      .pane--dark .state__label {
+        color: var(--c-text-tertiary);
+      }
+      .pane--dark .note dd,
+      .pane--dark .state__label b {
+        color: var(--c-text-secondary);
+      }
+      .pane--dark .notes {
+        border-top-color: var(--c-border-subtle);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <h1>输入区 · Composer</h1>
+        <p>规范参数不变，密度与大一号的字向参考看齐</p>
+        <span class="spacer"></span>
+        <p>660 内容列 · 卡片 712</p>
+      </header>
+
+      <div class="panes">
+        <section class="pane">
+          <p class="pane__label">浅色 · Light</p>
+          <div class="column">
+            <div class="context">
+              <button class="context__device">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <rect x="2" y="3" width="12" height="8.5" rx="1.2" />
+                  <path d="M5.5 14h5" stroke-linecap="round" />
+                </svg>
+                这台电脑
+              </button>
+              <button class="chip">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M2 5.5V12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1H7.8L6.4 4H3a1 1 0 0 0-1 1v.5Z" />
+                </svg>
+                opencode
+              </button>
+              <button class="context__branch">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <circle cx="4.5" cy="4" r="1.5" />
+                  <circle cx="4.5" cy="12" r="1.5" />
+                  <circle cx="11.5" cy="6.5" r="1.5" />
+                  <path d="M4.5 5.5v5M11.5 8c0 1.9-1.5 2.6-3.3 2.8" stroke-linecap="round" />
+                </svg>
+                master
+              </button>
+            </div>
+
+            <div class="state">
+              <p class="state__label"><b>空态</b><span>radius 24 · send 35%</span></p>
+              <div class="composer">
+                <textarea class="composer__input" rows="1" placeholder="写一个 Hello world" readonly></textarea>
+                <div class="composer__bar">
+                  <button class="icon-button" aria-label="添加附件">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="control">Build</button>
+                  <div class="composer__bar-end">
+                    <button class="control">DeepSeek V4 Flash</button>
+                    <button class="send" disabled aria-label="发送">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+                        <path d="M8 12.5v-9M4.2 7.3 8 3.5l3.8 3.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="state">
+              <p class="state__label"><b>有内容 · 聚焦</b><span>发送键实心 · 无彩色焦点环</span></p>
+              <div class="composer" data-focused>
+                <textarea class="composer__input" rows="1" readonly>把答案页的滚动位置修好</textarea>
+                <div class="composer__bar">
+                  <button class="icon-button" aria-label="添加附件">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="control">Build</button>
+                  <div class="composer__bar-end">
+                    <button class="control">DeepSeek V4 Flash</button>
+                    <button class="send" aria-label="发送">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+                        <path d="M8 12.5v-9M4.2 7.3 8 3.5l3.8 3.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="state">
+              <p class="state__label"><b>多行 + 附件</b><span>radius 20 · 附件 48</span></p>
+              <div class="composer" data-shape="stacked">
+                <div class="composer__attachments">
+                  <div class="attachment">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+                      <path d="m3.5 10 2.8-2.6 2.4 2.2 1.7-1.5 2.1 1.9" stroke-linecap="round" />
+                    </svg>
+                  </div>
+                  <div class="attachment">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <path d="M4 2.5h5l3 3V13a.5.5 0 0 1-.5.5h-7.5A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5Z" />
+                      <path d="M9 2.5V6h3" />
+                    </svg>
+                  </div>
+                </div>
+                <textarea class="composer__input composer__input--multi" rows="2" readonly>这两张截图里回答区的间距不一致，帮我对比一下是哪一层的 padding 出了问题，是 16 还是 8？</textarea>
+                <div class="composer__bar">
+                  <button class="icon-button" aria-label="添加附件">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="control">Build</button>
+                  <div class="composer__bar-end">
+                    <button class="control">DeepSeek V4 Flash</button>
+                    <button class="send" aria-label="发送">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+                        <path d="M8 12.5v-9M4.2 7.3 8 3.5l3.8 3.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pane pane--dark">
+          <p class="pane__label">深色 · Dark</p>
+          <div class="column">
+            <div class="context">
+              <button class="context__device">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <rect x="2" y="3" width="12" height="8.5" rx="1.2" />
+                  <path d="M5.5 14h5" stroke-linecap="round" />
+                </svg>
+                这台电脑
+              </button>
+              <button class="chip">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M2 5.5V12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1H7.8L6.4 4H3a1 1 0 0 0-1 1v.5Z" />
+                </svg>
+                opencode
+              </button>
+              <button class="context__branch">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <circle cx="4.5" cy="4" r="1.5" />
+                  <circle cx="4.5" cy="12" r="1.5" />
+                  <circle cx="11.5" cy="6.5" r="1.5" />
+                  <path d="M4.5 5.5v5M11.5 8c0 1.9-1.5 2.6-3.3 2.8" stroke-linecap="round" />
+                </svg>
+                master
+              </button>
+            </div>
+
+            <div class="state">
+              <p class="state__label"><b>空态</b><span>inset 高光 · send 35%</span></p>
+              <div class="composer">
+                <textarea class="composer__input" rows="1" placeholder="写一个 Hello world" readonly></textarea>
+                <div class="composer__bar">
+                  <button class="icon-button" aria-label="添加附件">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="control">Build</button>
+                  <div class="composer__bar-end">
+                    <button class="control">DeepSeek V4 Flash</button>
+                    <button class="send" disabled aria-label="发送">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+                        <path d="M8 12.5v-9M4.2 7.3 8 3.5l3.8 3.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="state">
+              <p class="state__label"><b>有内容 · 聚焦</b><span>白底黑箭头</span></p>
+              <div class="composer" data-focused>
+                <textarea class="composer__input" rows="1" readonly>把答案页的滚动位置修好</textarea>
+                <div class="composer__bar">
+                  <button class="icon-button" aria-label="添加附件">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="control">Build</button>
+                  <div class="composer__bar-end">
+                    <button class="control">DeepSeek V4 Flash</button>
+                    <button class="send" aria-label="发送">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+                        <path d="M8 12.5v-9M4.2 7.3 8 3.5l3.8 3.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="state">
+              <p class="state__label"><b>多行 + 附件</b><span>radius 20 · 附件 48</span></p>
+              <div class="composer" data-shape="stacked">
+                <div class="composer__attachments">
+                  <div class="attachment">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+                      <path d="m3.5 10 2.8-2.6 2.4 2.2 1.7-1.5 2.1 1.9" stroke-linecap="round" />
+                    </svg>
+                  </div>
+                  <div class="attachment">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                      <path d="M4 2.5h5l3 3V13a.5.5 0 0 1-.5.5h-7.5A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5Z" />
+                      <path d="M9 2.5V6h3" />
+                    </svg>
+                  </div>
+                </div>
+                <textarea class="composer__input composer__input--multi" rows="2" readonly>这两张截图里回答区的间距不一致，帮我对比一下是哪一层的 padding 出了问题，是 16 还是 8？</textarea>
+                <div class="composer__bar">
+                  <button class="icon-button" aria-label="添加附件">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="control">Build</button>
+                  <div class="composer__bar-end">
+                    <button class="control">DeepSeek V4 Flash</button>
+                    <button class="send" aria-label="发送">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+                        <path d="M8 12.5v-9M4.2 7.3 8 3.5l3.8 3.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <dl class="notes">
+        <div class="note"><dt>字号</dt><dd>输入 <code>16/24</code>，工具条 <code>14/22</code>，上下文 <code>13/20</code></dd></div>
+        <div class="note"><dt>元素</dt><dd>底部条只有 4 个：+ / agent / 模型 / 发送；无 chevron</dd></div>
+        <div class="note"><dt>圆角</dt><dd>单行 <code>24</code>，多行 + 附件 <code>20</code></dd></div>
+        <div class="note"><dt>填充</dt><dd>卡片取 layer-2：浅色白、深色 #2c2c2e，靠底色而非描边分层</dd></div>
+        <div class="note"><dt>内距</dt><dd>输入 横 20 / 上 18 / 下 10，工具条 横 14 / 下 12</dd></div>
+        <div class="note"><dt>控件</dt><dd>高 <code>32</code>，图标 <code>18</code>，发送键 <code>32</code> 实心</dd></div>
+        <div class="note"><dt>发送</dt><dd>无内容 <code>opacity .35</code>，形状不变；有内容为纯实心反向色</dd></div>
+        <div class="note"><dt>上下文</dt><dd>一个设备入口 + 一个项目胶囊 + 分支，全部 30 高</dd></div>
+      </dl>
+    </div>
+  </body>
+</html>

@@ -142,23 +142,7 @@ function ComposerModelControl(props: {
   })
 
   const content = () => (
-    <>
-      <span class="flex min-w-0 whitespace-nowrap leading-4">
-        <Show when={props.label.provider}>
-          {(name) => (
-            <>
-              <bdi class="min-w-0 shrink-[2] truncate text-v2-text-text-faint">{name()}</bdi>
-              <Slash />
-              <span class="sr-only">{" / "}</span>
-            </>
-          )}
-        </Show>
-        <bdi class="min-w-0 truncate">{props.label.model}</bdi>
-      </span>
-      <span class="-ml-0.5 -mr-1 flex shrink-0">
-        <Icon name="chevron-down" />
-      </span>
-    </>
+    <bdi class="flex min-w-0 whitespace-nowrap leading-[22px]">{props.label.model}</bdi>
   )
 
   return (
@@ -193,7 +177,7 @@ function ComposerModelControl(props: {
                 class: `me-1.5 min-w-0 max-w-[calc(100cqw-140px)] justify-start ![font-weight: 400] ${
                   shouldAnimate() ? "animate-in fade-in" : ""
                 }`,
-                style: { height: "28px" },
+                style: { height: "32px" },
                 variant: "ghost-muted",
                 size: "normal",
                 "data-action": "composer-model",
@@ -247,7 +231,7 @@ function ComposerModelControl(props: {
                 {...triggerProps}
                 variant="ghost-muted"
                 size="normal"
-                style={{ height: "28px" }}
+                style={{ height: "32px" }}
                 class="me-1.5 min-w-0 max-w-[calc(100cqw-140px)] justify-start ![font-weight: 400]"
                 classList={{ "animate-in fade-in": shouldAnimate() }}
                 data-action="composer-model"

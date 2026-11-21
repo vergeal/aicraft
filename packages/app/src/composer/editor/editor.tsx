@@ -383,7 +383,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
               spellcheck={state.mode === "normal"}
               // @ts-expect-error
               autocomplete="off"
-              class="relative z-10 block w-full whitespace-pre-wrap bg-transparent ps-3 pe-[var(--composer-scroll-end)] pt-3 pb-2 text-[15px] font-[400] leading-5 text-v2-text-text-base focus:outline-none [&_[data-mention=file]]:text-syntax-property [&_[data-mention=agent]]:text-syntax-type [&_[data-mention=reference]]:text-syntax-primitive [&_[data-mention=skill]]:text-syntax-constant"
+              class="relative z-10 block w-full whitespace-pre-wrap bg-transparent ps-5 pe-[var(--composer-scroll-end)] pt-5 pb-3.5 text-[16px] font-[400] leading-6 text-v2-text-text-base focus:outline-none [&_[data-mention=file]]:text-syntax-property [&_[data-mention=agent]]:text-syntax-type [&_[data-mention=reference]]:text-syntax-primitive [&_[data-mention=skill]]:text-syntax-constant"
               classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell", "opacity-50": props.disabled }}
               style={{
                 "unicode-bidi": state.mode === "normal" ? "plaintext" : undefined,
@@ -506,7 +506,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
               <div
                 data-slot="composer-placeholder"
                 dir={state.mode === "normal" ? "auto" : "ltr"}
-                class="pointer-events-none absolute inset-x-0 top-0 ps-3 pe-[var(--composer-scroll-end)] pt-3 text-[15px] font-[400] leading-5 text-v2-text-text-muted"
+                class="pointer-events-none absolute inset-x-0 top-0 ps-5 pe-[var(--composer-scroll-end)] pt-5 text-[16px] font-[400] leading-6 text-v2-text-text-muted"
                 classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell" }}
                 style={{ "unicode-bidi": state.mode === "normal" ? "plaintext" : undefined, "text-align": "start" }}
               >
@@ -519,7 +519,11 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
         </div>
 
-        <div class="flex h-10 shrink-0 items-center px-3" classList={{ hidden: touch() && state.mode === "shell" }}>
+        <div
+          data-slot="composer-toolbar"
+          class="flex h-[62px] shrink-0 items-center px-[13px] pb-4"
+          classList={{ hidden: touch() && state.mode === "shell" }}
+        >
           <Show when={!touch()}>
             <div
               class="flex shrink-0 items-center"
@@ -1255,9 +1259,6 @@ function ComposerEditorSelect(props: {
         <Show when={selected()?.icon}>{(icon) => <Icon name={icon()} class="shrink-0 opacity-60" />}</Show>
       )}
       <span class="truncate capitalize leading-5">{selected()?.label ?? props.current}</span>
-      <span class="-ms-0.5 -me-1 flex shrink-0">
-        <Icon name="chevron-down" />
-      </span>
     </>
   )
 
@@ -1618,13 +1619,6 @@ function ComposerEditorSubmitButton(props: {
         aria-busy={props.busy && !props.stopping}
         variant="submit"
         class="size-8 rounded-full p-2"
-        style={{
-          "background-color": "#000",
-          "background-image": "none",
-          color: "#fff",
-          "box-shadow": "none",
-          "text-shadow": "none",
-        }}
         aria-label={props.stopping ? props.stopLabel : props.sendLabel}
         onClick={(event) => {
           event.preventDefault()

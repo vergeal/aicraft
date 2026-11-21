@@ -37,24 +37,10 @@
   border: 0;
   border-radius: 14px;
   background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
-  transition: box-shadow 160ms ease;
-}
-
-[data-component="composer"]:has([data-component="composer-editor"]:focus) {
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
 }
 
 /* The bottom row shares the card's 12px inset with the prompt and the attachments. Pills carry 6px of their
    own inner pad, so the end pills pull back by that much and their glyphs sit on the same column as the text. */
-[data-component="composer"] [data-action="composer-attach"] {
-  margin-inline-start: -6px;
-}
-
-[data-component="composer"] [data-action="composer-submit"] {
-  margin-inline-end: -6px;
-}
-
 /* The agent and model triggers read as plain text until hovered, then take a soft pill. Every control in the
    toolbar shares one 28px height and one 13px meta size, so the row never steps. */
 [data-component="composer"]
@@ -63,11 +49,11 @@
 [data-component="composer"]
   [data-slot="composer-actions"]
   :is([data-action="composer-model"], [data-action="composer-exit-shell"]) {
-  height: 28px;
+  height: 32px;
   border-radius: 9999px;
   border: 0;
   background-color: transparent;
-  font-size: 13px;
+  font-size: 14px;
   line-height: var(--line-height-compact);
   transition:
     background-color 120ms ease,
@@ -156,27 +142,14 @@
   color: var(--v2-text-text-muted);
 }
 
+/* The submit key is one 28px circle. Its fill, glyph and highlight come from the shared submit variant, so the
+   light theme gets the dark key and the dark theme the light one, instead of a hard-coded colour that reads as
+   black on black. Only the size belongs to the composer. */
 :root [data-component="composer"] [data-action="composer-submit"] {
-  width: 28px;
-  height: 28px;
-  padding: 6px;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
   border-radius: 9999px;
-  background-color: var(--v2-background-bg-accent);
-  background-image: none;
-  color: var(--v2-text-text-inverse);
-  text-shadow: none;
-}
-
-@media (hover: hover) {
-  :root [data-component="composer"] [data-action="composer-submit"]:is(:hover, [data-state="hover"]):not(:disabled) {
-    background-color: color-mix(in srgb, var(--v2-background-bg-accent) 86%, transparent);
-    background-image: none;
-  }
-}
-
-:root [data-component="composer"] [data-action="composer-submit"]:is(:active, [data-state="pressed"]):not(:disabled) {
-  background-color: color-mix(in srgb, var(--v2-background-bg-accent) 72%, transparent);
-  background-image: none;
 }
 
 /* Send and stop are one key changing state, not two icons swapping: the outgoing glyph shrinks and fades at the

@@ -114,8 +114,8 @@
   --color-sidebar: rgb(35 35 36 / 95%);
   --color-navigation: rgb(35 35 36 / 92%);
   --color-main: #151517;
-  --color-composer: var(--v2-background-bg-layer-01);
-  --replica-composer-fill: var(--v2-background-bg-layer-01);
+  --color-composer: var(--v2-background-bg-layer-02);
+  --replica-composer-fill: var(--v2-background-bg-layer-02);
   --color-hover: rgb(255 255 255 / 8%);
   /* The selected row steps up to the design system's layer-3 (#353638) instead of a wash: a wash of white over the
      surface never separated the row from its neighbours. */
@@ -776,8 +776,20 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 /* The empty state's composer is the reference's 24px card; the docked composer in a conversation keeps 20px, so the
    two surfaces are tuned apart instead of sharing one radius. */
 [data-replica] [data-component="new-session"] {
-  --radius-composer: 24px;
+  --radius-composer: 20px;
   --radius-composer-single-line: 24px;
+}
+
+/* The prompt card overhangs the content column by 16px a side, so its inner text still sits on the column's left
+   edge while the card keeps room for its hairline. The prompt's own 12px inset would then sit 4px left of every row
+   above it, so the empty state widens that inset to match the overhang. */
+[data-component="new-session"] [data-component="composer-editor"],
+[data-component="new-session"] [data-slot="composer-placeholder"] {
+  padding-left: 20px;
+}
+
+[data-component="new-session"] [data-component="composer"] [data-slot="composer-toolbar"] {
+  padding-inline: 13px;
 }
 
 /* The conversation scroll area owns its own scrollbar; the window never scrolls. */
@@ -818,12 +830,11 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   --v2-background-bg-layer-01: var(--replica-composer-fill);
   --v2-background-bg-base: var(--replica-composer-fill);
   background: var(--replica-composer-fill);
-  border: 1px solid var(--color-border);
+  /* No stroke: the fill step and the soft shadow already carry the edge, as in the reference composer. */
+  border: 0;
   border-radius: var(--radius-composer);
   box-shadow: var(--shadow-composer);
-  transition:
-    border-radius 160ms ease,
-    border-color 160ms ease;
+  transition: border-radius 160ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -840,12 +851,6 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 [data-replica]
   [data-slot="composer-morph"][data-dock-border-underlay]:has([data-component="composer-editor"][data-lines="single"]) {
   border-radius: var(--radius-composer-single-line);
-}
-
-/* Focus deepens the hairline instead of drawing an accent ring: the prompt already owns the whole card. */
-[data-replica] [data-ui="composer"]:has([data-component="composer-editor"]:focus),
-[data-slot="replica-compose-card"]:has([data-component="composer-editor"]:focus) {
-  border-color: var(--v2-border-border-strong);
 }
 
 /* The shell owns the card edge: the border, radius and shadow are drawn once on the wrapper, so the shared

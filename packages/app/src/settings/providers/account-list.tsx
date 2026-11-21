@@ -182,7 +182,9 @@ export function ProviderAccountList(props: {
                           variant="ghost-muted"
                           size="small"
                           class="provider-account-reveal"
-                          icon={<Icon name={state.revealed[account.id] ? "eye-closed" : "eye-open"} />}
+                          icon={
+                            <Icon name={state.revealed[account.id] ? "outline-eye-slash" : "outline-eye"} />
+                          }
                           aria-label={language.t(
                             state.revealed[account.id]
                               ? "dialog.provider.accounts.hide"

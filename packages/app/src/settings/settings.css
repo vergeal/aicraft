@@ -141,8 +141,8 @@
   transition: none;
 }
 
-/* The shared bar paints a cool wash on its navigation segment for the session sidebar. Settings has no wash over
-   its column, so the segment drops it and the two surfaces stay one flat colour across the 44px seam. */
+/* The shared bar paints the brand wash on its navigation segment for the session sidebar. Settings has no wash
+   over its column, so the segment drops it and the two surfaces stay one flat colour across the 44px seam. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings] [data-slot="replica-titlebar-side"] {
   background-image: none;
 }

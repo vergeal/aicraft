@@ -6,9 +6,9 @@ import { Popover } from "@opencode/ui/popover"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
-import { Slash } from "@opencode/ui/slash"
 import { Tooltip } from "@opencode/ui/tooltip"
-import { ComposerEditor } from "./editor/editor"
+import { ComposerEditor, composerOverlayGutter } from "./editor/editor"
+import "./overlay.css"
 import type { ComposerSelectControl } from "./editor/interaction"
 import { ComposerVariantSlider } from "./editor/variant-slider"
 import { DialogSelectModel, ModelSelectorDrawer } from "@/providers/models/select-dialog"
@@ -122,16 +122,8 @@ function ComposerModelControl(props: {
   // A previewed chip is visible before the catalog loads, so a click on it opens the dialog once loading finishes.
   const [deferred, setDeferred] = createSignal<number>()
   const [store, setStore] = createStore({ open: false })
+  const [gutter, setGutter] = createSignal(8)
   const hasVariant = () => !!props.variant && props.variant.options().length > 1
-
-  const variantLabel = () => {
-    const control = props.variant
-
-    if (!control || !hasVariant()) return
-    const option = control.options().find((item) => item.id === control.current())
-
-    return option?.label ?? control.current()
-  }
 
   createEffect(() => {
     const detail = deferred()
@@ -141,9 +133,7 @@ function ComposerModelControl(props: {
     open(detail)
   })
 
-  const content = () => (
-    <bdi class="flex min-w-0 whitespace-nowrap leading-[22px]">{props.label.model}</bdi>
-  )
+  const content = () => <bdi class="flex min-w-0 whitespace-nowrap leading-[22px]">{props.label.model}</bdi>
 
   return (
     <Show when={!props.loading || props.preview}>
@@ -163,14 +153,15 @@ function ComposerModelControl(props: {
           fallback={
             <Popover
               open={store.open}
+              class="composer-overlay-surface"
               onOpenChange={(next) => {
                 // A preview opens the dialog once the catalog loads, and a model without effort
                 // options keeps the old one-click dialog instead of a card with a single row.
                 if (next && (props.loading || !hasVariant())) return setDeferred(1)
                 setStore("open", next)
               }}
-              placement="top-start"
-              gutter={6}
+              placement="top-end"
+              gutter={gutter()}
               triggerAs={Button}
               trigger={content()}
               triggerProps={{
@@ -183,43 +174,41 @@ function ComposerModelControl(props: {
                 "data-action": "composer-model",
                 "data-control-type": "popover",
                 "aria-label": props.title,
+                // The popover reads its gutter when it opens, and the pointer trigger opens on pointerdown, so the
+                // distance is measured there rather than on the later mousedown.
+                onPointerDown: (event: PointerEvent) =>
+                  setGutter(composerOverlayGutter(event.currentTarget as HTMLElement)),
+                onKeyDown: (event: KeyboardEvent) => {
+                  if (event.key === "Enter" || event.key === " ")
+                    setGutter(composerOverlayGutter(event.currentTarget as HTMLElement))
+                },
                 onMouseDown: (event: MouseEvent) => event.preventDefault(),
               }}
             >
-              <div class="flex w-[264px] flex-col gap-3 p-3">
+              <div data-slot="composer-model-popover" class="flex w-[240px] flex-col p-2">
                 <Show when={hasVariant()}>
-                  <span class="text-center text-[13px] font-[530] capitalize leading-5 text-v2-text-text-accent">
-                    {variantLabel()}
-                  </span>
+                  <div class="flex h-7 items-center px-1">
+                    <span class="min-w-0 truncate text-[12px] leading-4 text-v2-text-text-faint">
+                      {props.variantTitle}
+                    </span>
+                  </div>
+                  <Show when={props.variant}>
+                    {(control) => <ComposerVariantSlider control={control()} label={props.variantTitle} />}
+                  </Show>
+                  <div class="my-1 h-px shrink-0 bg-v2-border-border-muted" />
                 </Show>
                 <button
                   type="button"
                   data-slot="composer-model-row"
-                  class="flex h-7 w-full items-center gap-2 rounded-full px-1.5 text-[13px] leading-5 transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+                  class="flex h-[30px] w-full items-center gap-2 rounded-lg px-1 text-start text-[13px] leading-5 text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
                   onClick={() => {
                     setStore("open", false)
                     open(1)
                   }}
                 >
-                  {/* Mirrors the chevron's width so the label centers in the button itself, not in the space left of
-                      the arrow. Without it the label sits 11px left of centre. */}
-                  <span aria-hidden="true" class="w-3.5 shrink-0" />
-                  <span class="flex min-w-0 flex-1 items-center justify-center">
-                    <Show when={props.label.provider}>
-                      {(name) => (
-                        <>
-                          <span class="shrink-0 text-v2-text-text-faint">{name()}</span>
-                          <Slash />
-                        </>
-                      )}
-                    </Show>
-                    <span class="min-w-0 truncate text-v2-text-text-base">{props.label.model}</span>
-                  </span>
+                  <span class="min-w-0 flex-1 truncate">{props.title}</span>
                   <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
                 </button>
-                <Show when={hasVariant() && props.variant}>
-                  {(control) => <ComposerVariantSlider control={control()} label={props.variantTitle} />}
-                </Show>
               </div>
             </Popover>
           }

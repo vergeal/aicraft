@@ -254,13 +254,7 @@
   outline-offset: -2px;
 }
 
-/* The card now takes layer-01 in both schemes, so only its suggestion panel still needs the dark surface. */
-[data-color-scheme="dark"]
-  [data-component="composer-suggestions"]:has(~ [data-component="composer"][data-dock-border-underlay="true"]),
-[data-color-scheme="dark"] [data-component="session-composer-dock"] [data-component="composer-suggestions"],
-[data-color-scheme="dark"] [data-component="new-session"] [data-component="composer-suggestions"] {
-  background: var(--v2-background-bg-layer-01);
-}
+/* The suggestion panel takes the shared overlay surface, so it no longer needs a scheme-specific fill. */
 
 /* The drag-in-progress state must override the shared composer surface, and the dock sets that surface
    inline, so the retained-state override needs a forced value — allowed by the acceptance standard when

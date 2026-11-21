@@ -1,0 +1,25 @@
+/* One surface for every overlay the composer opens — the attach menu, the agent menu, the model card and the
+   suggestion panel — so they share one radius, one hairline and one elevation instead of each looking different.
+   Menu and popover carry their own defaults, so the class only lands on surfaces the composer owns. */
+[data-component="menu-v2-content"].composer-overlay-surface,
+[data-component="popover-content"].composer-overlay-surface,
+[data-component="composer-suggestions"].composer-overlay-surface {
+  border: 0;
+  border-radius: 12px;
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
+  box-shadow:
+    0 0 0 0.5px var(--v2-border-border-base),
+    var(--v2-elevation-floating);
+}
+
+/* The design minimum for a menu is 144px. A short option list such as the agent picker would otherwise shrink to
+   its label and read as a leftover chip rather than a menu. */
+[data-component="menu-v2-content"].composer-overlay-surface {
+  min-width: min(144px, calc(100vw - 24px));
+}
+
+/* A popover body carries its own 12px padding. The model card sets its inset itself, so the two do not stack. */
+[data-component="popover-content"].composer-overlay-surface [data-slot="popover-body"] {
+  padding: 0;
+}

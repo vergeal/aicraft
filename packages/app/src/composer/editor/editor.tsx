@@ -50,6 +50,7 @@ import { QuoteCommentEditor } from "./quote-comment"
 import { createCodeDecoration } from "./code-decoration"
 import { openFence } from "./fence"
 import "../attachments/attachments.css"
+import "../overlay.css"
 import "./editor.css"
 import "@/shell/palette-menu.css"
 
@@ -66,13 +67,13 @@ type ComposerMode = "normal" | "shell"
 
 const COMPOSER_SUGGESTION_MAX_HEIGHT = 320
 
-const COMPOSER_SUGGESTION_ROW_HEIGHT = 28
+const COMPOSER_SUGGESTION_ROW_HEIGHT = 30
 
-const COMPOSER_SUGGESTION_ROW_PEEK = 18
+const COMPOSER_SUGGESTION_ROW_PEEK = 0
 
-const COMPOSER_SUGGESTION_TOP_PADDING = 6
+const COMPOSER_SUGGESTION_TOP_PADDING = 4
 
-const COMPOSER_SUGGESTION_SEARCH_HEIGHT = 28
+const COMPOSER_SUGGESTION_SEARCH_HEIGHT = 30
 
 const COMPOSER_SUGGESTION_CONTEXT_RESERVE = 80
 
@@ -165,8 +166,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
     const markShape = () => {
       if (!editor || !content) return
       const style = getComputedStyle(editor)
-      const singleLine =
-        parseFloat(style.lineHeight) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+      const singleLine = parseFloat(style.lineHeight) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
       const lines = content.scrollHeight <= singleLine + 1 ? "single" : "multi"
 
       if (editor.dataset.lines !== lines) editor.dataset.lines = lines
@@ -1114,6 +1114,7 @@ function ComposerEditorAddMenu(props: {
   onShell: () => void
 }) {
   const focus = pointerFocusReturn()
+  const [gutter, setGutter] = createSignal(8)
 
   return (
     <Tooltip
@@ -1125,9 +1126,14 @@ function ComposerEditorAddMenu(props: {
         </>
       }
     >
-      <Menu gutter={6} modal={false} placement="top-start">
+      <Menu gutter={gutter()} modal={false} placement="top-start">
         <Menu.Trigger
+          onMouseDown={(event: MouseEvent) => setGutter(composerOverlayGutter(event.currentTarget as HTMLElement))}
           {...focus.trigger}
+          onKeyDown={(event: KeyboardEvent & { currentTarget: HTMLElement }) => {
+            focus.trigger.onKeyDown(event)
+            setGutter(composerOverlayGutter(event.currentTarget))
+          }}
           as={IconButton}
           data-action="composer-attach"
           type="button"
@@ -1140,7 +1146,7 @@ function ComposerEditorAddMenu(props: {
         <Menu.Portal>
           <Menu.Content
             onCloseAutoFocus={focus.onCloseAutoFocus}
-            class="[&_[data-slot=menu-v2-item-shortcut]]:min-w-5 [&_[data-slot=menu-v2-item-shortcut]]:justify-center"
+            class="composer-overlay-surface [&_[data-slot=menu-v2-item-shortcut]]:min-w-5 [&_[data-slot=menu-v2-item-shortcut]]:justify-center"
             style={{ "min-width": "180px" }}
           >
             <Menu.Item onSelect={props.onAttach} shortcut={props.attachShortcut}>
@@ -1161,6 +1167,18 @@ function ComposerEditorAddMenu(props: {
       </Menu>
     </Tooltip>
   )
+}
+
+/**
+ * The gap that lifts a composer overlay above the card, so the menu opens over the frame's top edge instead of
+ * covering the draft. The card grows with the prompt, so the gap is measured from the trigger when it opens.
+ */
+export function composerOverlayGutter(trigger: HTMLElement) {
+  const card = trigger.closest('[data-component="composer"]')
+
+  if (!card) return 8
+
+  return Math.max(8, Math.round(trigger.getBoundingClientRect().top - card.getBoundingClientRect().top) + 8)
 }
 
 /**
@@ -1237,6 +1255,7 @@ function ComposerEditorSelect(props: {
 }) {
   const mobile = createMediaQuery("(max-width: 767px)")
   const [store, setStore] = createStore({ open: false, loaded: false })
+  const [gutter, setGutter] = createSignal(8)
   const focus = pointerFocusReturn()
   let trigger: HTMLButtonElement | undefined
 
@@ -1276,9 +1295,14 @@ function ComposerEditorSelect(props: {
       <Show
         when={props.mobileDrawer && mobile()}
         fallback={
-          <Menu gutter={6} modal={false} placement="top-start" onOpenChange={props.onOpenChange}>
+          <Menu gutter={gutter()} modal={false} placement="top-start" onOpenChange={props.onOpenChange}>
             <Menu.Trigger
+              onMouseDown={(event: MouseEvent) => setGutter(composerOverlayGutter(event.currentTarget as HTMLElement))}
               {...focus.trigger}
+              onKeyDown={(event: KeyboardEvent & { currentTarget: HTMLElement }) => {
+                focus.trigger.onKeyDown(event)
+                setGutter(composerOverlayGutter(event.currentTarget))
+              }}
               as={Button}
               variant="ghost-muted"
               size="normal"
@@ -1288,10 +1312,7 @@ function ComposerEditorSelect(props: {
               {content()}
             </Menu.Trigger>
             <Menu.Portal>
-              <Menu.Content
-                onCloseAutoFocus={focus.onCloseAutoFocus}
-                class={props.fitMenuToOptions ? "!min-w-0" : undefined}
-              >
+              <Menu.Content onCloseAutoFocus={focus.onCloseAutoFocus} class="composer-overlay-surface">
                 <Menu.RadioGroup value={props.current} onChange={props.onSelect}>
                   <For each={props.options}>
                     {(option) => (
@@ -1434,7 +1455,7 @@ function ComposerEditorPopover(props: {
     <div
       ref={container}
       data-component="composer-suggestions"
-      class="absolute inset-x-0 -top-2 z-40 flex -translate-y-full scroll-pb-[18px] flex-col rounded-xl bg-v2-background-bg-base p-1.5 shadow-[var(--v2-elevation-raised)] no-scrollbar"
+      class="composer-overlay-surface absolute inset-x-0 -top-2 z-40 flex -translate-y-full scroll-pb-[18px] flex-col p-1 no-scrollbar"
       classList={{ "overflow-auto": !props.history, "overflow-hidden": !!props.history }}
       style={{ "max-height": `${store.maxHeight}px` }}
       onMouseDown={(event) => event.preventDefault()}
@@ -1442,7 +1463,7 @@ function ComposerEditorPopover(props: {
       <Show when={props.history}>
         <Show when={props.search}>
           {(search) => (
-            <div class="flex h-7 shrink-0 items-center px-2 py-1">
+            <div class="flex h-[30px] shrink-0 items-center px-2">
               <input
                 ref={(element) => requestAnimationFrame(() => element.isConnected && element.focus())}
                 value={search().value}
@@ -1450,7 +1471,7 @@ function ComposerEditorPopover(props: {
                 placeholder={search().placeholder}
                 autocomplete="off"
                 spellcheck={false}
-                class="w-full bg-transparent text-[15px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
+                class="w-full bg-transparent text-[13px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
                 role="combobox"
                 aria-expanded="true"
                 aria-autocomplete="list"
@@ -1467,7 +1488,11 @@ function ComposerEditorPopover(props: {
           <div id={listID} role="listbox" aria-label={i18n.t("ui.promptInput.history")} class="flex flex-col">
             <Show
               when={props.items.length}
-              fallback={<div class="px-2 py-1 text-v2-text-text-muted">{props.emptyLabel}</div>}
+              fallback={
+                <div class="flex h-[30px] items-center px-2 text-[13px] leading-5 text-v2-text-text-muted">
+                  {props.emptyLabel}
+                </div>
+              }
             >
               <For each={props.items}>
                 {(item) => (
@@ -1509,13 +1534,13 @@ function ComposerEditorPopover(props: {
       <Show when={!props.history}>
         <Show when={props.search}>
           {(search) => (
-            <div class="shrink-0 px-2 py-1">
+            <div class="flex h-[30px] shrink-0 items-center px-2">
               <input
                 ref={(element) => requestAnimationFrame(() => element.focus())}
                 value={search().value}
                 aria-label={search().label}
                 placeholder={search().placeholder}
-                class="w-full bg-transparent text-[15px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
+                class="w-full bg-transparent text-[13px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
                 onInput={(event) => search().onValueChange(event.currentTarget.value)}
                 onKeyDown={(event) => search().onKeyDown(event)}
                 onMouseDown={(event) => event.stopPropagation()}
@@ -1525,7 +1550,11 @@ function ComposerEditorPopover(props: {
         </Show>
         <Show
           when={props.items.length > 0}
-          fallback={<div class="px-2 py-1 text-v2-text-text-muted">{props.emptyLabel}</div>}
+          fallback={
+            <div class="flex h-[30px] items-center px-2 text-[13px] leading-5 text-v2-text-text-muted">
+              {props.emptyLabel}
+            </div>
+          }
         >
           <For each={props.items}>
             {(item) => (
@@ -1533,7 +1562,7 @@ function ComposerEditorPopover(props: {
                 type="button"
                 data-suggestion-id={item.id}
                 data-active={props.activeID === item.id ? "" : undefined}
-                class="flex h-7 w-full shrink-0 items-center gap-2 rounded-md px-2 py-1 text-start"
+                class="flex h-[30px] w-full shrink-0 items-center gap-2 rounded-lg px-2 text-start text-[13px] leading-5"
                 classList={{ "bg-v2-overlay-simple-overlay-hover": props.activeID === item.id }}
                 onPointerMove={(event) => {
                   if (event.movementX || event.movementY) props.onActiveChange(item)
@@ -1542,15 +1571,19 @@ function ComposerEditorPopover(props: {
               >
                 <div class="flex min-w-0 flex-1 items-center gap-2">
                   <ComposerSuggestionIcon item={item} />
-                  <bdi dir="auto" class="shrink-0 text-v2-text-text-base">
+                  <bdi dir="auto" class="shrink-0 truncate text-v2-text-text-base">
                     {item.label}
                   </bdi>
                   <Show when={item.description}>
-                    <span class="min-w-0 truncate text-v2-text-text-muted">{item.description}</span>
+                    <span class="min-w-0 truncate text-[12px] leading-4 text-v2-text-text-muted">
+                      {item.description}
+                    </span>
                   </Show>
                 </div>
                 <Show when={item.keybind?.length}>
-                  <span class="shrink-0 text-v2-text-text-muted">{item.keybind?.join("+")}</span>
+                  <span class="shrink-0 text-[11px] leading-4 tracking-[0.02em] text-v2-text-text-muted">
+                    {item.keybind?.join("+")}
+                  </span>
                 </Show>
               </button>
             )}
@@ -1797,7 +1830,8 @@ function ComposerSuggestionIcon(props: { item: ComposerSuggestion }) {
 
   if (props.item.kind === "skill") return <Icon name="post-skill" size="small" class="shrink-0" />
 
-  if (props.item.kind === "command") return null
+  if (props.item.kind === "command")
+    return <Icon name="code-slash" size="small" class="shrink-0 text-v2-icon-icon-muted" />
 
   return (
     <FileIcon

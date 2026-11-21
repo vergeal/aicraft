@@ -502,6 +502,7 @@ const source = {
   "ui.sessionTimeline.notice.instructionsUpdated": "Instructions updated",
   "ui.sessionTimeline.notice.instructionSource.project": "project instructions",
   "ui.sessionTimeline.notice.restart": "Continuing after restart",
+  "ui.sessionTimeline.notice.systemReminder": "System reminder",
   "ui.message.queued": "Queued",
   "ui.message.attachment.alt": "attachment",
 

@@ -31,7 +31,12 @@ export type NodePayload =
   | { readonly kind: "reasoning"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "tool"; readonly tool: ToolContent }
   /** `detail` is the injected body, shown when the reader expands the notice. */
-  | { readonly kind: "notice"; readonly text: string; readonly detail?: string; readonly notice?: "instructions-updated" }
+  | {
+      readonly kind: "notice"
+      readonly text: string
+      readonly detail?: string
+      readonly notice?: "instructions-updated" | "system-reminder"
+    }
   /** Context the Step injected ahead of the conversation, listed by source. */
   | {
       readonly kind: "context"

@@ -1310,7 +1310,7 @@ function RetryRow(props: { attempt: number; text: string }) {
 function NoticeRow(props: {
   text: string
   detail?: string
-  notice?: "instructions-updated"
+  notice?: "instructions-updated" | "system-reminder"
   cacheKey: string
   rowOpen?: boolean
   onToggleRow?: (next: boolean) => void
@@ -1318,7 +1318,11 @@ function NoticeRow(props: {
   const i18n = useI18n()
   const expanded = () => props.rowOpen ?? false
   const title = () =>
-    props.notice === "instructions-updated" ? i18n.t("ui.answer.notice.instructionsUpdated") : props.text
+    props.notice === "instructions-updated"
+      ? i18n.t("ui.answer.notice.instructionsUpdated")
+      : props.notice === "system-reminder"
+        ? i18n.t("ui.sessionTimeline.notice.systemReminder")
+        : props.text
 
   if (!props.detail)
     return (

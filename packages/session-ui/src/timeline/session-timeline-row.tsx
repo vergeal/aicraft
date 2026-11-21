@@ -606,6 +606,14 @@ export function createSessionTimelineRowRenderer(input: {
     const sourceLabel = (key: string) =>
       key === "core/project" ? i18n.t("ui.sessionTimeline.notice.instructionSource.project") : key
 
+    // A reminder is wrapped in an English tag that must never reach the reader. The body is already localized.
+    const reminderFirstLine = (value: string | undefined) => {
+      const text = value?.trim()
+      const body = text ? /^<system-reminder>([\s\S]*?)<\/system-reminder>$/.exec(text)?.[1]?.trim() : undefined
+
+      return body?.split("\n").find((line) => line.trim())?.trim()
+    }
+
     if (message.type === "agent-switched")
       return {
         label: i18n.t("ui.sessionTimeline.notice.agentChanged"),
@@ -643,6 +651,10 @@ export function createSessionTimelineRowRenderer(input: {
         }
       }
 
+      const reminder = reminderFirstLine(message.description ?? message.text)
+
+      if (reminder) return { label: i18n.t("ui.sessionTimeline.notice.systemReminder"), data: reminder }
+
       return { label: message.description ?? message.text }
     }
 
@@ -673,6 +685,10 @@ export function createSessionTimelineRowRenderer(input: {
         icon: outcomeNoticeIcon(outcome),
       }
     }
+
+    const reminder = reminderFirstLine(message.description ?? message.text)
+
+    if (reminder) return { label: i18n.t("ui.sessionTimeline.notice.systemReminder"), data: reminder }
 
     return { label: message.description ?? message.text }
   }

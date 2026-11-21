@@ -77,6 +77,11 @@ function noticeCopy(message: SessionMessageInfo) {
   // Instruction updates carry an English description from the event; show localized copy instead.
   if (message.metadata?.notice === "instructions" || value?.description?.trim().startsWith("Instructions updated: "))
     return { text: "", detail: body, notice: "instructions-updated" as const }
+  // A reminder is wrapped in an English tag that must never reach the reader; its body is already localized.
+  const reminder = reminderBody(body)
+
+  if (reminder) return { text: "", detail: reminder, notice: "system-reminder" as const }
+
   const text = value?.description?.trim() || firstLine(body) || undefined
 
   if (!text) return undefined
@@ -86,6 +91,11 @@ function noticeCopy(message: SessionMessageInfo) {
 
 function firstLine(text: string | undefined) {
   return text?.split("\n").find((line) => line.trim())?.trim()
+}
+
+/** The localized body inside an English `<system-reminder>` tag, or undefined when the text is anything else. */
+function reminderBody(text: string | undefined) {
+  return text ? (/^<system-reminder>([\s\S]*?)<\/system-reminder>$/.exec(text)?.[1]?.trim() || undefined) : undefined
 }
 
 /**

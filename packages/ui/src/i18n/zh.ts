@@ -411,6 +411,7 @@ export const dict = {
   "ui.sessionTimeline.notice.instructionsUpdated": "指令已更新",
   "ui.sessionTimeline.notice.instructionSource.project": "项目提示词",
   "ui.sessionTimeline.notice.restart": "重启后继续",
+  "ui.sessionTimeline.notice.systemReminder": "系统提醒",
   "ui.promptInput.placeholder.followUp": "添加后续消息，输入 {{slash}} 使用命令，输入 {{at}} 添加上下文...",
   "ui.promptInput.steer": "引导",
   "ui.promptInput.queue": "加入队列",

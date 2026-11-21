@@ -550,9 +550,8 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   --sidebar-fade-bottom: var(--sidebar-fade);
 }
 
-/* A project row turns one chevron instead of swapping two glyphs, and its sessions unfold by grid rows: the
-   column grows rather than a whole list appearing at once. Only rows, opacity and visibility change, so nothing
-   triggers a height transition on the list itself. */
+/* A project row turns one chevron instead of swapping two glyphs; its sessions open and fold at once. The list used
+   to unfold by grid rows with an opacity fade, which read as a bounce and flashed the rows while it ran. */
 .replica-project-chevron {
   transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -567,10 +566,6 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   grid-template-rows: minmax(0, 1fr);
   visibility: visible;
   opacity: 1;
-  transition:
-    grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 150ms ease-out,
-    visibility 0s;
 }
 
 /* A project row and its first session sit 2px apart, the same gap the rows below use, so the project's hover
@@ -584,15 +579,9 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   grid-template-rows: minmax(0, 0fr);
   visibility: hidden;
   opacity: 0;
-  /* The folded rows stay mounted for the animation but leave the tab order and the accessibility tree with it. */
-  transition:
-    grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 150ms ease-out,
-    visibility 0s 200ms;
 }
 
 :root[data-motion="reduce"] .replica-project-chevron,
-:root[data-motion="reduce"] .replica-project-sessions,
 :root[data-motion="reduce"] .replica-project-icon,
 :root[data-motion="reduce"] [data-slot="replica-project-name"],
 :root[data-motion="reduce"] [data-slot="replica-sidebar"] [data-slot="replica-row"][data-dragging],

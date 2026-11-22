@@ -591,8 +591,26 @@
   background-color: var(--v2-background-bg-base);
 }
 
-/* The side region's leading slot owns the strip's start, so the list begins there and its rule, the tabs and the
-   "+" keep one spacing instead of the list adding its own inset on top. */
+/* The side region's leading slot owns the strip's start. The bar's own 8px gap is dropped here so the slot can place
+   its rule 6px before the first pill; the "+" pulls 4px back out of its icon inset so its glyph sits 4px after the
+   last pill; and the list keeps 4px of bottom padding, which lifts the pills 2px off the hairline below. */
+:root
+  body
+  #review-panel
+  [data-component="tabs"]
+  .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"]) {
+  gap: 0;
+}
+
+:root
+  body
+  #review-panel
+  [data-component="tabs"]
+  .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"])
+  [data-slot="session-panel-lead"] {
+  margin-inline-end: 6px;
+}
+
 :root
   body
   #review-panel
@@ -600,7 +618,20 @@
   .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"])
   [data-slot="tabs-list"] {
   padding-inline-start: 0;
+  /* Centred content lifts by half of this, so 4px reads as 2px more air above the strip's rule. */
+  padding-block-end: 4px;
   gap: 4px;
+}
+
+/* The "+" button is 28px around a 20px glyph, so its own 4px inset is taken back to keep the 4px gap visible. */
+:root
+  body
+  #review-panel
+  [data-component="tabs"]
+  .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"])
+  [data-slot="tabs-list"]
+  > .sticky {
+  margin-inline-start: -4px;
 }
 
 :root

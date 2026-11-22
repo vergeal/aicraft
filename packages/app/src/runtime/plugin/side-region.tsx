@@ -286,7 +286,7 @@ export function PaneTabs(props: {
         <Show when={props.actions && props.present()}>
           <div
             data-slot="session-panel-lead"
-            class="h-[var(--tabs-bar-height)] shrink-0 flex items-center gap-2 ps-2 -me-1"
+            class="h-[var(--tabs-bar-height)] shrink-0 flex items-center gap-2 ps-2"
           >
             <ReviewToggle />
             <div class="h-4 w-px shrink-0 bg-v2-border-border-base" aria-hidden />

@@ -9,7 +9,7 @@ const SIZE: Record<AvatarSize, number> = {
   session: 40,
   row: 36,
   head: 32,
-  bubble: 36,
+  bubble: 40,
   mention: 24,
   member: 28,
 }

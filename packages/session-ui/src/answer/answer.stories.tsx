@@ -533,6 +533,45 @@ export const LiveCapped = {
   ),
 }
 
+// A long reasoning block inside one step: it must not grow the turn past the group's cap.
+const longThinking = Array.from(
+  { length: 40 },
+  (_, index) => `第 ${index + 1} 段：先确认折叠边界，再检查投影层的行 key 在流式增量里是否稳定。`,
+).join("\n\n")
+
+const thinkingRun: SessionMessageInfo[] = [
+  { id: "msg_user_thinking", type: "user", text: "说说你的判断过程。", time: { created: TIME } },
+  assistant(
+    "msg_thinking",
+    [reasoning(longThinking), { type: "text", text: "判断完了，结论如上。" }],
+    TIME + 1_000,
+    TIME + 9_000,
+  ),
+  idle("msg_idle_thinking", TIME + 9_500),
+]
+
+export const LongThinking = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => thinkingRun} />
+    </div>
+  ),
+}
+
+// A thought still streaming: its box follows the newest paragraph until the reader scrolls up.
+const liveThinkingRun: SessionMessageInfo[] = [
+  { id: "msg_user_live_thinking", type: "user", text: "继续说。", time: { created: TIME } },
+  assistant("msg_live_thinking", [reasoning(longThinking)], TIME + 1_000),
+]
+
+export const LiveThinking = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => liveThinkingRun} />
+    </div>
+  ),
+}
+
 export const LongOutput = {
   render: () => (
     <div class="h-dvh">

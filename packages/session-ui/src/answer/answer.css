@@ -308,6 +308,43 @@
   scrollbar-color: var(--v2-border-border-base) transparent;
 }
 
+/* An expanded thought caps at ten lines and scrolls in place: a long one must not stretch the turn, and unlike a
+   step panel it has no heading to keep, so the edge fades are the only hint that more text is above or below. A
+   short thought never overflows, and the scrollbar stays out of the layout entirely. */
+.answer-scope [data-slot="answer-reasoning-body"] {
+  --answer-reasoning-line: calc(var(--content-font-size, 14px) + 8px);
+  --answer-reasoning-max-height: calc(var(--answer-reasoning-line) * 10 + 8px);
+  --answer-reasoning-fade: 16px;
+  --answer-reasoning-fade-top: 0px;
+  --answer-reasoning-fade-bottom: 0px;
+  max-height: var(--answer-reasoning-max-height);
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-radius: 6px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--answer-reasoning-fade-top),
+    #000 calc(100% - var(--answer-reasoning-fade-bottom)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--answer-reasoning-fade-top),
+    #000 calc(100% - var(--answer-reasoning-fade-bottom)),
+    transparent 100%
+  );
+}
+
+.answer-scope [data-slot="answer-reasoning-body"][data-can-scroll-up] {
+  --answer-reasoning-fade-top: var(--answer-reasoning-fade);
+}
+
+.answer-scope [data-slot="answer-reasoning-body"][data-can-scroll-down] {
+  --answer-reasoning-fade-bottom: var(--answer-reasoning-fade);
+}
+
 /* The document glyph fills its 14-unit grid, so at 18px it reads heavier than the step icons drawn
    inside a smaller area. Keep source rows at the same visual weight as the rest of the transcript. */
 .answer-scope [data-slot="answer-context-sources"] [data-slot="leading-idle"] [data-slot="icon-svg"] {

@@ -135,6 +135,73 @@ story("caps a running step and follows its newest row", async ({ mount, page }) 
   expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
 })
 
+story("caps a long thought and scrolls it in place", async ({ mount, page }) => {
+  const root = await mount("answer-page--long-thinking")
+  await expandTurn(root).click()
+
+  const thinking = root.locator('[data-slot="answer-row"][data-kind="reasoning"]')
+  await thinking.locator("[data-disclosure-row]").first().click()
+
+  const box = root.locator('[data-slot="answer-reasoning-body"]')
+  await expect(box).toBeVisible()
+  // The markdown streams in after the reveal, so wait for the laid-out text before measuring.
+  await expect.poll(() => box.evaluate((el) => el.scrollHeight)).toBeGreaterThan(228)
+
+  // Ten lines stay visible; the rest scrolls inside the box instead of stretching the turn.
+  const metrics = await box.evaluate((el) => ({
+    client: el.clientHeight,
+    scroll: el.scrollHeight,
+    page: document.documentElement.scrollHeight,
+    viewport: window.innerHeight,
+    top: el.scrollTop,
+  }))
+
+  expect(metrics.scroll).toBeGreaterThan(metrics.client)
+  // Ten content lines plus the box's own 8px padding.
+  expect(metrics.client).toBe(228)
+  expect(metrics.page).toBeLessThanOrEqual(metrics.viewport + 1)
+
+  // A finished thought opens at its first line, not its last.
+  expect(metrics.top).toBe(0)
+  await expect(box).toHaveAttribute("data-can-scroll-down", "")
+  await expect(box).not.toHaveAttribute("data-can-scroll-up", "")
+
+  await box.evaluate((el) => {
+    el.scrollTop = el.scrollHeight
+    el.dispatchEvent(new Event("scroll"))
+  })
+  await expect(box).toHaveAttribute("data-can-scroll-up", "")
+  await expect(box).not.toHaveAttribute("data-can-scroll-down", "")
+
+  // The wheel must keep reaching the transcript once the box bottoms out.
+  await expect(box).toHaveCSS("overflow-y", "auto")
+  await page.waitForTimeout(50)
+})
+
+story("follows a streaming thought until the reader scrolls up", async ({ mount, page }) => {
+  const root = await mount("answer-page--live-thinking")
+  const thinking = root.locator('[data-slot="answer-row"][data-kind="reasoning"]')
+  await thinking.locator("[data-disclosure-row]").first().click()
+
+  const box = root.locator('[data-slot="answer-reasoning-body"]')
+  await expect(box).toBeVisible()
+  await expect.poll(() => box.evaluate((el) => el.scrollHeight)).toBeGreaterThan(228)
+
+  // A streaming thought stays at its newest paragraph.
+  await expect.poll(() => box.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
+
+  // Scrolling up takes the follow intent away, so growth below must not drag the reader back down.
+  await box.evaluate((el) => {
+    el.scrollTop = 0
+    el.dispatchEvent(new Event("scroll"))
+    const spacer = document.createElement("div")
+    spacer.style.height = "240px"
+    el.firstElementChild!.appendChild(spacer)
+  })
+  await page.waitForTimeout(300)
+  expect(await box.evaluate((el) => el.scrollTop)).toBe(0)
+})
+
 story("caps a long tool result inside its own step", async ({ mount }) => {
   const root = await mount("answer-page--long-output")
   await expandTurn(root).click()

@@ -1994,6 +1994,57 @@ function ReasoningRow(props: {
 
   const preview = () => (props.preview === false ? undefined : reasoningPreview(props.text, streaming()))
 
+  // An expanded thought caps at ten lines and scrolls in place, so a long one cannot stretch the turn. A finished
+  // thought opens at its first line; while it streams the box keeps its newest paragraph in view and yields as soon
+  // as the reader scrolls away from the bottom, the same intent rule a step panel uses.
+  let reasoningBody: HTMLDivElement | undefined
+  let reasoningObserver: ResizeObserver | undefined
+  const [reasoningFollowing, setReasoningFollowing] = createSignal(streaming())
+  const [reasoningEdges, setReasoningEdges] = createSignal({ up: false, down: false })
+
+  const reportReasoningEdges = () => {
+    const element = reasoningBody
+
+    if (!element) return
+    const floor = Math.max(0, element.scrollHeight - element.clientHeight)
+
+    setReasoningEdges({ up: element.scrollTop > 1, down: element.scrollTop < floor - 1 })
+  }
+
+  const stickReasoning = () => {
+    const element = reasoningBody
+
+    if (!element || !reasoningFollowing()) return
+    element.scrollTop = element.scrollHeight
+  }
+
+  const bindReasoning = (element: HTMLDivElement) => {
+    reasoningBody = element
+    reasoningObserver?.disconnect()
+
+    if (typeof ResizeObserver === "undefined") return
+    reasoningObserver = new ResizeObserver(() => {
+      stickReasoning()
+      reportReasoningEdges()
+    })
+    reasoningObserver.observe(element)
+
+    if (element.firstElementChild) reasoningObserver.observe(element.firstElementChild)
+    reportReasoningEdges()
+  }
+
+  const onReasoningScroll = () => {
+    const element = reasoningBody
+
+    if (!element) return
+    const floor = Math.max(0, element.scrollHeight - element.clientHeight)
+
+    setReasoningFollowing(element.scrollTop >= floor - 1)
+    reportReasoningEdges()
+  }
+
+  onCleanup(() => reasoningObserver?.disconnect())
+
   return (
     <DisclosureRow
       title={i18n.t("ui.answer.thinking")}
@@ -2009,13 +2060,21 @@ function ReasoningRow(props: {
       }
       onToggle={() => props.onToggleRow?.(!expanded())}
     >
-      <Markdown
-        text={props.text}
-        cacheKey={props.text.length.toString()}
-        streaming={streaming()}
-        deferUntilReady
-        class="answer-markdown ps-[30px] py-1 [overflow-wrap:anywhere]"
-      />
+      <div
+        data-slot="answer-reasoning-body"
+        data-can-scroll-up={reasoningEdges().up ? "" : undefined}
+        data-can-scroll-down={reasoningEdges().down ? "" : undefined}
+        ref={bindReasoning}
+        onScroll={onReasoningScroll}
+      >
+        <Markdown
+          text={props.text}
+          cacheKey={props.text.length.toString()}
+          streaming={streaming()}
+          deferUntilReady
+          class="answer-markdown ps-[30px] py-1 [overflow-wrap:anywhere]"
+        />
+      </div>
     </DisclosureRow>
   )
 }

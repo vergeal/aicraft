@@ -3,7 +3,6 @@ import { useNavigate } from "@solidjs/router"
 import { Icon } from "@opencode/ui/icon"
 import type { IconName } from "@opencode/ui/icons/catalog"
 import { MainSurface } from "@opencode/plugin/gui"
-import { Tooltip } from "@opencode/ui/tooltip"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -31,9 +30,6 @@ const DESTINATIONS: readonly Destination[] = [
 
 const ROW =
   "flex h-8 w-full items-center gap-1.5 rounded-[var(--radius-row)] px-2 text-start text-[13px] leading-5 text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-text-primary)]"
-
-const ICON_BUTTON =
-  "flex size-[30px] shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-icon-primary)]"
 
 /* 未读/待办角标用红色实心、白字加粗。取 red-800 而不是 state-fg-danger：后者在深色主题下是浅红，白字对比不足。 */
 const BADGE =
@@ -135,33 +131,31 @@ export function ReplicaPrimaryNav() {
   )
 }
 
-/** The account row: which server this window talks to, the model in use, and the way into settings. */
+/** The account row: which server this window talks to, and the way into settings. */
 export function ReplicaPrimaryFooter() {
   const language = useLanguage()
-  const layout = useLayout()
   const global = useGlobal()
   const servers = useServers()
   const openSettings = useSettingsDialog()
 
   const conn = () => servers.list[0]
+
   const healthy = () => {
     const item = conn()
 
     return !!item && global.servers.health[ServerConnection.key(item)]?.type === "healthy"
   }
+
   const status = () => {
     const item = conn()
 
     if (!item || !healthy()) return language.t("replica.account.reconnecting")
 
-    return servers.local(item)
-      ? language.t("replica.account.connectedLocal")
-      : language.t("replica.account.connected", { name: servers.label(item) })
+    return language.t("replica.account.connected")
   }
-  const model = () => global.models.store.recent[0]?.modelID
 
   return (
-    <div data-slot="replica-primary-footer" class="flex shrink-0 items-center gap-1 px-2 pb-2">
+    <div data-slot="replica-primary-footer" class="flex shrink-0 items-center px-2 pb-2">
       <button
         type="button"
         data-replica-control
@@ -174,34 +168,17 @@ export function ReplicaPrimaryFooter() {
           src="/assets/product-mark.png"
           alt=""
           aria-hidden="true"
-          width="20"
-          height="20"
-          class="size-5 shrink-0 rounded-full object-cover shadow-[inset_0_0_0_0.5px_var(--color-border)]"
+          width="32"
+          height="32"
+          class="size-8 shrink-0 rounded-full object-cover shadow-[inset_0_0_0_0.5px_var(--color-border)]"
         />
-        <span class="flex min-w-0 flex-1 flex-col gap-px">
-          <span class="truncate text-[13px] leading-4 text-[var(--color-text-primary)]">{status()}</span>
-          <Show when={model()}>
-            <span class="truncate text-[12px] leading-4 text-[var(--color-text-tertiary)]">{model()}</span>
-          </Show>
-        </span>
+        <span class="min-w-0 flex-1 truncate text-[13px] leading-4 text-[var(--color-text-primary)]">{status()}</span>
         <span
           aria-hidden="true"
           data-state={healthy() ? "online" : "offline"}
           class="size-1.5 shrink-0 rounded-full bg-[var(--v2-state-fg-success)] data-[state=offline]:bg-[var(--v2-state-fg-warning)]"
         />
       </button>
-      <Tooltip placement="top" value={language.t("replica.rail.settings")}>
-        <button
-          type="button"
-          data-replica-control
-          data-state={layout.route().type === "settings" ? "pressed" : undefined}
-          aria-label={language.t("replica.rail.settings")}
-          class={ICON_BUTTON}
-          onClick={openSettings}
-        >
-          <Icon name="settings-gear" />
-        </button>
-      </Tooltip>
     </div>
   )
 }

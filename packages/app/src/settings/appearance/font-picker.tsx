@@ -83,7 +83,10 @@ export const FontPicker: Component<{
 
     const box = trigger.getBoundingClientRect()
     const margin = 8
-    const width = Math.min(box.width, window.innerWidth - margin * 2)
+    // The panel follows the trigger, but a short face name ("System") would leave a panel too narrow for the longer
+    // families and their monospace badge, so it opens at a comfortable reading width and stops at the menu maximum.
+    const maxWidth = Math.min(360, window.innerWidth - margin * 2)
+    const width = Math.min(Math.max(box.width, 300), maxWidth)
     const left = Math.max(margin, Math.min(box.left, window.innerWidth - width - margin))
     const below = window.innerHeight - box.bottom - margin
     const above = box.top - margin

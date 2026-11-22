@@ -1,9 +1,9 @@
 import type { Context } from "@opencode/plugin/gui"
-import { For, Show, createEffect, createResource, createSignal, onCleanup } from "solid-js"
+import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js"
 import { Avatar } from "./avatar.js"
 import type { ChatStatus, DraftRow, MemberRow, MergeItemRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { dayBucket, formatClock, formatDay, formatSize, splitMentions } from "./util.js"
+import { dayBucket, formatClock, formatDay, formatSize, reuseRows, splitMentions } from "./util.js"
 
 export interface MergeResult {
   readonly items: readonly MergeItemRow[]
@@ -26,6 +26,8 @@ export function MessageStream(props: {
   hasMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
+  /** 从搜索结果进来的目标消息 id：滚到它并短暂高亮。 */
+  focusId?: number
   onUseDraft: (body: string) => void
   onRefresh: () => void
   onFocusSearch: () => void
@@ -44,7 +46,12 @@ export function MessageStream(props: {
   // 组件实例的，读取到的回调可能不存在，所以既要在销毁后停手，也不能假定回调一定在。
   let disposed = false
   // 相邻同内容系统通知合并成一条，避免连续通知把中栏淹掉。
-  const entries = () => collapseSystem(props.messages)
+  // 轮询每次推新对象，内容没变就复用旧引用，否则整段消息会重建、图片重新加载（闪屏）。
+  let stableEntries: readonly { message: MessageRow; repeat: number }[] = []
+  const entries = createMemo(() => {
+    stableEntries = reuseRows(stableEntries, collapseSystem(props.messages), (entry) => entry.message.id)
+    return stableEntries
+  })
   const todayCount = () => props.messages.filter((message) => dayBucket(message.createdAt) === "today").length
 
   const scrollToEnd = (smooth: boolean) => {
@@ -64,6 +71,29 @@ export function MessageStream(props: {
       return
     }
     if (count > 0 && !away()) scrollToEnd(false)
+  })
+
+  // 从搜索结果进来时滚到命中的那条。目标不在已加载范围就继续往前翻，最多 12 次，避免无限加载。
+  let focused = -1
+  let focusTries = 0
+  createEffect(() => {
+    const id = props.focusId
+    if (id === undefined || id === focused) return
+    const rows = props.messages
+    if (rows.length === 0 || props.session === undefined || scroller === undefined) return
+    const target = scroller.querySelector<HTMLElement>(`[data-message-id="${id}"]`)
+    if (target !== null) {
+      focused = id
+      focusTries = 0
+      target.scrollIntoView({ block: "center", behavior: "smooth" })
+      target.setAttribute("data-focus", "true")
+      window.setTimeout(() => target.removeAttribute("data-focus"), 1800)
+      return
+    }
+    if (props.hasMore && !props.loadingMore && focusTries < 12) {
+      focusTries += 1
+      props.onLoadMore()
+    }
   })
 
   const attachSentinel = (element: HTMLDivElement) => {
@@ -297,7 +327,12 @@ function MessageItem(props: {
         </div>
       }
     >
-      <div class="hyt-chat-item" data-first={props.first ? "true" : "false"} data-outgoing={message().outgoing ? "true" : "false"}>
+      <div
+        class="hyt-chat-item"
+        data-first={props.first ? "true" : "false"}
+        data-outgoing={message().outgoing ? "true" : "false"}
+        data-message-id={String(message().id)}
+      >
         <Avatar
           name={senderName()}
           members={

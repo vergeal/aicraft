@@ -94,11 +94,15 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     void props.client.markRead({ sessionId: active.id }).catch(() => undefined)
   })
 
-  const select = (id: string) => {
+  // 搜索命中某条消息时记住它的 id：切到会话后由消息流负责滚到那一条。
+  const [focusId, setFocusId] = createSignal<number | undefined>()
+
+  const select = (id: string, messageId?: number) => {
     if (searchTimer !== undefined) window.clearTimeout(searchTimer)
     setQuery("")
     setNotice(undefined)
     setSearching(false)
+    setFocusId(messageId)
     void run(async () => {
       await props.client.selectSession({ sessionId: id })
       await props.client.markRead({ sessionId: id })
@@ -215,6 +219,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 hasMore={snapshot().hasMore}
                 loadingMore={loadingMore()}
                 onLoadMore={loadMore}
+                focusId={focusId()}
                 onUseDraft={insertComposer}
                 onRefresh={() => void run(() => props.client.refresh())}
                 onFocusSearch={() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()}

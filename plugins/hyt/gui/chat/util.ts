@@ -51,6 +51,35 @@ export function formatSize(bytes: number) {
   return `${value.toFixed(digits)} ${units[unit]}`
 }
 
+/**
+ * 轮询每 4 秒都会推来一批全新对象。内容没变时复用旧引用，
+ * `<For>` 才不会每次把整列 DOM 拆掉重建——列表闪屏、图片重载都是它引起的。
+ */
+export function reuseRows<T>(previous: readonly T[], next: readonly T[], key: (row: T) => string | number) {
+  if (previous.length === 0) return next
+  const index = new Map(previous.map((row) => [key(row), row]))
+  return next.map((row) => {
+    const old = index.get(key(row))
+    return old !== undefined && sameValue(old, row) ? old : row
+  })
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((value, index) => sameValue(value, right[index]))
+  }
+  if (typeof left !== "object" || typeof right !== "object" || left === null || right === null) return false
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every((name) =>
+      sameValue((left as Record<string, unknown>)[name], (right as Record<string, unknown>)[name]),
+    )
+  )
+}
+
 /** 把正文按 @ 到的名字切成高亮段与普通段。 */
 export function splitMentions(text: string, names: readonly string[]) {
   const valid = names.filter((name) => name.length > 0).map(escapeRegExp)

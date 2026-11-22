@@ -768,13 +768,16 @@ export function AnswerPage(props: AnswerPageProps) {
 
       if (!value) return undefined
 
-      if ((props.foldedReplies ?? "final") !== "final" || value.payload.kind !== "assistant") return value
+      if (value.payload.kind !== "assistant") return value
 
       const owner = snapshot().turns.get(value.turn)
+      const folded = owner !== undefined && isFolded(foldKeys().get(owner.turn))
 
-      if (!owner || owner.status !== "closed" || !isFolded(foldKeys().get(owner.turn))) return value
+      // The turn's fold lays its children out in message order, so this standalone entry is needed only while
+      // a closed folded turn hides them; otherwise the fold renders the reply at its own position.
+      if (!folded || owner.status !== "closed") return undefined
 
-      if (value.anchor === owner.answer) return value
+      if ((props.foldedReplies ?? "final") !== "final" || value.anchor === owner.answer) return value
 
       return undefined
     })

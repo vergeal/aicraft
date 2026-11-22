@@ -28,7 +28,6 @@ const sourceDirectories = ["agent", "agents", "mode", "modes"] as const
 const decodeAgent = Schema.decodeUnknownOption(ConfigAgent.Info)
 const decodeLegacyAgent = Schema.decodeUnknownOption(ConfigAgentV1.Info)
 type PathAction = FileAccess.ExternalDirectoryAuthorization["action"] | typeof ReadTool.name | typeof EditTool.name
-const pathActions = ["external_directory", "read", "edit"] as const satisfies readonly PathAction[]
 const agentKeys = new Set(["variant", ...Object.keys(ConfigAgent.Info.fields)])
 // Fields only V2 understands. A file that uses any of them is read as V2, whatever else it contains.
 const nativeKeys = ["permissions", "request", "system", "disabled"]
@@ -117,7 +116,7 @@ function expandPermissions(rules: Permission.Ruleset, home: string): Permission.
 }
 
 function isPathAction(action: string): action is PathAction {
-  return pathActions.some((item) => item === action)
+  return (Permission.pathActions satisfies readonly PathAction[]).some((item) => item === action)
 }
 
 function expandHome(resource: string, home: string) {

@@ -25,8 +25,10 @@ export function NewSessionBranch(props: { workspace: NewSessionWorkspaceControll
   const creating = () => props.workspace.selection.value() === "create"
 
   // Fetch before opening and retain the result across closes, rather than showing a smaller loading panel.
+  // The branches belong to the project root in both modes: choosing one is how a workspace gets created, so the
+  // list has to be there before the draft switches.
   const [branches, branchActions] = createResource(
-    () => (creating() ? props.workspace.project.root() : undefined),
+    () => props.workspace.project.root(),
     async (directory) => ({
       directory,
       ...(await props.workspace.branches("").then(
@@ -56,7 +58,7 @@ export function NewSessionBranch(props: { workspace: NewSessionWorkspaceControll
       title: language.t("command.session.branch.choose"),
       category: language.t("command.category.workspace"),
       keybind: "mod+alt+b",
-      disabled: !creating() || !props.workspace.bar.branch(),
+      disabled: !props.workspace.bar.branch(),
       onSelect: (source) => {
         changeOpen(source === "palette" || !state.open)
 
@@ -104,96 +106,85 @@ export function NewSessionBranch(props: { workspace: NewSessionWorkspaceControll
     <Show when={props.workspace.bar.branch()}>
       <Tooltip
         placement="top"
-        openDelay={creating() ? 800 : 400}
+        openDelay={800}
         value={
-          <Show when={creating()} fallback={label()}>
-            <div class="flex flex-col gap-1">
-              <span class="flex items-center gap-2">
-                {language.t("command.session.branch.choose")}
-                <Show when={command.keybindParts("session.branch.choose").length}>
-                  <Keybind keys={command.keybindParts("session.branch.choose")} variant="neutral" />
-                </Show>
-              </span>
-              <Show when={state.truncated}>{label()}</Show>
-            </div>
-          </Show>
+          <div class="flex flex-col gap-1">
+            <span class="flex items-center gap-2">
+              {language.t("command.session.branch.choose")}
+              <Show when={command.keybindParts("session.branch.choose").length}>
+                <Keybind keys={command.keybindParts("session.branch.choose")} variant="neutral" />
+              </Show>
+            </span>
+            <Show when={state.truncated}>{label()}</Show>
+          </div>
         }
-        disabled={!creating() && !state.truncated}
+        disabled={false}
         class="flex min-w-0 max-w-[220px]"
         contentClass="max-w-[calc(100vw-32px)] break-all"
       >
-        <Show
-          when={creating()}
-          fallback={
-            <div class="flex h-[30px] min-w-0 max-w-[220px] items-center gap-1.5 ps-2 pe-2.5 text-[12px] text-v2-text-text-dimmed">
-              <Icon name="branch" size="normal" class="shrink-0 text-v2-icon-icon-muted" />
-              <span ref={observe} dir="auto" class="min-w-0 truncate">
-                {label()}
-              </span>
-            </div>
-          }
-        >
-          <Popover open={state.open} onOpenChange={changeOpen} placement="bottom-start" gutter={4}>
-            <Popover.Trigger
-              ref={trigger}
-              aria-busy={branches.loading}
-              aria-description={language.t("command.session.branch.choose")}
-              class="flex h-7 min-w-0 max-w-[min(220px,40vw)] items-center gap-1.5 rounded-full px-1.5 text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--v2-border-border-focus)] data-[expanded]:bg-v2-overlay-simple-overlay-pressed data-[expanded]:text-v2-text-text-base"
-            >
-              <Icon name="branch-out" size="normal" class="shrink-0 text-v2-icon-icon-muted" />
-              <span ref={observe} dir="auto" class="min-w-0 truncate">
-                {label()}
-              </span>
-              <Icon name="chevron-down" size="small" class="-ms-0.5 shrink-0 text-v2-icon-icon-muted" />
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Show when={initial()}>
-                {(initial) => (
-                  <Popover.Content
-                    class="w-[min(243px,calc(100vw_-_32px))] overflow-hidden rounded-lg bg-v2-background-bg-layer-01 shadow-[var(--v2-elevation-floating)] focus:outline-none"
-                    onInteractOutside={() => (outside = true)}
-                    onCloseAutoFocus={(event) => {
-                      // An outside click keeps focus where the user put it.
-                      if (event.defaultPrevented || outside) return (outside = false)
-                      event.preventDefault()
-                      props.onDone()
+        <Popover open={state.open} onOpenChange={changeOpen} placement="bottom-start" gutter={4}>
+          <Popover.Trigger
+            ref={trigger}
+            aria-busy={branches.loading}
+            aria-description={language.t("command.session.branch.choose")}
+            class="flex h-7 min-w-0 max-w-[min(220px,40vw)] items-center gap-1.5 rounded-full px-1.5 text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--v2-border-border-focus)] data-[expanded]:bg-v2-overlay-simple-overlay-pressed data-[expanded]:text-v2-text-text-base"
+          >
+            <Icon name="branch-out" size="normal" class="shrink-0 text-v2-icon-icon-muted" />
+            <span ref={observe} dir="auto" class="min-w-0 truncate">
+              {label()}
+            </span>
+            <Icon name="chevron-down" size="small" class="-ms-0.5 shrink-0 text-v2-icon-icon-muted" />
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Show when={initial()}>
+              {(initial) => (
+                <Popover.Content
+                  class="w-[min(243px,calc(100vw_-_32px))] overflow-hidden rounded-lg bg-v2-background-bg-layer-01 shadow-[var(--v2-elevation-floating)] focus:outline-none"
+                  onInteractOutside={() => (outside = true)}
+                  onCloseAutoFocus={(event) => {
+                    // An outside click keeps focus where the user put it.
+                    if (event.defaultPrevented || outside) return (outside = false)
+                    event.preventDefault()
+                    props.onDone()
+                  }}
+                >
+                  <Typeahead
+                    initial={initial()}
+                    placeholder={language.t("session.new.workspace.branch.search.placeholder")}
+                    emptyLabel={language.t("palette.empty")}
+                    retryLabel={language.t("common.retry")}
+                    source={async (query, signal) => {
+                      const directory = props.workspace.project.root()
+                      const items = await props.workspace.branches(query, signal)
+
+                      if (!query && directory === props.workspace.project.root())
+                        branchActions.mutate({ directory, items, failed: false })
+
+                      return items
+                    }}
+                    match={(branch, query) => branch.toLowerCase().includes(query.toLowerCase())}
+                    delay={100}
+                    key={(branch) => branch}
+                    selected={props.workspace.bar.branch()}
+                    onSelect={(branch) => {
+                      // Picking a branch is how a workspace starts: choosing a worktree clears the pending
+                      // branch, so the draft moves to "create" first and takes the branch after it.
+                      if (!creating()) props.workspace.selection.set("create")
+                      props.workspace.selection.branch(branch)
+                      setState("open", false)
                     }}
                   >
-                    <Typeahead
-                      initial={initial()}
-                      placeholder={language.t("session.new.workspace.branch.search.placeholder")}
-                      emptyLabel={language.t("palette.empty")}
-                      retryLabel={language.t("common.retry")}
-                      source={async (query, signal) => {
-                        const directory = props.workspace.project.root()
-                        const items = await props.workspace.branches(query, signal)
-
-                        if (!query && directory === props.workspace.project.root())
-                          branchActions.mutate({ directory, items, failed: false })
-
-                        return items
-                      }}
-                      match={(branch, query) => branch.toLowerCase().includes(query.toLowerCase())}
-                      delay={100}
-                      key={(branch) => branch}
-                      selected={props.workspace.bar.branch()}
-                      onSelect={(branch) => {
-                        props.workspace.selection.branch(branch)
-                        setState("open", false)
-                      }}
-                    >
-                      {(branch) => (
-                        <span dir="auto" class="min-w-0 truncate">
-                          {branch}
-                        </span>
-                      )}
-                    </Typeahead>
-                  </Popover.Content>
-                )}
-              </Show>
-            </Popover.Portal>
-          </Popover>
-        </Show>
+                    {(branch) => (
+                      <span dir="auto" class="min-w-0 truncate">
+                        {branch}
+                      </span>
+                    )}
+                  </Typeahead>
+                </Popover.Content>
+              )}
+            </Show>
+          </Popover.Portal>
+        </Popover>
       </Tooltip>
     </Show>
   )

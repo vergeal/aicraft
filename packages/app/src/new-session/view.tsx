@@ -220,10 +220,6 @@ function NewSessionTips(props: { selection: ComposerModel["model"]["selection"];
 const TRIGGER =
   "flex h-[30px] items-center gap-1.5 rounded-full text-start ps-2.5 pe-2 text-[13px] text-v2-text-text-tertiary transition-colors hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-text-text-base focus-visible:outline-none"
 
-/** The project chip is the only filled pill in the context row: it names where the session writes. */
-const PROJECT_TRIGGER =
-  "flex h-[30px] items-center gap-1.5 rounded-full bg-v2-background-bg-layer-02 ps-3 pe-2.5 text-[13px] text-v2-text-text-secondary shadow-[inset_0_0_0_0.5px_var(--v2-border-border-subtle)] transition-colors hover:bg-v2-background-bg-layer-03 hover:text-v2-text-text-base focus-visible:bg-v2-background-bg-layer-03 focus-visible:text-v2-text-text-base focus-visible:outline-none"
-
 /** The composer tray: project and worktree pickers, Git context, and the session's directory. */
 function NewSessionLocation(props: {
   project: PromptProject
@@ -337,7 +333,7 @@ function NewSessionLocation(props: {
               data-action="prompt-project"
               aria-haspopup="dialog"
               aria-description={language.t("session.new.project.trigger.tooltip")}
-              class={`${PROJECT_TRIGGER} min-w-0`}
+              class={`${TRIGGER} min-w-0`}
               onClick={props.onClick}
             >
               <ProjectFolder class="shrink-0" />

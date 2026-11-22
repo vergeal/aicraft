@@ -185,6 +185,7 @@ export function MessageStream(props: {
               <For each={entries()}>
                 {(entry, index) => {
                   const previous = () => entries()[index() - 1]?.message
+                  const first = () => isGroupStart(entry.message, previous())
                   return (
                     <>
                       <Show when={previous() === undefined || !sameDay(entry.message.createdAt, previous()!.createdAt)}>
@@ -196,6 +197,7 @@ export function MessageStream(props: {
                         ctx={ctx}
                         message={entry.message}
                         repeat={entry.repeat}
+                        first={first()}
                         role={entry.message.outgoing ? text(ctx, "hyt.chat.msg.self") : department(entry.message.sender)}
                         avatars={props.avatars}
                         onOpenImage={setViewer}
@@ -271,6 +273,7 @@ function MessageItem(props: {
   ctx: Context
   message: MessageRow
   repeat: number
+  first: boolean
   role: string
   avatars: Readonly<Record<string, string>>
   onOpenImage: (source: string) => void
@@ -294,7 +297,7 @@ function MessageItem(props: {
         </div>
       }
     >
-      <div class="hyt-chat-item" data-outgoing={message().outgoing ? "true" : "false"}>
+      <div class="hyt-chat-item" data-first={props.first ? "true" : "false"} data-outgoing={message().outgoing ? "true" : "false"}>
         <Avatar
           ctx={ctx}
           name={senderName()}
@@ -304,18 +307,20 @@ function MessageItem(props: {
           size="bubble"
         />
         <div class="hyt-chat-item-body">
-          <div class="hyt-chat-item-meta">
-            <span class="hyt-chat-item-name">{senderName()}</span>
-            <Show when={props.role.length > 0}>
-              <span class="hyt-chat-msg-role" data-you={message().outgoing ? "true" : undefined} title={props.role}>
-                {props.role}
-              </span>
-            </Show>
-            <Show when={message().atMe}>
-              <span class="hyt-chat-at-mark">{text(ctx, "hyt.chat.msg.atMe")}</span>
-            </Show>
-            <span class="hyt-chat-item-time">{formatClock(ctx.locale.locale(), message().createdAt)}</span>
-          </div>
+          <Show when={props.first}>
+            <div class="hyt-chat-item-meta">
+              <span class="hyt-chat-item-name">{senderName()}</span>
+              <Show when={props.role.length > 0}>
+                <span class="hyt-chat-msg-role" data-you={message().outgoing ? "true" : undefined} title={props.role}>
+                  {props.role}
+                </span>
+              </Show>
+              <Show when={message().atMe}>
+                <span class="hyt-chat-at-mark">{text(ctx, "hyt.chat.msg.atMe")}</span>
+              </Show>
+              <span class="hyt-chat-item-time">{formatClock(ctx.locale.locale(), message().createdAt)}</span>
+            </div>
+          </Show>
           <MessageBody ctx={ctx} message={message()} onOpenImage={props.onOpenImage} onMedia={props.onMedia} onMerge={props.onMerge} />
         </div>
       </div>
@@ -529,6 +534,14 @@ function sameDay(a: number, b: number) {
 
 function isSystemMessage(message: MessageRow) {
   return message.kind === "recall" || message.kind === "notice" || message.kind === "call"
+}
+
+/** 是否开启新的发言组：跨人、跨 5 分钟或系统消息都另起一组，组内不再重复头像与名字。 */
+function isGroupStart(message: MessageRow, previous: MessageRow | undefined) {
+  if (previous === undefined) return true
+  if (isSystemMessage(message) || isSystemMessage(previous)) return true
+  if (message.sender !== previous.sender) return true
+  return Math.abs(message.createdAt - previous.createdAt) > 5 * 60_000
 }
 
 /** 相邻同内容系统消息合并为一条，repeat 记次数。 */

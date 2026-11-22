@@ -57,8 +57,13 @@ export const css = `
      三栏都用它，顶部才不会在 titlebar 下沿切出一条更亮的横带；分栏只靠 0.5px 边线。
      不在外壳里时退回语义 token。 */
   --hyt-bg-surface: var(--color-main, var(--v2-background-bg-base));
-  --hyt-bg-side: var(--hyt-bg-surface);
-  --hyt-bg-chat: var(--hyt-bg-surface);
+  /* 左栏压暗一档、中栏抬亮一档：浅色下是「微灰栏 + 白频道」，深色下是「更暗栏 + 抬亮的频道」，
+     与 Discord 的三层关系一致，消息区不再和侧栏糊成一整块。 */
+  --hyt-bg-side: light-dark(
+    color-mix(in srgb, var(--v2-background-bg-deep) 55%, var(--v2-background-bg-layer-01)),
+    var(--v2-background-bg-base)
+  );
+  --hyt-bg-chat: light-dark(var(--v2-background-bg-base), var(--v2-background-bg-layer-01));
   --hyt-bg-elev: var(--v2-background-bg-layer-02);
   --hyt-line: var(--v2-border-border-muted);
   --hyt-line-strong: var(--v2-border-border-base);
@@ -525,14 +530,14 @@ export const css = `
   color: var(--hyt-text);
 }
 
-/* 头像：设计稿用圆角方形（不是圆形），同一 id 稳定散列到底色。 */
+/* 头像：统一圆形，同一 id 稳定散列到底色，观感与 Discord 一致。 */
 .hyt-chat-avatar {
   position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   overflow: hidden;
-  border-radius: var(--hyt-radius-8);
+  border-radius: 999px;
   background: var(--hyt-avatar-gray);
   color: var(--hyt-on-accent);
   font-weight: var(--font-weight-bold);
@@ -547,7 +552,7 @@ export const css = `
 .hyt-chat-avatar[data-size="head"] {
   width: 32px;
   height: 32px;
-  border-radius: var(--hyt-radius-8);
+  border-radius: 999px;
   font-size: var(--hyt-text-125);
 }
 .hyt-chat-avatar[data-size="bubble"] {
@@ -558,13 +563,13 @@ export const css = `
 .hyt-chat-avatar[data-size="mention"] {
   width: 24px;
   height: 24px;
-  border-radius: var(--hyt-radius-6);
+  border-radius: 999px;
   font-size: var(--hyt-text-11);
 }
 .hyt-chat-avatar[data-size="member"] {
   width: 28px;
   height: 28px;
-  border-radius: var(--hyt-radius-6);
+  border-radius: 999px;
   font-size: var(--hyt-text-11);
 }
 .hyt-chat-avatar[data-tone="blue"] { background: var(--hyt-avatar-blue); }
@@ -739,6 +744,16 @@ export const css = `
   gap: 7px;
   margin-bottom: 3px;
   min-width: 0;
+}
+/* 组内后续消息：头像留位但不重复，名字与时间收起，只显示正文，接近 Discord 的连续发言。 */
+.hyt-chat-item[data-first="false"] {
+  padding-top: 0;
+}
+.hyt-chat-item[data-first="false"] > .hyt-chat-avatar {
+  visibility: hidden;
+}
+.hyt-chat-item[data-first="false"] .hyt-chat-item-body {
+  padding-top: 0;
 }
 .hyt-chat-item-name {
   color: var(--hyt-text-strong);

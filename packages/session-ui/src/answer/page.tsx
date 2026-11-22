@@ -1003,10 +1003,10 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
 
   if (!current || !previous) return 0
 
-  // A prompt block opens a new reader thought: it keeps its own gap above (from the previous answer) and below
-  // (to the answer that follows). Both are a touch wider than the 16px block rhythm, since the prompt's action
-  // line already sits inside the space below it.
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 24
+  // The answer sits 40px below the bubble. The prompt's action line is the row's own 24px tail (20px line plus a
+  // 4px gap), so the answer contributes only the 16px block rhythm; making this gap 40 would double-count the
+  // time line. The gap above the prompt stays wider than the rhythm because nothing sits in it.
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 16
 
   if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
 

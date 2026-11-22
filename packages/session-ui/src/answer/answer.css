@@ -175,7 +175,8 @@
 }
 
 /* The prompt's action line belongs to the bubble above it, so it takes a small gap instead of sitting flush against
-   the bubble's bottom edge. The answer that follows keeps its own bigger gap from the flow rhythm. */
+   the bubble's bottom edge. The answer that follows adds only the 16px block rhythm, because this line already fills
+   the rest of the 40px bubble-to-answer distance with its 20px row and 4px gap. */
 .answer-scope [data-slot="user-message-body"] > [data-slot="user-message-actions"] {
   padding-top: 4px;
 }

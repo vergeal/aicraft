@@ -632,6 +632,21 @@ story("keeps reads of different files as their own rows", async ({ mount }) => {
   await expect(group).not.toContainText("×")
 })
 
+story("lists the files a turn changed under its answer", async ({ mount }) => {
+  const root = await mount("answer-page--edit-diff")
+
+  const changes = root.locator('[data-slot="answer-changes"]')
+  await expect(changes).toHaveCount(1)
+  await expect(changes).toContainText("project.ts")
+  await expect(changes).toContainText("+1")
+  await expect(changes).toContainText("-1")
+
+  // Opening the process moves the answer under the steps; the change list stays with it, exactly once.
+  await expandTurn(root).click()
+  await expect(changes).toHaveCount(1)
+  await expect(changes).toContainText("project.ts")
+})
+
 story("shows an edit as a diff instead of input and output", async ({ mount }) => {
   const root = await mount("answer-page--edit-diff")
 

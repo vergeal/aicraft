@@ -1,0 +1,25 @@
+[data-component="brand-mark"] {
+  display: block;
+  aspect-ratio: 1;
+}
+
+/* Brand mark: fixed colours, outside the currentColor system (design/logo README). */
+[data-component="brand-mark"] .brand-mark-grad-start {
+  stop-color: #00e08a;
+}
+
+[data-component="brand-mark"] .brand-mark-grad-mid {
+  stop-color: #00d4a0;
+}
+
+[data-component="brand-mark"] .brand-mark-grad-end {
+  stop-color: #00b4ff;
+}
+
+[data-component="brand-mark"] .brand-mark-counter {
+  fill: #5eead4;
+}
+
+[data-color-scheme="dark"] [data-component="brand-mark"] .brand-mark-counter {
+  fill: #99f6e4;
+}

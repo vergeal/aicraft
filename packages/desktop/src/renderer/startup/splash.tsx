@@ -1,4 +1,4 @@
-import { ChanghongLogo } from "@opencode/ui/changhong-logo"
+import { BrandMark } from "@opencode/ui/brand-mark"
 import type { Platform } from "@opencode/app/desktop"
 import { onCleanup, onMount, Show } from "solid-js"
 import "./splash.css"
@@ -56,7 +56,7 @@ export function LoadingSplash(props: {
             "bg-v2-background-bg-base": !props.deep,
           }}
         >
-          <ChanghongLogo class="w-[500px] opacity-60" sweep />
+          <BrandMark class="w-[128px]" />
         </div>
       }
     >
@@ -78,7 +78,7 @@ export function LoadingSplash(props: {
         <div class="relative size-full">
           <div class="absolute inset-x-0 top-[25.375%]">
             <div class="mx-auto w-full max-w-[720px]" data-slot="first-launch-logo">
-              <ChanghongLogo class="mx-auto block w-4/5 opacity-60" sweep />
+              <BrandMark class="mx-auto w-[160px]" />
             </div>
           </div>
         </div>

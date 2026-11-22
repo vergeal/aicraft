@@ -18,8 +18,34 @@
   }
 }
 
+/* Waiting on startup: the product mark breathes instead of sitting still. */
+[data-component="startup-splash"] [data-component="brand-mark"] {
+  animation: startup-logo-breathe 1600ms ease-in-out infinite;
+}
+
+@keyframes startup-logo-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-slot="first-launch-logo"] {
     animation: none;
   }
+
+  [data-component="startup-splash"] [data-component="brand-mark"] {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+:root[data-motion="reduce"] [data-component="startup-splash"] [data-component="brand-mark"] {
+  animation: none;
+  opacity: 0.7;
 }

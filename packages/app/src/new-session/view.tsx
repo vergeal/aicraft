@@ -21,7 +21,6 @@ import type { useNewSessionLocationDialog } from "@/new-session/location/dialog"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { useProviders } from "@/providers/catalog/providers"
-import { NEW_SESSION_CONTENT_WIDTH } from "@/new-session/layout"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { Persistence } from "@/runtime/persistence/schema"
 import type { NewSessionWorkspaceController } from "./workspace/controller"
@@ -69,8 +68,12 @@ export function NewSessionView(props: {
           active={props.composer.state.drag === "active"}
           input={props.composer.model.selection.current()?.capabilities.input}
         />
-        <div class="absolute inset-0 flex items-center justify-center px-6">
-          <div class={NEW_SESSION_CONTENT_WIDTH}>
+        {/* The prompt is the anchor of the empty state: it sits on the panel's vertical center, and the welcome
+            header stacks above it inside the flexible top row. Centering the whole column instead would push the
+            input below the middle by half the height of the wordmark and its subtitle. Both columns share the
+            session measure, so the header, the project row and the card keep one axis. */}
+        <div class="absolute inset-0 grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] px-6">
+          <div class="mx-auto flex min-h-0 w-full max-w-session flex-col justify-end">
             {/* The welcome header sits centered so the empty state opens like a hero, not a left-aligned form.
                 The title runs 26/32 at weight 500: one step larger and lighter than the old 24/600, which read
                 as a control label rather than the product's name. */}
@@ -96,31 +99,31 @@ export function NewSessionView(props: {
             >
               {language.t("session.new.welcome.subtitle")}
             </p>
-            <div class="flex flex-col">
-              {/* The card is the prompt and nothing else. Which project and branch it writes into sits above it as a
-                  single quiet line, and the recent-project shortcuts live in the location dialog instead of
-                  competing with the input. */}
-              <div data-slot="new-session-context" class="mb-2 flex min-w-0 flex-col gap-1">
-                <Show when={props.project.selected()}>
-                  {(project) => (
-                    <NewSessionLocation
-                      project={project()}
-                      workspace={props.workspace.bar.visible() ? props.workspace.selection.value() : "main"}
-                      root={props.workspace.project.root()}
-                      branch={<NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />}
-                      onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
-                      onClick={() => location()}
-                      onWorktree={project().id && project().vcs === "git" ? () => location(project()) : undefined}
-                    />
-                  )}
-                </Show>
-                <Show when={props.project.empty()}>
-                  <PromptProjectAddButton controller={props.project} />
-                </Show>
-              </div>
-              <div data-slot="new-session-composer" class="relative z-10 -mx-4">
-                <Composer model={props.composer} />
-              </div>
+            {/* The project and branch row belongs to the prompt, but it sits in the header column so only the
+                card itself decides the centered row. The recent-project shortcuts live in the location dialog
+                instead of competing with the input. */}
+            <div data-slot="new-session-context" class="mb-2 flex min-w-0 flex-col gap-1">
+              <Show when={props.project.selected()}>
+                {(project) => (
+                  <NewSessionLocation
+                    project={project()}
+                    workspace={props.workspace.bar.visible() ? props.workspace.selection.value() : "main"}
+                    root={props.workspace.project.root()}
+                    branch={<NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />}
+                    onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
+                    onClick={() => location()}
+                    onWorktree={project().id && project().vcs === "git" ? () => location(project()) : undefined}
+                  />
+                )}
+              </Show>
+              <Show when={props.project.empty()}>
+                <PromptProjectAddButton controller={props.project} />
+              </Show>
+            </div>
+          </div>
+          <div class="mx-auto w-full max-w-session">
+            <div data-slot="new-session-composer" class="relative z-10 -mx-4">
+              <Composer model={props.composer} />
             </div>
           </div>
         </div>

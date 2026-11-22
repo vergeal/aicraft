@@ -35,7 +35,9 @@ const ROW =
 const ICON_BUTTON =
   "flex size-[30px] shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-icon-primary)]"
 
-const BADGE = "shrink-0 rounded-full bg-[var(--color-accent-blue)] px-1.5 text-[11px] leading-4 text-white tabular-nums"
+/* 未读/待办角标用红色实心、白字加粗。取 red-800 而不是 state-fg-danger：后者在深色主题下是浅红，白字对比不足。 */
+const BADGE =
+  "shrink-0 rounded-full bg-[var(--v2-red-800)] px-1.5 text-[11px] font-semibold leading-4 text-white tabular-nums"
 
 /** Opens a draft in the most recent project: the sidebar's primary button starts here. */
 export function useNewSessionDraft() {

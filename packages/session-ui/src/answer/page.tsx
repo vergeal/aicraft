@@ -1949,13 +1949,20 @@ function Collapse(props: { open: boolean; id?: string; children: JSX.Element }) 
         cancelAnimationFrame(frame)
 
         if (open) {
-          setShown(true)
-          setExpanded(false)
           setClipping(true)
-          frame = requestAnimationFrame(() => {
-            frame = 0
+
+          if (shown()) {
+            // Reopening mid-close: the track is already partway down, so let it ease back up from there.
             setExpanded(true)
-          })
+          } else {
+            setShown(true)
+            setExpanded(false)
+            frame = requestAnimationFrame(() => {
+              frame = 0
+              setExpanded(true)
+            })
+          }
+
           timer = setTimeout(() => {
             timer = undefined
             setClipping(false)

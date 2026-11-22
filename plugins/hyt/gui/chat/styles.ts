@@ -24,7 +24,7 @@ export const css = `
   -webkit-font-smoothing: antialiased;
 }
 
-/* 外壳比内容亮一档：深色下侧栏 #1b1b1c、聊天更深；浅色下侧栏灰、聊天白。 */
+/* 侧栏比聊天亮一档：设计稿 #14161b 与 #0f1115。 */
 .hyt-chat-side,
 .hyt-chat-ai {
   display: flex;
@@ -360,7 +360,7 @@ export const css = `
 }
 .hyt-chat-session[aria-current="true"] .hyt-chat-session-name,
 .hyt-chat-session[data-unread="true"] .hyt-chat-session-name {
-  color: var(--hyt-text);
+  color: var(--hyt-white);
 }
 .hyt-chat-session[data-unread="true"] .hyt-chat-session-preview {
   color: var(--hyt-text-2);
@@ -519,7 +519,7 @@ export const css = `
   color: var(--hyt-text);
 }
 
-/* 头像：评审稿用圆角方形（不是圆形），同一 id 稳定散列底色。 */
+/* 头像：设计稿用圆角方形（不是圆形），同一 id 稳定散列到底色。 */
 .hyt-chat-avatar {
   position: relative;
   display: grid;

@@ -880,9 +880,9 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   padding-bottom: 14px;
 }
 
-/* The v6 card is 88px tall: the editor holds a 45px input region and the toolbar keeps its own row. */
+/* The v6 card is 82px tall: the editor holds a 38px input region and the toolbar keeps its own row. */
 [data-slot="replica-main"] [data-component="composer-editor"] {
-  min-height: 45px;
+  min-height: 38px;
 }
 
 [data-slot="replica-main"] [data-component="session-composer-dock"] {
@@ -1114,6 +1114,14 @@ html[data-replica-window="translucent"][data-color-scheme="dark"]
 [data-slot="replica-main"][data-empty] [data-component="new-session"] {
   background-color: transparent;
   box-shadow: none;
+}
+
+/* A new chat belongs to the window chrome, not to a lit panel: the bar above it and the page below are one surface,
+   so the empty canvas keeps the bar's flat tone instead of the fall to a deeper step in light or the top light wash
+   in dark. Without this the page opened one shade brighter than its own titlebar at the seam. */
+[data-slot="replica-main"][data-empty] {
+  background-color: var(--color-main);
+  background-image: none;
 }
 
 /* The workspace fills the window on every side, so its panels square off instead of carrying a corner radius. */

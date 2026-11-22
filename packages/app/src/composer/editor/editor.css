@@ -146,9 +146,9 @@
    light theme gets the dark key and the dark theme the light one, instead of a hard-coded colour that reads as
    black on black. Only the size belongs to the composer. */
 :root [data-component="composer"] [data-action="composer-submit"] {
-  width: 32px;
-  height: 32px;
-  padding: 7px;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
   border-radius: 9999px;
 }
 

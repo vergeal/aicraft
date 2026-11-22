@@ -20,6 +20,7 @@ export interface TemplatesProps {
   readonly onCreate: () => Template
   readonly onSave: (template: Template) => Promise<void>
   readonly onDelete: (template: Template) => Promise<void>
+  readonly onBack: () => void
 }
 
 /** 模板库：内置服务保留步骤，只允许调整名称与问题；自定义模板可以增删问题。 */
@@ -41,6 +42,9 @@ export function Templates(props: TemplatesProps) {
               <p class="itsm-head__description">{ctx.t("templates.hint")}</p>
             </div>
             <div class="itsm-head__meta">
+              <ctx.ui.Button variant="ghost" size="small" icon="outline-arrow-left" onClick={props.onBack}>
+                {ctx.t("common.back")}
+              </ctx.ui.Button>
               <ctx.ui.Button variant="neutral" size="small" icon="plus" onClick={() => setEditing(props.onCreate())}>
                 {ctx.t("templates.new")}
               </ctx.ui.Button>

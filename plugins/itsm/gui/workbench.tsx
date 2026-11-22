@@ -246,6 +246,7 @@ export function Workbench(props: WorkbenchProps) {
             </span>
             <span class="itsm-account__label">{currentAccount()?.label ?? ctx.t("nav.noAccount")}</span>
           </button>
+          <span class="itsm-topbar__sep" aria-hidden="true" />
           <ctx.ui.IconButton
             icon="outline-list-changelog"
             label={ctx.t("nav.library")}
@@ -326,6 +327,7 @@ export function Workbench(props: WorkbenchProps) {
                                   await props.onRefresh()
                                 }}
                                 onOpenWorkbench={() => setView({ kind: "services" })}
+                                onOpenTemplates={() => setView({ kind: "templates" })}
                               />
                             </Show>
                           }
@@ -338,11 +340,17 @@ export function Workbench(props: WorkbenchProps) {
                               await props.onRefresh()
                             }}
                             onDelete={removeTemplate}
+                            onBack={() => setView({ kind: "settings" })}
                           />
                         </Show>
                       }
                     >
-                      <History runs={runs()} templates={templates()} onClear={() => void clearHistory()} />
+                      <History
+                        runs={runs()}
+                        templates={templates()}
+                        onClear={() => void clearHistory()}
+                        onBack={() => setView({ kind: "services" })}
+                      />
                     </Show>
                   }
                 >

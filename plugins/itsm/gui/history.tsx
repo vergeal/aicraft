@@ -7,6 +7,7 @@ export interface HistoryProps {
   readonly runs: readonly Run[]
   readonly templates: readonly Template[]
   readonly onClear: () => void
+  readonly onBack: () => void
 }
 
 /** 历史：倒序列出走过的工单，点开看当时填的值。 */
@@ -47,14 +48,17 @@ export function History(props: HistoryProps) {
           <h2 class="itsm-head__title">{ctx.t("history.title")}</h2>
           <p class="itsm-head__description">{ctx.t("history.hint")}</p>
         </div>
-        <Show when={props.runs.length > 0}>
-          <div class="itsm-head__meta">
+        <div class="itsm-head__meta">
+          <Show when={props.runs.length > 0}>
             <span class="itsm-chip">{ctx.t("history.count", { count: String(props.runs.length) })}</span>
             <ctx.ui.Button variant="ghost-muted" size="small" icon="trash" onClick={props.onClear}>
               {ctx.t("history.clear")}
             </ctx.ui.Button>
-          </div>
-        </Show>
+          </Show>
+          <ctx.ui.Button variant="ghost" size="small" icon="outline-arrow-left" onClick={props.onBack}>
+            {ctx.t("common.back")}
+          </ctx.ui.Button>
+        </div>
       </div>
 
       <Show

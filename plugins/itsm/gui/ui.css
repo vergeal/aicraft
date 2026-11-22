@@ -10,7 +10,7 @@
   color: var(--v2-text-text-base);
 }
 
-/* 应用已有一条 280 侧栏，插件再开第二条会把内容挤到 580 以内。二级导航用内容区顶部页签。 */
+/* 顶部只留身份与入口：标题、账号、历史、设置、刷新。子页面不再用第二层导航。 */
 .itsm-topbar {
   display: flex;
   flex: none;
@@ -22,55 +22,13 @@
   border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
 
-.itsm-tabs {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-}
-
-.itsm-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--v2-text-text-muted);
-  font-size: 13px;
-  line-height: 20px;
-  cursor: pointer;
-}
-
-.itsm-tab:hover {
-  background: var(--v2-overlay-simple-overlay-hover);
-  color: var(--v2-text-text-base);
-}
-
-.itsm-tab[aria-selected="true"] {
-  color: var(--v2-text-text-base);
-}
-
-.itsm-tab[aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  inset: auto 12px -1px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--v2-background-bg-contrast);
-}
-
-.itsm-tab__count {
-  color: var(--v2-text-text-faint);
-  font-size: var(--font-size-x-small);
-  font-variant-numeric: tabular-nums;
-}
-
-.itsm-tab[aria-selected="true"] .itsm-tab__count {
-  color: var(--v2-text-text-muted);
+.itsm-topbar__title {
+  overflow: hidden;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .itsm-topbar__meta {
@@ -79,6 +37,14 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
+}
+
+/* 账号与三个入口之间用一条细竖线分开，避免五种元素挤成一行。 */
+.itsm-topbar__sep {
+  width: 0.5px;
+  height: 16px;
+  margin: 0 6px;
+  background: var(--v2-border-border-muted);
 }
 
 .itsm-account {
@@ -345,6 +311,11 @@
   border-radius: 12px;
   background: var(--v2-background-bg-layer-01);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+}
+
+.itsm-card__divider {
+  height: 0.5px;
+  background: var(--v2-border-border-muted);
 }
 
 .itsm-card__head {
@@ -1000,39 +971,15 @@
 
 /* ── 设置 ─────────────────────────────────────────────────── */
 
-.itsm-account {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 4px;
-  border-top: 0.5px solid var(--v2-border-border-muted);
+/* 开关选中态用中性对比色：整页只有它一个元素时，品牌蓝会把视线从内容上拽走。 */
+.itsm-stack [data-component="switch"][data-checked] [data-slot="switch-control"] {
+  background: var(--v2-text-text-base);
+  box-shadow: none;
 }
 
-.itsm-account:first-child {
-  border-top: 0;
-}
-
-.itsm-account__text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.itsm-account__name {
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-compact);
-}
-
-.itsm-account__meta {
-  overflow: hidden;
-  color: var(--v2-text-text-muted);
-  font-size: var(--font-size-x-small);
-  line-height: var(--line-height-compact);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.itsm-stack [data-component="switch"][data-checked] [data-slot="switch-thumb"] {
+  border-color: transparent;
+  background: var(--v2-background-bg-base);
 }
 
 .itsm-inline-form {

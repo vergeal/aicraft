@@ -323,10 +323,6 @@ export function Wizard(props: WizardProps) {
               <span aria-hidden="true">·</span>
               <span>{ctx.t("wizard.chooseAny")}</span>
             </Show>
-            <Show when={pageDriven(current())}>
-              <span aria-hidden="true">·</span>
-              <span>{ctx.t("wizard.fromPage")}</span>
-            </Show>
           </div>
           <h2 class="itsm-question__label">{current().label}</h2>
           <Show when={current().hint}>
@@ -336,13 +332,11 @@ export function Wizard(props: WizardProps) {
         </div>
 
         <div class="itsm-actions">
-          <ctx.ui.Button
-            variant="ghost"
-            disabled={index() === 0}
-            onClick={() => setIndex(Math.max(0, index() - 1))}
-          >
-            {ctx.t("wizard.previous")}
-          </ctx.ui.Button>
+          <Show when={index() > 0}>
+            <ctx.ui.Button variant="ghost" onClick={() => setIndex(Math.max(0, index() - 1))}>
+              {ctx.t("wizard.previous")}
+            </ctx.ui.Button>
+          </Show>
           <div class="itsm-spacer" />
           <ctx.ui.Button variant="ghost-muted" onClick={props.onCancel}>
             {ctx.t("common.cancel")}

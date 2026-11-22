@@ -12,6 +12,7 @@ export interface SettingsPageProps {
   readonly onImport: (account: Account) => Promise<void>
   readonly onSaveSettings: (settings: Settings) => Promise<void>
   readonly onOpenWorkbench: () => void
+  readonly onOpenTemplates?: () => void
 }
 
 /** 设置页：账号、门户地址与「记住答案」的行为。 */
@@ -77,11 +78,11 @@ export function AccountSettings(props: SettingsPageProps) {
 
   return (
     <ctx.ui.SettingsLayout
-      title={ctx.t("settings.title")}
+      title={ctx.t("settings.heading")}
       description={ctx.t("settings.description")}
       actions={
-        <ctx.ui.Button variant="neutral" size="small" onClick={props.onOpenWorkbench}>
-          {ctx.t("nav.new")}
+        <ctx.ui.Button variant="neutral" size="small" icon="outline-arrow-left" onClick={props.onOpenWorkbench}>
+          {ctx.t("common.back")}
         </ctx.ui.Button>
       }
     >
@@ -154,9 +155,9 @@ export function AccountSettings(props: SettingsPageProps) {
               {ctx.t("settings.account.add")}
             </ctx.ui.Button>
           </div>
-        </section>
 
-        <section class="itsm-card">
+          <div class="itsm-card__divider" />
+
           <div>
             <h3 class="itsm-card__title">{ctx.t("settings.portal")}</h3>
             <p class="itsm-card__hint">{ctx.t("settings.portal.hint")}</p>
@@ -178,7 +179,7 @@ export function AccountSettings(props: SettingsPageProps) {
               busy={busy() === "address"}
               onClick={() => void saveAddress()}
             >
-              {ctx.t("common.done")}
+              {ctx.t("common.save")}
             </ctx.ui.Button>
           </div>
         </section>
@@ -196,6 +197,20 @@ export function AccountSettings(props: SettingsPageProps) {
               onChange={(checked) => void toggleAsk(checked)}
             />
           </div>
+
+          <Show when={props.onOpenTemplates}>
+            <div class="itsm-card__divider" />
+
+            <div class="itsm-switch-row">
+              <div>
+                <h3 class="itsm-card__title">{ctx.t("settings.templates")}</h3>
+                <p class="itsm-card__hint">{ctx.t("settings.templates.hint")}</p>
+              </div>
+              <ctx.ui.Button variant="neutral" size="small" onClick={() => props.onOpenTemplates?.()}>
+                {ctx.t("settings.templates.manage")}
+              </ctx.ui.Button>
+            </div>
+          </Show>
         </section>
       </div>
     </ctx.ui.SettingsLayout>

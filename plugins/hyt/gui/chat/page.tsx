@@ -56,6 +56,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   const [loadingMore, setLoadingMore] = createSignal(false)
   let searchTimer: number | undefined
   let searchToken = 0
+  let composer: HTMLTextAreaElement | undefined
 
   const run = async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
     try {
@@ -145,9 +146,24 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     }
   }
 
+  const currentDraft = () => {
+    const current = state()
+    if (current === undefined) return undefined
+    const rows = current.drafts.filter((draft) => draft.sessionId === current.selected)
+    return rows.slice().sort((left, right) => right.createdAt - left.createdAt)[0]
+  }
+
+  const focusComposer = () => {
+    composer?.focus()
+  }
+
+  const insertComposer = (value: string) => {
+    setDraft(value)
+    composer?.focus()
+  }
+
   return (
     <Show when={state() !== undefined} fallback={<ChatEmpty state={undefined} error={error()} onRetry={() => void run(() => props.client.refresh())} ctx={ctx} />}>
-      {() => (
       <Show
         when={state()?.status.phase === "ready"}
         fallback={
@@ -163,26 +179,37 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
             <aside class="hyt-chat-side">
               <SessionList
                 ctx={ctx}
+                status={snapshot().status}
                 sessions={snapshot().sessions}
                 selected={snapshot().selected}
                 query={query()}
                 hits={snapshot().search.hits}
                 searching={searching()}
                 avatars={avatarMap()}
+                draftCount={currentDraft() === undefined ? 0 : 1}
+                knowledgeCount={snapshot().knowledge.length}
+                unread={snapshot().unread}
                 onSelect={select}
                 onSearch={search}
+                onAi={focusComposer}
+                onRefresh={() => void run(() => props.client.refresh())}
               />
             </aside>
 
             <section class="hyt-chat-main">
               <MessageStream
                 ctx={ctx}
-                account={snapshot().status.account}
+                status={snapshot().status}
                 session={snapshot().sessions.find((item) => item.id === snapshot().selected)}
                 messages={snapshot().messages}
+                members={snapshot().members}
+                draft={currentDraft()}
                 hasMore={snapshot().hasMore}
                 loadingMore={loadingMore()}
                 onLoadMore={loadMore}
+                onUseDraft={insertComposer}
+                onRefresh={() => void run(() => props.client.refresh())}
+                onFocusSearch={() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()}
                 avatars={avatarMap()}
                 onMedia={media}
                 onMerge={merge}
@@ -197,22 +224,23 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 onSend={send}
                 onNotice={(message, tone) => setNotice({ message, tone })}
                 notice={notice()}
+                onReady={(element) => {
+                  composer = element
+                }}
               />
             </section>
 
             <aside class="hyt-chat-ai">
               <AiPanel
                 ctx={ctx}
-                status={snapshot().status}
-                drafts={snapshot().drafts}
+                members={snapshot().members}
                 knowledge={snapshot().knowledge}
-                onUseDraft={setDraft}
-                onRefresh={() => void run(() => props.client.refresh())}
+                onMention={(name) => insertComposer(`${text_()}@${name} `)}
+                onCommand={insertComposer}
               />
             </aside>
           </div>
-        </Show>
-      )}
+      </Show>
     </Show>
   )
 }

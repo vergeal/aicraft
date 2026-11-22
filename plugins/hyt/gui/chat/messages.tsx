@@ -1,7 +1,7 @@
 import type { Context } from "@opencode/plugin/gui"
-import { For, Show, createResource, createSignal, onCleanup } from "solid-js"
+import { For, Show, createEffect, createResource, createSignal, onCleanup } from "solid-js"
 import { Avatar } from "./avatar.js"
-import type { MergeItemRow, MessageRow, SessionRow } from "./contract.js"
+import type { ChatStatus, DraftRow, MemberRow, MergeItemRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import { dayBucket, formatClock, formatDay, formatSize, splitMentions, toneOf } from "./util.js"
 
@@ -10,15 +10,25 @@ export interface MergeResult {
   readonly error: string
 }
 
-/** 通信块：中栏的会话头、消息流、加载更早的哨兵与图片查看器。 */
+/**
+ * 中栏：会话头、消息流（最新在底部）、AI 草稿卡、图片查看器。
+ *
+ * 滚动策略：切换会话或收到新消息时，只要不在往回翻，就贴住最新一条；
+ * 往回翻超过一屏时露出一颗「回到最新」。
+ */
 export function MessageStream(props: {
   ctx: Context
-  account: string
+  status: ChatStatus
   session: SessionRow | undefined
   messages: readonly MessageRow[]
+  members: readonly MemberRow[]
+  draft: DraftRow | undefined
   hasMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
+  onUseDraft: (body: string) => void
+  onRefresh: () => void
+  onFocusSearch: () => void
   avatars: Readonly<Record<string, string>>
   onMedia: (path: string) => Promise<{ dataUrl: string; error: string }>
   onMerge: (path: string) => Promise<MergeResult>
@@ -32,16 +42,36 @@ export function MessageStream(props: {
   // 组件实例的，读取到的回调可能不存在，所以既要在销毁后停手，也不能假定回调一定在。
   let disposed = false
   // 相邻同内容系统通知合并成一条，避免连续通知把中栏淹掉。
-  const entries = () => collapseSystem(reversed(props.messages))
+  const entries = () => collapseSystem(props.messages)
+  const todayCount = () => props.messages.filter((message) => dayBucket(message.createdAt) === "today").length
+
+  const scrollToEnd = (smooth: boolean) => {
+    requestAnimationFrame(() => {
+      scroller?.scrollTo({ top: scroller.scrollHeight, behavior: smooth ? "smooth" : "auto" })
+    })
+  }
+
+  let lastSession = ""
+  createEffect(() => {
+    const id = props.session?.id ?? ""
+    const count = props.messages.length
+    if (id !== lastSession) {
+      lastSession = id
+      setAway(false)
+      scrollToEnd(false)
+      return
+    }
+    if (count > 0 && !away()) scrollToEnd(false)
+  })
 
   const attachSentinel = (element: HTMLDivElement) => {
     observer?.disconnect()
     observer = new IntersectionObserver(
-      (entries) => {
+      (records) => {
         if (disposed) return
-        if (entries.some((entry) => entry.isIntersecting) && props.hasMore && !props.loadingMore) props.onLoadMore?.()
+        if (records.some((record) => record.isIntersecting) && props.hasMore && !props.loadingMore) props.onLoadMore?.()
       },
-      { root: element.closest(".hyt-chat-messages"), rootMargin: "160px" },
+      { root: element.closest(".hyt-chat-messages"), rootMargin: "160px 0px 0px 0px" },
     )
     observer.observe(element)
   }
@@ -50,38 +80,67 @@ export function MessageStream(props: {
     observer?.disconnect()
   })
 
+  const onScroll = (element: HTMLDivElement) => {
+    setAway(element.scrollHeight - element.scrollTop - element.clientHeight > 480)
+  }
+
+  const department = (account: string) => {
+    const member = props.members.find((item) => item.account === account)
+    return member?.department ?? ""
+  }
+
   return (
     <>
-      <header class="hyt-chat-pane-head hyt-chat-pane-head-main">
-        <div class="hyt-chat-heading-lead">
-          <Show when={props.session !== undefined}>
-            <Avatar
-              ctx={ctx}
-              name={props.session!.name}
-              tone={props.session!.tone}
-              paths={props.session!.headPaths}
-              avatars={props.avatars}
-              size="head"
-            />
-          </Show>
-          <div class="hyt-chat-heading">
-            <span class="hyt-chat-heading-title">{props.session?.name ?? text(ctx, "hyt.chat.title")}</span>
-            <span class="hyt-chat-heading-sub">
-              {props.session === undefined
-                ? text(ctx, "hyt.chat.messages.pick")
-                : props.session.group
-                  ? text(ctx, "hyt.chat.sessions.group")
-                  : props.session.id}
-            </span>
-          </div>
-        </div>
-        <Show when={props.session !== undefined}>
-          <div class="hyt-chat-heading-actions">
-            <Show when={props.messages.length > 0}>
-              <span class="hyt-chat-heading-sub">{props.messages.length}</span>
+      <header class="hyt-chat-head">
+        <div class="hyt-chat-head-id">
+          <div class="hyt-chat-head-title">
+            <span class="hyt-chat-head-name">{props.session?.name ?? text(ctx, "hyt.chat.title")}</span>
+            <Show when={props.session !== undefined}>
+              <span class="hyt-chat-pill">
+                {props.session!.group ? text(ctx, "hyt.chat.sessions.groups") : text(ctx, "hyt.chat.sessions.direct")}
+              </span>
+            </Show>
+            <Show when={props.status.autopilot}>
+              <span class="hyt-chat-ai-inline">
+                <ctx.ui.Icon name="brain" size="small" />
+                {text(ctx, "hyt.chat.head.ai")}
+              </span>
             </Show>
           </div>
-        </Show>
+          <div class="hyt-chat-head-sub">
+            <Show
+              when={props.session !== undefined}
+              fallback={<span>{text(ctx, "hyt.chat.messages.pick")}</span>}
+            >
+              <span class="hyt-chat-live-dot" aria-hidden="true" />
+              <span>{text(ctx, "hyt.chat.head.messages", { count: todayCount() })}</span>
+              <Show when={props.status.bridge === "missing"}>
+                <span>·</span>
+                <span>{text(ctx, "hyt.chat.status.bridge.missing")}</span>
+              </Show>
+            </Show>
+          </div>
+        </div>
+        <div class="hyt-chat-head-actions">
+          <button
+            type="button"
+            class="hyt-icon-button"
+            aria-label={text(ctx, "hyt.chat.search.label")}
+            title={text(ctx, "hyt.chat.search.label")}
+            onClick={() => props.onFocusSearch()}
+          >
+            <ctx.ui.Icon name="magnifying-glass" size="small" />
+          </button>
+          <button
+            type="button"
+            class="hyt-icon-button"
+            aria-label={text(ctx, "hyt.chat.action.refresh")}
+            title={text(ctx, "hyt.chat.action.refresh")}
+            onClick={() => props.onRefresh()}
+          >
+            <ctx.ui.Icon name="refresh" size="small" />
+          </button>
+        </div>
       </header>
 
       <Show
@@ -98,42 +157,68 @@ export function MessageStream(props: {
           </div>
         }
       >
-        <div class="hyt-chat-messages" ref={scroller} onScroll={(event) => setAway(event.currentTarget.scrollTop > 400)}>
+        <div class="hyt-chat-messages" ref={scroller} onScroll={(event) => onScroll(event.currentTarget)}>
           <div class="hyt-chat-flow">
+            <div ref={attachSentinel} aria-hidden="true" style={{ height: "1px" }} />
+            <Show when={props.hasMore}>
+              <div class="hyt-chat-day">
+                <span>{props.loadingMore ? text(ctx, "hyt.chat.messages.loadingMore") : text(ctx, "hyt.chat.messages.loadMore")}</span>
+              </div>
+            </Show>
+
             <Show
               when={props.messages.length > 0}
               fallback={<p class="hyt-chat-hint">{text(ctx, "hyt.chat.messages.empty")}</p>}
             >
               <For each={entries()}>
                 {(entry, index) => {
-                  const older = () => entries()[index() + 1]?.message
-                  const first = () => isGroupStart(entry.message, older())
+                  const previous = () => entries()[index() - 1]?.message
                   return (
                     <>
+                      <Show when={previous() === undefined || !sameDay(entry.message.createdAt, previous()!.createdAt)}>
+                        <div class="hyt-chat-day">
+                          <span>{dayLabel(ctx, entry.message.createdAt)}</span>
+                        </div>
+                      </Show>
                       <MessageItem
                         ctx={ctx}
                         message={entry.message}
                         repeat={entry.repeat}
-                        first={first()}
+                        role={entry.message.outgoing ? text(ctx, "hyt.chat.msg.self") : department(entry.message.sender)}
                         avatars={props.avatars}
                         onOpenImage={setViewer}
                         onMedia={props.onMedia}
                         onMerge={props.onMerge}
                       />
-                      <Show when={older() === undefined || !sameDay(entry.message.createdAt, older()!.createdAt)}>
-                        <div class="hyt-chat-day">
-                          <span>{dayLabel(ctx, entry.message.createdAt)}</span>
-                        </div>
-                      </Show>
                     </>
                   )
                 }}
               </For>
             </Show>
-            <div ref={attachSentinel} aria-hidden="true" style={{ height: "1px" }} />
-            <Show when={props.hasMore}>
-              <div class="hyt-chat-day">
-                <span>{props.loadingMore ? text(ctx, "hyt.chat.messages.loadingMore") : text(ctx, "hyt.chat.messages.loadMore")}</span>
+
+            <Show when={props.draft !== undefined}>
+              <div class="hyt-chat-draft">
+                <span class="hyt-chat-draft-mark" aria-hidden="true">
+                  <ctx.ui.Icon name="brain" size="normal" />
+                </span>
+                <div class="hyt-chat-draft-body">
+                  <div class="hyt-chat-draft-head">
+                    <span class="hyt-chat-draft-name">{text(ctx, "hyt.chat.ai.title")}</span>
+                    <span class="hyt-chat-draft-tag">{text(ctx, "hyt.chat.ai.tag")}</span>
+                    <span class="hyt-chat-draft-meta">
+                      {(props.draft?.note ?? "").length > 0 ? props.draft?.note : text(ctx, "hyt.chat.ai.draft.basis")}
+                    </span>
+                  </div>
+                  <div class="hyt-chat-draft-text">{props.draft?.text}</div>
+                  <div class="hyt-chat-draft-actions">
+                    <button type="button" class="hyt-chat-draft-btn" onClick={() => props.onUseDraft(props.draft?.text ?? "")}>
+                      {text(ctx, "hyt.chat.ai.drafts.use")}
+                    </button>
+                    <button type="button" class="hyt-chat-draft-btn" data-ghost="true" onClick={() => props.onRefresh()}>
+                      {text(ctx, "hyt.chat.ai.drafts.refresh")}
+                    </button>
+                  </div>
+                </div>
               </div>
             </Show>
           </div>
@@ -144,7 +229,7 @@ export function MessageStream(props: {
             type="button"
             class="hyt-chat-to-end"
             onClick={() => {
-              scroller?.scrollTo({ top: 0, behavior: "smooth" })
+              scrollToEnd(true)
               setAway(false)
             }}
           >
@@ -174,7 +259,7 @@ function MessageItem(props: {
   ctx: Context
   message: MessageRow
   repeat: number
-  first: boolean
+  role: string
   avatars: Readonly<Record<string, string>>
   onOpenImage: (source: string) => void
   onMedia: (path: string) => Promise<{ dataUrl: string; error: string }>
@@ -197,16 +282,11 @@ function MessageItem(props: {
         </div>
       }
     >
-      <div
-        class="hyt-chat-item hyt-chat-message"
-        data-first={props.first ? "true" : "false"}
-        data-outgoing={message().outgoing ? "true" : "false"}
-        data-at={message().atMe ? "true" : "false"}
-      >
+      <div class="hyt-chat-item" data-outgoing={message().outgoing ? "true" : "false"}>
         <Avatar
           ctx={ctx}
           name={senderName()}
-          tone={toneOf(message().sender)}
+          tone={message().outgoing ? "blue" : toneOf(message().sender)}
           paths={message().senderHead.length > 0 ? [message().senderHead] : []}
           avatars={props.avatars}
           size="bubble"
@@ -214,10 +294,15 @@ function MessageItem(props: {
         <div class="hyt-chat-item-body">
           <div class="hyt-chat-item-meta">
             <span class="hyt-chat-item-name">{senderName()}</span>
+            <Show when={props.role.length > 0}>
+              <span class="hyt-chat-msg-role" data-you={message().outgoing ? "true" : undefined} title={props.role}>
+                {props.role}
+              </span>
+            </Show>
             <Show when={message().atMe}>
               <span class="hyt-chat-at-mark">{text(ctx, "hyt.chat.msg.atMe")}</span>
             </Show>
-            <span>{formatClock(ctx.locale.locale(), message().createdAt)}</span>
+            <span class="hyt-chat-item-time">{formatClock(ctx.locale.locale(), message().createdAt)}</span>
           </div>
           <MessageBody ctx={ctx} message={message()} onOpenImage={props.onOpenImage} onMedia={props.onMedia} onMerge={props.onMerge} />
         </div>
@@ -301,7 +386,6 @@ function ImageBody(props: {
         <button
           type="button"
           class="hyt-chat-media"
-          data-outgoing={props.message.outgoing ? "true" : "false"}
           aria-label={text(props.ctx, "hyt.chat.msg.image.open")}
           onClick={() => props.onOpenImage(source())}
         >
@@ -418,8 +502,8 @@ function withBody(ctx: Context, message: MessageRow, key: string) {
 
 function dayLabel(ctx: Context, at: number) {
   const bucket = dayBucket(at)
-  if (bucket === "today") return text(ctx, "hyt.chat.day.today")
-  if (bucket === "yesterday") return text(ctx, "hyt.chat.day.yesterday")
+  if (bucket === "today") return [text(ctx, "hyt.chat.day.today"), formatDay(ctx.locale.locale(), at)].join(" · ")
+  if (bucket === "yesterday") return [text(ctx, "hyt.chat.day.yesterday"), formatDay(ctx.locale.locale(), at)].join(" · ")
   return formatDay(ctx.locale.locale(), at)
 }
 
@@ -431,20 +515,8 @@ function sameDay(a: number, b: number) {
   )
 }
 
-function reversed(messages: readonly MessageRow[]) {
-  return messages.slice().reverse()
-}
-
 function isSystemMessage(message: MessageRow) {
   return message.kind === "recall" || message.kind === "notice" || message.kind === "call"
-}
-
-/** 是否开启新的发言组：跨人、跨 5 分钟或系统消息都另起一组，组内不再重复头像与名字。 */
-function isGroupStart(message: MessageRow, previous: MessageRow | undefined) {
-  if (previous === undefined) return true
-  if (isSystemMessage(message) || isSystemMessage(previous)) return true
-  if (message.sender !== previous.sender) return true
-  return Math.abs(message.createdAt - previous.createdAt) > 5 * 60_000
 }
 
 /** 相邻同内容系统消息合并为一条，repeat 记次数。 */

@@ -161,6 +161,9 @@ html[data-replica-window="translucent"] [data-replica] {
      半透明白 + 系统材质的透光：90% 是既能透出壁纸冷暖、又不让亮壁纸冲淡文字的一档。 */
   --color-rail: rgb(247 247 247 / 90%);
   --color-sidebar: rgb(245 245 245 / 92%);
+  /* 导航面与它上方那 44px 顶栏段必须是同一层：两侧都只在 rail 上叠这一档中性白，所以接缝没有任何色差。浅色
+     没有暗色那种抬升面，「导航色」就等于这层白；两块都读同一个 token，不能各写各的。 */
+  --color-navigation: rgb(255 255 255 / 8%);
   /* Rows sit on glass too, so their hover and pressed fills are washes of ink rather than the opaque greys the
      opaque window uses. An opaque #f3f3f3 replaces the wallpaper colour under the row and reads as a sticker
      pressed onto the chrome; at these alphas the wash keeps the material visible through it and still stacks to
@@ -195,25 +198,23 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   background: transparent;
 }
 
-/* The navigation column reads a step above the window tint: it adds a thin white wash instead of a second opaque
-   sheet, so the wallpaper's colour still comes through the glass. Dark mode skips the wash: the shell already
-   carries a subtle lift above the canvas, and a second wash there pushed the column into a bluer tint
-   than the canvas, so the two halves read as different materials. */
-html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
-  /* 中性白叠在系统材质上，让侧栏读作同一片玻璃更高的一层；实现 A 不引入任何冷偏。只设颜色，让导航列自己的
-     品牌 wash 留在 background-image 上。 */
-  background-color: rgb(255 255 255 / 8%);
-}
+/* The navigation column reads a step above the window tint: `--color-navigation` is that thin white wash in light
+   (see the token block above), so the column adds one layer instead of a second opaque sheet and the wallpaper's
+   colour still comes through the glass. Dark skips the wash: the shell already carries a subtle lift above the
+   canvas, and a second wash there pushed the column into a bluer tint than the canvas, so the two halves read as
+   different materials. */
 
-/* The frame stays clear in dark mode so the material shows through both columns. */
+/* The frame carries the navigation step in dark instead of the shell: the bar's left segment and the column below it
+   both stack their own fill on this one surface, so the 44px seam and the column agree to the pixel. Painting it on
+   the shell left the bar's segment a layer short and the seam visible. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
-  background: transparent;
+  background-color: var(--color-navigation);
 }
 
+/* The shell is clear: the frame already carries the navigation surface, and a second fill here would give the column
+   one layer more than the bar's segment heads it. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-shell"] {
-  /* 暗色下 frame 让位给 shell，导航面由这一层承载：纯中性灰的玻璃，工作区由自己的不透明画布盖住。
-     表面那道渐变画在导航列自己身上（见 replica-sidebar 的规则），不在这里按宽度裁。 */
-  background-color: var(--color-navigation);
+  background-color: transparent;
 }
 
 /* Every chrome surface is one acrylic sheet: it blurs and saturates the desktop behind it, so the window reads as
@@ -1148,12 +1149,12 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
 }
 
 /* The bar's left segment carries the column's surface, so the column reads as one piece from the window's top edge
-   down. The right segment keeps the workspace canvas instead of the chrome tint: the workspace is not chrome. */
+   down. It paints the same `--color-navigation` layer the column paints over the rail, so the 44px segment and the
+   column never differ by a shade at the seam. The right segment keeps the workspace canvas instead of the chrome
+   tint: the workspace is not chrome. */
 html[data-replica-window="translucent"] [data-slot="replica-titlebar-side"] {
-  /* `--color-navigation` only exists in dark, where the shell carries the navigation step; light has no such lift,
-     so the segment keeps the column's own `--color-sidebar`. Setting only the colour leaves the brand wash on
-     `background-image`, which a shorthand would have reset. */
-  background-color: var(--color-navigation, var(--color-sidebar));
+  /* Setting only the colour leaves the brand wash on `background-image`, which a shorthand would have reset. */
+  background-color: var(--color-navigation);
 }
 
 html[data-replica-window="translucent"] [data-slot="replica-titlebar-main"] {

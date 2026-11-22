@@ -1,10 +1,16 @@
-import { createEffect, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
+import { lastAssistantWithUsage } from "@opencode/client/solid"
+import { createCNY, flashCostBreakdown } from "@opencode/gui-plugins/context/cost"
 import { Icon } from "@opencode/ui/icon"
+import { ProgressCircle } from "@opencode/ui/progress-circle"
 import { Tooltip } from "@opencode/ui/tooltip"
+import { base64Encode } from "@opencode/util/encode"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useGlobal } from "@/runtime/server/runtime"
+import { useServers } from "@/runtime/server/registry"
+import { SessionRouteKey, SessionStateKey } from "@/runtime/server/scope"
 import { useCommand } from "@/shell/commands/command"
 import { goBackCommand, goForwardCommand } from "@/shell/titlebar/history-commands"
 import { createTitlebarHistory } from "@/shell/titlebar/history-store"
@@ -26,6 +32,7 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
   const language = useLanguage()
   const layout = useLayout()
   const global = useGlobal()
+  const servers = useServers()
   const tabs = useTabs()
   const command = useCommand()
   const history = createTitlebarHistory()
@@ -77,6 +84,29 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
 
     if (!tab) return
     tabs.setRegion(tab, "side", !tabs.region(tab, "side"))
+  }
+
+  // The ring, the token count and the spend are one control: clicking it opens the built-in context panel next
+  // to the conversation, the same panel the plugin's own indicator opens.
+  const openContext = () => {
+    const route = layout.route()
+
+    if (route.type !== "session") return
+    const session = global.serverCtx(route.server)?.data.session.get(route.sessionId)
+
+    if (!session) return
+
+    layout.panel.open(
+      SessionStateKey.from(
+        servers.scope(route.server),
+        SessionRouteKey.fromRoute(base64Encode(session.location.directory), session.id),
+      ),
+      "context:main",
+    )
+
+    const tab = findSessionTab(tabs.store, route.server, route.sessionId)
+
+    if (tab) tabs.setRegion(tab, "side", true)
   }
 
   // The conversation title is edited in place, the way session rows and tab titles do it: double-click opens
@@ -162,6 +192,49 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
 
     onCleanup(cleanup)
   })
+
+  // Shown beside the ring the way the reference reads: 15万 in Chinese, 150K in English.
+  const compact = createMemo(
+    () => new Intl.NumberFormat(language.locale(), { notation: "compact", maximumFractionDigits: 1 }),
+  )
+
+  const cny = createMemo(() => createCNY(language.locale()))
+
+  // Same accounting as the context panel: context after the last compaction, spend across the session family.
+  const usage = () => {
+    const route = layout.route()
+
+    if (route.type !== "session") return
+    const ctx = global.serverCtx(route.server)
+    const session = ctx?.data.session.get(route.sessionId)
+
+    if (!ctx || !session) return
+    const message = lastAssistantWithUsage(ctx.data.session.message.list(session.id), session.revert?.messageID)
+
+    if (!message) return
+    const directory = session.location.directory
+    const model = ctx.data.location.model
+      .list(directory ? { directory } : undefined)
+      ?.findLast(
+        (item) =>
+          item.providerID === message.model.providerID && item.id === message.model.id && item.status !== "deprecated",
+      )
+    // Context occupancy is the prompt side only: output and reasoning are already spent, not resident in the next
+    // request. This is what the context panel and its progress ring measure.
+    const tokens = message.tokens.input + message.tokens.cache.read + message.tokens.cache.write
+    const family = ctx.data.session.family(session.id)
+    const spend = flashCostBreakdown(
+      session.parentID
+        ? [session.tokens]
+        : (family.length ? family : [session.id]).flatMap((id) => ctx.data.session.get(id)?.tokens ?? []),
+    )
+
+    return {
+      tokens,
+      cost: spend.total,
+      usage: model?.limit.context ? Math.round((tokens / model.limit.context) * 100) : 0,
+    }
+  }
 
   return (
     <header data-slot="replica-titlebar" data-ui="content-topbar" data-empty={props.empty ? "" : undefined}>
@@ -251,6 +324,52 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
         </span>
 
         <div class="ms-auto flex shrink-0 items-center gap-2">
+          <Show when={usage()}>
+            {(value) => (
+              <Tooltip
+                placement="bottom"
+                value={
+                  <div class="flex flex-col gap-0.5 text-start">
+                    <span>
+                      {language.t("replica.context.tokens")}: {value().tokens.toLocaleString(language.locale())}
+                    </span>
+                    <span>
+                      {language.t("replica.context.cost")}: {cny()(value().cost)}
+                    </span>
+                    <span>
+                      {language.t("replica.context.usage")}: {value().usage}%
+                    </span>
+                  </div>
+                }
+              >
+                <button
+                  type="button"
+                  data-ui="titlebar-context"
+                  data-replica-control
+                  data-session-only
+                  aria-label={language.t("replica.context.open")}
+                  class="flex h-6 shrink-0 items-center gap-1.5 rounded-[6px] px-1.5 text-[12px] leading-4 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text-main)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-border)]"
+                  onClick={openContext}
+                >
+                  <ProgressCircle
+                    data-ui="titlebar-context-progress"
+                    appearance="indicator"
+                    size={14}
+                    strokeWidth={2}
+                    percentage={value().usage}
+                    style={{
+                      "--progress-circle-background": "var(--color-border)",
+                      "--progress-circle-progress": "var(--color-icon-secondary)",
+                    }}
+                  />
+                  <span data-ui="titlebar-context-tokens" class="shrink-0 tabular-nums">
+                    {compact().format(value().tokens)}
+                  </span>
+                  <span class="shrink-0 tabular-nums text-[var(--color-text-tertiary)]">{cny()(value().cost)}</span>
+                </button>
+              </Tooltip>
+            )}
+          </Show>
           <Show when={reviewTab()}>
             <Tooltip placement="bottom" value={language.t("command.review.toggle")}>
               <button
@@ -274,6 +393,10 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
           </Show>
         </div>
       </div>
+
+      {/* The side panel's own head. The session side region writes its width, and the panel itself rises over this
+          segment, so the three columns each read as one column of chrome: navigation, workspace, and the panel. */}
+      <div data-slot="replica-titlebar-panel" aria-hidden="true" />
     </header>
   )
 }

@@ -1,7 +1,8 @@
 [data-component="tabs"] {
   --tabs-bar-height: 48px;
   --tabs-compact-pill-height: 24px;
-  --tabs-compact-pill-radius: 9999px;
+  /* A rounded rectangle rather than a capsule: the compact tab's selected surface reads as a row, not a pill. */
+  --tabs-compact-pill-radius: var(--radius-md);
   --tabs-compact-pill-padding-x: 4px;
 
   width: 100%;

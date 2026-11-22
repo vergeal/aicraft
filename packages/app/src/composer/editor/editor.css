@@ -152,6 +152,16 @@
   border-radius: 9999px;
 }
 
+/* Empty draft: the key keeps a visible quiet disc instead of fading to 0.4, so the composer still reads as
+   having a primary target. Typing flips it to the full contrast pair, making "empty" and "ready" two states
+   rather than one grey control that only varies in opacity. */
+:root [data-component="composer"] [data-action="composer-submit"]:is(:disabled, [data-state="disabled"]) {
+  background-color: var(--v2-background-bg-layer-03);
+  background-image: none;
+  color: var(--v2-text-text-faint);
+  opacity: 1;
+}
+
 /* Send and stop are one key changing state, not two icons swapping: the outgoing glyph shrinks and fades at the
    centre while the incoming one settles back to full size, the way an SF Symbol replace transition reads. All four
    glyphs stay mounted and share one grid cell, so only their attributes change and the cross-fade can run. */

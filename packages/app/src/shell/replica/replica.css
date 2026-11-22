@@ -287,6 +287,15 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   box-shadow: none;
 }
 
+/* The panel's own head: the session side region writes its width, so the workspace segment ends where the workspace
+   does instead of running under the panel. The panel itself rises over this segment, which only wears the panel's
+   surface for the frames it travels in. */
+[data-slot="replica-titlebar-panel"] {
+  flex: 0 0 0;
+  min-width: 0;
+  background: var(--v2-background-bg-base);
+}
+
 /* A new chat keeps the window bar as a draggable strip, not a toolbar: the bar stays transparent so the left segment
    keeps the column's own translucent surface, and only the workspace segment paints the canvas. Conversation-only
    controls are hidden, but the collapse control stays so navigation is never lost. */
@@ -776,32 +785,6 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   font-family: var(--font-family-sans, var(--font-family-ui));
 }
 
-/* A new chat carries one soft wash of light behind the mark. Two cool beams sit slightly apart so the empty canvas
-   reads as lit air rather than a spotlight circle; the layer never intercepts the pointer. */
-[data-slot="replica-main"][data-empty]::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset-block-start: 46%;
-  inset-inline-start: 50%;
-  width: min(760px, 92%);
-  height: 380px;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background:
-    radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--v2-blue-500) 10%, transparent), transparent 100%),
-    radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--v2-purple-600) 7%, transparent), transparent 100%);
-  filter: blur(64px);
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-[data-color-scheme="dark"] [data-slot="replica-main"][data-empty]::before {
-  background:
-    radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--v2-blue-500) 11%, transparent), transparent 100%),
-    radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--v2-purple-600) 8%, transparent), transparent 100%);
-}
-
 [data-color-scheme="dark"] [data-slot="replica-main"] {
   /* Dark's deep step is the window bottom, not a lit canvas: falling into it turned the panel almost black next to
      its own chrome. Dark instead takes a faint white wash from the top edge, the same light direction as light mode. */
@@ -954,7 +937,35 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 }
 
 [data-replica] #review-panel {
+  /* The panel starts at the window's top edge, so the tab strip inside it is the third titlebar, level with the
+     navigation's and the workspace's. The bar segment above it only reserves its width. */
+  margin-block-start: calc(-1 * var(--titlebar-height));
+  height: calc(100% + var(--titlebar-height));
+  z-index: 20;
   box-shadow: none;
+}
+
+/* The panel is a flex item of the pane row and no ancestor between it and the shell opens a stacking context, so this
+   lift carries it over the window bar's panel segment: the strip in the panel is the head that shows there. */
+[data-replica] [data-slot="session-side-panel-presence"] {
+  z-index: 20;
+}
+
+/* The workspace column clips its content, which would cut off the head the panel lifts into the window bar. Only an
+   open panel needs that escape; every other route keeps the clip, the empty state's wash included. */
+[data-replica] [data-slot="replica-main"]:has(#review-panel:not([aria-hidden="true"])) {
+  overflow: visible;
+}
+
+/* The panel's own head keeps the bars' height, so all three heads share one baseline; the split pane below keeps the
+   taller strip of an inner tab row. The strip's own rule in the tabs stylesheet pins 52px, so this one outranks it. */
+[data-replica] #review-panel [data-slot="session-side-pane"]:first-child [data-component="tabs"] {
+  --tabs-bar-height: var(--titlebar-height);
+}
+
+:root [data-replica] #review-panel [data-slot="session-side-pane"]:first-child [data-component="tabs"]
+  [data-slot="tabs-list"] {
+  height: var(--titlebar-height);
 }
 
 [data-replica] #review-panel:not([aria-hidden="true"]) {

@@ -93,6 +93,18 @@ export function SideRegion(props: {
     ({ height }) => setColumn({ height }),
   )
 
+  // The window bar's third segment takes the panel's width, so the workspace segment ends where the workspace does
+  // instead of running under the panel. Written on that element alone: an inherited custom property on the shell root
+  // would restyle the whole window on every frame of a resize. A full panel covers the workspace bar, so it reserves
+  // no segment.
+  const titlebarPanel = () => document.querySelector<HTMLElement>('[data-slot="replica-titlebar-panel"]')
+  createResizeObserver(root, ({ width }) => {
+    const bar = titlebarPanel()
+
+    if (bar) bar.style.flexBasis = `${props.full ? 0 : Math.round(width)}px`
+  })
+  onCleanup(() => titlebarPanel()?.style.removeProperty("flex-basis"))
+
   const lowerHeight = createMemo(() => Math.round(column.height * (1 - view().split.ratio())))
 
   guardClosingFocus({

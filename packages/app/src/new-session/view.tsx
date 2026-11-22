@@ -71,25 +71,29 @@ export function NewSessionView(props: {
         />
         <div class="absolute inset-0 flex items-center justify-center px-6">
           <div class={NEW_SESSION_CONTENT_WIDTH}>
-            {/* The welcome header is the product itself: mark, name and the preview tag over the one-line subtitle.
-                It replaces the old wordmark banner so the empty state opens like the reference instead of on a logo. */}
-            <div data-slot="new-session-welcome" class="mb-2 flex items-center gap-3">
+            {/* The welcome header sits centered so the empty state opens like a hero, not a left-aligned form.
+                The title runs 26/32 at weight 500: one step larger and lighter than the old 24/600, which read
+                as a control label rather than the product's name. */}
+            <div data-slot="new-session-welcome" class="mb-3 flex items-center justify-center gap-3">
               <img
                 src="/assets/product-mark.png"
                 alt=""
                 aria-hidden="true"
-                width="28"
-                height="28"
-                class="size-7 shrink-0"
+                width="30"
+                height="30"
+                class="size-[30px] shrink-0"
               />
-              <span class="min-w-0 truncate text-[24px] leading-8 font-[600] tracking-[-0.02em] text-[var(--v2-text-text-base)]">
+              <span class="min-w-0 truncate text-[26px] leading-[32px] font-[500] text-[var(--v2-text-text-base)]">
                 {language.t("replica.rail.product")}
               </span>
               <span class="shrink-0 rounded-full bg-[var(--v2-background-bg-layer-02)] px-2 text-[12px] leading-[18px] text-[var(--v2-text-text-muted)] shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]">
                 {language.t("replica.rail.preview")}
               </span>
             </div>
-            <p data-slot="new-session-subtitle" class="mb-6 text-[14px] leading-[22px] text-[var(--v2-text-text-muted)]">
+            <p
+              data-slot="new-session-subtitle"
+              class="mb-6 text-center text-[14px] leading-[22px] text-[var(--v2-text-text-muted)]"
+            >
               {language.t("session.new.welcome.subtitle")}
             </p>
             <div class="flex flex-col">

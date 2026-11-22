@@ -218,13 +218,110 @@
  * The provider page itself.
  */
 
-/* The accounts a provider stores sit under its row, aligned with the provider name: 28px lead + 12px row gap. */
+/* A provider row is read in one glance: brand mark, name, whether it is ready, where its credential comes from, and
+   one action. The shared 48px row only fits a single line of copy, so these rows take one size more and spread the
+   name and its qualifier over two lines instead of cramming a type chip onto the name line. */
+.settings-provider-row {
+  gap: 12px;
+  min-height: 60px;
+  padding-block: 12px;
+}
+
+.settings-provider-lead {
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+  border-radius: var(--settings-radius-sm);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
+}
+
+/* The Console header keeps its icon in the same 30px slot, so its name lines up with the rows below. */
+.settings-provider-console-header .settings-provider-lead-icon {
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+  border-radius: var(--settings-radius-sm);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
+}
+
+/* The name is the row's anchor; the path it came from is a qualifier, one step quieter and one size smaller. */
+.settings-provider-name {
+  line-height: var(--line-height-compact);
+}
+
+/* Readiness is a chip beside the name, not a badge in the type slot: a filled dot carries the state before the label
+   is read, and the label itself says what the provider is ready for rather than which mechanism connected it. */
+.settings-provider-status {
+  display: inline-flex;
+  height: 18px;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 6px;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.settings-provider-status-dot {
+  width: 5px;
+  height: 5px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--v2-state-fg-success);
+}
+
+.settings-provider-status[data-tone="attention"] {
+  color: var(--v2-state-fg-warning);
+}
+
+.settings-provider-status[data-tone="attention"] .settings-provider-status-dot {
+  background: var(--v2-state-fg-warning);
+}
+
+/* The accounts sit under the row as its own block, so the list reads as part of the provider instead of a second,
+   unrelated card. They line up with the provider name: 30px lead + 12px row gap. */
 .settings-provider-accounts {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  margin-inline-start: 40px;
-  padding-block-end: 4px;
+  margin-inline-start: 42px;
+  padding-block: 2px 4px;
+}
+
+.settings-provider-console-header {
+  min-height: 60px;
+  padding-block: 12px;
+}
+
+/* The popular list mirrors the connected rows: mark, name, note, then one action. It keeps the note on its own line so
+   a long tagline never pushes the connect button out of the row. */
+.settings-provider-row--popular {
+  min-height: 60px;
+}
+
+.settings-provider-row--popular .settings-provider-copy {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+
+.settings-provider-row--popular .settings-provider-main {
+  flex-wrap: wrap;
+}
+
+.settings-provider-empty-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--settings-radius-md);
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-icon-icon-muted);
 }
 
 /*
@@ -252,15 +349,11 @@
 /* The group starts one inset further left, so its content adds that inset back before the account lines up under the
    provider name. */
 .settings-provider-group .settings-provider-accounts {
-  margin-inline-start: calc(var(--settings-space-4) + 40px);
+  margin-inline-start: calc(var(--settings-space-4) + 42px);
 }
 
-/*
- * The popular row lays its copy out as a line so the note rides beside the name, but the shared copy block centers its
- * children for a stacked column. Centering inside a row would float a provider that has no note into the middle of
- * the card, so every row starts at the icon and keeps the note one readable step from the name.
- */
+/* The popular row stacks its copy like the connected rows, so a tagline never crowds the name line. */
 .settings-providers .settings-provider-row--popular .settings-provider-copy {
   justify-content: flex-start;
-  gap: 10px;
+  gap: 3px;
 }

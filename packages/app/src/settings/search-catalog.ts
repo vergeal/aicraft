@@ -11,7 +11,7 @@ type Entry<Tab> = {
   keywords?: string
   description?: Label
   section?: Label
-  subtab?: "mcps" | "plugins" | "skills" | "lsps"
+  subtab?: "mcps" | "lsps"
   available?: "desktop" | "browser" | "mobile"
 }
 
@@ -214,12 +214,6 @@ export const serverSettings: Entry<SettingsServerTab | "servers">[] = [
     keywords: "model context protocol tools",
   },
   {
-    tab: "extensions",
-    subtab: "plugins",
-    label: "settings.extensions.tab.plugins",
-    keywords: "extension gui built-in",
-  },
-  {
     tab: "servers",
     label: "settings.general.row.shell.title",
     target: "settings-shell",
@@ -240,13 +234,6 @@ export const projectSettings: Entry<SettingsProjectTab>[] = [
   },
   { tab: "workspaces", label: "settings.tab.workspaces", keywords: "workspaces disk usage cleanup delete" },
   { tab: "extensions", label: "settings.tab.extensions" },
-  {
-    tab: "extensions",
-    subtab: "mcps",
-    label: "settings.extensions.tab.mcps",
-    keywords: "model context protocol tools",
-  },
-  { tab: "extensions", subtab: "plugins", label: "settings.extensions.tab.plugins" },
-  { tab: "extensions", subtab: "skills", label: "settings.extensions.tab.skills" },
+  { tab: "extensions", subtab: "mcps", label: "settings.extensions.tab.mcps", keywords: "model context protocol tools" },
   { tab: "extensions", subtab: "lsps", label: "project.settings.extensions.tab.lsps", keywords: "language servers" },
 ]

@@ -2,7 +2,6 @@ import { Button } from "@opencode/ui/button"
 import { Badge } from "@opencode/ui/badge"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
-import { IconButton } from "@opencode/ui/icon-button"
 import { Loader } from "@opencode/ui/loader"
 import { Menu } from "@opencode/ui/menu"
 import { OpenCodeLogo } from "@/providers/opencode-logo"
@@ -118,10 +117,6 @@ export const SettingsProviders: Component<{
     )
     if (entry?.value.type === "key") return entry.value.key
   }
-
-  // The custom provider entries come from the configuration document, so nothing that edits them can work until it
-  // loads. Everything else on the page keeps rendering without it.
-  const configReady = () => !config.isPending && !config.isError
 
   const custom = createMemo(() =>
     customProvidersFrom(config.isPending || config.isError ? [] : (config.data ?? [])),
@@ -417,21 +412,30 @@ export const SettingsProviders: Component<{
     return
   }
 
-  const type = (item: ProviderItem) => {
+  // Where a provider's credential comes from. The row shows it under the name as secondary text: the chip beside the
+  // name answers whether the provider is ready, and this line answers why.
+  const sourceLabel = (item: ProviderItem) => {
     const current = source(item)
 
-    if (current === "env") return language.t("settings.providers.tag.environment")
+    if (current === "env") return language.t("settings.providers.source.environment")
 
-    if (current === "api") return language.t("provider.connect.method.apiKey")
+    if (current === "api") return language.t("settings.providers.source.api")
 
-    if (current === "account") return language.t("settings.providers.tag.account")
+    if (current === "account") return language.t("settings.providers.source.account")
 
-    if (current === "config") return language.t("settings.providers.tag.config")
+    if (current === "config") return language.t("settings.providers.source.config")
 
-    if (current === "custom") return language.t("settings.providers.tag.custom")
+    if (current === "custom") return language.t("settings.providers.source.custom")
 
-    return language.t("settings.providers.tag.other")
+    return language.t("settings.providers.source.other")
   }
+
+  // A stored account that has expired is still connected on paper: the row names the fix instead of claiming success.
+  const attention = (item: ProviderItem) =>
+    activeProviderAccount(integration(item), isActiveCredential)?.status
+
+  const statusLabel = (item: ProviderItem) =>
+    attention(item) ? language.t("settings.providers.status.attention") : language.t("settings.providers.status.connected")
 
   const canDisconnect = (item: ProviderItem) => {
     const current = integration(item)
@@ -492,8 +496,20 @@ export const SettingsProviders: Component<{
               <div class="settings-provider-copy">
                 <div class="settings-provider-main">
                   <span class="settings-provider-name truncate">{row.item.name}</span>
-                  <Badge>{type(row.item)}</Badge>
+                  <span
+                    class="settings-provider-status"
+                    data-tone={attention(row.item) ? "attention" : "connected"}
+                  >
+                    <span class="settings-provider-status-dot" aria-hidden="true" />
+                    {statusLabel(row.item)}
+                  </span>
                 </div>
+                <p class="settings-provider-description">{sourceLabel(row.item)}</p>
+                <Show when={!customProvider(row.item.id) && readOnly().has(row.item.id)}>
+                  <p class="settings-provider-description">
+                    {language.t("settings.providers.custom.readOnly")}
+                  </p>
+                </Show>
               </div>
               <Show
                 when={confirmingFor(row.item)}
@@ -502,10 +518,10 @@ export const SettingsProviders: Component<{
                     {/* The row has one control. Accounts, the provider form and its removal all live in
                         that menu: a row-wide account trigger printed a name that repeated the provider
                         name above it, and its second dots menu put two identical icons on one row. */}
-                    <Show when={activeProviderAccount(integration(row.item), isActiveCredential)?.status}>
+                    <Show when={attention(row.item)}>
                       {(status) => (
                         <Button
-                          size="normal"
+                          size="small"
                           variant="ghost-muted"
                           class="text-[var(--v2-state-fg-warning)]"
                           title={status().message}
@@ -514,27 +530,6 @@ export const SettingsProviders: Component<{
                           {language.t("dialog.provider.needsSignIn")}
                         </Button>
                       )}
-                    </Show>
-                    {/* A custom provider without the configuration document cannot say where its
-                        credential came from, so it shows no hint instead of the wrong one. */}
-                    <Show when={!customProvider(row.item.id) && readOnly().has(row.item.id)}>
-                      <span class="settings-provider-env-hint">
-                        {language.t("settings.providers.custom.readOnly")}
-                      </span>
-                    </Show>
-                    <Show
-                      when={
-                        !customProvider(row.item.id) &&
-                        !readOnly().has(row.item.id) &&
-                        !canDisconnect(row.item) &&
-                        (configReady() || source(row.item) !== "custom")
-                      }
-                    >
-                      <span class="settings-provider-env-hint">
-                        {source(row.item) === "config"
-                          ? language.t("settings.providers.custom.configured")
-                          : language.t("settings.providers.connected.environmentDescription")}
-                      </span>
                     </Show>
                     {/* A provider with nothing to offer keeps no menu: an empty dots button would open
                         a blank surface. */}
@@ -708,12 +703,13 @@ export const SettingsProviders: Component<{
     return (
       <Menu placement="bottom-end" gutter={6}>
         <Menu.Trigger
-          as={IconButton}
+          as={Button}
           variant="ghost-muted"
-          size="large"
-          icon={<Icon name="outline-dots" />}
+          size="small"
           aria-label={language.t("settings.providers.row.menu", { provider: menuProps.name })}
-        />
+        >
+          {language.t("settings.providers.row.manage")}
+        </Menu.Trigger>
         <Menu.Portal>
           <Menu.Content class="settings-provider-row-menu">
             <Show when={custom()}>
@@ -801,6 +797,9 @@ export const SettingsProviders: Component<{
                 </Match>
                 <Match when={displayed().length === 0 && customRows().length === 0}>
                   <div class="settings-provider-empty">
+                    <span class="settings-provider-empty-icon">
+                      <Icon name="server" size="large" />
+                    </span>
                     <span>{language.t("settings.providers.connected.empty")}</span>
                   </div>
                 </Match>

@@ -104,6 +104,11 @@
 
 /* Each step keeps a readable measure but grows with the window: focused stays narrow on a big display
    while wide only reaches its full reading width when there is room for it. */
+/* Comfortable takes most of the answer column while leaving a margin, so it follows the column instead of a fixed pixel width. */
+:root[data-timeline-width="comfortable"] {
+  --container-session: 64%;
+}
+
 :root[data-timeline-width="focused"] {
   --container-session: min(560px, 48vw);
 }

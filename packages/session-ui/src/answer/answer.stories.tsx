@@ -535,6 +535,26 @@ export const Streaming = {
   ),
 }
 
+// A pasted prompt of 30 lines: past the fold's 12-line limit, so the bubble shows its first 8 behind a toggle.
+const longPromptText = Array.from(
+  { length: 30 },
+  (_, index) => `第 ${index + 1} 行：把窗口、折叠和恢复位置的边界都写清楚。`,
+).join("\n")
+
+const foldedPrompt: SessionMessageInfo[] = [
+  { id: "msg_user_folded_prompt", type: "user", text: longPromptText, time: { created: TIME } },
+  assistant("msg_assistant_folded_prompt", [{ type: "text", text: "收到。" }], TIME + 1_000, TIME + 2_000),
+  idle("msg_idle_folded_prompt", TIME + 2_500),
+]
+
+export const FoldedPrompt = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => foldedPrompt} />
+    </div>
+  ),
+}
+
 // Every settled turn is rendered, so the reading position and restore can be exercised on a long transcript.
 const longSession: SessionMessageInfo[] = Array.from({ length: 40 }, (_, index) => {
   const created = TIME + index * 10_000

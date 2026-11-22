@@ -285,24 +285,28 @@ story("renders the running turn without a settled header", async ({ mount, page 
   expect(offset).toBeLessThanOrEqual(1)
 })
 
-story("renders every loaded row instead of a window", async ({ mount, page }) => {
+story("mounts the rows near the viewport and reserves the rest", async ({ mount, page }) => {
   await mount("answer-page--windowed")
   const viewport = page.getByTestId("answer-window")
   const rows = viewport.locator("[data-answer-key]")
+  const text = viewport.locator('[data-slot="user-message-text"]')
 
-  // Forty settled turns are all in the document, so a DOM-based search sees the whole transcript.
+  // Every row keeps its box, so a DOM-based search still reaches the whole transcript and no offset is a guess.
   await expect.poll(() => rows.count()).toBeGreaterThan(60)
   await expect(viewport.locator('[data-slot="user-message-text"]').last()).toContainText("第 40 个问题")
 
-  const mounted = await rows.count()
+  // Only the window around the viewport renders its content; the rest only reserves the height it measured at.
+  expect(await text.count()).toBeLessThan((await rows.count()) / 2)
 
-  await viewport.evaluate((element) => {
-    element.scrollTop = element.scrollHeight
-  })
+  const middle = viewport.locator('[data-answer-key="node:input:msg_user_long_19"]')
 
-  await expect.poll(() => viewport.locator('[data-slot="user-message-text"]').last().textContent()).toContain("第 40 个问题")
-  // Scrolling mounts and unmounts nothing: the row count does not change.
-  expect(await rows.count()).toBe(mounted)
+  expect(await middle.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(0)
+  expect(await middle.locator('[data-slot="user-message-text"]').count()).toBe(0)
+
+  // Reaching the row mounts its content. Scrolling never changes how many boxes the transcript holds.
+  await middle.evaluate((element) => element.scrollIntoView({ block: "center" }))
+  await expect(middle.locator('[data-slot="user-message-text"]')).toContainText("第 20 个问题")
+  expect(await rows.count()).toBeGreaterThan(60)
 })
 
 story("opens at a restored row instead of the first message", async ({ mount, page }) => {
@@ -392,6 +396,31 @@ story("keeps the reading position when the cached view is detached and reattache
   // Every row is a measured box, so both the offset and the row under the top edge survive the reattach.
   expect(Math.abs(after.scrollTop - before.scrollTop)).toBeLessThanOrEqual(4)
   expect(after.topKey).toBe(before.topKey)
+})
+
+story("folds a long prompt and shows all of it on request", async ({ mount }) => {
+  const root = await mount("answer-page--folded-prompt")
+  const fold = root.locator('[data-slot="user-message-fold"]').first()
+  const toggle = root.locator('[data-slot="user-message-fold-toggle"]').first()
+
+  await expect(fold).toHaveAttribute("data-folded", "")
+  await expect(toggle).toHaveAttribute("aria-expanded", "false")
+
+  const folded = await fold.evaluate((element) => element.getBoundingClientRect().height)
+  const whole = await fold.evaluate(
+    (element) => (element.firstElementChild as HTMLElement).getBoundingClientRect().height,
+  )
+
+  // The fold clips the prompt to its first lines; it never hides a line or two, and the rest stays reachable.
+  expect(folded).toBeLessThan(whole)
+
+  await toggle.click()
+  await expect(fold).not.toHaveAttribute("data-folded", "")
+  await expect(toggle).toHaveAttribute("aria-expanded", "true")
+  expect(await fold.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(whole, 0)
+
+  await toggle.click()
+  await expect(fold).toHaveAttribute("data-folded", "")
 })
 
 story("folds a burst of identical steps into one row", async ({ mount }) => {

@@ -74,6 +74,8 @@ export function AnswerTimeline(props: {
   let lastMaxScroll = 0
   let lastContentHeight = 0
   let scrollSettleTimer: ReturnType<typeof setTimeout> | undefined
+  // The page's own reveal, which can mount a row outside the window before scrolling to it.
+  let pageReveal: ((id: string, partID?: string) => boolean) | undefined
   let contentObserver: ResizeObserver | undefined
 
   const following = () => props.follow.following()
@@ -111,11 +113,16 @@ export function AnswerTimeline(props: {
   const reveal = (id: string, partID?: string) => {
     if (!viewport) return false
 
+    // The page knows which entry owns a row and can mount it; the DOM search only reaches rows already in the document.
+    if (pageReveal?.(id, partID)) return true
+
     return revealInTimeline(viewport, id, partID)
   }
 
   const revealTarget = (target: string) => {
     if (!viewport) return false
+
+    if (pageReveal?.(target)) return true
 
     return revealInTimeline(viewport, target)
   }
@@ -392,6 +399,7 @@ export function AnswerTimeline(props: {
           }}
           onRestoreMiss={restoreMissed}
           onPositionChange={rememberPosition}
+          setReveal={(next) => (pageReveal = next)}
         />
         <div data-timeline-row="bottom-spacer" class="w-full">
           {props.activity}

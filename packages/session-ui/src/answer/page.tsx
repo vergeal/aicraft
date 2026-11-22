@@ -1,4 +1,4 @@
-import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, untrack, useContext, type JSX } from "solid-js"
+import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, onMount, untrack, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
 import type { SessionMessageInfo } from "@opencode/client/promise"
@@ -85,6 +85,11 @@ export interface AnswerPageProps {
   readonly onRestoreMiss?: () => void
   /** Reports the row under the top edge, so the host can remember where the reader stopped. */
   readonly onPositionChange?: (position: { readonly key: string; readonly offset: number }) => void
+  /**
+   * Registers this page's own reveal. A row's content may sit outside the mounted window, where the host's DOM search
+   * finds only a reserved box; this reveal expands what hides the row, mounts it, and scrolls it into view.
+   */
+  readonly setReveal?: (reveal: ((id: string, partID?: string) => boolean) | undefined) => void
 }
 
 const STEP_LIVE = {
@@ -377,9 +382,27 @@ function measureTopRow(
 }
 
 export function AnswerPage(props: AnswerPageProps) {
+  // A streamed delta arrives many times a second, and every one of them would reproject the whole transcript. The
+  // projection is linear in the transcript, so a long session would spend the frame budget on snapshots nobody sees.
+  // Fold the deltas into one projection per animation frame; the reader still gets every new state, just once per paint.
+  const [messages, setMessages] = createSignal<readonly SessionMessageInfo[]>(props.messages())
+  let latestMessages = props.messages()
+  let messagesQueued = false
+
+  createEffect(() => {
+    latestMessages = props.messages()
+
+    if (messagesQueued) return
+    messagesQueued = true
+    requestAnimationFrame(() => {
+      messagesQueued = false
+      setMessages(latestMessages)
+    })
+  })
+
   // The previous projection is passed back in so unchanged rows keep their payload object: a streamed
   // delta then only invalidates the row it touched instead of every memo in the transcript.
-  const snapshot = createMemo<Snapshot>((previous) => projectTimeline(props.messages(), previous))
+  const snapshot = createMemo<Snapshot>((previous) => projectTimeline(messages(), previous))
   const [folded, setFolded] = createStore<Record<string, boolean | undefined>>({})
   const [openGroups, setOpenGroups] = createStore<Record<string, boolean | undefined>>({})
   // Row disclosures live here rather than in the row components: streamed projection rebuilds those
@@ -406,6 +429,64 @@ export function AnswerPage(props: AnswerPageProps) {
 
   const rowIndex = createMemo(() => new Map(keys().map((key, position) => [key, position] as const)))
   const rowGaps = createMemo(() => entries().map((_, position) => flowGapPx(snapshot(), entries(), position)))
+
+  // Every row keeps its box in the document, so a restore, a position report or a reveal still reads a real offset for
+  // any row. Only the rows near the viewport render their content; the rest reserve the height they last measured at.
+  // A long transcript therefore keeps its true height while the live DOM holds a window of rows instead of all of them.
+  const heights = new Map<string, number>()
+  const [measured, setMeasured] = createSignal(0)
+  const [near, setNear] = createStore<Record<string, boolean | undefined>>({})
+  const forced = new Set<string>()
+  const [forcedVersion, setForcedVersion] = createSignal(0)
+  const [observer, setObserver] = createSignal<IntersectionObserver>()
+
+  let measuredQueued = false
+
+  const resize = new ResizeObserver((records) => {
+    let changed = false
+
+    for (const record of records) {
+      const element = record.target as HTMLElement
+      const key = element.dataset.answerKey
+
+      if (!key) continue
+      const height = record.borderBoxSize?.[0]?.blockSize ?? element.offsetHeight
+
+      if (height <= 0 || heights.get(key) === height) continue
+      heights.set(key, height)
+      changed = true
+    }
+
+    // One bump per frame: a streamed row grows every frame, and every row that reads its reserved height depends on it.
+    if (!changed || measuredQueued) return
+    measuredQueued = true
+    requestAnimationFrame(() => {
+      measuredQueued = false
+      setMeasured((version) => version + 1)
+    })
+  })
+
+  onCleanup(() => resize.disconnect())
+
+  createEffect(() => {
+    const root = props.viewport?.()
+
+    if (!root) return
+    const next = new IntersectionObserver(
+      (records) => {
+        for (const record of records) {
+          const key = (record.target as HTMLElement).dataset.answerKey
+
+          if (key) setNear(key, record.isIntersecting)
+        }
+      },
+      // A screen of overscan each way mounts a row before it reaches an edge, so scrolling rarely meets a placeholder.
+      { root, rootMargin: "800px 0px" },
+    )
+
+    setObserver(next)
+    onCleanup(() => next.disconnect())
+  })
 
   const lastTurn = () => Math.max(...[...snapshot().turns.keys()])
 
@@ -498,6 +579,8 @@ export function AnswerPage(props: AnswerPageProps) {
 
   // A restore attempt belongs to one activation: it waits for the DOM insert, then places the remembered row once.
   let pendingRestore: { key: string; offset: number } | undefined
+  // One scroll per attempt: it brings the remembered row into reach, and the retry after it places the row exactly.
+  let restoreScrolled = false
   const [restoreState, setRestoreState] = createSignal<RestoreState>(createRestoreState())
   // How long a restore waits for the transcript to page in the remembered row before it gives up and lands at the
   // end. The first page of a session is smaller than the transcript, so a row the reader left is routinely absent on
@@ -554,7 +637,28 @@ export function AnswerPage(props: AnswerPageProps) {
       return
     }
 
+    // An unmounted row stands in with its reserved height, and a row far from the viewport is out of reach of the
+    // current offset. Both are resolved the same way: scroll to the row's box, mount it, and place again next frame,
+    // when the real box exists and the offset is exact.
+    const row = findRow(root, target.key)
     const placed = placement(root, target)
+
+    if (row && (!placed?.reachable || row.childElementCount === 0) && !restoreScrolled) {
+      const wanted = root.scrollTop + row.getBoundingClientRect().top - root.getBoundingClientRect().top + target.offset
+
+      restoreScrolled = true
+      forced.add(target.key)
+      setForcedVersion((version) => version + 1)
+
+      const next = Math.min(Math.max(wanted, 0), Math.max(0, root.scrollHeight - root.clientHeight))
+
+      if (Math.abs(next - root.scrollTop) > 1) root.scrollTop = next
+      requestAnimationFrame(() => {
+        if (restoreState() === "idle") attemptRestore()
+      })
+
+      return
+    }
 
     // A missing row (an older page) and an offset the current height cannot reach (a folded or still-rendering row)
     // both wait for the transcript to grow enough. Writing the clamped offset instead would record the top of the
@@ -592,6 +696,7 @@ export function AnswerPage(props: AnswerPageProps) {
         cancelMiss()
         dispatchRestore({ type: "reset" })
         pendingRestore = props.restore?.()
+        restoreScrolled = false
         // Run after the DOM insert this activation triggers but before the browser paints and dispatches the scroll
         // event the reinsertion causes. That event reports the clamped offset as "arrived at the end", which would
         // otherwise pull a restored middle row back to the bottom.
@@ -680,35 +785,134 @@ export function AnswerPage(props: AnswerPageProps) {
       return value?.kind === "fold" ? snapshot().turns.get(value.turn) : undefined
     })
 
+    const mounted = () => {
+      // Without a viewport this transcript is not a scrolling surface (a story, an embedded excerpt): render all of it.
+      if (props.viewport === undefined) return true
+      forcedVersion()
+
+      if (forced.has(key) || near[key] === true) return true
+
+      // The newest rows stay mounted, so a view opened at the end is exact before the observer has reported anything.
+      return position() >= keys().length - ROW_TAIL
+    }
+
+    // A row that has not been measured yet reserves an estimate built from its kind and its text; the transcript
+    // corrects it as soon as the reader scrolls the row into view and it mounts for real.
+    const reserved = () => {
+      measured()
+      const known = heights.get(key)
+
+      if (known !== undefined) return known
+      const gap = rowGaps()[position()] ?? 0
+      const value = entry()
+      const payload = value?.kind === "node" ? snapshot().nodes.get(value.key)?.payload : undefined
+
+      if (!payload) return gap + ROW_ESTIMATE.fold
+      if (payload.kind === "input") return gap + textEstimate(ROW_ESTIMATE.input, payload.text)
+      if (payload.kind === "assistant") return gap + textEstimate(ROW_ESTIMATE.answer, payload.text)
+
+      return gap + ROW_ESTIMATE.row
+    }
+
+    const [row, setRow] = createSignal<HTMLDivElement>()
+
+    // Observe the row's own box so its last height survives the content unmounting, and let the observer decide when
+    // the content comes back. Both run per row because a row is created once and then only mounts or unmounts.
+    createRenderEffect(() => {
+      const element = row()
+
+      if (!element) return
+      const current = observer()
+
+      resize.observe(element)
+      current?.observe(element)
+      onCleanup(() => {
+        resize.unobserve(element)
+        current?.unobserve(element)
+      })
+    })
+
     return (
       <div
+        ref={setRow}
         data-answer-key={key}
         class="select-text"
-        style={{ "padding-top": `${rowGaps()[position()] ?? 0}px` }}
+        style={{
+          "padding-top": `${rowGaps()[position()] ?? 0}px`,
+          ...(mounted() ? {} : { height: `${reserved()}px`, "box-sizing": "border-box", overflow: "hidden" }),
+        }}
       >
-        <Show when={visibleNode()}>
-          {(value) => (
-            <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />
-          )}
-        </Show>
-        <Show when={turn()}>
-          {(value) => (
-            <FoldRow
-              turn={value()}
-              open={!isFolded(key)}
-              snapshot={snapshot()}
-              view={view()}
-              foldedReplies={props.foldedReplies ?? "final"}
-              now={now()}
-              groupOpen={(key) => openGroups[key]}
-              toggleGroup={(key, next) => setOpenGroups(key, next)}
-              onToggle={() => setFolded(key, !isFolded(key))}
-            />
-          )}
+        <Show when={mounted()}>
+          <Show when={visibleNode()}>
+            {(value) => (
+              <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />
+            )}
+          </Show>
+          <Show when={turn()}>
+            {(value) => (
+              <FoldRow
+                turn={value()}
+                open={!isFolded(key)}
+                snapshot={snapshot()}
+                view={view()}
+                foldedReplies={props.foldedReplies ?? "final"}
+                now={now()}
+                groupOpen={(key) => openGroups[key]}
+                toggleGroup={(key, next) => setOpenGroups(key, next)}
+                onToggle={() => setFolded(key, !isFolded(key))}
+              />
+            )}
+          </Show>
         </Show>
       </div>
     )
   }
+
+  // A search hit or a jump to a prompt names a message, not a row, and that row's content may sit outside the mounted
+  // window. Expand what hides it, mount the entry that owns it, and scroll to it once the mounting frame has laid out.
+  const reveal = (id: string, partID?: string) => {
+    const root = props.viewport?.()
+
+    if (!root) return false
+    const node = [...snapshot().nodes.values()].find((value) =>
+      partID ? value.partID === partID : value.messageID === id,
+    )
+
+    if (!node) return false
+
+    // A top-level row is its own entry; a step lives inside the fold entry of its turn.
+    const entry = keys().find((key) => key === `node:${node.key}`) ?? foldKeys().get(node.turn)
+
+    if (!entry) return false
+    setFolded(entry, false)
+
+    const group = [...snapshot().groups].find(([, value]) => value.members.includes(node.key))
+
+    if (group) setOpenGroups(group[0], true)
+    setOpenRows(node.key, true)
+    forced.add(entry)
+    setForcedVersion((version) => version + 1)
+
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const row = [...root.querySelectorAll<HTMLElement>("[data-timeline-part-id], [data-message-id]")].find(
+          (element) => (partID ? element.dataset.timelinePartId === partID : element.dataset.messageId === id),
+        )
+
+        row?.scrollIntoView?.({ block: "center" })
+        // The scroll leaves the row in view, so the observer keeps it mounted; hold the force until that report lands.
+        setTimeout(() => {
+          forced.delete(entry)
+          setForcedVersion((version) => version + 1)
+        }, 1000)
+      }),
+    )
+
+    return true
+  }
+
+  onMount(() => props.setReveal?.(reveal))
+  onCleanup(() => props.setReveal?.(undefined))
 
   return (
     <MessageActionsContext.Provider value={{ sessionID: props.sessionID, actions: props.actions }}>
@@ -781,6 +985,19 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
   if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
 
   return 4
+}
+
+// How many of the newest rows stay mounted regardless of where the reader is; a view opened at the end must be exact
+// before the observer has reported anything.
+const ROW_TAIL = 8
+
+// Heights for a row whose content has never been mounted. They only need to be close: the row replaces its estimate the
+// first time the reader reaches it, and the transcript's own anchoring keeps the reader's line while that happens.
+const ROW_ESTIMATE = { row: 56, fold: 48, input: 44, answer: 40, lineHeight: 22, charsPerLine: 46 }
+
+/** A rough height for a block of body text at the answer width, capped so one long answer cannot swamp the estimate. */
+function textEstimate(base: number, text: string) {
+  return base + Math.min(2400, Math.ceil(text.length / ROW_ESTIMATE.charsPerLine) * ROW_ESTIMATE.lineHeight)
 }
 
 function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
@@ -1146,7 +1363,7 @@ function RunHeader(props: {
         aria-expanded={props.open}
         disabled={!props.expandable}
         aria-label={props.expandable ? i18n.t(props.open ? "ui.sessionTurn.steps.hide" : "ui.sessionTurn.steps.show") : undefined}
-        class="flex min-h-[33px] min-w-0 w-full items-center gap-1.5 border-b-[0.5px] border-v2-border-border-base pb-2 text-start text-[length:var(--content-font-size,14px)] leading-[normal] disabled:cursor-default enabled:hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+        class="flex min-h-[33px] min-w-0 w-full items-center gap-1.5 border-b-[0.5px] border-v2-border-border-strong pb-2 text-start text-[length:var(--content-font-size,14px)] leading-[normal] disabled:cursor-default enabled:hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
         style={{ color: "var(--answer-ink-tertiary)" }}
         onClick={(event) => {
           event.currentTarget.focus()
@@ -1205,6 +1422,80 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
   )
 }
 
+// A prompt past 12 lines shows its first 8, matching the conversation surface's fold: a fold always hides at
+// least 5 lines, so a prompt just past the limit never folds away a line or two.
+const INPUT_FOLD = { over: 12, show: 8 }
+
+/** The prompt bubble. A long prompt folds to its first lines and keeps the rest behind a Read more toggle. */
+function InputBubble(props: { text: string; cacheKey: string; messageID: string; createdAt: number }) {
+  const i18n = useI18n()
+  const messageActions = useContext(MessageActionsContext)
+  const rows = useContext(RowDisclosureContext)
+  // The reader's disclosure lives in the page's store, so a streamed projection rebuild keeps it open.
+  const expanded = () => rows?.open(props.cacheKey) === true
+  // Hard line breaks are a floor on the laid-out lines, so most long prompts fold before the bubble is measured.
+  const [lines, setLines] = createSignal(props.text.trimEnd().split("\n").length)
+  const long = () => lines() > INPUT_FOLD.over
+  const folded = () => long() && !expanded()
+
+  let content: HTMLDivElement | undefined
+
+  // The prompt is laid out whole and clipped, so its own height is the measure at any width.
+  const measure = () => {
+    if (!content?.isConnected || content.offsetHeight === 0) return
+    const lineHeight = parseFloat(getComputedStyle(content).lineHeight) || 22
+    setLines(Math.round(content.offsetHeight / lineHeight))
+  }
+
+  onMount(() => {
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(content!)
+    onCleanup(() => observer.disconnect())
+  })
+
+  return (
+    <div data-slot="user-message-body" class="flex w-fit max-w-[min(82%,64ch)] flex-col items-end ms-auto">
+      <div
+        dir="auto"
+        data-slot="user-message-text"
+        class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+8px)] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
+        style={{ color: "var(--answer-ink)" }}
+      >
+        <div
+          data-slot="user-message-fold"
+          data-folded={folded() ? "" : undefined}
+          style={{ "max-height": folded() ? `${INPUT_FOLD.show}lh` : undefined }}
+        >
+          <div ref={content}>
+            <Show when={hasMarkdownSyntax(props.text)} fallback={<>{props.text}</>}>
+              <Markdown text={props.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
+            </Show>
+          </div>
+        </div>
+        <Show when={long()}>
+          <button
+            type="button"
+            data-slot="user-message-fold-toggle"
+            aria-expanded={expanded()}
+            onClick={() => rows?.toggle(props.cacheKey, !expanded())}
+          >
+            <span>{i18n.t(expanded() ? "ui.message.showLess" : "ui.message.readMore")}</span>
+            <Icon name="chevron-down" size="small" />
+          </button>
+        </Show>
+      </div>
+      <UserMessageActions
+        sessionID={messageActions.sessionID}
+        messageID={props.messageID}
+        createdAt={props.createdAt}
+        actions={messageActions.actions}
+        text={props.text}
+      />
+    </div>
+  )
+}
+
 function Payload(props: {
   payload: NodePayload
   messageID: string
@@ -1214,30 +1505,15 @@ function Payload(props: {
   rowOpen?: boolean
   onToggleRow?: (next: boolean) => void
 }): JSX.Element {
-  const messageActions = useContext(MessageActionsContext)
-
   switch (props.payload.kind) {
     case "input":
       return (
-        <div data-slot="user-message-body" class="flex w-fit max-w-[min(82%,64ch)] flex-col items-end ms-auto">
-          <div
-            dir="auto"
-            data-slot="user-message-text"
-            class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+8px)] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
-            style={{ color: "var(--answer-ink)" }}
-          >
-            <Show when={hasMarkdownSyntax(props.payload.text)} fallback={<>{props.payload.text}</>}>
-              <Markdown text={props.payload.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
-            </Show>
-          </div>
-          <UserMessageActions
-            sessionID={messageActions.sessionID}
-            messageID={props.messageID}
-            createdAt={props.payload.created}
-            actions={messageActions.actions}
-            text={props.payload.text}
-          />
-        </div>
+        <InputBubble
+          text={props.payload.text}
+          cacheKey={props.cacheKey}
+          messageID={props.messageID}
+          createdAt={props.payload.created}
+        />
       )
     case "assistant":
       return (

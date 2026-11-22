@@ -122,9 +122,9 @@ export function readMessages(
     const rows = query(
       db,
       `select ${COLUMNS} from chatmsg
-       where SessionId = ?1 and (?2 is null or Id < ?2)
-       order by Id desc limit ?3`,
-      [sessionId, beforeId ?? null, limit + 1],
+       where SessionId = ? and (? is null or Id < ?)
+       order by Id desc limit ?`,
+      [sessionId, beforeId ?? null, beforeId ?? null, limit + 1],
     ).map(chatRow)
     const known = rows.filter((row): row is ChatRow & { Id: number } => row.Id !== null)
     const hasMore = known.length > limit
@@ -153,9 +153,9 @@ export function searchMessages(
     return query(
       db,
       `select ${COLUMNS} from chatmsg
-       where (Msg like ?1 escape '\\' or SenderNick like ?1 escape '\\' or FileName like ?1 escape '\\')
-       order by Id desc limit ?2`,
-      [pattern, limit],
+       where (Msg like ? escape '\\' or SenderNick like ? escape '\\' or FileName like ? escape '\\')
+       order by Id desc limit ?`,
+      [pattern, pattern, pattern, limit],
     ).flatMap((raw) => {
       const row = chatRow(raw)
       const sessionId = text(row.SessionId)
@@ -190,8 +190,8 @@ export function readSessionMembers(
     order = query(
       chat,
       `select Sender, max(CreatedTime) as last from chatmsg
-       where SessionId = ?1 and Sender is not null and Sender <> ''
-       group by Sender order by last desc limit ?2`,
+       where SessionId = ? and Sender is not null and Sender <> ''
+       group by Sender order by last desc limit ?`,
       [sessionId, limit],
     ).flatMap((row) => {
       const id = text(row.Sender)
@@ -291,7 +291,7 @@ function readAggregates(db: DatabaseSync) {
 function aggregatesSql() {
   return `select SessionId as sessionId, max(Id) as lastId, count(*) as total,
                  max(isAt) as atMe, max(cast(CreatedTime as integer)) as lastAt
-          from chatmsg group by SessionId order by lastAt desc limit ?1`
+          from chatmsg group by SessionId order by lastAt desc limit ?`
 }
 
 function readGroupNames(db: DatabaseSync) {

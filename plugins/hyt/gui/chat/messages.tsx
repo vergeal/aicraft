@@ -67,13 +67,19 @@ export function MessageStream(props: {
   })
   const todayCount = () => props.messages.filter((message) => dayBucket(message.createdAt) === "today").length
 
+  // 非平滑时必须立刻落位：切会话时内容在同一帧换掉，若等下一帧再滚，浏览器会先把新会话画在顶部
+  // （scrollTop 仍是 0），再跳到底部——那就是「像 F5」的观感。effect 阶段 DOM 已是新内容，同步设置有效。
   const scrollToEnd = (smooth: boolean) => {
+    if (!smooth) {
+      if (scroller !== undefined) scroller.scrollTop = scroller.scrollHeight
+      return
+    }
     requestAnimationFrame(() => {
-      scroller?.scrollTo({ top: scroller.scrollHeight, behavior: smooth ? "smooth" : "auto" })
+      scroller?.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" })
     })
   }
 
-  // 切回旧会话时内容刚换上来，高度还没算完，先等布局有高度再把位置放回去。
+  // 切回旧会话时内容刚换上来，高度还没算完就先尝试一次，之后每帧校正直到布局有高度。
   const restoreTo = (target: number) => {
     const apply = (tries: number) => {
       if (disposed || scroller === undefined) return
@@ -85,7 +91,7 @@ export function MessageStream(props: {
       scroller.scrollTop = Math.min(target, Math.max(0, max))
       setAway(scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 32)
     }
-    requestAnimationFrame(() => apply(0))
+    apply(0)
   }
 
   let lastSession = ""

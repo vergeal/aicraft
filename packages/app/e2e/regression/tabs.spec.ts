@@ -1467,19 +1467,44 @@ test("the Windows titlebar menu pastes through the desktop edit action", async (
   await expect(page.getByRole("status", { name: "Desktop menu actions" })).toHaveText("edit.paste")
 })
 
-test("the Windows menu shares the vertical sidebar's icon lane", async ({ page }) => {
-  await mockWorkspace(page, {
+test("the Windows app menu and sidebar toggle lead the navigation column's head", async ({ page }) => {
+  const workspace = await mockWorkspace(page, {
     name: "WindowsMenu",
-    sessions: [],
-    seed: { settings: { appearance: { tabLayout: "vertical" } } },
+    seed: { settings: { appearance: { sidebarOpen: true } } },
   })
-  await page.goto(`/e2e/utils/windows-menu.html?${new URLSearchParams({ server: SERVER })}`)
 
-  const menu = page.getByRole("button", { name: "OpenCode menu", exact: true }).locator("svg")
+  const session = workspace.sessions[0]!
+  await page.goto(
+    `/e2e/utils/windows-menu.html?${new URLSearchParams({ server: SERVER, path: sessionHref(session.id) })}`,
+  )
 
-  const home = page.locator('[data-action="vertical-tabs-home"] svg')
-  await expect(home).toBeVisible()
-  await expect.poll(async () => [(await menu.boundingBox())?.x, (await home.boundingBox())?.x]).toEqual([19, 19])
+  const side = page.locator('[data-slot="replica-titlebar-side"]')
+  const main = page.locator('[data-slot="replica-titlebar-main"]')
+  const menu = side.locator('[data-component="desktop-menu-bar"]')
+  const toggle = side.getByRole("button", { name: "Toggle sidebar", exact: true })
+
+  await expect(toggle).toBeVisible()
+  await expect(menu).toBeVisible()
+  // Windows has no traffic lights, so nothing pushes these controls off the window's start edge.
+  await expect(main.getByRole("button", { name: "Toggle sidebar", exact: true })).toHaveCount(0)
+  await expect(main.locator('[data-component="desktop-menu-bar"]')).toHaveCount(0)
+
+  await expect
+    .poll(async () => {
+      const [sideBox, toggleBox, menuBox] = await Promise.all([
+        side.boundingBox(),
+        toggle.boundingBox(),
+        menu.boundingBox(),
+      ])
+
+      if (!sideBox || !toggleBox || !menuBox) return null
+
+      return {
+        lead: Math.round(toggleBox.x - sideBox.x),
+        order: toggleBox.x + toggleBox.width <= menuBox.x,
+      }
+    })
+    .toEqual({ lead: 6, order: true })
 })
 
 for (const row of [

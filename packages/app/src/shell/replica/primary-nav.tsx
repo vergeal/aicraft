@@ -2,6 +2,7 @@ import { For, Show } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { Icon } from "@opencode/ui/icon"
 import type { IconName } from "@opencode/ui/icons/catalog"
+import { BrandMark } from "@opencode/ui/brand-mark"
 import { MainSurface } from "@opencode/plugin/gui"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
@@ -170,14 +171,7 @@ export function ReplicaPrimaryFooter() {
         class="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-row)] px-1.5 text-start transition-colors hover:bg-[var(--color-hover)] focus-visible:bg-[var(--color-hover)] focus-visible:outline-none"
         onClick={openSettings}
       >
-        <img
-          src="/assets/product-mark.png"
-          alt=""
-          aria-hidden="true"
-          width="20"
-          height="20"
-          class="size-5 shrink-0 rounded-full object-cover shadow-[inset_0_0_0_0.5px_var(--color-border)]"
-        />
+        <BrandMark decorative class="size-5 shrink-0" />
         <span class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="truncate text-[13px] leading-4 text-[var(--color-text-primary)]">{status()}</span>
           <Show when={model()}>

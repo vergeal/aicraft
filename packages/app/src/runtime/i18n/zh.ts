@@ -30,7 +30,7 @@ export const dict = {
   "desktop.menu.toggleFileTree": "切换文件树",
   "desktop.menu.reload": "重新加载",
   "desktop.menu.toggleDeveloperTools": "切换开发人员工具",
-  "desktop.menu.actualSize": "实际大小",
+  "desktop.menu.actualSize": "默认大小",
   "desktop.menu.zoomIn": "放大",
   "desktop.menu.zoomOut": "缩小",
   "desktop.menu.toggleFullScreen": "切换全屏显示",

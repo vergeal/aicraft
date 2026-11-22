@@ -6,7 +6,7 @@ import "./brand-mark.css"
  * `assets/brand/logo-mark-color.svg`. Brand colours are fixed rather than theme tokens (design/logo README), so the
  * only dark-mode change is the brighter core via `data-color-scheme`.
  */
-export function BrandMark(props: { class?: string; label?: string }) {
+export function BrandMark(props: { class?: string; label?: string; decorative?: boolean }) {
   const gradient = createUniqueId()
 
   return (
@@ -16,8 +16,9 @@ export function BrandMark(props: { class?: string; label?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-label={props.label ?? "OpenCode"}
+      role={props.decorative ? undefined : "img"}
+      aria-label={props.decorative ? undefined : (props.label ?? "OpenCode")}
+      aria-hidden={props.decorative ? "true" : undefined}
     >
       <defs>
         <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">

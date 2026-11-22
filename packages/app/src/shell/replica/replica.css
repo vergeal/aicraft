@@ -1,9 +1,9 @@
 /* v6 workbench: the window is one continuous surface. Three columns share the frame with the titlebar,
    and every size below comes from the v6 token table rather than ad-hoc component values. */
 [data-replica] {
-  /* The window bar spans the whole window at the reference's 44px, split at the sidebar boundary: its left segment
+  /* The window bar spans the whole window at the reference's 48px, split at the sidebar boundary: its left segment
      heads the navigation column, its right segment heads the workspace. */
-  --titlebar-height: 44px;
+  --titlebar-height: 48px;
 
   --navigation-sidebar-width: 280px;
   --sidebar-header-height: 32px;
@@ -985,6 +985,35 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   height: var(--titlebar-height);
 }
 
+/* Windows keeps its caption buttons in an overlay as tall as this bar, so the panel's own head shares that height:
+   its tab strip centres on the same line as the native controls and its trailing actions end flush against the
+   natives' hit area instead of running under them. */
+html[data-replica-window="translucent"][data-os="windows"]
+  [data-replica]
+  #review-panel
+  [data-slot="session-side-pane"]:first-child
+  [data-slot="session-side-panel-actions"] {
+  padding-inline-end: 138px;
+}
+
+/* The panel's selected tab reads as the same capsule as the titlebar's FPS control: one filled pill, no outline and
+   no underline. The shared tab stylesheet draws a rounded rectangle with a border and a bottom rule. */
+[data-replica]
+  #review-panel
+  [data-component="tabs"]
+  [data-slot="tabs-trigger-wrapper"]:has([data-selected]) {
+  border-color: transparent;
+  border-radius: 999px;
+  background-color: var(--color-selected);
+}
+
+[data-replica]
+  #review-panel
+  [data-component="tabs"]
+  [data-slot="tabs-trigger-wrapper"]:has([data-selected])::after {
+  display: none;
+}
+
 [data-replica] #review-panel:not([aria-hidden="true"]) {
   border-inline-start: 1px solid var(--color-divider);
 }
@@ -1215,6 +1244,22 @@ html[data-replica-window="translucent"][data-os="windows"]
    window's start edge in either state. */
 html[data-replica-window="translucent"][data-os="windows"] [data-replica] {
   --sidebar-header-lead: 6px;
+}
+
+/* Windows draws its three caption buttons over the window's trailing edge, so the workspace bar keeps their width
+   clear: the context, panel and FPS controls end flush against the native controls' hit area rather than under them.
+   The buttons are 46px each at 1x. Kept fixed rather than dropped while the side panel is open: the panel's 220ms
+   close animates its titlebar segment's width, and following that width made the actions trail the widening bar out
+   to the caption buttons and snap back when the animation ended. */
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-titlebar-main"] {
+  padding-inline-end: 138px;
+}
+
+/* Windows draws no traffic lights over the window's start edge, so the column's head leads with its controls
+   there. macOS keeps them clear of the lights instead, which is why its lead padding is wider and its content
+   rides at the segment's end. */
+html[data-replica-window="translucent"][data-os="windows"] [data-slot="replica-titlebar-side"] {
+  justify-content: flex-start;
 }
 
 /* The bar keeps its flat surfaces in dark mode: no gradient glides across the split between its two halves. */

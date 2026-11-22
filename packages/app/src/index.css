@@ -438,3 +438,16 @@
 [data-component="menu-v2-content"][data-appearance].desktop-app-menu [data-component="menu-v2-item"] {
   border-radius: var(--radius-lg);
 }
+
+/* The desktop menu keeps the standard appearance's typography and row metrics, but it floats over the workspace
+   the same way the model picker does, so it takes that picker's liquid-glass surface instead of the opaque
+   standard fill. Unlayered with the appearance attribute so it outranks the standard rule in `menu.css`, which is
+   also unlayered; the ring replaces that rule's hairline border so the two never double up. */
+[data-component="menu-v2-content"][data-appearance="standard"].desktop-app-menu {
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
+  border: 0;
+  box-shadow:
+    0 0 0 0.5px var(--v2-border-border-base),
+    var(--v2-elevation-floating);
+}

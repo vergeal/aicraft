@@ -8,6 +8,7 @@ import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { Accessibility, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { ActivityRing } from "@opencode/ui/activity-ring"
+import { BrandMark } from "@opencode/ui/brand-mark"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
@@ -68,7 +69,7 @@ const PROJECT_GROUP = "replica-sidebar-projects"
 /** One container per project: a session's index counts inside its own project, which is what its DOM order shows. */
 const projectSessionGroup = (key: string) => `${RECENT_GROUP}:${key}`
 
-/** The workspace head's actions: 24px targets, so the three sit quietly beside one 13px label. */
+/** The workspace actions: 24px targets, so the three sit quietly in the toolbar above the session list. */
 const HEAD_BUTTON =
   "flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-icon-primary)]"
 
@@ -145,7 +146,7 @@ function ReplicaSidebarBrand() {
 
   return (
     <div data-slot="replica-sidebar-brand" class="mb-3 flex h-8 shrink-0 items-center gap-2 px-4">
-      <img src="/assets/product-mark.png" alt="" aria-hidden="true" width="20" height="20" class="size-5 shrink-0" />
+      <BrandMark decorative class="size-5 shrink-0" />
       <span class="min-w-0 truncate text-[13px] leading-5 font-[500] tracking-[-0.01em] text-[var(--color-text-primary)]">
         {language.t("replica.rail.product")}
       </span>
@@ -950,9 +951,8 @@ function ConversationNav() {
           void inbox.loadMore()
         }}
       >
-        <div data-slot="replica-workspace-head" class="flex h-7 items-center ps-1">
-          <h2 class={SECTION}>{language.t("replica.workspace.name")}</h2>
-          <div class="ms-auto flex items-center gap-0.5">
+        <div data-slot="replica-workspace-head" class="flex h-7 items-center justify-end pe-1">
+          <div class="flex items-center gap-0.5">
             <Tooltip placement="top" openDelay={400} value={language.t("replica.workspace.search")}>
               <button
                 type="button"
@@ -1138,6 +1138,7 @@ function ConversationNav() {
           </Show>
           <Show when={!onlyPinned() && projectGroups().length > 0}>
             <div class="flex flex-col gap-[2px]" classList={{ "mt-3": pinnedEntries().length > 0 }}>
+              <h3 class={SECTION}>{language.t("replica.workspace.name")}</h3>
               <Key each={projectGroups()} by={(group) => group.key}>
                 {(group, index) => (
                   <div class="flex flex-col">

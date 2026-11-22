@@ -139,7 +139,7 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
   --settings-rail-width: var(--settings-sidebar-width);
 }
 
-/* The window bar keeps the shell's own metrics: 44px tall, the left segment at the navigation column's width and
+/* The window bar keeps the shell's own metrics: 48px tall, the left segment at the navigation column's width and
    surface, and no rule under it, so bar and column read as one piece of chrome. */
 [data-settings] [data-slot="replica-titlebar"] {
   flex: none;
@@ -158,7 +158,7 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
 /* The shared bar paints the brand wash on its navigation segment for the session sidebar. Settings has no wash over
    its column, so the segment drops it as well, and it carries the rail's own surface instead of the shared navigation
    tint: two translucent fills sit on different backdrops (the page canvas below the rail, the chrome tint behind the
-   bar), which split the 44px seam into two greys in light mode. Dark's two tints already agree, so the same value
+   bar), which split the 48px seam into two greys in light mode. Dark's two tints already agree, so the same value
    reproduces its current surface. */
 [data-settings] > [data-slot="replica-titlebar"] > [data-slot="replica-titlebar-side"] {
   background: var(--settings-sidebar-bg);

@@ -139,6 +139,13 @@ function isDirectoryHandle(handle: FileTreeItemHandle | null | undefined): handl
   return Boolean(handle?.isDirectory())
 }
 
+/** Every directory above a file, shallowest first: "a/b/c.ts" gives ["a", "a/b"]. */
+function parentDirectories(path: string) {
+  const segments = path.split("/")
+
+  return segments.slice(1).map((_, index) => segments.slice(0, index + 1).join("/"))
+}
+
 function findTreeItemButton(event: Event) {
   for (const target of event.composedPath()) {
     if (target instanceof HTMLElement && target.dataset.type === "item" && target.dataset.itemPath) return target
@@ -159,6 +166,8 @@ export default function PierreFileTree(props: {
   kinds?: ReadonlyMap<string, ChangeKind>
   labels?: ReadonlyMap<string, string>
   draggable?: boolean
+  /** A counter the panel's reveal action raises; each new value brings the active file into view. */
+  revealRequest?: () => number
   onFileClick?: (file: FileNode) => void
   onFileDoubleClick?: (file: FileNode) => void
 }) {
@@ -510,6 +519,58 @@ export default function PierreFileTree(props: {
       })
     },
     { equals: (previous, next) => previous.path === next.path && previous.present === next.present },
+  )
+
+  const scrollToRow = (path: string, attempts: number) => {
+    if (!tree) return
+    const item = tree.getItem(path)
+
+    // Folders load one level at a time, so the row may appear a few frames after its directory was expanded.
+    if (!item || item.isDirectory()) {
+      if (attempts > 1) requestAnimationFrame(() => scrollToRow(path, attempts - 1))
+
+      return
+    }
+
+    tree.scrollToPath(path, { focus: false, offset: "nearest" })
+  }
+
+  const expandFolders = (path: string, dirs: string[]) => {
+    requestAnimationFrame(() => {
+      if (!tree) return
+      syncingExpansion = true
+
+      for (const dir of dirs) {
+        const handle = tree.getItem(dir)
+
+        if (isDirectoryHandle(handle) && !handle.isExpanded()) handle.expand()
+      }
+
+      syncingExpansion = false
+      requestAnimationFrame(() => scrollToRow(path, 8))
+    })
+  }
+
+  // The panel's reveal action expands the active file's folders, then scrolls it into view.
+  const revealPath = (path: string) => {
+    if (!tree) return
+    const dirs = parentDirectories(path)
+
+    if (!live()) return expandFolders(path, dirs)
+
+    for (const dir of dirs) file.tree.expand(dir)
+    void Promise.all(dirs.map((dir) => file.tree.sync(dir))).then(() => expandFolders(path, dirs))
+  }
+
+  createKeyed(
+    () => {
+      const request = props.revealRequest?.() ?? 0
+      const path = active()
+
+      return ready() && request > 0 && path ? { request, path } : undefined
+    },
+    (target) => revealPath(target.path),
+    { equals: (previous, next) => previous?.request === next?.request && previous?.path === next?.path },
   )
 
   const resolveContextPath = (event: MouseEvent) => {

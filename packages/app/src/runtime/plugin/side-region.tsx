@@ -24,6 +24,7 @@ import { same } from "@/runtime/persistence/equality"
 import { useLayout } from "@/shell/state/layout"
 import { useSessionLayout } from "@/session/session-layout"
 import type { Sizing } from "@/session/helpers"
+import { ReplicaTitlebarActions } from "@/shell/replica/titlebar-actions"
 import { PanelTrigger } from "./panel-trigger"
 import { createSessionPanelMenuEntries, type SessionPanelMenuEntry } from "./panel-menu"
 import { RegionContent, type Region, type RegionPane } from "./panels"
@@ -216,7 +217,7 @@ export function PaneTabs(props: {
   drag: PaneDrag
   /** Shows the empty state while the pane selects nothing. */
   placeholder?: boolean
-  /** Renders the plugins' strip actions and keeps room for the session's review toggle. */
+  /** Renders the plugins' strip actions. */
   actions?: boolean
   /** Controls after the strip, e.g. the bottom pane's hide button. */
   end?: JSX.Element
@@ -438,9 +439,7 @@ export function PaneTabs(props: {
             />
           </Show>
           {props.end}
-          <Show when={props.actions && props.present()}>
-            <div class="size-7 shrink-0" aria-hidden />
-          </Show>
+          <ReplicaTitlebarActions placement="panel" />
         </div>
       </div>
 

@@ -13,8 +13,9 @@ import { getStore } from "../storage/store"
 // SAFETY: oc-2.json is the bundled default theme, which the UI package loads as a DesktopTheme too.
 const oc2Theme = oc2ThemeJson as DesktopTheme
 
-// Windows draws a 32px caption, so the overlay is that tall and its controls line up with every other window.
-export const titlebarHeight = 32
+// The Windows overlay that draws the caption buttons. Taller than the system's 32px caption so the buttons centre on
+// the app's own 48px titlebar instead of the top band of it.
+export const titlebarHeight = 48
 
 export function tone() {
   return nativeTheme.shouldUseDarkColors ? "dark" : "light"

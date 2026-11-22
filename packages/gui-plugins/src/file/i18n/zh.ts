@@ -1,5 +1,6 @@
 export default {
   "tree.all": "所有文件",
+  "tree.revealActive": "定位当前文件",
   "tab.notFound": "未找到文件：{{name}}",
   "mobile.title": "文件",
   "mobile.openTabs": "打开文件",

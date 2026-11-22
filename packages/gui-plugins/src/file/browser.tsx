@@ -1,7 +1,9 @@
-import { createMemo, createUniqueId, For, onCleanup, Show, type Accessor } from "solid-js"
+import { createMemo, createSignal, createUniqueId, For, onCleanup, Show, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createQuery, keepPreviousData } from "@tanstack/solid-query"
 import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
+import { Tooltip } from "@opencode/ui/tooltip"
 import { SessionFilePanelV2, SessionFilePanelV2Empty } from "@opencode/session-ui/v2/session-file-panel-v2"
 import { SessionReviewV2Sidebar, SessionReviewV2SidebarToggle } from "@opencode/session-ui/v2/session-review-v2"
 import { getFilename } from "@opencode/util/path"
@@ -49,6 +51,7 @@ export function SessionFileBrowserTab(props: {
   const setExplicitHighlight = (value: string) => setStore("explicitHighlight", value)
   const sidebarOpened = () => props.placeholder || props.state.opened()
   const query = createMemo(() => filter().trim())
+  const [revealRequest, setRevealRequest] = createSignal(0)
 
   const search = createQuery(() => {
     const value = query()
@@ -142,6 +145,24 @@ export function SessionFileBrowserTab(props: {
           open={sidebarOpened()}
           transition={props.state.transition()}
           title={<span class="truncate font-[530]">{title()}</span>}
+          headerActions={
+            <Show when={!props.mobile}>
+              <Tooltip value={ctx.t("tree.revealActive")}>
+                <IconButton
+                  variant="ghost"
+                  size="small"
+                  aria-label={ctx.t("tree.revealActive")}
+                  disabled={!props.active}
+                  onClick={() => {
+                    // The tree is replaced by search results while filtering, so reveal acts on the tree itself.
+                    setFilter("")
+                    setRevealRequest((value) => value + 1)
+                  }}
+                  icon={<Icon name="locate" />}
+                />
+              </Tooltip>
+            </Show>
+          }
           filter={filter()}
           onFilterChange={setFilter}
           onFilterKeyDown={onFilterKeyDown}
@@ -159,6 +180,7 @@ export function SessionFileBrowserTab(props: {
                 session={props.session}
                 screen={props.screen}
                 active={props.active}
+                revealRequest={revealRequest}
                 kinds={props.kinds}
                 draggable={!props.mobile}
                 onFileClick={(node) => props.onSelect(node.path)}

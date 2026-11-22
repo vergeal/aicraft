@@ -39,7 +39,7 @@ export function LoadingSplash(props: {
     if (props.platform.os === "macos") return `max(36px, ${36 / zoom}px)`
 
     if (props.platform.os === "windows")
-      return `max(36px, env(titlebar-area-height, ${44 / Math.min(Math.max(zoom, 0.25), 1)}px))`
+      return `max(36px, env(titlebar-area-height, ${48 / Math.min(Math.max(zoom, 0.25), 1)}px))`
 
     return "36px"
   }

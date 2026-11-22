@@ -49,7 +49,7 @@ export { goBackCommand, goForwardCommand }
 
 const titlebarHeight = 36
 
-const windowsTitlebarHeight = 44 // Includes the content inset; matches the native Windows overlay.
+const windowsTitlebarHeight = 48 // Includes the content inset; matches the native Windows overlay.
 
 const minTitlebarZoom = 0.25
 

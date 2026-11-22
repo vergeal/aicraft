@@ -430,6 +430,12 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M2.5 3V13.5M2.5 6H7.5M2.5 10.5H7.5"/><path d="M10 4.5H13C13.55 4.5 14 4.95 14 5.5V6.5C14 7.05 13.55 7.5 13 7.5H10C9.45 7.5 9 7.05 9 6.5V5.5C9 4.95 9.45 4.5 10 4.5Z"/><path d="M10 9H13C13.55 9 14 9.45 14 10V11C14 11.55 13.55 12 13 12H10C9.45 12 9 11.55 9 11V10C9 9.45 9.45 9 10 9Z"/></g>`,
   },
+  // "Reveal in tree": a target whose four ticks read as a locator at 16px. The ring keeps the
+  // 2px safe area (r 4.75) and the center dot is filled, so it stays legible when the ticks thin out.
+  locate: {
+    viewBox: "0 0 16 16",
+    body: `<g ${outline16}><circle cx="8" cy="8" r="4.75"/><path d="M8 2V4.25M8 11.75V14M2 8H4.25M11.75 8H14"/></g><circle cx="8" cy="8" r="1.25" fill="currentColor"/>`,
+  },
   workspace: {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M1.5 3.5C1.5 2.4 2.4 1.5 3.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V3.5Z"/></g><circle cx="8" cy="8" r="2" fill="currentColor"/>`,

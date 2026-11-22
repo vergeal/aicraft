@@ -1,4 +1,5 @@
 import { useDialog } from "@opencode/ui/context/dialog"
+import { BrandMark } from "@opencode/ui/brand-mark"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
@@ -78,14 +79,7 @@ export function NewSessionView(props: {
                 The title runs 26/32 at weight 500: one step larger and lighter than the old 24/600, which read
                 as a control label rather than the product's name. */}
             <div data-slot="new-session-welcome" class="mb-3 flex items-center justify-center gap-3">
-              <img
-                src="/assets/product-mark.png"
-                alt=""
-                aria-hidden="true"
-                width="30"
-                height="30"
-                class="size-[30px] shrink-0"
-              />
+              <BrandMark decorative class="size-[30px] shrink-0" />
               <span class="min-w-0 truncate text-[26px] leading-[32px] font-[500] text-[var(--v2-text-text-base)]">
                 {language.t("replica.rail.product")}
               </span>

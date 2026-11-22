@@ -1,5 +1,6 @@
 export default {
   "tree.all": "All files",
+  "tree.revealActive": "Reveal current file",
   "tab.notFound": "File not found: {{name}}",
   "load.failed": "Failed to load file",
   "load.timeout": "Opening {{name}} took too long.",

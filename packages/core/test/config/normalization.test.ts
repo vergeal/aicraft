@@ -551,7 +551,6 @@ describe("ConfigNormalize", () => {
         experimental: {
           portable_shell_scanner: true,
           todo: true,
-          background_compaction: true,
           media_blob: true,
           part_rows: true,
           image_generate: { model: "openai/gpt-image-2" },
@@ -564,7 +563,6 @@ describe("ConfigNormalize", () => {
       experimental: {
         portable_shell_scanner: true,
         todo: true,
-        background_compaction: true,
         media_blob: true,
         part_rows: true,
         image_generate: { model: { providerID: "openai", model: "gpt-image-2" } },

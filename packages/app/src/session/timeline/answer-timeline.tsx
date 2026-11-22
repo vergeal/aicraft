@@ -12,6 +12,16 @@ import { readPosition, writePosition, type SavedPosition } from "./position"
 
 const SAVE_DELAY = 200
 
+// Growth under a following view glides to the end: each frame absorbs half the remaining distance, so a streamed reply
+// is followed smoothly and a large change (a fold, a fresh page) lands in a few frames instead of a jump. The cap keeps
+// a long re-anchor from tearing across the transcript in one frame.
+const GLIDE_EASE = 0.5
+const GLIDE_MAX_STEP = 320
+
+// Growth smaller than a few lines is the reply itself moving down, and following it in the same frame keeps the newest
+// line out from under the fold. A larger jump is a block appearing at once, which the glide is for.
+const GLIDE_SNAP = 96
+
 // A scroll has come to rest once no new offset arrives for this long. The follow machine only probes a zoomed end
 // from a settled scroll, so this is the timer that lets a detached view resume following by reaching the end.
 const SCROLL_SETTLE_DELAY = 120
@@ -77,8 +87,11 @@ export function AnswerTimeline(props: {
   // The page's own reveal, which can mount a row outside the window before scrolling to it.
   let pageReveal: ((id: string, partID?: string) => boolean) | undefined
   let contentObserver: ResizeObserver | undefined
+  let glideFrame = 0
 
   const following = () => props.follow.following()
+  const reducedMotion = () =>
+    typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
 
   // Where the reader left the transcript is a fact about the viewport, not the follow intent. The machine can still
   // read `following` after an upward wheel (a downward one never detaches), so `bottom` taken from it is true for a
@@ -128,9 +141,47 @@ export function AnswerTimeline(props: {
   }
 
   // The end is one value and one write: every path that goes there uses this, so no two callers can disagree about what
-  // "the end" is. A smooth scroll would aim at the height it started from, and a growing reply outruns it.
-  const stickToEnd = () => {
+  // "the end" is. A landing or a restore moves at once, because the reader is arriving, not watching content grow.
+  const jumpToEnd = () => {
+    stopGlide()
+
     if (viewport) viewport.scrollTop = viewport.scrollHeight
+  }
+
+  const stopGlide = () => {
+    if (glideFrame !== 0) cancelAnimationFrame(glideFrame)
+    glideFrame = 0
+  }
+
+  // One rAF loop owns the glide. It re-reads the floor every frame, so content that grows mid-glide retargets it instead
+  // of restarting, and a lost follow intent (the reader's own input) ends it without moving the view.
+  const glideStep = () => {
+    glideFrame = 0
+
+    if (!viewport || !following()) return
+
+    const delta = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop
+
+    // Land exactly instead of leaving a sub-pixel tail the loop would chase forever.
+    if (delta <= 1) {
+      viewport.scrollTop = viewport.scrollHeight
+
+      return
+    }
+
+    viewport.scrollTop += Math.min(GLIDE_MAX_STEP, Math.max(1, delta * GLIDE_EASE))
+    glideFrame = requestAnimationFrame(glideStep)
+  }
+
+  const glideToEnd = () => {
+    if (!viewport) return
+    // A glide already on its way re-reads the floor every frame, so new growth joins it instead of restarting it.
+    if (glideFrame !== 0) return
+    // A small move is the reply itself; a jump is a block arriving at once, which the glide covers.
+    if (reducedMotion() || viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= GLIDE_SNAP)
+      return jumpToEnd()
+
+    glideFrame = requestAnimationFrame(glideStep)
   }
 
   // A landing write reports back so the machine can stop owing it, and clears the deadline that would otherwise expire
@@ -147,13 +198,13 @@ export function AnswerTimeline(props: {
   const landOnEnd = () => {
     if (!viewport || !following()) return
 
-    stickToEnd()
+    jumpToEnd()
     settleLanding()
   }
 
   const jumpToLatest = () => {
     props.follow.dispatch({ type: "follow" })
-    stickToEnd()
+    glideToEnd()
   }
 
   // This activation owes the view a landing. The intent lives in the follow machine's `landing` state, so the clamp a
@@ -194,7 +245,7 @@ export function AnswerTimeline(props: {
     props.follow.dispatch({ type: "follow" })
     // Settle at the newest content. A view left at its clamped offset reads as a jump to the first message, so the
     // miss ends with the end in view while the saved record stays held for a later page-in.
-    stickToEnd()
+    jumpToEnd()
     props.onRestoreMiss?.()
   }
 
@@ -233,7 +284,7 @@ export function AnswerTimeline(props: {
     props.setRevealPart?.(revealTarget)
     props.setScrollToEnd?.((_behavior) => {
       props.follow.dispatch({ type: "follow" })
-      stickToEnd()
+      jumpToEnd()
     })
     props.setPage?.((direction) => {
       if (!viewport) return
@@ -281,14 +332,18 @@ export function AnswerTimeline(props: {
         // left above the fold looking at content that just disappeared.
         if (delta <= 0 && delta > -200) return
 
+        // A landing arrives at once: its rows are mounting, not a reply the reader is watching grow.
+        if (state.type === "landing") {
+          jumpToEnd()
+          settleLanding()
+
+          return
+        }
+
         // Only a following view absorbs growth. An older page paged in above a detached reader grows the height while
         // the reader keeps their own offset, so pinning to the end here would drag them down for every page that lands
         // and hide the position they scrolled to. Reaching the end again re-follows through the scroll event.
-        if (following()) {
-          stickToEnd()
-          // A landing settles on its first write, whether that write came from the activation frame or from here.
-          if (props.follow.peek().type === "landing") settleLanding()
-        }
+        if (following()) glideToEnd()
       })
 
       for (const child of Array.from(viewport.children)) contentObserver.observe(child)
@@ -297,6 +352,7 @@ export function AnswerTimeline(props: {
 
   onCleanup(() => contentObserver?.disconnect())
   onCleanup(() => {
+    stopGlide()
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
     if (landingTimer !== undefined) clearTimeout(landingTimer)
   })
@@ -349,6 +405,8 @@ export function AnswerTimeline(props: {
         onWheel={(event) => {
           if (!viewport) return
           holdPosition = false
+          // The reader's own wheel always beats an in-flight glide, even one that moves nothing yet.
+          stopGlide()
           props.follow.dispatch({
             type: "scroll.intent",
             upward: event.deltaY < 0,
@@ -357,6 +415,7 @@ export function AnswerTimeline(props: {
         }}
         onTouchStart={(event) => {
           holdPosition = false
+          stopGlide()
           const target = event.target instanceof Element ? event.target : undefined
           const nested = target?.closest("[data-scrollable]")
           props.follow.dispatch({ type: "touch.start", nested: !!nested && nested !== viewport })
@@ -372,10 +431,15 @@ export function AnswerTimeline(props: {
         onTouchEnd={() => props.follow.dispatch({ type: "touch.end", scrolling: false })}
         onPointerDown={() => {
           holdPosition = false
+          stopGlide()
           props.follow.dispatch({ type: "pointer.down" })
         }}
         onPointerUp={() => props.follow.dispatch({ type: "pointer.up" })}
         onPointerCancel={() => props.follow.dispatch({ type: "pointer.up" })}
+        // Scroll keys move the viewport natively, so the glide must yield before the key scroll lands.
+        onKeyDown={(event) => {
+          if (!event.altKey && !event.ctrlKey && !event.metaKey) stopGlide()
+        }}
         class="relative h-full w-full min-w-0"
         style={{ "--sticky-accordion-top": props.showHeader ? "var(--session-header-height, 48px)" : "0px" }}
       >

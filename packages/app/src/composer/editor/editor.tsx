@@ -1114,7 +1114,6 @@ function ComposerEditorAddMenu(props: {
   onShell: () => void
 }) {
   const focus = pointerFocusReturn()
-  const [gutter, setGutter] = createSignal(8)
 
   return (
     <Tooltip
@@ -1126,14 +1125,9 @@ function ComposerEditorAddMenu(props: {
         </>
       }
     >
-      <Menu gutter={gutter()} modal={false} placement="top-start">
+      <Menu gutter={6} modal={false} placement="top-start">
         <Menu.Trigger
-          onMouseDown={(event: MouseEvent) => setGutter(composerOverlayGutter(event.currentTarget as HTMLElement))}
           {...focus.trigger}
-          onKeyDown={(event: KeyboardEvent & { currentTarget: HTMLElement }) => {
-            focus.trigger.onKeyDown(event)
-            setGutter(composerOverlayGutter(event.currentTarget))
-          }}
           as={IconButton}
           data-action="composer-attach"
           type="button"
@@ -1167,18 +1161,6 @@ function ComposerEditorAddMenu(props: {
       </Menu>
     </Tooltip>
   )
-}
-
-/**
- * The gap that lifts a composer overlay above the card, so the menu opens over the frame's top edge instead of
- * covering the draft. The card grows with the prompt, so the gap is measured from the trigger when it opens.
- */
-export function composerOverlayGutter(trigger: HTMLElement) {
-  const card = trigger.closest('[data-component="composer"]')
-
-  if (!card) return 8
-
-  return Math.max(8, Math.round(trigger.getBoundingClientRect().top - card.getBoundingClientRect().top) + 8)
 }
 
 /**
@@ -1255,7 +1237,6 @@ function ComposerEditorSelect(props: {
 }) {
   const mobile = createMediaQuery("(max-width: 767px)")
   const [store, setStore] = createStore({ open: false, loaded: false })
-  const [gutter, setGutter] = createSignal(8)
   const focus = pointerFocusReturn()
   let trigger: HTMLButtonElement | undefined
 
@@ -1295,14 +1276,9 @@ function ComposerEditorSelect(props: {
       <Show
         when={props.mobileDrawer && mobile()}
         fallback={
-          <Menu gutter={gutter()} modal={false} placement="top-start" onOpenChange={props.onOpenChange}>
+          <Menu gutter={6} modal={false} placement="top-start" onOpenChange={props.onOpenChange}>
             <Menu.Trigger
-              onMouseDown={(event: MouseEvent) => setGutter(composerOverlayGutter(event.currentTarget as HTMLElement))}
               {...focus.trigger}
-              onKeyDown={(event: KeyboardEvent & { currentTarget: HTMLElement }) => {
-                focus.trigger.onKeyDown(event)
-                setGutter(composerOverlayGutter(event.currentTarget))
-              }}
               as={Button}
               variant="ghost-muted"
               size="normal"

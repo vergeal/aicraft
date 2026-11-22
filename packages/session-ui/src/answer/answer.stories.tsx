@@ -1,5 +1,6 @@
 import type { SessionMessageAssistant, SessionMessageInfo } from "@opencode/client/promise"
 import { createSignal } from "solid-js"
+import { MarkdownProvider } from "../context/markdown"
 import { CURRENT_SESSION_ID } from "../storybook/current-session-fixtures"
 import { AnswerPage } from "./page"
 
@@ -711,6 +712,7 @@ export const ToolScreenshot = {
 }
 
 // A read that brings back media is a picture step, not a file step. Two rows keep the group heading visible.
+// Its result points at the file with a `file:` URL, as the read tool does, so the story exercises that conversion.
 const pictureTool = (id: string, path: string): Content => ({
   type: "tool",
   id,
@@ -720,11 +722,20 @@ const pictureTool = (id: string, path: string): Content => ({
     input: { path },
     content: [
       { type: "text", text: `Read ${path}` },
-      { type: "file", uri: screenshot, mime: "image/svg+xml", name: path.split("/").pop() },
+      {
+        type: "file",
+        uri: `file:///Users/ekko/Projects/opencode/${path}`,
+        mime: "image/svg+xml",
+        name: path.split("/").pop(),
+      },
     ],
     metadata: {},
   },
   time: { created: TIME, completed: TIME + 1_000 },
+})
+
+const pictureBytes = new Blob([decodeURIComponent(screenshot.slice(screenshot.indexOf(",") + 1))], {
+  type: "image/svg+xml",
 })
 
 const readPicture: SessionMessageInfo[] = [
@@ -744,8 +755,10 @@ const readPicture: SessionMessageInfo[] = [
 
 export const ReadPicture = {
   render: () => (
-    <div class="h-dvh">
-      <AnswerPage messages={() => readPicture} />
-    </div>
+    <MarkdownProvider readImage={() => Promise.resolve(pictureBytes)}>
+      <div class="h-dvh">
+        <AnswerPage messages={() => readPicture} />
+      </div>
+    </MarkdownProvider>
   ),
 }

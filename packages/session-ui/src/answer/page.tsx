@@ -15,6 +15,7 @@ import { File } from "../components/file"
 import { changedFileDiff } from "../components/apply-patch-file"
 import { resolveFileDiff } from "../components/session-diff"
 import { createImagePreview } from "../components/image-preview"
+import { localImagePath } from "../components/markdown-image"
 import { useMarkdown } from "../context/markdown"
 import { childrenOf, projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
@@ -1898,15 +1899,24 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
       objectUrl = undefined
     }
 
-    if (/^(data|https?|blob):/i.test(uri) || !markdown?.readImage) {
-      setUrl(uri)
+    // A read result points at its file with a `file:` URL, which the host's local image loader refuses as a scheme.
+    const path = localImagePath(uri)
+
+    if (!path || !markdown?.readImage) {
+      if (/^(data|blob|https?):/i.test(uri)) {
+        setUrl(uri)
+
+        return
+      }
+
+      setBroken(true)
 
       return
     }
 
     setUrl(undefined)
     void markdown
-      .readImage(uri, controller.signal)
+      .readImage(path, controller.signal)
       .then((blob) => {
         if (controller.signal.aborted) return
 

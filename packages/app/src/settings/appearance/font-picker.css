@@ -47,7 +47,13 @@ button[data-component="font-picker"] [data-slot="font-picker-value"] {
 
 button[data-component="font-picker"] svg {
   flex: none;
-  color: var(--v2-text-text-faint);
+  color: var(--v2-icon-icon-muted);
+  transform: rotate(180deg);
+  transform-origin: 50% 50%;
+}
+
+button[data-component="font-picker"][data-expanded] svg {
+  transform: rotate(0deg);
 }
 
 [data-slot="font-picker-panel"] {

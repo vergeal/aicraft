@@ -87,7 +87,10 @@ export const FontPicker: Component<{
     // families and their monospace badge, so it opens at a comfortable reading width and stops at the menu maximum.
     const maxWidth = Math.min(360, window.innerWidth - margin * 2)
     const width = Math.min(Math.max(box.width, 300), maxWidth)
-    const left = Math.max(margin, Math.min(box.left, window.innerWidth - width - margin))
+    // The panel is wider than a short face name, so it grows from the trigger's end edge like the rows' selects do
+    // (bottom-end) instead of starting at the trigger's start edge and sliding across the window.
+    const anchor = getComputedStyle(trigger).direction === "rtl" ? box.left : box.right - width
+    const left = Math.max(margin, Math.min(anchor, window.innerWidth - width - margin))
     const below = window.innerHeight - box.bottom - margin
     const above = box.top - margin
 

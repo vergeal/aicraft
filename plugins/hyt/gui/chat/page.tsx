@@ -5,7 +5,7 @@ import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"
 import type { ChatState, MergeItemRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { MessageStream } from "./messages.js"
+import { MessageStream, rememberCurrentScroll } from "./messages.js"
 import { SessionList } from "./sessions.js"
 
 type Snapshot = ChatState
@@ -98,6 +98,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   const [focusId, setFocusId] = createSignal<number | undefined>()
 
   const select = (id: string, messageId?: number) => {
+    // 先记下当前会话停在哪，再切——切走之后位置就取不到了。
+    rememberCurrentScroll()
     if (searchTimer !== undefined) window.clearTimeout(searchTimer)
     setQuery("")
     setNotice(undefined)

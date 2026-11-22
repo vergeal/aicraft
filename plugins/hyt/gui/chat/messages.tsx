@@ -5,6 +5,19 @@ import type { ChatStatus, DraftRow, MemberRow, MergeItemRow, MessageRow, Session
 import { text } from "./i18n.js"
 import { dayBucket, formatClock, formatDay, formatSize, reuseRows, splitMentions } from "./util.js"
 
+/**
+ * 每个会话上次停下的滚动位置。放在模块级：切走时由 `rememberCurrentScroll()` 在点击那一刻记录，
+ * 不能靠 scroll 事件——切会话时内容被替换，浏览器会把 scrollTop clamp 到 0 并触发一次 scroll，
+ * 那一次会把旧会话的位置覆盖成 0。
+ */
+const savedTops = new Map<string, number>()
+let lastScroll = { id: "", top: 0 }
+
+/** 切换会话前调用：此刻 DOM 里还是旧会话，位置才是准的。 */
+export function rememberCurrentScroll() {
+  if (lastScroll.id.length > 0) savedTops.set(lastScroll.id, lastScroll.top)
+}
+
 export interface MergeResult {
   readonly items: readonly MergeItemRow[]
   readonly error: string
@@ -60,12 +73,32 @@ export function MessageStream(props: {
     })
   }
 
+  // 切回旧会话时内容刚换上来，高度还没算完，先等布局有高度再把位置放回去。
+  const restoreTo = (target: number) => {
+    const apply = (tries: number) => {
+      if (disposed || scroller === undefined) return
+      const max = scroller.scrollHeight - scroller.clientHeight
+      if (max <= 24 && tries < 6) {
+        requestAnimationFrame(() => apply(tries + 1))
+        return
+      }
+      scroller.scrollTop = Math.min(target, Math.max(0, max))
+      setAway(scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 32)
+    }
+    requestAnimationFrame(() => apply(0))
+  }
+
   let lastSession = ""
   createEffect(() => {
     const id = props.session?.id ?? ""
     const count = props.messages.length
     if (id !== lastSession) {
       lastSession = id
+      const saved = savedTops.get(id)
+      if (saved !== undefined) {
+        restoreTo(saved)
+        return
+      }
       setAway(false)
       scrollToEnd(false)
       return
@@ -96,6 +129,19 @@ export function MessageStream(props: {
     }
   })
 
+  // 消息里的图片是异步取回来的：图片落进 DOM 后内容变高，滚动位置不会自己跟着走，
+  // 于是「刚进会话停在底部」会变成停在半截——看起来既丢滚动又抽一下。
+  // 只要用户本来贴底，高度一变就重新贴底。
+  let flowObserver: ResizeObserver | undefined
+  const attachFlow = (element: HTMLDivElement) => {
+    flowObserver?.disconnect()
+    flowObserver = new ResizeObserver(() => {
+      if (disposed || scroller === undefined) return
+      if (!away()) scroller.scrollTop = scroller.scrollHeight
+    })
+    flowObserver.observe(element)
+  }
+
   const attachSentinel = (element: HTMLDivElement) => {
     observer?.disconnect()
     observer = new IntersectionObserver(
@@ -110,11 +156,14 @@ export function MessageStream(props: {
   onCleanup(() => {
     disposed = true
     observer?.disconnect()
+    flowObserver?.disconnect()
   })
 
   // 贴底容差 32px：比这更远就算「用户在往回翻」。
   // 之前是 480px，往上翻一小段仍被判为贴底，下一次轮询或收消息就把视口拉回最底部，看起来就是「丢滚动」。
   const onScroll = (element: HTMLDivElement) => {
+    const id = props.session?.id
+    if (id !== undefined && id.length > 0) lastScroll = { id, top: element.scrollTop }
     setAway(element.scrollHeight - element.scrollTop - element.clientHeight > 32)
   }
 
@@ -202,7 +251,7 @@ export function MessageStream(props: {
         }
       >
         <div class="hyt-chat-messages" ref={scroller} onScroll={(event) => onScroll(event.currentTarget)}>
-          <div class="hyt-chat-flow">
+          <div class="hyt-chat-flow" ref={attachFlow}>
             <div ref={attachSentinel} aria-hidden="true" style={{ height: "1px" }} />
             <Show when={props.hasMore}>
               <div class="hyt-chat-day">

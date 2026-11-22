@@ -5,6 +5,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import type { LocalProject } from "@/shell/state/layout"
 import type { ServerConnection } from "@/runtime/server/registry"
 import { showToast } from "@/shell/notifications/toast"
+import { projectSettingsKey, useSettings } from "@/settings/model"
 import {
   projectSaveBusy,
   projectSaveMessage,
@@ -22,18 +23,21 @@ import {
 export function createEditProjectModel(props: { project: LocalProject; server: ServerConnection.Any }) {
   const language = useLanguage()
   const serverCtx = useServer().ctx
+  const settings = useSettings()
   const folderName = createMemo(() => getFilename(props.project.worktree))
   const defaultName = createMemo(() => props.project.name || folderName())
+  const autoApproveKey = () => projectSettingsKey(serverCtx.sdk.scope, props.project.id)
 
   const saved: ProjectDraft = {
     name: props.project.name?.trim() ?? "",
     prompt: props.project.prompt?.trim() ?? "",
     startup: props.project.commands?.start?.trim() ?? "",
+    autoApprove: settings.permissions.autoApproveOverride(autoApproveKey()),
   }
 
   const [state, setState] = createSignal<ProjectSaveState>({
     type: "editing",
-    draft: { name: defaultName(), prompt: saved.prompt, startup: saved.startup },
+    draft: { ...saved, name: defaultName() },
     saved,
     attempt: 0,
   })
@@ -45,6 +49,7 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
     name: draft.name.trim() === folderName() ? "" : draft.name.trim(),
     prompt: draft.prompt.trim(),
     startup: draft.startup.trim(),
+    autoApprove: draft.autoApprove,
   })
 
   const changes = (draft: ProjectDraft, previous: ProjectDraft): ProjectSavePatch => {
@@ -57,20 +62,34 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
 
     if (next.startup !== previous.startup) patch.commands = { start: next.startup }
 
+    if (next.autoApprove !== previous.autoApprove) patch.autoApprove = next.autoApprove
+
     return patch
   }
 
   const persist = async (effect: ProjectSaveEffect) => {
     try {
-      if (props.project.id && props.project.id !== "global") {
-        const project = await serverCtx.sdk.api.project.update({
-          projectID: props.project.id,
-          ...effect.patch,
-        })
+      // The auto-accept override is a local setting; the rest is the server's project record. One Save still writes
+      // both, so the page never shows a field that a second, hidden save path would commit later.
+      const { autoApprove, ...projectPatch } = effect.patch
 
-        serverCtx.sync.project.update(project)
-      } else {
-        serverCtx.sync.project.meta(props.project.worktree, effect.patch)
+      if ("autoApprove" in effect.patch) {
+        const key = autoApproveKey()
+        if (!key) throw new Error(language.t("common.requestFailed"))
+        settings.permissions.setAutoApproveOverride(key, autoApprove)
+      }
+
+      if (Object.keys(projectPatch).length > 0) {
+        if (props.project.id && props.project.id !== "global") {
+          const project = await serverCtx.sdk.api.project.update({
+            projectID: props.project.id,
+            ...projectPatch,
+          })
+
+          serverCtx.sync.project.update(project)
+        } else {
+          serverCtx.sync.project.meta(props.project.worktree, projectPatch)
+        }
       }
 
       dispatch({ type: "saved", attempt: effect.attempt, saved: normalize(effect.draft) })
@@ -104,7 +123,8 @@ export function createEditProjectModel(props: { project: LocalProject; server: S
     saving: () => projectSaveBusy(state()),
     status: () => projectSaveStatus(state()),
     error: () => projectSaveMessage(state()),
-    setField: (field: keyof ProjectDraft, value: string) => dispatch({ type: "draft", field, value }),
+    setField: <K extends keyof ProjectDraft>(field: K, value: ProjectDraft[K]) =>
+      dispatch({ type: "draft", field, value }),
     save: () => {
       const current = state()
       dispatch({ type: "save", patch: changes(current.draft, current.saved) })

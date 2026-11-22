@@ -9,7 +9,7 @@ import {
   type ProjectSaveState,
 } from "./project-save-machine"
 
-const saved: ProjectDraft = { name: "", prompt: "", startup: "bun dev" }
+const saved: ProjectDraft = { name: "", prompt: "", startup: "bun dev", autoApprove: undefined }
 
 const initial: ProjectSaveState = { type: "editing", draft: { ...saved, name: "opencode" }, saved, attempt: 0 }
 

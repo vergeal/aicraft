@@ -8,13 +8,19 @@ export type ProjectDraft = {
   readonly name: string
   readonly prompt: string
   readonly startup: string
+  /** `undefined` follows the app-wide default; `true`/`false` is this project's own answer. */
+  readonly autoApprove: boolean | undefined
 }
 
-/** The subset of a project write the page can produce; `model` maps it onto the SDK's input shape. */
+/**
+ * The subset of a project write the page can produce. Name, prompt and startup go to the server; `autoApprove` is a
+ * local setting that rides in the same draft so one Save commits everything the page shows.
+ */
 export type ProjectSavePatch = {
   name?: string
   prompt?: string
   commands?: { readonly start: string }
+  autoApprove?: boolean | undefined
 }
 
 type Base = {
@@ -30,7 +36,7 @@ export type ProjectSaveState =
   | (Base & { readonly type: "failed"; readonly message: string })
 
 export type ProjectSaveEvent =
-  | { readonly type: "draft"; readonly field: keyof ProjectDraft; readonly value: string }
+  | { readonly type: "draft"; readonly field: keyof ProjectDraft; readonly value: ProjectDraft[keyof ProjectDraft] }
   | { readonly type: "discard" }
   | { readonly type: "save"; readonly patch: ProjectSavePatch }
   | { readonly type: "saved"; readonly attempt: number; readonly saved: ProjectDraft }
@@ -56,7 +62,10 @@ const unchanged = (state: ProjectSaveState): ProjectSaveTransition => ({ state, 
 const editing = (base: Base, notice?: "saved"): ProjectSaveState => ({ type: "editing", ...base, notice })
 
 const sameDraft = (a: ProjectDraft, b: ProjectDraft) =>
-  a.name === b.name && a.prompt === b.prompt && a.startup === b.startup
+  a.name === b.name &&
+  a.prompt === b.prompt &&
+  a.startup === b.startup &&
+  a.autoApprove === b.autoApprove
 
 export function projectSaveTransition(state: ProjectSaveState, event: ProjectSaveEvent): ProjectSaveTransition {
   switch (event.type) {

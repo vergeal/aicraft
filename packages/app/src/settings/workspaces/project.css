@@ -303,7 +303,7 @@
 }
 
 .settings-project-name {
-  width: min(320px, 100%);
+  width: 100%;
 }
 
 /* The page writes on request, so the save control keeps one width while its label becomes a spinner or a check;
@@ -333,18 +333,75 @@
   margin-top: 3px;
 }
 
-/* The page's fields are inputs, not inline selects: a 12px radius and a 2px ring drawn just inside the control read
-   as a rounded field. The shared 1px outline plus 6px radius read as a square box here. */
+/* ---------------------------------------------------------------- project fields */
+
+/* Each field is its own card instead of one long divided list: a project form is read field by field, and cards give
+   the label, the description and the control one clear group. */
+.settings-project-page > [data-component="settings-list"] {
+  gap: 10px;
+  padding-inline: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings-project-page > [data-component="settings-list"] > [data-component="settings-row"] {
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--settings-radius-md);
+  background: var(--settings-card-bg);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
+}
+
+.settings-project-page > [data-component="settings-list"] > [data-component="settings-row"]::after {
+  display: none;
+}
+
+.settings-project-page [data-slot="settings-row-title"] {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+}
+
+.settings-project-page [data-slot="settings-row-description"] {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The field is a rounded surface with a hairline, not a raised input: depth belongs to overlays in this page. Focus
+   recolours that hairline and widens it by half a pixel, so the ring follows the corners instead of drawing a box. */
 .settings-project-page [data-component="text-input-v2"],
 .settings-project-page [data-component="textarea-v2"] {
   border-radius: var(--settings-radius-md);
+  outline: none;
+  background: var(--v2-background-bg-base);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--settings-card-border);
+}
+
+.settings-project-page [data-component="text-input-v2"]:where(:hover):not(
+    :focus-within,
+    [data-disabled],
+    [data-invalid]
+  ),
+.settings-project-page [data-component="textarea-v2"]:where(:hover):not(
+    :focus-within,
+    [data-disabled],
+    [data-invalid]
+  ) {
+  box-shadow: inset 0 0 0 1px var(--settings-card-border);
 }
 
 .settings-project-page [data-component="text-input-v2"]:where(:focus-within):not([data-disabled], [data-invalid]),
 .settings-project-page [data-component="textarea-v2"]:where(:focus-within):not([data-disabled], [data-invalid]) {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: -2px;
-  box-shadow: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+}
+
+.settings-project-page [data-component="text-input-v2"]:where([data-invalid]):not([data-disabled]),
+.settings-project-page [data-component="textarea-v2"]:where([data-invalid]):not([data-disabled]) {
+  box-shadow: inset 0 0 0 1px var(--v2-state-fg-danger);
 }
 
 /* ---------------------------------------------------------------- project list row */

@@ -9,8 +9,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import type { LocalProject } from "@/shell/state/layout"
 import { type ServerConnection, useServers } from "@/runtime/server/registry"
 import { useSettingsServers } from "@/settings/servers/inventory"
-import { useServerCtx } from "@/runtime/server/runtime"
-import { projectSettingsKey, useSettings } from "@/settings/model"
+import { useSettings } from "@/settings/model"
 import { ProjectFolder } from "@opencode/ui/project-folder"
 import { ProjectFolderMissing } from "./project-folder-missing"
 import { ProjectOptions } from "./project-options"
@@ -137,7 +136,7 @@ export const SettingsProjectGeneral: Component<{
             </div>
           </SettingsRow>
 
-          <AutoAcceptPermissionsSetting project={props.project} server={props.server} />
+          <AutoAcceptPermissionsSetting model={model} />
         </SettingsList>
 
         <Show when={props.project.id !== "global" ? props.project.id : undefined}>
@@ -189,17 +188,11 @@ const ProjectSaveActions: Component<{ model: ReturnType<typeof createEditProject
   )
 }
 
-// A project uses the app-wide default unless it is explicitly turned on or off here.
-const AutoAcceptPermissionsSetting: Component<{ project: LocalProject; server: ServerConnection.Any }> = (props) => {
+// A project uses the app-wide default unless it is explicitly turned on or off here. The choice is part of the
+// draft, so it commits with the same Save button as the text fields instead of writing the moment it is picked.
+const AutoAcceptPermissionsSetting: Component<{ model: ReturnType<typeof createEditProjectModel> }> = (props) => {
   const language = useLanguage()
   const settings = useSettings()
-  const serverCtx = useServerCtx(() => props.server)
-
-  const key = createMemo(() => {
-    const scope = serverCtx()?.sdk.scope
-
-    return scope ? projectSettingsKey(scope, props.project.id) : undefined
-  })
 
   const options = createMemo(() => [
     {
@@ -213,25 +206,22 @@ const AutoAcceptPermissionsSetting: Component<{ project: LocalProject; server: S
   ])
 
   return (
-    <Show when={key()}>
-      {(project) => (
-        <SettingsRow
-          title={language.t("command.permissions.autoaccept.enable")}
-          description={language.t("project.settings.autoAccept.description")}
-        >
-          <Select
-            data-action="settings-project-auto-accept-permissions"
-            options={options()}
-            current={options().find((option) => option.value === settings.permissions.autoApproveOverride(project()))}
-            value={(option) => String(option.value)}
-            label={(option) => option.label}
-            placement="bottom-end"
-            gutter={6}
-            onSelect={(option) => option && settings.permissions.setAutoApproveOverride(project(), option.value)}
-          />
-        </SettingsRow>
-      )}
-    </Show>
+    <SettingsRow
+      title={language.t("command.permissions.autoaccept.enable")}
+      description={language.t("project.settings.autoAccept.description")}
+    >
+      <Select
+        data-action="settings-project-auto-accept-permissions"
+        options={options()}
+        current={options().find((option) => option.value === props.model.draft().autoApprove)}
+        value={(option) => String(option.value)}
+        label={(option) => option.label}
+        placement="bottom-end"
+        gutter={6}
+        disabled={props.model.saving()}
+        onSelect={(option) => option && props.model.setField("autoApprove", option.value)}
+      />
+    </SettingsRow>
   )
 }
 

@@ -41,6 +41,8 @@ export type DesktopMenuRole =
   | "unhide"
   | "windowMenu"
 
+export type DesktopMenuToggle = "perfMonitor"
+
 export type DesktopMenuItem = {
   type: "item"
   labelKey?: DesktopNativeKey
@@ -48,6 +50,8 @@ export type DesktopMenuItem = {
   action?: DesktopMenuAction
   role?: DesktopMenuRole
   href?: string
+  /** Renders as a checkable row that turns one renderer UI toggle on or off. */
+  toggle?: DesktopMenuToggle
   accelerator?: Partial<Record<DesktopMenuPlatform, string>>
   platforms?: DesktopMenuPlatform[]
 }
@@ -222,6 +226,12 @@ export const DESKTOP_MENU: DesktopMenu[] = [
         labelKey: "desktop.menu.toggleDeveloperTools",
         action: "view.toggleDevTools",
         role: "toggleDevTools",
+      },
+      {
+        type: "item",
+        labelKey: "desktop.menu.perfMonitor",
+        toggle: "perfMonitor",
+        platforms: ["windows"],
       },
       { type: "separator" },
       {

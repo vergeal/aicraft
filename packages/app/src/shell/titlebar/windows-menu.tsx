@@ -17,6 +17,7 @@ import {
 import { usePlatform } from "@/runtime/platform/platform"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useMenubarItems } from "@/runtime/plugin/menubar-items"
+import { useLayout } from "@/shell/state/layout"
 
 const accelerators = DESKTOP_MENU.flatMap((menu) => menu.items ?? []).flatMap((entry) => {
   if (entry.type === "separator" || !entry.action || !entry.accelerator?.windows) return []
@@ -41,6 +42,7 @@ function useMenuRunner(props: MenuSources) {
   let lastFocused: HTMLElement | undefined
   const language = useLanguage()
   const menubar = useMenubarItems()
+  const layout = useLayout()
 
   const entries = (menu: DesktopMenu) =>
     desktopMenuWithPlugins(
@@ -91,7 +93,7 @@ function useMenuRunner(props: MenuSources) {
     if (entry.href) props.platform.openExternal(entry.href)
   }
 
-  return { language, menubar, entries, rememberFocus, commandDisabled, runEntry, runAction }
+  return { language, menubar, entries, rememberFocus, commandDisabled, runEntry, runAction, layout }
 }
 
 /** The compact hamburger: one button that opens the whole menu as a nested list. */
@@ -164,6 +166,15 @@ export function WindowsAppMenu(props: MenuSources) {
 
                       const disabled = () => (entry.command ? runner.commandDisabled(entry.command) : false)
 
+                      if (entry.toggle === "perfMonitor")
+                        return (
+                          <DesktopMenuToggleItem
+                            label={label()}
+                            checked={runner.layout.perfMonitor.enabled()}
+                            onChange={(checked) => runner.layout.perfMonitor.setEnabled(checked)}
+                          />
+                        )
+
                       return (
                         <DesktopMenuItem
                           label={label()}
@@ -231,7 +242,7 @@ export function WindowsMenuBar() {
                 {runner.language.t(menu.labelKey)}
               </Menu.Trigger>
               <Menu.Portal>
-                <Menu.Content class="desktop-app-menu">
+                <Menu.Content class="desktop-app-menu desktop-app-menu-bar">
                   <Menu.Group>
                     <For each={runner.entries(menu)}>
                       {(item) => {
@@ -255,6 +266,15 @@ export function WindowsMenuBar() {
                           entry.command ? command.keybind(entry.command) : entry.accelerator?.windows
 
                         const disabled = () => (entry.command ? runner.commandDisabled(entry.command) : false)
+
+                        if (entry.toggle === "perfMonitor")
+                          return (
+                            <DesktopMenuToggleItem
+                              label={label()}
+                              checked={runner.layout.perfMonitor.enabled()}
+                              onChange={(checked) => runner.layout.perfMonitor.setEnabled(checked)}
+                            />
+                          )
 
                         return (
                           <DesktopMenuItem
@@ -285,6 +305,14 @@ function DesktopMenuSubmenu(props: { label: string; children: JSX.Element }) {
         <Menu.SubContent class="desktop-app-menu desktop-app-menu-sub">{props.children}</Menu.SubContent>
       </Menu.Portal>
     </Menu.Sub>
+  )
+}
+
+function DesktopMenuToggleItem(props: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <Menu.CheckboxItem checked={props.checked} onChange={(checked) => props.onChange(checked === true)}>
+      {props.label}
+    </Menu.CheckboxItem>
   )
 }
 

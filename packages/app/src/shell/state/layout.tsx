@@ -186,6 +186,8 @@ export const layoutSchema = Persistence.struct({
   // The side region's width per panel (`${plugin}:${panel id}`) that sizes itself, app-wide.
   panelWidths: Schema.optional(Persistence.record(Schema.Finite)),
   mobileSidebar: Persistence.struct({ opened: Schema.Boolean }),
+  /** Shows the development FPS/diagnostics meter in the titlebar. */
+  perfMonitor: Schema.Boolean,
   sessionTabs: Persistence.record(Persistence.fallback(sessionTabsSchema, () => ({ all: [] }))),
   sessionView: Persistence.record(Persistence.fallback(sessionViewSchema, () => ({ scroll: {} }))),
   home: Persistence.struct({
@@ -258,6 +260,7 @@ export function initialLayout(server?: ServerConnection.Key): typeof layoutSchem
     fileTree: { opened: false, width: DEFAULT_FILE_TREE_WIDTH, tab: "changes" },
     session: { width: DEFAULT_SESSION_WIDTH },
     mobileSidebar: { opened: false },
+    perfMonitor: Boolean(import.meta.env.DEV),
     sessionTabs: {},
     sessionView: {},
     home: { selection: server ? { server } : {} },
@@ -523,12 +526,14 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setSelected(id: string | undefined) {
             setDestination("explore", "selected", id)
             // A catalog page and an installed entry are two different details, never one showing through the other.
+
             if (id) setDestination("explore", "catalog", undefined)
           },
           /** The catalog entry the plugin list opened. */
           catalog: createMemo(() => destination.explore.catalog),
           setCatalog(id: string | undefined) {
             setDestination("explore", "catalog", id)
+
             if (id) setDestination("explore", "selected", undefined)
           },
         },
@@ -609,6 +614,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         },
         toggle() {
           setStore("mobileSidebar", "opened", (x) => !x)
+        },
+      },
+      perfMonitor: {
+        enabled: createMemo(() => store.perfMonitor),
+        setEnabled(enabled: boolean) {
+          setStore("perfMonitor", enabled)
         },
       },
       /** The side region of a shell tab, and the session panel width beside it. */

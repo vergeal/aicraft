@@ -270,6 +270,7 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.menu.toggleFileTree": "Toggle File Tree",
   "desktop.menu.reload": "Reload",
   "desktop.menu.toggleDeveloperTools": "Toggle Developer Tools",
+  "desktop.menu.perfMonitor": "Performance Monitor",
   "desktop.menu.actualSize": "Actual Size",
   "desktop.menu.zoomIn": "Zoom In",
   "desktop.menu.zoomOut": "Zoom Out",

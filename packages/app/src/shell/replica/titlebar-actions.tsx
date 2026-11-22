@@ -202,7 +202,7 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
       <Show when={props.placement === "workspace"}>
         <ReviewToggle />
       </Show>
-      <Show when={import.meta.env.DEV && props.fps !== false}>
+      <Show when={props.fps !== false && layout.perfMonitor.enabled()}>
         <PerfMonitor />
       </Show>
     </Show>

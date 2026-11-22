@@ -37,6 +37,7 @@ describe("layout persistence", () => {
       fileTree: { opened: false, width: 200, tab: "changes" },
       session: { width: 600 },
       mobileSidebar: { opened: false },
+      perfMonitor: Boolean(import.meta.env.DEV),
       sessionTabs: {},
       sessionView: {},
       home: { selection: { server: ServerConnection.Key.make("local") } },

@@ -209,10 +209,18 @@
     width: 160px;
   }
 
+  /* The titlebar bar drops its list straight under the label, so the list sizes to its rows instead of the
+     hamburger's fixed column. */
+  [data-component="menu-v2-content"].desktop-app-menu.desktop-app-menu-bar {
+    width: max-content;
+    min-width: 180px;
+    max-width: min(360px, calc(100vw - 24px));
+  }
+
   [data-component="menu-v2-content"].desktop-app-menu-sub {
     width: max-content;
     min-width: 240px;
-    max-width: min(320px, calc(100vw - 24px));
+    max-width: min(360px, calc(100vw - 24px));
   }
 
   [data-component="menu-v2-content"].desktop-app-menu [data-slot="menu-v2-group-label"] {
@@ -237,6 +245,9 @@
 
   [data-component="menu-v2-content"].desktop-app-menu [data-slot="menu-v2-item-content"] {
     white-space: nowrap;
+    /* A label wider than the list's max width ends in an ellipsis instead of drawing over the shortcut. */
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   [data-component="menu-v2-content"].desktop-app-menu [data-slot="menu-v2-item-shortcut"] {

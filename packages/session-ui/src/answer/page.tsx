@@ -533,7 +533,9 @@ export function AnswerPage(props: AnswerPageProps) {
     const frame = root.getBoundingClientRect()
     const box = row.getBoundingClientRect()
 
-    return box.bottom > frame.top && box.top < frame.bottom
+    // Only the fold's own header decides. An open process row can span several screens, so its box bottom stays
+    // inside the viewport while the header scrolls away; keeping the turn open then would fold nothing at all.
+    return box.top >= frame.top && box.top < frame.bottom
   }
 
   // A turn that finishes under the reader's eyes stays open: folding it takes the steps they are reading with it. The

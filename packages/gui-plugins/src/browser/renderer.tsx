@@ -265,7 +265,6 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   ctx.add(BuiltinPanel, {
     id: "main",
     region: "side",
-    full: true,
     list(input) {
       // While the model loads, the stored tabs hold the strip and its selection, as before the first inventory.
       const ids = model()?.tabs(input.session, input.open) ?? input.open

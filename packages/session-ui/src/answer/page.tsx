@@ -17,7 +17,7 @@ import { resolveFileDiff } from "../components/session-diff"
 import { createImagePreview } from "../components/image-preview"
 import { useMarkdown } from "../context/markdown"
 import { childrenOf, projectTimeline } from "./project"
-import { toolDescription, toolError, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
+import { toolActivity, toolDescription, toolError, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
   createRestoreState,
   transitionRestore,
@@ -237,6 +237,8 @@ const TOOL_TITLES: Record<string, { readonly live: UiI18nOrdinaryKey; readonly d
 
 /** One tool's own phrase, in the tense its state asks for. */
 function toolTitle(i18n: ReturnType<typeof useI18n>, tool: Extract<NodePayload, { kind: "tool" }>["tool"], done: boolean) {
+  if (toolActivity(tool) === "readImage") return i18n.t("ui.answer.tool.identifyImage")
+
   const entry = TOOL_TITLES[toolLabel(tool.name)]
 
   if (!entry) return undefined
@@ -1771,7 +1773,7 @@ function ToolRow(props: {
           </For>
         </div>
       </Show>
-      <Show when={failed() || diffs().length === 0}>
+      <Show when={failed() || (diffs().length === 0 && images().length === 0)}>
         <div
           data-slot="answer-io-card"
           class="mt-1 ms-[30px] flex flex-col gap-2 rounded-[12px] px-[22px] pt-[10px] pb-[12px]"
@@ -1942,7 +1944,7 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
         fallback={
           <div
             data-slot="answer-tool-image-state"
-            class="flex h-[120px] w-[220px] items-center justify-center text-[11px] leading-[19px]"
+            class="flex h-[180px] w-[320px] items-center justify-center text-[11px] leading-[19px]"
             style={{ color: "var(--answer-ink-tertiary)" }}
           >
             {broken()
@@ -1956,7 +1958,7 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
             data-slot="answer-tool-image-thumb"
             src={src()}
             alt={name()}
-            class="block max-h-[220px] w-auto max-w-full cursor-zoom-in object-contain"
+            class="block max-h-[360px] w-auto max-w-full cursor-zoom-in object-contain"
             onError={() => setBroken(true)}
           />
         )}

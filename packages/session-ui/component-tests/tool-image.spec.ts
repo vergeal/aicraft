@@ -21,9 +21,10 @@ story("previews an image a tool returned when its row opens", async ({ mount, pa
   const thumb = root.locator('[data-slot="answer-tool-image-thumb"]')
   await expect(thumb).toBeVisible()
   await expect(thumb).toHaveAttribute("alt", "settings.svg")
+  await expect(root.locator('[data-slot="answer-io-card"]')).toHaveCount(0)
 
   const box = await thumb.boundingBox()
-  expect(box?.height ?? 0).toBeLessThanOrEqual(220)
+  expect(box?.height ?? 0).toBeLessThanOrEqual(360)
   await page.screenshot({ path: output("answer-tool-image.png") })
 })
 
@@ -33,5 +34,13 @@ story("counts a read that returns an image as a picture step", async ({ mount })
 
   const group = root.locator('[data-slot="answer-group"][data-process-activity="readImage"]')
   await expect(group).toHaveCount(1)
-  await expect(group.locator(":scope > button")).toContainText("Read images")
+  await expect(group.locator(":scope > button")).toContainText("Identify image")
+
+  await group.locator(":scope > button").click()
+
+  const row = group.locator('[data-slot="answer-row"][data-kind="tool"]').first()
+  await expect(row.locator("[data-disclosure-row]")).toContainText("Identify image")
+  await row.locator("[data-disclosure-row]").click()
+  await expect(row.locator('[data-slot="answer-tool-image-thumb"]')).toBeVisible()
+  await expect(row.locator('[data-slot="answer-io-card"]')).toHaveCount(0)
 })

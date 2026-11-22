@@ -273,6 +273,7 @@ export const dict = {
   "ui.answer.step.more": "{{title}}等",
   "ui.answer.tool.runCommand": "运行命令",
   "ui.answer.tool.read": "读取",
+  "ui.answer.tool.identifyImage": "识别图片",
   "ui.answer.tool.search": "搜索",
   "ui.answer.tool.list": "列出文件",
   "ui.answer.tool.edit": "编辑",

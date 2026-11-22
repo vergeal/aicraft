@@ -210,6 +210,7 @@ const source = {
   "ui.answer.step.more": "{{title}}, etc.",
   "ui.answer.tool.runCommand": "Run command",
   "ui.answer.tool.read": "Read",
+  "ui.answer.tool.identifyImage": "Identify image",
   "ui.answer.tool.search": "Search",
   "ui.answer.tool.list": "List files",
   "ui.answer.tool.edit": "Edit",

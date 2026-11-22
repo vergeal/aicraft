@@ -50,7 +50,7 @@ export function bridgeRunning(root: string) {
 }
 
 /** 会话列表：消息表聚合 + 群名 + lastmsg 未读 + 通讯录显示名。 */
-export function readSessions(root: string, account: string, read: readonly string[]): SessionRow[] {
+export function readSessions(root: string, account: string, marked: ReadonlyMap<string, number>): SessionRow[] {
   const path = chatDbPath(root, account)
   if (!existsSync(path)) return []
   const db = open(path)
@@ -72,10 +72,9 @@ export function readSessions(root: string, account: string, read: readonly strin
       keepgroup: readGroupNames(db),
       members: readGroupMembers(db, account),
     })
-    const unread = readUnread(db)
+    const unread = readUnread(db, account)
     const people = readPeople(root, account)
     const groupHeads = readGroupHeads(db, people)
-    const marked = new Set(read)
     return aggregates.flatMap((item) => {
       const detail = byId.get(item.lastId)
       if (detail === undefined) return []
@@ -91,7 +90,7 @@ export function readSessions(root: string, account: string, read: readonly strin
           name: name.length > 0 ? name : item.sessionId,
           preview: previewOf(detail),
           lastAt: item.lastAt ?? 0,
-          unread: marked.has(item.sessionId) ? 0 : (unread.get(item.sessionId) ?? 0),
+          unread: markedAt(item, marked, unread),
           atMe: item.atMe === 1,
           group,
           tone: toneOf(item.sessionId),
@@ -327,11 +326,34 @@ function readGroupMembers(db: DatabaseSync, account: string) {
   return map
 }
 
-function readUnread(db: DatabaseSync) {
+function markedAt(
+  item: { readonly sessionId: string; readonly lastAt: number | null },
+  marked: ReadonlyMap<string, number>,
+  unread: ReadonlyMap<string, number>,
+) {
+  const at = marked.get(item.sessionId)
+  if (at !== undefined && (item.lastAt ?? 0) <= at) return 0
+  return unread.get(item.sessionId) ?? 0
+}
+
+/**
+ * 未读以 `chatmsg.ReadStatus = 0` 为准，不看 `lastmsg.UnReadCount`。
+ *
+ * 客户端收到消息时把 `ReadStatus` 置 0、看过置 1；而 `lastmsg.UnReadCount` 会被客户端在启动后清空
+ * （实测全表为 0），拿它算角标永远是 0。系统通知的 `Sender` 为空，也要算未读。
+ */
+function readUnread(db: DatabaseSync, account: string) {
   const map = new Map<string, number>()
-  for (const row of query(db, "select SessionId, UnReadCount from lastmsg where UnReadCount > 0", [])) {
+  const rows = query(
+    db,
+    `select SessionId, count(*) as total from chatmsg
+     where ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
+     group by SessionId`,
+    [account, account],
+  )
+  for (const row of rows) {
     const id = text(row.SessionId)
-    const count = numberOf(row.UnReadCount)
+    const count = numberOf(row.total)
     if (id.length > 0 && count !== null) map.set(id, count)
   }
   return map
@@ -534,6 +556,30 @@ export function appendOwnMessage(
     return { recorded: true, error: "" }
   } catch (cause) {
     return { recorded: false, error: cause instanceof Error ? cause.message : String(cause) }
+  } finally {
+    db?.close()
+  }
+}
+
+/**
+ * 打开会话时把未读落库清零。
+ *
+ * 界面上的角标只改了内存，桥或客户端写进 `lastmsg` 的 `UnReadCount` 不会降，重启后未读会复活。
+ * 客户端可能同时写库，靠 busy_timeout 退让；失败不阻断界面，只是角标下次刷新会回来。
+ */
+export function markSessionRead(root: string, account: string, sessionId: string) {
+  const path = chatDbPath(root, account)
+  if (!existsSync(path)) return { cleared: false, error: "本地消息库不存在" }
+
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(path)
+    db.exec("pragma busy_timeout = 3000")
+    db.prepare("update lastmsg set UnReadCount = 0 where SessionId = ?").run(sessionId)
+    db.prepare("update chatmsg set ReadStatus = 1 where SessionId = ? and ReadStatus = 0").run(sessionId)
+    return { cleared: true, error: "" }
+  } catch (cause) {
+    return { cleared: false, error: cause instanceof Error ? cause.message : String(cause) }
   } finally {
     db?.close()
   }

@@ -78,7 +78,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   let selected = ""
   let messages: MessageRow[] = []
   let hasMore = false
-  let markedRead = new Set<string>()
+  let markedRead = new Map<string, number>()
   let searchState = { query: "", hits: [] as SearchHit[] }
   let provider: IpcProvider<typeof ChatIpc.spec> | undefined
 
@@ -129,7 +129,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         return current
       }
 
-      const sessions = Db.readSessions(root, login.account, [...markedRead])
+      const sessions = Db.readSessions(root, login.account, markedRead)
       const chosen = sessions.find((item) => item.id === selected) ?? sessions[0]
       selected = chosen?.id ?? ""
       const latest = Db.readMessages(root, login.account, selected, undefined)
@@ -246,7 +246,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     },
 
     async markRead(input) {
-      markedRead.add(input.sessionId)
+      // 先落库再改内存：只改内存的话重启后未读会复活，桥写进来的角标也降不下来。
+      Db.markSessionRead(rootOf(), current.status.account, input.sessionId)
+      markedRead.set(input.sessionId, Date.now())
       current = {
         ...current,
         sessions: current.sessions.map((item) => (item.id === input.sessionId ? { ...item, unread: 0 } : item)),

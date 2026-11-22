@@ -54,7 +54,7 @@ export function listSessions(db: Database, input: { limit?: number; root?: strin
     keepgroup: new Map(groupNames(db).map((item) => [item.groupId, item.groupName])),
     members: groupMembers(db, input.account ?? ""),
   })
-  const unread = new Map(unreadCounts(db).map((item) => [item.sessionId, item.unread]))
+  const unread = new Map(unreadCounts(db, input.account ?? "").map((item) => [item.sessionId, item.unread]))
   return rows.map((row) => ({
     sessionId: row.sessionId,
     total: row.total,
@@ -120,12 +120,15 @@ export function countMessages(db: Database, sessionId: string) {
   return row?.total ?? 0
 }
 
-export function unreadCounts(db: Database) {
+/** 未读来自消息表：客户端把收到的消息记 `ReadStatus = 0`，看过置 1；`lastmsg.UnReadCount` 会被清空。 */
+export function unreadCounts(db: Database, account: string) {
   return db
-    .query<{ sessionId: string; unread: number }, [number]>(
-      "select SessionId as sessionId, UnReadCount as unread from lastmsg where UnReadCount > 0 order by UnReadCount desc limit ?1",
+    .query<{ sessionId: string; unread: number }, [string, string, number]>(
+      `select SessionId as sessionId, count(*) as unread from chatmsg
+       where ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
+       group by SessionId order by unread desc limit ?`,
     )
-    .all(500)
+    .all(account, account, 500)
 }
 
 export function groupNames(db: Database) {

@@ -1,5 +1,5 @@
 import type { Context, IpcClient } from "@opencode/plugin/gui"
-import { Show, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import { Show, createEffect, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import { AiPanel } from "./ai-panel.js"
 import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"
@@ -82,6 +82,15 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
       document.removeEventListener("visibilitychange", tick)
       if (searchTimer !== undefined) window.clearTimeout(searchTimer)
     })
+  })
+
+  // 正盯着某个会话时，轮询带回来的新未读直接标已读，否则自己的角标会越积越多。
+  createEffect(() => {
+    const current = state()
+    if (current === undefined || document.visibilityState !== "visible") return
+    const active = current.sessions.find((item) => item.id === current.selected)
+    if (active === undefined || active.unread === 0) return
+    void props.client.markRead({ sessionId: active.id }).catch(() => undefined)
   })
 
   const select = (id: string) => {

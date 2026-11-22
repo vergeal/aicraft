@@ -1285,8 +1285,9 @@ function GroupSeat(props: {
     return declared && isIconName(declared) ? declared : ACTIVITY_ICONS[activity()]
   }
 
-  // Standard appends the live task detail to the category summary while the group is still running.
-  const detail = () => (props.view === "standard" && live() ? props.group.runningDetail : "")
+  // Standard appends the live task detail to the category summary while the group is still running. An open body
+  // already shows that same line, so only the collapsed heading spells it out.
+  const detail = () => (props.view === "standard" && live() && !open() ? props.group.runningDetail : "")
 
   const title = () => {
     // A run of one tool phrases that tool itself; a mixed run still reads as a summary of categories.

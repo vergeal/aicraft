@@ -655,14 +655,44 @@ story("lists the files a turn changed under its answer", async ({ mount }) => {
 
   const changes = root.locator('[data-slot="answer-changes"]')
   await expect(changes).toHaveCount(1)
+  await expect(changes.locator('[data-slot="answer-changes-heading"]')).toHaveText("1 Changed file")
   await expect(changes).toContainText("project.ts")
   await expect(changes).toContainText("+1")
   await expect(changes).toContainText("-1")
+
+  // The whole row is the target, and it opens the file it names.
+  const row = changes.locator('[data-slot="answer-change"]')
+  await expect(row).toHaveCount(1)
+  await expect(row).toHaveAttribute("aria-label", "packages/session-ui/src/answer/project.ts")
+  await expect(row).toHaveCSS("border-radius", "6px")
+  await expect(row).toHaveCSS("cursor", "pointer")
+
+  // The icon is a fixed square, centred on the text line, so the row reads as one line rather than icon above text.
+  const icon = row.locator('[data-component="file-icon"]')
+  await expect(icon).toHaveCSS("width", "16px")
+  await expect(icon).toHaveCSS("height", "16px")
+  const boxes = await Promise.all([icon.boundingBox(), row.locator('[data-slot="answer-change-name"]').boundingBox()])
+  expect(boxes[0] && boxes[1] && Math.abs(boxes[0].y + boxes[0].height / 2 - (boxes[1].y + boxes[1].height / 2))).toBeLessThan(1)
+
+  // The row answers the pointer before it opens anything.
+  await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+  await row.hover()
+  await expect(row).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+
+  await row.click()
+  await expect(root.locator('[data-slot="opened-file"]')).toHaveText("packages/session-ui/src/answer/project.ts")
 
   // Opening the process moves the answer under the steps; the change list stays with it, exactly once.
   await expandTurn(root).click()
   await expect(changes).toHaveCount(1)
   await expect(changes).toContainText("project.ts")
+})
+
+story("waits for the answer to close the turn before listing its files", async ({ mount }) => {
+  const root = await mount("answer-page--edit-running")
+
+  // The edit already recorded its files, but the turn is still running: the list belongs to the closing answer.
+  await expect(root.locator('[data-slot="answer-changes"]')).toHaveCount(0)
 })
 
 story("shows an edit as a diff instead of input and output", async ({ mount }) => {

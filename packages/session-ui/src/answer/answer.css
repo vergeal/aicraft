@@ -351,3 +351,101 @@
   width: 16px;
   height: 16px;
 }
+
+/* The files a turn changed, under its closing answer. A hairline separates the list from the prose without
+   boxing it in; each row is its own target, so the whole row answers a click and shows where it leads. */
+.answer-scope [data-slot="answer-changes"] {
+  margin-top: 18px;
+  padding: 12px 8px 0;
+  border-top: 0.5px solid var(--v2-border-border-muted);
+}
+
+.answer-scope [data-slot="answer-changes-heading"] {
+  margin-bottom: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: var(--answer-ink-tertiary);
+}
+
+.answer-scope [data-slot="answer-changes-list"] {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.answer-scope [data-slot="answer-change"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% + 16px);
+  margin-inline: -8px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--answer-ink);
+  text-align: start;
+  font: inherit;
+  font-size: var(--content-font-size, 14px);
+  line-height: 20px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.answer-scope [data-slot="answer-change"]:hover {
+  background-color: color-mix(in srgb, var(--answer-ink) 4%, transparent);
+}
+
+.answer-scope [data-slot="answer-change"]:active {
+  background-color: color-mix(in srgb, var(--answer-ink) 7%, transparent);
+}
+
+.answer-scope [data-slot="answer-change"]:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+}
+
+/* The icon is a fixed square; the text column grows and truncates from the left so the file name stays whole. */
+.answer-scope [data-slot="answer-change"] [data-component="file-icon"] {
+  width: 16px;
+  height: 16px;
+}
+
+.answer-scope [data-slot="answer-change-name"] {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.answer-scope [data-slot="answer-change-directory"] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+  color: var(--answer-ink-tertiary);
+}
+
+.answer-scope [data-slot="answer-change-filename"] {
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--answer-ink);
+}
+
+.answer-scope [data-slot="answer-change-stats"] {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+.answer-scope [data-slot="answer-change-stats"] [data-component="diff-changes"] {
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}

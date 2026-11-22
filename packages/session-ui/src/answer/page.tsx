@@ -93,6 +93,8 @@ export interface AnswerPageProps {
    * finds only a reserved box; this reveal expands what hides the row, mounts it, and scrolls it into view.
    */
   readonly setReveal?: (reveal: ((id: string, partID?: string) => boolean) | undefined) => void
+  /** Opens a file the turn changed, so the change list under an answer leads to what it names. */
+  readonly onOpenFile?: (path: string) => void
 }
 
 const STEP_LIVE = {
@@ -769,14 +771,17 @@ export function AnswerPage(props: AnswerPageProps) {
     })
 
     // The answer row closes the turn, so the files this turn changed belong under it: one entry per file,
-    // summed across every step that touched it. It renders with the answer entry whether the process is open.
+    // summed across every step that touched it. A running turn still shows its steps, so the list waits for
+    // the answer that closes them.
     const answerTurn = createMemo(() => {
       const value = node()
 
       if (!value || value.payload.kind !== "assistant") return undefined
       const owner = snapshot().turns.get(value.turn)
 
-      return owner?.answer === value.anchor ? owner : undefined
+      if (!owner || owner.status !== "closed") return undefined
+
+      return owner.answer === value.anchor ? owner : undefined
     })
 
     const visibleNode = createMemo(() => {
@@ -868,7 +873,7 @@ export function AnswerPage(props: AnswerPageProps) {
             )}
           </Show>
           <Show when={answerTurn()}>
-            {(value) => <TurnChanges snapshot={snapshot()} turn={value()} />}
+            {(value) => <TurnChanges snapshot={snapshot()} turn={value()} onOpenFile={props.onOpenFile} />}
           </Show>
           <Show when={turn()}>
             {(value) => (
@@ -1212,31 +1217,38 @@ function turnChanges(snapshot: Snapshot, turn: number) {
 }
 
 /** The turn's changed files under its closing answer: one row per file with the line counts the tool recorded. */
-function TurnChanges(props: { snapshot: Snapshot; turn: TimelineTurn }) {
+function TurnChanges(props: { snapshot: Snapshot; turn: TimelineTurn; onOpenFile?: (path: string) => void }) {
+  const i18n = useI18n()
   const files = createMemo(() => turnChanges(props.snapshot, props.turn.turn))
 
   return (
     <Show when={files().length > 0}>
-      <div data-slot="answer-changes" class="flex flex-col gap-1 pt-3">
-        <For each={files()}>
-          {(file) => (
-            <div
-              data-slot="answer-change"
-              class="flex min-w-0 items-center gap-2 text-[length:var(--content-font-size,14px)] leading-[normal]"
-            >
-              <FileIcon node={{ path: file.path, type: "file" }} />
-              <span class="min-w-0 truncate">
-                <Show when={getDirectory(file.path)}>
-                  {(directory) => <span style={{ color: "var(--answer-ink-tertiary)" }}>{directory()}</span>}
-                </Show>
-                <span style={{ color: "var(--answer-ink)" }}>{getFilename(file.path)}</span>
-              </span>
-              <span class="ml-auto shrink-0">
-                <DiffChanges changes={{ additions: file.additions, deletions: file.deletions }} />
-              </span>
-            </div>
-          )}
-        </For>
+      <div data-slot="answer-changes">
+        <div data-slot="answer-changes-heading">{i18n.plural("ui.sessionTurn.diffs.changed", files().length)}</div>
+        <div data-slot="answer-changes-list">
+          <For each={files()}>
+            {(file) => (
+              <button
+                type="button"
+                data-slot="answer-change"
+                title={file.path}
+                aria-label={file.path}
+                onClick={() => props.onOpenFile?.(file.path)}
+              >
+                <FileIcon node={{ path: file.path, type: "file" }} />
+                <span data-slot="answer-change-name">
+                  <Show when={getDirectory(file.path)}>
+                    {(directory) => <span data-slot="answer-change-directory">{directory()}</span>}
+                  </Show>
+                  <span data-slot="answer-change-filename">{getFilename(file.path)}</span>
+                </span>
+                <span data-slot="answer-change-stats">
+                  <DiffChanges changes={{ additions: file.additions, deletions: file.deletions }} />
+                </span>
+              </button>
+            )}
+          </For>
+        </div>
       </div>
     </Show>
   )

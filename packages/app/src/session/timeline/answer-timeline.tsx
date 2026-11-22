@@ -5,6 +5,8 @@ import { ScrollView } from "@opencode/ui/scroll-view"
 import { AnswerPage, type CollapseTiming, type FoldedReplies, type TranscriptView } from "@opencode/session-ui/answer"
 import type { SessionUserActions } from "@opencode/session-ui/actions"
 import { useLanguage } from "@/runtime/i18n/language"
+import { usePluginHost } from "@/runtime/plugin/host"
+import { usePluginAttachment } from "@/runtime/plugin/host-apis"
 import { revealInTimeline } from "./answer-reveal"
 import type { TimelineFollow } from "./follow"
 import { END_EPSILON, MIN_OVERFLOW, ZOOM_SLACK, needsEndProbe } from "./machine"
@@ -53,6 +55,8 @@ export function AnswerTimeline(props: {
   setPage?: (scroll: (direction: 1 | -1) => void) => void
 }) {
   const language = useLanguage()
+  const links = usePluginHost().links
+  const attachment = usePluginAttachment()
   const [visible, setVisible] = createSignal<HTMLDivElement>()
   const [viewportElement, setViewportElement] = createSignal<HTMLDivElement>()
   let viewport: HTMLDivElement | undefined
@@ -400,6 +404,9 @@ export function AnswerTimeline(props: {
           onRestoreMiss={restoreMissed}
           onPositionChange={rememberPosition}
           setReveal={(next) => (pageReveal = next)}
+          onOpenFile={(path) =>
+            links.open({ href: path, exact: true, background: true, session: attachment.current() })
+          }
         />
         <div data-timeline-row="bottom-spacer" class="w-full">
           {props.activity}

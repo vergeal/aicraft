@@ -656,12 +656,31 @@ const editedFile: SessionMessageInfo[] = [
   idle("msg_idle_edit_diff", TIME + 2_500),
 ]
 
-export const EditDiff = {
+// The same edit before the turn settles: the answer is already written, but the turn is still running, so the
+// change list under it waits for the idle message that closes the turn.
+const editingLive = editedFile.slice(0, -1)
+
+export const EditRunning = {
   render: () => (
     <div class="h-dvh">
-      <AnswerPage messages={() => editedFile} />
+      <AnswerPage messages={() => editingLive} />
     </div>
   ),
+}
+
+export const EditDiff = {
+  render: () => {
+    const [opened, setOpened] = createSignal("")
+
+    return (
+      <div class="h-dvh">
+        <AnswerPage messages={() => editedFile} onOpenFile={setOpened} />
+        <div data-slot="opened-file" aria-hidden="true" style={{ display: "none" }}>
+          {opened()}
+        </div>
+      </div>
+    )
+  },
 }
 
 export const Compact = {

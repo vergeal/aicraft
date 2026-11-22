@@ -120,6 +120,7 @@
    the macOS-style dark bubble. */
 [data-color-scheme="light"] [data-component="tooltip-v2"] {
   background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   color: var(--v2-text-text-base);
   box-shadow:
     0 0 0 0.5px var(--v2-border-border-base),

@@ -14,9 +14,13 @@
   gap: 4px;
   padding: 12px;
 
-  background: var(--v2-background-bg-base);
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
   border-radius: 8px;
-  box-shadow: var(--v2-elevation-floating);
+  background-clip: padding-box;
+  box-shadow:
+    0 0 0 0.5px var(--v2-border-border-base),
+    var(--v2-elevation-floating);
 
   color: var(--v2-text-text-base);
   font-variant-numeric: tabular-nums;

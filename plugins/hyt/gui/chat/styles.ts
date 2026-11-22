@@ -24,7 +24,7 @@ export const css = `
   -webkit-font-smoothing: antialiased;
 }
 
-/* 侧栏比聊天亮一档：设计稿 #14161b 与 #0f1115。 */
+/* 侧栏比聊天亮一档：layer-01 对 base，深浅两套主题都成立。 */
 .hyt-chat-side,
 .hyt-chat-ai {
   display: flex;
@@ -50,62 +50,65 @@ export const css = `
   background: var(--hyt-bg-chat);
 }
 
-/* 设计稿配色：界面按用户提供的 Nebula 稿固定为深色，不跟随宿主主题。
-   所有色值集中在这一处，其余规则只引用变量，不在组件里散落色值。 */
+/* 配色全部走语义 token（设计规范的 --v2-*），深浅色由宿主主题切换，页面自己不做颜色决策。
+   这里只做一层别名，组件规则只引用 --hyt-*，不再出现任何色值。 */
 .hyt-chat {
-  color-scheme: dark;
-  --hyt-bg-0: #0e1014;
-  --hyt-bg-side: #14161b;
-  --hyt-bg-chat: #0f1115;
-  --hyt-bg-elev: #1a1d24;
-  --hyt-bg-hover: #1a1d24;
-  --hyt-bg-active: #1d212a;
-  --hyt-line: #23262e;
-  --hyt-line-strong: #2e323c;
-  --hyt-text-body: #cfd4dc;
-  --hyt-text: #e8eaee;
-  --hyt-text-2: #9aa1ad;
-  --hyt-text-3: #697080;
-  --hyt-white: #ffffff;
-  --hyt-accent: #4a7dff;
-  --hyt-accent-2: #6f9bff;
-  --hyt-accent-soft: rgba(74, 125, 255, 0.1);
-  --hyt-accent-line: rgba(74, 125, 255, 0.28);
-  --hyt-accent-ink: #6f9bff;
-  --hyt-green: #2ea86c;
-  --hyt-red: #e5484d;
-  --hyt-yellow: #e0a93a;
-  --hyt-danger: #e5484d;
-  --hyt-success: #2ea86c;
-  --hyt-surface-raised: #1a1d24;
-  --hyt-surface-hover: #1a1d24;
-  --hyt-surface-active: #1d212a;
-  --hyt-hover: #1a1d24;
-  --hyt-active: #1d212a;
-  --hyt-scrim: rgba(0, 0, 0, 0.72);
-  --hyt-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --hyt-avatar-blue: #3d5a80;
-  --hyt-avatar-green: #4a6a5a;
-  --hyt-avatar-orange: #6b5b4f;
-  --hyt-avatar-purple: #5c5a72;
-  --hyt-avatar-pink: #6b4f5c;
-  --hyt-avatar-cyan: #47636b;
-  --hyt-avatar-yellow: #575038;
-  --hyt-avatar-gray: #3a4353;
-  --hyt-text-10: 10px;
+  --hyt-bg-side: var(--v2-background-bg-layer-01);
+  --hyt-bg-chat: var(--v2-background-bg-base);
+  --hyt-bg-elev: var(--v2-background-bg-layer-02);
+  --hyt-line: var(--v2-border-border-muted);
+  --hyt-line-strong: var(--v2-border-border-base);
+  --hyt-text-body: var(--v2-text-text-base);
+  --hyt-text: var(--v2-text-text-base);
+  --hyt-text-strong: var(--v2-text-text-base);
+  --hyt-text-2: var(--v2-text-text-muted);
+  --hyt-text-3: var(--v2-text-text-faint);
+  --hyt-on-accent: var(--v2-text-text-contrast);
+  --hyt-accent: var(--v2-background-bg-accent);
+  --hyt-accent-soft: color-mix(in srgb, var(--v2-background-bg-accent) 12%, transparent);
+  --hyt-accent-line: color-mix(in srgb, var(--v2-background-bg-accent) 32%, transparent);
+  --hyt-accent-ink: var(--v2-text-text-accent);
+  --hyt-green: var(--v2-state-fg-success);
+  --hyt-red: var(--v2-state-fg-danger);
+  --hyt-yellow: var(--v2-state-fg-warning);
+  --hyt-danger: var(--v2-state-fg-danger);
+  --hyt-surface-raised: var(--v2-background-bg-layer-02);
+  --hyt-surface-hover: var(--v2-overlay-simple-overlay-hover);
+  --hyt-surface-active: var(--v2-overlay-simple-overlay-pressed);
+  --hyt-hover: var(--v2-overlay-simple-overlay-hover);
+  --hyt-active: var(--v2-overlay-simple-overlay-pressed);
+  --hyt-scrim: var(--v2-overlay-simple-overlay-scrim);
+  --hyt-shadow-float: var(--v2-elevation-floating);
+  /* 主操作键：与产品 submit 按钮同一对黑白，深色主题下反相成浅键帽。 */
+  --hyt-key-bg: var(--v2-background-bg-contrast);
+  --hyt-key-fg: var(--v2-text-text-contrast);
+  --hyt-avatar-blue: var(--v2-avatar-bg-blue);
+  --hyt-avatar-green: var(--v2-avatar-bg-green);
+  --hyt-avatar-orange: var(--v2-avatar-bg-orange);
+  --hyt-avatar-purple: var(--v2-avatar-bg-purple);
+  --hyt-avatar-pink: var(--v2-avatar-bg-pink);
+  --hyt-avatar-cyan: var(--v2-avatar-bg-cyan);
+  --hyt-avatar-yellow: var(--v2-avatar-bg-yellow);
+  --hyt-avatar-gray: var(--v2-avatar-bg-gray);
+  /* 字号收敛到设计规范的四档：11 元信息 / 12 次级 / 13 次要 UI / 14 正文。 */
+  --hyt-text-10: 11px;
   --hyt-text-11: 11px;
-  --hyt-text-125: 12.5px;
+  --hyt-text-125: 12px;
   --hyt-text-13: 13px;
-  --hyt-text-135: 13.5px;
+  --hyt-text-135: 14px;
   --hyt-text-14: 14px;
-  --hyt-text-145: 14.5px;
+  --hyt-text-145: 14px;
   --hyt-lh-normal: 1.5;
-  --hyt-lh-large: 1.65;
+  --hyt-lh-large: 1.6;
   --hyt-radius-4: 4px;
   --hyt-radius-6: 6px;
   --hyt-radius-8: 8px;
   --hyt-radius-10: 10px;
   --hyt-radius-12: 12px;
+}
+:is([data-color-scheme="dark"]) .hyt-chat {
+  --hyt-key-bg: var(--v2-grey-100);
+  --hyt-key-fg: var(--v2-grey-1100);
 }
 
 /* ============================================================================
@@ -128,7 +131,7 @@ export const css = `
   height: 28px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-accent);
-  color: var(--hyt-white);
+  color: var(--hyt-on-accent);
 }
 .hyt-side-name {
   font-size: var(--hyt-text-14);
@@ -229,7 +232,7 @@ export const css = `
   height: 30px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-accent);
-  color: var(--hyt-white);
+  color: var(--hyt-on-accent);
 }
 .hyt-ai-entry-body {
   display: flex;
@@ -360,7 +363,7 @@ export const css = `
 }
 .hyt-chat-session[aria-current="true"] .hyt-chat-session-name,
 .hyt-chat-session[data-unread="true"] .hyt-chat-session-name {
-  color: var(--hyt-white);
+  color: var(--hyt-text-strong);
 }
 .hyt-chat-session[data-unread="true"] .hyt-chat-session-preview {
   color: var(--hyt-text-2);
@@ -413,7 +416,7 @@ export const css = `
   padding: 0 5px;
   border-radius: 999px;
   background: var(--hyt-danger);
-  color: var(--hyt-white);
+  color: var(--hyt-on-accent);
   font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-bold);
   font-variant-numeric: tabular-nums;
@@ -528,7 +531,7 @@ export const css = `
   overflow: hidden;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-avatar-gray);
-  color: var(--hyt-white);
+  color: var(--hyt-on-accent);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.3px;
   user-select: none;
@@ -719,7 +722,7 @@ export const css = `
 }
 @media (hover: hover) {
   .hyt-chat-item:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--hyt-hover);
   }
 }
 .hyt-chat-item-body {
@@ -737,7 +740,7 @@ export const css = `
   min-width: 0;
 }
 .hyt-chat-item-name {
-  color: var(--hyt-white);
+  color: var(--hyt-text-strong);
   font-size: var(--hyt-text-13);
   font-weight: var(--font-weight-bold);
   line-height: 1.3;
@@ -1007,7 +1010,7 @@ export const css = `
   height: 36px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-accent);
-  color: var(--hyt-white);
+  color: var(--hyt-on-accent);
 }
 .hyt-chat-draft-body {
   display: flex;
@@ -1032,7 +1035,7 @@ export const css = `
   padding: 1px 6px;
   border-radius: var(--hyt-radius-4);
   background: var(--hyt-accent);
-  color: var(--hyt-white);
+  color: var(--hyt-on-accent);
   font-size: var(--hyt-text-10);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.3px;
@@ -1214,14 +1217,22 @@ export const css = `
   padding: 0;
   border: 0;
   border-radius: var(--hyt-radius-8);
-  background: var(--hyt-accent);
-  color: var(--hyt-white);
+  background: var(--hyt-key-bg);
+  color: var(--hyt-key-fg);
   cursor: pointer;
   transition: opacity var(--duration-fast, 120ms) var(--ease-out, ease);
 }
+@media (hover: hover) {
+  .hyt-chat-send:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--hyt-key-bg) 90%, var(--hyt-key-fg));
+  }
+}
+.hyt-chat-send:active:not(:disabled) {
+  background: color-mix(in srgb, var(--hyt-key-bg) 80%, var(--hyt-key-fg));
+}
 .hyt-chat-send:disabled {
-  opacity: 0.45;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .hyt-chat-composer-note {
   margin: 6px 2px 0;

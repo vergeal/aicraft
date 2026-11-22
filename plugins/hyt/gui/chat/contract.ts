@@ -164,7 +164,7 @@ export const ChatStatus = Schema.Struct({
 
 /** 输入区的可用状态；reason 是 i18n key 的后缀，窗口负责翻译。 */
 export const SendState = Schema.Struct({
-  /** 可以点发送。 */
+  /** 可以点发送。只有没有打开会话时才为 false。 */
   enabled: Schema.Boolean,
   /** 禁用原因：空串表示没有原因。 */
   reason: Schema.Literals(["", "whitelist-empty", "not-allowed", "bridge-missing", "pending"]),
@@ -216,7 +216,7 @@ export const ChatIpc = Ipc.define({
     search: { input: Schema.Struct({ query: Schema.String }) },
     /** 本地标记已读：只改本窗口的未读显示，不回写客户端库。 */
     markRead: { input: Schema.Struct({ sessionId: Schema.String }) },
-    /** 发送消息。先过白名单，本轮不接真实 bridge 发送。 */
+    /** 发送消息：直接走客户端消息通道，成功后写回本地库并刷新。 */
     send: {
       input: Schema.Struct({ sessionId: Schema.String, text: Schema.String, at: Schema.Array(Schema.String) }),
       output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),

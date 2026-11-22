@@ -153,10 +153,6 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     return rows.slice().sort((left, right) => right.createdAt - left.createdAt)[0]
   }
 
-  const focusComposer = () => {
-    composer?.focus()
-  }
-
   const insertComposer = (value: string) => {
     setDraft(value)
     composer?.focus()
@@ -191,7 +187,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 unread={snapshot().unread}
                 onSelect={select}
                 onSearch={search}
-                onAi={focusComposer}
+                onAi={() => insertComposer(`${text_()}@AI `)}
                 onRefresh={() => void run(() => props.client.refresh())}
               />
             </aside>
@@ -308,9 +304,7 @@ function ChatEmpty(props: { ctx: Context; state: Snapshot | undefined; error: st
 }
 
 function reasonLabel(ctx: Context, reason: string) {
-  if (reason === "whitelist-empty") return text(ctx, "hyt.chat.composer.disabled.whitelist")
-  if (reason === "not-allowed") return text(ctx, "hyt.chat.composer.disabled.not-allowed")
-  if (reason === "bridge-missing") return text(ctx, "hyt.chat.composer.disabled.bridge")
+  if (reason === "not-allowed") return text(ctx, "hyt.chat.composer.disabled.no-session")
   if (reason === "empty") return text(ctx, "hyt.chat.composer.empty")
   return reason
 }

@@ -9,8 +9,8 @@ const EMOJI = ["👍", "😄", "😂", "🙏", "✅", "🎉", "❤️", "😅", 
 /**
  * 输入区：文本、@AI、表情、@ 选人、附件、发送。
  *
- * 排版按评审稿：单行起高，左侧一个「+」，右侧工具条与蓝色方形发送位。
- * 附件与真实发送都还没接通道，按钮会说明原因。
+ * 排版沿用设计稿：单行起高，左侧一个「+」，右侧工具条与发送键。
+ * 发送走真实消息通道；附件通道还没接，按钮会说明原因。
  */
 export function Composer(props: {
   ctx: Context
@@ -84,18 +84,12 @@ export function Composer(props: {
     props.onSend(props.value, accounts())
   }
 
-  const attach = async () => {
-    const picked = await ctx.desktop?.pick({ title: text(ctx, "hyt.chat.composer.attach") })
-    if (picked === undefined || picked.length === 0) return
+  // 消息通道只接受文本，发文件得先有协议支持；点了就说明，不让用户白选文件。
+  const attach = () => {
     props.onNotice(text(ctx, "hyt.chat.composer.notWired"), "warning")
   }
 
-  const disabledReason = () => {
-    if (props.send.reason === "whitelist-empty") return text(ctx, "hyt.chat.composer.disabled.whitelist")
-    if (props.send.reason === "not-allowed") return text(ctx, "hyt.chat.composer.disabled.not-allowed")
-    if (props.send.reason === "bridge-missing") return text(ctx, "hyt.chat.composer.disabled.bridge")
-    return ""
-  }
+  const disabledReason = () => (props.send.enabled ? "" : text(ctx, "hyt.chat.composer.disabled.no-session"))
 
   return (
     <div class="hyt-chat-composer">
@@ -122,7 +116,7 @@ export function Composer(props: {
             class="hyt-chat-tool"
             aria-label={text(ctx, "hyt.chat.composer.attach")}
             title={text(ctx, "hyt.chat.composer.attach")}
-            onClick={() => void attach()}
+            onClick={attach}
           >
             <ctx.ui.Icon name="plus" size="small" />
           </button>

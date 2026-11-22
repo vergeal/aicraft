@@ -92,11 +92,9 @@ export const zh: Record<string, string> = {
   "hyt.chat.composer.emoji": "表情",
   "hyt.chat.composer.mention": "@ 某人",
   "hyt.chat.composer.mentionEmpty": "通讯录里没有匹配的人。",
-  "hyt.chat.composer.disabled.whitelist": "白名单为空，发送已禁用",
-  "hyt.chat.composer.disabled.not-allowed": "这个会话不在白名单里",
-  "hyt.chat.composer.disabled.bridge": "消息连接未启动，只能查看历史",
+  "hyt.chat.composer.disabled.no-session": "先选择一个会话再发送",
   "hyt.chat.composer.disabled.pending": "正在发送…",
-  "hyt.chat.composer.notWired": "发送通道还没接入，本条只做了白名单校验。",
+  "hyt.chat.composer.notWired": "消息通道目前只支持文本，发文件请直接在客户端里发。",
   "hyt.chat.composer.rejected": "没有发送：{{reason}}",
   "hyt.chat.composer.empty": "先输入内容",
 

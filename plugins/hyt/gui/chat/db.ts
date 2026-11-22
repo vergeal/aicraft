@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
+import { resolveGroupNames } from "../../src/chat/groups.js"
 import { kindOf, toMessage } from "../../src/chat/message.js"
 import type { ChatRow } from "../../src/chat/message.js"
 import type { MessageRow, SessionRow } from "./contract.js"
@@ -48,7 +49,7 @@ export function bridgeRunning(root: string) {
   return existsSync(join(root, "Config", "bridge.json"))
 }
 
-/** 会话列表：消息表聚合 + keepgroup 群名 + lastmsg 未读 + 通讯录显示名。 */
+/** 会话列表：消息表聚合 + 群名 + lastmsg 未读 + 通讯录显示名。 */
 export function readSessions(root: string, account: string, read: readonly string[]): SessionRow[] {
   const path = chatDbPath(root, account)
   if (!existsSync(path)) return []
@@ -66,7 +67,11 @@ export function readSessions(root: string, account: string, read: readonly strin
       return detail.Id === null ? [] : [{ ...detail, Id: detail.Id }]
     })
     const byId = new Map(details.map((item) => [item.Id, item]))
-    const groups = readGroupNames(db)
+    const groups = resolveGroupNames({
+      root,
+      keepgroup: readGroupNames(db),
+      members: readGroupMembers(db, account),
+    })
     const unread = readUnread(db)
     const people = readPeople(root, account)
     const groupHeads = readGroupHeads(db, people)
@@ -78,7 +83,7 @@ export function readSessions(root: string, account: string, read: readonly strin
       const person = people.get(item.sessionId)
       const nick = detail.Sender === account ? "" : text(detail.SenderNick)
       const name = group
-        ? (groups.get(item.sessionId) ?? nick).trim()
+        ? (groups.get(item.sessionId) ?? "群聊")
         : (person?.remark || person?.name || nick || item.sessionId)
       return [
         {
@@ -392,4 +397,53 @@ function numberOf(value: unknown): number | null {
   if (typeof value !== "string") return null
   const parsed = Number.parseInt(value.trim(), 10)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+/**
+ * 发送成功后把这条消息写进客户端同一张表，界面下一次刷新就能看到。
+ *
+ * 与 `src/chat/store.ts` 的写入保持一致；那份实现依赖 `bun:sqlite`，这里用 `node:sqlite`。
+ * 客户端可能同时写库，靠 busy_timeout 退让，而不是失败后重试。
+ */
+export function appendOwnMessage(
+  root: string,
+  account: string,
+  input: { sessionId: string; text: string; sender: string; senderNick: string; msgId?: string },
+): { recorded: boolean; error: string } {
+  const path = chatDbPath(root, account)
+  if (!existsSync(path)) return { recorded: false, error: "本地消息库不存在" }
+
+  const text = input.text.trim()
+  if (text.length === 0) return { recorded: false, error: "消息内容不能为空" }
+
+  const createdAt = Date.now()
+  const msgId = input.msgId ?? `${createdAt}|${Math.floor(Math.random() * 1_000_000)}`
+  const sessionType = input.sessionId.startsWith("g") ? 1 : 0
+
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(path)
+    db.exec("pragma busy_timeout = 3000")
+    db.prepare(
+      `insert into chatmsg
+         (MsgType, MsgId, Msg, Sender, Receiver, CreatedTime, LocalTime, SessionId, SessionType, SenderNick, UserData, ReadStatus, isAt, isSave, isSuccess)
+       values (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 1, 0, 1, 1)`,
+    ).run(
+      msgId,
+      text,
+      input.sender,
+      input.sessionId,
+      String(createdAt),
+      String(createdAt),
+      input.sessionId,
+      sessionType,
+      input.senderNick,
+    )
+    db.prepare("insert or ignore into lastmsg (SessionId, UnReadCount) values (?, 0)").run(input.sessionId)
+    return { recorded: true, error: "" }
+  } catch (cause) {
+    return { recorded: false, error: cause instanceof Error ? cause.message : String(cause) }
+  } finally {
+    db?.close()
+  }
 }

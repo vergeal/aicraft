@@ -4,6 +4,7 @@ import { readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
 import type { MergeItem } from "../../src/chat/merge.js"
+import * as Bridge from "./bridge.js"
 import * as Data from "../shared/data.js"
 import { ChatIpc } from "./contract.js"
 import type { AvatarEntry, ChatState, DraftRow, MergeItemRow, MessageRow, SearchHit, SendState } from "./contract.js"
@@ -87,11 +88,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     return Array.from(new Set([...fromProfile, ...fromConfig].map((item) => item.trim()).filter(Boolean)))
   }
 
-  const sendState = (whitelist: readonly string[], bridge: "ready" | "missing", selectedId: string): SendState => {
-    if (whitelist.length === 0) return { enabled: false, reason: "whitelist-empty" }
+  /** 只有「没有打开会话」时才不能发；白名单、连接状态都不再拦输入，失败原因由发送结果给出。 */
+  const sendState = (selectedId: string): SendState => {
     if (selectedId.length === 0) return { enabled: false, reason: "not-allowed" }
-    if (!whitelist.includes(selectedId)) return { enabled: false, reason: "not-allowed" }
-    if (bridge === "missing") return { enabled: false, reason: "bridge-missing" }
     return { enabled: true, reason: "" }
   }
 
@@ -152,7 +151,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         search: searchState.query.length === 0 ? { query: "", hits: [] } : searchState,
         drafts,
         members: Db.readMembers(root, login.account),
-        send: sendState(whitelist, bridge, selected),
+        send: sendState(selected),
         knowledge: [],
       }
       return current
@@ -243,13 +242,26 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     },
 
     async send(input) {
-      const text = input.text.trim()
-      if (text.length === 0) return { ok: false, reason: "empty" }
-      if (current.send.reason === "whitelist-empty") return { ok: false, reason: "whitelist-empty" }
-      if (current.send.reason === "bridge-missing") return { ok: false, reason: "bridge-missing" }
-      if (!current.send.enabled) return { ok: false, reason: "not-allowed" }
-      // 真实发送要接 `src/bridge/client.ts` 的 sendMessage；本轮只做白名单与连接校验，不向客户端发出任何消息。
-      return { ok: false, reason: "not-wired" }
+      const body = input.text.trim()
+      if (body.length === 0) return { ok: false, reason: "empty" }
+      const sessionId = input.sessionId.length > 0 ? input.sessionId : current.selected
+      if (sessionId.length === 0) return { ok: false, reason: "not-allowed" }
+
+      const account = current.status.account
+      const sent = await Bridge.sendText(rootOf(), sessionId, body)
+      if (!sent.ok) return { ok: false, reason: sent.reason }
+
+      // 消息已经发出去了：写库失败只影响本地历史，不能把成功报成失败。
+      const recorded = Db.appendOwnMessage(rootOf(), account, {
+        sessionId,
+        text: body,
+        sender: account,
+        senderNick: current.status.displayName,
+        msgId: sent.msgId,
+      })
+      await load(false)
+      report()
+      return { ok: true, reason: recorded.recorded ? "" : `已发送，但未写入本地历史：${recorded.error}` }
     },
 
     async merge(input) {

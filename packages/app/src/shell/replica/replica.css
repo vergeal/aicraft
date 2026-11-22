@@ -70,12 +70,16 @@
 
   /* The window has one light source: the mark's green head at the top edge and its blue tail at the bottom. The
      navigation column and the canvas read the same pair, so the two halves are lit by one lamp instead of each
-     carrying its own tint. `soft` is the canvas step: the same colours over a reading area as large as the whole
-     window would otherwise read as a coloured panel rather than as light. */
+     carrying its own tint. The canvas anchors its lights outside its own edges, which spreads the same alpha over a
+     wider falloff, so it reads a step softer without needing a weaker colour. */
   --replica-light-top: rgb(0 224 138 / 6%);
   --replica-light-bottom: rgb(0 180 255 / 5%);
-  --replica-light-top-soft: rgb(0 224 138 / 3%);
-  --replica-light-bottom-soft: rgb(0 180 255 / 3%);
+
+  /* A new chat is the one place where the bar and the page are a single lit surface. They are two boxes — the bar's
+     workspace segment and the canvas below it — so each paints this field with `background-attachment: fixed`: the
+     coordinates come from the window instead of from the box, and no seam, resize or sidebar width can make the two
+     disagree. Every other page keeps the bar's flat canvas tone; the light there belongs to the page, not the chrome. */
+  --replica-light-field-empty: radial-gradient(ellipse 86% 66% at 60% -6%, var(--replica-light-top), transparent 70%);
 
   --radius-row: 8px;
   --radius-control: 10px;
@@ -333,7 +337,9 @@ html[data-replica-window="translucent"] [data-slot="replica-titlebar"][data-empt
 }
 
 [data-slot="replica-titlebar"][data-empty] [data-slot="replica-titlebar-main"] {
-  background: var(--color-main);
+  background-color: var(--color-main);
+  background-image: var(--replica-light-field-empty);
+  background-attachment: fixed;
   box-shadow: none;
 }
 
@@ -803,13 +809,13 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   flex-direction: column;
   overflow: hidden;
   /* The canvas is lit rather than tinted: a soft fall from its own colour to one step down, plus the window's two
-     lights arriving from the same edges as the navigation column's. The lights stay at 3% here because they cover a
-     reading area the size of the window; at the column's 6% the canvas reads as a coloured panel instead of as light.
-     The fall keeps a tall empty or short conversation from reading as a flat white sheet. */
+     lights arriving from the same edges as the navigation column's. The lights stay the same alpha as the column's
+     because their anchors sit outside the canvas, so the falloff is wider and the surface reads as light instead of
+     as a coloured panel. The fall keeps a tall empty or short conversation from reading as a flat white sheet. */
   background-color: var(--color-main);
   background-image:
-    radial-gradient(ellipse 100% 62% at 16% -12%, var(--replica-light-top-soft), transparent 68%),
-    radial-gradient(ellipse 90% 55% at 88% 108%, var(--replica-light-bottom-soft), transparent 70%),
+    radial-gradient(ellipse 100% 62% at 16% -12%, var(--replica-light-top), transparent 68%),
+    radial-gradient(ellipse 90% 55% at 88% 108%, var(--replica-light-bottom), transparent 70%),
     linear-gradient(180deg, var(--color-main) 0%, var(--v2-background-bg-deep) 100%);
   /* The conversation follows the appearance font the user selected; the chrome keeps the system stack. */
   font-family: var(--font-family-sans, var(--font-family-ui));
@@ -821,8 +827,8 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
      one light direction instead of each inventing its own. */
   background-color: var(--color-main);
   background-image:
-    radial-gradient(ellipse 100% 62% at 16% -12%, var(--replica-light-top-soft), transparent 68%),
-    radial-gradient(ellipse 90% 55% at 88% 108%, var(--replica-light-bottom-soft), transparent 70%),
+    radial-gradient(ellipse 100% 62% at 16% -12%, var(--replica-light-top), transparent 68%),
+    radial-gradient(ellipse 90% 55% at 88% 108%, var(--replica-light-bottom), transparent 70%),
     linear-gradient(180deg, var(--v2-alpha-light-4) 0%, transparent 55%);
 }
 
@@ -1192,13 +1198,13 @@ html[data-replica-window="translucent"][data-color-scheme="dark"]
   box-shadow: none;
 }
 
-/* A new chat belongs to the window chrome, not to a lit panel: the bar above it and the page below are one surface,
-   so the empty canvas keeps the bar's flat tone at the seam instead of the fall to a deeper step in light or the top
-   light wash in dark. It keeps one mark of light of its own: a pool centred on the welcome that has faded out before
-   it reaches the bar, so the seam stays flat while the first screen reads as a stage instead of an unpainted sheet. */
+/* A new chat is the window itself, not a card on it: the bar above and the page below are one lit surface, so the
+   canvas drops the conversation's fall to a deeper step and keeps only the lamp, attached to the window so it runs
+   straight through the seam. The light lands above the page's edge and fades before it closes into a disc. */
 [data-slot="replica-main"][data-empty] {
   background-color: var(--color-main);
-  background-image: radial-gradient(ellipse 62% 46% at 50% 36%, var(--replica-light-top-soft), transparent 72%);
+  background-image: var(--replica-light-field-empty);
+  background-attachment: fixed;
 }
 
 /* The workspace fills the window on every side, so its panels square off instead of carrying a corner radius. */

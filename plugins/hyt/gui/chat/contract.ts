@@ -6,8 +6,11 @@ import { Schema } from "effect"
  * 所有字段都是必填，缺省值由 main 补全，窗口不必做防御性判断。
  */
 
-/** 头像底色：映射到 `--v2-avatar-bg-*` 的语义色，由会话 id 稳定散列而来。 */
-export const AvatarTone = Schema.Literals(["blue", "green", "orange", "purple", "pink", "cyan", "yellow", "gray"])
+/** 头像成员：名字决定底色与文字，`headPath` 有真实头像时优先显示图片。 */
+export const HeadMember = Schema.Struct({
+  name: Schema.String,
+  headPath: Schema.String,
+})
 
 /** 消息类型，与 `src/chat/message.ts` 的 MessageKind 一致。 */
 export const MessageKind = Schema.Literals([
@@ -39,10 +42,8 @@ export const SessionRow = Schema.Struct({
   atMe: Schema.Boolean,
   /** 群聊。 */
   group: Schema.Boolean,
-  /** 头像底色。 */
-  tone: AvatarTone,
-  /** 头像文件绝对路径：单聊 0–1 张，群聊最多 4 张（有头像的成员），由窗口批量换成 data URL。 */
-  headPaths: Schema.Array(Schema.String),
+  /** 头像成员：单聊就是对方，群聊是会话内出现过的成员（最多 9 个），窗口按虹云通的拼图规则渲染。 */
+  members: Schema.Array(HeadMember),
 })
 
 /** 消息流的一条消息。 */
@@ -240,7 +241,7 @@ export const ChatIpc = Ipc.define({
 })
 
 // 同时导出同名类型：值空间是 Schema，类型空间是它的 Type，调用方写 `MessageRow` 不必区分两者。
-export type AvatarTone = typeof AvatarTone.Type
+export type HeadMember = typeof HeadMember.Type
 export type MessageKind = typeof MessageKind.Type
 export type SessionRow = typeof SessionRow.Type
 export type MessageRow = typeof MessageRow.Type

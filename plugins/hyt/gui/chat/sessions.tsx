@@ -180,10 +180,8 @@ export function SessionList(props: {
 
       <div class="hyt-side-user">
         <Avatar
-          ctx={ctx}
           name={props.status.displayName || props.status.account || text(ctx, "hyt.chat.msg.self")}
-          tone="blue"
-          paths={[]}
+          members={[]}
           avatars={props.avatars}
           size="head"
         />
@@ -262,12 +260,11 @@ function SessionRowView(props: {
       onClick={() => props.onSelect(props.session.id)}
     >
       <Avatar
-        ctx={ctx}
         name={props.session.name}
-        tone={props.session.tone}
-        paths={props.session.headPaths}
+        members={props.session.members}
         avatars={props.avatars}
         size="row"
+        group={props.session.group}
       />
       <span class="hyt-chat-session-body">
         <span class="hyt-chat-session-top">
@@ -302,10 +299,12 @@ function HitRow(props: {
   return (
     <button type="button" class="hyt-chat-session" onClick={() => props.onSelect(props.hit.sessionId)}>
       <Avatar
-        ctx={ctx}
         name={props.hit.sessionName}
-        tone="gray"
-        paths={props.hit.message.senderHead.length > 0 ? [props.hit.message.senderHead] : []}
+        members={
+          props.hit.message.senderHead.length > 0
+            ? [{ name: props.hit.sessionName, headPath: props.hit.message.senderHead }]
+            : []
+        }
         avatars={props.avatars}
         size="row"
       />

@@ -1,33 +1,7 @@
-import type { AvatarTone } from "./contract.js"
-
 /**
- * 窗口侧的纯展示函数：头像底色、时间与大小、@ 高亮。
- * 不读盘、不依赖宿主 API，便于单独推理与测试。
+ * 窗口侧的纯展示函数：时间、大小、@ 高亮。
+ * 不读盘、不依赖宿主 API，便于单独推理与测试。头像规则在 `head.ts`。
  */
-
-const TONES: readonly AvatarTone[] = ["blue", "green", "orange", "purple", "pink", "cyan", "yellow", "gray"]
-
-/** 由会话 id 稳定散列出头像底色，同一个联系人每次都是同一种颜色。 */
-export function toneOf(id: string): AvatarTone {
-  let hash = 0
-  for (const char of id) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 1_000_003
-  return TONES[hash % TONES.length] ?? "gray"
-}
-
-/** 头像里的字：中文取姓，英文取两个词的首字母。 */
-export function initials(name: string) {
-  const trimmed = name.trim()
-  const first = trimmed.slice(0, 1)
-  if (first.length === 0) return "?"
-  if (!/^[A-Za-z]$/.test(first)) return first
-  return (
-    trimmed
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((word) => word.slice(0, 1).toUpperCase())
-      .join("") || first.toUpperCase()
-  )
-}
 
 export function formatClock(locale: string, at: number) {
   if (at <= 0) return ""

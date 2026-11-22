@@ -34,7 +34,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     const current = state()
     if (current === undefined) return ""
     const paths = new Set<string>()
-    for (const session of current.sessions) for (const path of session.headPaths) paths.add(path)
+    for (const session of current.sessions)
+      for (const member of session.members) if (member.headPath.length > 0) paths.add(member.headPath)
     for (const message of current.messages) if (message.senderHead.length > 0) paths.add(message.senderHead)
     return [...paths].slice(0, 200).join("\n")
   }

@@ -5,7 +5,6 @@ import { resolveGroupNames } from "../../src/chat/groups.js"
 import { kindOf, toMessage } from "../../src/chat/message.js"
 import type { ChatRow } from "../../src/chat/message.js"
 import type { MessageRow, SessionRow } from "./contract.js"
-import { toneOf } from "./util.js"
 
 /**
  * 主进程侧对客户端本地的只读访问。
@@ -74,7 +73,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
     })
     const unread = readUnread(db, account)
     const people = readPeople(root, account)
-    const groupHeads = readGroupHeads(db, people)
+    const groupMembers = readGroupAvatarMembers(db, account, people)
     return aggregates.flatMap((item) => {
       const detail = byId.get(item.lastId)
       if (detail === undefined) return []
@@ -84,6 +83,10 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
       const name = group
         ? (groups.get(item.sessionId) ?? "群聊")
         : (person?.remark || person?.name || nick || item.sessionId)
+      // 群头像按虹云通的规则拼成员；单聊只有对方一个人。
+      const members = group
+        ? (groupMembers.get(item.sessionId) ?? [])
+        : [{ name: name.length > 0 ? name : item.sessionId, headPath: person?.headPath ?? "" }]
       return [
         {
           id: item.sessionId,
@@ -93,12 +96,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
           unread: markedAt(item, marked, unread),
           atMe: item.atMe === 1,
           group,
-          tone: toneOf(item.sessionId),
-          headPaths: group
-            ? groupHeadsFor(groupHeads.get(item.sessionId))
-            : person?.headPath
-              ? [person.headPath]
-              : [],
+          members,
         },
       ]
     })
@@ -400,35 +398,29 @@ function localHeadFile(root: string, local: string, url: string) {
 }
 
 /**
- * 群聊头像只用能拼成合照的两张以上：客户端在只有一名成员有头像时画的是群默认图，
- * 把某个成员的证件照当成群头像，在列表里会分不清群聊和单聊。
+ * 群头像成员：与虹云通 `chat.ts` 一致——取会话内出现过、以 `cs` 开头的账号（排除自己），
+ * 最多 9 个；名字优先通讯录真名，其次历史群昵称。没头像的成员也要保留，拼图里显示末两个字。
  */
-function groupHeadsFor(heads: readonly string[] | undefined) {
-  return heads !== undefined && heads.length > 1 ? heads : []
-}
-
-/**
- * 群聊头像：取该群消息发送人里前 4 个有头像的账号，按首次出现顺序。
- */
-function readGroupHeads(db: DatabaseSync, people: Map<string, PersonEntry>) {
-  const map = new Map<string, string[]>()
+function readGroupAvatarMembers(db: DatabaseSync, account: string, people: Map<string, PersonEntry>) {
+  const map = new Map<string, { name: string; headPath: string }[]>()
   for (const row of query(
     db,
-    "select SessionId, Sender from chatmsg where SessionType = 1 group by SessionId, Sender order by SessionId, min(Id)",
-    [],
+    `select SessionId as sessionId, Sender as sender, max(nullif(SenderNick, '')) as nick
+     from chatmsg
+     where SessionType = 1 and Sender like 'cs%' and Sender <> ?
+     group by SessionId, Sender order by min(Id)`,
+    [account],
   )) {
-    const sessionId = text(row.SessionId)
-    const sender = text(row.Sender)
+    const sessionId = text(row.sessionId)
+    const sender = text(row.sender)
     if (sessionId.length === 0 || sender.length === 0) continue
-    const headPath = people.get(sender)?.headPath
-    if (headPath === undefined || headPath.length === 0) continue
-    const heads = map.get(sessionId) ?? []
-    if (heads.length >= 4 || heads.includes(headPath)) {
-      map.set(sessionId, heads)
-      continue
-    }
-    heads.push(headPath)
-    map.set(sessionId, heads)
+    const person = people.get(sender)
+    const name = person?.name || text(row.nick)
+    if (name.length === 0) continue
+    const list = map.get(sessionId) ?? []
+    if (list.length >= 9) continue
+    list.push({ name, headPath: person?.headPath ?? "" })
+    map.set(sessionId, list)
   }
   return map
 }

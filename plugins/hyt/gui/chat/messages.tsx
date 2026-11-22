@@ -3,7 +3,7 @@ import { For, Show, createEffect, createResource, createSignal, onCleanup } from
 import { Avatar } from "./avatar.js"
 import type { ChatStatus, DraftRow, MemberRow, MergeItemRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { dayBucket, formatClock, formatDay, formatSize, splitMentions, toneOf } from "./util.js"
+import { dayBucket, formatClock, formatDay, formatSize, splitMentions } from "./util.js"
 
 export interface MergeResult {
   readonly items: readonly MergeItemRow[]
@@ -299,10 +299,12 @@ function MessageItem(props: {
     >
       <div class="hyt-chat-item" data-first={props.first ? "true" : "false"} data-outgoing={message().outgoing ? "true" : "false"}>
         <Avatar
-          ctx={ctx}
           name={senderName()}
-          tone={message().outgoing ? "blue" : toneOf(message().sender)}
-          paths={message().senderHead.length > 0 ? [message().senderHead] : []}
+          members={
+            message().senderHead.length > 0
+              ? [{ name: senderName(), headPath: message().senderHead }]
+              : []
+          }
           avatars={props.avatars}
           size="bubble"
         />

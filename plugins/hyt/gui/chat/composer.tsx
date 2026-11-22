@@ -2,7 +2,7 @@ import type { Context } from "@opencode/plugin/gui"
 import { For, Show, createMemo, createSignal } from "solid-js"
 import type { MemberRow, SendState } from "./contract.js"
 import { text } from "./i18n.js"
-import { initials } from "./util.js"
+import { Avatar } from "./avatar.js"
 
 const EMOJI = ["👍", "😄", "😂", "🙏", "✅", "🎉", "❤️", "😅", "🤝", "👀", "🔧", "⚠️"] as const
 
@@ -99,9 +99,7 @@ export function Composer(props: {
             <For each={candidates()}>
               {(member) => (
                 <button type="button" class="hyt-chat-mention-row" onClick={() => pickMember(member)}>
-                  <span class="hyt-chat-avatar" data-tone="gray" data-size="mention" aria-hidden="true">
-                    {initials(member.name)}
-                  </span>
+                  <Avatar name={member.name} members={[]} avatars={{}} size="mention" />
                   <span class="hyt-chat-mention-name">{member.name}</span>
                   <span class="hyt-chat-mention-dept">{member.department || member.account}</span>
                 </button>

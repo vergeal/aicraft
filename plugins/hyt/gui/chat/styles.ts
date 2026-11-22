@@ -91,14 +91,6 @@ export const css = `
   /* 主操作键：与产品 submit 按钮同一对黑白，深色主题下反相成浅键帽。 */
   --hyt-key-bg: var(--v2-background-bg-contrast);
   --hyt-key-fg: var(--v2-text-text-contrast);
-  --hyt-avatar-blue: var(--v2-avatar-bg-blue);
-  --hyt-avatar-green: var(--v2-avatar-bg-green);
-  --hyt-avatar-orange: var(--v2-avatar-bg-orange);
-  --hyt-avatar-purple: var(--v2-avatar-bg-purple);
-  --hyt-avatar-pink: var(--v2-avatar-bg-pink);
-  --hyt-avatar-cyan: var(--v2-avatar-bg-cyan);
-  --hyt-avatar-yellow: var(--v2-avatar-bg-yellow);
-  --hyt-avatar-gray: var(--v2-avatar-bg-gray);
   /* 字号收敛到设计规范的四档：11 元信息 / 12 次级 / 13 次要 UI / 14 正文。 */
   --hyt-text-10: 11px;
   --hyt-text-11: 11px;
@@ -530,75 +522,46 @@ export const css = `
   color: var(--hyt-text);
 }
 
-/* 头像：统一圆形，同一 id 稳定散列到底色，观感与 Discord 一致。 */
+/* 头像：方形圆角，尺寸、圆角与底色由组件按虹云通的公式算好（inline）。 */
 .hyt-chat-avatar {
   position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   overflow: hidden;
-  border-radius: 999px;
-  background: var(--hyt-avatar-gray);
   color: var(--hyt-on-accent);
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
+  line-height: 1;
   user-select: none;
-}
-.hyt-chat-avatar[data-size="row"] {
-  width: 36px;
-  height: 36px;
-  font-size: var(--hyt-text-13);
-}
-.hyt-chat-avatar[data-size="head"] {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  font-size: var(--hyt-text-125);
-}
-.hyt-chat-avatar[data-size="bubble"] {
-  width: 36px;
-  height: 36px;
-  font-size: var(--hyt-text-13);
-}
-.hyt-chat-avatar[data-size="mention"] {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  font-size: var(--hyt-text-11);
-}
-.hyt-chat-avatar[data-size="member"] {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  font-size: var(--hyt-text-11);
-}
-.hyt-chat-avatar[data-tone="blue"] { background: var(--hyt-avatar-blue); }
-.hyt-chat-avatar[data-tone="green"] { background: var(--hyt-avatar-green); }
-.hyt-chat-avatar[data-tone="orange"] { background: var(--hyt-avatar-orange); }
-.hyt-chat-avatar[data-tone="purple"] { background: var(--hyt-avatar-purple); }
-.hyt-chat-avatar[data-tone="pink"] { background: var(--hyt-avatar-pink); }
-.hyt-chat-avatar[data-tone="cyan"] { background: var(--hyt-avatar-cyan); }
-.hyt-chat-avatar[data-tone="yellow"] { background: var(--hyt-avatar-yellow); }
-.hyt-chat-avatar[data-tone="gray"] { background: var(--hyt-avatar-gray); }
-.hyt-chat-avatar[data-pending="true"] {
-  background: color-mix(in srgb, var(--hyt-avatar-gray) 40%, transparent);
+  isolation: isolate;
 }
 .hyt-chat-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.hyt-chat-avatar-grid {
+/* 群头像：灰底容器里按 1/2/3/4/5+ 的布局摆成员小方块。容器底色由组件设为虹云通的 GROUP_HEAD_BG。 */
+.hyt-chat-avatar[data-stack="true"] {
+  align-items: stretch;
+  justify-items: stretch;
+}
+.hyt-chat-avatar-tile {
+  position: absolute;
   display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--hyt-on-accent);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0;
+  line-height: 1;
+  user-select: none;
+}
+.hyt-chat-avatar-tile img {
   width: 100%;
   height: 100%;
-  gap: 1px;
-  background: var(--hyt-bg-chat);
+  object-fit: cover;
 }
-.hyt-chat-avatar-grid[data-count="2"] { grid-template-columns: repeat(2, 1fr); }
-.hyt-chat-avatar-grid[data-count="3"] { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
-.hyt-chat-avatar-grid[data-count="4"] { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
-.hyt-chat-avatar-grid img { min-width: 0; min-height: 0; }
 
 /* ============================================================================
    5 · 中栏：会话头

@@ -2,7 +2,7 @@ import type { Context } from "@opencode/plugin/gui"
 import { For, Show } from "solid-js"
 import type { KnowledgeHit, MemberRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { initials, toneOf } from "./util.js"
+import { Avatar } from "./avatar.js"
 
 /** 右栏：当前会话的成员与 AI 快捷指令。点成员或指令都把文本插进输入框，不直接发送。 */
 export function AiPanel(props: {
@@ -45,9 +45,7 @@ export function AiPanel(props: {
           <For each={props.members}>
             {(member) => (
               <button type="button" class="hyt-ctx-member" onClick={() => props.onMention(member.name)}>
-                <span class="hyt-chat-avatar" data-tone={toneOf(member.account)} data-size="member" aria-hidden="true">
-                  {initials(member.name)}
-                </span>
+                <Avatar name={member.name} members={[]} avatars={{}} size="member" />
                 <span class="hyt-ctx-member-name">{member.name}</span>
                 <span class="hyt-ctx-member-role" title={member.department}>
                   {member.department || member.account}

@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite"
+import { resolveGroupNames } from "./groups.js"
 import type { ChatRow } from "./message.js"
 import { toMessage } from "./message.js"
 
@@ -33,10 +34,10 @@ export interface SessionSummary {
 }
 
 /**
- * 会话列表：以消息表为准聚出会话，群名从 keepgroup 补充（本地库只存已退出/被踢的群，在线群名要问 bridge），
+ * 会话列表：以消息表为准聚出会话，群名按「手动映射 → 桥接缓存 → keepgroup → 成员默认名」解析，
  * 未读数来自 lastmsg。按最后一条消息时间倒序。
  */
-export function listSessions(db: Database, input: { limit?: number } = {}): SessionSummary[] {
+export function listSessions(db: Database, input: { limit?: number; root?: string; account?: string } = {}): SessionSummary[] {
   const rows = db
     .query<
       { sessionId: string; total: number; lastAt: number | null; lastText: string | null; lastMsgType: number | null },
@@ -48,7 +49,11 @@ export function listSessions(db: Database, input: { limit?: number } = {}): Sess
        from chatmsg m1 group by SessionId order by lastAt desc limit ?1`,
     )
     .all(Math.min(Math.max(input.limit ?? 50, 1), 500))
-  const groups = new Map(groupNames(db).map((item) => [item.groupId, item.groupName]))
+  const groups = resolveGroupNames({
+    root: input.root ?? "",
+    keepgroup: new Map(groupNames(db).map((item) => [item.groupId, item.groupName])),
+    members: groupMembers(db, input.account ?? ""),
+  })
   const unread = new Map(unreadCounts(db).map((item) => [item.sessionId, item.unread]))
   return rows.map((row) => ({
     sessionId: row.sessionId,
@@ -129,6 +134,27 @@ export function groupNames(db: Database) {
       "select GroupId as groupId, GroupName as groupName from keepgroup where GroupName is not null and GroupName <> ''",
     )
     .all()
+}
+
+/** 群里发过言的成员昵称，按发言条数排序；用来给没有名字的群拼一个默认名。 */
+function groupMembers(db: Database, account: string) {
+  const rows = db
+    .query<{ sessionId: string; nick: string }, [string]>(
+      `select SessionId as sessionId, SenderNick as nick, count(*) as total
+       from chatmsg
+       where SessionType = 1 and Sender <> ?1 and SenderNick is not null and SenderNick <> ''
+       group by SessionId, SenderNick
+       order by SessionId, total desc`,
+    )
+    .all(account)
+  const map = new Map<string, string[]>()
+  for (const row of rows) {
+    if (row.sessionId.length === 0 || row.nick.length === 0) continue
+    const names = map.get(row.sessionId) ?? []
+    names.push(row.nick)
+    map.set(row.sessionId, names)
+  }
+  return map
 }
 
 export interface OutgoingMessage {

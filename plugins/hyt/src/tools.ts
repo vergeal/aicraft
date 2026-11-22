@@ -242,13 +242,18 @@ export function register(editor: ToolEditor, service: Service) {
 
   editor.add({
     name: "sessions.list",
-    description: "列出本地消息库里的会话，按最后一条消息时间倒序，带未读数与群名（群名以本地 keepgroup 为准）。",
+    description:
+      "列出本地消息库里的会话，按最后一条消息时间倒序，带未读数与群名（手动映射、桥接缓存、keepgroup 或成员默认名）。",
     input: SessionsInput,
     output: SessionsResult,
     options,
     execute: async (input) => {
-      const db = await chatDatabase(service)
-      const sessions = listSessions(db, { limit: input.limit ?? 30 })
+      const environment = await requireEnvironment(service)
+      const sessions = listSessions(await service.chat(), {
+        limit: input.limit ?? 30,
+        root: environment.root,
+        account: environment.account,
+      })
       const output = {
         sessions: sessions.map((session) => ({
           sessionId: session.sessionId,

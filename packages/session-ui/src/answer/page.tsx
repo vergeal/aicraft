@@ -963,7 +963,7 @@ function runningElapsed(turn: TimelineTurn | undefined, now: number) {
   return turn?.startedAt === undefined ? undefined : Math.max(0, now - turn.startedAt)
 }
 
-/** Turn spacing: process rows 4px, a user message 16px, an assistant response 16px, a process head 12px. */
+/** Turn spacing: process rows 4px, a user message 24px, an assistant response 16px, a process head 12px. */
 /**
  * The leading gap of one row in pixels. It is padding inside the row box rather than a margin, so the
  * measured border box already covers it and the window offsets stay exact.
@@ -976,9 +976,12 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
 
   if (!current || !previous) return 0
 
-  // A prompt block ends a reader's own thought; the answer that follows starts a new one. The gap is a touch wider
-  // than the 16px block rhythm because the prompt's action line already sits inside that space.
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 20
+  // A prompt block opens a new reader thought: it keeps its own gap above (from the previous answer) and below
+  // (to the answer that follows). Both are a touch wider than the 16px block rhythm, since the prompt's action
+  // line already sits inside the space below it.
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 24
+
+  if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
 
   if (current.kind === "fold") return 12
 

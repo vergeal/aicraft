@@ -594,6 +594,51 @@ story("folds a long prompt and shows all of it on request", async ({ mount }) =>
   await expect(fold).toHaveAttribute("data-folded", "")
 })
 
+story("collapses a fold over one motion step before unmounting it", async ({ mount, page }) => {
+  const root = await mount("answer-page--settled")
+  const fold = root.locator('[data-slot="answer-fold"]').first()
+  const toggle = fold.locator('[data-slot="answer-run-header"] button')
+
+  const closed = await fold.evaluate((el) => Math.round(el.getBoundingClientRect().height))
+  await toggle.click()
+  await expect(toggle).toHaveAttribute("aria-expanded", "true")
+  await expect.poll(() => fold.evaluate((el) => Math.round(el.getBoundingClientRect().height))).toBeGreaterThan(closed + 20)
+  await page.waitForTimeout(250)
+
+  // Closing animates the fold's track frame by frame, and the rows stay mounted until that step ends.
+  const closing = await page.evaluate(async () => {
+    const foldEl = document.querySelector<HTMLElement>('[data-slot="answer-fold"]')!
+    const collapse = foldEl.querySelector<HTMLElement>(".answer-collapse")!
+    const inner = collapse.querySelector<HTMLElement>(".answer-collapse-inner")!
+    const toggle = foldEl.querySelector<HTMLElement>('[data-slot="answer-run-header"] button')!
+    const start = performance.now()
+    const unmounts: number[] = []
+
+    new MutationObserver(() => unmounts.push(Math.round(performance.now() - start))).observe(inner, {
+      childList: true,
+    })
+
+    toggle.click()
+    const heights: number[] = []
+
+    for (let frame = 0; frame < 6; frame++) {
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      heights.push(Math.round(foldEl.getBoundingClientRect().height))
+    }
+
+    // The unmount waits for the closing step, so let it run out before reporting.
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    return { heights, unmounts }
+  })
+
+  // A single assignment would produce one height; the track eases down over several frames instead.
+  expect(new Set(closing.heights).size).toBeGreaterThan(2)
+  // The rows stay mounted through the step, so the closing motion has something to shrink.
+  expect(closing.unmounts[0]).toBeGreaterThan(120)
+  await expect(fold.locator('[data-slot="answer-disclosure"]')).toHaveCount(0)
+})
+
 story("folds a burst of identical steps into one row", async ({ mount }) => {
   const root = await mount("answer-page--repeated-edits")
 

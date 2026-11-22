@@ -233,6 +233,7 @@ const TOOL_TITLES: Record<string, { readonly live: UiI18nOrdinaryKey; readonly d
   },
   subagent: { live: "ui.answer.call.subagent", done: "ui.answer.call.subagent.done" },
   skill: { live: "ui.answer.call.skill", done: "ui.answer.call.skill.done" },
+  question: { live: "ui.answer.call.question", done: "ui.answer.call.question.done" },
   todowrite: { live: "ui.answer.call.todowrite", done: "ui.answer.call.todowrite.done" },
 }
 

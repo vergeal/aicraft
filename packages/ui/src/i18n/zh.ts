@@ -373,6 +373,8 @@ export const dict = {
   "ui.answer.call.subagent.done": "已运行子代理",
   "ui.answer.call.skill": "正在加载技能",
   "ui.answer.call.skill.done": "已加载技能",
+  "ui.answer.call.question": "正在询问用户",
+  "ui.answer.call.question.done": "已询问用户",
   "ui.answer.call.todowrite": "正在更新任务清单",
   "ui.answer.call.todowrite.done": "已更新任务清单",
   "ui.answer.io.input": "输入",

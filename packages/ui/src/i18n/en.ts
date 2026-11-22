@@ -310,6 +310,8 @@ const source = {
   "ui.answer.call.subagent.done": "Ran a subagent",
   "ui.answer.call.skill": "Loading a skill",
   "ui.answer.call.skill.done": "Loaded a skill",
+  "ui.answer.call.question": "Asking the user",
+  "ui.answer.call.question.done": "Asked the user",
   "ui.answer.call.todowrite": "Updating the task list",
   "ui.answer.call.todowrite.done": "Updated the task list",
   "ui.answer.deepDivingFor": "Deep diving for {{duration}}",

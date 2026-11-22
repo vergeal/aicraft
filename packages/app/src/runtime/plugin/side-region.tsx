@@ -24,7 +24,7 @@ import { same } from "@/runtime/persistence/equality"
 import { useLayout } from "@/shell/state/layout"
 import { useSessionLayout } from "@/session/session-layout"
 import type { Sizing } from "@/session/helpers"
-import { ReplicaTitlebarActions } from "@/shell/replica/titlebar-actions"
+import { ReplicaTitlebarActions, ReviewToggle } from "@/shell/replica/titlebar-actions"
 import { PanelTrigger } from "./panel-trigger"
 import { createSessionPanelMenuEntries, type SessionPanelMenuEntry } from "./panel-menu"
 import { RegionContent, type Region, type RegionPane } from "./panels"
@@ -217,7 +217,7 @@ export function PaneTabs(props: {
   drag: PaneDrag
   /** Shows the empty state while the pane selects nothing. */
   placeholder?: boolean
-  /** Renders the plugins' strip actions and keeps room for the session's review toggle. */
+  /** The side pane: it renders the review toggle's leading slot and the plugins' strip actions. */
   actions?: boolean
   /** Controls after the strip, e.g. the bottom pane's hide button. */
   end?: JSX.Element
@@ -282,6 +282,16 @@ export function PaneTabs(props: {
       }}
     >
       <div class="session-review-v2-tabs-bar sticky top-0 shrink-0 flex items-center">
+        {/* The review toggle's own leading slot, with a rule marking where it ends and the tabs begin. */}
+        <Show when={props.actions && props.present()}>
+          <div
+            data-slot="session-panel-lead"
+            class="h-[var(--tabs-bar-height)] shrink-0 flex items-center gap-2 ps-2 -me-1"
+          >
+            <ReviewToggle />
+            <div class="h-4 w-px shrink-0 bg-v2-border-border-base" aria-hidden />
+          </div>
+        </Show>
         <Tabs.List
           data-pane-strip={props.pane.id}
           ref={(el: HTMLDivElement) => {
@@ -439,9 +449,6 @@ export function PaneTabs(props: {
             />
           </Show>
           {props.end}
-          <Show when={props.actions && props.present()}>
-            <div class="size-7 shrink-0" aria-hidden />
-          </Show>
           <ReplicaTitlebarActions placement="panel" />
         </div>
       </div>

@@ -195,6 +195,7 @@ export function WindowsMenuBar() {
   const command = useCommand()
   const platform = usePlatform()
   const runner = useMenuRunner({ command, platform })
+
   const visible = () =>
     platform.platform === "desktop" && (platform.os === "windows" || platform.os === "linux")
 
@@ -223,7 +224,7 @@ export function WindowsMenuBar() {
             <Menu appearance="standard" gutter={4} modal={false} placement="bottom-start">
               <Menu.Trigger
                 data-replica-control
-                class="flex h-[22px] shrink-0 items-center rounded-[var(--radius-control)] px-2 text-[13px] leading-[var(--line-height-compact)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text-main)] data-[expanded]:bg-[var(--color-selected)] data-[expanded]:text-[var(--color-text-main)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-border)]"
+                class="flex h-7 shrink-0 items-center rounded-[var(--radius-control)] px-2 text-[13px] leading-[var(--line-height-compact)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text-main)] data-[expanded]:bg-[var(--color-selected)] data-[expanded]:text-[var(--color-text-main)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-border)]"
                 onPointerDown={runner.rememberFocus}
                 onKeyDown={runner.rememberFocus}
               >

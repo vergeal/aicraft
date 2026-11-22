@@ -14,12 +14,54 @@ import { findSessionTab, useTabs } from "@/shell/tabs/tabs"
 import { PerfMonitor } from "./perf-monitor"
 
 const BUTTON =
-  "flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)] disabled:opacity-40 disabled:pointer-events-none"
+  "flex shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-icon-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-icon-primary)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)] disabled:opacity-40 disabled:pointer-events-none"
+
+/** The routed conversation's tab, the one the layout opens its side region for. */
+function reviewTarget(layout: ReturnType<typeof useLayout>, tabs: ReturnType<typeof useTabs>) {
+  const route = layout.route()
+
+  if (route.type !== "session") return
+
+  return findSessionTab(tabs.store, route.server, route.sessionId)
+}
 
 /**
- * The context ring, the review toggle and the FPS meter ride whichever head is over the window's trailing edge:
- * the workspace bar while the side panel is closed, and the panel's own head once it opens, so they never sit in
- * the empty strip beside the panel.
+ * The review toggle that opens and closes the side region. It lives in the workspace bar while the region is
+ * closed, and in the region's own head at its leading edge once it opens, so it always sits where the region is.
+ */
+export function ReviewToggle() {
+  const language = useLanguage()
+  const layout = useLayout()
+  const tabs = useTabs()
+
+  return (
+    <Show when={reviewTarget(layout, tabs)}>
+      {(tab) => (
+        <Tooltip placement="bottom" value={language.t("command.review.toggle")}>
+          <button
+            type="button"
+            data-session-only
+            data-replica-control
+            data-ui="titlebar-review"
+            data-slot="session-review-toggle"
+            class={`${BUTTON} size-7`}
+            aria-label={language.t("command.review.toggle")}
+            aria-expanded={tabs.region(tab(), "side")}
+            aria-controls="review-panel"
+            onClick={() => tabs.setRegion(tab(), "side", !tabs.region(tab(), "side"))}
+          >
+            <Icon name={tabs.region(tab(), "side") ? "layout-right-full" : "layout-right"} size="small" />
+          </button>
+        </Tooltip>
+      )}
+    </Show>
+  )
+}
+
+/**
+ * The context ring and the FPS meter ride whichever head is over the window's trailing edge: the workspace bar
+ * while the side panel is closed, and the panel's own head once it opens, so they never sit in the empty strip
+ * beside the panel.
  */
 export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"; fps?: boolean }) {
   const language = useLanguage()
@@ -28,26 +70,12 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
   const servers = useServers()
   const tabs = useTabs()
 
-  /** The open conversation's review panel, the side region the layout opened for this tab. */
-  const reviewTab = () => {
-    const route = layout.route()
-
-    if (route.type !== "session") return
-
-    return findSessionTab(tabs.store, route.server, route.sessionId)
-  }
+  const reviewTab = () => reviewTarget(layout, tabs)
 
   const reviewOpen = () => {
     const tab = reviewTab()
 
     return tab ? tabs.region(tab, "side") : false
-  }
-
-  const toggleReview = () => {
-    const tab = reviewTab()
-
-    if (!tab) return
-    tabs.setRegion(tab, "side", !tabs.region(tab, "side"))
   }
 
   // The ring, the token count and the spend are one control: clicking it opens the built-in context panel next
@@ -68,7 +96,7 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
       "context:main",
     )
 
-    const tab = findSessionTab(tabs.store, route.server, route.sessionId)
+    const tab = reviewTab()
 
     if (tab) tabs.setRegion(tab, "side", true)
   }
@@ -123,7 +151,8 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
 
   return (
     <Show when={props.placement === "workspace" ? !reviewOpen() : reviewOpen()}>
-      <Show when={usage()}>
+      {/* The chip never sits in the panel's head: any open side region hides it, whichever tab it shows. */}
+      <Show when={reviewOpen() ? undefined : usage()}>
         {(value) => (
           <Tooltip
             placement="bottom"
@@ -147,7 +176,7 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
               data-replica-control
               data-session-only
               aria-label={language.t("replica.context.open")}
-              class="flex h-6 shrink-0 items-center gap-1.5 rounded-full px-1.5 text-[12px] leading-4 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-selected)] hover:text-[var(--color-text-main)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-border)]"
+              class="flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2 text-[12px] leading-4 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-selected)] hover:text-[var(--color-text-main)] focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-border)]"
               onClick={openContext}
             >
               <ProgressCircle
@@ -169,23 +198,9 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
           </Tooltip>
         )}
       </Show>
-      <Show when={reviewTab()}>
-        <Tooltip placement="bottom" value={language.t("command.review.toggle")}>
-          <button
-            type="button"
-            data-session-only
-            data-replica-control
-            data-ui="titlebar-review"
-            data-slot="session-review-toggle"
-            class={BUTTON}
-            aria-label={language.t("command.review.toggle")}
-            aria-expanded={reviewOpen()}
-            aria-controls="review-panel"
-            onClick={toggleReview}
-          >
-            <Icon name={reviewOpen() ? "layout-right-full" : "layout-right"} size="small" />
-          </button>
-        </Tooltip>
+      {/* Only the workspace bar carries the toggle while the region is closed; the region draws it in its own head. */}
+      <Show when={props.placement === "workspace"}>
+        <ReviewToggle />
       </Show>
       <Show when={import.meta.env.DEV && props.fps !== false}>
         <PerfMonitor />

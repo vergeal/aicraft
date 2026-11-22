@@ -42,7 +42,12 @@ export function PerfMonitor() {
   const layout = useLayout()
   const navigate = useNavigate()
 
-  const [panel, setPanel] = createStore({ open: false, busy: false, depth: "hot" as DiagnosisDepth })
+  const [panel, setPanel] = createStore<{ open: boolean; busy: boolean; depth: DiagnosisDepth }>({
+    open: false,
+    busy: false,
+    depth: "hot",
+  })
+
   const [metrics, setMetrics] = createStore({ ...EMPTY })
   const [capture, setCapture] = createStore({ events: 0, dropped: 0, seconds: 60 })
 
@@ -119,12 +124,14 @@ export function PerfMonitor() {
     }
 
     const route = layout.route()
+
     const session =
       route.type === "session"
         ? ((current) => (current ? { id: current.id, location: current.location } : undefined))(
             ctx.data.session.get(route.sessionId),
           )
         : undefined
+
     const time = new Date().toLocaleTimeString(language.locale(), { hour: "2-digit", minute: "2-digit" })
 
     setPanel("busy", true)
@@ -139,7 +146,7 @@ export function PerfMonitor() {
       navigate: (href) => navigate(href),
     })
       .then(() => setPanel("open", false))
-      .catch((error: unknown) =>
+      .catch((error) =>
         showToast({
           title: language.t("perf.monitor.failed"),
           description: error instanceof Error ? error.message : String(error),
@@ -159,7 +166,7 @@ export function PerfMonitor() {
     "data-diagnostics-ignore": "",
     "aria-label": language.t("perf.monitor.open"),
     class:
-      "flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-[12px] leading-4 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-selected)] hover:text-[var(--color-text-main)] active:bg-[var(--color-selected)] focus-visible:outline-none",
+      "flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px] leading-4 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-selected)] hover:text-[var(--color-text-main)] active:bg-[var(--color-selected)] focus-visible:outline-none",
   }
 
   return (

@@ -591,6 +591,18 @@
   background-color: var(--v2-background-bg-base);
 }
 
+/* The side region's leading slot owns the strip's start, so the list begins there and its rule, the tabs and the
+   "+" keep one spacing instead of the list adding its own inset on top. */
+:root
+  body
+  #review-panel
+  [data-component="tabs"]
+  .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"])
+  [data-slot="tabs-list"] {
+  padding-inline-start: 0;
+  gap: 4px;
+}
+
 :root
   body
   :is(#review-panel, #bottom-panel)

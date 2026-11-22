@@ -954,6 +954,47 @@ const readPicture: SessionMessageInfo[] = [
   idle("msg_idle_picture", TIME + 2_500),
 ]
 
+// The client strips stored message payloads down to `data:<mime>;base64,`, so a picture step falls back to reading
+// the file the tool itself read instead of the emptied URL.
+const strippedPicture: SessionMessageInfo[] = [
+  { id: "msg_user_stripped_picture", type: "user", text: "看一下这张图。", time: { created: TIME } },
+  assistant(
+    "msg_stripped_picture",
+    [
+      {
+        type: "tool",
+        id: "tool_stripped_picture",
+        name: "read",
+        state: {
+          status: "completed",
+          input: { path: "C:/workspaces/opencode/packages/app/before.svg" },
+          content: [
+            { type: "file", uri: "data:image/svg+xml;base64,", mime: "image/svg+xml", name: "before.svg" },
+          ],
+          metadata: {},
+        },
+        time: { created: TIME, completed: TIME + 1_000 },
+      },
+      { type: "text", text: "这是设置页。" },
+    ],
+    TIME + 500,
+    TIME + 2_000,
+  ),
+  idle("msg_idle_stripped_picture", TIME + 2_500),
+]
+
+export const ReadPictureStripped = {
+  render: () => (
+    <MarkdownProvider
+      readImage={(path) => Promise.resolve(path.endsWith("packages/app/before.svg") ? pictureBytes : undefined)}
+    >
+      <div class="h-dvh">
+        <AnswerPage messages={() => strippedPicture} />
+      </div>
+    </MarkdownProvider>
+  ),
+}
+
 export const ReadPicture = {
   render: () => (
     <MarkdownProvider readImage={() => Promise.resolve(pictureBytes)}>

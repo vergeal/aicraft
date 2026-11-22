@@ -22,7 +22,7 @@ import { localImagePath } from "../components/markdown-image"
 import { DataContext } from "../context/data"
 import { useMarkdown } from "../context/markdown"
 import { childrenOf, projectTimeline } from "./project"
-import { toolActivity, toolDescription, toolError, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
+import { toolActivity, toolDescription, toolError, toolImagePath, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
   createRestoreState,
   transitionRestore,
@@ -2279,7 +2279,7 @@ function ToolRow(props: {
     >
       <Show when={images().length > 0}>
         <div data-slot="answer-tool-images" class="mt-1 ms-[30px] flex min-w-0 flex-col gap-2">
-          <For each={images()}>{(image) => <ToolImage image={image} />}</For>
+          <For each={images()}>{(image) => <ToolImage image={image} fallbackPath={toolImagePath(props.tool)} />}</For>
         </div>
       </Show>
       <Show when={!failed() && diffs().length > 0}>
@@ -2415,10 +2415,10 @@ function ToolRow(props: {
 
 /**
  * One image a tool returned, shown under its open row. A server-local path is read through the markdown image
- * loader; data, http(s) and blob sources are already renderable. Only the open row mounts it, so collapsed
- * history loads no pixels.
+ * loader; data, http(s) and blob sources are already renderable. Content the client stripped of its stored payload
+ * falls back to the file the tool read. Only the open row mounts it, so collapsed history loads no pixels.
  */
-function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
+function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallbackPath?: string }) {
   const i18n = useI18n()
   const markdown = useMarkdown()
   const data = useContext(DataContext)
@@ -2475,12 +2475,23 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
       return
     }
 
+    // The client drops stored image payloads from message content, leaving only `data:<mime>;base64,` behind. The
+    // tool's own input still names the file it read, so draw that file instead of the emptied URL.
+    const stripped = /^data:[^,]*;base64,$/i.test(uri)
+    const source = stripped ? props.fallbackPath : uri
+
+    if (!source) {
+      setBroken(true)
+
+      return
+    }
+
     // A read result points at its file with a `file:` URL, which the host's local image loader refuses as a scheme.
-    const path = localImagePath(uri)
+    const path = localImagePath(source)
 
     if (!path || !markdown?.readImage) {
-      if (/^(data|blob|https?):/i.test(uri)) {
-        setUrl(uri)
+      if (/^(data|blob|https?):/i.test(source)) {
+        setUrl(source)
 
         return
       }

@@ -61,3 +61,19 @@ story("previews a tool image stored as a media ref", async ({ mount }) => {
   await expect(root.locator('[data-slot="answer-tool-image-thumb"]')).toBeVisible()
   await expect(root.locator('[data-slot="answer-tool-image-state"]')).toHaveCount(0)
 })
+
+story("reads the file a picture step names when its payload was stripped", async ({ mount }) => {
+  const root = await mount("answer-page--read-picture-stripped")
+  await root.locator('[data-slot="answer-fold"]').first().locator('[data-slot="answer-run-header"] button').click()
+
+  const groups = root.locator('[data-slot="answer-group"]')
+
+  for (let index = 0; index < (await groups.count()); index++) {
+    await groups.nth(index).locator(":scope > button").click()
+  }
+
+  const row = root.locator('[data-slot="answer-row"][data-kind="tool"]').first()
+  await row.locator("[data-disclosure-row]").click()
+  await expect(root.locator('[data-slot="answer-tool-image-thumb"]')).toBeVisible()
+  await expect(root.locator('[data-slot="answer-tool-image-state"]')).toHaveCount(0)
+})

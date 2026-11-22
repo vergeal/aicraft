@@ -60,6 +60,18 @@ export function toolImages(tool: Pick<ToolPart, "state">): ToolImage[] {
   return tool.state.content.flatMap((part) => (part.type === "file" && part.mime.startsWith("image/") ? [part] : []))
 }
 
+/**
+ * The file a tool result's images came from, when the tool names one. The client drops stored image payloads from
+ * message content, so a picture step falls back to reading the file the tool itself read.
+ */
+export function toolImagePath(tool: Pick<ToolPart, "name" | "state">): string | undefined {
+  const input = tool.state.input
+
+  if (Predicate.isString(input)) return undefined
+
+  return inputField(input, inputKeys(tool.name))
+}
+
 const PATH_TOOLS = new Set(["edit", "write", "patch", "apply_patch", "read"])
 
 function inputKeys(name: string) {

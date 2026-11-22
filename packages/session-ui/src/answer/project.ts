@@ -346,10 +346,12 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
   const children = new Map<number, readonly TimelineChild[]>()
 
   for (const draft of drafts) {
-    // The answer is the last assistant output: the final node of the turn and the last block of its
-    // assistant message. Anything after it means the text was a step summary, not the answer.
-    const tail = draft.nodes.at(-1)
-    const answer = tail?.payload.kind === "assistant" ? tail : undefined
+    // The answer is the turn's last content-bearing assistant text, like DSH's turn tail finds its closing
+    // reply. Looking back instead of requiring the turn's final node keeps a trailing notice or a last tool
+    // call from hiding the reply; later work still belongs to the process above it.
+    const answer = draft.nodes.findLast(
+      (node) => node.payload.kind === "assistant" && node.payload.text.trim() !== "",
+    )
 
     // A turn closes only when a closing answer exists; a step reply followed by work never closes it.
     // The server marks the end of a turn with an idle message; without one, a closing answer ends it.

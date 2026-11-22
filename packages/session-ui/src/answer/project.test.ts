@@ -240,15 +240,35 @@ describe("answer projection", () => {
     expect([...snapshot.groups.values()].map((group) => group.members.length)).toEqual([1, 1])
   })
 
-  test("does not treat a reply followed by work as the answer", () => {
+  test("treats the last reply with text as the answer even when work follows", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),
       assistant("msg_2", 2, [{ type: "text", text: "step summary" }, tool("tool_1")], 9),
     ])
 
-    expect(snapshot.turns.get(1)?.answer).toBeNull()
+    expect(snapshot.turns.get(1)?.answer).toBe(1)
     expect(snapshot.turns.get(1)?.status).toBe("open")
-    expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold"])
+    expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
+  })
+
+  test("keeps the reply as the answer when a notice trails the turn", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 4),
+      {
+        id: "msg_3",
+        type: "system",
+        text: "指令有变化：core/project",
+        description: "Instructions updated: core/project",
+        metadata: { notice: "instructions" },
+        time: { created: 5 },
+      } satisfies SessionMessageInfo,
+      { id: "msg_4", type: "idle", outcome: "succeeded", time: { created: 6 } } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.turns.get(1)?.answer).toBe(1)
+    expect(snapshot.turns.get(1)?.status).toBe("closed")
+    expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
   })
 
   test("closes a turn when the server marks it idle", () => {
@@ -259,7 +279,7 @@ describe("answer projection", () => {
     ])
 
     expect(snapshot.turns.get(1)?.status).toBe("closed")
-    expect(snapshot.turns.get(1)?.answer).toBeNull()
+    expect(snapshot.turns.get(1)?.answer).toBe(1)
   })
 
   test("keeps row keys stable across streamed deltas", () => {

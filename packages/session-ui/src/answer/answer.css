@@ -7,10 +7,6 @@
   --answer-surface: rgb(249, 250, 251);
   /* Branch guides of a step tree; kept low so the rail never competes with the labels. */
   --answer-guide: rgba(129, 133, 140, 0.45);
-  /* One motion step for a collapse, from the design motion scale: its standard ease, shortened because only a track
-     moves and a fold has to finish before the reveal it precedes. */
-  --answer-collapse-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --answer-collapse-duration: 180ms;
   --answer-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
   font-family: var(--answer-font-sans);
   color: var(--answer-ink);
@@ -347,45 +343,6 @@
 
 .answer-scope [data-slot="answer-reasoning-body"][data-can-scroll-down] {
   --answer-reasoning-fade-bottom: var(--answer-reasoning-fade);
-}
-
-/* A fold and a row disclosure collapse into one grid track: it animates from zero to the content's own height, so no
-   height is measured in JS. The inner box clips only while the track moves, which keeps a focus ring from being cut at
-   rest, and reduced motion drops the transition without changing the outcome. */
-.answer-scope .answer-collapse {
-  display: grid;
-  /* A grid item's automatic minimum width would let one long row widen the whole answer column, so the track stays at
-     the column's width and the row wraps inside it. */
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 0fr;
-  min-width: 0;
-  transition: grid-template-rows var(--answer-collapse-duration) var(--answer-collapse-ease);
-}
-
-.answer-scope .answer-collapse[data-expanded] {
-  grid-template-rows: 1fr;
-}
-
-.answer-scope .answer-collapse-inner {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* While the track moves, keep its per-frame relayout from reaching the rest of the transcript. Paint containment
-   clips, so it only applies with the clip that is already there. */
-.answer-scope .answer-collapse[data-clipping] .answer-collapse-inner {
-  contain: layout paint;
-}
-
-.answer-scope .answer-collapse[data-expanded]:not([data-clipping]) .answer-collapse-inner {
-  overflow: visible;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .answer-scope .answer-collapse {
-    transition: none;
-  }
 }
 
 /* The document glyph fills its 14-unit grid, so at 18px it reads heavier than the step icons drawn

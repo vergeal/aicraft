@@ -1088,7 +1088,7 @@ function FoldRow(props: {
           onToggle={props.onToggle}
         />
       </Show>
-      <Collapse open={open()}>
+      <Show when={open()}>
         <div class={flat() ? "flex flex-col gap-1 pt-2" : "flex flex-col gap-3 pt-2"}>
           <For each={childKeys()}>
             {(key) => {
@@ -1150,7 +1150,7 @@ function FoldRow(props: {
             }}
           </For>
         </div>
-      </Collapse>
+      </Show>
       {/* Without a closing answer, a folded turn still keeps its last step summary readable. */}
       <Show when={!open() && props.turn.answer === null}>
         <div class="flex flex-col gap-1 pt-2">
@@ -1921,82 +1921,6 @@ function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boo
   )
 }
 
-// A fold opens and closes in one motion step; the CSS owns the track and this only gates the unmount.
-const COLLAPSE_MS = 180
-
-/**
- * A disclosure body that grows and shrinks instead of popping in and out. The track animates from zero, so no height is
- * measured in JS; only the unmount waits for the closing transition, and the opening frame is measured at zero before
- * the track grows so the transition has a start value.
- */
-function Collapse(props: { open: boolean; id?: string; children: JSX.Element }) {
-  const [shown, setShown] = createSignal(props.open)
-  const [expanded, setExpanded] = createSignal(props.open)
-  const [clipping, setClipping] = createSignal(false)
-  let timer: ReturnType<typeof setTimeout> | undefined
-  let frame = 0
-
-  const settle = () => {
-    if (timer !== undefined) clearTimeout(timer)
-    timer = undefined
-  }
-
-  createEffect(
-    on(
-      () => props.open,
-      (open) => {
-        settle()
-        cancelAnimationFrame(frame)
-
-        if (open) {
-          setClipping(true)
-
-          if (shown()) {
-            // Reopening mid-close: the track is already partway down, so let it ease back up from there.
-            setExpanded(true)
-          } else {
-            setShown(true)
-            setExpanded(false)
-            frame = requestAnimationFrame(() => {
-              frame = 0
-              setExpanded(true)
-            })
-          }
-
-          timer = setTimeout(() => {
-            timer = undefined
-            setClipping(false)
-          }, COLLAPSE_MS)
-
-          return
-        }
-
-        setExpanded(false)
-        setClipping(true)
-        timer = setTimeout(() => {
-          timer = undefined
-          setShown(false)
-          setClipping(false)
-        }, COLLAPSE_MS)
-      },
-      { defer: true },
-    ),
-  )
-
-  onCleanup(() => {
-    settle()
-    cancelAnimationFrame(frame)
-  })
-
-  return (
-    <div class="answer-collapse" data-expanded={expanded() ? "" : undefined} data-clipping={clipping() ? "" : undefined}>
-      <div class="answer-collapse-inner" id={props.id}>
-        <Show when={shown()}>{props.children}</Show>
-      </div>
-    </div>
-  )
-}
-
 /** L2: one disclosure row. The chevron only appears on hover, as in DSH. */
 function DisclosureRow(props: {
   title: string
@@ -2047,9 +1971,9 @@ function DisclosureRow(props: {
           <span class="sr-only">{i18n.t("ui.messagePart.diagnostic.error")}</span>
         </Show>
       </div>
-      <Collapse open={props.expanded} id={id}>
-        {props.children}
-      </Collapse>
+      <Show when={props.expanded}>
+        <div id={id}>{props.children}</div>
+      </Show>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { accountDirectory, readCredentials, resolveChfileRoot } from "./account.
 import type { Credentials } from "./account.js"
 import type { BridgeClient } from "./bridge/client.js"
 import { sendMessage } from "./bridge/client.js"
+import { bridgeExecutable, ensureLogin } from "./bridge/native.js"
 import type { BridgeSupervisor, SupervisorStatus } from "./bridge/supervisor.js"
 import { createSupervisor } from "./bridge/supervisor.js"
 import { openReadonly, openWritable, appendOwnMessage } from "./chat/store.js"
@@ -52,6 +53,8 @@ export interface Service {
   chat(): Promise<Database>
   contacts(): Promise<Database>
   recvRoot(): Promise<string>
+  /** 后台预热独立消息通道：拉起桥接并登录，失败由调用方决定是否记录。 */
+  warm(): Promise<void>
   sendText(input: { sessionId: string; text: string }): Promise<SendOutcome>
   bridgeStatus(): SupervisorStatus | undefined
   cleanup(): Promise<void>
@@ -109,13 +112,27 @@ export function createService(deps: RuntimeDeps): Service {
       deps.createBridge?.(settings) ??
       createSupervisor({
         chfileRoot: resolveChfileRoot(settings.chfileRoot),
-        executable: settings.bridgePath,
+        executable: bridgeExecutable(join(import.meta.dirname, ".."), settings.bridgePath),
         autoStart: settings.autoStartBridge,
       })
     return supervisor
   }
 
   const client = async (): Promise<BridgeClient> => (await bridge()).client()
+
+  /**
+   * 可用的消息通道：桥接进程按需拉起（已有实例则复用），未登录时用 login.db 里的凭据登录一次。
+   * 插件自带 SDK，不要求虹云通客户端在运行；客户端同时开着也能共用同一个桥接实例。
+   */
+  const channel = async (): Promise<BridgeClient> => {
+    const settings = await readCached()
+    const credentials = readCredentials(resolveChfileRoot(settings.chfileRoot), settings.account)
+    if (credentials === undefined)
+      throw new Error("没有找到虹云通的登录凭据：先打开虹云通客户端登录一次，或在插件设置里指定 chfileRoot 与 account。")
+    const current = await client()
+    await ensureLogin(current, credentials)
+    return current
+  }
 
   return {
     dataDir: deps.dataDir,
@@ -128,6 +145,18 @@ export function createService(deps: RuntimeDeps): Service {
     chat,
     contacts,
     recvRoot: async () => join((await requireEnvironment()).directory, "RecvFiles"),
+    warm: async () => {
+      const settings = await readCached()
+      if (!settings.autoStartBridge) return
+      if ((await environment()) === undefined) return
+      // 插件重载或另一个进程刚抢到端口时，第一次可能连到即将退出的实例；稍等再试一次即可自愈。
+      try {
+        await channel()
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 3_000))
+        await channel()
+      }
+    },
     sendText: async (input) => {
       const settings = await readCached()
       if (process.platform === "linux") throw new Error("当前平台是 Linux，桥接只支持读取，不能发消息。")
@@ -141,7 +170,7 @@ export function createService(deps: RuntimeDeps): Service {
       if (!isAllowed(settings.whitelist, sessionId, environment.account))
         throw new Error(`会话 ${sessionId} 不在白名单里，拒绝发送。`)
 
-      const result = await sendMessage(await client(), { sessionId, text })
+      const result = await sendMessage(await channel(), { sessionId, text })
       if (!result.ok) throw new Error("bridge 没有确认消息已发出。")
       const outcome = await recordOwnMessage({
         db: await chat(),

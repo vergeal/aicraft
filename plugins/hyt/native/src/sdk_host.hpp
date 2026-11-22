@@ -138,7 +138,7 @@ class SdkHost {
   SdkHost() = default;
   void emit(const std::string& method, const nhjson::Value& params);
   void setConnectState(int code, int reason);
-  void writeOwnMessage(const StoredMessage& message, bool fromSendCallback);
+  void writeMessage(const StoredMessage& message, bool incoming, bool rebroadcast);
   void broadcastSelfMessage(const StoredMessage& message);
 
   struct PendingSend {
@@ -174,6 +174,8 @@ class SdkHost {
   std::mutex callMutex_;
   std::mutex pendingMutex_;
   std::mutex groupsMutex_;
+  /** 登录串行化：多个插件进程会同时对同一个桥登录。 */
+  std::mutex loginMutex_;
 
   bool initialized_ = false;
   bool available_ = false;

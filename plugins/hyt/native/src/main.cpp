@@ -789,6 +789,16 @@ int main(int argc, char** argv) {
   }
 
   writeBridgeInfo(port);
+  // 发现文件可能被清理、覆盖或被复制到别处：定期确认它仍指向本进程，否则重写，
+  // 否则运行中的实例会变得不可发现，其他进程只能重复启动并撞端口。
+  std::thread([](int port) {
+    while (true) {
+      hyt::sleepMs(5000);
+      long long pid = 0;
+      int found = 0;
+      if (!readBridgeInfo(&pid, &found) || pid != pidValue() || found != port) writeBridgeInfo(port);
+    }
+  }, port).detach();
   hyt::logInfo("hyt-native-bridge %s 监听 127.0.0.1:%d，chRoot=%s（初始化 EC SDK）",
                kBridgeVersion, port, hyt::chRootDir().c_str());
 

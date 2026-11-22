@@ -62,6 +62,8 @@ struct OwnMessage {
   std::string fileFullPath;
   int isAt = 0;
   long long originFileSize = 0;
+  /** true 表示收到的消息：未读、本地时间取服务端时间、lastmsg 未读数 +1。 */
+  bool incoming = false;
 };
 
 class Store {

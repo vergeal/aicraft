@@ -16,3 +16,9 @@ cmake "${args[@]}"
 make -C "$build_dir" -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
 echo "构建完成：$build_dir/bin/hyt-native-bridge"
+
+# 打包需要 ECMediaSDK.framework；留在 sdk-runtime 里，换机器打包时不必再找 SDK。
+if [[ -n "$sdk_root" && -d "$sdk_root/lib/mac/ECMediaSDK.framework" ]]; then
+  mkdir -p "$here/sdk-runtime"
+  cp -R "$sdk_root/lib/mac/ECMediaSDK.framework" "$here/sdk-runtime/"
+fi

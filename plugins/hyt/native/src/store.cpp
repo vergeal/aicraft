@@ -277,10 +277,13 @@ bool Store::insertOwnMessage(const OwnMessage& m, std::string* error) {
     sqlite3_bind_text(stmt, i++, m.fileName.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, i++, m.fileUrl.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, i++, m.sessionType);
-    sqlite3_bind_int64(stmt, i++, 0);
+    if (m.incoming)
+      sqlite3_bind_text(stmt, i++, m.createdTime.c_str(), -1, SQLITE_TRANSIENT);
+    else
+      sqlite3_bind_int64(stmt, i++, 0);
     sqlite3_bind_text(stmt, i++, m.sessionId.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, i++, m.senderNick.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, i++, 1);
+    sqlite3_bind_int(stmt, i++, m.incoming ? 0 : 1);
     sqlite3_bind_int64(stmt, i++, m.fileSize);
     sqlite3_bind_text(stmt, i++, m.fileFullPath.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, i++, m.sessionType);
@@ -295,6 +298,8 @@ bool Store::insertOwnMessage(const OwnMessage& m, std::string* error) {
     sqlite3_bind_int(stmt, i++, 1);
 
     int rc = sqlite3_step(stmt);
+    // 这条消息是本进程第一次写进库，才累加未读；客户端同时写入时由它自己维护计数，避免双计。
+    const bool inserted = rc == SQLITE_DONE && sqlite3_changes(db_) > 0;
     sqlite3_finalize(stmt);
     if (rc != SQLITE_DONE) {
       lastError = sqlite3_errmsg(db_);
@@ -316,8 +321,11 @@ bool Store::insertOwnMessage(const OwnMessage& m, std::string* error) {
         if (c == '\'') escaped += '\'';
       }
       std::string insertLast =
-          "INSERT OR IGNORE INTO lastmsg (SessionId,UnReadCount) VALUES ('" +
-          escaped + "',0)";
+          m.incoming && inserted
+              ? "INSERT INTO lastmsg (SessionId,UnReadCount) VALUES ('" + escaped +
+                    "',1) ON CONFLICT(SessionId) DO UPDATE SET UnReadCount = IFNULL(UnReadCount,0)+1"
+              : "INSERT OR IGNORE INTO lastmsg (SessionId,UnReadCount) VALUES ('" +
+                    escaped + "',0)";
       if (sqlite3_exec(db_, insertLast.c_str(), nullptr, nullptr, &err) != SQLITE_OK) {
         logError("lastmsg 写入失败: %s", err ? err : "unknown");
       }

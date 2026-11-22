@@ -88,9 +88,13 @@ export function createSupervisor(options: SupervisorOptions): BridgeSupervisor {
     if (!existsSync(executable)) throw new Error(`bridge 可执行文件不存在：${executable}`)
 
     child = options.spawnProcess?.(executable) ?? spawn(executable, [], { stdio: "ignore", detached: false })
+    const spawnedPid = child.pid
     child.once("exit", () => {
       child = undefined
       if (stopping) return
+      // 抢占端口时，后启动的桥发现已有实例会自己退出。此时我们连上的可能是先启动的那个实例，
+      // 不能因为自己的子进程退出就关掉它——否则登录请求会以「连接已断开」失败。
+      if (connection !== undefined && spawnedPid !== undefined && connection.endpoint.pid !== spawnedPid) return
       // 自己拉起的进程退出：断开当前连接并按退避重连。
       connection?.close()
       connection = undefined
@@ -98,7 +102,18 @@ export function createSupervisor(options: SupervisorOptions): BridgeSupervisor {
     })
 
     const endpoint = await waitForEndpoint(options.chfileRoot, before)
-    if (endpoint === undefined) throw new Error("bridge 已启动，但等待 Config/bridge.json 超时。")
+    if (endpoint === undefined) {
+      // 另一个进程可能抢先启动并占用了端口：再读一次发现文件，连上就复用，避免把竞争当失败。
+      const raced = await readEndpoint(options.chfileRoot)
+      const existing = raced === undefined ? undefined : await open(raced)
+      if (existing !== undefined) return existing
+      // 旧实例可能活着但发现文件已丢失：桥默认只听 127.0.0.1:37210，直连一次兜底。
+      if (raced === undefined) {
+        const fallback = await open({ host: "127.0.0.1", port: 37210 })
+        if (fallback !== undefined) return fallback
+      }
+      throw new Error("bridge 已启动，但等待 Config/bridge.json 超时。")
+    }
     const opened = await open(endpoint)
     if (opened === undefined) throw new Error(`无法连接 bridge：${endpoint.host}:${endpoint.port}`)
     return opened
@@ -176,7 +191,12 @@ async function waitForEndpoint(chfileRoot: string, before: Endpoint | undefined)
     const endpoint = await readEndpoint(chfileRoot)
     if (endpoint !== undefined && (before === undefined || endpoint.pid !== before.pid || endpoint.startedAt !== before.startedAt))
       return endpoint
-    await Bun.sleep(ENDPOINT_POLL_MS)
+    await sleep(ENDPOINT_POLL_MS)
   }
   return undefined
+}
+
+/** GUI 主进程是 Electron 的 Node 运行时，没有 Bun.sleep。 */
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }

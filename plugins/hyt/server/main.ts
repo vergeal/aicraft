@@ -2,7 +2,7 @@ import { Plugin } from "@opencode/plugin"
 import { AbsolutePath } from "@opencode/schema/schema"
 import { Skill } from "@opencode/schema/skill"
 import { existsSync } from "node:fs"
-import { readFile } from "node:fs/promises"
+import { readFile, appendFile, mkdir } from "node:fs/promises"
 import { join } from "node:path"
 import manifest from "../ocplugin.json" with { type: "json" }
 import { analyzeOnce, capabilityList, startAnalysisLoop } from "../src/ai/loop.js"
@@ -35,6 +35,17 @@ export default Plugin.define({
       dataDir: ctx.paths.data,
       config: ctx.config,
       options: ctx.options,
+    })
+    const note = (text: string) =>
+      mkdir(ctx.paths.data, { recursive: true })
+        .then(() => appendFile(join(ctx.paths.data, "bridge-warm.log"), `${new Date().toISOString()} pid=${process.pid} ${text}\n`))
+        .catch(() => undefined)
+    // 插件自带 SDK：启动后台把桥接拉起来并登录，之后收发都不必先运行虹云通客户端。
+    void service.warm().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn("[hyt] 独立消息通道未就绪：", message)
+      // 后台预热失败不打断插件，但把原因留在插件数据目录，便于下次排查。
+      return note(`warm failed: ${message}`)
     })
 
     const skill = await loadSkill()

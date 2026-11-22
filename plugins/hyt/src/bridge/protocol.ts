@@ -4,10 +4,13 @@
  * 方法名以 bridge 会话实现的契约为准，这里只固定当前已知的几个，其余走 request(method, params)。
  */
 
+import { readFile } from "node:fs/promises"
+
 export const METHODS = {
   ping: "ping",
   info: "bridge.info",
   login: "auth.login",
+  state: "auth.state",
   sendMessage: "im.sendMessage",
   sessions: "im.sessions",
   call: "sdk.call",
@@ -98,9 +101,15 @@ export interface BridgeSession {
 
 /** bridge.json 读取；文件缺失或字段不合法时返回 undefined。同时接受端口是字符串的写法。 */
 export async function readEndpoint(chfileRoot: string): Promise<Endpoint | undefined> {
-  const file = Bun.file(`${chfileRoot}/Config/bridge.json`)
-  if (!(await file.exists())) return undefined
-  return parseEndpoint(await file.json().catch(() => undefined))
+  // 用 node:fs 而不是 Bun.file：GUI 主进程是 Electron 的 Node 运行时，没有 Bun 全局。
+  const file = `${chfileRoot}/Config/bridge.json`
+  const text = await readFile(file, "utf8").catch(() => undefined)
+  if (text === undefined) return undefined
+  try {
+    return parseEndpoint(JSON.parse(text) as unknown)
+  } catch {
+    return undefined
+  }
 }
 
 export function parseEndpoint(value: unknown): Endpoint | undefined {

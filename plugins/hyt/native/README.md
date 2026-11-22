@@ -42,14 +42,28 @@ macOS 链接 `libECMacSDK.a` 与 `ECMediaSDK.framework`，另需系统自带 SQL
 ### Windows
 
 ```bat
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 ^
-  -DHYT_SDK_ROOT="C:\path\to\sdk"
-cmake --build build --config Release
+set HYT_SDK_ROOT=C:\path\to\sdk
+scripts\build-windows.bat
+rem 产物：build-win\bin\hyt-native-bridge.exe
 ```
 
 SDK 目录布局：`include/win/`（头文件）与 `lib/win/`（`ECsdk.lib`、`ecmedia.lib`、`ECsdk.dll`）。
-CMake 也兼容 `libSdk/` 下的库文件。运行时把 `ECsdk.dll`、`ecmedia.dll` 放到可执行文件同目录。
+CMake 也兼容 `libSdk/` 下的库文件。运行时把 `ECsdk.dll`、`ecmedia.dll` 放到可执行文件同目录；
+插件打包时会把 `lib/win`、`libSdk` 或 `native/sdk-runtime/win` 下的 `*.dll` 一并复制。
 HTTP 走 WinHTTP，不依赖 libcurl；SQLite3 需自行提供（例如 vcpkg 的 `sqlite3`）。
+
+### 插件打包布局
+
+`bun run build` 会按当前平台把产物放进插件包，换机器安装后不需要开发机上的 SDK 路径：
+
+```
+dist/native/darwin-x64/hyt-native-bridge    # 或 win32-x64/hyt-native-bridge.exe
+dist/native/Frameworks/ECMediaSDK.framework # 仅 macOS
+```
+
+macOS 构建后会把 `ECMediaSDK.framework` 复制到 `native/sdk-runtime/`，打包时从这里取；
+`install_name_tool` 会补一条 `@executable_path/../Frameworks`，所以产物只在包内解析依赖。
+`sdk-runtime/` 是本机构建产物，不入库。
 
 ### Linux
 

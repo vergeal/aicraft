@@ -139,3 +139,10 @@ endif()
 set_target_properties(hyt-native-bridge PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+# 多配置生成器（Visual Studio）会把 Release 放进 bin/Release；固定下来，插件打包只认一个位置。
+foreach(config ${CMAKE_CONFIGURATION_TYPES})
+  string(TOUPPER "${config}" upper)
+  set_target_properties(hyt-native-bridge PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_${upper} "${CMAKE_BINARY_DIR}/bin"
+  )
+endforeach()

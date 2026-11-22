@@ -139,6 +139,28 @@ export function readLastUser(root: string) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined
 }
 
+interface CredentialRow {
+  readonly UserName: string | null
+  readonly Password: string | null
+}
+
+/**
+ * 登录凭据：UserName 交给桥接的 `auth.login`，Password 是 base64 明文解码后的值。
+ * 只在主进程内存里用一次，不写日志、不落盘。
+ */
+export function readCredential(root: string, account: string) {
+  const rows = readRows<CredentialRow>(
+    join(root, "login.db"),
+    "select UserName, Password from loginuser order by LoginTime desc",
+  )
+  const wanted = accountOf(account)
+  const row = wanted.length > 0 ? rows.find((item) => accountOf(item.UserName ?? "") === wanted) : rows[0]
+  if (row === undefined || typeof row.UserName !== "string") return undefined
+  const password = Buffer.from(String(row.Password ?? "").trim(), "base64").toString("utf8")
+  if (password.length === 0) return undefined
+  return { userName: row.UserName.trim(), password }
+}
+
 /** 按档案里的 account 找到登录信息；找不到时退到上次登录的账号。 */
 export function pickLogin(logins: readonly LoginInfo[], account: string, lastUser: string | undefined) {
   const wanted = account.trim()

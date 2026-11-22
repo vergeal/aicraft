@@ -396,6 +396,22 @@ void SdkHost::initialize() {
 }
 
 LoginResult SdkHost::login(const LoginOptions& options) {
+  // 多个插件进程（桌面端 sidecar、命令行 server、窗口）会同时对同一个桥登录。
+  // 并发登录会互相打断传输连接，所以串行化；已经在线的请求直接复用当前会话。
+  std::lock_guard<std::mutex> gate(loginMutex_);
+  {
+    std::lock_guard<std::mutex> lk(stateMutex_);
+    if (loggedIn_) {
+      LoginResult ready;
+      ready.ok = true;
+      ready.account = account_;
+      ready.message = "已登录";
+      ready.connectCode = 0;
+      ready.reason = 200;
+      return ready;
+    }
+  }
+
   LoginResult result;
   initialize();
   {
@@ -867,6 +883,11 @@ void SdkHost::handleReceive(void* ecMessage, bool offline) {
 
   emit("event.onMessage", messageToJson(message));
 
+  // 插件自带桥接收到的消息也写进本地库，界面在客户端不开时也能看到；读取回执是通知类，不进聊天列表。
+  if (message.msgType != Msg_Type_ReadNotify && message.msgType != Msg_Type_ReadVoiceNotify) {
+    writeMessage(message, true, false);
+  }
+
   if (message.msgType == Msg_Type_ReadNotify || message.msgType == Msg_Type_ReadVoiceNotify) {
     nhjson::Value receipt = nhjson::Value::object();
     receipt.set("msgId", nhjson::Value::string(message.msgId));
@@ -921,7 +942,7 @@ void SdkHost::handleSendTextResult(unsigned int matchKey, int reason, void* ecMe
   result.set("ret", nhjson::Value::number(reason));
 
   if (reason == EC_Response_Success && !message.msgId.empty()) {
-    writeOwnMessage(message, true);
+    writeMessage(message, false, true);
   }
   emit("event.onSendResult", result);
 #else
@@ -976,7 +997,7 @@ void SdkHost::handleSendMediaResult(unsigned int matchKey, int reason, void* ecM
   result.set("ret", nhjson::Value::number(reason));
 
   if (reason == EC_Response_Success && !message.msgId.empty()) {
-    writeOwnMessage(message, true);
+    writeMessage(message, false, true);
   }
   emit("event.onSendResult", result);
 #else
@@ -1146,8 +1167,7 @@ void SdkHost::emit(const std::string& method, const nhjson::Value& params) {
   if (sink) sink(method, params);
 }
 
-void SdkHost::writeOwnMessage(const StoredMessage& message, bool fromSendCallback) {
-  (void)fromSendCallback;
+void SdkHost::writeMessage(const StoredMessage& message, bool incoming, bool rebroadcast) {
   if (message.msgId.empty()) return;
 
   OwnMessage own;
@@ -1167,6 +1187,7 @@ void SdkHost::writeOwnMessage(const StoredMessage& message, bool fromSendCallbac
   own.fileFullPath = message.fileFullPath;
   own.isAt = message.isAt;
   own.originFileSize = message.originFileSize;
+  own.incoming = incoming;
 
   StoreWrite write;
   {
@@ -1185,7 +1206,7 @@ void SdkHost::writeOwnMessage(const StoredMessage& message, bool fromSendCallbac
     emit("event.onStoreError", params);
     return;
   }
-  broadcastSelfMessage(message);
+  if (rebroadcast) broadcastSelfMessage(message);
 }
 
 void SdkHost::broadcastSelfMessage(const StoredMessage& message) {

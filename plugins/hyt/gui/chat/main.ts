@@ -1,9 +1,11 @@
 import type { IpcImpl, IpcProvider, MainContext } from "@opencode/plugin/gui/main"
 import { Schema } from "effect"
 import { readFileSync, statSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
 import type { MergeItem } from "../../src/chat/merge.js"
+import { bridgeExecutable } from "../../src/bridge/native.js"
 import * as Bridge from "./bridge.js"
 import * as Data from "../shared/data.js"
 import { ChatIpc } from "./contract.js"
@@ -59,6 +61,18 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     schema: Schema.Struct({ chfileRoot: Schema.String, bridgePath: Schema.String }),
     initial: { chfileRoot: "", bridgePath: "" },
   })
+  // 插件自带的桥接安装在 ocplugins 下；打包布局与版本无关，路径固定。
+  const pluginRoot = join(homedir(), ".opencode", "ocplugins", "changhong.hyt")
+  const sender = Bridge.createSender({
+    root: () => Data.resolveChfileRoot(settings.value.chfileRoot),
+    executable: () => bridgeExecutable(pluginRoot, settings.value.bridgePath),
+    credentials: () => {
+      const root = Data.resolveChfileRoot(settings.value.chfileRoot)
+      const account = current.status.account || (Data.readLastUser(root) ?? "")
+      return Data.readCredential(root, account)
+    },
+  })
+  ctx.onCleanup(() => void sender.stop())
 
   let current = emptyState("loading")
   let selected = ""
@@ -130,7 +144,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       }
 
       const whitelist = mergedWhitelist(profile)
-      const bridge = Db.bridgeRunning(root) ? "ready" : "missing"
+      const bridge = (await sender.ready()) ? "ready" : "missing"
       const drafts = readDrafts(dataDir, selected)
       const unread = sessions.reduce((total, item) => total + item.unread, 0)
       current = {
@@ -248,7 +262,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (sessionId.length === 0) return { ok: false, reason: "not-allowed" }
 
       const account = current.status.account
-      const sent = await Bridge.sendText(rootOf(), sessionId, body)
+      const sent = await sender.send(sessionId, body)
       if (!sent.ok) return { ok: false, reason: sent.reason }
 
       // 消息已经发出去了：写库失败只影响本地历史，不能把成功报成失败。
@@ -301,7 +315,16 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
 
   const provided = ctx.provide(ChatIpc, impl)
   provider = provided
-  void load(false).then(report)
+  // 打开页面就在后台把独立通道准备好：拉起桥接、用本地凭据登录，之后发消息不再等启动。
+  void sender
+    .warm()
+    .then(() => load(false))
+    .then(report)
+    .catch((error: unknown) => {
+      ctx.log.write("warn", "hyt bridge warm failed", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    })
 
   return provided
 }

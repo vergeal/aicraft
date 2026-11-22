@@ -224,6 +224,59 @@
   display: none;
 }
 
+/* A settled process group caps its body in place, so reviewing a long run scrolls this panel instead of moving the
+   transcript. Only `data-capped` opens the scrollport: a running group still grows under the reader. The mask fades
+   whichever edge still has content, and the scrollbar reserves its gutter without drawing a track. */
+.answer-scope [data-slot="answer-group-body"][data-capped] {
+  --answer-group-max-height: min(50vh, 420px);
+  --answer-group-fade: 20px;
+  --answer-group-fade-top: 0px;
+  --answer-group-fade-bottom: 0px;
+  max-height: var(--answer-group-max-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 8px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--answer-group-fade-top),
+    #000 calc(100% - var(--answer-group-fade-bottom)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--answer-group-fade-top),
+    #000 calc(100% - var(--answer-group-fade-bottom)),
+    transparent 100%
+  );
+}
+
+.answer-scope [data-slot="answer-group-body"][data-capped][data-overflowing] {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.answer-scope [data-slot="answer-group-body"][data-capped][data-can-scroll-up] {
+  --answer-group-fade-top: var(--answer-group-fade);
+}
+
+.answer-scope [data-slot="answer-group-body"][data-capped][data-can-scroll-down] {
+  --answer-group-fade-bottom: var(--answer-group-fade);
+}
+
+.answer-scope [data-slot="answer-group-body"][data-capped][data-overflowing]:hover,
+.answer-scope [data-slot="answer-group-body"][data-capped][data-overflowing]:focus-visible {
+  scrollbar-color: var(--v2-border-border-base) transparent;
+}
+
+/* The inset keeps the ring inside the mask, which otherwise clips an outset outline. */
+.answer-scope [data-slot="answer-group-body"][data-capped][data-overflowing]:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+}
+
 /* The document glyph fills its 14-unit grid, so at 18px it reads heavier than the step icons drawn
    inside a smaller area. Keep source rows at the same visual weight as the rest of the transcript. */
 .answer-scope [data-slot="answer-context-sources"] [data-slot="leading-idle"] [data-slot="icon-svg"] {

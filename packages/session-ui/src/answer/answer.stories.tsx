@@ -441,6 +441,42 @@ export const ReadsAcrossFiles = {
   ),
 }
 
+// A settled run long enough to take the capped panel: distinct files so the repeat fold keeps every row apart.
+const manyReads: SessionMessageInfo[] = [
+  { id: "msg_user_many_reads", type: "user", text: "把相关文件都读一遍。", time: { created: TIME } },
+  assistant(
+    "msg_many_reads",
+    [
+      tool("tool_many_01", "read", { filePath: "packages/session-ui/src/answer/page.tsx" }, "completed"),
+      tool("tool_many_02", "read", { filePath: "packages/session-ui/src/answer/project.ts" }, "completed"),
+      tool("tool_many_03", "read", { filePath: "packages/session-ui/src/answer/types.ts" }, "completed"),
+      tool("tool_many_04", "read", { filePath: "packages/session-ui/src/answer/tool.ts" }, "completed"),
+      tool("tool_many_05", "read", { filePath: "packages/session-ui/src/answer/answer.css" }, "completed"),
+      tool("tool_many_06", "read", { filePath: "packages/session-ui/src/answer/restore-machine.ts" }, "completed"),
+      tool("tool_many_07", "read", { filePath: "packages/session-ui/src/timeline/timeline-row.ts" }, "completed"),
+      tool("tool_many_08", "read", { filePath: "packages/session-ui/src/timeline/projection.ts" }, "completed"),
+      tool("tool_many_09", "read", { filePath: "packages/session-ui/src/timeline/session-timeline-row.tsx" }, "completed"),
+      tool("tool_many_10", "read", { filePath: "packages/session-ui/src/components/message-part.css" }, "completed"),
+      tool("tool_many_11", "read", { filePath: "packages/session-ui/src/components/markdown.tsx" }, "completed"),
+      tool("tool_many_12", "read", { filePath: "packages/session-ui/src/components/file.tsx" }, "completed"),
+      tool("tool_many_13", "read", { filePath: "packages/session-ui/src/answer/answer.stories.tsx" }, "completed"),
+      tool("tool_many_14", "read", { filePath: "packages/session-ui/src/answer/page.test.ts" }, "completed"),
+      { type: "text", text: "所有文件都读完了。" },
+    ],
+    TIME + 1_000,
+    TIME + 20_000,
+  ),
+  idle("msg_idle_many_reads", TIME + 20_500),
+]
+
+export const CappedPanel = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => manyReads} />
+    </div>
+  ),
+}
+
 // The recorded patch is what an edit step expands into: a GitHub-style diff instead of raw input and output.
 const editPatch =
   "diff --git a/packages/session-ui/src/answer/project.ts b/packages/session-ui/src/answer/project.ts\n" +

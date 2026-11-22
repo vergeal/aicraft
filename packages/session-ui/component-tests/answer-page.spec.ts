@@ -29,6 +29,10 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   await expect(root.locator('[data-slot="answer-row"][data-kind="reasoning"]')).toHaveCount(1)
   await expect(root.locator('[data-slot="answer-row"][data-kind="tool"]')).toHaveCount(2)
 
+  // A short group takes the cap but stays below it: no scrollport, no reserved gutter.
+  await expect(root.locator('[data-slot="answer-group-body"]')).toHaveAttribute("data-capped", "")
+  await expect(root.locator('[data-slot="answer-group-body"]')).not.toHaveAttribute("data-overflowing", "")
+
   await expect(root.locator('[data-slot="user-message-text"]').first()).toHaveCSS("padding", "8px 12px")
   await expect(root.locator('[data-slot="user-message-text"]').first()).toHaveCSS("border-radius", "14px")
   await expect(root.locator('[data-slot="user-message-text"]').first()).toHaveCSS("font-size", "14px")
@@ -58,6 +62,47 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   )
 })
 
+story("caps a long settled run and resumes where the reader stopped", async ({ mount }) => {
+  const root = await mount("answer-page--capped-panel")
+  await expandTurn(root).click()
+
+  const group = root.locator('[data-slot="answer-group"]').first()
+  const heading = group.locator(":scope > button")
+
+  await expect(heading).toHaveAttribute("aria-expanded", "false")
+  await expect(group.locator('[data-slot="answer-group-body"]')).toHaveCount(0)
+
+  await heading.click()
+  const body = group.locator('[data-slot="answer-group-body"]')
+  await expect(body).toHaveAttribute("data-capped", "")
+  await expect(body).toHaveAttribute("data-overflowing", "")
+  await expect(body).toHaveAttribute("role", "region")
+
+  // The panel is a scrollport: the body overflows it while the transcript keeps its own height.
+  const metrics = await body.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight }))
+  expect(metrics.scroll).toBeGreaterThan(metrics.client)
+  await expect(body).not.toHaveAttribute("data-can-scroll-up", "")
+  await expect(body).toHaveAttribute("data-can-scroll-down", "")
+
+  // Read the offset back instead of assuming one: the panel's floor is whatever the settled rows overflow by.
+
+  const stopped = await body.evaluate((el) => {
+    el.scrollTop = el.scrollHeight
+
+    return el.scrollTop
+  })
+
+  expect(stopped).toBeGreaterThan(0)
+  await expect(body).toHaveAttribute("data-can-scroll-up", "")
+
+  // A reopened panel resumes at the stored offset instead of jumping back to the first row.
+  await heading.click()
+  await expect(body).toHaveCount(0)
+  await heading.click()
+  await expect(body).toHaveAttribute("data-capped", "")
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBe(stopped)
+})
+
 story("wraps a pasted fenced block inside the prompt bubble", async ({ mount }) => {
   const root = await mount("answer-page--code-prompt")
   const bubble = root.locator('[data-slot="user-message-body"]').first()
@@ -70,7 +115,7 @@ story("wraps a pasted fenced block inside the prompt bubble", async ({ mount }) 
   const geometry = await bubble.evaluate((el) => {
     const block = el.querySelector("pre") as HTMLElement
     const row = el.closest('[data-slot="answer-row"]') as HTMLElement
-    const rect = (node: HTMLElement) => node.getBoundingClientRect()
+    const rect = (node: Element) => node.getBoundingClientRect()
 
     return {
       viewport: innerWidth,

@@ -1170,6 +1170,9 @@ function lastReply(snapshot: Snapshot, turn: number) {
     .at(-1)
 }
 
+/** Where each capped group's reader stopped. Virtualization unmounts remote rows, so the component cannot own this. */
+const groupScrollTops = new Map<string, number>()
+
 /** L1: one contiguous work run, its own disclosure and verb-phrase title. */
 function GroupSeat(props: {
   group: TimelineGroup
@@ -1214,7 +1217,74 @@ function GroupSeat(props: {
 
     return live() ? liveTitle(i18n, props.group) : processTitle(i18n, props.group)
   }
+
   const bodyID = createUniqueId()
+  let body: HTMLDivElement | undefined
+  let scrolled: HTMLDivElement | undefined
+  let observer: ResizeObserver | undefined
+  const [edges, setEdges] = createSignal({ up: false, down: false })
+  const [overflowing, setOverflowing] = createSignal(false)
+
+  // A settled group's body is the scrollport. A running group still grows under the reader, and verbose lays rows out
+  // flat, so neither takes the cap. The panel is a review surface: it never changes the transcript's own following.
+  // No size threshold: a short group simply does not overflow its cap, so it looks exactly as it did before.
+  const capped = () => !props.flat && props.group.closed && open()
+
+  // Only a body that actually overflows becomes a keyboard-reachable region and reserves a scrollbar gutter.
+  const panel = () => capped() && overflowing()
+
+  const reportEdges = () => {
+    const element = body
+
+    if (!element) return
+    const floor = Math.max(0, element.scrollHeight - element.clientHeight)
+    const next = { up: element.scrollTop > 1, down: element.scrollTop < floor - 1 }
+
+    setOverflowing(floor > 0)
+
+    setEdges((previous) => (previous.up === next.up && previous.down === next.down ? previous : next))
+
+    if (capped()) groupScrollTops.set(props.group.key, element.scrollTop)
+  }
+
+  const bind = (element: HTMLDivElement) => {
+    if (scrolled === element && observer) return
+    observer?.disconnect()
+    scrolled = element
+
+    if (typeof ResizeObserver === "undefined") return
+    observer = new ResizeObserver(() => reportEdges())
+    observer.observe(element)
+    // The body is the scrollport; growth happens in the uncapped content box inside it.
+
+    if (element.firstElementChild) observer.observe(element.firstElementChild)
+    reportEdges()
+  }
+
+  const attach = (element: HTMLDivElement) => {
+    body = element
+    // Read the stored offset before binding: the first measurement would otherwise report 0 and overwrite it.
+    const saved = groupScrollTops.get(props.group.key)
+    bind(element)
+
+    // A reopened group resumes where the reader left it, since a settled group's content no longer changes.
+    if (saved === undefined) return
+    requestAnimationFrame(() => {
+      if (body !== element || !capped()) return
+      element.scrollTop = Math.min(saved, Math.max(0, element.scrollHeight - element.clientHeight))
+      reportEdges()
+    })
+  }
+
+  createEffect(() => {
+    // `capped` flips when a running group settles; the body is already mounted at that point.
+    open()
+    capped()
+
+    if (body?.isConnected) bind(body)
+  })
+
+  onCleanup(() => observer?.disconnect())
 
   return (
     <section
@@ -1249,20 +1319,35 @@ function GroupSeat(props: {
         </span>
       </button>
       <Show when={props.flat || open()}>
-        <div id={bodyID} class={props.flat ? "flex flex-col gap-1" : "answer-tree flex flex-col gap-1 pt-1"}>
-          <For each={props.group.items.map((item) => item.key)}>
-            {(key) => {
-              const item = createMemo(() => props.group.items.find((entry) => entry.key === key))
+        <div
+          id={bodyID}
+          data-slot="answer-group-body"
+          data-capped={capped() ? "" : undefined}
+          data-overflowing={panel() ? "" : undefined}
+          data-can-scroll-up={edges().up ? "" : undefined}
+          data-can-scroll-down={edges().down ? "" : undefined}
+          tabIndex={panel() ? 0 : undefined}
+          role={panel() ? "region" : undefined}
+          aria-label={panel() ? i18n.t("ui.scrollView.ariaLabel") : undefined}
+          ref={attach}
+          onScroll={reportEdges}
+          class="answer-group-body"
+        >
+          <div class={props.flat ? "flex flex-col gap-1" : "answer-tree flex flex-col gap-1 pt-1"}>
+            <For each={props.group.items.map((item) => item.key)}>
+              {(key) => {
+                const item = createMemo(() => props.group.items.find((entry) => entry.key === key))
 
-              return (
-                <Show when={item()}>
-                  {(value) => (
-                    <GroupItemRow item={value()} snapshot={props.snapshot} view={props.view} live={!props.group.closed} />
-                  )}
-                </Show>
-              )
-            }}
-          </For>
+                return (
+                  <Show when={item()}>
+                    {(value) => (
+                      <GroupItemRow item={value()} snapshot={props.snapshot} view={props.view} live={!props.group.closed} />
+                    )}
+                  </Show>
+                )
+              }}
+            </For>
+          </div>
         </div>
       </Show>
     </section>

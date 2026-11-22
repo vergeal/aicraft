@@ -114,3 +114,14 @@
     animation: none;
   }
 }
+
+/* Light theme: the bubble sits on the light surface it overlooks. Tooltip contents (model details, hints) draw their
+   own v2 text colours, which are dark in this scheme, so the dark bubble above left them unreadable there. Dark keeps
+   the macOS-style dark bubble. */
+[data-color-scheme="light"] [data-component="tooltip-v2"] {
+  background: var(--v2-material-surface-strong);
+  color: var(--v2-text-text-base);
+  box-shadow:
+    0 0 0 0.5px var(--v2-border-border-base),
+    var(--v2-elevation-floating);
+}

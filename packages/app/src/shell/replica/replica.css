@@ -983,6 +983,9 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   height: calc(100% + var(--titlebar-height));
   z-index: 20;
   box-shadow: none;
+  /* Electron resolves a window drag region by geometry, and the lifted head sits inside the window bar's drag strip.
+     Without this the strip's tabs and their close buttons lose clicks to the drag region at random. */
+  -webkit-app-region: no-drag;
 }
 
 /* The panel is a flex item of the pane row and no ancestor between it and the shell opens a stacking context, so this

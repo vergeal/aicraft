@@ -593,7 +593,7 @@
 
 /* The side region's leading slot owns the strip's start. The bar's own 8px gap is dropped here so the slot can place
    its rule 6px before the first pill; the "+" pulls 4px back out of its icon inset so its glyph sits 4px after the
-   last pill; and the list keeps 4px of bottom padding, which lifts the pills 2px off the hairline below. */
+   last pill. The pills and the "+" stay centred on the 48px strip, matching the leading slot and the trailing actions. */
 :root
   body
   #review-panel
@@ -618,8 +618,6 @@
   .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"])
   [data-slot="tabs-list"] {
   padding-inline-start: 0;
-  /* Centred content lifts by half of this, so 4px reads as 2px more air above the strip's rule. */
-  padding-block-end: 4px;
   gap: 4px;
 }
 

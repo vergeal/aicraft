@@ -68,7 +68,6 @@ export function ComposerVariantSlider(props: {
         if (event.button !== 0) return
         setState({ dragging: true, pointer: ratioAt(event.clientX) * 100 })
         track?.setPointerCapture(event.pointerId)
-        track?.focus()
         commit(ratioAt(event.clientX))
       }}
       onPointerMove={(event: PointerEvent) => {

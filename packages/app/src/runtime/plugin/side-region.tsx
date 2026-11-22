@@ -217,7 +217,7 @@ export function PaneTabs(props: {
   drag: PaneDrag
   /** Shows the empty state while the pane selects nothing. */
   placeholder?: boolean
-  /** Renders the plugins' strip actions. */
+  /** Renders the plugins' strip actions and keeps room for the session's review toggle. */
   actions?: boolean
   /** Controls after the strip, e.g. the bottom pane's hide button. */
   end?: JSX.Element
@@ -439,6 +439,9 @@ export function PaneTabs(props: {
             />
           </Show>
           {props.end}
+          <Show when={props.actions && props.present()}>
+            <div class="size-7 shrink-0" aria-hidden />
+          </Show>
           <ReplicaTitlebarActions placement="panel" />
         </div>
       </div>

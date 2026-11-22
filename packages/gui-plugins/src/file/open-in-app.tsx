@@ -244,8 +244,8 @@ export default function OpenInAppButton(props: { session: MountedSession; screen
             disabled={state.opening()}
             aria-label={ctx.t("open.ariaLabel", { app: state.current().label })}
           >
-            <Show when={state.opening()} fallback={<AppIcon id={state.current().icon} class="size-[18px]" />}>
-              <Loader class="size-3.5" />
+            <Show when={state.opening()} fallback={<AppIcon id={state.current().icon} />}>
+              <Loader class="size-4" />
             </Show>
           </SplitButtonAction>
         </Tooltip>

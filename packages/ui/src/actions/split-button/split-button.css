@@ -70,6 +70,29 @@
   height: 16px;
 }
 
+/* The open-in-app capsule rides the taller tab bar, so it takes the next control height (32px) and scales its
+   sections and icon with it instead of the 28px default. */
+[data-component="split-button-v2"].session-review-v2-open-in-app,
+[data-component="split-button-v2"].session-review-v2-open-in-app [data-component="split-button-v2-action"],
+[data-component="split-button-v2"].session-review-v2-open-in-app [data-component="split-button-v2-menu-trigger"] {
+  height: 32px;
+}
+
+[data-component="split-button-v2"].session-review-v2-open-in-app [data-component="split-button-v2-action"] {
+  width: 32px;
+}
+
+[data-component="split-button-v2"].session-review-v2-open-in-app [data-component="split-button-v2-menu-trigger"] {
+  width: 24px;
+}
+
+[data-component="split-button-v2"].session-review-v2-open-in-app
+  [data-component="split-button-v2-action"]
+  [data-component="app-icon"] {
+  width: 20px;
+  height: 20px;
+}
+
 [data-component="menu-v2-content"].open-in-app-v2-menu [data-component="app-icon"] {
   width: 16px;
   height: 16px;

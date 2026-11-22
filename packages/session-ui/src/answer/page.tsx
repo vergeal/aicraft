@@ -1,7 +1,7 @@
 import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, onMount, untrack, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
-import type { SessionMessageInfo } from "@opencode/client/promise"
+import { mediaHashFromUri, type SessionMessageInfo } from "@opencode/client/promise"
 import { DiffChanges } from "@opencode/ui/diff-changes"
 import { FileIcon } from "@opencode/ui/file-icon"
 import { getDirectory, getFilename } from "@opencode/util/path"
@@ -19,6 +19,7 @@ import { changedFileDiff } from "../components/apply-patch-file"
 import { resolveFileDiff } from "../components/session-diff"
 import { createImagePreview } from "../components/image-preview"
 import { localImagePath } from "../components/markdown-image"
+import { DataContext } from "../context/data"
 import { useMarkdown } from "../context/markdown"
 import { childrenOf, projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
@@ -2420,6 +2421,7 @@ function ToolRow(props: {
 function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
   const i18n = useI18n()
   const markdown = useMarkdown()
+  const data = useContext(DataContext)
   const preview = createImagePreview()
   const [url, setUrl] = createSignal<string>()
   const [broken, setBroken] = createSignal(false)
@@ -2438,6 +2440,39 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl)
       objectUrl = undefined
+    }
+
+    // With `experimental.media_blob`, a stored tool image arrives as a `media:<hash>` ref whose bytes live on the
+    // server, not at a local path or in a data URL.
+    if (mediaHashFromUri(uri)) {
+      const cached = data?.peekMedia?.(uri, props.image.mime)
+
+      if (cached) {
+        setUrl(cached)
+
+        return
+      }
+
+      if (!data?.readMedia) {
+        setBroken(true)
+
+        return
+      }
+
+      setUrl(undefined)
+      void data.readMedia(uri, props.image.mime, controller.signal).then(
+        (loaded) => {
+          if (controller.signal.aborted) return
+
+          if (loaded) setUrl(loaded)
+          else setBroken(true)
+        },
+        () => {
+          if (!controller.signal.aborted) setBroken(true)
+        },
+      )
+
+      return
     }
 
     // A read result points at its file with a `file:` URL, which the host's local image loader refuses as a scheme.

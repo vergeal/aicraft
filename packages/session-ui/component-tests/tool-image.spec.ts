@@ -45,3 +45,19 @@ story("counts a read that returns an image as a picture step", async ({ mount })
   await expect(row.locator('[data-slot="answer-tool-image-state"]')).toHaveCount(0)
   await expect(row.locator('[data-slot="answer-io-card"]')).toHaveCount(0)
 })
+
+story("previews a tool image stored as a media ref", async ({ mount }) => {
+  const root = await mount("answer-page--read-picture-ref")
+  await root.locator('[data-slot="answer-fold"]').first().locator('[data-slot="answer-run-header"] button').click()
+
+  const groups = root.locator('[data-slot="answer-group"]')
+
+  for (let index = 0; index < (await groups.count()); index++) {
+    await groups.nth(index).locator(":scope > button").click()
+  }
+
+  const row = root.locator('[data-slot="answer-row"][data-kind="tool"]').first()
+  await row.locator("[data-disclosure-row]").click()
+  await expect(root.locator('[data-slot="answer-tool-image-thumb"]')).toBeVisible()
+  await expect(root.locator('[data-slot="answer-tool-image-state"]')).toHaveCount(0)
+})

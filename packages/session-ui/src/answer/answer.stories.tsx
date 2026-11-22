@@ -1,5 +1,6 @@
 import type { SessionMessageAssistant, SessionMessageInfo } from "@opencode/client/promise"
 import { createSignal } from "solid-js"
+import { DataProvider } from "../context/data"
 import { MarkdownProvider } from "../context/markdown"
 import { CURRENT_SESSION_ID } from "../storybook/current-session-fixtures"
 import { AnswerPage } from "./page"
@@ -960,5 +961,50 @@ export const ReadPicture = {
         <AnswerPage messages={() => readPicture} />
       </div>
     </MarkdownProvider>
+  ),
+}
+
+// While `experimental.media_blob` is on, a stored tool image arrives as a `media:` ref instead of a data URL.
+const mediaRef = `media:${"a".repeat(64)}`
+
+const readPictureRef: SessionMessageInfo[] = [
+  { id: "msg_user_picture_ref", type: "user", text: "看一下这张图。", time: { created: TIME } },
+  assistant(
+    "msg_picture_ref",
+    [
+      {
+        type: "tool",
+        id: "tool_picture_ref",
+        name: "read",
+        state: {
+          status: "completed",
+          input: { path: "packages/app/settings.svg" },
+          content: [
+            { type: "text", text: "Read packages/app/settings.svg" },
+            { type: "file", uri: mediaRef, mime: "image/svg+xml", name: "settings.svg" },
+          ],
+          metadata: {},
+        },
+        time: { created: TIME, completed: TIME + 1_000 },
+      },
+      { type: "text", text: "这是设置页。" },
+    ],
+    TIME + 500,
+    TIME + 2_000,
+  ),
+  idle("msg_idle_picture_ref", TIME + 2_500),
+]
+
+export const ReadPictureRef = {
+  render: () => (
+    <DataProvider
+      data={{ session: [], session_status: {}, session_diff: {} }}
+      directory="C:/workspaces/opencode"
+      readMedia={() => Promise.resolve(URL.createObjectURL(pictureBytes))}
+    >
+      <div class="h-dvh">
+        <AnswerPage messages={() => readPictureRef} />
+      </div>
+    </DataProvider>
   ),
 }

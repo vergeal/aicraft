@@ -24,17 +24,17 @@ export function NewLibraryDialog(props: { onCreate: (name: string, description: 
 
   return (
     <Dialog fit>
-      <DialogHeader hideClose>
+      <DialogHeader>
         <DialogTitleGroup title={language.t("knowledge.new")} description={language.t("knowledge.new.description")} />
       </DialogHeader>
-      <DialogBody class="flex w-full min-w-0 flex-col gap-3 px-4">
-        <label class="flex flex-col gap-2">
-          <span class="text-[12px] leading-[var(--line-height-compact)] text-v2-text-text-muted">
+      <DialogBody class="flex w-full min-w-0 flex-col gap-4">
+        <label class="flex w-full min-w-0 flex-col gap-1.5">
+          <span class="text-[13px] leading-[var(--line-height-compact)] font-medium text-v2-text-text-base">
             {language.t("knowledge.name.label")}
           </span>
           <TextInput
             autofocus
-            class="knowledge-name-field"
+            class="knowledge-name-field !w-full"
             value={name()}
             placeholder={language.t("knowledge.name.placeholder")}
             aria-label={language.t("knowledge.name.label")}
@@ -46,12 +46,12 @@ export function NewLibraryDialog(props: { onCreate: (name: string, description: 
             }}
           />
         </label>
-        <label class="flex flex-col gap-2">
-          <span class="text-[12px] leading-[var(--line-height-compact)] text-v2-text-text-muted">
+        <label class="flex w-full min-w-0 flex-col gap-1.5">
+          <span class="text-[13px] leading-[var(--line-height-compact)] font-medium text-v2-text-text-base">
             {language.t("knowledge.new.about.label")}
           </span>
           <Textarea
-            class="knowledge-description-field"
+            class="knowledge-description-field !w-full"
             rows={3}
             value={description()}
             placeholder={language.t("knowledge.new.about.placeholder")}

@@ -180,6 +180,12 @@
   background: var(--v2-background-bg-layer-02);
 }
 
+/* The form is a sunken panel; its fields take the canvas fill so they read as controls on it. A layer-1 field
+   would sit two steps below the panel and read as a hole rather than an input. */
+.provider-account-form [data-component="text-input-v2"][data-surface="layer-1"] {
+  background: light-dark(var(--v2-background-bg-base), var(--v2-background-bg-layer-03));
+}
+
 .provider-account-fields {
   display: flex;
   min-width: 0;

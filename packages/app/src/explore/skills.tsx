@@ -445,7 +445,7 @@ export function InstallSkillDialog(props: {
   }
 
   return (
-    <Dialog size="x-large" containerClass="explore-skill-dialog">
+    <Dialog size="x-large">
       <DialogHeader hideClose>
         <DialogTitleGroup
           title={language.t("explore.skills.install.title")}
@@ -453,7 +453,7 @@ export function InstallSkillDialog(props: {
         />
       </DialogHeader>
 
-      <DialogBody class="explore-skill-body">
+      <DialogBody flush class="explore-skill-body">
         <div class="explore-skill-scroll">
           <div data-component="document-surface" class="explore-skill-paper">
             <div class="explore-skill-page">
@@ -563,7 +563,7 @@ function RemoveSkillDialog(props: { skill: SkillInfo; text: string; directory: s
         />
       </DialogHeader>
 
-      <DialogBody class="explore-install-body">
+      <DialogBody flush class="explore-install-body">
         <p class="explore-install-text">{language.t("explore.skills.remove.backup")}</p>
         <code class="explore-install-path" dir="ltr">
           {backup()}

@@ -36,6 +36,8 @@ import type {
   ExperimentalPluginRuntimeRetryOutput,
   ExperimentalPluginInboxListInput,
   ExperimentalPluginInboxListOutput,
+  ExperimentalPluginInboxPublishInput,
+  ExperimentalPluginInboxPublishOutput,
   ExperimentalPluginInboxMarkInput,
   ExperimentalPluginInboxMarkOutput,
   ExperimentalPluginInboxDeleteInput,
@@ -503,6 +505,24 @@ const EndpointExperimentalPluginInboxList =
       raw["plugin.inbox.list"]({ query: { location: input?.["location"] } }).pipe(Effect.mapError(mapClientError)),
     )
 
+const EndpointExperimentalPluginInboxPublish =
+  (raw: RawClient["server.plugin"]) => (input: ExperimentalPluginInboxPublishInput) =>
+    preserveEffect<ExperimentalPluginInboxPublishOutput>()(
+      raw["plugin.inbox.publish"]({
+        query: { location: input["location"] },
+        payload: {
+          externalID: input["externalID"],
+          title: input["title"],
+          summary: input["summary"],
+          status: input["status"],
+          createdAt: input["createdAt"],
+          expiresAt: input["expiresAt"],
+          payload: input["payload"],
+          plugin: input["plugin"],
+        },
+      }).pipe(Effect.mapError(mapClientError)),
+    )
+
 const EndpointExperimentalPluginInboxMark =
   (raw: RawClient["server.plugin"]) => (input: ExperimentalPluginInboxMarkInput) =>
     preserveEffect<ExperimentalPluginInboxMarkOutput>()(
@@ -527,6 +547,7 @@ const adaptGroupExperimentalPlugin = (raw: RawClient["server.plugin"]) => ({
   runtime: { retry: EndpointExperimentalPluginRuntimeRetry(raw) },
   inbox: {
     list: EndpointExperimentalPluginInboxList(raw),
+    publish: EndpointExperimentalPluginInboxPublish(raw),
     mark: EndpointExperimentalPluginInboxMark(raw),
     delete: EndpointExperimentalPluginInboxDelete(raw),
   },
@@ -2226,6 +2247,8 @@ const adaptClient = (raw: RawClient) => {
       inbox: {
         /** @deprecated Use `client.experimental.plugin.inbox.list`. Removed in the next minor. */
         list: client.experimental.plugin.inbox.list,
+        /** @deprecated Use `client.experimental.plugin.inbox.publish`. Removed in the next minor. */
+        publish: client.experimental.plugin.inbox.publish,
         /** @deprecated Use `client.experimental.plugin.inbox.mark`. Removed in the next minor. */
         mark: client.experimental.plugin.inbox.mark,
         /** @deprecated Use `client.experimental.plugin.inbox.delete`. Removed in the next minor. */

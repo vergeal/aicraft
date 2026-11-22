@@ -22,6 +22,7 @@ import type {
   Desktop,
   Dialogs,
   Embeds,
+  Inbox,
   Keybinds,
   Layout,
   Links,
@@ -130,6 +131,16 @@ export interface Context extends BaseContext {
    * ```
    */
   readonly storage: Storage
+  /**
+   * The app's inbox: publishes messages the user reads under `/inbox`, where opening one renders your `InboxContent`.
+   * Publishes under this plugin's id, so the app routes the message to your renderer.
+   *
+   * @example
+   * ```ts
+   * const id = await ctx.inbox.publish({ title: ctx.t("deploy.done"), summary: target, status: "done" })
+   * ```
+   */
+  readonly inbox: Inbox
   /**
    * The clipboard, saving files, and opening URLs in the system browser. Works on every platform.
    *

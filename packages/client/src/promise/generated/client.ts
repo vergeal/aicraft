@@ -30,6 +30,8 @@ import type {
   ExperimentalPluginRuntimeRetryOutput,
   ExperimentalPluginInboxListInput,
   ExperimentalPluginInboxListOutput,
+  ExperimentalPluginInboxPublishInput,
+  ExperimentalPluginInboxPublishOutput,
   ExperimentalPluginInboxMarkInput,
   ExperimentalPluginInboxMarkOutput,
   ExperimentalPluginInboxDeleteInput,
@@ -708,6 +710,28 @@ export function make(options: ClientOptions) {
                 method: "GET",
                 path: `/api/experimental/plugin/inbox`,
                 query: { location: input?.["location"] },
+                successStatus: 200,
+                declaredStatuses: [400, 401, 404],
+                empty: false,
+              },
+              requestOptions,
+            ),
+          publish: (input: ExperimentalPluginInboxPublishInput, requestOptions?: RequestOptions) =>
+            request<ExperimentalPluginInboxPublishOutput>(
+              {
+                method: "POST",
+                path: `/api/experimental/plugin/inbox/publish`,
+                query: { location: input["location"] },
+                body: {
+                  externalID: input["externalID"],
+                  title: input["title"],
+                  summary: input["summary"],
+                  status: input["status"],
+                  createdAt: input["createdAt"],
+                  expiresAt: input["expiresAt"],
+                  payload: input["payload"],
+                  plugin: input["plugin"],
+                },
                 successStatus: 200,
                 declaredStatuses: [400, 401, 404],
                 empty: false,
@@ -2976,6 +3000,8 @@ export function make(options: ClientOptions) {
       inbox: {
         /** @deprecated Use `client.experimental.plugin.inbox.list`. Removed in the next minor. */
         list: client.experimental.plugin.inbox.list,
+        /** @deprecated Use `client.experimental.plugin.inbox.publish`. Removed in the next minor. */
+        publish: client.experimental.plugin.inbox.publish,
         /** @deprecated Use `client.experimental.plugin.inbox.mark`. Removed in the next minor. */
         mark: client.experimental.plugin.inbox.mark,
         /** @deprecated Use `client.experimental.plugin.inbox.delete`. Removed in the next minor. */

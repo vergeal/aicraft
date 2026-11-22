@@ -290,6 +290,7 @@ to the displayed repository or worktree instead of adding a second menu item.
 | `ctx.desktop`                | `Desktop \| undefined`                                                             | Desktop-only: reveal, launch, installed, zoom, pick files        |
 | `ctx.dialogs`                | `Dialogs`                                                                          | `open`, `confirm`, `alert`, `prompt`, `select`; close with owner |
 | `ctx.toast`                  | `Toasts`                                                                           | Toasts that close when the plugin goes away                      |
+| `ctx.inbox`                  | `Inbox`                                                                            | Publishes messages the user reads under `/inbox`                 |
 | `ctx.tabs`                   | `Tabs`                                                                             | The shell's tab strip: list, open, show, move and close tabs     |
 | `ctx.attention`              | `Attention`                                                                        | System notifications and sounds, per the user's settings         |
 | `ctx.commands`               | `Commands`                                                                         | Runs a published or app command, as the palette does             |
@@ -313,9 +314,9 @@ to the displayed repository or worktree instead of adding a second menu item.
 | `ctx.embeds` (main)          | `Embeds`                                                                           | `create(view, window)` places a web page                         |
 | `ctx.cli` (main)             | `Cli`                                                                              | The opencode CLI the app runs                                    |
 
-### Main surfaces
+### Main surfaces and the inbox
 
-A plugin can own a first-level page in the app's primary navigation.
+A plugin can own a first-level page, and publish messages the user reads under `/inbox`.
 
 ```tsx
 ctx.add(MainSurface, {
@@ -331,6 +332,20 @@ ctx.add(MainSurface, {
 - The host lists the row after the app's own destinations, at `/plugins/<plugin id>/<surface id>`, with the same row style. `order` sorts rows (ascending, ties keep contribution order), `badge()` shows a count above zero, and `hidden: true` keeps the row out while a direct address still renders the page.
 - The row lives only while the plugin contributes it. Disabling, failing or removing the plugin takes the row away and leaves its address showing the host's unavailable page. A `render` that throws also shows that page and records the error under the plugin; its other contributions keep running.
 - Read `title` from a getter, as above, or contribute the item in the function form, so the row follows the language.
+
+```ts
+const id = await ctx.inbox.publish({
+  title: ctx.t("backup.done"),
+  summary: target,
+  status: "done",
+  payload: { target },
+})
+```
+
+- `ctx.inbox.publish` adds one message under your plugin id with a host-assigned id; `/inbox` routes it to your `InboxContent`, or shows the host's default page (title and summary) when you contribute none. The user owns `seen`; publishing again never resets it.
+- `status` is your judgement: `pending` still needs attention, `done` finished, `failed` failed. `payload` is yours and only has to be JSON. `expiresAt` is a hint, in milliseconds since the epoch, for when the host may stop showing the message.
+- A blank title or summary, an unknown status, or a non-finite `expiresAt` throws a `TypeError`; a publish the server cannot store rejects. Window setup is synchronous, so publish from an action, `createKeyed` or `createLatest`, never directly in setup.
+- Every call adds a message. Publish once per event the user should read, not on every render.
 
 ### Built-in only
 

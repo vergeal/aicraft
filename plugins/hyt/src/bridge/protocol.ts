@@ -1,0 +1,161 @@
+/**
+ * 与 C++ bridge 的协议：127.0.0.1 上的 TCP，换行分隔的 JSON-RPC 2.0。
+ * bridge 启动后把端口写进 `<CHFile>/Config/bridge.json`：{ host, port, pid, startedAt }。
+ * 方法名以 bridge 会话实现的契约为准，这里只固定当前已知的几个，其余走 request(method, params)。
+ */
+
+export const METHODS = {
+  ping: "ping",
+  info: "bridge.info",
+  login: "auth.login",
+  sendMessage: "im.sendMessage",
+  sessions: "im.sessions",
+  call: "sdk.call",
+} as const
+
+export const EVENTS = {
+  message: "event.onMessage",
+  receiveMessage: "event.onReceiveMessage",
+  groups: "event.onGroups",
+  connectState: "event.onConnectState",
+  logOut: "event.onLogOut",
+  userState: "event.onUserState",
+} as const
+
+export interface Endpoint {
+  readonly host: string
+  readonly port: number
+  readonly pid?: number
+  readonly startedAt?: number
+}
+
+export interface RpcRequest {
+  readonly jsonrpc: "2.0"
+  readonly id: number
+  readonly method: string
+  readonly params?: unknown
+}
+
+export interface RpcError {
+  readonly code: number
+  readonly message: string
+  readonly data?: unknown
+}
+
+export interface RpcNotification {
+  readonly jsonrpc: "2.0"
+  readonly method: string
+  readonly params?: unknown
+}
+
+export interface PingResult {
+  readonly pong: boolean
+  readonly ts: number
+}
+
+export interface BridgeInfo {
+  readonly name: string
+  readonly version: string
+  readonly runtime: string
+  readonly platform: string
+  readonly pid: number
+  readonly uptimeMs: number
+  readonly chRoot: string
+}
+
+export interface LoginParams {
+  readonly userName: string
+  readonly password: string
+  readonly loginType?: string
+}
+
+export interface LoginResult {
+  readonly ok: boolean
+  readonly account: string
+}
+
+export interface SendParams {
+  readonly sessionId: string
+  readonly text: string
+}
+
+export interface SendResult {
+  readonly ok: boolean
+  readonly msgId?: string
+}
+
+export interface SessionListResult {
+  readonly sessions: readonly BridgeSession[]
+}
+
+export interface BridgeSession {
+  readonly sessionId: string
+  readonly title?: string
+  readonly type?: number
+  readonly unread?: number
+  readonly lastAt?: number
+}
+
+/** bridge.json 读取；文件缺失或字段不合法时返回 undefined。同时接受端口是字符串的写法。 */
+export async function readEndpoint(chfileRoot: string): Promise<Endpoint | undefined> {
+  const file = Bun.file(`${chfileRoot}/Config/bridge.json`)
+  if (!(await file.exists())) return undefined
+  return parseEndpoint(await file.json().catch(() => undefined))
+}
+
+export function parseEndpoint(value: unknown): Endpoint | undefined {
+  if (!isRecord(value)) return undefined
+  const port = typeof value.port === "number" ? value.port : Number.parseInt(String(value.port ?? ""), 10)
+  if (!Number.isInteger(port) || port <= 0 || port > 65_535) return undefined
+  const host = typeof value.host === "string" && value.host.length > 0 ? value.host : "127.0.0.1"
+  return {
+    host,
+    port,
+    pid: typeof value.pid === "number" ? value.pid : undefined,
+    startedAt: typeof value.startedAt === "number" ? value.startedAt : undefined,
+  }
+}
+
+/** im.sendMessage 的返回值在校验前是 unknown：只认 ok=true，msgId 有就用。 */
+export function parseSendResult(value: unknown): SendResult {
+  if (!isRecord(value)) return { ok: false }
+  const msgId = typeof value.msgId === "string" ? value.msgId : undefined
+  return { ok: value.ok === true, msgId }
+}
+
+/** 一行收进来的 JSON 要么是响应（有 id），要么是事件（有 method）。解析失败的行直接丢弃。 */
+export function parseInbound(line: string): { id: number; result?: unknown; error?: RpcError } | RpcNotification | undefined {
+  const text = line.trim()
+  if (text.length === 0) return undefined
+  const value = parseJson(text)
+  if (!isRecord(value)) return undefined
+  if (typeof value.method === "string") return { jsonrpc: "2.0", method: value.method, params: value.params }
+  if (typeof value.id !== "number") return undefined
+  if (isRpcError(value.error)) return { id: value.id, error: value.error }
+  return { id: value.id, result: value.result }
+}
+
+export function isNotification(
+  value: { readonly id: number } | RpcNotification,
+): value is RpcNotification {
+  return "method" in value
+}
+
+function isRpcError(value: unknown): value is RpcError {
+  return isRecord(value) && typeof value.message === "string"
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+/** 校验 bridge 返回值时用；导出给 client 复用同一套判定。 */
+export { isRecord }
+
+function parseJson(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return undefined
+  }
+}

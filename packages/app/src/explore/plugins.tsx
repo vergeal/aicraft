@@ -565,7 +565,7 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
   }
 
   return (
-    <Dialog fit containerClass="explore-install-dialog">
+    <Dialog fit>
       <DialogHeader hideClose>
         <DialogTitleGroup
           title={language.t("explore.plugins.uninstall.title")}
@@ -573,7 +573,7 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
         />
       </DialogHeader>
 
-      <DialogBody class="explore-install-body">
+      <DialogBody flush class="explore-install-body">
         <Show when={state.busy}>
           <Progress indeterminate aria-label={language.t("explore.plugins.uninstall.installing")} />
         </Show>

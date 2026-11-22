@@ -77,6 +77,13 @@ export const PluginHandler = HttpApiBuilder.group(Api, "server.plugin", (handler
         return yield* response(PluginInbox.list(kv))
       }),
     )
+    .handle("plugin.inbox.publish", (ctx) =>
+      Effect.gen(function* () {
+        const kv = yield* KV.Service
+        const id = yield* PluginInbox.make(kv, ctx.payload.plugin).publish(ctx.payload)
+        return yield* response(Effect.succeed({ id }))
+      }),
+    )
     .handle("plugin.inbox.mark", (ctx) =>
       Effect.gen(function* () {
         const kv = yield* KV.Service

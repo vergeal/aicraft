@@ -50,6 +50,11 @@
   /* L2: cards and inputs share the same hairline, one step over the divider. */
   --settings-card-border: var(--v2-border-border-base);
 
+  /* The page keeps one soft vertical fall of light: the canvas colour at the top edge settling one step at the
+     bottom. A tall settings page otherwise reads as a single flat sheet, and every card, input and divider has to
+     carry the depth alone. */
+  --settings-canvas: linear-gradient(180deg, var(--v2-background-bg-base) 0%, var(--v2-background-bg-deep) 100%);
+
   /* Rings are outlines, not shadows: an outline stays outside layout, follows outline-offset and survives
      forced-colors. */
   --settings-focus-width: 2px;
@@ -93,7 +98,7 @@
   justify-content: center;
   overflow: hidden;
   border-radius: var(--settings-radius-md);
-  background: var(--v2-background-bg-base);
+  background: var(--settings-canvas);
   color: var(--v2-text-text-base);
   box-shadow: var(--v2-elevation-floating);
   outline: none;
@@ -170,7 +175,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   flex: 1 1 0;
   margin: 0;
   border-radius: 0;
-  background: var(--v2-background-bg-base);
+  background: var(--settings-canvas);
   box-shadow: none;
 }
 
@@ -178,6 +183,17 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
    band one step darker than the page. It stays opaque so sticky scrolling content cannot show through. */
 [data-replica] .settings-screen .settings-tab-header {
   background: var(--v2-background-bg-base);
+}
+
+/* Dark's deep step is the window bottom rather than a lit canvas, so the page keeps its own fill and eases into the
+   first raised step at the bottom. The header paints the canvas fill too, so the heading never draws a seam across
+   the top of the page. */
+[data-color-scheme="dark"] .settings-screen {
+  background: linear-gradient(
+    180deg,
+    var(--v2-background-bg-base) 0%,
+    var(--v2-background-bg-layer-01) 100%
+  );
 }
 
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
@@ -758,9 +774,8 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   text-decoration: underline;
 }
 
-/* The notices and delete sheets take the same glass as the server and custom-provider sheets instead of inheriting
-   the shared dialog defaults. The values come from --settings-sheet-* so both schemes resolve from one place. */
-[data-component="dialog-v2"]:has(.settings-notices) > [data-slot="dialog-container"],
+/* The custom-provider delete sheet takes the settings glass. Every other sheet, notices included, keeps the shared
+   dialog material so the whole app's overlays read as one layer. */
 [data-component="dialog-v2"]:has(.settings-provider-custom-delete-dialog) > [data-slot="dialog-container"] {
   border: 1px solid var(--settings-sheet-border);
   border-radius: var(--settings-sheet-radius);
@@ -3209,36 +3224,6 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   }
 }
 
-/* The shared dialog overlay already draws the scrim and the blur; a second one here doubled both. */
-[data-component="dialog-v2"]:has(.settings-server-dialog) {
-  z-index: 100;
-  padding: 24px;
-}
-
-/* Dialog puts the `class` prop on `[data-slot="dialog-content"]`, not on the `dialog-v2` root, so the sheet is
-   reached by walking up from its content instead of joining both classes on one element.
-   The sheet sizes itself from its content and never exceeds the window, so the body scrolls instead of the whole
-   dialog growing past the viewport. */
-[data-component="dialog-v2"]:has(.settings-server-dialog) > [data-slot="dialog-container"] {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 520px;
-  max-width: calc(100vw - 48px);
-  height: auto;
-  min-height: 0;
-  max-height: calc(100vh - 48px);
-  overflow: hidden;
-  border: 1px solid var(--settings-sheet-border);
-  border-radius: var(--settings-sheet-radius);
-  background: var(--settings-sheet-bg);
-  backdrop-filter: var(--settings-sheet-blur);
-  -webkit-backdrop-filter: var(--settings-sheet-blur);
-  box-shadow: var(--settings-sheet-shadow);
-}
-
 /* The body owns the scroll, so the content shell only clips the header highlight. */
 [data-component="dialog-v2"] [data-slot="dialog-content"].settings-server-dialog {
   align-items: stretch;
@@ -3247,41 +3232,13 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   overflow: hidden;
 }
 
-[data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-header"] {
-  position: relative;
-  z-index: 1;
-  align-items: center;
-  min-height: 56px;
-  padding: 16px;
-  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
-}
-
-[data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-body"] {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-[data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-footer"] {
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px 16px;
-  border-top: var(--settings-hairline) solid var(--v2-border-border-muted);
-}
-
 .settings-server-dialog-label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
-  font-weight: 400;
-  line-height: 18px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
   color: var(--v2-text-text-base);
 }
 
@@ -3572,29 +3529,9 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   flex: none;
 }
 
-/* The custom provider sheet: one screen of details and models. The container sizes itself from its content, the body
-   owns the scroll, and the model list scrolls inside its own 208px box, so the footer stays visible when the form grows
-   or a fetch fails. */
-[data-component="dialog-v2"] .settings-provider-custom-dialog[data-slot="dialog-container"] {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 600px;
-  max-width: calc(100vw - 48px);
-  height: auto;
-  min-height: min(280px, calc(100vh - 48px));
-  max-height: min(720px, calc(100vh - 48px));
-  overflow: hidden;
-  border: 1px solid var(--settings-sheet-border);
-  border-radius: var(--settings-sheet-radius);
-  background: var(--settings-sheet-bg);
-  backdrop-filter: var(--settings-sheet-blur);
-  -webkit-backdrop-filter: var(--settings-sheet-blur);
-  /* The same glass as the server sheet. The inset is the highlight both share; the light scheme needs no override
-     because every value here resolves from the scheme's `--settings-sheet-*` variables. */
-  box-shadow: var(--settings-sheet-shadow);
-}
-
+/* The custom provider sheet: one screen of details and models. The dialog's base size frames the sheet, the body
+   owns the scroll, and the model list scrolls inside its own 208px box, so the footer stays visible when the form
+   grows or a fetch fails. */
 [data-component="dialog-v2"][data-variant="settings"]
   .settings-provider-custom-dialog[data-slot="dialog-container"]
   [data-slot="dialog-content"] {
@@ -3608,18 +3545,13 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   overflow: hidden;
 }
 
-/* The dialog primitives style their own header, body and footer at five nested attribute selectors, so these rules
-   repeat the same chain plus the sheet's class to outrank them rather than relying on stylesheet order. */
+/* The header keeps the dialog's own inset; the mark needs its 12px gap, which the primitive does not set. */
 [data-component="dialog-v2"]
   .settings-provider-custom-dialog[data-slot="dialog-container"]
   [data-slot="dialog-content"]
   [data-slot="dialog-header"] {
-  display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 12px;
-  padding: 20px 24px 16px;
-  border-bottom: 0.5px solid var(--v2-border-border-muted);
 }
 
 /* The close button needs no adjustment, but the title group must sit after the mark and before it. */
@@ -3651,33 +3583,12 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
 [data-component="dialog-v2"]
   .settings-provider-custom-dialog[data-slot="dialog-container"]
   [data-slot="dialog-content"]
-  [data-slot="dialog-header"]
-  [data-slot="dialog-title"] {
-  margin: 0;
-  color: var(--v2-text-text-base);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 24px;
-}
-
-[data-component="dialog-v2"]
-  .settings-provider-custom-dialog[data-slot="dialog-container"]
-  [data-slot="dialog-content"]
-  [data-slot="dialog-header"]
-  [data-slot="dialog-description"] {
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-[data-component="dialog-v2"]
-  .settings-provider-custom-dialog[data-slot="dialog-container"]
-  [data-slot="dialog-content"]
   [data-slot="dialog-body"] {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  padding: 4px 24px 20px;
+  /* The settings variant strips the body inset so a caller can own its layout; this sheet keeps the base rhythm. */
+  padding: 0 16px 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -3686,20 +3597,18 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   .settings-provider-custom-dialog[data-slot="dialog-container"]
   [data-slot="dialog-content"]
   [data-slot="dialog-footer"] {
-  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
-  padding: 14px 24px 18px;
+  /* The body scrolls this form, so the footer opens with a hairline instead of touching a half-visible card. */
   border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
-/* One screen, two sections: each section opens with 18px above its title, so the body's 4px padding keeps the first
-   title clear of the header divider and the second section starts 18px below the first. */
+/* One screen, two sections: each section opens with 16px above its title, so the first title clears the header and the
+   second section starts 16px below the first. */
 .settings-provider-custom-section {
-  padding-top: 18px;
+  padding-top: 16px;
 }
 
 .settings-provider-custom-section-head {
@@ -3707,7 +3616,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .settings-provider-custom-section-title {
@@ -3715,13 +3624,13 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   color: var(--v2-text-text-base);
   font-size: 13px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: var(--line-height-compact);
 }
 
 .settings-provider-custom-section-count {
   color: var(--v2-text-text-muted);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -3736,13 +3645,13 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
 .settings-provider-custom-fields {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .settings-provider-custom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 
 /* Every field is one column: label, control, hint, 6px apart. The `dialog-v2` prefix outranks the shared input styles,
@@ -3760,9 +3669,9 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   [data-component="input"]
   [data-slot="input-label"] {
   color: var(--v2-text-text-base);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 16px;
+  line-height: var(--line-height-compact);
 }
 
 /* The design's control is a translucent 30px field on the glass sheet, so the field tokens replace the opaque input
@@ -3781,11 +3690,11 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   [data-component="input"]
   [data-slot="input-input"] {
   width: 100%;
-  /* The wrapper draws the 1px border, so a 28px input renders as the design's 30px control. */
-  height: 28px;
+  /* The wrapper draws the 1px border, so a 30px input renders as the design's 32px control. */
+  height: 30px;
   padding: 0 10px;
   font-size: 13px;
-  line-height: 18px;
+  line-height: var(--line-height-compact);
 }
 
 [data-component="dialog-v2"]
@@ -3794,6 +3703,18 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   [data-slot="input-description"] {
   color: var(--v2-text-text-muted);
   font-size: 12px;
+  line-height: 18px;
+}
+
+/* The shared field paints errors with the on-critical ink meant for a filled danger surface; on the sheet they are
+   plain danger text, one step larger than the hint line they replace. */
+[data-component="dialog-v2"]
+  .settings-provider-custom-dialog
+  [data-component="input"]
+  [data-slot="input-error"] {
+  color: var(--v2-state-fg-danger);
+  font-size: 12px;
+  font-weight: 400;
   line-height: 18px;
 }
 
@@ -4050,21 +3971,6 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   .settings-provider-custom-grid {
     grid-template-columns: 1fr;
   }
-
-  [data-component="dialog-v2"]
-    .settings-provider-custom-dialog[data-slot="dialog-container"]
-    [data-slot="dialog-content"]
-    [data-slot="dialog-header"],
-  [data-component="dialog-v2"]
-    .settings-provider-custom-dialog[data-slot="dialog-container"]
-    [data-slot="dialog-content"]
-    [data-slot="dialog-body"],
-  [data-component="dialog-v2"]
-    .settings-provider-custom-dialog[data-slot="dialog-container"]
-    [data-slot="dialog-content"]
-    [data-slot="dialog-footer"] {
-    padding-inline: 16px;
-  }
 }
 
 /* An outcome message wears the danger role, like every other red in settings; the stroke and wash are that ink at the
@@ -4083,46 +3989,6 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
 .settings-provider-custom-dialog [data-slot="dialog-footer"] .settings-provider-custom-error {
   flex-basis: 100%;
   text-align: end;
-}
-
-/* The footer's two controls are 28px, one step below the shared 30px normal size, matching the sheet's compact rows.
-   The primary action is the accent fill the design draws; the shared submit variant is the neutral key and would read
-   as a second Cancel here. */
-[data-component="dialog-v2"]
-  .settings-provider-custom-dialog
-  [data-slot="dialog-footer"]
-  > [data-component="button-v2"] {
-  height: 28px;
-  padding-inline: 12px;
-  font-size: 12px;
-}
-
-[data-component="dialog-v2"]
-  .settings-provider-custom-dialog
-  [data-slot="dialog-footer"]
-  > [data-component="button-v2"][data-variant="submit"] {
-  background-color: var(--v2-system-accent);
-  background-image: none;
-  color: var(--v2-text-text-contrast);
-  opacity: 1;
-}
-
-@media (hover: hover) {
-  [data-component="dialog-v2"]
-    .settings-provider-custom-dialog
-    [data-slot="dialog-footer"]
-    > [data-component="button-v2"][data-variant="submit"]:hover:not(:disabled) {
-    background-color: var(--v2-system-accent-hover);
-    background-image: none;
-  }
-}
-
-[data-component="dialog-v2"]
-  .settings-provider-custom-dialog
-  [data-slot="dialog-footer"]
-  > [data-component="button-v2"][data-variant="submit"]:disabled {
-  background-color: color-mix(in srgb, var(--v2-system-accent) 38%, transparent);
-  color: color-mix(in srgb, var(--v2-text-text-contrast) 62%, transparent);
 }
 
 /* Scheme parity
@@ -4231,24 +4097,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   }
 }
 
-/* Server dialog: the dark glass sheet turns into light glass with dark ink, keeping its blur and geometry. */
-[data-color-scheme="light"]
-  [data-component="dialog-v2"]:has(.settings-server-dialog)
-  > [data-slot="dialog-container"] {
-  /* Same sheet variables as the notices and delete dialogs, so the four glass shells cannot drift apart. */
-  border-color: var(--settings-sheet-border);
-  background: var(--settings-sheet-bg);
-  box-shadow: var(--settings-sheet-shadow);
-}
-
-[data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-header"] {
-  border-bottom-color: var(--v2-border-border-muted);
-}
-
-[data-color-scheme="light"] [data-component="dialog-v2"] .settings-server-dialog [data-slot="dialog-footer"] {
-  border-top-color: var(--v2-border-border-muted);
-}
-
+/* Server dialog: the shared sheet variables already carry both schemes, so only the ink overrides remain. */
 [data-color-scheme="light"] .settings-server-dialog-label {
   color: var(--v2-text-text-base);
 }

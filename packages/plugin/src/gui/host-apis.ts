@@ -3,7 +3,7 @@ import type { LocationRef, OpenCodeClient, ProjectListOutput, WorktreeDirectory 
 import type { Schema } from "effect"
 import type { JSX } from "solid-js"
 import type { Store } from "solid-js/store"
-import type { Cleanup, OS, Persisted, StoreFrom } from "./core.js"
+import type { Cleanup, Json, OS, Persisted, StoreFrom } from "./core.js"
 import type { IconName, Link, SessionPanelMenuItem } from "./registries.js"
 
 /**
@@ -1104,6 +1104,46 @@ export interface System {
    * @param url - The URL to open.
    */
   openExternal(url: string): void
+}
+
+/** One message a plugin publishes into the app's inbox. */
+export interface InboxPublishMessage {
+  /** The headline shown in the list and on the message page. */
+  readonly title: string
+  /** The one-line body shown under the title. */
+  readonly summary: string
+  /**
+   * The publisher's judgement of the message.
+   * - `pending`: still needs attention.
+   * - `done`: finished successfully.
+   * - `failed`: failed.
+   */
+  readonly status?: "pending" | "done" | "failed"
+  /** Your data for the message. The host stores it as JSON and does not interpret it. */
+  readonly payload?: Json
+  /** When the app may stop showing the message, in milliseconds since the epoch. */
+  readonly expiresAt?: number
+}
+
+/**
+ * The app's inbox. A message is listed under `/inbox` with the messages of every plugin, and opening it renders this
+ * plugin's `InboxContent`.
+ */
+export interface Inbox {
+  /**
+   * Publishes one message into the app's inbox under this plugin's id. Every call adds a new message, so publish once
+   * per event the user should read. Returns the host-assigned message id.
+   *
+   * @param message - The headline, summary, status and optional payload or deadline.
+   * @throws A `TypeError` when the title or summary is blank, the status is unknown, or the deadline is not finite; the
+   * server rejects when it cannot store the message.
+   *
+   * @example
+   * ```ts
+   * const id = await ctx.inbox.publish({ title: ctx.t("backup.done"), summary: name, status: "done" })
+   * ```
+   */
+  publish(message: InboxPublishMessage): Promise<string>
 }
 
 /** Desktop-only abilities; `ctx.desktop` is undefined on the web. */

@@ -139,7 +139,7 @@ export function NewScheduledTaskDialog(props: {
   }
 
   return (
-    <Dialog size="large" class="scheduled-create" containerClass="scheduled-create-container">
+    <Dialog fit class="scheduled-create">
       <DialogHeader>
         <DialogTitleGroup
           title={language.t("scheduled.create.title")}
@@ -147,7 +147,7 @@ export function NewScheduledTaskDialog(props: {
         />
       </DialogHeader>
 
-      <DialogBody>
+      <DialogBody class="scheduled-create-body">
         <div class="scheduled-create-layout">
           <div class="scheduled-create-form" data-scrollable ref={(el) => (formEl = el)}>
             <ol class="scheduled-steps">
@@ -201,7 +201,6 @@ export function NewScheduledTaskDialog(props: {
                         class="scheduled-frequency-option"
                         role="radio"
                         aria-checked={form.recurrence.kind === option.kind}
-                        data-selected={form.recurrence.kind === option.kind ? "" : undefined}
                         onClick={() => chooseKind(option.kind)}
                       >
                         {language.t(option.label)}
@@ -266,7 +265,6 @@ export function NewScheduledTaskDialog(props: {
                           class="scheduled-project"
                           role="radio"
                           aria-checked={form.directory === project.directory}
-                          data-selected={form.directory === project.directory ? "" : undefined}
                           onClick={() => setForm("directory", project.directory)}
                         >
                           <span class="scheduled-project-icon">
@@ -316,7 +314,6 @@ export function NewScheduledTaskDialog(props: {
                         class="scheduled-permission"
                         role="radio"
                         aria-checked={form.permission === option.scope}
-                        data-selected={form.permission === option.scope ? "" : undefined}
                         onClick={() => setForm("permission", option.scope)}
                       >
                         <span class="scheduled-permission-radio" aria-hidden="true" />

@@ -64,7 +64,7 @@ export function PluginInstallDialog(props: {
   }
 
   return (
-    <Dialog fit containerClass="explore-install-dialog">
+    <Dialog fit>
       <DialogHeader hideClose>
         <DialogTitleGroup
           title={language.t(props.integrated ? "explore.plugins.enable.title" : "explore.plugins.install.title")}
@@ -74,7 +74,7 @@ export function PluginInstallDialog(props: {
         />
       </DialogHeader>
 
-      <DialogBody class="explore-install-body">
+      <DialogBody flush class="explore-install-body">
         <Show
           when={props.package}
           fallback={
@@ -190,12 +190,12 @@ function BundleInstallDialog(props: {
   const skills = () => props.entry.skills?.map((skill) => skill.name).join("、") ?? ""
 
   return (
-    <Dialog fit containerClass="explore-install-dialog">
+    <Dialog fit>
       <DialogHeader hideClose>
         <DialogTitleGroup title={language.t("explore.plugins.install.title")} />
       </DialogHeader>
 
-      <DialogBody class="explore-install-body">
+      <DialogBody flush class="explore-install-body">
         <Show when={state.busy}>
           <Progress indeterminate aria-label={language.t("explore.plugins.bundle.installing")} />
         </Show>

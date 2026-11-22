@@ -24,13 +24,15 @@
   color: var(--v2-icon-icon-base);
 }
 
+/* The field sits on the navigation column's tint, so it takes the canvas fill and the input elevation: a white
+   field with a hairline and a soft edge reads as a control, while the same grey as the column read as a hole. */
 .settings-search [data-component="text-input-v2"] {
   width: 100%;
   height: 28px;
   flex-shrink: 0;
   border-radius: 7px;
-  background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+  background: light-dark(var(--v2-background-bg-base), var(--v2-background-bg-layer-01));
+  box-shadow: var(--v2-elevation-input);
   transition:
     background-color 120ms ease-out,
     box-shadow 120ms ease-out;
@@ -42,7 +44,7 @@
 
 .settings-search [data-component="text-input-v2"]:is(:hover, :focus-within):not([data-disabled]),
 .settings-search [data-component="text-input-v2"]:has(input:not(:placeholder-shown)):not([data-disabled]) {
-  background: var(--v2-background-bg-layer-01);
+  background: light-dark(var(--v2-background-bg-base), var(--v2-background-bg-layer-01));
 }
 
 .settings-search [data-component="text-input-v2"]:focus-within:not([data-disabled]) {

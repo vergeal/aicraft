@@ -337,30 +337,12 @@
 
 /* Create dialog -------------------------------------------------------- */
 
-/* The dialog is one glass surface: every band shares the container's material, so header, form and footer read as
-   one sheet floating over the page. */
-.scheduled-create-container[data-slot="dialog-container"] {
-  width: min(calc(100vw - 32px), 640px);
-  height: min(calc(100vh - 92px), 540px);
-  background: var(--v2-material-surface-strong);
-  backdrop-filter: var(--v2-material-blur-thick);
-}
-
-[data-component="dialog-v2"]
-  [data-slot="dialog-container"].scheduled-create-container
-  [data-slot="dialog-content"]
-  [data-slot="dialog-header"] {
-  padding: 18px 22px 14px;
-  border-bottom: 0.5px solid var(--v2-border-border-muted);
-}
-
-[data-component="dialog-v2"]
-  [data-slot="dialog-container"].scheduled-create-container
-  [data-slot="dialog-content"]
-  [data-slot="dialog-header"]
-  [data-slot="dialog-title"] {
-  font-size: 14px;
-  line-height: 20px;
+/* The dialog body only lays out the form; the form owns the scroll, so the header and footer stay put. */
+.scheduled-create-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .scheduled-create-layout {
@@ -373,11 +355,12 @@
 
 .scheduled-create-form {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   min-width: 0;
   min-height: 0;
-  padding: 20px 22px;
+  padding: 0;
   overflow-y: auto;
 }
 
@@ -389,13 +372,13 @@
 }
 
 .scheduled-create [data-component="textarea-v2"] {
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .scheduled-create [data-component="textarea-v2"] [data-slot="textarea-v2-textarea"] {
-  padding: 12px 13px;
-  font-size: 13.5px;
-  line-height: 1.65;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: var(--line-height-base);
 }
 
 .scheduled-create .scheduled-mono {
@@ -417,7 +400,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
 }
@@ -437,8 +420,8 @@
   width: 18px;
   height: 18px;
   border: 0.5px solid var(--v2-border-border-muted);
-  border-radius: 50%;
-  font-size: 10.5px;
+  border-radius: 999px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -463,19 +446,19 @@
 .scheduled-field {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
 }
 
 .scheduled-field-label {
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: var(--line-height-compact);
-  font-weight: 600;
-  color: var(--v2-text-text-muted);
+  font-weight: 500;
+  color: var(--v2-text-text-base);
 }
 
 .scheduled-field-hint {
-  font-size: 11px;
+  font-size: 12px;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
 }
@@ -490,7 +473,7 @@
   gap: 6px;
   margin: 0;
   margin-inline-end: auto;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-muted);
 }
@@ -511,10 +494,10 @@
 
 .scheduled-frequency-option {
   flex: 1 1 0;
-  height: 26px;
+  height: 28px;
   padding: 0 4px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: var(--v2-text-text-muted);
   font-size: 12px;
@@ -524,13 +507,13 @@
 }
 
 @media (hover: hover) {
-  .scheduled-frequency-option:not([data-selected]):hover {
+  .scheduled-frequency-option:not([aria-checked="true"]):hover {
     background: var(--v2-overlay-simple-overlay-hover);
     color: var(--v2-text-text-base);
   }
 }
 
-.scheduled-frequency-option[data-selected] {
+.scheduled-frequency-option[aria-checked="true"] {
   background: var(--v2-background-bg-base);
   color: var(--v2-text-text-base);
   font-weight: 500;
@@ -538,17 +521,17 @@
 }
 
 /* On a dark track the base fill is darker than the track; step up one layer so the key stays the raised pill. */
-[data-color-scheme="dark"] .scheduled-frequency-option[data-selected] {
+[data-color-scheme="dark"] .scheduled-frequency-option[aria-checked="true"] {
   background: var(--v2-background-bg-layer-03);
 }
 
 .scheduled-schedule-detail {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding: 12px;
   border: 0.5px solid var(--v2-border-border-muted);
-  border-radius: 9px;
+  border-radius: 12px;
   background: var(--v2-background-bg-layer-02);
 }
 
@@ -563,7 +546,7 @@
   max-height: 184px;
   overflow-y: auto;
   border: 0.5px solid var(--v2-border-border-muted);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--v2-background-bg-layer-02);
 }
 
@@ -589,14 +572,14 @@
 
 .scheduled-project:first-child,
 .scheduled-permission:first-child {
-  border-start-start-radius: 10px;
-  border-start-end-radius: 10px;
+  border-start-start-radius: 12px;
+  border-start-end-radius: 12px;
 }
 
 .scheduled-project:last-child,
 .scheduled-permission:last-child {
-  border-end-start-radius: 10px;
-  border-end-end-radius: 10px;
+  border-end-start-radius: 12px;
+  border-end-end-radius: 12px;
 }
 
 @media (hover: hover) {
@@ -606,8 +589,8 @@
   }
 }
 
-.scheduled-project[data-selected],
-.scheduled-permission[data-selected] {
+.scheduled-project[aria-checked="true"],
+.scheduled-permission[aria-checked="true"] {
   background: var(--v2-background-bg-layer-03);
   box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
 }
@@ -619,12 +602,12 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--v2-background-bg-layer-01);
   color: var(--v2-icon-icon-muted);
 }
 
-.scheduled-project[data-selected] .scheduled-project-icon {
+.scheduled-project[aria-checked="true"] .scheduled-project-icon {
   background: var(--v2-background-bg-layer-03);
   color: var(--v2-text-text-base);
 }
@@ -646,7 +629,7 @@
   white-space: nowrap;
 }
 
-.scheduled-project[data-selected] .scheduled-project-name {
+.scheduled-project[aria-checked="true"] .scheduled-project-name {
   font-weight: 600;
 }
 
@@ -665,7 +648,7 @@
   color: var(--v2-icon-icon-muted);
 }
 
-.scheduled-project[data-selected] .scheduled-project-check {
+.scheduled-project[aria-checked="true"] .scheduled-project-check {
   color: var(--v2-text-text-base);
 }
 
@@ -678,7 +661,7 @@
   background: transparent;
 }
 
-.scheduled-permission[data-selected] .scheduled-permission-radio {
+.scheduled-permission[aria-checked="true"] .scheduled-permission-radio {
   border: 5px solid var(--v2-background-bg-inverse);
   background: var(--v2-background-bg-base);
 }
@@ -692,34 +675,24 @@
 }
 
 .scheduled-permission-title {
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: var(--line-height-compact);
   font-weight: 500;
 }
 
 .scheduled-permission-note {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-muted);
 }
 
 /* Footer --------------------------------------------------------------- */
 
-[data-component="dialog-v2"]
-  [data-slot="dialog-container"].scheduled-create-container
-  [data-slot="dialog-content"]
-  [data-slot="dialog-footer"] {
-  align-items: center;
-  padding: 13px 22px;
-  border-top: 0.5px solid var(--v2-border-border-muted);
-  background: transparent;
-}
-
 /* The paused hint sits on the same fill as the rest of the sheet instead of a darker footer band. */
 .scheduled-create-note {
   margin: 0;
   margin-inline-end: auto;
-  font-size: 11px;
+  font-size: 12px;
   line-height: var(--line-height-base);
   color: var(--v2-text-text-faint);
 }
@@ -735,12 +708,6 @@
 }
 
 /* Narrow shell --------------------------------------------------------- */
-
-@media (max-width: 780px) {
-  .scheduled-create-layout {
-    display: flex;
-  }
-}
 
 @container scheduled (max-width: 760px) {
   .scheduled-detail {

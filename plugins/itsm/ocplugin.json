@@ -1,0 +1,56 @@
+{
+  "apiVersion": 1,
+  "id": "changhong.itsm",
+  "version": "0.1.4",
+  "requires": {
+    "opencode": "^2.2.5"
+  },
+  "entry": {
+    "server": "server/main",
+    "gui": "gui/main"
+  },
+  "externals": [
+    "effect",
+    "@opencode/plugin",
+    "@opencode/schema"
+  ],
+  "display": {
+    "name": "IT 工单",
+    "description": "在应用内浏览器里自动填报长虹 ITSM 工单：堡垒机申请与发版申请，填完停在提交前由你确认。",
+    "category": "productivity",
+    "tools": [
+      "itsm.*"
+    ],
+    "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6.5 2.5h8l5 5v12a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M14.5 2.5V7.5H19.5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M8.5 10h8M8.5 13.5h8M8.5 17h5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>",
+    "skills": [
+      {
+        "id": "itsm",
+        "name": "IT 工单",
+        "description": "用 `itsm.*` 工具准备长虹 ITSM 工单填报请求：列出可填工单、提取答案、排入待办、查询状态与历史。绝不代用户提交。"
+      }
+    ]
+  },
+  "skills": [
+    {
+      "id": "itsm",
+      "name": "IT 工单",
+      "description": "用 `itsm.*` 工具准备长虹 ITSM 工单填报请求：列出可填工单、提取答案、排入待办、查询状态与历史。绝不代用户提交。",
+      "path": "skills/itsm/SKILL.md"
+    }
+  ],
+  "configuration": {
+    "title": "IT 工单设置",
+    "properties": {
+      "stepTimeoutMs": {
+        "type": "number",
+        "default": 5000,
+        "description": "页面每一步等待目标出现的超时（毫秒），最多 30 秒。"
+      },
+      "keepRuns": {
+        "type": "number",
+        "default": 200,
+        "description": "历史记录保留条数，超出后按时间淘汰最旧的记录。"
+      }
+    }
+  }
+}

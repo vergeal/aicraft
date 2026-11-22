@@ -3,6 +3,7 @@ import { createStore } from "solid-js/store"
 import fuzzysort from "fuzzysort"
 import type { AlertOptions, ConfirmOptions, PromptOptions, SelectOptions } from "@opencode/plugin/gui"
 import { Button } from "@opencode/ui/button"
+import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup } from "@opencode/ui/dialog"
 import { SearchHighlight, SearchList } from "@opencode/ui/search-list"
 import { TextInput } from "@opencode/ui/text-input"
@@ -13,28 +14,20 @@ import "@/shell/palette-menu.css"
 // The dialogs behind `Dialogs.confirm`, `alert`, `prompt` and `select`. Each answers through `done`; the host closes
 // the dialog and settles the plugin's promise.
 
-/** `Dialogs.confirm`: the app's confirm dialog. A destructive action focuses Cancel, as the app's own do. */
+/** `Dialogs.confirm`: the app's shared confirmation sheet, so it matches every other destructive action. */
 export function PluginConfirmDialog(props: { options: ConfirmOptions; done: (confirmed: boolean) => void }) {
   const language = useLanguage()
 
   return (
-    <Dialog fit>
-      <DialogHeader hideClose>
-        <DialogTitleGroup title={props.options.title} description={props.options.description} />
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="neutral" autofocus={!!props.options.danger} onClick={() => props.done(false)}>
-          {props.options.cancel ?? language.t("common.cancel")}
-        </Button>
-        <Button
-          variant={props.options.danger ? "danger" : "submit"}
-          autofocus={!props.options.danger}
-          onClick={() => props.done(true)}
-        >
-          {props.options.confirm ?? language.t("ui.common.confirm")}
-        </Button>
-      </DialogFooter>
-    </Dialog>
+    <ConfirmDialog
+      title={props.options.title}
+      description={props.options.description}
+      tone={props.options.danger ? "danger" : "default"}
+      cancelLabel={props.options.cancel ?? language.t("common.cancel")}
+      confirmLabel={props.options.confirm ?? language.t("ui.common.confirm")}
+      onCancel={() => props.done(false)}
+      onConfirm={() => props.done(true)}
+    />
   )
 }
 
@@ -73,7 +66,7 @@ export function PluginPromptDialog(props: { options: PromptOptions; done: (value
           if (store.value) props.done(store.value)
         }}
       >
-        <DialogBody class="px-4">
+        <DialogBody>
           <TextInput
             type={props.options.secret ? "password" : "text"}
             appearance="large"
@@ -133,7 +126,7 @@ export function PluginSelectDialog<T>(props: { options: SelectOptions<T>; done: 
       <div class="sr-only">
         <DialogTitle>{props.options.title}</DialogTitle>
       </div>
-      <DialogBody class="command-palette-body">
+      <DialogBody flush class="command-palette-body">
         <SearchList
           query={store.query}
           onQuery={(query) => setStore("query", query)}

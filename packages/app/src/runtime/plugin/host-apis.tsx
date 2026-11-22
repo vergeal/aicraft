@@ -59,6 +59,7 @@ import { closedEntry, createClosedTabs } from "./closed-tabs"
 import { panelsMoving } from "@/shell/panel-motion"
 import { createEmbeds } from "./embeds"
 import { usePluginHost, type HostApiFactories } from "./host"
+import { inboxMessage } from "./inbox-message"
 import { createLocatedWrites } from "./located"
 import { createSessionPanelMenu } from "./panel-menu"
 import type { Region } from "./panels"
@@ -431,6 +432,14 @@ export function createHostApis() {
     }),
     // No command is registered before the interface mounts.
     commands: () => ({ run: (id) => untrack(attached)?.run(id) ?? false, list: () => untrack(attached)?.commands() ?? [] }),
+    // Publishes with the client of the server that runs the plugin, so its message lands where the user reads it.
+    inbox: (plugin, _owner, context) => ({
+      async publish(message) {
+        const result = await context.client.experimental.plugin.inbox.publish({ plugin, ...inboxMessage(message) })
+
+        return result.data.id
+      },
+    }),
     screen: () => ({
       current: () => {
         const attached = current()

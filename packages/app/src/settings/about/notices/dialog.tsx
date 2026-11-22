@@ -24,7 +24,7 @@ export default function DialogThirdPartyNotices() {
           description={language.t("settings.about.notices.description")}
         />
       </DialogHeader>
-      <DialogBody>
+      <DialogBody flush>
         <div class="settings-notices-scroll" data-scrollable>
           <div class="settings-notices">
             <For each={notices}>

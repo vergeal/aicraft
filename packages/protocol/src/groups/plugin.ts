@@ -171,6 +171,22 @@ export const PluginGroup = HttpApiGroup.make("server.plugin")
       ),
   )
   .add(
+    HttpApiEndpoint.post("plugin.inbox.publish", "/api/experimental/plugin/inbox/publish", {
+      query: LocationQuery,
+      payload: Plugin.InboxPublish,
+      success: Location.response(Schema.Struct({ id: Schema.String })),
+    })
+      .annotateMerge(locationQueryOpenApi)
+      .annotateMerge(
+        OpenApi.annotations({
+          identifier: "experimental.plugin.inbox.publish",
+          summary: "Publish a plugin inbox message",
+          description:
+            "Experimental: may change without compatibility guarantees. Publishes one message into the app's inbox under the plugin the window sends, or updates the record with the same `externalID`. `/inbox` lists it, and opening it renders that plugin's `InboxContent`.",
+        }),
+      ),
+  )
+  .add(
     HttpApiEndpoint.post("plugin.inbox.mark", "/api/experimental/plugin/inbox/mark", {
       query: LocationQuery,
       payload: Schema.Struct({ id: Schema.String }),

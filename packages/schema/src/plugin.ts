@@ -141,6 +141,25 @@ export const Event = { Updated, Definitions: inventory(Updated) }
 export const InboxStatus = Schema.Literals(["pending", "done", "failed"])
 export type InboxStatus = typeof InboxStatus.Type
 
+/** One message a plugin publishes into the app's inbox, before the platform assigns its id. */
+export interface InboxMessage extends Schema.Schema.Type<typeof InboxMessage> {}
+export const InboxMessage = Schema.Struct({
+  /** The producer's own id for the message; publishing it again updates that record instead of adding one. */
+  externalID: Schema.String,
+  title: Schema.String,
+  summary: Schema.String,
+  status: InboxStatus.pipe(optional),
+  createdAt: Schema.Finite.pipe(optional),
+  expiresAt: Schema.Finite.pipe(optional),
+  payload: Schema.Unknown.pipe(optional),
+}).annotate({ identifier: "Plugin.InboxMessage" })
+
+/** One message a window publishes through the app's inbox API, with the plugin it publishes as. */
+export interface InboxPublish extends Schema.Schema.Type<typeof InboxPublish> {}
+export const InboxPublish = Schema.Struct({ ...InboxMessage.fields, plugin: ID }).annotate({
+  identifier: "Plugin.InboxPublish",
+})
+
 /**
  * One message a plugin published into the app's inbox, as the app reads it. `plugin` is the publisher, so the app can
  * hand the message to that plugin's `InboxContent` renderer. `status` is the plugin's own judgement; `seen` is the

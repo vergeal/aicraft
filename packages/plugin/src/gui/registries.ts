@@ -1062,23 +1062,6 @@ export interface MainSurface {
 }
 
 /**
- * The registry of first-level pages in the app's primary navigation.
- *
- * @example
- * ```tsx
- * ctx.add(MainSurface, {
- *   id: "overview",
- *   get title() {
- *     return ctx.t("surface.overview")
- *   },
- *   icon: "rail-compass",
- *   render: () => <Overview />,
- * })
- * ```
- */
-export const MainSurface = Registry.define<MainSurface>("main-surface")
-
-/**
  * The content page of one inbox message this plugin published. The host routes a message to its publisher's renderer;
  * a plugin that contributes none gets the host's default page, which shows the title and summary only.
  */
@@ -1126,6 +1109,23 @@ export interface InboxRecord {
   /** When the read state last changed, in milliseconds. */
   readonly updatedAt: number
 }
+
+/**
+ * The registry of first-level pages in the app's primary navigation.
+ *
+ * @example
+ * ```tsx
+ * ctx.add(MainSurface, {
+ *   id: "overview",
+ *   get title() {
+ *     return ctx.t("surface.overview")
+ *   },
+ *   icon: "rail-compass",
+ *   render: () => <Overview />,
+ * })
+ * ```
+ */
+export const MainSurface = Registry.define<MainSurface>("main-surface")
 
 /**
  * The registry of content pages for plugin inbox messages.

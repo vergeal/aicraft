@@ -137,6 +137,7 @@ function fakeApis(storage: (plugin: string) => Storage): HostApiFactories {
     tabs: () => ({ list: () => [], open() {}, focus() {}, move() {}, close() {} }),
     attention: () => ({ notify: async () => ({ notification: false, sound: false }) }),
     commands: () => ({ run: () => false, list: () => [] }),
+    inbox: () => ({ publish: async () => "" }),
     log: () => ({ write: () => {} }),
     ui: () => ui,
   }

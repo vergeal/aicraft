@@ -1,20 +1,13 @@
 .manage-models-search {
   flex-shrink: 0;
-  padding: 0 6px 8px;
-}
-
-[data-component="dialog-v2"]:has(.settings-manage-models-dialog) [data-slot="dialog-container"] {
-  /* The dialog's base size is a fixed 640px; keep it from overflowing a narrow viewport. This beats the
-     `[data-size="large"]` rule it inherits. */
-  width: min(calc(100vw - 24px), 640px);
-  border-radius: 12px;
+  padding: 0 16px 12px;
 }
 
 /*
  * One scrolling list: MenuScroll hides the native scrollbar, so the rows keep the same end inset whether or not it
  * overflows. --manage-models-edge is the viewport's own inset, measured from the dialog edge. A direct provider's
- * rows sit at edge + 8px (their own padding), so its header uses the same edge + 8px. Console provider rows add a
- * group inset, and their header's actions inset matches that.
+ * rows sit 8px further in (their own padding), so its header adds the same 8px. Console provider rows add a group
+ * inset, and their header's actions inset matches that.
  *
  * The viewport keeps the settings-panel class for the settings metrics, and this three-class selector outranks the
  * dialog's `.settings-panel` height so the panel never reasserts its own scroll box.
@@ -24,7 +17,7 @@
 }
 
 .settings-manage-models-dialog .settings-panel.settings-models.settings-manage-models-viewport {
-  --manage-models-edge: 8px;
+  --manage-models-edge: 12px;
   flex: 1;
   min-height: 0;
   height: auto;

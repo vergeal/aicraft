@@ -93,7 +93,7 @@ export const DialogServer: Component<{
 
   return (
     <Dialog fit class="settings-server-dialog">
-      <DialogHeader hideClose={true}>
+      <DialogHeader closeLabel={language.t("common.close")}>
         <DialogTitle>{title()}</DialogTitle>
       </DialogHeader>
       <DialogBody class="flex w-full min-w-0 flex-1 flex-col">
@@ -123,7 +123,7 @@ export const DialogServer: Component<{
             <Show
               when={view().draft.method === "password"}
               fallback={
-                <div class="flex w-full min-w-0 flex-col gap-2">
+                <div class="flex w-full min-w-0 flex-col gap-1.5">
                   <label for="dialog-server-link" class="settings-server-dialog-label">
                     {language.t("server.connect.link")}
                   </label>
@@ -148,7 +148,7 @@ export const DialogServer: Component<{
                 </div>
               }
             >
-              <div class="flex w-full min-w-0 flex-col gap-2">
+              <div class="flex w-full min-w-0 flex-col gap-1.5">
                 <label for="dialog-server-url" class="settings-server-dialog-label">
                   {language.t("dialog.server.add.url")}
                 </label>
@@ -172,7 +172,7 @@ export const DialogServer: Component<{
                 {error("url")}
               </div>
             </Show>
-            <div class="flex w-full min-w-0 flex-col gap-2">
+            <div class="flex w-full min-w-0 flex-col gap-1.5">
               <label for="dialog-server-name" class="settings-server-dialog-label">
                 {language.t("dialog.server.add.name")}
               </label>
@@ -189,7 +189,7 @@ export const DialogServer: Component<{
               />
             </div>
             <Show when={view().draft.method === "password"}>
-              <div class="flex w-full min-w-0 flex-col gap-2">
+              <div class="flex w-full min-w-0 flex-col gap-1.5">
                 <label for="dialog-server-password" class="settings-server-dialog-label">
                   {language.t("dialog.server.add.password")}
                 </label>

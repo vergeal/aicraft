@@ -5,6 +5,7 @@ import { createSimpleContext } from "@opencode/ui/context"
 import { useLayout, type LayoutRoute } from "@/shell/state/layout"
 import { draftHref, useTabs } from "@/shell/tabs/tabs"
 import { sessionHref } from "@/shell/routes/session"
+import { mainSurfacePath } from "@/runtime/plugin/main-surface"
 import { useServers } from "@/runtime/server/registry"
 import { createSettingsPages } from "@/runtime/plugin/settings-pages"
 import { useSettingsServers } from "./servers/inventory"
@@ -35,6 +36,7 @@ function routeHref(route: Exclude<LayoutRoute, { type: "settings" }>) {
   if (route.type === "home") return "/"
   if (route.type === "session") return sessionHref(route.server, route.sessionId)
   if (route.type === "draft") return draftHref(route.draftID)
+  if (route.type === "plugin") return mainSurfacePath(route.plugin, route.surface)
 
   return `/${route.type}`
 }

@@ -1,0 +1,93 @@
+{
+  "apiVersion": 1,
+  "id": "changhong.hyt",
+  "version": "0.1.1",
+  "requires": {
+    "opencode": "^2.2.5"
+  },
+  "entry": {
+    "server": "server/main",
+    "gui": "gui/main"
+  },
+  "externals": ["effect", "@opencode/plugin", "@opencode/schema"],
+  "display": {
+    "name": "虹云通助手",
+    "description": "读本地虹云通消息、收发消息、积累运维知识库、学习你的说话风格并收集任务；自动回复默认只出草稿。",
+    "category": "productivity",
+    "tools": ["hyt.*"],
+    "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20.5 12.2c0 3.9-3.8 7-8.5 7-.9 0-1.8-.1-2.6-.3L4 20.5l1.1-3.4C3.8 15.7 3 14 3 12.2c0-3.9 3.8-7 8.5-7s9 3.1 9 7Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/><path d=\"M8.5 12.2h.01M12 12.2h.01M15.5 12.2h.01\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M17.8 3.6l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5.5-1.3Z\" fill=\"currentColor\"/></svg>",
+    "skills": [
+      {
+        "id": "hyt-assistant",
+        "name": "虹云通助手",
+        "description": "用 `hyt.*` 工具读取本地虹云通消息与联系人、检索知识库、查看用户说话风格、登记任务、发送消息。第一次使用前先加载本技能。"
+      }
+    ]
+  },
+  "skills": [
+    {
+      "id": "hyt-assistant",
+      "name": "虹云通助手",
+      "description": "用 `hyt.*` 工具读取本地虹云通消息与联系人、检索知识库、查看用户说话风格、登记任务、发送消息。第一次使用前先加载本技能。",
+      "path": "skills/hyt-assistant/SKILL.md"
+    }
+  ],
+  "configuration": {
+    "title": "虹云通助手设置",
+    "properties": {
+      "chfileRoot": {
+        "type": "string",
+        "default": "",
+        "description": "虹云通数据根目录（含 login.db 与各账号目录）。留空时 macOS/Linux 用 ~/Documents/CHFile，Windows 用 %USERPROFILE%\\Documents\\CHFile。"
+      },
+      "account": {
+        "type": "string",
+        "default": "",
+        "description": "要读取的账号，例如 csT1002173。留空时按 login.db 的上次登录用户推断。"
+      },
+      "autoStartBridge": {
+        "type": "boolean",
+        "default": true,
+        "description": "需要收发消息时自动拉起本地 bridge 进程；关闭后只读本地库。"
+      },
+      "bridgePath": {
+        "type": "string",
+        "default": "",
+        "description": "bridge 可执行文件路径。留空时从虹云通数据目录的 Config/bridge.json 探测已运行的实例。"
+      },
+      "whitelist": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": [],
+        "description": "允许 AI 自动发送消息的会话或账号。为空时 hyt.send.text 一律拒绝发送。"
+      },
+      "autoReplyEnabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "AI 托管开关。关闭时只生成草稿，不自动发送。"
+      },
+      "knowledgePaths": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": [],
+        "description": "额外导入的本地知识库目录，扫描其中的 md / txt。"
+      },
+      "mcpKnowledgeTools": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": [],
+        "description": "登记为知识来源的 MCP 工具名，例如 server.tool。检索时调用，结果不落库除非达到入库门槛。"
+      },
+      "analysisBatchSize": {
+        "type": "number",
+        "default": 50,
+        "description": "一次风格学习或任务识别处理的样本条数。"
+      },
+      "analysisIntervalMinutes": {
+        "type": "number",
+        "default": 30,
+        "description": "后台增量分析间隔（分钟）。"
+      }
+    }
+  }
+}

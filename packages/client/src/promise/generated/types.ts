@@ -3497,6 +3497,20 @@ export type ExperimentalPluginInboxListInput = {
 
 export type ExperimentalPluginInboxListOutput = { location: LocationPublicRef; data: Array<PluginInboxRecord> }
 
+export type ExperimentalPluginInboxPublishInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly externalID: string
+  readonly title: string
+  readonly summary: string
+  readonly status?: "pending" | "done" | "failed" | undefined
+  readonly createdAt?: number | undefined
+  readonly expiresAt?: number | undefined
+  readonly payload?: JsonValue | undefined
+  readonly plugin: string
+}
+
+export type ExperimentalPluginInboxPublishOutput = { location: LocationPublicRef; data: { id: string } }
+
 export type ExperimentalPluginInboxMarkInput = {
   readonly location?: { readonly directory?: string | undefined } | undefined
   readonly id: string
@@ -5191,6 +5205,12 @@ export type PluginInboxListInput = ExperimentalPluginInboxListInput
 
 /** @deprecated Use `ExperimentalPluginInboxListOutput`. Removed in the next minor. */
 export type PluginInboxListOutput = ExperimentalPluginInboxListOutput
+
+/** @deprecated Use `ExperimentalPluginInboxPublishInput`. Removed in the next minor. */
+export type PluginInboxPublishInput = ExperimentalPluginInboxPublishInput
+
+/** @deprecated Use `ExperimentalPluginInboxPublishOutput`. Removed in the next minor. */
+export type PluginInboxPublishOutput = ExperimentalPluginInboxPublishOutput
 
 /** @deprecated Use `ExperimentalPluginInboxMarkInput`. Removed in the next minor. */
 export type PluginInboxMarkInput = ExperimentalPluginInboxMarkInput

@@ -948,11 +948,6 @@
 
 /* Install and remove dialogs share one reading column. */
 
-/* A short form reads better narrower than the default dialog width. */
-[data-slot="dialog-container"].explore-install-dialog {
-  width: min(calc(100vw - 32px), 520px);
-}
-
 .explore-install-body {
   display: flex;
   min-height: 0;
@@ -976,12 +971,12 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--v2-background-bg-layer-02);
 }
 
 .explore-install-target-name {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 500;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-base);
@@ -989,7 +984,7 @@
 
 .explore-install-target-package {
   font-family: var(--v2-font-family-code);
-  font-size: 12px;
+  font-size: var(--font-size-x-small);
   line-height: var(--line-height-base);
   color: var(--v2-text-text-muted);
   overflow-wrap: anywhere;
@@ -999,10 +994,10 @@
   display: block;
   width: 100%;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--v2-background-bg-layer-02);
   font-family: var(--v2-font-family-code);
-  font-size: 12px;
+  font-size: var(--font-size-x-small);
   line-height: var(--line-height-base);
   color: var(--v2-text-text-base);
   overflow-wrap: anywhere;
@@ -1025,13 +1020,13 @@
 }
 
 .explore-field-label {
-  font-size: 12px;
+  font-size: var(--font-size-x-small);
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-muted);
 }
 
 .explore-field-hint {
-  font-size: 12px;
+  font-size: var(--font-size-x-small);
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
 }
@@ -1049,7 +1044,7 @@
   height: 40px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--v2-background-bg-layer-02);
 }
 
@@ -1095,11 +1090,6 @@
 }
 
 /* New skill: the form is one sheet of paper, so the body reads like a document instead of a stack of fields. */
-[data-component="dialog-v2"][data-size="x-large"] [data-slot="dialog-container"].explore-skill-dialog {
-  width: min(calc(100vw - 32px), 840px);
-  height: min(calc(100vh - 64px), 780px);
-}
-
 .explore-skill-body {
   min-height: 0;
 }
@@ -1150,9 +1140,9 @@
 [data-component="text-input-v2"].explore-skill-name [data-slot="text-input-v2-input"] {
   height: 40px;
   padding: 0;
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 40px;
+  font-size: var(--font-size-x-large);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-large);
   letter-spacing: -0.02em;
 }
 
@@ -1170,8 +1160,8 @@
 [data-component="textarea-v2"].explore-skill-summary [data-slot="textarea-v2-textarea"] {
   min-height: 0;
   padding: 0;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
   color: var(--v2-text-text-muted);
   resize: none;
 }
@@ -1196,8 +1186,8 @@
 [data-component="textarea-v2"].explore-skill-markdown [data-slot="textarea-v2-textarea"] {
   min-height: 360px;
   padding: 0;
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-x-large);
   letter-spacing: normal;
   resize: none;
 }
@@ -1216,7 +1206,7 @@
 
 .explore-skill-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-x-small);
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
 }
@@ -1225,7 +1215,7 @@
   margin: 0;
   min-width: 0;
   font-family: var(--font-family-mono);
-  font-size: 11px;
+  font-size: var(--font-size-xx-small);
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
   overflow-wrap: anywhere;
@@ -1246,7 +1236,7 @@
   border-radius: 999px;
   background: var(--v2-background-bg-layer-02);
   color: var(--v2-text-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-x-small);
   line-height: var(--line-height-compact);
   font-variant-numeric: tabular-nums;
   cursor: default;

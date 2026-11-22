@@ -199,7 +199,7 @@ export const DialogManageModels: Component = () => {
 
   return (
     <Dialog size="large" variant="settings" class="settings-manage-models-dialog search-dialog">
-      <DialogHeader hideClose={true} closeLabel={language.t("common.close")}>
+      <DialogHeader closeLabel={language.t("common.close")}>
         <DialogTitleGroup
           title={language.t("dialog.model.manage")}
           description={language.t("dialog.model.manage.description")}

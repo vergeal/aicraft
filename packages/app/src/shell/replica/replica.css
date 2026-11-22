@@ -765,7 +765,9 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-main);
+  /* The canvas keeps a soft fall from its own colour to one step down, so a tall empty or short conversation still
+     reads as lit space instead of a flat white sheet. It stays neutral; the only colour is the wash behind the mark. */
+  background: linear-gradient(180deg, var(--color-main) 0%, var(--v2-background-bg-deep) 100%);
   /* The conversation follows the appearance font the user selected; the chrome keeps the system stack. */
   font-family: var(--font-family-sans, var(--font-family-ui));
 }
@@ -783,10 +785,10 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   translate: -50% -50%;
   border-radius: 50%;
   background:
-    radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--v2-blue-500) 7%, transparent), transparent 100%),
-    radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--v2-purple-600) 5%, transparent), transparent 100%);
+    radial-gradient(52% 48% at 38% 48%, color-mix(in srgb, var(--v2-blue-500) 10%, transparent), transparent 100%),
+    radial-gradient(46% 46% at 66% 52%, color-mix(in srgb, var(--v2-purple-600) 7%, transparent), transparent 100%);
   filter: blur(64px);
-  opacity: 0.6;
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -797,7 +799,10 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 }
 
 [data-color-scheme="dark"] [data-slot="replica-main"] {
-  /* The vertical seam is drawn once on the shell, from below the top bar, so it never cuts through the chrome. */
+  /* Dark's deep step is the window bottom, not a lit canvas: falling into it turned the panel almost black next to
+     its own chrome. Dark instead takes a faint white wash from the top edge, the same light direction as light mode. */
+  background-color: var(--color-main);
+  background-image: linear-gradient(180deg, var(--v2-alpha-light-4) 0%, transparent 55%);
 }
 
 /* Workspace content keeps a readable measure instead of stretching across the whole panel. */

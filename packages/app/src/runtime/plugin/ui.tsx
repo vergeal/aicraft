@@ -152,8 +152,8 @@ export const ui: Ui = {
         <DialogHeader hideClose={props.closable === false}>
           <DialogTitleGroup title={props.title} description={props.description} />
         </DialogHeader>
-        <DialogBody class="min-h-0">
-          {/* Without a footer, the content keeps the dialog's bottom padding itself. */}
+        {/* The body is the scroll container, so it owns the inset once instead of nesting a second padded scroller. */}
+        <DialogBody flush class="min-h-0">
           <div data-scrollable class="min-h-0 flex-1 overflow-y-auto px-4" classList={{ "pb-4": !footer() }}>
             {props.children}
           </div>

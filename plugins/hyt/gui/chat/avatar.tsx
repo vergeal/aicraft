@@ -2,10 +2,17 @@ import { For, Show } from "solid-js"
 import type { HeadMember } from "./contract.js"
 import { GROUP_HEAD_BG, headColor, headLayout, headText } from "./head.js"
 
-/** 头像尺寸档：会话行 36、会话头 32、消息 36、@ 候选 24、成员 28。 */
-export type AvatarSize = "row" | "head" | "bubble" | "mention" | "member"
+/** 头像尺寸档：会话行 40（对齐虹云通会话列表）、搜索 36、会话头 32、消息 36、@ 候选 24、成员 28。 */
+export type AvatarSize = "session" | "row" | "head" | "bubble" | "mention" | "member"
 
-const SIZE: Record<AvatarSize, number> = { row: 36, head: 32, bubble: 36, mention: 24, member: 28 }
+const SIZE: Record<AvatarSize, number> = {
+  session: 40,
+  row: 36,
+  head: 32,
+  bubble: 36,
+  mention: 24,
+  member: 28,
+}
 
 /** 形状与虹云通 `avatarRadius` 一致：正方形 + 12% 圆角。 */
 function radius(size: number) {

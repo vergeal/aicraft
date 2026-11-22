@@ -263,7 +263,7 @@ function SessionRowView(props: {
         name={props.session.name}
         members={props.session.members}
         avatars={props.avatars}
-        size="row"
+        size="session"
         group={props.session.group}
       />
       <span class="hyt-chat-session-body">

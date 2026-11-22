@@ -530,11 +530,14 @@ export const css = `
   flex: 0 0 auto;
   overflow: hidden;
   color: var(--hyt-on-accent);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0;
   line-height: 1;
+  white-space: nowrap;
   user-select: none;
   isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 .hyt-chat-avatar img {
   width: 100%;
@@ -552,10 +555,13 @@ export const css = `
   place-items: center;
   overflow: hidden;
   color: var(--hyt-on-accent);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0;
   line-height: 1;
+  white-space: nowrap;
   user-select: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 .hyt-chat-avatar-tile img {
   width: 100%;

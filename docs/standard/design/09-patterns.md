@@ -43,7 +43,7 @@
 | 同一轮内行距 | 4px | 实现 B `--chat-flow-gap` |
 | 会话项间距 | 16px | 实现 A `--conversation-item-gap` |
 | 分组项间距 | 4px | 实现 A `--conversation-grouped-item-gap` |
-| 正文列宽 | 680–920px（clamp） | 实现 B |
+| 正文列宽 | 680–1000px（clamp） | 实现 B |
 | 长文阅读宽 | 730px | 实现 A |
 
 **规律**：**"块间 16、块内 4"**。同一轮对话内部的段落/工具调用紧凑排列，不同轮之间留出明显间隔。这比统一 12px 更能表达结构。

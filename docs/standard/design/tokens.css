@@ -317,7 +317,7 @@
 :root {
   --layout-sidebar: 280px;
   --layout-sidebar-collapsed: 56px;
-  --layout-content-max: 900px;
+  --layout-content-max: 1000px;
   --layout-reading-max: 730px;
   --layout-settings-max: 760px;
   --bp-collapse: 1024px;

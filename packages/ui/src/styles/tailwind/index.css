@@ -104,9 +104,9 @@
 
 /* Each step keeps a readable measure but grows with the window: focused stays narrow on a big display
    while wide only reaches its full reading width when there is room for it. */
-/* Comfortable caps the reading measure at the design guideline's 900px; narrower panels simply use the room they have. */
+/* Comfortable caps the reading measure at the design guideline's 1000px; narrower panels simply use the room they have. */
 :root[data-timeline-width="comfortable"] {
-  --container-session: 900px;
+  --container-session: 1000px;
 }
 
 :root[data-timeline-width="focused"] {

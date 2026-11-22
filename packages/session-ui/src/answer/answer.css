@@ -354,7 +354,11 @@
    rest, and reduced motion drops the transition without changing the outcome. */
 .answer-scope .answer-collapse {
   display: grid;
+  /* A grid item's automatic minimum width would let one long row widen the whole answer column, so the track stays at
+     the column's width and the row wraps inside it. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 0fr;
+  min-width: 0;
   transition: grid-template-rows var(--answer-collapse-duration) var(--answer-collapse-ease);
 }
 
@@ -363,8 +367,15 @@
 }
 
 .answer-scope .answer-collapse-inner {
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+/* While the track moves, keep its per-frame relayout from reaching the rest of the transcript. Paint containment
+   clips, so it only applies with the clip that is already there. */
+.answer-scope .answer-collapse[data-clipping] .answer-collapse-inner {
+  contain: layout paint;
 }
 
 .answer-scope .answer-collapse[data-expanded]:not([data-clipping]) .answer-collapse-inner {

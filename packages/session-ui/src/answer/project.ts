@@ -543,7 +543,7 @@ function summarizeGroup(
     }
 
     if (member.payload.kind !== "tool") continue
-    const kind = toolActivity(member.payload.tool.name)
+    const kind = toolActivity(member.payload.tool)
     const memberIcon = toolMark(member.payload.tool)
     const name = toolLabel(member.payload.tool.name)
 
@@ -598,7 +598,7 @@ function summarizeGroup(
  * step kind, not only edits: a run of reads on one file, one command, one thought, or one notice folds too.
  */
 function repeatSignature(node: TimelineNode) {
-  if (node.payload.kind === "tool") return `${toolActivity(node.payload.tool.name)}|${toolSummary(node.payload.tool)}`
+  if (node.payload.kind === "tool") return `${toolActivity(node.payload.tool)}|${toolSummary(node.payload.tool)}`
 
   if (node.payload.kind === "reasoning") return "thinking"
 
@@ -608,7 +608,7 @@ function repeatSignature(node: TimelineNode) {
 }
 
 function activityOf(node: TimelineNode): ProcessActivity {
-  if (node.payload.kind === "tool") return toolActivity(node.payload.tool.name)
+  if (node.payload.kind === "tool") return toolActivity(node.payload.tool)
 
   if (node.payload.kind === "reasoning") return "thinking"
 

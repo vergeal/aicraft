@@ -14,8 +14,10 @@ import type { SessionUserActions } from "../actions"
 import { File } from "../components/file"
 import { changedFileDiff } from "../components/apply-patch-file"
 import { resolveFileDiff } from "../components/session-diff"
+import { createImagePreview } from "../components/image-preview"
+import { useMarkdown } from "../context/markdown"
 import { childrenOf, projectTimeline } from "./project"
-import { toolDescription, toolError, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
+import { toolDescription, toolError, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
   createRestoreState,
   transitionRestore,
@@ -766,7 +768,9 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
 
   if (!current || !previous) return 0
 
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 16
+  // A prompt block ends a reader's own thought; the answer that follows starts a new one. The gap is a touch wider
+  // than the 16px block rhythm because the prompt's action line already sits inside that space.
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 20
 
   if (current.kind === "fold") return 12
 
@@ -1705,6 +1709,7 @@ function ToolRow(props: {
   const output = () => toolOutput(props.tool) ?? toolError(props.tool) ?? ""
 
   const diffs = createMemo(() => toolDiffs(props.tool))
+  const images = createMemo(() => toolImages(props.tool))
 
   const summary = () => {
     if (failed()) return toolError(props.tool) ?? undefined
@@ -1728,6 +1733,11 @@ function ToolRow(props: {
       }
       onToggle={() => props.onToggleRow?.(!expanded())}
     >
+      <Show when={images().length > 0}>
+        <div data-slot="answer-tool-images" class="mt-1 ms-[30px] flex min-w-0 flex-col gap-2">
+          <For each={images()}>{(image) => <ToolImage image={image} />}</For>
+        </div>
+      </Show>
       <Show when={!failed() && diffs().length > 0}>
         <div
           data-slot="answer-diff"
@@ -1855,6 +1865,103 @@ function ToolRow(props: {
         </div>
       </Show>
     </DisclosureRow>
+  )
+}
+
+/**
+ * One image a tool returned, shown under its open row. A server-local path is read through the markdown image
+ * loader; data, http(s) and blob sources are already renderable. Only the open row mounts it, so collapsed
+ * history loads no pixels.
+ */
+function ToolImage(props: { image: ReturnType<typeof toolImages>[number] }) {
+  const i18n = useI18n()
+  const markdown = useMarkdown()
+  const preview = createImagePreview()
+  const [url, setUrl] = createSignal<string>()
+  const [broken, setBroken] = createSignal(false)
+  let root!: HTMLDivElement
+  let objectUrl: string | undefined
+
+  const name = () => props.image.name ?? i18n.t("ui.message.attachment.alt")
+  const kind = () => i18n.t("ui.fileMedia.kind.image")
+
+  createEffect(() => {
+    const uri = props.image.uri
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    setBroken(false)
+
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl)
+      objectUrl = undefined
+    }
+
+    if (/^(data|https?|blob):/i.test(uri) || !markdown?.readImage) {
+      setUrl(uri)
+
+      return
+    }
+
+    setUrl(undefined)
+    void markdown
+      .readImage(uri, controller.signal)
+      .then((blob) => {
+        if (controller.signal.aborted) return
+
+        if (!blob) {
+          setBroken(true)
+
+          return
+        }
+
+        objectUrl = URL.createObjectURL(blob)
+        setUrl(objectUrl)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setBroken(true)
+      })
+  })
+
+  onCleanup(() => {
+    if (objectUrl) URL.revokeObjectURL(objectUrl)
+  })
+
+  createEffect(() => {
+    if (url()) preview(root)
+  })
+
+  return (
+    <div
+      ref={root}
+      data-slot="answer-tool-image"
+      class="w-fit max-w-full overflow-hidden rounded-[12px] border-[0.5px] border-v2-border-border-muted"
+      style={{ background: "var(--answer-surface)" }}
+    >
+      <Show
+        when={broken() ? undefined : url()}
+        fallback={
+          <div
+            data-slot="answer-tool-image-state"
+            class="flex h-[120px] w-[220px] items-center justify-center text-[11px] leading-[19px]"
+            style={{ color: "var(--answer-ink-tertiary)" }}
+          >
+            {broken()
+              ? i18n.t("ui.fileMedia.state.unavailable", { kind: kind() })
+              : i18n.t("ui.fileMedia.state.loading", { kind: kind() })}
+          </div>
+        }
+      >
+        {(src) => (
+          <img
+            data-slot="answer-tool-image-thumb"
+            src={src()}
+            alt={name()}
+            class="block max-h-[220px] w-auto max-w-full cursor-zoom-in object-contain"
+            onError={() => setBroken(true)}
+          />
+        )}
+      </Show>
+    </div>
   )
 }
 

@@ -50,6 +50,16 @@ export function toolError(tool: ToolPart): string | undefined {
   return tool.state.error.message
 }
 
+/** An image a tool returned beside its text, such as a screenshot or a read image. */
+export type ToolImage = { readonly type: "file"; readonly uri: string; readonly mime: string; readonly name?: string | null }
+
+/** The image attachments of a tool result, in the order the tool returned them. */
+export function toolImages(tool: Pick<ToolPart, "state">): ToolImage[] {
+  if (!("content" in tool.state) || !tool.state.content) return []
+
+  return tool.state.content.flatMap((part) => (part.type === "file" && part.mime.startsWith("image/") ? [part] : []))
+}
+
 const PATH_TOOLS = new Set(["edit", "write", "patch", "apply_patch", "read"])
 
 function inputKeys(name: string) {
@@ -86,29 +96,47 @@ export function toolSummary(tool: ToolPart): string {
   return detail ? `${tool.name} ${detail}` : tool.name
 }
 
-/** The DSH work category a tool call belongs to. */
-export function toolActivity(name: string): ProcessActivity {
-  if (name === "read") return "read"
+/** The DSH work category a tool call belongs to. A read that brings back an image counts as reading pictures. */
+export function toolActivity(tool: Pick<ToolPart, "name" | "state">): ProcessActivity {
+  if (tool.name === "read_image") return "readImage"
 
-  if (name === "read_image") return "readImage"
+  if (tool.name === "read") return readsImage(tool) ? "readImage" : "read"
 
-  if (name === "grep" || name === "glob" || name === "list" || name.endsWith("_inspect")) return "search"
+  if (tool.name === "grep" || tool.name === "glob" || tool.name === "list" || tool.name.endsWith("_inspect")) return "search"
 
-  if (name === "write") return "write"
+  if (tool.name === "write") return "write"
 
-  if (name === "edit" || name === "patch" || name === "apply_patch") return "edit"
+  if (tool.name === "edit" || tool.name === "patch" || tool.name === "apply_patch") return "edit"
 
-  if (["shell", "bash", "execute"].includes(name)) return "commands"
+  if (["shell", "bash", "execute"].includes(tool.name)) return "commands"
 
-  if (name === "webfetch") return "webFetch"
+  if (tool.name === "webfetch") return "webFetch"
 
-  if (name === "websearch") return "webSearch"
+  if (tool.name === "websearch") return "webSearch"
 
-  if (name === "subagent" || name === "task") return "subagents"
+  if (tool.name === "subagent" || tool.name === "task") return "subagents"
 
-  if (["todo", "todowrite", "task_plan"].includes(name)) return "plan"
+  if (["todo", "todowrite", "task_plan"].includes(tool.name)) return "plan"
 
   return "tools"
+}
+
+/** The image extensions the read tool returns as media rather than text. */
+const IMAGE_PATH = /\.(png|jpe?g|gif|webp)$/i
+
+/**
+ * Whether a read call shows a picture: once its result carries an image, or, while it still runs, when its path
+ * names one. The result decides because the read tool detects media from the file's bytes.
+ */
+function readsImage(tool: Pick<ToolPart, "name" | "state">) {
+  if (toolImages(tool).length > 0) return true
+
+  const input = tool.state.input
+
+  if (Predicate.isString(input)) return false
+  const path = input.path ?? input.filePath
+
+  return Predicate.isString(path) && IMAGE_PATH.test(path)
 }
 
 /** The argument text a row shows beside its action, preferring a written description. */

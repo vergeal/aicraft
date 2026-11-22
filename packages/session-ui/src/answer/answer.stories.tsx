@@ -649,3 +649,103 @@ export const ReaderOpenedStep = {
     )
   },
 }
+
+// A tool result can carry an image beside its text: the open row previews it instead of hiding it in the output text.
+const screenshot = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+  [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">',
+    '<rect width="640" height="360" fill="#f4f5f7"/>',
+    '<rect width="640" height="34" fill="#ffffff"/>',
+    '<circle cx="20" cy="17" r="5" fill="#e5484d"/>',
+    '<circle cx="38" cy="17" r="5" fill="#f5a623"/>',
+    '<circle cx="56" cy="17" r="5" fill="#46a758"/>',
+    '<rect x="0" y="34" width="152" height="326" fill="#ffffff"/>',
+    '<rect x="18" y="56" width="96" height="10" rx="5" fill="#d9dbe0"/>',
+    '<rect x="18" y="86" width="112" height="8" rx="4" fill="#e6e8ec"/>',
+    '<rect x="18" y="106" width="86" height="8" rx="4" fill="#e6e8ec"/>',
+    '<rect x="178" y="56" width="220" height="14" rx="7" fill="#c9ccd2"/>',
+    '<rect x="178" y="92" width="428" height="96" rx="12" fill="#ffffff"/>',
+    '<rect x="196" y="112" width="150" height="10" rx="5" fill="#d9dbe0"/>',
+    '<rect x="196" y="134" width="300" height="8" rx="4" fill="#e6e8ec"/>',
+    '<rect x="196" y="152" width="260" height="8" rx="4" fill="#e6e8ec"/>',
+    '<rect x="178" y="212" width="208" height="64" rx="12" fill="#ffffff"/>',
+    '<rect x="398" y="212" width="208" height="64" rx="12" fill="#ffffff"/>',
+    "</svg>",
+  ].join(""),
+)}`
+
+const capturedScreenshot: SessionMessageInfo[] = [
+  { id: "msg_user_shot", type: "user", text: "看一下设置页截图。", time: { created: TIME } },
+  assistant(
+    "msg_shot",
+    [
+      {
+        type: "tool",
+        id: "tool_shot",
+        name: "screenshot",
+        state: {
+          status: "completed",
+          input: { tabID: "tab_1" },
+          content: [
+            { type: "text", text: "Captured the settings viewport." },
+            { type: "file", uri: screenshot, mime: "image/svg+xml", name: "settings.svg" },
+          ],
+          metadata: {},
+        },
+        time: { created: TIME, completed: TIME + 1_000 },
+      },
+      { type: "text", text: "截图里能看到设置页的侧边栏和两个配置卡片。" },
+    ],
+    TIME + 500,
+    TIME + 2_000,
+  ),
+  idle("msg_idle_shot", TIME + 2_500),
+]
+
+export const ToolScreenshot = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => capturedScreenshot} />
+    </div>
+  ),
+}
+
+// A read that brings back media is a picture step, not a file step. Two rows keep the group heading visible.
+const pictureTool = (id: string, path: string): Content => ({
+  type: "tool",
+  id,
+  name: "read",
+  state: {
+    status: "completed",
+    input: { path },
+    content: [
+      { type: "text", text: `Read ${path}` },
+      { type: "file", uri: screenshot, mime: "image/svg+xml", name: path.split("/").pop() },
+    ],
+    metadata: {},
+  },
+  time: { created: TIME, completed: TIME + 1_000 },
+})
+
+const readPicture: SessionMessageInfo[] = [
+  { id: "msg_user_picture", type: "user", text: "看一下这两张图。", time: { created: TIME } },
+  assistant(
+    "msg_picture",
+    [
+      pictureTool("tool_picture_a", "packages/app/before.svg"),
+      pictureTool("tool_picture_b", "packages/app/after.svg"),
+      { type: "text", text: "两张图都是设置页。" },
+    ],
+    TIME + 500,
+    TIME + 2_000,
+  ),
+  idle("msg_idle_picture", TIME + 2_500),
+]
+
+export const ReadPicture = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => readPicture} />
+    </div>
+  ),
+}

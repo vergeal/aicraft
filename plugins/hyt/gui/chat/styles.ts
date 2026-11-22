@@ -291,6 +291,7 @@ export const css = `
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
   padding: 6px 8px 10px;
   scrollbar-width: thin;
   scrollbar-color: var(--hyt-line-strong) transparent;
@@ -732,6 +733,8 @@ export const css = `
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 滚动条出现/消失会让内容宽度跳 1~2px，消息一多像是闪了一下；留出固定槽位。 */
+  scrollbar-gutter: stable;
   padding: 20px 24px 12px;
   scrollbar-width: thin;
   scrollbar-color: var(--hyt-line-strong) transparent;

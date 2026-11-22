@@ -70,7 +70,7 @@ export function MessageStream(props: {
       scrollToEnd(false)
       return
     }
-    if (count > 0 && !away()) scrollToEnd(false)
+    if (count > 0 && (!away() || props.messages[count - 1]?.outgoing)) scrollToEnd(false)
   })
 
   // 从搜索结果进来时滚到命中的那条。目标不在已加载范围就继续往前翻，最多 12 次，避免无限加载。
@@ -112,8 +112,10 @@ export function MessageStream(props: {
     observer?.disconnect()
   })
 
+  // 贴底容差 32px：比这更远就算「用户在往回翻」。
+  // 之前是 480px，往上翻一小段仍被判为贴底，下一次轮询或收消息就把视口拉回最底部，看起来就是「丢滚动」。
   const onScroll = (element: HTMLDivElement) => {
-    setAway(element.scrollHeight - element.scrollTop - element.clientHeight > 480)
+    setAway(element.scrollHeight - element.scrollTop - element.clientHeight > 32)
   }
 
   const department = (account: string) => {

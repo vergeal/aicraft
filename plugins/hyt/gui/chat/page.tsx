@@ -37,7 +37,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     for (const session of current.sessions)
       for (const member of session.members) if (member.headPath.length > 0) paths.add(member.headPath)
     for (const message of current.messages) if (message.senderHead.length > 0) paths.add(message.senderHead)
-    return [...paths].slice(0, 200).join("\n")
+    return [...paths].slice(0, 200).sort().join("\n")
   }
   const [avatars] = createResource(avatarKey, async (key) => {
     const paths = key.length === 0 ? [] : key.split("\n")

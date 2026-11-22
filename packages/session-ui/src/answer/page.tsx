@@ -2,6 +2,9 @@ import { For, Show, createContext, createEffect, createMemo, createRenderEffect,
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
 import type { SessionMessageInfo } from "@opencode/client/promise"
+import { DiffChanges } from "@opencode/ui/diff-changes"
+import { FileIcon } from "@opencode/ui/file-icon"
+import { getDirectory, getFilename } from "@opencode/util/path"
 import { Icon } from "@opencode/ui/icon"
 import { isIconName, type IconName } from "@opencode/ui/icons/catalog"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
@@ -533,7 +536,9 @@ export function AnswerPage(props: AnswerPageProps) {
     const frame = root.getBoundingClientRect()
     const box = row.getBoundingClientRect()
 
-    return box.bottom > frame.top && box.top < frame.bottom
+    // Only the fold's own header decides. An open process row can span several screens, so its box bottom stays
+    // inside the viewport while the header scrolls away; keeping the turn open then would fold nothing at all.
+    return box.top >= frame.top && box.top < frame.bottom
   }
 
   // A turn that finishes under the reader's eyes stays open: folding it takes the steps they are reading with it. The
@@ -763,18 +768,32 @@ export function AnswerPage(props: AnswerPageProps) {
       return value?.kind === "node" ? snapshot().nodes.get(value.key) : undefined
     })
 
+    // The answer row closes the turn, so the files this turn changed belong under it: one entry per file,
+    // summed across every step that touched it. It renders with the answer entry whether the process is open.
+    const answerTurn = createMemo(() => {
+      const value = node()
+
+      if (!value || value.payload.kind !== "assistant") return undefined
+      const owner = snapshot().turns.get(value.turn)
+
+      return owner?.answer === value.anchor ? owner : undefined
+    })
+
     const visibleNode = createMemo(() => {
       const value = node()
 
       if (!value) return undefined
 
-      if ((props.foldedReplies ?? "final") !== "final" || value.payload.kind !== "assistant") return value
+      if (value.payload.kind !== "assistant") return value
 
       const owner = snapshot().turns.get(value.turn)
+      const folded = owner !== undefined && isFolded(foldKeys().get(owner.turn))
 
-      if (!owner || owner.status !== "closed" || !isFolded(foldKeys().get(owner.turn))) return value
+      // The turn's fold lays its children out in message order, so this standalone entry is needed only while
+      // a closed folded turn hides them; otherwise the fold renders the reply at its own position.
+      if (!folded || owner.status !== "closed") return undefined
 
-      if (value.anchor === owner.answer) return value
+      if ((props.foldedReplies ?? "final") !== "final" || value.anchor === owner.answer) return value
 
       return undefined
     })
@@ -847,6 +866,9 @@ export function AnswerPage(props: AnswerPageProps) {
             {(value) => (
               <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />
             )}
+          </Show>
+          <Show when={answerTurn()}>
+            {(value) => <TurnChanges snapshot={snapshot()} turn={value()} />}
           </Show>
           <Show when={turn()}>
             {(value) => (
@@ -1163,6 +1185,60 @@ function FoldRow(props: {
         </div>
       </Show>
     </section>
+  )
+}
+
+/** The files a turn changed, summed per path, read from the tool results that recorded them. */
+function turnChanges(snapshot: Snapshot, turn: number) {
+  const changed = new Map<string, { path: string; additions: number; deletions: number }>()
+
+  for (const node of snapshot.nodes.values()) {
+    if (node.turn !== turn || node.hidden || node.payload.kind !== "tool") continue
+    const metadata = "metadata" in node.payload.tool.state ? node.payload.tool.state.metadata : undefined
+
+    if (!Array.isArray(metadata?.files)) continue
+
+    for (const diff of metadata.files) {
+      if (!changedFileDiff(diff)) continue
+
+      const file = changed.get(diff.file) ?? { path: diff.file, additions: 0, deletions: 0 }
+      file.additions += diff.additions
+      file.deletions += diff.deletions
+      changed.set(diff.file, file)
+    }
+  }
+
+  return [...changed.values()]
+}
+
+/** The turn's changed files under its closing answer: one row per file with the line counts the tool recorded. */
+function TurnChanges(props: { snapshot: Snapshot; turn: TimelineTurn }) {
+  const files = createMemo(() => turnChanges(props.snapshot, props.turn.turn))
+
+  return (
+    <Show when={files().length > 0}>
+      <div data-slot="answer-changes" class="flex flex-col gap-1 pt-3">
+        <For each={files()}>
+          {(file) => (
+            <div
+              data-slot="answer-change"
+              class="flex min-w-0 items-center gap-2 text-[length:var(--content-font-size,14px)] leading-[normal]"
+            >
+              <FileIcon node={{ path: file.path, type: "file" }} />
+              <span class="min-w-0 truncate">
+                <Show when={getDirectory(file.path)}>
+                  {(directory) => <span style={{ color: "var(--answer-ink-tertiary)" }}>{directory()}</span>}
+                </Show>
+                <span style={{ color: "var(--answer-ink)" }}>{getFilename(file.path)}</span>
+              </span>
+              <span class="ml-auto shrink-0">
+                <DiffChanges changes={{ additions: file.additions, deletions: file.deletions }} />
+              </span>
+            </div>
+          )}
+        </For>
+      </div>
+    </Show>
   )
 }
 

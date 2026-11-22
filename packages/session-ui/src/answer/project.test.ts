@@ -47,7 +47,7 @@ describe("answer projection", () => {
     ])
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.counts)).toEqual([[{ kind: "read", count: 1 }]])
 
     const turn = snapshot.turns.get(1)
@@ -87,7 +87,7 @@ describe("answer projection", () => {
       assistant("msg_3", 11, [text("answer")], 20),
     ])
 
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["node", "group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["node", "group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.counts)).toEqual([
       [
         { kind: "read", count: 1 },
@@ -105,7 +105,7 @@ describe("answer projection", () => {
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
     expect(snapshot.turns.get(1)?.status).toBe("open")
     expect(snapshot.turns.get(1)?.foldable).toBe(false)
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.members.length)).toEqual([1])
   })
 
@@ -116,7 +116,7 @@ describe("answer projection", () => {
     ])
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
     expect(snapshot.nodes.get("assistant:msg_2:0")?.payload).toMatchObject({ kind: "assistant", text: "phase reply" })
 
     const [first, second] = [...snapshot.groups.values()]
@@ -133,7 +133,7 @@ describe("answer projection", () => {
       assistant("msg_3", 6, [reasoning("second"), text("partial")]),
     ])
 
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.closed)).toEqual([true, false])
     expect([...snapshot.groups.values()].at(-1)?.running).toBe("thinking")
     expect(snapshot.turns.get(1)?.status).toBe("open")
@@ -154,7 +154,7 @@ describe("answer projection", () => {
       [],
       [{ kind: "read", count: 1 }],
     ])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
     expect(snapshot.nodes.get("assistant:msg_2:0")?.payload).toMatchObject({ kind: "assistant", text: "phase reply" })
 
     const first = [...snapshot.groups.values()][0]
@@ -221,6 +221,7 @@ describe("answer projection", () => {
       "group",
       "node",
       "group",
+      "node",
     ])
   })
 
@@ -236,7 +237,7 @@ describe("answer projection", () => {
       assistant("msg_3", 10, [text("final answer")], 12),
     ])
 
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["node", "group", "node", "group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["node", "group", "node", "group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.members.length)).toEqual([1, 1])
   })
 
@@ -353,7 +354,7 @@ describe("answer projection", () => {
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
     expect(snapshot.nodes.get("notice:msg_3")?.payload).toEqual({ kind: "notice", text: "note" })
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group"])
+    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.counts)).toEqual([
       [
         { kind: "read", count: 1 },

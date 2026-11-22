@@ -135,6 +135,24 @@ story("caps a running step and follows its newest row", async ({ mount, page }) 
   expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
 })
 
+story("keeps a running step's thought out of its heading once open", async ({ mount }) => {
+  const root = await mount("answer-page--live-thinking-group")
+  const group = root.locator('[data-slot="answer-group"]').first()
+  const heading = group.locator(":scope > button")
+
+  // A running step opens itself, and the thought row inside already carries the text it is thinking.
+  await expect(heading).toHaveAttribute("aria-expanded", "true")
+  await expect(
+    root.locator('[data-slot="answer-row"][data-kind="reasoning"] [data-slot="answer-row-summary"]'),
+  ).toContainText("第 40 段")
+  await expect(heading).not.toContainText("第 40 段")
+
+  // Collapsed, the heading is the only place the running line can speak.
+  await heading.click()
+  await expect(heading).toHaveAttribute("aria-expanded", "false")
+  await expect(heading).toContainText("第 40 段")
+})
+
 story("caps a long thought and scrolls it in place", async ({ mount, page }) => {
   const root = await mount("answer-page--long-thinking")
   await expandTurn(root).click()

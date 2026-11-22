@@ -572,6 +572,28 @@ export const LiveThinking = {
   ),
 }
 
+// A running step that has already read a file and is still thinking: the heading must not repeat the line the thought
+// row below it already shows.
+const liveThinkingGroup: SessionMessageInfo[] = [
+  { id: "msg_user_live_group", type: "user", text: "先读文件，再继续想。", time: { created: TIME } },
+  assistant(
+    "msg_live_group",
+    [
+      tool("tool_live_group", "read", { filePath: "packages/session-ui/src/answer/project.ts" }, "completed"),
+      reasoning(longThinking),
+    ],
+    TIME + 1_000,
+  ),
+]
+
+export const LiveThinkingGroup = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => liveThinkingGroup} />
+    </div>
+  ),
+}
+
 export const LongOutput = {
   render: () => (
     <div class="h-dvh">

@@ -346,20 +346,12 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
   const children = new Map<number, readonly TimelineChild[]>()
 
   for (const draft of drafts) {
-    // The answer is the turn's last reply that was not a step still doing work, like DSH's turn tail picks
-    // its closing reply: a message that also called tools is process commentary, so the reply the reader
-    // asked for stays outside the folded process even when more tool steps follow it.
-    const toolMessages = new Set(
-      draft.nodes.filter((node) => node.payload.kind === "tool").map((node) => node.messageID),
+    // The answer is the turn's last content-bearing assistant text, like DSH's turn tail finds its closing
+    // reply. Looking back instead of requiring the turn's final node keeps a trailing notice or a last tool
+    // call from hiding the reply; later work still belongs to the process above it.
+    const answer = draft.nodes.findLast(
+      (node) => node.payload.kind === "assistant" && node.payload.text.trim() !== "",
     )
-    const answer =
-      draft.nodes.findLast(
-        (node) =>
-          node.payload.kind === "assistant" &&
-          node.payload.text.trim() !== "" &&
-          !toolMessages.has(node.messageID),
-      ) ??
-      draft.nodes.findLast((node) => node.payload.kind === "assistant" && node.payload.text.trim() !== "")
 
     // A turn closes only when a closing answer exists; a step reply followed by work never closes it.
     // The server marks the end of a turn with an idle message; without one, a closing answer ends it.
@@ -407,7 +399,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     let summarySeen = false
 
     for (const node of draft.nodes) {
-      if (node.payload.kind === "input") continue
+      if (node.payload.kind === "input" || node === answer) continue
 
       // A step summary is a reply row of its own: everything before it is laid flat above it, and
       // everything after it opens a new group below it.
@@ -447,13 +439,10 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     flush()
 
-    // A group is live while the running turn has nothing after it but replies: those replies are the same
-    // step's text, not a later block that already closed the run.
-    const liveIndex = turnChildren.findLastIndex((child) => child.kind === "group")
-    const liveKey =
-      status === "open" && liveIndex >= 0 && turnChildren.slice(liveIndex + 1).every((child) => child.kind === "node")
-        ? turnChildren[liveIndex]!.key
-        : undefined
+    // Only a group that is still the last thing in a running turn is live; anything followed by a
+    // reply or another block already closed.
+    const lastChild = turnChildren.at(-1)
+    const liveKey = status === "open" && lastChild?.kind === "group" ? lastChild.key : undefined
 
     for (const item of runs) {
       const closed = item.notice || item.key !== liveKey

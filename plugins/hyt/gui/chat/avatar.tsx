@@ -25,6 +25,19 @@ function tileRadius(size: number) {
 }
 
 /**
+ * 格子里放几个字：虹云通固定两个字，但 5 人以上的九宫格每格只有 13px，
+ * 两个汉字要 16px，必然被裁成碎字。放不下时只显示一个字，字号随格子宽度收缩。
+ */
+function tileChars(box: number) {
+  return box >= 16 ? 2 : 1
+}
+
+/** 格子里的字号：按格子宽度和字数算，保证文字落在格子内。 */
+function tileFaceSize(box: number, chars: number) {
+  return Math.max(7, Math.min(11, Math.floor((box * 0.92) / chars)))
+}
+
+/**
  * 一个人或一个群的头像，规则与虹云通桌面端一致（见 `head.ts`）。
  *
  * 单人是方形圆角图片，没有图片时显示名称末两个字的彩色块；群聊是灰底容器 + 成员小方块拼图，
@@ -78,6 +91,7 @@ export function Avatar(props: {
           {(member, index) => {
             const rect = () => headLayout(list().length)[index()] ?? { x: 0, y: 0, w: 1, h: 1 }
             const box = () => size() * rect().w
+            const chars = () => tileChars(box())
             const dataUrl = () =>
               member.headPath.length === 0 ? "" : (props.avatars[member.headPath] ?? "")
             return (
@@ -90,12 +104,12 @@ export function Avatar(props: {
                   height: `${rect().h * 100}%`,
                   "border-radius": `${tileRadius(box())}px`,
                   "background-color": headColor(member.name),
-                  "font-size": `${faceSize(box())}px`,
+                  "font-size": `${tileFaceSize(box(), chars())}px`,
                 }}
               >
                 <Show
                   when={dataUrl().length > 0}
-                  fallback={member.headPath.length > 0 ? "" : headText(member.name)}
+                  fallback={member.headPath.length > 0 ? "" : headText(member.name, chars())}
                 >
                   <img src={dataUrl()} alt="" loading="lazy" />
                 </Show>

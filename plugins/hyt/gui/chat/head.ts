@@ -39,10 +39,10 @@ export function headColor(seed: string) {
   return HEAD_PALETTE[Math.abs(hash) % HEAD_PALETTE.length] ?? HEAD_PALETTE[0]
 }
 
-/** 头像里的字：取名字最后两个字，与虹云通 `avatarText(name, 2)` 一致。 */
-export function headText(name: string) {
+/** 头像里的字：默认取名字最后两个字，与虹云通 `avatarText(name, 2)` 一致。 */
+export function headText(name: string, chars = 2) {
   const value = name.trim()
-  return value.length === 0 ? "?" : value.slice(-2)
+  return value.length === 0 ? "?" : value.slice(-chars)
 }
 
 /**

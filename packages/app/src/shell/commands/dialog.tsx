@@ -1,9 +1,11 @@
 import { getDirectory, getFilename } from "@opencode/util/path"
 import { FileIcon } from "@opencode/ui/file-icon"
-import { Dialog, DialogBody } from "@opencode/ui/dialog"
+import { Dialog, DialogBody, DialogTitle } from "@opencode/ui/dialog"
+import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
+import { Loader } from "@opencode/ui/loader"
 import { SearchHighlight, SearchList, type SearchListRow } from "@opencode/ui/search-list"
-import { createMemo, Match, Show, Switch } from "solid-js"
+import { createMemo, type JSX, Match, Show, Switch } from "solid-js"
 import { createStore } from "solid-js/store"
 import { formatKeybindParts } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -84,9 +86,24 @@ export function CommandPaletteView(props: {
     open: sessionOpen,
   })
 
+  const empty = () =>
+    search.loading() ? (
+      <CommandPaletteState icon={<Loader class="size-4" />} text={language.t("common.loading")} />
+    ) : search.failed() ? (
+      <CommandPaletteState
+        icon={<Icon name="circle-ban-sign" class="size-4 text-v2-state-fg-danger" />}
+        text={language.t("common.requestFailed")}
+      />
+    ) : (
+      <CommandPaletteState icon={<Icon name="magnifying-glass" class="size-4" />} text={language.t("palette.empty")} />
+    )
+
   return (
-    <Dialog class="command-palette command-palette-compact" size="large" fit>
-      <DialogBody class="command-palette-body">
+    <Dialog class="command-palette command-palette-compact" size="normal" fit>
+      <div class="sr-only">
+        <DialogTitle>{props.placeholder}</DialogTitle>
+      </div>
+      <DialogBody class="command-palette-body" flush>
         <SearchList
           query={store.query}
           onQuery={(query) => setStore("query", query)}
@@ -95,13 +112,7 @@ export function CommandPaletteView(props: {
           key={(entry) => entry.id}
           section={groupKey}
           header={(entry) => entry.category || undefined}
-          empty={
-            search.loading()
-              ? language.t("common.loading")
-              : search.failed()
-                ? language.t("common.requestFailed")
-                : language.t("palette.empty")
-          }
+          empty={empty()}
           onActive={props.highlight}
           onSelect={props.select}
           onClose={props.close}
@@ -110,6 +121,17 @@ export function CommandPaletteView(props: {
         </SearchList>
       </DialogBody>
     </Dialog>
+  )
+}
+
+function CommandPaletteState(props: { icon: JSX.Element; text: string }) {
+  return (
+    <div class="command-palette-state">
+      <span data-slot="command-palette-state-icon" aria-hidden="true">
+        {props.icon}
+      </span>
+      <span>{props.text}</span>
+    </div>
   )
 }
 

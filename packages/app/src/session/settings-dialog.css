@@ -4,26 +4,11 @@
 
    The dialog styles are unlayered and nested several levels deep, so these overrides repeat the container scope and
    win on specificity instead of depending on stylesheet order. */
-[data-component="dialog-v2"] [data-slot="dialog-container"].session-settings-dialog {
-  width: 640px;
-  max-width: calc(100vw - 32px);
-}
-
 [data-component="dialog-v2"]
   [data-slot="dialog-container"].session-settings-dialog
   [data-slot="dialog-content"]
   [data-slot="dialog-header"] {
-  padding: 24px 24px 16px;
-}
-
-[data-component="dialog-v2"]
-  [data-slot="dialog-container"].session-settings-dialog
-  [data-slot="dialog-content"]
-  [data-slot="dialog-header"]
-  [data-slot="dialog-title"] {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
+  padding: 24px 24px 12px;
 }
 
 [data-component="dialog-v2"]

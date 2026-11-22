@@ -958,11 +958,11 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
   }
 
   return (
-    <Dialog class="command-palette command-palette-compact model-dialog" size="large" fit>
+    <Dialog class="command-palette command-palette-compact model-dialog" size="normal" fit>
       <div class="sr-only">
         <DialogTitle>{language.t("dialog.model.select.title")}</DialogTitle>
       </div>
-      <DialogBody class="command-palette-body">
+      <DialogBody class="command-palette-body" flush>
         {/* Scrolling moves the flyout's row away without a pointer event, which would leave it detached. */}
         <div
           class="contents"
@@ -1016,6 +1016,9 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
             section={(row) => row.group.category}
             header={(row) => (
               <span data-slot="model-dialog-header-label" class="flex min-w-0 items-center gap-1.5">
+                <Show when={!row.group.title}>
+                  <ProviderModelIcon provider={row.item.provider} class="shrink-0" />
+                </Show>
                 <span class="min-w-0 truncate">{row.group.title ?? labels.name(row.item.provider)}</span>
                 <Show when={!row.group.title && labels.workspace(row.item.provider)}>
                   {(workspace) => <Badge class="shrink-0">{workspace()}</Badge>}

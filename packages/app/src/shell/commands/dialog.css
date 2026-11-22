@@ -2,16 +2,6 @@
   overflow: hidden;
 }
 
-/* Keep a fixed height so the dialog does not resize as results change while typing. */
-[data-component="dialog-v2"]:has(.command-palette) [data-slot="dialog-container"] {
-  width: min(calc(100vw - 24px), 640px);
-  height: min(calc(100vh - 96px), 480px);
-  border-radius: 12px;
-  background: var(--v2-material-surface-strong);
-  backdrop-filter: var(--v2-material-blur-thick);
-  box-shadow: var(--v2-elevation-floating);
-}
-
 .command-palette-body {
   display: flex;
   min-height: 0;
@@ -114,14 +104,28 @@
 }
 
 .command-palette-state {
-  display: grid;
-  min-height: 120px;
-  place-items: center;
+  display: flex;
+  min-height: 148px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
   color: var(--v2-text-text-muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 18px;
-  letter-spacing: -0.04px;
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.01px;
+  text-align: center;
+
+  [data-slot="command-palette-state-icon"] {
+    display: flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    color: var(--v2-icon-icon-muted);
+  }
 }
 
 @media (max-width: 640px) {
@@ -139,32 +143,23 @@
 
 /* Like the project picker, results grow down from a stable search-field anchor. Other picker dialogs keep their layout. */
 [data-component="dialog-v2"]:has(.command-palette-compact) {
-  /* One scale for the palette: panel, row, and the icon controls inside a row. */
-  --command-palette-radius-panel: 16px;
-  --command-palette-radius-row: 10px;
+  /* One scale for the palette: row and the icon controls inside a row. Width, radius, material and elevation come
+     from the shared `normal` size. */
+  --command-palette-radius-row: 8px;
   --command-palette-radius-control: 8px;
-  --command-palette-row-height: 38px;
+  --command-palette-row-height: 36px;
   --command-palette-row-inset: 8px;
-  --command-palette-panel-width: 540px;
   --command-palette-panel-max-height: 520px;
 
   align-items: flex-start;
 }
 
 [data-component="dialog-v2"]:has(.command-palette-compact) [data-slot="dialog-container"] {
-  width: min(calc(100vw - 32px), var(--command-palette-panel-width));
   height: auto;
   max-height: min(calc(100vh - 112px), var(--command-palette-panel-max-height));
   min-height: 0;
   /* Sits above the optical centre so the eye lands on the field, not the empty lower half. */
   margin-top: max(56px, calc((100vh - var(--command-palette-panel-max-height)) / 2.5));
-  border-radius: var(--command-palette-radius-panel);
-  background: var(--v2-material-surface-strong);
-  backdrop-filter: var(--v2-material-blur-thick);
-  /* A sheet lifts off the page by its ring and a low shadow, not a heavy drop shadow. */
-  box-shadow:
-    var(--v2-elevation-floating),
-    inset 0 0 0 0.5px var(--v2-border-border-muted);
 }
 
 .command-palette-compact {
@@ -235,13 +230,12 @@
   /* The header bleeds to the viewport edge so rows scroll under an opaque band, while its text stays on the row spine. */
   [data-slot="search-list-header"] {
     margin-inline: -8px;
-    padding-inline: 18px;
+    padding-inline: 16px;
     color: var(--v2-text-text-faint);
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 24px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 20px;
+    letter-spacing: 0.06em;
   }
 
   [data-slot="search-list-row"],

@@ -11,14 +11,17 @@ the `webwright` skill, and the Playwright driver under `assets/playwright-core`.
 
 ## Browser selection
 
-The plugin starts the browser lazily on the first tool call, using a dedicated profile at
-`~/.opencode/webwright/profile` so it never touches the user's normal session or cookies. Launch order:
+The plugin drives the installed Google Chrome through the DevTools protocol (CDP); it never launches Playwright's
+bundled Chromium, which is branded "Chrome for Testing". On the first tool call it:
 
-1. `channel: "chrome"` — the user's installed Chrome.
-2. `channel: "msedge"` — Microsoft Edge.
-3. Playwright's bundled Chromium, which only exists after `playwright install chromium`.
+1. Connects to `options.cdp` when that endpoint is set, leaving that browser running on dispose.
+2. Otherwise starts `/Applications/Google Chrome.app` (or the platform equivalent) with
+   `--remote-debugging-port=0 --user-data-dir=<profile>`, reads the port Chrome picked from
+   `<profile>/DevToolsActivePort`, and attaches with `chromium.connectOverCDP`. This Chrome is stopped on dispose.
 
-Plugin options can override this: `{ "channel": "msedge", "profile": "/path/to/profile", "headless": true }`.
+The default profile is `~/.opencode/webwright/chrome-profile`, separate from the old Playwright profile because a
+profile written by the bundled Chromium blocks the installed Chrome from starting. Plugin options:
+`{ "cdp": "http://127.0.0.1:9222", "profile": "/path/to/profile", "headless": true }`.
 `webwright.status` reports the browser that actually started, its version, the profile, and any launch error.
 
 ## Tools

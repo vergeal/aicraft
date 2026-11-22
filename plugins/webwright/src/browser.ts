@@ -1,10 +1,11 @@
 export * as BrowserRuntime from "./browser.js"
 
 import type { PluginOptions } from "@opencode/plugin/options"
-import type { BrowserContext, Page, chromium } from "playwright-core"
-import { existsSync } from "node:fs"
+import type { Browser as CdpBrowser, BrowserContext, Page, chromium } from "playwright-core"
+import { spawn } from "node:child_process"
+import { existsSync, readFileSync, rmSync } from "node:fs"
 import { createRequire } from "node:module"
-import { homedir } from "node:os"
+import { homedir, platform } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { Browser } from "./rpc.js"
@@ -17,6 +18,10 @@ type State = {
   readonly profile: string
   readonly options: PluginOptions
   launching?: Promise<{ context: BrowserContext; channel: string }>
+  browser?: CdpBrowser
+  /** True when this plugin started the Chrome process itself; only then may it stop it again. */
+  owned: boolean
+  pid?: number
   context?: BrowserContext
   channel: string
   tabs: Map<Page, number>
@@ -41,10 +46,27 @@ function profilePath(options: PluginOptions) {
   if (typeof configured === "string" && configured.length > 0) {
     return configured.startsWith("~") ? join(homedir(), configured.slice(1)) : configured
   }
-  return join(homedir(), ".opencode", "webwright", "profile")
+  // A separate directory from the old Playwright profile: a profile written by Playwright's bundled Chromium makes
+  // the installed Chrome refuse to start while it migrates the data.
+  return join(homedir(), ".opencode", "webwright", "chrome-profile")
 }
 
-const CHANNELS = ["chrome", "msedge"] as const
+/**
+ * Webwright drives the installed Chrome through the DevTools protocol and never falls back to a downloaded browser.
+ * Playwright's bundled Chromium is branded "Chrome for Testing", which is not what the user asked us to automate.
+ */
+function chromePath() {
+  const candidates =
+    platform() === "darwin"
+      ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+      : platform() === "win32"
+        ? [
+            join(process.env.PROGRAMFILES ?? "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
+            join(process.env["PROGRAMFILES(X86)"] ?? "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+          ]
+        : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/opt/google/chrome/chrome"]
+  return candidates.find((path) => existsSync(path))
+}
 
 async function launch(state: State) {
   if (state.context) return { context: state.context, channel: state.channel }
@@ -57,37 +79,107 @@ async function launch(state: State) {
 
 async function start(state: State) {
   const { chromium } = load()
-  const configured = typeof state.options.channel === "string" ? [state.options.channel] : undefined
-  // A user-installed Chrome keeps the user's own extensions and codecs; Chromium here is Playwright's bundled build,
-  // which only exists after `playwright install chromium`.
-  const attempts: Array<string | undefined> = configured ?? [...CHANNELS, undefined]
-  const failures: string[] = []
-  for (const channel of attempts) {
-    try {
-      const context = await chromium.launchPersistentContext(state.profile, {
-        channel,
-        headless: state.options.headless === true,
-        viewport: null,
-        args: ["--no-first-run", "--no-default-browser-check"],
-      })
-      state.context = context
-      state.channel = channel ?? "chromium"
-      context.on("page", (page) => attach(state, page))
-      context.pages().forEach((page) => attach(state, page))
-      context.on("close", () => {
-        state.context = undefined
-        state.tabs.clear()
-      })
-      return { context, channel: state.channel }
-    } catch (error) {
-      failures.push(`${channel ?? "chromium"}: ${error instanceof Error ? error.message : String(error)}`)
-    }
+  const configured = typeof state.options.cdp === "string" && state.options.cdp.length > 0 ? state.options.cdp : undefined
+  if (configured) {
+    // An endpoint the user already opened is theirs: attach to it, but never stop it on dispose.
+    const browser = await chromium.connectOverCDP(configured)
+    return adopt(state, browser, configured, undefined)
   }
+  const chrome = chromePath()
+  if (!chrome)
+    throw new Error(
+      "Webwright only drives the installed Google Chrome over CDP; Playwright's bundled Chromium is not used. " +
+        "Install Google Chrome, or set `cdp` to the endpoint of a Chrome started with --remote-debugging-port.",
+    )
+  const { port, pid } = await startChrome(chrome, state.profile, state.options.headless === true)
+  try {
+    const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`)
+    return adopt(state, browser, `chrome-cdp:${port}`, pid)
+  } catch (error) {
+    stopProcess(pid)
+    throw new Error(
+      `Chrome started but refused the CDP connection on port ${port}: ${error instanceof Error ? error.message : String(error)}. ` +
+        `Close any Chrome already using ${state.profile} and try again.`,
+    )
+  }
+}
+
+function adopt(state: State, browser: CdpBrowser, channel: string, pid?: number) {
+  const context = browser.contexts()[0]
+  if (!context)
+    throw new Error(
+      "The CDP browser has no default context. Start Chrome normally with --remote-debugging-port and make sure it has at least one window.",
+    )
+  state.browser = browser
+  state.pid = pid
+  state.owned = pid !== undefined
+  state.context = context
+  state.channel = channel
+  context.on("page", (page) => attach(state, page))
+  context.pages().forEach((page) => attach(state, page))
+  browser.on("disconnected", () => {
+    state.context = undefined
+    state.browser = undefined
+    state.pid = undefined
+    state.tabs.clear()
+  })
+  return { context, channel }
+}
+
+function stopProcess(pid?: number) {
+  if (pid === undefined) return
+  try {
+    process.kill(pid, "SIGTERM")
+  } catch {
+    // The process is already gone.
+  }
+}
+
+const START_TIMEOUT_MS = 15_000
+
+/**
+ * Start the installed Chrome with an ephemeral debugging port and read the port it picked. The port cannot be fixed
+ * in advance because the user's other apps may already hold it, and Chrome itself may already be serving CDP.
+ */
+async function startChrome(chrome: string, profile: string, headless: boolean) {
+  const portFile = join(profile, "DevToolsActivePort")
+  rmSync(portFile, { force: true })
+  const child = spawn(
+    chrome,
+    [
+      `--user-data-dir=${profile}`,
+      "--remote-debugging-port=0",
+      "--no-first-run",
+      "--no-default-browser-check",
+      ...(headless ? ["--headless=new"] : []),
+    ],
+    { detached: true, stdio: "ignore" },
+  )
+  child.unref()
+  const pid = child.pid
+  const deadline = Date.now() + START_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    const port = readDevToolsPort(portFile)
+    if (port !== undefined) return { port, pid }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  stopProcess(pid)
   throw new Error(
-    `No browser could start for the Webwright plugin. Tried ${attempts.map((item) => item ?? "chromium").join(", ")}. ` +
-      `Install Chrome or Edge, or run \`playwright install chromium\` for the bundled build. ${failures.join(" | ")}`,
+    `Chrome did not expose a DevTools port within ${START_TIMEOUT_MS / 1_000}s. ` +
+      `If Chrome is already running with ${profile}, close it so this plugin can start it with --remote-debugging-port.`,
   )
 }
+
+function readDevToolsPort(file: string) {
+  try {
+    const line = readFileSync(file, "utf8").split("\n")[0]?.trim()
+    const port = Number(line)
+    return Number.isInteger(port) && port > 0 ? port : undefined
+  } catch {
+    return undefined
+  }
+}
+
 
 function attach(state: State, page: Page) {
   if (state.tabs.has(page)) return
@@ -279,6 +371,7 @@ export function create(options: PluginOptions) {
   const state: State = {
     profile: profilePath(options),
     options,
+    owned: false,
     channel: "",
     tabs: new Map(),
     next: 1,
@@ -598,10 +691,19 @@ export function create(options: PluginOptions) {
     },
 
     async dispose() {
-      const context = state.context
+      const browser = state.browser
+      const owned = state.owned
+      const pid = state.pid
       state.context = undefined
+      state.browser = undefined
+      state.pid = undefined
+      state.owned = false
       state.tabs.clear()
-      if (context) await context.close().catch(() => {})
+      // Only the Chrome this plugin started is ours to stop. A browser reached through a user-provided `cdp`
+      // endpoint belongs to the user, so closing the connection must not close it.
+      if (!owned || !browser) return
+      stopProcess(pid)
+      await browser.close().catch(() => {})
     },
   }
 }

@@ -49,6 +49,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   const avatarMap = () => avatars() ?? {}
   const [text_, setDraft] = createSignal("")
   const [sending, setSending] = createSignal(false)
+  // 右栏是「会话信息」，按需打开：默认不占宽度，需要看成员或指令时从会话头部开关。
+  const [infoOpen, setInfoOpen] = createSignal(false)
   const [notice, setNotice] = createSignal<Notice | undefined>()
   const [error, setError] = createSignal<string | undefined>()
   const [query, setQuery] = createSignal("")
@@ -206,6 +208,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 onUseDraft={insertComposer}
                 onRefresh={() => void run(() => props.client.refresh())}
                 onFocusSearch={() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()}
+                infoOpen={infoOpen()}
+                onToggleInfo={() => setInfoOpen(!infoOpen())}
                 avatars={avatarMap()}
                 onMedia={media}
                 onMerge={merge}
@@ -226,15 +230,18 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
               />
             </section>
 
-            <aside class="hyt-chat-ai">
-              <AiPanel
-                ctx={ctx}
-                members={snapshot().members}
-                knowledge={snapshot().knowledge}
-                onMention={(name) => insertComposer(`${text_()}@${name} `)}
-                onCommand={insertComposer}
-              />
-            </aside>
+            <Show when={infoOpen()}>
+              <aside class="hyt-chat-ai">
+                <AiPanel
+                  ctx={ctx}
+                  members={snapshot().members}
+                  knowledge={snapshot().knowledge}
+                  onMention={(name) => insertComposer(`${text_()}@${name} `)}
+                  onCommand={insertComposer}
+                  onClose={() => setInfoOpen(false)}
+                />
+              </aside>
+            </Show>
           </div>
       </Show>
     </Show>

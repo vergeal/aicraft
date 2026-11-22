@@ -96,7 +96,7 @@ export function readSessions(root: string, account: string, read: readonly strin
           group,
           tone: toneOf(item.sessionId),
           headPaths: group
-            ? (groupHeads.get(item.sessionId) ?? [])
+            ? groupHeadsFor(groupHeads.get(item.sessionId))
             : person?.headPath
               ? [person.headPath]
               : [],
@@ -168,32 +168,70 @@ export function searchMessages(
   }
 }
 
-/** @ 选人：通讯录里按好友与姓名排；缺失时返回空表，输入区只显示纯文本。 */
-export function readMembers(root: string, account: string, limit = 800): PersonView[] {
-  const path = addressDbPath(root, account)
-  if (!existsSync(path)) return []
-  const db = open(path)
+/**
+ * 当前会话的成员：只取在该会话里发过言的人，按最后发言时间倒序。
+ *
+ * 通讯录是全公司的（实测 800 人），把它整表铺到右栏既没用又刺眼；群聊看群成员，
+ * 单聊只剩对方一个。没在会话里说过话的人不列出来，@ 选人也只在这个范围内找人。
+ */
+export function readSessionMembers(
+  root: string,
+  account: string,
+  sessionId: string,
+  limit = 40,
+): PersonView[] {
+  if (sessionId.length === 0) return []
+  const chatPath = chatDbPath(root, account)
+  const addressPath = addressDbPath(root, account)
+  if (!existsSync(chatPath) || !existsSync(addressPath)) return []
+
+  const chat = open(chatPath)
+  let order: string[] = []
   try {
-    return query(
-      db,
-      `select Account, Name, Remark, DptFullName, IsFriend, LocalHeadUrl from Person
-       where Account is not null and Account <> ''
-       order by IsFriend desc, Name asc limit ?1`,
-      [limit],
+    order = query(
+      chat,
+      `select Sender, max(CreatedTime) as last from chatmsg
+       where SessionId = ?1 and Sender is not null and Sender <> ''
+       group by Sender order by last desc limit ?2`,
+      [sessionId, limit],
     ).flatMap((row) => {
-      const accountValue = text(row.Account)
-      if (accountValue.length === 0) return []
-      return [
-        {
-          account: accountValue,
-          name: text(row.Remark) || text(row.Name) || accountValue,
-          department: text(row.DptFullName),
-          headPath: text(row.LocalHeadUrl),
-        },
-      ]
+      const id = text(row.Sender)
+      return id.length === 0 || id === account ? [] : [id]
     })
   } finally {
-    db.close()
+    chat.close()
+  }
+  if (order.length === 0) return []
+
+  const address = open(addressPath)
+  try {
+    const rows = query(
+      address,
+      `select Account, Name, Remark, DptFullName, LocalHeadUrl from Person
+       where Account in (${order.map(() => "?").join(", ")})`,
+      order,
+    )
+    const known = new Map(
+      rows.flatMap((row) => {
+        const id = text(row.Account)
+        if (id.length === 0) return []
+        return [
+          [
+            id,
+            {
+              account: id,
+              name: text(row.Remark) || text(row.Name) || id,
+              department: text(row.DptFullName),
+              headPath: text(row.LocalHeadUrl),
+            } satisfies PersonView,
+          ] as const,
+        ]
+      }),
+    )
+    // 保持「最近发言在前」的顺序；通讯录里查不到的人仍占一行，用账号当名字。
+    return order.map((id) => known.get(id) ?? { account: id, name: id, department: "", headPath: "" })
+  } finally {
+    address.close()
   }
 }
 
@@ -267,6 +305,28 @@ function readGroupNames(db: DatabaseSync) {
   return map
 }
 
+/** 群里发过言的成员昵称，按发言条数排序；用来给没有名字的群拼一个默认名。 */
+function readGroupMembers(db: DatabaseSync, account: string) {
+  const map = new Map<string, string[]>()
+  for (const row of query(
+    db,
+    `select SessionId as sessionId, SenderNick as nick, count(*) as total
+     from chatmsg
+     where SessionType = 1 and Sender <> ? and SenderNick is not null and SenderNick <> ''
+     group by SessionId, SenderNick
+     order by SessionId, total desc, min(Id)`,
+    [account],
+  )) {
+    const sessionId = text(row.sessionId)
+    const nick = text(row.nick)
+    if (sessionId.length === 0 || nick.length === 0) continue
+    const names = map.get(sessionId) ?? []
+    names.push(nick)
+    map.set(sessionId, names)
+  }
+  return map
+}
+
 function readUnread(db: DatabaseSync) {
   const map = new Map<string, number>()
   for (const row of query(db, "select SessionId, UnReadCount from lastmsg where UnReadCount > 0", [])) {
@@ -289,10 +349,14 @@ function readPeople(root: string, account: string) {
   if (!existsSync(path)) return map
   const db = open(path)
   try {
-    for (const row of query(db, "select Account, Name, Remark, DptFullName, IsFriend, LocalHeadUrl from Person where Account is not null and Account <> ''", [])) {
+    for (const row of query(db, "select Account, Name, Remark, DptFullName, IsFriend, LocalHeadUrl, Url from Person where Account is not null and Account <> ''", [])) {
       const key = text(row.Account)
       if (key.length === 0) continue
-      map.set(key, { name: text(row.Name), remark: text(row.Remark), headPath: text(row.LocalHeadUrl) })
+      map.set(key, {
+        name: text(row.Name),
+        remark: text(row.Remark),
+        headPath: localHeadFile(root, text(row.LocalHeadUrl), text(row.Url)),
+      })
     }
   } finally {
     db.close()
@@ -300,10 +364,37 @@ function readPeople(root: string, account: string) {
   return map
 }
 
-/** 群聊头像：取该群消息发送人里前 4 个有头像的账号，按出现顺序。 */
+/**
+ * 本地头像文件。`LocalHeadUrl` 有文件就直接用；否则按 `Url` 最后一段首个 `.` 之前的部分去 `HeadFiles` 找。
+ * 客户端下载头像时就是用这个文件名，所以远程地址与本地文件能对得上。
+ */
+function localHeadFile(root: string, local: string, url: string) {
+  if (local.length > 0 && existsSync(local)) return local
+  const base = url.split("?")[0]?.split("/").pop() ?? ""
+  const key = base.split(".")[0] ?? ""
+  if (key.length === 0) return ""
+  const path = join(root, "HeadFiles", key)
+  return existsSync(path) ? path : ""
+}
+
+/**
+ * 群聊头像只用能拼成合照的两张以上：客户端在只有一名成员有头像时画的是群默认图，
+ * 把某个成员的证件照当成群头像，在列表里会分不清群聊和单聊。
+ */
+function groupHeadsFor(heads: readonly string[] | undefined) {
+  return heads !== undefined && heads.length > 1 ? heads : []
+}
+
+/**
+ * 群聊头像：取该群消息发送人里前 4 个有头像的账号，按首次出现顺序。
+ */
 function readGroupHeads(db: DatabaseSync, people: Map<string, PersonEntry>) {
   const map = new Map<string, string[]>()
-  for (const row of query(db, "select SessionId, Sender from chatmsg where SessionType = 1 group by SessionId, Sender", [])) {
+  for (const row of query(
+    db,
+    "select SessionId, Sender from chatmsg where SessionType = 1 group by SessionId, Sender order by SessionId, min(Id)",
+    [],
+  )) {
     const sessionId = text(row.SessionId)
     const sender = text(row.Sender)
     if (sessionId.length === 0 || sender.length === 0) continue

@@ -53,8 +53,12 @@ export const css = `
 /* 配色全部走语义 token（设计规范的 --v2-*），深浅色由宿主主题切换，页面自己不做颜色决策。
    这里只做一层别名，组件规则只引用 --hyt-*，不再出现任何色值。 */
 .hyt-chat {
-  --hyt-bg-side: var(--v2-background-bg-layer-01);
-  --hyt-bg-chat: var(--v2-background-bg-base);
+  /* 插件页面挂在外壳的工作区里，而工作区（含它头顶的 titlebar 段）是同一块 --color-main 表面。
+     三栏都用它，顶部才不会在 titlebar 下沿切出一条更亮的横带；分栏只靠 0.5px 边线。
+     不在外壳里时退回语义 token。 */
+  --hyt-bg-surface: var(--color-main, var(--v2-background-bg-base));
+  --hyt-bg-side: var(--hyt-bg-surface);
+  --hyt-bg-chat: var(--hyt-bg-surface);
   --hyt-bg-elev: var(--v2-background-bg-layer-02);
   --hyt-line: var(--v2-border-border-muted);
   --hyt-line-strong: var(--v2-border-border-base);
@@ -121,7 +125,6 @@ export const css = `
   flex: 0 0 auto;
   height: 60px;
   padding: 0 calc(var(--spacing) * 4);
-  box-shadow: inset 0 calc(-1 * 0.5px) 0 0 var(--hyt-line);
 }
 .hyt-side-logo {
   display: grid;
@@ -602,8 +605,6 @@ export const css = `
   flex: 0 0 auto;
   height: 60px;
   padding: 0 18px;
-  box-shadow: inset 0 calc(-1 * 0.5px) 0 0 var(--hyt-line);
-  background: var(--hyt-bg-chat);
 }
 .hyt-chat-head-id {
   display: flex;
@@ -1322,6 +1323,11 @@ export const css = `
   color: var(--hyt-text);
   font-size: var(--hyt-text-125);
   font-weight: var(--font-weight-bold);
+}
+.hyt-ctx-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .hyt-ctx-head-count {
   color: var(--hyt-text-3);

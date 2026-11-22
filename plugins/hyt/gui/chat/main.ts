@@ -150,7 +150,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         unread,
         search: searchState.query.length === 0 ? { query: "", hits: [] } : searchState,
         drafts,
-        members: Db.readMembers(root, login.account),
+        members: Db.readSessionMembers(root, login.account, selected),
         send: sendState(selected),
         knowledge: [],
       }

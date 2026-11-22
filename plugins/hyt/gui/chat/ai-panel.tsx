@@ -4,20 +4,32 @@ import type { KnowledgeHit, MemberRow } from "./contract.js"
 import { text } from "./i18n.js"
 import { initials, toneOf } from "./util.js"
 
-/** 右栏：通讯录与 AI 快捷指令。点成员或指令都把文本插进输入框，不直接发送。 */
+/** 右栏：当前会话的成员与 AI 快捷指令。点成员或指令都把文本插进输入框，不直接发送。 */
 export function AiPanel(props: {
   ctx: Context
   members: readonly MemberRow[]
   knowledge: readonly KnowledgeHit[]
   onMention: (name: string) => void
   onCommand: (value: string) => void
+  onClose: () => void
 }) {
   const ctx = props.ctx
   return (
     <>
       <div class="hyt-ctx-head">
         <span>{text(ctx, "hyt.chat.members.title")}</span>
-        <span class="hyt-ctx-head-count">{text(ctx, "hyt.chat.members.count", { count: props.members.length })}</span>
+        <div class="hyt-ctx-head-tools">
+          <span class="hyt-ctx-head-count">{text(ctx, "hyt.chat.members.count", { count: props.members.length })}</span>
+          <button
+            type="button"
+            class="hyt-icon-button"
+            aria-label={text(ctx, "hyt.chat.panel.close")}
+            title={text(ctx, "hyt.chat.panel.close")}
+            onClick={() => props.onClose()}
+          >
+            <ctx.ui.Icon name="close" size="small" />
+          </button>
+        </div>
       </div>
 
       <div class="hyt-ctx-scroll">

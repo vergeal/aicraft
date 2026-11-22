@@ -29,6 +29,8 @@ export function MessageStream(props: {
   onUseDraft: (body: string) => void
   onRefresh: () => void
   onFocusSearch: () => void
+  infoOpen: boolean
+  onToggleInfo: () => void
   avatars: Readonly<Record<string, string>>
   onMedia: (path: string) => Promise<{ dataUrl: string; error: string }>
   onMerge: (path: string) => Promise<MergeResult>
@@ -122,6 +124,16 @@ export function MessageStream(props: {
           </div>
         </div>
         <div class="hyt-chat-head-actions">
+          <button
+            type="button"
+            class="hyt-icon-button"
+            aria-label={text(ctx, "hyt.chat.head.info")}
+            title={text(ctx, "hyt.chat.head.info")}
+            aria-expanded={props.infoOpen ? "true" : "false"}
+            onClick={() => props.onToggleInfo()}
+          >
+            <ctx.ui.Icon name="info" size="small" />
+          </button>
           <button
             type="button"
             class="hyt-icon-button"

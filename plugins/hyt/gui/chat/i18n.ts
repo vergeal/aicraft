@@ -128,10 +128,12 @@ export const zh: Record<string, string> = {
   "hyt.chat.ai.knowledge.empty.body": "和当前会话相关的条目会随消息一起出现在这里。",
   "hyt.chat.ai.members": "可 @ 的人",
   "hyt.chat.ai.members.count": "通讯录 {{count}} 人",
-  "hyt.chat.members.title": "通讯录",
+  "hyt.chat.head.info": "会话信息",
+  "hyt.chat.panel.close": "收起会话信息",
+  "hyt.chat.members.title": "会话成员",
   "hyt.chat.members.count": "{{count}} 人",
-  "hyt.chat.members.group": "成员 — {{count}}",
-  "hyt.chat.members.empty": "还没有通讯录数据，等客户端同步联系人。",
+  "hyt.chat.members.group": "最近发言 — {{count}}",
+  "hyt.chat.members.empty": "还没有人在这个会话里发过言。",
   "hyt.chat.ai.readonly": "只读：草稿与知识库由助手在后台写入。",
 }
 

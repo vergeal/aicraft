@@ -2679,15 +2679,11 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   }
 }
 
-/* One hover layer: the row already reacts, and a second band on the key button made a single hover paint twice.
-   Recording paints a rounded block that bleeds into the card's padding, so the wash has a shape instead of a
-   square edge-to-edge band, and the rail below sits on the block's own edge rather than 16px away. */
+/* Recording is a state, not a painted band. Like a selected account row on the providers page, the row keeps its
+   surface and only the control the user is acting on gains an accent edge; the old full-width wash read as a
+   rectangle pasted over the card. */
 .settings-shortcuts [data-component="settings-list"] > div.settings-shortcut-row[data-recording] {
   position: relative;
-  margin-inline: calc(-1 * var(--settings-space-2));
-  padding-inline: var(--settings-space-2);
-  border-radius: var(--settings-radius-sm);
-  background: var(--v2-overlay-simple-overlay-pressed);
 }
 
 /* Recording is a state, so it earns a shape signal: the same 2px accent rail the navigation uses for its selected
@@ -2920,14 +2916,10 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
   min-width: 0;
   grid-template-rows: minmax(0, 1fr);
   opacity: 1;
-  transition:
-    grid-template-rows 150ms ease-out,
-    opacity 120ms ease-out;
 }
 
 .settings-workspaces-row-motion[data-removing="true"] {
-  grid-template-rows: minmax(0, 0fr);
-  opacity: 0;
+  display: none;
 }
 
 .settings-workspaces-row {
@@ -2945,22 +2937,15 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings
 }
 
 .settings-workspaces-empty-motion {
-  display: grid;
+  display: none;
   min-height: 0;
-  grid-template-rows: minmax(0, 0fr);
-  opacity: 0;
   overflow: hidden;
-  pointer-events: none;
-  transition:
-    grid-template-rows 150ms ease-out,
-    opacity 120ms ease-out;
 }
 
 .settings-workspaces-empty-motion[data-visible="true"] {
+  display: grid;
   min-height: 180px;
   grid-template-rows: minmax(0, 1fr);
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .settings-workspaces-empty-motion > .settings-workspaces-empty {

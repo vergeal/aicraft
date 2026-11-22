@@ -200,8 +200,9 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
    carries a subtle lift above the canvas, and a second wash there pushed the column into a bluer tint
    than the canvas, so the two halves read as different materials. */
 html[data-replica-window="translucent"]:not([data-color-scheme="dark"]) [data-slot="replica-sidebar"] {
-  /* 中性白叠在系统材质上，让侧栏读作同一片玻璃更高的一层；实现 A 不引入任何冷偏。 */
-  background: rgb(255 255 255 / 8%);
+  /* 中性白叠在系统材质上，让侧栏读作同一片玻璃更高的一层；实现 A 不引入任何冷偏。只设颜色，让导航列自己的
+     品牌 wash 留在 background-image 上。 */
+  background-color: rgb(255 255 255 / 8%);
 }
 
 /* The frame stays clear in dark mode so the material shows through both columns. */
@@ -481,8 +482,9 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
    wash: the logo's green head rises from the top edge, its blue tail settles at the bottom, so the chrome carries the
    brand rather than a borrowed tint. The top wash is measured against the window height, not the element's own
    height, so the bar's 44px segment and the column below it paint the identical gradient and the seam stays
-   invisible. */
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-sidebar"] {
+   invisible. Both schemes paint the same two ends: the near-white chrome of light keeps the wash a faint halo where
+   the near-black chrome of dark keeps it a faint glow, so neither scheme reads it as a tinted panel. */
+html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
   background-image:
     radial-gradient(120% calc(46vh - 20px) at 50% 0%, rgb(0 224 138 / 6%), transparent 68%),
     radial-gradient(120% calc(34vh - 15px) at 50% 100%, rgb(0 180 255 / 5%), transparent 70%);
@@ -490,7 +492,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="re
 }
 
 /* The bar's left segment heads that column, so it carries the same top wash on the same window-relative geometry. */
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-titlebar-side"] {
+html[data-replica-window="translucent"] [data-slot="replica-titlebar-side"] {
   background-image: radial-gradient(120% calc(46vh - 20px) at 50% 0%, rgb(0 224 138 / 6%), transparent 68%);
   background-repeat: no-repeat;
 }
@@ -1148,7 +1150,10 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
 /* The bar's left segment carries the column's surface, so the column reads as one piece from the window's top edge
    down. The right segment keeps the workspace canvas instead of the chrome tint: the workspace is not chrome. */
 html[data-replica-window="translucent"] [data-slot="replica-titlebar-side"] {
-  background: var(--color-navigation);
+  /* `--color-navigation` only exists in dark, where the shell carries the navigation step; light has no such lift,
+     so the segment keeps the column's own `--color-sidebar`. Setting only the colour leaves the brand wash on
+     `background-image`, which a shorthand would have reset. */
+  background-color: var(--color-navigation, var(--color-sidebar));
 }
 
 html[data-replica-window="translucent"] [data-slot="replica-titlebar-main"] {

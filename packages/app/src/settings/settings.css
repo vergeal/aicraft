@@ -44,7 +44,9 @@
   /* A card is a fill one step off the page plus a hairline; it does not float. Depth is reserved for overlays. */
   --settings-card-radius: var(--settings-radius-lg);
   /* Three readable depths: the page, the sidebar one step off it, and the cards one step above the sidebar. The
-     sidebar sinks in light and lifts in dark, which is the one thing a single layer token cannot express. */
+     sidebar sinks in light and lifts in dark, which is the one thing a single layer token cannot express. Light's
+     step is opaque so the rail and its titlebar segment cannot drift apart over different backdrops; dark keeps the
+     translucent lift its two backdrops already agree on. */
   --settings-sidebar-bg: var(--color-sidebar, light-dark(var(--v2-grey-200), var(--v2-grey-1100)));
   --settings-card-bg: light-dark(var(--v2-grey-50), var(--v2-grey-800));
   /* L2: cards and inputs share the same hairline, one step over the divider. */
@@ -59,6 +61,13 @@
      forced-colors. */
   --settings-focus-width: 2px;
   --settings-focus-outline: var(--settings-focus-width) solid var(--v2-system-accent);
+}
+
+/* Light's rail is opaque: it is the one recessed step under a lit page, and a translucent fill let the canvas
+   gradient below it decide its colour, so the rail drifted away from the bar's segment across the seam. Dark keeps
+   its translucent lift, whose two backdrops already agree. */
+html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
+  --settings-sidebar-bg: var(--v2-grey-200);
 }
 
 /* The glass sheets are a separate family: the notices and delete dialogs live outside .settings-screen, so their
@@ -146,9 +155,13 @@
   transition: none;
 }
 
-/* The shared bar paints the brand wash on its navigation segment for the session sidebar. Settings has no wash
-   over its column, so the segment drops it and the two surfaces stay one flat colour across the 44px seam. */
-html[data-replica-window="translucent"][data-color-scheme="dark"] [data-settings] [data-slot="replica-titlebar-side"] {
+/* The shared bar paints the brand wash on its navigation segment for the session sidebar. Settings has no wash over
+   its column, so the segment drops it as well, and it carries the rail's own surface instead of the shared navigation
+   tint: two translucent fills sit on different backdrops (the page canvas below the rail, the chrome tint behind the
+   bar), which split the 44px seam into two greys in light mode. Dark's two tints already agree, so the same value
+   reproduces its current surface. */
+[data-settings] > [data-slot="replica-titlebar"] > [data-slot="replica-titlebar-side"] {
+  background: var(--settings-sidebar-bg);
   background-image: none;
 }
 

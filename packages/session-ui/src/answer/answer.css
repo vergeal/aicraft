@@ -232,9 +232,10 @@
   --answer-group-fade: 20px;
   --answer-group-fade-top: 0px;
   --answer-group-fade-bottom: 0px;
+  /* Hidden, not auto: a group shorter than the cap must stay transparent to the wheel so the transcript keeps
+     scrolling under the pointer. `hidden` still reports scrollHeight, which is how the overflow is measured. */
   max-height: var(--answer-group-max-height);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-y: hidden;
   border-radius: 8px;
   -webkit-mask-image: linear-gradient(
     to bottom,
@@ -253,6 +254,9 @@
 }
 
 .answer-scope [data-slot="answer-group-body"][data-capped][data-overflowing] {
+  overflow-y: auto;
+  /* Only a scrollport that can actually move stops the wheel at its edge; a short body must not. */
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -275,6 +279,33 @@
 .answer-scope [data-slot="answer-group-body"][data-capped][data-overflowing]:focus-visible {
   outline: 2px solid var(--v2-border-border-focus);
   outline-offset: -2px;
+}
+
+/* Only the output half of an IO card caps: a long result scrolls in place instead of pushing the rest of the step
+   down, while the input keeps its full size. The label row sticks so the copy control stays reachable. */
+.answer-scope [data-slot="answer-io-output"] {
+  --answer-io-max-height: 150px;
+  max-height: var(--answer-io-max-height);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.answer-scope [data-slot="answer-io-output"] > [data-slot="answer-io-output-head"] {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--answer-surface);
+}
+
+/* The flex column would otherwise shrink the text box and let its content paint outside the scrollport. */
+.answer-scope [data-slot="answer-io-output"] > [data-slot="answer-io-output-text"] {
+  flex: none;
+}
+
+.answer-scope [data-slot="answer-io-output"]:hover,
+.answer-scope [data-slot="answer-io-output"]:focus-within {
+  scrollbar-color: var(--v2-border-border-base) transparent;
 }
 
 /* The document glyph fills its 14-unit grid, so at 18px it reads heavier than the step icons drawn

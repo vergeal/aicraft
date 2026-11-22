@@ -477,6 +477,70 @@ export const CappedPanel = {
   ),
 }
 
+// A result long enough that the IO card's output half has to scroll inside the step.
+const longResult = Array.from({ length: 60 }, (_, index) => `line ${index + 1}: ${"x".repeat(48)}`).join("\n")
+
+const longOutput: SessionMessageInfo[] = [
+  { id: "msg_user_long_output", type: "user", text: "这个大日志里有什么？", time: { created: TIME } },
+  assistant(
+    "msg_long_output",
+    [
+      {
+        type: "tool",
+        id: "tool_long_output",
+        name: "shell",
+        state: {
+          status: "completed",
+          input: { command: "cat build.log" },
+          content: [{ type: "text", text: longResult }],
+          metadata: {},
+        },
+        time: { created: TIME, completed: TIME },
+      },
+      { type: "text", text: "日志读完了，只有重复的构建行。" },
+    ],
+    TIME + 1_000,
+    TIME + 5_000,
+  ),
+  idle("msg_idle_long_output", TIME + 5_500),
+]
+
+// A running run long enough to overflow its cap: the panel must follow the newest row while it streams.
+const liveSteps: Content[] = Array.from({ length: 20 }, (_, index) => ({
+  type: "tool",
+  id: `tool_live_${index}`,
+  name: "shell",
+  state: {
+    status: "completed",
+    input: { command: `bun run check:${index}` },
+    content: [{ type: "text", text: "ok" }],
+    metadata: {},
+  },
+  time: { created: TIME, completed: TIME },
+}))
+
+const liveRun: SessionMessageInfo[] = [
+  { id: "msg_user_live", type: "user", text: "把检查全跑一遍。", time: { created: TIME } },
+  // No completion time: this run is still streaming.
+  assistant("msg_live", liveSteps, TIME + 1_000),
+]
+
+export const LiveCapped = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => liveRun} />
+    </div>
+  ),
+}
+
+export const LongOutput = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => longOutput} />
+    </div>
+  ),
+}
+
 // The recorded patch is what an edit step expands into: a GitHub-style diff instead of raw input and output.
 const editPatch =
   "diff --git a/packages/session-ui/src/answer/project.ts b/packages/session-ui/src/answer/project.ts\n" +

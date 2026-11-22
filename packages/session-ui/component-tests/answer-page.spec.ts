@@ -32,6 +32,8 @@ story("lays a settled turn out as rows, then folds it again", async ({ mount, pa
   // A short group takes the cap but stays below it: no scrollport, no reserved gutter.
   await expect(root.locator('[data-slot="answer-group-body"]')).toHaveAttribute("data-capped", "")
   await expect(root.locator('[data-slot="answer-group-body"]')).not.toHaveAttribute("data-overflowing", "")
+  // Not a scrollport at all: the wheel must keep reaching the transcript under the pointer.
+  await expect(root.locator('[data-slot="answer-group-body"]')).toHaveCSS("overflow-y", "hidden")
 
   await expect(root.locator('[data-slot="user-message-text"]').first()).toHaveCSS("padding", "8px 12px")
   await expect(root.locator('[data-slot="user-message-text"]').first()).toHaveCSS("border-radius", "14px")
@@ -101,6 +103,63 @@ story("caps a long settled run and resumes where the reader stopped", async ({ m
   await heading.click()
   await expect(body).toHaveAttribute("data-capped", "")
   await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBe(stopped)
+})
+
+story("caps a running step and follows its newest row", async ({ mount, page }) => {
+  const root = await mount("answer-page--live-capped")
+  const body = root.locator('[data-slot="answer-group-body"][data-capped]').first()
+
+  await expect(body).toHaveAttribute("data-overflowing", "")
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
+
+  const metrics = await body.evaluate((el) => ({
+    scroll: el.scrollHeight,
+    client: el.clientHeight,
+    top: el.scrollTop,
+  }))
+
+  expect(metrics.scroll).toBeGreaterThan(metrics.client)
+
+  // A running run stays at its newest row: the panel is not left behind by the content it is streaming.
+  expect(metrics.top + metrics.client).toBeGreaterThanOrEqual(metrics.scroll - 1)
+
+  // Scrolling up takes the follow intent away, so growth below must not drag the reader back down.
+  await body.evaluate((el) => {
+    el.scrollTop = 0
+    el.dispatchEvent(new Event("scroll"))
+    const spacer = document.createElement("div")
+    spacer.style.height = "240px"
+    el.firstElementChild!.appendChild(spacer)
+  })
+  await page.waitForTimeout(300)
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
+})
+
+story("caps a long tool result inside its own step", async ({ mount }) => {
+  const root = await mount("answer-page--long-output")
+  await expandTurn(root).click()
+
+  const disclosure = root.locator('[data-slot="answer-disclosure"]').first()
+  await disclosure.locator("[data-disclosure-row]").click()
+
+  const output = root.locator('[data-slot="answer-io-output"]')
+  await expect(output).toHaveCount(1)
+
+  // The output half scrolls in place; the input half keeps its full size.
+  const metrics = await output.evaluate((el) => ({
+    scroll: el.scrollHeight,
+    client: el.clientHeight,
+    head: getComputedStyle(el.querySelector('[data-slot="answer-io-output-head"]')!).position,
+  }))
+
+  expect(metrics.client).toBe(150)
+  expect(metrics.scroll).toBeGreaterThan(metrics.client)
+  expect(metrics.head).toBe("sticky")
+
+  await output.evaluate((el) => {
+    el.scrollTop = 200
+  })
+  await expect.poll(() => output.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
 })
 
 story("wraps a pasted fenced block inside the prompt bubble", async ({ mount }) => {

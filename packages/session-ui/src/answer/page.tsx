@@ -1225,13 +1225,23 @@ function GroupSeat(props: {
   const [edges, setEdges] = createSignal({ up: false, down: false })
   const [overflowing, setOverflowing] = createSignal(false)
 
-  // A settled group's body is the scrollport. A running group still grows under the reader, and verbose lays rows out
-  // flat, so neither takes the cap. The panel is a review surface: it never changes the transcript's own following.
-  // No size threshold: a short group simply does not overflow its cap, so it looks exactly as it did before.
-  const capped = () => !props.flat && props.group.closed && open()
+  // Every open group's body is the scrollport, running or settled; verbose lays rows out flat, so it keeps the cap
+  // off. No size threshold: a short group simply does not overflow its cap, so it looks exactly as it did before.
+  const capped = () => !props.flat && open()
 
   // Only a body that actually overflows becomes a keyboard-reachable region and reserves a scrollbar gutter.
   const panel = () => capped() && overflowing()
+
+  // Follow intent, not an animation: a running group stays at its newest row while content grows, and the reader
+  // takes it over simply by scrolling away from the bottom. A settled group never moves on its own.
+  const [following, setFollowing] = createSignal(!props.group.closed)
+
+  const stick = () => {
+    const element = body
+
+    if (!element || !following()) return
+    element.scrollTop = element.scrollHeight
+  }
 
   const reportEdges = () => {
     const element = body
@@ -1244,7 +1254,19 @@ function GroupSeat(props: {
 
     setEdges((previous) => (previous.up === next.up && previous.down === next.down ? previous : next))
 
-    if (capped()) groupScrollTops.set(props.group.key, element.scrollTop)
+    if (props.group.closed && capped()) groupScrollTops.set(props.group.key, element.scrollTop)
+  }
+
+  // Intent follows the position: the same rule reads a programmatic stick and the reader's own scrolling, so no
+  // source flag can be left stale by a wheel event that moved nothing.
+  const onScroll = () => {
+    const element = body
+
+    if (!element) return
+    const floor = Math.max(0, element.scrollHeight - element.clientHeight)
+
+    setFollowing(element.scrollTop >= floor - 1)
+    reportEdges()
   }
 
   const bind = (element: HTMLDivElement) => {
@@ -1253,7 +1275,11 @@ function GroupSeat(props: {
     scrolled = element
 
     if (typeof ResizeObserver === "undefined") return
-    observer = new ResizeObserver(() => reportEdges())
+    observer = new ResizeObserver(() => {
+      // Settle at the bottom before reporting, so the edge fades describe the position the reader ends up at.
+      stick()
+      reportEdges()
+    })
     observer.observe(element)
     // The body is the scrollport; growth happens in the uncapped content box inside it.
 
@@ -1267,8 +1293,9 @@ function GroupSeat(props: {
     const saved = groupScrollTops.get(props.group.key)
     bind(element)
 
-    // A reopened group resumes where the reader left it, since a settled group's content no longer changes.
-    if (saved === undefined) return
+    // A running group opens at its newest row (the observer sticks it once laid out); a settled one resumes where
+    // the reader left it, since its content no longer changes.
+    if (!props.group.closed || saved === undefined) return
     requestAnimationFrame(() => {
       if (body !== element || !capped()) return
       element.scrollTop = Math.min(saved, Math.max(0, element.scrollHeight - element.clientHeight))
@@ -1277,7 +1304,7 @@ function GroupSeat(props: {
   }
 
   createEffect(() => {
-    // `capped` flips when a running group settles; the body is already mounted at that point.
+    // The body is already mounted when the cap first applies; rebind so the observer follows the current element.
     open()
     capped()
 
@@ -1330,7 +1357,7 @@ function GroupSeat(props: {
           role={panel() ? "region" : undefined}
           aria-label={panel() ? i18n.t("ui.scrollView.ariaLabel") : undefined}
           ref={attach}
-          onScroll={reportEdges}
+          onScroll={onScroll}
           class="answer-group-body"
         >
           <div class={props.flat ? "flex flex-col gap-1" : "answer-tree flex flex-col gap-1 pt-1"}>
@@ -2157,8 +2184,8 @@ function ToolRow(props: {
             </pre>
           </section>
           <div class="h-[0.5px] w-full bg-v2-border-border-muted" />
-          <section class="flex flex-col gap-1" data-error={failed() ? "" : undefined}>
-            <div class="flex min-w-0 items-center justify-between gap-2">
+          <section data-slot="answer-io-output" class="flex flex-col gap-1" data-error={failed() ? "" : undefined}>
+            <div data-slot="answer-io-output-head" class="flex min-w-0 items-center justify-between gap-2">
               <span
                 class="font-mono text-[11px] leading-[19px]"
                 style={{ color: "var(--answer-ink-tertiary)" }}
@@ -2176,6 +2203,7 @@ function ToolRow(props: {
               </button>
             </div>
             <pre
+              data-slot="answer-io-output-text"
               class="whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
               style={{ color: failed() ? "var(--v2-state-fg-danger)" : "var(--answer-ink-secondary)" }}
             >

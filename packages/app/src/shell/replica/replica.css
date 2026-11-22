@@ -249,6 +249,7 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
 /* The navigation column's head: its width follows the column, its surface is the column's own, so the bar's left half
    and the column below read as one piece of chrome rather than two stacked tints. */
 [data-slot="replica-titlebar-side"] {
+  position: relative;
   display: flex;
   flex: 0 0 var(--navigation-sidebar-width);
   align-items: center;
@@ -260,6 +261,18 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   padding-inline-end: 8px;
   background: var(--color-sidebar);
   transition: flex-basis 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* The column's hairline continues through its head, so the seam runs the whole window and the three columns read as
+   three across the top as well as below it. */
+[data-slot="replica-titlebar-side"]:not([data-collapsed])::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 0.5px;
+  background: var(--color-divider);
+  pointer-events: none;
 }
 
 [data-slot="replica-titlebar-side"] :where(button, a, input, [role="button"]) {
@@ -289,11 +302,13 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
 
 /* The panel's own head: the session side region writes its width, so the workspace segment ends where the workspace
    does instead of running under the panel. The panel itself rises over this segment, which only wears the panel's
-   surface for the frames it travels in. */
+   surface for the frames it travels in. It is not a window drag region: the panel's strip and its tabs sit there, and
+   Electron resolves a drag region by geometry, so it would swallow every click on them. */
 [data-slot="replica-titlebar-panel"] {
   flex: 0 0 0;
   min-width: 0;
   background: var(--v2-background-bg-base);
+  -webkit-app-region: no-drag;
 }
 
 /* A new chat keeps the window bar as a draggable strip, not a toolbar: the bar stays transparent so the left segment
@@ -952,8 +967,10 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 }
 
 /* The workspace column clips its content, which would cut off the head the panel lifts into the window bar. Only an
-   open panel needs that escape; every other route keeps the clip, the empty state's wash included. */
-[data-replica] [data-slot="replica-main"]:has(#review-panel:not([aria-hidden="true"])) {
+   open panel needs that escape; every other route keeps the clip, the empty state's wash included. The shell around it
+   clips the same way, and it starts below the bar, so it hands that strip back too. */
+[data-replica] [data-slot="replica-main"]:has(#review-panel:not([aria-hidden="true"])),
+[data-replica] [data-slot="replica-shell"]:has(#review-panel:not([aria-hidden="true"])) {
   overflow: visible;
 }
 

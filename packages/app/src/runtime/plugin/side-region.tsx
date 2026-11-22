@@ -103,6 +103,12 @@ export function SideRegion(props: {
 
     if (bar) bar.style.flexBasis = `${props.full ? 0 : Math.round(width)}px`
   })
+  // A closed region is skipped by content-visibility, so the observer stops reporting it and the segment would keep the
+  // last open width. Hand it back explicitly once the region is out of the row.
+  createEffect(() => {
+    if (tabsVisible()) return
+    titlebarPanel()?.style.setProperty("flex-basis", "0px")
+  })
   onCleanup(() => titlebarPanel()?.style.removeProperty("flex-basis"))
 
   const lowerHeight = createMemo(() => Math.round(column.height * (1 - view().split.ratio())))

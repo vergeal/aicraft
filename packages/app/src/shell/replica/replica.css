@@ -4,6 +4,11 @@
   /* The window bar spans the whole window at the reference's 48px, split at the sidebar boundary: its left segment
      heads the navigation column, its right segment heads the workspace. */
   --titlebar-height: 48px;
+  /* macOS traffic lights are 14px buttons whose top edge the shell places at 15px, so their centres ride 22px below
+     the window's top edge, not the bar's 24px geometric centre. Every segment of the bar centres its contents on
+     that line, and `--titlebar-axis-gutter` is what is left below it. */
+  --titlebar-axis: 22px;
+  --titlebar-axis-gutter: calc(var(--titlebar-height) - 2 * var(--titlebar-axis));
 
   --navigation-sidebar-width: 280px;
   --sidebar-header-height: 32px;
@@ -39,6 +44,10 @@
      wash only greys the surface without ever reading as glass. */
   --color-titlebar: rgb(247 247 247 / 86%);
   --color-rail: rgb(247 247 247 / 86%);
+  /* The window bar paints solid tints on every platform, so the desktop behind the window never shows through the
+     chrome. Everything below the bar keeps its own material. */
+  --titlebar-solid: #f7f7f7;
+  --titlebar-side-solid: #f5f5f5;
   /* The navigation column sits one step below the canvas on the design system's neutral ramp (#f5f5f5 over white),
      so the two columns read as one surface with a level change rather than a wash of near-white. */
   --color-sidebar: rgb(245 245 245 / 92%);
@@ -122,6 +131,8 @@
 [data-color-scheme="dark"] [data-replica] {
   --color-titlebar: rgb(21 21 23 / 86%);
   --color-rail: rgb(21 21 23 / 86%);
+  --titlebar-solid: #151517;
+  --titlebar-side-solid: #232324;
   /* The navigation column takes the design system's surface (#232324) over the canvas (#151517): one step of
      lightness, the same step the reference draws between the two halves of the window. */
   --color-sidebar: rgb(35 35 36 / 95%);
@@ -272,6 +283,7 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   overflow: hidden;
   padding-inline-start: var(--sidebar-header-lead);
   padding-inline-end: 8px;
+  padding-block-end: var(--titlebar-axis-gutter);
   background: var(--color-sidebar);
   transition: flex-basis 220ms cubic-bezier(0.2, 0, 0, 1);
 }
@@ -309,6 +321,7 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   gap: 8px;
   min-width: 0;
   padding-inline: 20px;
+  padding-block-end: var(--titlebar-axis-gutter);
   background: var(--color-main);
   box-shadow: none;
 }
@@ -1306,6 +1319,18 @@ html[data-replica-window="translucent"][data-os="windows"]:not([data-color-schem
 html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"]:has([data-replica]),
 html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="dark"] #root:has([data-replica]) {
   background-color: #0c0c0e !important;
+}
+
+/* The window bar is opaque on every platform: both of its segments paint a solid tint instead of the glass washes
+   above, so the desktop behind the window never shows through the chrome. Only the bar changes; the columns, the
+   panel and the canvas below keep their own material. */
+[data-replica] [data-slot="replica-titlebar"],
+html[data-replica-window="translucent"] [data-slot="replica-titlebar"] {
+  background-color: var(--titlebar-solid);
+}
+
+[data-replica] [data-slot="replica-titlebar"] [data-slot="replica-titlebar-side"] {
+  background-color: var(--titlebar-side-solid);
 }
 
 /* Forced colors replaces the palette with system colours, which cannot express a translucent tint or an inset

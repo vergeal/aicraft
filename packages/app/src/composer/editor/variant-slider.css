@@ -27,12 +27,3 @@
   background: var(--composer-variant-thumb);
   box-shadow: var(--composer-variant-thumb-shadow);
 }
-
-/* Focus marks the handle instead of drawing a box around the whole rail, which reads as a text field. The inner
-   ring is the card's own fill so the outline sits off the handle, the way a macOS control highlights its knob. */
-[data-slot="composer-variant-slider"]:focus-visible [data-slot="composer-variant-thumb"] {
-  box-shadow:
-    0 0 0 2px var(--v2-material-surface-strong-opaque),
-    0 0 0 4px var(--v2-border-border-focus),
-    var(--composer-variant-thumb-shadow);
-}

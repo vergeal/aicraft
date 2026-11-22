@@ -146,11 +146,15 @@ export function createComposerModelSelection(input: {
   const providers = useProviders(() => sdk().directory)
   const connected = createMemo(() => new Set(providers.connected().map((item) => item.id)))
 
-  const valid = (model: Pick<ModelKey, "providerID" | "modelID">) => {
+  // A model the catalog knows about, whether or not its provider is currently connected. The connected set only
+  // decides the implicit fallbacks: a model the user picked stays picked, so a transient provider listing never
+  // silently replaces it with "choose a model".
+  const known = (model: Pick<ModelKey, "providerID" | "modelID">) => {
     const provider = providers.all().get(model.providerID)
 
-    return !!provider?.models[model.modelID] && connected().has(model.providerID)
+    return !!provider?.models[model.modelID]
   }
+  const valid = (model: Pick<ModelKey, "providerID" | "modelID">) => known(model) && connected().has(model.providerID)
 
   const recent = () => models.recent.list().find(valid)
 
@@ -164,7 +168,12 @@ export function createComposerModelSelection(input: {
   const key = () => {
     if (!configuredModel.ready()) return
 
-    return [prompt.model.current(), input.agent()?.model, configuredModel(), recent(), fallback()].find(
+    const chosen = prompt.model.current()
+
+    // A pick is kept exactly as chosen, including a null variant meaning "no effort override".
+    if (chosen) return { providerID: chosen.providerID, modelID: chosen.modelID, variant: chosen.variant ?? undefined }
+
+    return [input.agent()?.model, configuredModel(), recent(), fallback()].find(
       (item): item is ModelKey => !!item && valid(item),
     )
   }
@@ -214,7 +223,7 @@ export function createComposerModelSelection(input: {
     },
     set(item: ModelKey | undefined, options?: { recent?: boolean }) {
       batch(() => {
-        if (item && !valid(item)) return
+        if (item && !known(item)) return
         const previous = current()
         const same = item && previous?.provider.id === item.providerID && previous.id === item.modelID
         prompt.model.set(

@@ -1,6 +1,6 @@
 [data-component="composer-editor"] {
-  /* A writing surface, not a one-line strip: two lines of text plus the card's own 12px/8px padding. */
-  min-height: calc(var(--line-height-base) * 2 + 20px);
+  /* A writing surface, not a one-line strip: two lines of text plus the card's own 14px/6px padding. */
+  min-height: calc(var(--line-height-base) * 2 + 12px);
 
   /* A drafted tick reads like a code block in a finished answer: the chip and the block keep separate
      greys, and the dark scheme flips the ink so a tick never shows black text on a white fill. */
@@ -49,11 +49,11 @@
 [data-component="composer"]
   [data-slot="composer-actions"]
   :is([data-action="composer-model"], [data-action="composer-exit-shell"]) {
-  height: 32px;
+  height: 28px;
   border-radius: 9999px;
   border: 0;
   background-color: transparent;
-  font-size: 14px;
+  font-size: 13px;
   line-height: var(--line-height-compact);
   transition:
     background-color 120ms ease,

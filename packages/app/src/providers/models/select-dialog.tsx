@@ -79,7 +79,7 @@ const sortModelGroups = (a: { category: string; items: ModelItem[] }, b: { categ
   return a.items[0].provider.name.localeCompare(b.items[0].provider.name)
 }
 
-const ModelList: Component<{
+export const ModelList: Component<{
   mobile?: boolean
   open?: boolean
   provider?: string
@@ -258,7 +258,7 @@ const ModelList: Component<{
           onClearClick={() => setSearch("")}
         />
       </div>
-      <div class="relative min-h-0" classList={{ "flex-1": !props.mobile }}>
+      <div data-slot="model-selector-results" class="relative min-h-0" classList={{ "flex-1": !props.mobile }}>
         <div
           ref={(element) => (scrollRef = element)}
           class="settings-panel settings-models pt-1 pb-4"

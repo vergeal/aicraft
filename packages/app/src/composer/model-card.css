@@ -1,0 +1,139 @@
+/* The model card opens its list on a second page instead of a dialog. The settings list is built for a full-width
+   page, so this file brings it down to picker metrics inside the 264px card: no section cards, no 44px group bands,
+   and rows that highlight as one rounded block. */
+
+[data-slot="composer-model-panel"] {
+  /* The list scrolls inside the card; the panel never outgrows the window and the popover stays anchored. */
+  max-height: min(400px, calc(100dvh - 180px));
+}
+
+[data-slot="composer-model-panel"] [data-slot="model-selector-search"] {
+  padding: 0 6px 6px;
+}
+
+/* The search field keeps the pill shape on the settings page, where it sits in a wide column. In a 264px card the
+   pill's round ends crowd the card's corner, so it takes the same 8px radius as a row. */
+[data-slot="composer-model-panel"]
+  [data-component="text-input-v2"]:has([data-slot="text-input-v2-input"][type="search"]) {
+  height: 28px;
+  border-radius: 8px;
+}
+
+[data-slot="composer-model-panel"] [data-slot="model-selector-results"] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One scroll container inside the card: the settings panel lets its page scroll, which would otherwise expand the
+   card instead of scrolling the list. */
+[data-slot="composer-model-panel"] .settings-panel {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 0 6px 6px;
+  gap: 4px;
+}
+
+/* Sections lose their card frame: the card is already the surface, so a second fill, hairline and radius only add
+   noise. Groups separate by space and the weight of their header. */
+[data-slot="composer-model-panel"] .settings-models .settings-section {
+  gap: 2px;
+}
+
+[data-slot="composer-model-panel"] .settings-models .settings-section[data-component="settings-models-provider"],
+[data-slot="composer-model-panel"] .provider-model-group {
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+[data-slot="composer-model-panel"] .settings-models .settings-section[data-expanded] {
+  padding-bottom: 0;
+}
+
+/* Rows start on the group label's column instead of the settings page's 44px chevron indent, which would spend a
+   sixth of the card before the model name begins. */
+[data-slot="composer-model-panel"] .settings-models .settings-section > [data-component="settings-list"],
+[data-slot="composer-model-panel"] .provider-model-group-models > [data-component="settings-list"],
+[data-slot="composer-model-panel"] [data-component="settings-list"][data-variant="catalog"] {
+  padding-inline: 0;
+  border-top: 0;
+}
+
+[data-slot="composer-model-panel"] [data-component="settings-list"][data-variant="catalog"] {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* A provider header becomes a quiet label: a shorter band, and the chevron on the trailing edge so the title starts
+   on the same 8px column as a row title. */
+[data-slot="composer-model-panel"] .settings-models-group-header,
+[data-slot="composer-model-panel"] .provider-model-group-header {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 0;
+}
+
+[data-slot="composer-model-panel"] .settings-models-group-trigger,
+[data-slot="composer-model-panel"] .provider-model-group-trigger {
+  height: 24px;
+  gap: 6px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+[data-slot="composer-model-panel"] .settings-models-group-chevron {
+  order: 2;
+  width: 14px;
+  height: 14px;
+  margin-inline-start: auto;
+}
+
+[data-slot="composer-model-panel"] .settings-models-group-label {
+  gap: 6px;
+}
+
+[data-slot="composer-model-panel"] .settings-models-group-title,
+[data-slot="composer-model-panel"] .provider-model-group-title {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+[data-slot="composer-model-panel"] .settings-models-group-count,
+[data-slot="composer-model-panel"] .provider-model-group-count {
+  font-size: 10px;
+}
+
+/* A Console group nests behind a hairline in Settings; in a 264px card that indent costs a truncation letter, so it
+   collapses to a small step. */
+[data-slot="composer-model-panel"] .settings-models-console-groups {
+  margin-inline-start: 0;
+  padding-inline-start: 8px;
+}
+
+[data-slot="composer-model-panel"] .provider-model-groups {
+  gap: 2px;
+}
+
+/* A row is a picker row: one rounded block that highlights whole, no divider, and 30px tall so more than a handful
+   of models stay in view. */
+[data-slot="composer-model-panel"] [data-component="settings-row"] {
+  width: 100%;
+  margin-inline: 0;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+[data-slot="composer-model-panel"] [data-component="settings-list"] > [data-component="settings-row"]::after {
+  display: none;
+}
+
+[data-slot="composer-model-panel"] .settings-models-status {
+  padding-block: 20px;
+}

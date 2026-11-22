@@ -5,13 +5,16 @@ import { Button } from "@opencode/ui/button"
 import { Popover } from "@opencode/ui/popover"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
 import { Keybind } from "@opencode/ui/keybind"
+import { Slash } from "@opencode/ui/slash"
 import { Tooltip } from "@opencode/ui/tooltip"
-import { ComposerEditor, composerOverlayGutter } from "./editor/editor"
+import { ComposerEditor } from "./editor/editor"
 import "./overlay.css"
+import "./model-card.css"
 import type { ComposerSelectControl } from "./editor/interaction"
 import { ComposerVariantSlider } from "./editor/variant-slider"
-import { DialogSelectModel, ModelSelectorDrawer } from "@/providers/models/select-dialog"
+import { ModelList, ModelSelectorDrawer } from "@/providers/models/select-dialog"
 import { DialogSelectModelUnpaid } from "@/providers/models/unpaid"
 import { formatKeybind, useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -110,30 +113,54 @@ function ComposerModelControl(props: {
   // A preview paints the chip in its resting state, and the loaded names replace it in place.
   const shouldAnimate = createMemo<boolean>((previous) => previous ?? (props.loading && !props.preview))
   const mobile = createMediaQuery("(max-width: 767px)")
-  const dialog = useDialog()
+  const language = useLanguage()
+  const [store, setStore] = createStore<{ open: boolean; page: "main" | "models" }>({ open: false, page: "main" })
+  const hasVariant = () => !!props.variant && props.variant.options().length > 1
+  // A model without effort options has nothing to show on a first page, so the card opens straight on the list.
+  const list = () => !hasVariant() || store.page === "models"
 
-  const open = (detail: number) => {
+  const reveal = () => {
     if (!props.paid) return props.onUnpaidClick()
-    // A pointer open keeps focus in the composer, so the dialog returns it to the caret. A keyboard open
-    // (a click with no pointer presses) returns focus to this trigger instead of moving it to the editor.
-    void dialog.show(() => <DialogSelectModel model={props.model} />, detail === 0 ? undefined : props.onClose)
+    setStore({ open: true, page: hasVariant() ? "main" : "models" })
   }
 
-  // A previewed chip is visible before the catalog loads, so a click on it opens the dialog once loading finishes.
-  const [deferred, setDeferred] = createSignal<number>()
-  const [store, setStore] = createStore({ open: false })
-  const [gutter, setGutter] = createSignal(8)
-  const hasVariant = () => !!props.variant && props.variant.options().length > 1
+  // A previewed chip is visible before the catalog loads, so a click on it opens the card once loading finishes.
+  const [deferred, setDeferred] = createSignal(false)
 
   createEffect(() => {
-    const detail = deferred()
-
-    if (props.loading || detail === undefined) return
-    setDeferred(undefined)
-    open(detail)
+    if (props.loading || !deferred()) return
+    setDeferred(false)
+    reveal()
   })
 
-  const content = () => <bdi class="flex min-w-0 whitespace-nowrap leading-[22px]">{props.label.model}</bdi>
+  const variantLabel = () => {
+    const control = props.variant
+
+    if (!control || !hasVariant()) return
+    const option = control.options().find((item) => item.id === control.current())
+
+    return option?.label ?? control.current()
+  }
+
+  const content = () => (
+    <>
+      <span class="flex min-w-0 whitespace-nowrap leading-4">
+        <Show when={props.label.provider}>
+          {(name) => (
+            <>
+              <bdi class="min-w-0 shrink-[2] truncate text-v2-text-text-faint">{name()}</bdi>
+              <Slash />
+              <span class="sr-only">{" / "}</span>
+            </>
+          )}
+        </Show>
+        <bdi class="min-w-0 truncate">{props.label.model}</bdi>
+      </span>
+      <span class="-ml-0.5 -mr-1 flex shrink-0">
+        <Icon name="chevron-down" />
+      </span>
+    </>
+  )
 
   return (
     <Show when={!props.loading || props.preview}>
@@ -153,62 +180,95 @@ function ComposerModelControl(props: {
           fallback={
             <Popover
               open={store.open}
-              class="composer-overlay-surface"
               onOpenChange={(next) => {
-                // A preview opens the dialog once the catalog loads, and a model without effort
-                // options keeps the old one-click dialog instead of a card with a single row.
-                if (next && (props.loading || !hasVariant())) return setDeferred(1)
-                setStore("open", next)
+                if (!next) return setStore("open", false)
+                if (props.loading) return setDeferred(true)
+                reveal()
               }}
-              placement="top-end"
-              gutter={gutter()}
+              placement="top-start"
+              gutter={6}
               triggerAs={Button}
               trigger={content()}
               triggerProps={{
                 class: `me-1.5 min-w-0 max-w-[calc(100cqw-140px)] justify-start ![font-weight: 400] ${
                   shouldAnimate() ? "animate-in fade-in" : ""
                 }`,
-                style: { height: "32px" },
+                style: { height: "28px" },
                 variant: "ghost-muted",
                 size: "normal",
                 "data-action": "composer-model",
                 "data-control-type": "popover",
                 "aria-label": props.title,
-                // The popover reads its gutter when it opens, and the pointer trigger opens on pointerdown, so the
-                // distance is measured there rather than on the later mousedown.
-                onPointerDown: (event: PointerEvent) =>
-                  setGutter(composerOverlayGutter(event.currentTarget as HTMLElement)),
-                onKeyDown: (event: KeyboardEvent) => {
-                  if (event.key === "Enter" || event.key === " ")
-                    setGutter(composerOverlayGutter(event.currentTarget as HTMLElement))
-                },
                 onMouseDown: (event: MouseEvent) => event.preventDefault(),
               }}
             >
-              <div data-slot="composer-model-popover" class="flex w-[240px] flex-col p-2">
-                <Show when={hasVariant()}>
-                  <div class="flex h-7 items-center px-1">
-                    <span class="min-w-0 truncate text-[12px] leading-4 text-v2-text-text-faint">
-                      {props.variantTitle}
+              <div
+                data-slot="composer-model-panel"
+                class="flex w-[264px] flex-col"
+                classList={{ "gap-3 p-3": !list() }}
+              >
+                <Show
+                  when={list()}
+                  fallback={
+                    <>
+                      <Show when={hasVariant()}>
+                        <span class="text-center text-[13px] font-[530] capitalize leading-5 text-v2-text-text-accent">
+                          {variantLabel()}
+                        </span>
+                      </Show>
+                      <button
+                        type="button"
+                        data-slot="composer-model-row"
+                        class="flex h-7 w-full items-center gap-2 rounded-full px-1.5 text-[13px] leading-5 transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+                        onClick={() => setStore("page", "models")}
+                      >
+                        {/* Mirrors the chevron's width so the label centers in the button itself, not in the space left of
+                            the arrow. Without it the label sits 11px left of centre. */}
+                        <span aria-hidden="true" class="w-3.5 shrink-0" />
+                        <span class="flex min-w-0 flex-1 items-center justify-center">
+                          <Show when={props.label.provider}>
+                            {(name) => (
+                              <>
+                                <span class="shrink-0 text-v2-text-text-faint">{name()}</span>
+                                <Slash />
+                              </>
+                            )}
+                          </Show>
+                          <span class="min-w-0 truncate text-v2-text-text-base">{props.label.model}</span>
+                        </span>
+                        <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+                      </button>
+                      <Show when={hasVariant() && props.variant}>
+                        {(control) => <ComposerVariantSlider control={control()} label={props.variantTitle} />}
+                      </Show>
+                    </>
+                  }
+                >
+                  <div class="flex h-8 shrink-0 items-center gap-1 px-1.5">
+                    <Show when={hasVariant()}>
+                      <IconButton
+                        size="small"
+                        variant="ghost-muted"
+                        class="size-6 shrink-0"
+                        icon={<Icon name="chevron-left" />}
+                        aria-label={language.t("common.goBack")}
+                        onMouseDown={(event: MouseEvent) => event.preventDefault()}
+                        onClick={() => setStore("page", "main")}
+                      />
+                    </Show>
+                    <span class="min-w-0 flex-1 truncate text-[13px] leading-5 text-v2-text-text-muted">
+                      {props.title}
                     </span>
                   </div>
-                  <Show when={props.variant}>
-                    {(control) => <ComposerVariantSlider control={control()} label={props.variantTitle} />}
-                  </Show>
-                  <div class="my-1 h-px shrink-0 bg-v2-border-border-muted" />
+                  <ModelList
+                    model={props.model}
+                    open={store.open && list()}
+                    onSelect={() => {
+                      setStore("open", false)
+                      props.onClose()
+                    }}
+                  />
                 </Show>
-                <button
-                  type="button"
-                  data-slot="composer-model-row"
-                  class="flex h-[30px] w-full items-center gap-2 rounded-lg px-1 text-start text-[13px] leading-5 text-v2-text-text-muted transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
-                  onClick={() => {
-                    setStore("open", false)
-                    open(1)
-                  }}
-                >
-                  <span class="min-w-0 flex-1 truncate">{props.title}</span>
-                  <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
-                </button>
               </div>
             </Popover>
           }
@@ -220,7 +280,7 @@ function ComposerModelControl(props: {
                 {...triggerProps}
                 variant="ghost-muted"
                 size="normal"
-                style={{ height: "32px" }}
+                style={{ height: "28px" }}
                 class="me-1.5 min-w-0 max-w-[calc(100cqw-140px)] justify-start ![font-weight: 400]"
                 classList={{ "animate-in fade-in": shouldAnimate() }}
                 data-action="composer-model"

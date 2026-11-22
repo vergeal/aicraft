@@ -2,32 +2,14 @@
 @layer properties, theme, base, components, utilities;
 
 @layer components {
-  /* Shared by Composer submit actions and contrast icon buttons. */
+  /* The primary key: one solid fill, the same black/white pair the text buttons use, so a send arrow and a dialog's
+     primary button read as the same object. No highlight gradient, rim or inner shadow — the design language is flat. */
   [data-component="icon-button-v2"]:is([data-variant="submit"], [data-variant="contrast"]) {
-    --submit-highlight: var(--v2-alpha-light-20);
-    --submit-hover: var(--v2-overlay-simple-overlay-contrast-hover);
-
-    background-image:
-      linear-gradient(180deg, var(--submit-highlight) 0%, var(--v2-alpha-light-0) 100%),
-      linear-gradient(
-        90deg,
-        var(--v2-background-bg-icon-button-contrast) 0%,
-        var(--v2-background-bg-icon-button-contrast) 100%
-      );
+    background-color: var(--v2-background-bg-contrast);
+    background-image: none;
     color: var(--v2-text-text-contrast);
-    text-shadow: 0 0.5px 0.5px rgba(0, 0, 0, 0.3);
-    box-shadow: var(--v2-elevation-button-contrast);
-  }
-
-  [data-color-scheme="dark"] [data-component="icon-button-v2"]:is([data-variant="submit"], [data-variant="contrast"]) {
-    --submit-highlight: var(--v2-alpha-light-60);
-    --submit-hover: var(--v2-alpha-dark-8);
-
-    color: var(--v2-text-text-inverse);
-  }
-
-  [data-color-scheme="dark"] [data-component="icon-button-v2"]:is([data-variant="submit"], [data-variant="contrast"]) {
-    color: var(--v2-icon-icon-inverse);
+    text-shadow: none;
+    box-shadow: none;
   }
 
   @media (hover: hover) {
@@ -35,14 +17,11 @@
         :hover,
         [data-state="hover"]
       ):not(:disabled) {
-      background-image:
-        linear-gradient(90deg, var(--submit-hover) 0%, var(--submit-hover) 100%),
-        linear-gradient(180deg, var(--submit-highlight) 0%, var(--v2-alpha-light-0) 100%),
-        linear-gradient(
-          90deg,
-          var(--v2-background-bg-icon-button-contrast) 0%,
-          var(--v2-background-bg-icon-button-contrast) 100%
-        );
+      background-image: linear-gradient(
+        90deg,
+        var(--v2-overlay-simple-overlay-contrast-hover) 0%,
+        var(--v2-overlay-simple-overlay-contrast-hover) 100%
+      );
     }
   }
 
@@ -50,18 +29,11 @@
       :active,
       [data-state="pressed"]
     ):not(:disabled) {
-    background-image:
-      linear-gradient(
-        90deg,
-        var(--v2-overlay-simple-overlay-contrast-pressed) 0%,
-        var(--v2-overlay-simple-overlay-contrast-pressed) 100%
-      ),
-      linear-gradient(180deg, var(--submit-highlight) 0%, var(--v2-alpha-light-0) 100%),
-      linear-gradient(
-        90deg,
-        var(--v2-background-bg-icon-button-contrast) 0%,
-        var(--v2-background-bg-icon-button-contrast) 100%
-      );
+    background-image: linear-gradient(
+      90deg,
+      var(--v2-overlay-simple-overlay-contrast-pressed) 0%,
+      var(--v2-overlay-simple-overlay-contrast-pressed) 100%
+    );
   }
 
   [data-component="icon-button-v2"]:is([data-variant="submit"], [data-variant="contrast"]):is(
@@ -70,5 +42,11 @@
     ) {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  /* Dark mode inverts the pair, exactly as the text buttons do: a paper key with an ink glyph. */
+  [data-color-scheme="dark"] [data-component="icon-button-v2"]:is([data-variant="submit"], [data-variant="contrast"]) {
+    background-color: var(--v2-grey-100);
+    color: var(--v2-grey-1100);
   }
 }

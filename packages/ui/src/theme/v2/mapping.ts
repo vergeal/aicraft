@@ -40,7 +40,6 @@ const light = {
   "v2-background-bg-layer-04": ref("v2-grey-600"),
   "v2-background-bg-inverse": ref("v2-grey-1000"),
   "v2-background-bg-contrast": ref("v2-grey-900"),
-  "v2-background-bg-icon-button-contrast": ref("v2-background-bg-contrast"),
   "v2-background-bg-button-neutral": ref("v2-grey-100"),
   "v2-background-bg-accent": ref("v2-blue-600"),
   "v2-background-bg-code-path": ref("v2-cyan-100"),
@@ -89,8 +88,6 @@ const light = {
     "0px 1px 1.5px 0px var(--v2-alpha-dark-10), 0px 0px 0px 0.5px var(--v2-alpha-dark-14), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
   "v2-elevation-button-neutral":
     "0px 1px 1.5px 0px var(--v2-alpha-dark-10), 0px 0px 0px 0.5px var(--v2-alpha-dark-14), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
-  "v2-elevation-button-contrast":
-    "0px 1px 1.5px 0px var(--v2-alpha-dark-20), 0px 0px 0px 0.5px var(--v2-grey-800), inset 0px 1px 2px 0px var(--v2-alpha-light-14), inset 0px -1px 2px 0px var(--v2-alpha-dark-6), 0px 0px 0px 0px var(--v2-alpha-dark-0)",
   "v2-elevation-elements": "0px 0.5px 0.5px 0px var(--v2-alpha-dark-40)",
   "v2-elevation-switch-off":
     "inset 0px 1px 1px 0px var(--v2-alpha-dark-8), inset 0px 0.5px 0.5px 0px var(--v2-alpha-dark-8), inset 0px 0px 0px 0.5px var(--v2-alpha-dark-10)",
@@ -110,7 +107,6 @@ const dark = {
   "v2-background-bg-layer-04": ref("v2-grey-400"),
   "v2-background-bg-inverse": ref("v2-grey-100"),
   "v2-background-bg-contrast": ref("v2-grey-700"),
-  "v2-background-bg-icon-button-contrast": ref("v2-grey-400"),
   "v2-background-bg-button-neutral": ref("v2-alpha-light-6"),
   "v2-background-bg-accent": ref("v2-blue-600"),
   "v2-background-bg-code-path": ref("v2-cyan-1200"),
@@ -159,8 +155,6 @@ const dark = {
     "0px 1px 2px 0px var(--v2-alpha-dark-0), 0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6)",
   "v2-elevation-button-neutral":
     "0px 1px 2px 0px var(--v2-alpha-dark-40), 0px 0px 0px 0.5px var(--v2-alpha-light-20), 0px -0.5px 0px 0px var(--v2-alpha-light-10)",
-  "v2-elevation-button-contrast":
-    "0px 1px 2px 0px var(--v2-alpha-dark-40), 0px 0px 0px 0.5px var(--v2-alpha-light-40), inset 0px 0px 0px 0px var(--v2-alpha-light-0), inset 0px 0px 0px 0px var(--v2-alpha-light-0), 0px -0.5px 0px 0px var(--v2-alpha-light-30)",
   "v2-elevation-elements": "0px 0.5px 0.5px 0px var(--v2-alpha-dark-40)",
   "v2-elevation-switch-off":
     "inset 0px -0.5px 0px 0px var(--v2-alpha-light-10), inset 0px 0px 0px 0px var(--v2-alpha-light-0), inset 0px 0px 0px 0.5px var(--v2-alpha-light-16)",

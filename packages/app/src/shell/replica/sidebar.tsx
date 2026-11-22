@@ -8,7 +8,6 @@ import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { Accessibility, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { ActivityRing } from "@opencode/ui/activity-ring"
-import { BrandMark } from "@opencode/ui/brand-mark"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
@@ -146,7 +145,7 @@ function ReplicaSidebarBrand() {
 
   return (
     <div data-slot="replica-sidebar-brand" class="mb-3 flex h-8 shrink-0 items-center gap-2 px-4">
-      <BrandMark decorative class="size-5 shrink-0" />
+      <img src="/assets/product-mark.png" alt="" aria-hidden="true" width="20" height="20" class="size-5 shrink-0" />
       <span class="min-w-0 truncate text-[13px] leading-5 font-[500] tracking-[-0.01em] text-[var(--color-text-primary)]">
         {language.t("replica.rail.product")}
       </span>

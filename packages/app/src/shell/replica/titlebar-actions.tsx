@@ -10,7 +10,6 @@ import { useGlobal } from "@/runtime/server/runtime"
 import { useServers } from "@/runtime/server/registry"
 import { SessionRouteKey, SessionStateKey } from "@/runtime/server/scope"
 import { useLayout } from "@/shell/state/layout"
-import { sessionPaneTab } from "@/shell/state/session-tabs"
 import { findSessionTab, useTabs } from "@/shell/tabs/tabs"
 import { PerfMonitor } from "./perf-monitor"
 
@@ -23,27 +22,11 @@ const BUTTON =
  * the empty strip beside the panel.
  */
 export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"; fps?: boolean }) {
-  const CONTEXT_PANEL = "context:main"
   const language = useLanguage()
   const layout = useLayout()
   const global = useGlobal()
   const servers = useServers()
   const tabs = useTabs()
-
-  /** The layout key of the routed session, the one its side tabs are stored under. */
-  const stateKey = () => {
-    const route = layout.route()
-
-    if (route.type !== "session") return
-    const session = global.serverCtx(route.server)?.data.session.get(route.sessionId)
-
-    if (!session) return
-
-    return SessionStateKey.from(
-      servers.scope(route.server),
-      SessionRouteKey.fromRoute(base64Encode(session.location.directory), session.id),
-    )
-  }
 
   /** The open conversation's review panel, the side region the layout opened for this tab. */
   const reviewTab = () => {
@@ -70,25 +53,24 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
   // The ring, the token count and the spend are one control: clicking it opens the built-in context panel next
   // to the conversation, the same panel the plugin's own indicator opens.
   const openContext = () => {
-    const key = stateKey()
+    const route = layout.route()
 
-    if (!key) return
+    if (route.type !== "session") return
+    const session = global.serverCtx(route.server)?.data.session.get(route.sessionId)
 
-    layout.panel.open(key, CONTEXT_PANEL)
+    if (!session) return
 
-    const tab = reviewTab()
+    layout.panel.open(
+      SessionStateKey.from(
+        servers.scope(route.server),
+        SessionRouteKey.fromRoute(base64Encode(session.location.directory), session.id),
+      ),
+      "context:main",
+    )
+
+    const tab = findSessionTab(tabs.store, route.server, route.sessionId)
 
     if (tab) tabs.setRegion(tab, "side", true)
-  }
-
-  /** True while the side region already shows the context page the ring would open. */
-  const contextShown = () => {
-    if (!reviewOpen()) return false
-    const key = stateKey()
-
-    if (!key) return false
-
-    return sessionPaneTab(layout.panel.state(key), "side") === CONTEXT_PANEL
   }
 
   // Shown beside the ring the way the reference reads: 15万 in Chinese, 150K in English.
@@ -141,8 +123,7 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
 
   return (
     <Show when={props.placement === "workspace" ? !reviewOpen() : reviewOpen()}>
-      {/* Hidden while the panel already shows the context page: the chip would only re-select the tab on screen. */}
-      <Show when={contextShown() ? undefined : usage()}>
+      <Show when={usage()}>
         {(value) => (
           <Tooltip
             placement="bottom"

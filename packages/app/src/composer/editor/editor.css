@@ -15,12 +15,12 @@
 :root[data-color-scheme="dark"] [data-component="composer-editor"] {
   --composer-code-ink: #eeeeee;
   --composer-code-inline-ink: #eeeeee;
-  /* The card's fill is `bg-layer-02` in the replica shell, so a chip has to step one layer above the card, not sit
-     on it: the fixed `rgb(50, 50, 50)` was four levels off that fill and read as plain text. `bg-layer-03` keeps
-     roughly the step the light scheme has between the white card and its chips, and it follows the dark theme's own
-     layer mapping instead of pinning one grey. */
-  --composer-code-inline-surface: var(--v2-background-bg-layer-03);
-  --composer-code-block-surface: var(--v2-background-bg-layer-03);
+  /* The card is `bg-layer-01`, so a chip has to step up from that layer, not from the page behind it: the fixed
+     `rgb(50, 50, 50)` sat four levels above the card and read as plain text. `bg-layer-02` keeps roughly the step
+     the light scheme has between the card and its chips, and it follows the translucent theme's own layer
+     mapping instead of pinning one grey. */
+  --composer-code-inline-surface: var(--v2-background-bg-layer-02);
+  --composer-code-block-surface: var(--v2-background-bg-layer-02);
 }
 
 [data-component="composer-editor"]:empty::before {

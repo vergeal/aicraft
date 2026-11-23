@@ -375,7 +375,8 @@ export function createBridge(root: string) {
         current = { state: "failed", restarts: 0, lastError: `bridge 可执行文件不存在：${exe}`, ownProcess: false }
         return current
       }
-      child = spawn(exe, [], { stdio: "ignore", detached: false })
+      // windowsHide 见 src/bridge/supervisor.ts：Electron 主进程没有控制台，拉起 bridge 会弹窗。
+      child = spawn(exe, [], { stdio: "ignore", detached: false, windowsHide: true })
       child.once("exit", () => {
         child = undefined
       })

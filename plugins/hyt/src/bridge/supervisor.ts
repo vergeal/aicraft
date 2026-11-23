@@ -87,7 +87,11 @@ export function createSupervisor(options: SupervisorOptions): BridgeSupervisor {
     if (executable.length === 0) throw new Error("没有配置 bridge 可执行文件路径，也没有发现运行中的实例。")
     if (!existsSync(executable)) throw new Error(`bridge 可执行文件不存在：${executable}`)
 
-    child = options.spawnProcess?.(executable) ?? spawn(executable, [], { stdio: "ignore", detached: false })
+    // windowsHide 让 bridge 不弹出控制台窗口：宿主进程（Electron / 服务端）通常没有控制台，
+    // 拉起 console 程序时 Windows 会新建一个窗口，每重启一次就多弹一个。
+    child =
+      options.spawnProcess?.(executable) ??
+      spawn(executable, [], { stdio: "ignore", detached: false, windowsHide: true })
     const spawnedPid = child.pid
     child.once("exit", () => {
       child = undefined

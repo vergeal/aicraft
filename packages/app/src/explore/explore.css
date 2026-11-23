@@ -1087,8 +1087,16 @@
   margin-top: 56px;
 }
 
-.explore-market-group-title {
+.explore-market-group-head {
+  display: flex;
   margin: 0 0 12px;
+  align-items: center;
+  gap: 14px;
+}
+
+.explore-market-group-title {
+  flex: none;
+  margin: 0;
   color: var(--v2-text-text-base);
   font-size: 16px;
   font-weight: 600;
@@ -1096,19 +1104,10 @@
   letter-spacing: -0.014em;
 }
 
-/* A skill shelf names itself with the same chip the filter row uses; a category keeps plain text. */
-.explore-market-group[data-pill] .explore-market-group-title {
-  display: inline-flex;
-  height: 28px;
-  margin-bottom: 14px;
-  padding: 0 13px;
-  align-items: center;
-  border-radius: 14px;
-  background: var(--v2-background-bg-layer-02);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: var(--line-height-compact);
-  letter-spacing: 0;
+/* One hairline carries the group across the content column, so the rows below read as its contents. */
+.explore-market-group-rule {
+  flex: 1;
+  border-top: 0.5px solid var(--v2-border-border-muted);
 }
 
 .explore-market-items {
@@ -1236,6 +1235,23 @@
   line-height: var(--line-height-compact);
   letter-spacing: -0.006em;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A 12px meta chip beside the name: the name truncates first, the chip never does. */
+.explore-market-badge {
+  display: inline-flex;
+  height: 18px;
+  flex: none;
+  padding: 0 6px;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 

@@ -104,7 +104,7 @@ export const dict = {
 
   "command.session.location.cycle": "依次切换会话位置",
 
-  "command.palette": "命令面板",
+  "command.palette": "搜索一切",
   "command.commands.search": "搜索命令",
 
   "command.session.new": "新建会话",
@@ -186,6 +186,19 @@ export const dict = {
   "palette.group.files": "文件",
   "palette.group.recentSessions": "最近会话",
   "palette.group.settings": "设置",
+
+  "spotlight.search.placeholder": "搜索会话、聊天内容、知识库等",
+  "spotlight.group.sessions": "会话",
+  "spotlight.group.messages": "聊天内容",
+  "spotlight.group.files": "文件",
+  "spotlight.group.knowledge": "知识库内容",
+  "spotlight.group.libraries": "知识库",
+  "spotlight.group.inbox": "收件箱",
+  "spotlight.group.scheduled": "定时任务",
+  "spotlight.group.projects": "项目",
+  "spotlight.archived": "已归档",
+  "spotlight.empty": "没有与「{{query}}」匹配的结果",
+  "spotlight.hint": "↑↓ 选择 · Enter 打开 · Esc 关闭",
 
   "dialog.provider.title": "集成",
   "dialog.provider.description": "连接服务，让 AI Craft 可以使用它们。",
@@ -895,6 +908,7 @@ export const dict = {
   "explore.filter.all": "全部",
   "explore.market.tabs.label": "资源类型",
   "explore.market.source.available": "可安装",
+  "explore.market.badge.builtin": "内置",
   "explore.market.scope.public": "公开",
   "explore.market.row.installed": "{{name}}，来源：{{source}}，已安装",
   "explore.market.row.available": "{{name}}，来源：{{source}}，未安装",
@@ -1009,8 +1023,7 @@ export const dict = {
   "explore.skills.description": "SKILL.md 指令，模型可按需加载",
   "explore.skills.tab.installed": "已安装",
   "explore.skills.tab.discover": "探索",
-  "explore.skills.group.installed": "此项目",
-  "explore.skills.group.builtin": "内置",
+  "explore.skills.group.installed": "已安装",
   "explore.skills.group.available": "可安装",
   "explore.skills.back": "返回技能列表",
   "explore.skills.detail.instructions": "SKILL.md",

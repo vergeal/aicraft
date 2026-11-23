@@ -116,9 +116,8 @@ const itemText = (item: ExploreItem) => {
   }
 }
 
-/** The skill shelves, in reading order: what ships with the app, what this project has, then what can be installed. */
+/** The skill shelves, in reading order: what this project has, then what can be installed. */
 const SKILL_SHELVES = [
-  { key: "builtin", title: "explore.skills.group.builtin" },
   { key: "installed", title: "explore.skills.group.installed" },
   { key: "available", title: "explore.skills.group.available" },
 ] as const
@@ -132,10 +131,13 @@ const pluginCategoryOf = (item: ExploreItem) => {
   return undefined
 }
 
+/** Built-in skills ship with the app; they end the installed shelf and carry a badge instead of a shelf of their own. */
+const isBuiltinItem = (item: ExploreItem) => item.kind === "skill" && isBuiltinSkill(item.skill)
+
 const skillShelfOf = (item: ExploreItem) => {
   if (item.kind === "catalog-skill") return "available"
 
-  if (item.kind === "skill") return isBuiltinSkill(item.skill) ? "builtin" : "installed"
+  if (item.kind === "skill") return "installed"
 
   return undefined
 }
@@ -366,6 +368,7 @@ function ExplorePage() {
           description,
           icon: item.skill.icon,
           glyph: "skill",
+          badge: isBuiltinSkill(item.skill) ? language.t("explore.market.badge.builtin") : undefined,
           failed: false,
           label: language.t("explore.market.row.installed", { name, source: sourceLabel }),
           open: () => openItem(item),
@@ -428,7 +431,13 @@ function ExplorePage() {
 
       if (group.length === 0) return []
 
-      return [{ key: `skill:${shelf.key}`, title: language.t(shelf.title), entries: group.map(marketEntry), pill: true }]
+      // The app's own skills sit at the end of the installed shelf, so the project's work reads first.
+      const ordered =
+        shelf.key === "installed"
+          ? [...group.filter((item) => !isBuiltinItem(item)), ...group.filter(isBuiltinItem)]
+          : group
+
+      return [{ key: `skill:${shelf.key}`, title: language.t(shelf.title), entries: ordered.map(marketEntry) }]
     })
   })
 

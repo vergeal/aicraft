@@ -22,6 +22,8 @@ export type MarketEntry = {
   icon?: string
   /** The fallback mark a tile without an icon shows: the shared skill glyph or the shared plugin glyph. */
   glyph: "skill" | "plugin"
+  /** A short chip after the name, such as the marker on a skill that ships with the app. */
+  badge?: string
   failed: boolean
   /** What a screen reader hears for the whole row. */
   label: string
@@ -33,7 +35,7 @@ export type MarketEntry = {
   installLabel?: string
 }
 
-export type MarketGroup = { key: string; title: string; entries: MarketEntry[]; pill?: boolean }
+export type MarketGroup = { key: string; title: string; entries: MarketEntry[] }
 
 export type MarketTab = { id: string; label: string; selected: boolean; onSelect: () => void }
 
@@ -183,8 +185,11 @@ export function ExploreMarket(props: {
               <div class="explore-market-groups" data-section={sectionKey}>
                 <For each={props.groups}>
                   {(group) => (
-                    <section class="explore-market-group" data-pill={group.pill ? "" : undefined}>
-                      <h2 class="explore-market-group-title">{group.title}</h2>
+                    <section class="explore-market-group">
+                      <div class="explore-market-group-head">
+                        <h2 class="explore-market-group-title">{group.title}</h2>
+                        <span class="explore-market-group-rule" aria-hidden="true" />
+                      </div>
                       <div class="explore-market-items">
                         <For each={group.entries}>{(entry) => <MarketRow entry={entry} />}</For>
                       </div>
@@ -239,6 +244,9 @@ function MarketRow(props: { entry: MarketEntry }) {
       <span class="explore-market-copy">
         <span class="explore-market-title">
           <span class="explore-market-name">{entry().name}</span>
+          <Show when={entry().badge}>
+            {(badge) => <span class="explore-market-badge">{badge()}</span>}
+          </Show>
         </span>
         <span class="explore-market-desc">{entry().description}</span>
       </span>

@@ -1203,11 +1203,11 @@ export const css = `
 .hyt-chat-composer {
   position: relative;
   flex: 0 0 auto;
-  padding: 4px 20px 10px;
+  padding: 4px 20px 8px;
 }
 .hyt-chat-composer-card {
   position: relative;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
@@ -1230,14 +1230,13 @@ export const css = `
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 2px;
 }
 .hyt-chat-composer-row textarea {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 34px;
+  min-height: 32px;
   max-height: 140px;
-  padding: 8px 6px;
+  padding: 6px 6px;
   border: 0;
   outline: 0;
   background: transparent;

@@ -20,7 +20,6 @@ import {
   bindPlugin,
   LinkHandler,
   MenuItem,
-  Slot,
   Style,
   usePanel,
   type Files,
@@ -494,18 +493,6 @@ const setup: Plugin.Setup<typeof File> = (ctx) => {
             <OpenInAppMenuItem session={input.session} />
           </Suspense>
         </FileProvider>
-      ),
-    })
-    ctx.add(Slot, {
-      at: "session.panel.end",
-      render: (input) => (
-        <Show when={headerButtons(input.screen)[0]() === 0}>
-          <FileProvider>
-            <Suspense>
-              <OpenInAppButton session={input.session} screen={input.screen} />
-            </Suspense>
-          </FileProvider>
-        </Show>
       ),
     })
   }

@@ -31,9 +31,12 @@ const DESTINATIONS: readonly Destination[] = [
 const ROW =
   "flex h-8 w-full items-center gap-1.5 rounded-[var(--radius-row)] px-2 text-start text-[13px] leading-5 text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-text-primary)]"
 
-/* 未读/待办角标用红色实心、白字加粗。取 red-800 而不是 state-fg-danger：后者在深色主题下是浅红，白字对比不足。 */
+/* 未读/待办角标：11/16 白字、鲜红实心。红取 red-600 而非 red-800——后者在浅色下几乎黑红，小字读不出来。
+   字重 500：11px 的 600 在 macOS 的 grayscale 抗锯齿下发虚，500 更锐利。
+   文字色必须走 --v2-text-text-contrast：Tailwind 的调色板被 `--color-*: initial` 清空，`text-white` 不生成，
+   浅色下会落回行内的 secondary 灰字，压在红底上几乎看不清。 */
 const BADGE =
-  "shrink-0 rounded-full bg-[var(--v2-red-800)] px-1.5 text-[11px] font-semibold leading-4 text-white tabular-nums"
+  "shrink-0 rounded-full bg-[var(--v2-red-600)] px-1 text-[11px] font-medium leading-4 text-v2-text-text-contrast tabular-nums [[data-color-scheme=dark]_&]:bg-[var(--v2-red-700)]"
 
 /** Opens a draft in the most recent project: the sidebar's primary button starts here. */
 export function useNewSessionDraft() {

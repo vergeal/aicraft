@@ -46,6 +46,9 @@ export function MessageStream(props: {
   onFocusSearch: () => void
   infoOpen: boolean
   onToggleInfo: () => void
+  /** 全部会话的未读数：为零时「一键阅读」不可用。 */
+  unread: number
+  onMarkAllRead: () => void
   avatars: Readonly<Record<string, string>>
   onMedia: (path: string) => Promise<{ dataUrl: string; error: string }>
   onMerge: (path: string) => Promise<MergeResult>
@@ -238,6 +241,16 @@ export function MessageStream(props: {
             onClick={() => props.onRefresh()}
           >
             <ctx.ui.Icon name="refresh" size="small" />
+          </button>
+          <button
+            type="button"
+            class="hyt-icon-button"
+            aria-label={text(ctx, "hyt.chat.action.readAll")}
+            title={text(ctx, "hyt.chat.action.readAll")}
+            disabled={props.unread === 0}
+            onClick={() => props.onMarkAllRead()}
+          >
+            <ctx.ui.Icon name="check" size="small" />
           </button>
         </div>
       </header>

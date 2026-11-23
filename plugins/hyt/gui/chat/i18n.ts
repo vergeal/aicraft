@@ -26,6 +26,7 @@ export const zh: Record<string, string> = {
   "hyt.chat.action.retry": "重新读取",
   "hyt.chat.action.settings": "打开设置",
   "hyt.chat.action.refresh": "刷新",
+  "hyt.chat.action.readAll": "全部标为已读",
 
   "hyt.chat.status.bridge.ready": "消息连接正常",
   "hyt.chat.status.bridge.missing": "消息连接未启动，只能查看历史",

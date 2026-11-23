@@ -257,6 +257,19 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       report()
     },
 
+    async markAllRead() {
+      Db.markAllRead(rootOf(), current.status.account)
+      // 记下标记时刻：之后客户端才写进来的未读仍会显示，只清掉此刻之前的。
+      const now = Date.now()
+      for (const item of current.sessions) markedRead.set(item.id, now)
+      current = {
+        ...current,
+        sessions: current.sessions.map((item) => (item.unread === 0 ? item : { ...item, unread: 0 })),
+        unread: 0,
+      }
+      report()
+    },
+
     async send(input) {
       const body = input.text.trim()
       if (body.length === 0) return { ok: false, reason: "empty" }

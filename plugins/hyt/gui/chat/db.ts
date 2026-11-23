@@ -576,3 +576,27 @@ export function markSessionRead(root: string, account: string, sessionId: string
     db?.close()
   }
 }
+
+/**
+ * 一键阅读：把全部会话的未读清掉。
+ *
+ * 只改对端消息的 `ReadStatus`。自己发的消息本来是 0（发送即已读语义的反面），留着不动，
+ * 免得被别的读法当成「未读」。
+ */
+export function markAllRead(root: string, account: string) {
+  const path = chatDbPath(root, account)
+  if (!existsSync(path)) return { cleared: false, error: "本地消息库不存在" }
+
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(path)
+    db.exec("pragma busy_timeout = 3000")
+    db.prepare("update lastmsg set UnReadCount = 0").run()
+    db.prepare("update chatmsg set ReadStatus = 1 where ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)").run(account, account)
+    return { cleared: true, error: "" }
+  } catch (cause) {
+    return { cleared: false, error: cause instanceof Error ? cause.message : String(cause) }
+  } finally {
+    db?.close()
+  }
+}

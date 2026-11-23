@@ -593,6 +593,16 @@ export const css = `
   background: var(--hyt-surface-active, var(--hyt-active));
   color: var(--hyt-text);
 }
+.hyt-icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+@media (hover: hover) {
+  .hyt-icon-button:disabled:hover {
+    background: transparent;
+    color: var(--hyt-text-3);
+  }
+}
 
 /* 头像：方形圆角，尺寸、圆角与底色由组件按虹云通的公式算好（inline）。 */
 .hyt-chat-avatar {

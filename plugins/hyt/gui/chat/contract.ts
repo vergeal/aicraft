@@ -217,6 +217,8 @@ export const ChatIpc = Ipc.define({
     search: { input: Schema.Struct({ query: Schema.String }) },
     /** 本地标记已读：只改本窗口的未读显示，不回写客户端库。 */
     markRead: { input: Schema.Struct({ sessionId: Schema.String }) },
+    /** 一键阅读：把所有会话的未读都标为已读，并写回客户端库。 */
+    markAllRead: {},
     /** 发送消息：直接走客户端消息通道，成功后写回本地库并刷新。 */
     send: {
       input: Schema.Struct({ sessionId: Schema.String, text: Schema.String, at: Schema.Array(Schema.String) }),

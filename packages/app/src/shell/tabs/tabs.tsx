@@ -7,7 +7,6 @@ import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { usePluginServers } from "@/runtime/plugin/servers"
 import { createEffect, createSignal, getOwner, onCleanup, startTransition, untrack, type Accessor } from "solid-js"
 import type { NewSessionStartView } from "@/new-session/machine"
-import type { LeaveHandle } from "@/new-session/leave-motion"
 import { useLocation, useNavigate } from "@solidjs/router"
 import { usePlatform } from "@/runtime/platform/platform"
 import { uuid } from "@opencode/util/uuid"
@@ -545,27 +544,13 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
       pendingSession(server: ServerConnection.Key, sessionID: string): PendingSession | undefined {
         return pendingPromotion(promotion(), tabKey({ type: "session", server, sessionId: sessionID }))
       },
-      // A draft whose tab already became its pending session, kept so its page survives the exit animation.
-      pendingDraft(draftID: string): DraftTab | undefined {
-        const state = promotion()
-
-        if (state.status !== "active") return
-        for (const entry of Object.values(state.entries)) {
-          if (entry.pending.draft.draftID === draftID) return entry.pending.draft
-        }
-      },
-      isPromotingDraft(draftID: string) {
-        return !!actions.pendingDraft(draftID)
-      },
       prepareSession(
         draftID: string,
         session: Omit<SessionTab, "type">,
         preview: Omit<PendingSession, "draft" | "composer">,
-        options?: { leaving?: LeaveHandle },
       ) {
-        // Keep the store's own object: the draft route compares it by identity, so the page it paints survives the
-        // tab turning into the pending session, while a different draft still rebuilds it.
-        const draft = actions.draft(draftID)
+        // Snapshot the draft before replacing its store entry; keep its composer alive for rollback.
+        const draft = { ...actions.draft(draftID) }
         const next = { type: "session" as const, ...session }
         const key = tabKey(next)
         const composer = createMemoryComposerState()
@@ -583,10 +568,7 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
             return
           }
 
-          // Home paints this draft in place, so it is as much the page leaving as the draft route is.
-          const active =
-            location.pathname === "/" ||
-            (location.pathname === "/new-session" && location.query.draftId === draftID)
+          const active = location.pathname === "/new-session" && location.query.draftId === draftID
           setStore(
             produce((tabs) => {
               tabs[index] = next
@@ -595,20 +577,7 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
 
           if (recentKey() === tabKey(draft)) setRecentKey(key)
 
-          if (!active) {
-            options?.leaving?.cancel()
-
-            return
-          }
-
-          // The draft page plays its exit first; the route moves only if the user is still on that page.
-          void (options?.leaving?.settled ?? Promise.resolve()).then(() => {
-            const stillHere =
-              location.pathname === "/" ||
-              (location.pathname === "/new-session" && location.query.draftId === draftID)
-
-            if (stillHere) void startTransition(() => navigateTab(next))
-          })
+          if (active) navigateTab(next)
         })
 
         return {

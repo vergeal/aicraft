@@ -1,4 +1,4 @@
-import { createEffect, createSignal, lazy, onCleanup, Show, Suspense, untrack, type ParentProps } from "solid-js"
+import { createEffect, createSignal, lazy, onCleanup, Show, Suspense, type ParentProps } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { ToastRegion } from "@/shell/notifications/toast"
@@ -12,7 +12,6 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
-import { isLeaving } from "@/new-session/leave-motion"
 import { useLayout } from "@/shell/state/layout"
 import { useNavigate } from "@solidjs/router"
 import { ResizeHandle } from "@opencode/ui/resize-handle"
@@ -68,10 +67,6 @@ function HomeNewChat() {
 
       return
     }
-
-    // The draft being promoted is no longer a tab, but its page stays until the route reaches the session.
-    const shown = untrack(draft)
-    if (shown && (tabs.isPromotingDraft(shown.draftID) || isLeaving())) return
 
     const conn = global.servers.list()[0]
     if (!conn) return

@@ -335,7 +335,7 @@ const icons = {
   },
   "answer-read": {
     viewBox: "0 0 14 14",
-    body: `<path d="M2.6 3.91c1.5-.7 3.2-.7 4.4.1v6.6c-1.2-.8-2.9-.8-4.4-.1ZM7 4.01c1.2-.8 2.9-.8 4.4-.1v6.6c-1.5-.7-3.2-.7-4.4.1Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    body: `<g transform="translate(1.72 1.72) scale(0.44)" fill="none" stroke="currentColor" stroke-width="2.73" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></g>`,
   },
   "answer-edit": {
     viewBox: "0 0 14 14",

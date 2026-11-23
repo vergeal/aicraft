@@ -44,10 +44,6 @@
      wash only greys the surface without ever reading as glass. */
   --color-titlebar: rgb(247 247 247 / 86%);
   --color-rail: rgb(247 247 247 / 86%);
-  /* The window bar paints solid tints on every platform, so the desktop behind the window never shows through the
-     chrome. Everything below the bar keeps its own material. */
-  --titlebar-solid: #f7f7f7;
-  --titlebar-side-solid: #f5f5f5;
   /* The navigation column sits one step below the canvas on the design system's neutral ramp (#f5f5f5 over white),
      so the two columns read as one surface with a level change rather than a wash of near-white. */
   --color-sidebar: rgb(245 245 245 / 92%);
@@ -131,8 +127,6 @@
 [data-color-scheme="dark"] [data-replica] {
   --color-titlebar: rgb(21 21 23 / 86%);
   --color-rail: rgb(21 21 23 / 86%);
-  --titlebar-solid: #151517;
-  --titlebar-side-solid: #232324;
   /* The navigation column takes the design system's surface (#232324) over the canvas (#151517): one step of
      lightness, the same step the reference draws between the two halves of the window. */
   --color-sidebar: rgb(35 35 36 / 95%);
@@ -545,20 +539,28 @@ html[data-replica-window="translucent"] [data-slot="replica-sidebar-slot"]::afte
 /* The navigation column's surface is a plain neutral step above the canvas, with the product mark's own two-light
    wash: the logo's green head rises from the top edge, its blue tail settles at the bottom, so the chrome carries the
    brand rather than a borrowed tint. The top wash is measured against the window height, not the element's own
-   height, so the bar's 44px segment and the column below it paint the identical gradient and the seam stays
-   invisible. Both schemes paint the same two ends: the near-white chrome of light keeps the wash a faint halo where
+   height, so the bar's `--titlebar-height` segment and the column below it paint the identical gradient and the seam
+   stays invisible. Both schemes paint the same two ends: the near-white chrome of light keeps the wash a faint halo where
    the near-black chrome of dark keeps it a faint glow, so neither scheme reads it as a tinted panel. */
 html[data-replica-window="translucent"] [data-slot="replica-sidebar"] {
   background-image:
     radial-gradient(120% calc(46vh - 20px) at 50% 0%, var(--replica-light-top), transparent 68%),
     radial-gradient(120% calc(34vh - 15px) at 50% 100%, var(--replica-light-bottom), transparent 70%);
   background-repeat: no-repeat;
+  /* 顶光的圆心属于窗口顶边，不属于这一列的顶边：上级那 48px 顶栏段画的是同一盏灯，圆心若低 48px 就会在接缝处
+     断成两段。border-box 丢掉列自身 8px 的起头内边距（默认 background-origin 是 padding-box，那段还会露出没
+     有洗色的实底色），负位移再把最亮的一点抬到顶栏上面去。 */
+  background-origin: border-box;
+  background-position: 0 calc(-1 * var(--titlebar-height)), 0 0;
 }
 
 /* The bar's left segment heads that column, so it carries the same top wash on the same window-relative geometry. */
 html[data-replica-window="translucent"] [data-slot="replica-titlebar-side"] {
   background-image: radial-gradient(120% calc(46vh - 20px) at 50% 0%, var(--replica-light-top), transparent 68%);
   background-repeat: no-repeat;
+  /* 与下面那一列共用同一个坐标系：默认的 padding-box 会把 macOS 88px 的标题内边距算进定位区，圆心偏离列中线，
+     120% 的宽度也缩窄，接缝两侧的亮度就接不上了。 */
+  background-origin: border-box;
 }
 
 /* The sidebar header is the window's top-left corner, so the traffic lights sit in its start and it is draggable.
@@ -1331,16 +1333,14 @@ html[data-replica-window="translucent"][data-os="windows"][data-color-scheme="da
   background-color: #0c0c0e !important;
 }
 
-/* The window bar is opaque on every platform: both of its segments paint a solid tint instead of the glass washes
-   above, so the desktop behind the window never shows through the chrome. Only the bar changes; the columns, the
-   panel and the canvas below keep their own material. */
+/* The window bar is opaque where it heads the workspace: that segment sits over the canvas, which is already
+   opaque, so the desktop never shows through the chrome. Its left segment is not the workspace's bar but the
+   navigation column's head — the column below it is glass, and painting the segment solid gave the seam two
+   materials and a visible shade step, so the segment keeps the column's own `--color-navigation` layer instead
+   (see the left-segment rule above). Only the bar's own element goes clear: each segment supplies its surface. */
 [data-replica] [data-slot="replica-titlebar"],
 html[data-replica-window="translucent"] [data-slot="replica-titlebar"] {
-  background-color: var(--titlebar-solid);
-}
-
-[data-replica] [data-slot="replica-titlebar"] [data-slot="replica-titlebar-side"] {
-  background-color: var(--titlebar-side-solid);
+  background-color: transparent;
 }
 
 /* Forced colors replaces the palette with system colours, which cannot express a translucent tint or an inset

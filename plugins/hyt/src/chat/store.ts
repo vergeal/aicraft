@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite"
-import { resolveGroupNames } from "./groups.js"
+import { noticeNames, resolveGroupNames } from "./groups.js"
 import type { ChatRow } from "./message.js"
 import { toMessage } from "./message.js"
 
@@ -52,7 +52,7 @@ export function listSessions(db: Database, input: { limit?: number; root?: strin
   const groups = resolveGroupNames({
     root: input.root ?? "",
     keepgroup: new Map(groupNames(db).map((item) => [item.groupId, item.groupName])),
-    members: groupMembers(db, input.account ?? ""),
+    members: groupMembers(db),
   })
   const unread = new Map(unreadCounts(db, input.account ?? "").map((item) => [item.sessionId, item.unread]))
   return rows.map((row) => ({
@@ -139,23 +139,48 @@ export function groupNames(db: Database) {
     .all()
 }
 
-/** 群里发过言的成员昵称，按发言条数排序；用来给没有名字的群拼一个默认名。 */
-function groupMembers(db: Database, account: string) {
+/**
+ * 群里发过言的成员昵称，按发言条数排序；用来给没有名字的群拼一个默认名。
+ *
+ * 客户端生成的默认群名包含自己，所以这里不按账号过滤。同一个人可能改过昵称，
+ * 按发送者去重只留发言最多的那个，避免一个人占掉两个默认名位置。
+ */
+function groupMembers(db: Database) {
   const rows = db
-    .query<{ sessionId: string; nick: string }, [string]>(
-      `select SessionId as sessionId, SenderNick as nick, count(*) as total
+    .query<{ sessionId: string; sender: string; nick: string; total: number }, []>(
+      `select SessionId as sessionId, Sender as sender, SenderNick as nick, count(*) as total
        from chatmsg
-       where SessionType = 1 and Sender <> ?1 and SenderNick is not null and SenderNick <> ''
-       group by SessionId, SenderNick
-       order by SessionId, total desc`,
+       where SessionType = 1 and Sender is not null and Sender <> ''
+         and SenderNick is not null and SenderNick <> ''
+       group by SessionId, Sender, SenderNick
+       order by SessionId, total desc, min(Id)`,
     )
-    .all(account)
+    .all()
   const map = new Map<string, string[]>()
+  const seen = new Set<string>()
   for (const row of rows) {
-    if (row.sessionId.length === 0 || row.nick.length === 0) continue
+    if (row.sessionId.length === 0 || row.sender.length === 0 || row.nick.length === 0) continue
+    const key = `${row.sessionId}\u0000${row.sender}`
+    if (seen.has(key)) continue
+    seen.add(key)
     const names = map.get(row.sessionId) ?? []
     names.push(row.nick)
     map.set(row.sessionId, names)
+  }
+  // 只有邀请通知和自己的消息的群，从通知补出邀请人与被邀请人；排在发言成员之后，只在前三个不够时补位。
+  for (const row of db
+    .query<{ sessionId: string; userData: string }, []>(
+      `select SessionId as sessionId, UserData as userData from chatmsg
+       where SessionType = 1 and MsgType = 246 and UserData is not null and UserData <> ''
+       order by Id`,
+    )
+    .all()) {
+    if (row.sessionId.length === 0 || row.userData.length === 0) continue
+    const names = map.get(row.sessionId) ?? []
+    for (const name of noticeNames(row.userData)) {
+      if (!names.includes(name)) names.push(name)
+    }
+    if (names.length > 0) map.set(row.sessionId, names)
   }
   return map
 }

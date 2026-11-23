@@ -6,14 +6,15 @@ import { join } from "node:path"
  *
  * 本地消息库只有已退出群的 keepgroup 名字，在线群名要问客户端，所以按新版客户端的顺序退让：
  * 手动映射（`Config/newhyt.ini` 的 `[Groups]`）→ 桥接缓存（`Config/newhyt-groups.json`）→
- * keepgroup → 用群成员昵称拼出的默认名（与客户端自己生成的「刘程、罗添胜」一致）。
+ * keepgroup → 用群成员昵称拼出的默认名（与客户端自己生成的「刘程、罗添胜」一致，含本人）。
+ * 成员昵称从消息表的发送人昵称收集；只有邀请通知的群再从通知里补邀请人与被邀请人。
  * 两个配置文件都是可手工编辑的纯文本，读不到就当没有。
  */
 export interface GroupNameInput {
   /** 虹云通数据根目录；只读它下面的 `Config`。空串表示没有可读的配置目录。 */
   readonly root: string
   readonly keepgroup: ReadonlyMap<string, string>
-  /** 会话 id → 群成员昵称，按发言条数排序。 */
+  /** 会话 id → 发言成员昵称（含自己），按发言条数排序，同一人只留一个昵称。 */
   readonly members: ReadonlyMap<string, readonly string[]>
 }
 
@@ -38,11 +39,32 @@ function memberName(members: readonly string[] | undefined) {
   return [...new Set(names)].slice(0, NAME_LIMIT).join("、")
 }
 
+/**
+ * 从群通知的 `UserData` 里取成员昵称。
+ *
+ * 自己建的群往往只有邀请通知和自己的消息，发言成员里只有自己；通知里的邀请人和被邀请人
+ * 能补出客户端默认名需要的其他成员。只认「邀请您加入群聊」和「邀请成员加入群组」两类通知，
+ * 离开、解散、改群名这些事件不代表当前成员，不能拿来拼名。
+ */
+export function noticeNames(userData: string) {
+  const value = parseJson(userData)
+  if (!isRecord(value)) return []
+  const type = typeof value.GroupNoticeType === "number" ? value.GroupNoticeType : 0
+  if (type !== 1 && type !== 10) return []
+  const invited = Array.isArray(value.accouts) ? value.accouts.filter(isRecord) : []
+  const names = [
+    ...(isRecord(value.sender) ? [str(value.sender.name)] : []),
+    ...invited.map((item) => str(item.name)),
+  ]
+  return names.filter((name) => name.length > 0 && name !== "你" && name !== "系统")
+}
+
 /** `newhyt.ini` 的 `[Groups]` 段：群 ID = 群名，用户自己起的名字优先。 */
 function readManualNames(root: string) {
   const map = new Map<string, string>()
   let inGroups = false
-  for (const raw of readConfigText(root, "newhyt.ini").split(/\r?\n/)) {
+  // Windows 记事本默认写 UTF-8 BOM；BOM 留在第一行会让 `[Groups]` 段头匹配失败。
+  for (const raw of readConfigText(root, "newhyt.ini").replace(/^\uFEFF/, "").split(/\r?\n/)) {
     const line = raw.trim()
     if (line.startsWith("[") && line.endsWith("]")) {
       inGroups = line.slice(1, -1).trim().toLowerCase() === "groups"
@@ -82,7 +104,11 @@ function readConfigText(root: string, file: string) {
 }
 
 function readConfigJson(root: string, file: string) {
-  const text = readConfigText(root, file)
+  return parseJson(readConfigText(root, file))
+}
+
+/** 未知输入解析失败就当没有；群通知的 UserData 可能是空的或旧格式。 */
+function parseJson(text: string) {
   if (text.length === 0) return undefined
   try {
     return JSON.parse(text) as unknown

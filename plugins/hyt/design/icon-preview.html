@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>虹云通插件图标预览</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --fg: #161616;
+        --muted: #5c5c5c;
+        --line: rgb(0 0 0 / 10%);
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #fff;
+        color: var(--fg);
+        font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 20px;
+      }
+      h2 {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 500;
+        margin: 24px 0 12px;
+      }
+      section {
+        border-radius: 14px;
+        padding: 20px;
+        border: 1px solid var(--line);
+      }
+      section.dark {
+        color-scheme: dark;
+        background: #161616;
+        color: #f2f2f2;
+        --fg: #f2f2f2;
+        --muted: #c2c2c2;
+        --line: rgb(255 255 255 / 14%);
+      }
+      .row {
+        display: flex;
+        align-items: flex-end;
+        gap: 28px;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .cell span {
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .cell img.w16 { width: 16px; height: 16px; }
+      .cell img.w24 { width: 24px; height: 24px; }
+      .cell img.w32 { width: 32px; height: 32px; }
+      .cell img.w64 { width: 64px; height: 64px; }
+      .card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 320px;
+        margin-top: 20px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--fg) 4%, transparent);
+        border: 1px solid var(--line);
+      }
+      .card .art {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--bg-layer, #fff);
+        border: 1px solid var(--line);
+      }
+      section.dark .card .art { background: #242424; }
+      .card .art img { width: 32px; height: 32px; }
+      .card b { font-size: 14px; font-weight: 600; display: block; }
+      .card p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <h1>虹云通助手 · 插件图标（红白）</h1>
+
+    <section>
+      <h2>浅色底 bg-layer-02</h2>
+      <div class="row">
+        <div class="cell"><img class="w16" src="icon.svg" alt="" /><span>16</span></div>
+        <div class="cell"><img class="w24" src="icon.svg" alt="" /><span>24</span></div>
+        <div class="cell"><img class="w32" src="icon.svg" alt="" /><span>32</span></div>
+        <div class="cell"><img class="w64" src="icon.svg" alt="" /><span>64</span></div>
+      </div>
+      <div class="card">
+        <div class="art"><img src="icon.svg" alt="" /></div>
+        <div>
+          <b>虹云通助手</b>
+          <p>读本地消息、收发消息、积累运维知识库</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dark">
+      <h2>深色底 bg-layer-02</h2>
+      <div class="row">
+        <div class="cell"><img class="w16" src="icon.svg" alt="" /><span>16</span></div>
+        <div class="cell"><img class="w24" src="icon.svg" alt="" /><span>24</span></div>
+        <div class="cell"><img class="w32" src="icon.svg" alt="" /><span>32</span></div>
+        <div class="cell"><img class="w64" src="icon.svg" alt="" /><span>64</span></div>
+      </div>
+      <div class="card">
+        <div class="art"><img src="icon.svg" alt="" /></div>
+        <div>
+          <b>虹云通助手</b>
+          <p>读本地消息、收发消息、积累运维知识库</p>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

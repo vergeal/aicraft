@@ -112,6 +112,9 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
     const scale = zoom()
 
+    const header = titlebarRow.parentElement
+    header?.removeAttribute("data-titlebar-axis")
+
     if (macVerticalTabs()) {
       void platform.setTrafficLightsPosition?.(macVerticalTrafficLights(scale))
 
@@ -130,11 +133,18 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
       const style = getComputedStyle(titlebarRow)
 
+      // The traffic lights center on the row's content box; the axis line rides that same center so controls that center
+      // in the row share one line with the native buttons.
+      const axis = (bounds.height + parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / 2
+
+      if (header instanceof HTMLElement) {
+        header.style.setProperty("--titlebar-axis", `${bounds.top - header.getBoundingClientRect().top + axis}px`)
+        header.setAttribute("data-titlebar-axis", "")
+      }
+
       void platform.setTrafficLightsPosition?.({
         x: 14,
-        y:
-          (bounds.top + (bounds.height + parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / 2) * scale -
-          7,
+        y: (bounds.top + axis) * scale - 7,
       })
     })
 

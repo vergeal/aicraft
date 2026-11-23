@@ -3,6 +3,9 @@ import "./selection-indicator.css"
 
 type Bounds = { x: number; y: number; width: number; height: number }
 
+/** Long enough to cover a pointer crossing a separator, short enough that a real dismissal still reads as immediate. */
+const HIDE_DELAY = 160
+
 /**
  * The sliding highlight shared by every list, menu and picker that has a keyboard selection. It is one absolutely
  * positioned layer inside the list, moved with `transform` between the rows that own the selection, so the highlight
@@ -24,14 +27,27 @@ export function SelectionIndicator(props: {
   const [bounds, setBounds] = createSignal<Bounds>()
   const [target, setTarget] = createSignal<HTMLElement>()
   const [animated, setAnimated] = createSignal(false)
+  let hide: ReturnType<typeof setTimeout> | undefined
   let placed = false
+
+  // Crossing a separator or a section gap drops the highlight for a moment. Hiding at once would make the block blink
+  // and animate back in from the corner, so it keeps its last position and only disappears if nothing takes over.
+  const scheduleHide = () => {
+    clearTimeout(hide)
+    hide = setTimeout(() => {
+      setBounds(undefined)
+      setAnimated(false)
+      placed = false
+    }, HIDE_DELAY)
+  }
 
   const measure = () => {
     const host = props.container()
     const row = target()
 
-    if (!host || !row || !host.contains(row)) return setBounds(undefined)
+    if (!host || !row || !host.contains(row)) return scheduleHide()
 
+    clearTimeout(hide)
     const rowBox = row.getBoundingClientRect()
     const hostBox = host.getBoundingClientRect()
 
@@ -64,6 +80,7 @@ export function SelectionIndicator(props: {
     onCleanup(() => {
       mutations.disconnect()
       resizes.disconnect()
+      clearTimeout(hide)
 
       for (const scroller of scrollers) scroller.removeEventListener("scroll", measure, true)
     })

@@ -18,7 +18,7 @@ import {
   type SessionPanelMenuItem,
 } from "@opencode/plugin/gui"
 import { useCommand } from "@/shell/commands/command"
-import { guardClosingFocus, setPanelResizing } from "@/shell/panel-motion"
+import { guardClosingFocus, panelsMoving, setPanelResizing } from "@/shell/panel-motion"
 import { useLanguage } from "@/runtime/i18n/language"
 import { same } from "@/runtime/persistence/equality"
 import { useLayout } from "@/shell/state/layout"
@@ -131,6 +131,10 @@ export function SideRegion(props: {
         data-focused={props.region.focus.focused() || undefined}
         class="relative h-full shrink-0 min-w-0 flex overflow-hidden bg-v2-background-bg-base outline-none"
         classList={{
+          // While the panel travels, its content is laid out at the width it will land at, wider than the panel's
+          // current box. Anchoring that overflow to the left keeps the header's right end, where the actions sit,
+          // against the panel's own right edge instead of being clipped by it.
+          "justify-end": panelsMoving(),
           "flex-1": tabsVisible(),
           "rounded-[var(--shell-panel-radius,10px)] shadow-[var(--v2-elevation-raised)]": !props.full,
         }}

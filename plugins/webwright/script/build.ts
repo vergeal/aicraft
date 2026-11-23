@@ -30,13 +30,9 @@ const require = createRequire(import.meta.url)
 const playwright = dirname(require.resolve("playwright-core/package.json"))
 await cp(playwright, join(dist, "assets", "playwright-core"), { recursive: true })
 
-for (const item of ["skills", "README.md"]) {
+for (const item of ["skills", "METAINF", "README.md"]) {
   await cp(join(root, item), join(dist, item), { recursive: true })
 }
-
-// The installed bundle reads `ocplugin.json` as its manifest; the source tree keeps `METAINF`. Ship the same document
-// under the installed name so the built directory is loadable as-is.
-await cp(join(root, "METAINF"), join(dist, "ocplugin.json"))
 
 // The unpacked bundle is a plugin directory, so its manifest names the plugin id and points at the built entry.
 await writeFile(

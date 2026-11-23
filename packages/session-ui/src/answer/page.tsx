@@ -1358,9 +1358,15 @@ function GroupSeat(props: {
 
     if (typeof ResizeObserver === "undefined") return
     observer = new ResizeObserver(() => {
-      // Settle at the bottom before reporting, so the edge fades describe the position the reader ends up at.
-      stick()
-      reportEdges()
+      // Writing the scroll position and the edge state straight from the callback re-lays-out the box that was
+      // just measured and re-arms the observer (`ResizeObserver loop completed`). Defer a frame so the callback
+      // only reads, and skip it if the body was rebound meanwhile.
+      requestAnimationFrame(() => {
+        if (body !== element) return
+        // Settle at the bottom before reporting, so the edge fades describe the position the reader ends up at.
+        stick()
+        reportEdges()
+      })
     })
     observer.observe(element)
     // The body is the scrollport; growth happens in the uncapped content box inside it.
@@ -2174,8 +2180,12 @@ function ReasoningRow(props: {
 
     if (typeof ResizeObserver === "undefined") return
     reasoningObserver = new ResizeObserver(() => {
-      stickReasoning()
-      reportReasoningEdges()
+      // Same reasoning as the step body: defer so the callback does not re-lay-out what it just measured.
+      requestAnimationFrame(() => {
+        if (reasoningBody !== element) return
+        stickReasoning()
+        reportReasoningEdges()
+      })
     })
     reasoningObserver.observe(element)
 

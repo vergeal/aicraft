@@ -2,7 +2,7 @@ import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
-import { SessionProgressIndicatorV2 } from "@opencode/session-ui/v2/session-progress-indicator-v2"
+import { Spinner } from "@opencode/ui/spinner"
 import type { ShellOutputInput, ShellOutputOutput } from "@opencode/client/promise"
 import { stripAnsi } from "@opencode/session-ui/tools/ansi"
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js"
@@ -239,7 +239,7 @@ export function SessionActivityChips(props: {
             class="pointer-events-auto flex h-7 min-w-0 max-w-full items-center gap-2 rounded-[12px] border-[0.5px] border-v2-border-border-muted ps-2.5 pe-2.5 text-[15px] font-[400] leading-text-compact tracking-[-0.04px] whitespace-nowrap tabular-nums text-v2-text-text-base shadow-[var(--v2-elevation-raised)] outline-none duration-150 ease-out motion-reduce:animate-none"
             classList={{ "animate-in fade-in": enter() }}
           >
-            <SessionProgressIndicatorV2 class="shrink-0" />
+            <Spinner width={16} height={16} class="shrink-0 text-v2-icon-icon-muted" />
             <span data-slot="session-activity-summary" class="flex min-w-0 items-center gap-2 overflow-hidden">
               {language.activitySummaryRich(counts(), (text) => (
                 <span class="truncate">
@@ -262,7 +262,7 @@ export function SessionActivityChips(props: {
                     <For each={props.subagents}>
                       {(item) => (
                         <Menu.Item {...row(item)}>
-                          <SessionProgressIndicatorV2 class="shrink-0 text-v2-icon-icon-muted" />
+                          <Spinner width={16} height={16} class="shrink-0 text-v2-icon-icon-muted" />
                           <span class="shrink-0 font-[530]">
                             <bdi>
                               {item.agent

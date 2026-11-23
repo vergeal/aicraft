@@ -2,7 +2,7 @@ import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { Slash } from "@opencode/ui/slash"
-import { SessionProgressIndicatorV2 } from "@opencode/session-ui/v2/session-progress-indicator-v2"
+import { Spinner } from "@opencode/ui/spinner"
 import { createEffect, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { formatKeybind } from "@/shell/commands/command"
@@ -48,7 +48,7 @@ export function SubagentBar(props: {
         <span class="flex size-4 shrink-0 items-center justify-center text-v2-icon-icon-faint">
           <Switch>
             <Match when={props.status === "running"}>
-              <SessionProgressIndicatorV2 />
+              <Spinner width={16} height={16} />
             </Match>
             <Match when={props.status === "succeeded"}>
               <Icon name="check" size="small" />

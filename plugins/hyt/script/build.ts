@@ -126,8 +126,10 @@ async function shipNative(target: string) {
     console.warn("native bridge missing: build it first (native/scripts/build-macos.sh or build-windows.bat)")
     return
   }
+  const shipped: string[] = []
   for (const entry of await readdir(prebuilt, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
+    shipped.push(entry.name)
     const directory = join(target, entry.name)
     const executable = join(directory, nameFor(entry.name))
     await cp(join(prebuilt, entry.name), directory, { recursive: true })
@@ -141,6 +143,10 @@ async function shipNative(target: string) {
     if (entry.name.startsWith("darwin")) await shipMacFramework(executable)
     if (entry.name.startsWith("win32")) await shipWindowsRuntime(directory)
   }
+  if (!shipped.some((platform) => platform.startsWith("win32")))
+    console.warn(
+      "Windows bridge missing: run native/scripts/build-windows.bat on a Windows machine; without it the bundle has no win32 executable",
+    )
 }
 
 function nameFor(platform: string) {

@@ -64,7 +64,7 @@ export function styleSkillDescription(account: string) {
 }
 
 /**
- * 生成技能正文。frontmatter 只写 name/description：这份技能由插件按本机消息自动生成，
+ * 生成技能正文。frontmatter 只写 name/description/category：这份技能由插件按本机消息自动生成，
  * 不注册到全局技能列表，所以不带任何触发词，靠分析会话显式加载。
  */
 export function renderStyleSkill(input: {
@@ -79,6 +79,7 @@ export function renderStyleSkill(input: {
     "---",
     `name: ${name}的说话方式`,
     `description: ${styleSkillDescription(input.account)}`,
+    "category: productivity",
     "---",
     "",
     `# ${name}的说话方式`,

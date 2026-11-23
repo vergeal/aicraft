@@ -29,7 +29,7 @@ export const css = `
 .hyt-chat-ai {
   display: flex;
   flex-direction: column;
-  flex: 0 0 280px;
+  flex: 0 0 300px;
   min-width: 0;
   min-height: 0;
   background: var(--hyt-bg-side);
@@ -325,7 +325,7 @@ export const css = `
 .hyt-chat-sessions {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 .hyt-chat-session {
   position: relative;
@@ -333,7 +333,7 @@ export const css = `
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 0;
   border-radius: var(--hyt-radius-8);
   background: transparent;
@@ -348,19 +348,9 @@ export const css = `
     background: var(--hyt-surface-hover);
   }
 }
+/* 选中态只留一块浅灰：飞书没有左侧色条，靠底色就够了。 */
 .hyt-chat-session[aria-current="true"] {
-  background: var(--hyt-surface-active);
-}
-.hyt-chat-session[aria-current="true"]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 3px;
-  height: 18px;
-  transform: translateY(-50%);
-  border-radius: 0 var(--hyt-radius-4) var(--hyt-radius-4) 0;
-  background: var(--hyt-accent);
+  background: color-mix(in srgb, var(--hyt-text) 6%, transparent);
 }
 .hyt-chat-session:focus-visible {
   outline: var(--focus-width, 2px) solid var(--hyt-accent);
@@ -599,7 +589,7 @@ export const css = `
   color: var(--hyt-text);
 }
 
-/* 头像：方形圆角，尺寸、圆角与底色由组件按虹云通的公式算好（inline）。 */
+/* 头像：单人圆形、群聊圆角方形，尺寸、圆角与底色由组件按飞书与虹云通的规则算好（inline）。 */
 .hyt-chat-avatar {
   position: relative;
   display: grid;
@@ -621,10 +611,29 @@ export const css = `
   height: 100%;
   object-fit: cover;
 }
-/* 群头像：自绘的双人剪影，约占 62%，底色由组件按群名取色。 */
-.hyt-chat-avatar-group {
-  width: 62%;
-  height: 62%;
+/* 群头像：灰底容器里按 1/2/3/4/5+ 的布局摆成员小方块。容器底色由组件设为虹云通的 GROUP_HEAD_BG。 */
+.hyt-chat-avatar[data-stack="true"] {
+  align-items: stretch;
+  justify-items: stretch;
+}
+.hyt-chat-avatar-tile {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--hyt-on-accent);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+.hyt-chat-avatar-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ============================================================================
@@ -637,6 +646,8 @@ export const css = `
   flex: 0 0 auto;
   height: 52px;
   padding: 0 20px;
+  /* 飞书的会话头下面有一条极细的分隔，不占布局高度。 */
+  box-shadow: inset 0 -0.5px 0 var(--hyt-line);
 }
 .hyt-chat-head-id {
   display: flex;
@@ -730,22 +741,15 @@ export const css = `
   flex-direction: column;
 }
 
+/* 日期像飞书一样只是一行居中的灰字，不加贯穿的分隔线。 */
 .hyt-chat-day {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 16px 0;
+  justify-content: center;
+  margin: 18px 0 4px;
   color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-medium);
+  font-size: var(--hyt-text-125);
+  font-weight: var(--font-weight-regular);
   white-space: nowrap;
-}
-.hyt-chat-day::before,
-.hyt-chat-day::after {
-  content: "";
-  flex: 1 1 auto;
-  height: 0.5px;
-  background: var(--hyt-line);
 }
 
 .hyt-chat-item {
@@ -835,8 +839,8 @@ export const css = `
 /* 气泡：对方是浮层色，自己是主色；宽度随内容，最长 100%。 */
 .hyt-chat-bubble {
   max-width: 100%;
-  padding: 7px 11px;
-  border-radius: var(--hyt-radius-10);
+  padding: 9px 12px;
+  border-radius: var(--hyt-radius-8);
   background: var(--hyt-bubble);
   color: var(--hyt-text-body);
   font-size: var(--hyt-text-135);
@@ -1204,8 +1208,8 @@ export const css = `
 }
 .hyt-chat-composer-card {
   position: relative;
-  padding: 6px 9px;
-  border-radius: var(--hyt-radius-12);
+  padding: 8px 10px;
+  border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
   transition:

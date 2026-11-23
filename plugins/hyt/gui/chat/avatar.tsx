@@ -1,40 +1,61 @@
-import { Show } from "solid-js"
+import { For, Show } from "solid-js"
 import type { HeadMember } from "./contract.js"
-import { headColor, headText } from "./head.js"
+import { GROUP_HEAD_BG, headColor, headLayout, headText } from "./head.js"
 
-/** 头像尺寸档：会话行 36、搜索 32、会话头 28、消息 36、@ 候选 22、成员 24。 */
+/** 头像尺寸档：会话行 40（对齐飞书会话列表）、搜索 36、会话头 32、消息 40、@ 候选 24、成员 28。 */
 export type AvatarSize = "session" | "row" | "head" | "bubble" | "mention" | "member"
 
 const SIZE: Record<AvatarSize, number> = {
-  session: 36,
-  row: 32,
-  head: 28,
-  bubble: 36,
-  mention: 22,
-  member: 24,
+  session: 40,
+  row: 36,
+  head: 32,
+  bubble: 40,
+  mention: 24,
+  member: 28,
 }
 
-/** 形状与虹云通 `avatarRadius` 一致：正方形 + 12% 圆角。 */
-function radius(size: number) {
-  return Math.max(3, Math.round(size * 0.12))
+/** 单人头像和飞书一样是圆形；群头像是成员拼图，保持在圆角方形里。 */
+function radius(group: boolean, size: number) {
+  if (!group) return "50%"
+  return `${Math.max(3, Math.round(size * 0.12))}px`
+}
+
+/** 拼图小格子的圆角，与虹云通 `Tile` 一致：16%，最小 2px。 */
+function tileRadius(size: number) {
+  return Math.max(2, Math.round(size * 0.16))
 }
 
 /**
- * 一个人或一个群的头像。
+ * 格子里放几个字：虹云通固定两个字，但 5 人以上的九宫格每格只有 13px，
+ * 两个汉字要 16px，必然被裁成碎字。放不下时只显示一个字，字号随格子宽度收缩。
+ */
+function tileChars(box: number) {
+  return box >= 16 ? 2 : 1
+}
+
+/** 格子里的字号：按格子宽度和字数算，保证文字落在格子内。 */
+function tileFaceSize(box: number, chars: number) {
+  return Math.max(7, Math.min(11, Math.floor((box * 0.92) / chars)))
+}
+
+/**
+ * 一个人或一个群的头像，规则与虹云通桌面端一致（见 `head.ts`）。
  *
- * 单人是方形圆角图片，没有图片时显示名称末两个字的彩色块；群聊不拼成员九宫格——36px 的格子里
- * 九张脸只会糊成一片，改成自绘的双人剪影，底色仍按群名取色，列表里一眼能和单聊分开。
+ * 单人是圆形图片，没有图片时显示名称末两个字的彩色块；群聊是灰底容器 + 成员小方块拼图，
+ * 成员数 1/2/3/4/5+ 各有对应布局。图片没到时先留空底，避免文字闪一下再换成照片。
  */
 export function Avatar(props: {
   name: string
   members: readonly HeadMember[]
   avatars: Readonly<Record<string, string>>
   size: AvatarSize
-  /** 群聊：画群图标，而不是取成员头像。 */
+  /** 群聊：即使只认出 1 个成员也走拼图（灰底 + 居中小方块），与虹云通一致。 */
   group?: boolean
 }) {
   const size = () => SIZE[props.size]
-  const single = () => (props.members.length === 1 ? props.members[0] : undefined)
+  const list = () => props.members
+  const stack = () => props.group === true && list().length > 0
+  const single = () => (list().length === 1 ? list()[0] : undefined)
   const name = () => single()?.name.trim() || props.name.trim()
   const source = () => {
     const headPath = single()?.headPath ?? ""
@@ -49,34 +70,54 @@ export function Avatar(props: {
   return (
     <span
       class="hyt-chat-avatar"
-      data-group={props.group ? "true" : undefined}
+      data-stack={stack() ? "true" : undefined}
       aria-hidden="true"
       style={{
         width: `${size()}px`,
         height: `${size()}px`,
-        "border-radius": `${radius(size())}px`,
-        "background-color": headColor(name()),
+        "border-radius": radius(props.group === true, size()),
+        "background-color": stack() ? GROUP_HEAD_BG : headColor(name()),
         "font-size": `${faceSize(size())}px`,
       }}
     >
       <Show
-        when={props.group === true}
+        when={stack()}
         fallback={
           <Show when={source().length > 0} fallback={pending() ? "" : headText(name())}>
             <img src={source()} alt="" loading="lazy" />
           </Show>
         }
       >
-        <svg class="hyt-chat-avatar-group" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="9.3" cy="8.2" r="3.1" fill="currentColor" />
-          <path d="M3.5 19.8c0-2.7 2.6-4.6 5.8-4.6s5.8 1.9 5.8 4.6v.2H3.5v-.2Z" fill="currentColor" />
-          <circle cx="16.8" cy="9.4" r="2.35" fill="currentColor" opacity=".55" />
-          <path
-            d="M15.3 13.9c3 .1 5.2 1.9 5.2 4.4v1.7h-4.1c.1-2.3-.8-4.4-2.4-5.9.4-.1.9-.2 1.3-.2Z"
-            fill="currentColor"
-            opacity=".55"
-          />
-        </svg>
+        <For each={list().slice(0, 9)}>
+          {(member, index) => {
+            const rect = () => headLayout(list().length)[index()] ?? { x: 0, y: 0, w: 1, h: 1 }
+            const box = () => size() * rect().w
+            const chars = () => tileChars(box())
+            const dataUrl = () =>
+              member.headPath.length === 0 ? "" : (props.avatars[member.headPath] ?? "")
+            return (
+              <span
+                class="hyt-chat-avatar-tile"
+                style={{
+                  left: `${rect().x * 100}%`,
+                  top: `${rect().y * 100}%`,
+                  width: `${rect().w * 100}%`,
+                  height: `${rect().h * 100}%`,
+                  "border-radius": `${tileRadius(box())}px`,
+                  "background-color": headColor(member.name),
+                  "font-size": `${tileFaceSize(box(), chars())}px`,
+                }}
+              >
+                <Show
+                  when={dataUrl().length > 0}
+                  fallback={member.headPath.length > 0 ? "" : headText(member.name, chars())}
+                >
+                  <img src={dataUrl()} alt="" loading="lazy" />
+                </Show>
+              </span>
+            )
+          }}
+        </For>
       </Show>
     </span>
   )

@@ -110,7 +110,7 @@ export function Avatar(props: {
               >
                 <Show
                   when={dataUrl().length > 0}
-                  fallback={member.headPath.length > 0 ? "" : headText(member.name, chars())}
+                  fallback={headText(member.name, chars())}
                 >
                   <img src={dataUrl()} alt="" loading="lazy" />
                 </Show>

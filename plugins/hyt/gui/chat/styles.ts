@@ -992,6 +992,7 @@ export const css = `
   display: block;
   max-width: 100%;
   max-height: 320px;
+  border-radius: inherit;
   object-fit: cover;
 }
 .hyt-chat-media-missing {

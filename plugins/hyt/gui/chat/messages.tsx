@@ -117,11 +117,21 @@ export function MessageStream(props: {
   // 从搜索结果进来时跳到命中的那条。目标不在已加载范围就继续往前翻，最多 12 次，避免无限加载。
   let focused = -1
   let focusTries = 0
+  // 目标行会被异步落地的图片/头像推高：只在定位窗口内跟着重新对中，用户自己滚动后就不再抢。
+  let focusTarget: HTMLElement | null = null
+  let focusDeadline = 0
+  const centerOn = () => {
+    if (scroller === undefined || focusTarget === null) return
+    const box = scroller.getBoundingClientRect()
+    const rect = focusTarget.getBoundingClientRect()
+    scroller.scrollTop += rect.top - box.top - (box.height - rect.height) / 2
+  }
   createEffect(() => {
     const id = props.focusId
     if (id === undefined) {
       focused = -1
       focusTries = 0
+      focusTarget = null
       return
     }
     if (id === focused) return
@@ -132,18 +142,17 @@ export function MessageStream(props: {
       focused = id
       focusTries = 0
       // 瞬时定位：平滑滚动会被随后的贴底和行重建打断，最后停在半路。
-      const center = () => {
-        if (scroller === undefined) return
-        const box = scroller.getBoundingClientRect()
-        const rect = target.getBoundingClientRect()
-        scroller.scrollTop += rect.top - box.top - (box.height - rect.height) / 2
-      }
-      center()
+      focusTarget = target
+      focusDeadline = Date.now() + 1500
+      centerOn()
       // 目标常在往前翻页之后才出现，那一页落进 DOM 还会把内容推高一次，所以隔两帧再对一次中。
-      requestAnimationFrame(() => requestAnimationFrame(center))
+      requestAnimationFrame(() => requestAnimationFrame(centerOn))
       // 定位完就离开底部：否则下一次轮询会把用户拉回最新一条。
       setAway(true)
-      window.setTimeout(() => props.onFocusDone?.(), 1800)
+      window.setTimeout(() => {
+        focusTarget = null
+        props.onFocusDone?.()
+      }, 1800)
       return
     }
     if (props.hasMore && !props.loadingMore && focusTries < 12) {
@@ -160,6 +169,11 @@ export function MessageStream(props: {
     flowObserver?.disconnect()
     flowObserver = new ResizeObserver(() => {
       if (disposed || scroller === undefined) return
+      // 命中行还在定位窗口内：图片、头像落地把内容撑高时跟着重新对中。
+      if (focusTarget !== null && Date.now() < focusDeadline) {
+        centerOn()
+        return
+      }
       if (!away()) scroller.scrollTop = scroller.scrollHeight
     })
     flowObserver.observe(element)

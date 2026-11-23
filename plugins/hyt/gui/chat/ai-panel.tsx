@@ -55,12 +55,15 @@ export function AiPanel(props: {
           </For>
         </Show>
 
-        <Show when={props.knowledge.length > 0}>
-          <div class="hyt-ctx-card">
-            <div class="hyt-ctx-card-title">
-              <ctx.ui.Icon name="brain" size="small" />
-              {text(ctx, "hyt.chat.ai.knowledge")}
-            </div>
+        <div class="hyt-ctx-card">
+          <div class="hyt-ctx-card-title">
+            <ctx.ui.Icon name="brain" size="small" />
+            {text(ctx, "hyt.chat.ai.knowledge")}
+          </div>
+          <Show
+            when={props.knowledge.length > 0}
+            fallback={<p class="hyt-ctx-empty">{text(ctx, "hyt.chat.ai.knowledge.empty")}</p>}
+          >
             <For each={props.knowledge}>
               {(hit) => (
                 <div class="hyt-ctx-kb-item">
@@ -69,8 +72,8 @@ export function AiPanel(props: {
                 </div>
               )}
             </For>
-          </div>
-        </Show>
+          </Show>
+        </div>
 
         <div class="hyt-ctx-card">
           <div class="hyt-ctx-card-title">

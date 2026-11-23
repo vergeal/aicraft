@@ -17,7 +17,7 @@
 | 文档 | 内容 | 何时读 |
 |---|---|---|
 | [skill-plugin-standard.md](skill-plugin-standard.md) | 技能与插件的发现、加载契约与编写约定 | 编写或修改技能、插件加载器时 |
-| [ocplugin-dev/index.html](ocplugin-dev/index.html) | `.craf` 第三方插件开发手册：工程目录、打包分发、服务端与 GUI API、调试（已实现，描述当前实现；事实来源 `packages/plugin`、`packages/core`、`plugins/*/script/pack.ts`） | 开发或排查 `.craf` 插件时 |
+| [exc-dev/index.html](exc-dev/index.html) | `.exc` 第三方插件开发手册：工程目录、打包分发、服务端与 GUI API、调试（已实现，描述当前实现；事实来源 `packages/plugin`、`packages/core`、`plugins/*/script/pack.ts`） | 开发或排查 `.exc` 插件时 |
 | [desktop-project-manager.md](desktop-project-manager.md) | 桌面端派活手册：范围、拆分、验收口径 | 组织多人/多会话开发时 |
 
 ## 维护约定

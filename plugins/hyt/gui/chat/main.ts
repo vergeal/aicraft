@@ -61,8 +61,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     schema: Schema.Struct({ chfileRoot: Schema.String, bridgePath: Schema.String }),
     initial: { chfileRoot: "", bridgePath: "" },
   })
-  // 插件自带的桥接安装在 ocplugins 下；打包布局与版本无关，路径固定。
-  const pluginRoot = join(homedir(), ".opencode", "ocplugins", "changhong.hyt")
+  // 插件自带的桥接安装在 exc 下；打包布局与版本无关，路径固定。
+  const pluginRoot = join(homedir(), ".opencode", "exc", "changhong.hyt")
   const sender = Bridge.createSender({
     root: () => Data.resolveChfileRoot(settings.value.chfileRoot),
     executable: () => bridgeExecutable(pluginRoot, settings.value.bridgePath),

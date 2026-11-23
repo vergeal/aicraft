@@ -33,7 +33,7 @@ function manifest(entry: Record<string, string>) {
 describe("Host.resolve", () => {
   it("resolves the parts its manifest declares", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({
+      METAINF: manifest({
         server: "server/main",
         tui: "tui/main",
         rpc: "rpc/main",
@@ -56,7 +56,7 @@ describe("Host.resolve", () => {
 
   it("tries a part's extensions in order", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main" }),
+      METAINF: manifest({ server: "server/main" }),
       "server/main.js": source,
       "server/main.ts": source,
       "server/main.mjs": source,
@@ -66,7 +66,7 @@ describe("Host.resolve", () => {
 
   it("keeps the output beside the sources when the manifest points there", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "dist/server/main" }),
+      METAINF: manifest({ server: "dist/server/main" }),
       "dist/server/main.js": source,
     })
     assert.equal(Host.resolve(plugin.target).server, plugin.url("dist/server/main.js"))
@@ -74,7 +74,7 @@ describe("Host.resolve", () => {
 
   it("loads a directory that has only a main entry", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main" }),
+      METAINF: manifest({ server: "server/main" }),
       "server/main.ts": 'export const marker = "main"',
     })
 
@@ -85,7 +85,7 @@ describe("Host.resolve", () => {
 
   it("still loads a directory that has only the legacy entry, and reports it as deprecated", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({}),
+      METAINF: manifest({}),
       "server/index.ts": 'export const marker = "legacy"',
     })
 
@@ -98,7 +98,7 @@ describe("Host.resolve", () => {
 
   it("prefers main over a legacy file, with no deprecation", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main" }),
+      METAINF: manifest({ server: "server/main" }),
       "server/main.ts": 'export const marker = "main"',
       "server/index.ts": 'export const marker = "legacy"',
     })
@@ -123,7 +123,7 @@ describe("Host.resolve", () => {
 
   it("returns undefined for a declared entry whose file is missing and has no legacy replacement", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main" }),
+      METAINF: manifest({ server: "server/main" }),
       "tui/index.ts": source,
     })
 
@@ -135,7 +135,7 @@ describe("Host.resolve", () => {
 
   it("resolves only a CommonJS or JavaScript file as the GUI part", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main", gui: "gui/main" }),
+      METAINF: manifest({ server: "server/main", gui: "gui/main" }),
       "server/main.ts": source,
       "gui/main.tsx": source,
     })
@@ -165,7 +165,7 @@ describe("Host.resolve", () => {
 
   it("does not report a part that resolved through main while a legacy file exists", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main" }),
+      METAINF: manifest({ server: "server/main" }),
       "server/main.ts": source,
       "index.ts": source,
     })
@@ -180,7 +180,7 @@ describe("Host.resolve", () => {
   it("treats an entry the standard does not allow as undeclared and reports the fallback", async () => {
     await using plugin = await fixture({
       // The rule before the standard: the file was `index`, not `main`.
-      "ocplugin.json": manifest({ server: "server/index" }),
+      METAINF: manifest({ server: "server/index" }),
       "server/index.js": source,
     })
     assert.deepEqual(Host.resolve(plugin.target), {
@@ -193,7 +193,7 @@ describe("Host.resolve", () => {
   })
 
   it("treats a manifest that does not parse as missing", async () => {
-    await using plugin = await fixture({ "ocplugin.json": '{ "entry": ', "index.ts": source })
+    await using plugin = await fixture({ METAINF: '{ "entry": ', "index.ts": source })
     assert.equal(Host.resolve(plugin.target).server, plugin.url("index.ts"))
   })
 
@@ -243,7 +243,7 @@ describe("Host.resolve", () => {
 
   it("does not return a declared entry whose file is missing, unless a legacy path exists", async () => {
     await using plugin = await fixture({
-      "ocplugin.json": manifest({ server: "server/main", tui: "tui/main" }),
+      METAINF: manifest({ server: "server/main", tui: "tui/main" }),
       "server/main.ts": source,
     })
     assert.deepEqual(Host.resolve(plugin.target), {
@@ -256,7 +256,7 @@ describe("Host.resolve", () => {
 
   it("names a plugin without a server part after its manifest, package, or local directory", async () => {
     await using declared = await fixture({
-      "ocplugin.json": manifest({ gui: "gui/main" }),
+      METAINF: manifest({ gui: "gui/main" }),
       "package.json": JSON.stringify({ name: "@acme/opencode-gui" }),
     })
     await using named = await fixture({ "package.json": JSON.stringify({ name: "@acme/opencode-gui" }) })

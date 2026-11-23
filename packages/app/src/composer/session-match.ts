@@ -1,4 +1,4 @@
-/** Where a later segment of a path or slug begins: `/ocplugin-open-dev` in `ocdev/ocplugin-open-dev`. */
+/** Where a later segment of a path or slug begins: `/sample-open-dev` in `ocdev/sample-open-dev`. */
 const segment = /[\s/\\\-_.:]/
 
 /**

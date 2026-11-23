@@ -1,22 +1,20 @@
 export * as DbroSkill from "./skill.js"
 
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { AbsolutePath } from "@opencode/schema/schema"
 import { Skill } from "@opencode/schema/skill"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
-import manifest from "../ocplugin.json" with { type: "json" }
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 
-const entry = manifest.skills.find((skill) => skill.id === "dbro")!
+const entry = (manifest.skills ?? []).find((skill) => skill.id === "dbro")!
 
 export const id = Skill.ID.make(entry.id)
 
 /** The skill file next to the built server entry, or beside the sources in a worktree. */
 export function skillPath() {
-  const candidates = [
-    join(import.meta.dir, "..", entry.path),
-    join(import.meta.dir, "..", "..", entry.path),
-  ]
+  const candidates = [join(import.meta.dir, "..", entry.path), join(import.meta.dir, "..", "..", entry.path)]
   return candidates.find((path) => existsSync(path)) ?? candidates[0]!
 }
 

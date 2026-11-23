@@ -122,7 +122,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 | ------------ | -------------------------------------------------------------------- |
 | 项目配置目录 | `<project>/.opencode/plugin/`、`<project>/.opencode/plugins/`        |
 | 全局配置目录 | `~/.config/opencode/plugin/`、`~/.config/opencode/plugins/`          |
-| 已安装组合包 | `~/.opencode/ocplugins/<id>/`（每个子目录是一个插件）                |
+| 已安装组合包 | `~/.opencode/exc/<id>/`（每个子目录是一个插件）                |
 | 配置字段     | `opencode.json(c)` 的 `plugins: (string \| { package, options? })[]` |
 
 - `plugin/` 与 `plugins/` 两个目录名都会被扫描，二者等价。
@@ -235,7 +235,7 @@ export default Plugin.define({
 })
 ```
 
-产品能力不要为此新增内置插件：浏览器能力现在就是一个 `.craf`（第三章），`display` 由包内 `ocplugin.json` 派生，安装与否都与 Core 解耦。
+产品能力不要为此新增内置插件：浏览器能力现在就是一个 `.exc`（第三章），`display` 由包内 `METAINF` 派生，安装与否都与 Core 解耦。
 
 规则：
 
@@ -268,7 +268,7 @@ export default Plugin.define({
 4. 插件加载，执行入口里的 `tool.transform` / `skill.transform` / `mcp.transform`；
 5. `plugin.updated` 与 `skill.updated` 推送，探索页刷新。
 
-`.craf` 是例外：它不写 `plugins`，而是解包到 `~/.opencode/ocplugins/<id>/`，由目录自动发现生效，见 3.7。
+`.exc` 是例外：它不写 `plugins`，而是解包到 `~/.opencode/exc/<id>/`，由目录自动发现生效，见 3.7。
 
 技能注册必须绑定在插件的 activation scope 上（`ctx.skill.transform` 天然如此），插件卸载或重载时自动移除。插件加载失败时不得留下任何能力注册。
 
@@ -293,21 +293,21 @@ export default Plugin.define({
 #### 现有案例
 
 - `packages/plugin-browser`：桌面浏览器插件，通过 CDP/proxy 控制浏览器，作为内置插件编译进 Core，注册 `browser.*` 工具与 `browser` 技能。
-- `plugins/webwright`（`opencode.webwright`）：独立的 `.craf` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
+- `plugins/webwright`（`opencode.webwright`）：独立的 `.exc` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
 
 ---
 
-## 三、插件组合包（`.craf`）
+## 三、插件组合包（`.exc`）
 
 **Status: 规范已定义，实现进行中。** 本章是组合包格式与安装契约的权威定义；标注「待实现」的条目尚未落到代码。
 
 ### 3.1 定位
 
-`.craf` 是一个**单文件、离线可安装、自包含**的插件组合包：
+`.exc` 是一个**单文件、离线可安装、自包含**的插件组合包：
 
 - 一个文件就是完整插件：入口、技能、图标、资源全在里面，不依赖 npm 下载，不执行安装脚本。
 - 解包后就是一个**标准插件目录**，第二节的入口解析、`display`、`skills` 注册规则全部照常适用。宿主因此不需要新的插件运行时。
-- 与内部插件（`packages/plugin-*`，编译进 Core）的区别只有分发方式：`.craf` 是可移动的独立产物，安装不改 `plugins` 配置，删除即卸载。
+- 与内部插件（`packages/plugin-*`，编译进 Core）的区别只有分发方式：`.exc` 是可移动的独立产物，安装不改 `plugins` 配置，删除即卸载。
 
 ### 3.2 容器格式
 
@@ -315,7 +315,7 @@ export default Plugin.define({
 | --------- | ----------------------------------------------------------------------- |
 | 容器      | tar                                                                     |
 | 压缩      | gzip                                                                    |
-| 扩展名    | `.craf`                                                                  |
+| 扩展名    | `.exc`                                                                  |
 | 打包/解包 | `Bun.Archive`（运行时原生，零额外依赖）                                 |
 | 路径字符  | UTF-8，统一用 `/` 分隔，不得以 `/` 开头                                 |
 | 禁止项    | 绝对路径、`..`、符号链接、设备与管道文件、`node_modules/`、安装脚本字段 |
@@ -329,7 +329,7 @@ export default Plugin.define({
 ### 3.3 包内布局
 
 ```
-ocplugin.json            # 唯一声明文件，见 3.4
+METAINF            # 唯一声明文件，见 3.4
 package.json             # name = 插件 id，exports 指向下面各入口
 server/index.js          # 服务端入口（必要：server 或 gui 至少一个）
 tui/index.js             # 可选
@@ -344,7 +344,7 @@ README.md                # 可选
 - `assets/` 不参与入口解析，插件在运行时用 `import.meta.url` 相对定位。无法安全 bundle 的运行时依赖整包放在这里，例如 `assets/playwright-core/`：Playwright 的 driver 按自身包目录解析文件，内联进 `server/index.js` 会破坏查找，因此它以完整包的形式随包分发，入口动态加载它。这类依赖**不是** `externals`——`externals` 只列宿主提供的模块。
 - 包内**不得**出现 `node_modules/`；命中宿主模块的依赖走 `externals`，其余见上一条与 3.5。
 
-### 3.4 `ocplugin.json`
+### 3.4 `METAINF`
 
 ```jsonc
 {
@@ -384,11 +384,11 @@ README.md                # 可选
 | `display`           | 否   | 展示元数据，字段与 `Plugin.Display` 相同（`name`、`description`、`category`、`icon`、`skills`、`tools`）。 |
 | `skills`            | 否   | 包内技能清单，`path` 必须指向包内 `SKILL.md`。                                                             |
 | `assets`            | 否   | 随包资源目录，仅供插件自身读取。                                                                           |
-| `files`             | 否   | `[{ "path": "...", "sha256": "..." }]` 完整性清单，不含 `ocplugin.json` 自身。                             |
+| `files`             | 否   | `[{ "path": "...", "sha256": "..." }]` 完整性清单，不含 `METAINF` 自身。                             |
 
 规则：
 
-- **`display` 是展示的唯一事实源。** 入口应从 `ocplugin.json` 派生 `Plugin.define` 的 `display`，不要在代码里再写一份文案或图标，避免安装前后显示不一致。
+- **`display` 是展示的唯一事实源。** 入口应从 `METAINF` 派生 `Plugin.define` 的 `display`，不要在代码里再写一份文案或图标，避免安装前后显示不一致。
 - `display.icon` 是**内联 SVG 源码字符串**，约定 24×24 视口。禁止 `<script>`、`<foreignObject>`、事件属性（`on*`）、外部 `href`/`url(...)` 引用；品牌色可以用固定值。客户端把它转成 data URI 用 `<img>` 渲染，不注入 HTML、不执行脚本。
 - `display.skills` 与 `skills` 必须一致；`display` 只是展示，真正的技能注册仍由入口调用 `ctx.skill.transform` 完成（见 2.6 红线）。
 - 缺少 `display` 的组合包可以安装，但不出现在探索页，只按配置与目录规则加载。
@@ -420,8 +420,8 @@ README.md                # 可选
 
 建议在包内提供两个脚本：
 
-1. `build`：`bun build <入口> --target=bun --format=esm --outfile dist/server/index.js`，`--external` 取 `ocplugin.json` 的 `externals` 与 `node:*`；原样拷贝 `skills/`、`assets/`、`README.md`、`package.json`、`ocplugin.json` 到 `dist/`。
-2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.craf`；清单随包内的 `ocplugin.json` 分发，不另写侧车文件，如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
+1. `build`：`bun build <入口> --target=bun --format=esm --outfile dist/server/index.js`，`--external` 取 `METAINF` 的 `externals` 与 `node:*`；原样拷贝 `skills/`、`assets/`、`README.md`、`package.json`、`METAINF` 到 `dist/`。
+2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.exc`；清单随包内的 `METAINF` 分发，不另写侧车文件，如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
 
 产物即分发单元，不再走 npm 发布，也不进 `packages/*/dist/npm`。
 
@@ -431,24 +431,24 @@ README.md                # 可选
 ~/.distribution/plugins/
   <id>/
     <version>/
-      <id>-<version>.craf        # 插件包，清单在包内
+      <id>-<version>.exc        # 插件包，清单在包内
 ```
 
 - 探索页按 `id` 聚合、按版本从新到旧列出；同一个插件的多个版本并存，安装时可选择版本。
-- 列举要打开每个版本的包读 `ocplugin.json`，不再有侧车文件可跳过解压；大包（如 `webwright`）首次列举会稍慢，这是保持版本目录只有一个 `.craf` 的代价。
+- 列举要打开每个版本的包读 `METAINF`，不再有侧车文件可跳过解压；大包（如 `webwright`）首次列举会稍慢，这是保持版本目录只有一个 `.exc` 的代价。
 - 安装器优先在这里按 `id` + 版本取包，找不到时才回退到桌面、下载目录、当前工作目录。
-- 安装后的插件解包到 `~/.opencode/ocplugins/<id>/`；该目录是插件自动发现根，放入或删除目录即生效，不需要重启。
+- 安装后的插件解包到 `~/.opencode/exc/<id>/`；该目录是插件自动发现根，放入或删除目录即生效，不需要重启。
 
 ### 3.7 安装与卸载（宿主契约）
 
-安装位置：`~/.opencode/ocplugins/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
+安装位置：`~/.opencode/exc/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
 
 - **安装 = 解包到插件目录**，不写 `plugins` 配置。
 - **卸载 = 删除目录**；临时禁用可在配置里写 `-opencode.webwright`（见 2.1 顺序规则）。
 
 安装步骤（原子、可回滚）：
 
-1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.craf`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.opencode`、`entry` 是否存在且位于包内。
+1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.exc`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.opencode`、`entry` 是否存在且位于包内。
 2. 拒绝路径穿越、绝对路径、符号链接、超大文件；校验 `files` 中的 sha256（若声明）。
 3. 解包到同级的临时目录 `.<id>.tmp-<random>`。
 4. 按 3.5 生成 `externals` shim。
@@ -460,7 +460,7 @@ README.md                # 可选
 
 ### 3.8 展示与发现
 
-- **未安装**：探索页打开包、读其中的 `ocplugin.json` 即可展示名称、描述、图标、技能清单与工具前缀，不需要执行包内代码，也不需要联网。官方内置目录以构建时收录的 manifest 为数据源。
+- **未安装**：探索页打开包、读其中的 `METAINF` 即可展示名称、描述、图标、技能清单与工具前缀，不需要执行包内代码，也不需要联网。官方内置目录以构建时收录的 manifest 为数据源。
 - **已安装**：以 `plugin.list` 返回的 `display` 为准；两者不一致说明包内 manifest 与入口派生逻辑有漂移，应在插件侧修复。
 - 图标缺失或非法时回退到通用插件图标，不阻塞安装与加载。
 
@@ -469,7 +469,7 @@ README.md                # 可选
 - `apiVersion` 与 `requires.opencode` 不满足：拒绝安装，并在错误里给出当前宿主版本。
 - v1 只做 sha256 完整性校验，不签名；安装器仍需把包内容当作不可信输入。
 - 安全边界以「不执行包内代码」为前提：校验与解包阶段不 import 任何包内模块，只做文件操作与 JSON 解析。
-- 将来支持签名时，在 `ocplugin.json` 增加签名段，`apiVersion` 递增；旧宿主必须拒绝未知版本，而不是忽略。
+- 将来支持签名时，在 `METAINF` 增加签名段，`apiVersion` 递增；旧宿主必须拒绝未知版本，而不是忽略。
 
 ---
 
@@ -488,9 +488,9 @@ README.md                # 可选
 ## 六、当前缺口
 
 - 没有 CLI 子命令用于校验技能/插件目录或列出已加载插件，只能看服务端接口与日志。
-- `.craf` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
+- `.exc` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
 - 插件包内的 `skills/` 目录不会被自动发现；组合包里的技能必须由入口代码注册，`display.skills` 只是展示。
-- 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.craf` 通过包内 `ocplugin.json` 解决了这一点（3.8），但要等安装器与探索页接线。
+- 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.exc` 通过包内 `METAINF` 解决了这一点（3.8），但要等安装器与探索页接线。
 
 ## 七、事实来源
 
@@ -506,6 +506,6 @@ README.md                # 可选
 - `packages/core/src/plugin.ts`：`Plugin.Info` 快照与激活 scope。
 - `packages/plugin/src/host.ts`：插件入口解析与 id 规则。
 - `packages/plugin/src/effect/plugin.ts`：Effect 插件 Context 与 `display` 声明。
-- `plugins/webwright/ocplugin.json`：组合包声明与内联图标，`plugins/webwright/src/skill.ts` 演示从 manifest 与 `SKILL.md` 加载技能，`script/pack.ts` 演示可重复打包。
+- `plugins/webwright/METAINF`：组合包声明与内联图标，`plugins/webwright/src/skill.ts` 演示从 manifest 与 `SKILL.md` 加载技能，`script/pack.ts` 演示可重复打包。
 - `packages/schema/src/config.ts`：`skills`、`plugins` 字段定义。
 - `packages/schema/src/plugin.ts`：`Plugin.Info` 与 `Plugin.Display` 契约。

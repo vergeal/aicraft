@@ -19,7 +19,7 @@
     "./server": "./server/main.ts"
   },
   "files": [
-    "ocplugin.json",
+    "METAINF",
     "server",
     "skills",
     "skills-source.json"

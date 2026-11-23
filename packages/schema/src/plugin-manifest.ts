@@ -24,7 +24,7 @@ export const Extensions = {
 } as const satisfies Record<Kind, readonly string[]>
 
 /**
- * One entry path from `ocplugin.json`: relative to the plugin root, without an extension, and ending in `/main`, such
+ * One entry path from `METAINF`: relative to the plugin root, without an extension, and ending in `/main`, such
  * as `server/main` or, once built, `dist/server/main`. The directory prefix may be any relative path, so a build can
  * keep its output beside its sources, but the file itself is always named `main`.
  */
@@ -57,6 +57,43 @@ export const Runtime = Schema.Struct({
   dependencies: Schema.optional(Schema.Array(Schema.String)),
 }).annotate({ identifier: "PluginManifest.Runtime" })
 export type Runtime = typeof Runtime.Type
+
+/** A skill the manifest advertises: its identity, its copy, and the file that ships it inside the bundle. */
+export const Skill = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  description: Schema.String,
+  path: Schema.String,
+}).annotate({ identifier: "PluginManifest.Skill" })
+export type Skill = typeof Skill.Type
+
+/**
+ * The complete `METAINF` a bundle ships. Identity, entries and display are what discovery reads before install; the
+ * rest describes what the bundle carries. Additional keys (such as `configuration`) are allowed and ignored here.
+ */
+export interface Manifest extends Schema.Schema.Type<typeof Manifest> {}
+export const Manifest = Schema.Struct({
+  apiVersion: Schema.Number,
+  id: Schema.String,
+  version: Schema.String,
+  entry: Entry,
+  requires: Schema.optional(Schema.Struct({ opencode: Schema.optional(Schema.String) })),
+  externals: Schema.optional(Schema.Array(Schema.String)),
+  display: Schema.Struct({
+    name: Schema.String,
+    description: Schema.String,
+    category: Schema.optional(Schema.String),
+    tools: Schema.optional(Schema.Array(Schema.String)),
+    icon: Schema.optional(Schema.String),
+  }),
+  skills: Schema.optional(Schema.Array(Skill)),
+  assets: Schema.optional(Schema.Array(Schema.String)),
+  runtime: Schema.optional(Runtime),
+  files: Schema.optional(Schema.Array(Schema.Struct({ path: Schema.String, sha256: Schema.String }))),
+}).annotate({ identifier: "PluginManifest.Manifest" })
+
+/** Reads a `METAINF` file's parsed JSON, failing loudly when the bundle's manifest is not a manifest. */
+export const decode = Schema.decodeUnknownSync(Manifest)
 
 /** The entry a kind's file must have, for an error that names the path a plugin author has to create. */
 export function expectedPath(kind: Kind, entrypoint: Entrypoint) {

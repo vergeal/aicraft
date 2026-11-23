@@ -1,8 +1,9 @@
 import { Plugin } from "@opencode/plugin"
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { AbsolutePath } from "@opencode/schema/schema"
 import { Session } from "@opencode/schema/session"
 import { join } from "node:path"
-import manifest from "../ocplugin.json" with { type: "json" }
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 import { Collect } from "../src/collect.js"
 import { createDispatcher } from "../src/dispatch.js"
 import { Git } from "../src/git.js"
@@ -25,7 +26,11 @@ export default Plugin.define({
     name: manifest.display.name,
     description: manifest.display.description,
     category: manifest.display.category,
-    skills: manifest.skills.map((skill) => ({ id: skill.id, name: skill.name, description: skill.description })),
+    skills: (manifest.skills ?? []).map((skill) => ({
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+    })),
     tools: manifest.display.tools,
   },
   async activate(ctx) {

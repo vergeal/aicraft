@@ -4,7 +4,7 @@ import { Schema } from "effect"
 /**
  * 引导档案：首次安装时用户回答的结果，是 AI 行为、提示词片段、定时任务与成本预算的唯一来源。
  * 纯数据层，不含界面与运行时；界面与会话都从这里 import 类型和函数。
- * 优先级：profile 字段 > ocplugin.json configuration 的同名项 > 默认值，见 ./merge.ts。
+ * 优先级：profile 字段 > METAINF configuration 的同名项 > 默认值，见 ./merge.ts。
  */
 
 export const ROLES = ["it-ops", "tech-support", "engineering", "management", "business", "other"] as const

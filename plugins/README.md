@@ -6,8 +6,8 @@ These packages are not bundled with OpenCode or loaded automatically. Do not add
 
 | Plugin                       | Directory                 | Form         |
 | ---------------------------- | ------------------------- | ------------ |
-| [Webwright](webwright/README.md) | `plugins/webwright` | `.craf` |
-| [DBRO](dbro/README.md)       | `plugins/dbro`   | `.craf` |
-| [Orchestrator](orchestrator/README.md) | `plugins/orchestrator` | `.craf` |
+| [Webwright](webwright/README.md) | `plugins/webwright` | `.exc` |
+| [DBRO](dbro/README.md)       | `plugins/dbro`   | `.exc` |
+| [Orchestrator](orchestrator/README.md) | `plugins/orchestrator` | `.exc` |
 | [Figma](figma/README.md)     | `plugins/figma`  | Git package  |
-| [IT 工单](itsm/README.md)    | `plugins/itsm`   | `.craf`      |
+| [IT 工单](itsm/README.md)    | `plugins/itsm`   | `.exc`      |

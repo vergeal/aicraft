@@ -3,7 +3,7 @@ import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -24,7 +24,7 @@ if (!build.success) {
 
 // `skills-source.json` is inlined into the bundle by Bun's JSON import, but the copied file keeps the vendored
 // revision readable next to the skills it describes.
-for (const item of ["skills", "ocplugin.json", "skills-source.json", "README.md"]) {
+for (const item of ["skills", "METAINF", "skills-source.json", "README.md"]) {
   await cp(join(root, item), join(dist, item), { recursive: true }).catch(() => undefined)
 }
 

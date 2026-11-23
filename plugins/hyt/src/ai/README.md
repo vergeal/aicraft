@@ -59,7 +59,7 @@
 
 1. `profile.capabilities.autopilot.enabled === true` 且 `scope !== "off"`；
 2. 会话 id（或私聊对方账号）在 `profile` 的白名单里（`scope === "all"` 时跳过这条）；
-3. `ocplugin.json` 的 `configuration` 白名单允许这个会话，且 `autoReplyEnabled` 为真——与 `hyt.send.text` 同一套 `isAllowed`，不另立口径。
+3. `METAINF` 的 `configuration` 白名单允许这个会话，且 `autoReplyEnabled` 为真——与 `hyt.send.text` 同一套 `isAllowed`，不另立口径。
 
 `service.sendText` 内部还会再校验一次白名单与平台限制，`decideAutopilot` 只是前置判定，不能替代它。托管只发草稿的第一条，其余保留为 `pending`，等人确认。
 
@@ -106,7 +106,7 @@ bun test test/ai-loop.test.ts
 
 ## 未完成项
 
-- `ocplugin.json` 里新增配置项的 `title` / `description` 文案由设置页会话补，本文只描述语义。
+- `METAINF` 里新增配置项的 `title` / `description` 文案由设置页会话补，本文只描述语义。
 - 宿主未暴露 `experimental.schedule`，提醒是「应用在跑才提醒」；`HostSchedule` 注入点是预留给宿主升级的。
 - 摘要（`digest`）能力目前只有档案开关与预过滤计数，还没有独立的摘要生成与展示入口。
 - 风格学习只覆盖文本消息（`MsgType` 1 / 11），语音转写与引用回复暂不入样本。

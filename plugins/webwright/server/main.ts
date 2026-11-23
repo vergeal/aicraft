@@ -1,8 +1,11 @@
 import { Plugin } from "@opencode/plugin/effect"
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { Effect } from "effect"
-import manifest from "../ocplugin.json" with { type: "json" }
+import { join } from "node:path"
 import { BrowserRuntime } from "../src/browser.js"
 import { BrowserTools } from "../src/tools.js"
+
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 
 export default Plugin.define({
   id: manifest.id,
@@ -12,7 +15,7 @@ export default Plugin.define({
     name: manifest.display.name,
     description: manifest.display.description,
     category: manifest.display.category,
-    skills: manifest.skills.map((skill) => ({
+    skills: (manifest.skills ?? []).map((skill) => ({
       id: skill.id,
       name: skill.name,
       description: skill.description,

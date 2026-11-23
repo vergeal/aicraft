@@ -953,7 +953,7 @@ export const dict = {
   "explore.plugins.empty.title": "还没有安装插件",
   "explore.plugins.empty.description": "在「可安装」里挑一个，点加号就能用",
   "explore.plugins.install.manual": "在 opencode.json 中配置插件，或将其放入插件目录",
-  "explore.plugins.install.bundle.note": "安装时会从本机探索目录取包，解包到 ~/.opencode/ocplugins",
+  "explore.plugins.install.bundle.note": "安装时会从本机探索目录取包，解包到 ~/.opencode/exc",
   "explore.plugins.source.builtin": "内置",
   "explore.plugins.source.package": "包",
   "explore.plugins.source.local": "本地",

@@ -8,13 +8,13 @@ import path from "node:path"
 
 /**
  * The local discover directory mirrors what a registry would publish: one folder per plugin id, one folder per
- * version inside it, and the `.craf` bundle in that version folder. The app lists it as the catalog, so this
+ * version inside it, and the `.exc` bundle in that version folder. The app lists it as the catalog, so this
  * machine can try the full install flow before a registry exists. Plugins and skills share one distribution root.
  */
 export const root = (home: string) => path.join(home, ".distribution", "plugins")
 
 /** Where installed bundles are unpacked, one directory per plugin id. */
-export const installRoot = (home: string) => path.join(home, ".opencode", "ocplugins")
+export const installRoot = (home: string) => path.join(home, ".opencode", "exc")
 
 type Manifest = {
   id?: unknown
@@ -72,19 +72,19 @@ async function read(directory: string, id: string): Promise<Plugin.LocalEntry | 
 async function readVersion(directory: string, version: string): Promise<Found | undefined> {
   const folder = path.join(directory, version)
   const files = await readdir(folder).catch(() => [])
-  const file = files.find((name) => name.endsWith(".craf"))
+  const file = files.find((name) => name.endsWith(".exc"))
   if (!file) return undefined
   return { version, file, manifest: await readManifest(path.join(folder, file)) }
 }
 
 /**
  * The manifest travels inside the archive, so listing a version opens it. A bundle is self-contained on purpose:
- * the version directory holds one `.craf` and nothing else. Opening a large bundle (webwright ships its Playwright
+ * the version directory holds one `.exc` and nothing else. Opening a large bundle (webwright ships its Playwright
  * driver) is the accepted cost of keeping the distribution directory clean.
  */
 async function readManifest(file: string): Promise<Manifest | undefined> {
   const archive = new Bun.Archive(new Uint8Array(await readFile(file)))
-  const declared = (await archive.files()).get("ocplugin.json")
+  const declared = (await archive.files()).get("METAINF")
   if (!declared) return undefined
   const parsed: unknown = await declared.json().catch(() => undefined)
   return isManifest(parsed) ? parsed : undefined
@@ -99,7 +99,8 @@ function runtimeOf(manifest: Manifest | undefined): Plugin.LocalEntry["runtime"]
   return Option.getOrUndefined(Schema.decodeUnknownOption(PluginManifest.Runtime)(manifest?.runtime))
 }
 
-function displayOf(manifest: Manifest | undefined): Plugin.Display | undefined {  if (typeof manifest?.display !== "object" || manifest.display === null) return undefined
+function displayOf(manifest: Manifest | undefined): Plugin.Display | undefined {
+  if (typeof manifest?.display !== "object" || manifest.display === null) return undefined
   const display = manifest.display as Partial<Plugin.Display>
   if (typeof display.name !== "string" || typeof display.description !== "string") return undefined
   const skills = skillsOf(display.skills) ?? skillsOf(manifest.skills)
@@ -118,7 +119,8 @@ function skillsOf(input: unknown): Plugin.Display["skills"] {
   const skills = input.flatMap((item) => {
     if (typeof item !== "object" || item === null) return []
     const skill = item as { id?: unknown; name?: unknown; description?: unknown }
-    if (typeof skill.id !== "string" || typeof skill.name !== "string" || typeof skill.description !== "string") return []
+    if (typeof skill.id !== "string" || typeof skill.name !== "string" || typeof skill.description !== "string")
+      return []
     return [{ id: skill.id, name: skill.name, description: skill.description }]
   })
   return skills.length > 0 ? skills : undefined

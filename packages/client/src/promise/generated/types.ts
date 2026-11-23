@@ -2609,7 +2609,12 @@ export type ConfigEntry =
                 }
           }
         }
-        compaction?: { auto?: boolean; keep?: { tokens?: number }; buffer?: ConfigCompactionPercent | number }
+        compaction?: {
+          auto?: boolean
+          background?: boolean
+          keep?: { tokens?: number }
+          buffer?: ConfigCompactionPercent | number
+        }
         skills?: Array<string>
         commands?: {
           [x: string]: {
@@ -2631,6 +2636,7 @@ export type ConfigEntry =
         websearch?: false | { provider: "random" | WebSearchID }
         plugins?: Array<string | { package: string; options?: { [x: string]: JsonValue } }>
         worktree?: ConfigWorktree
+        memory?: { auto_inject?: boolean; max_injected_chars?: number; max_entries?: number }
         warming?: boolean | { prompt?: string; interval?: "auto" | (string & {}); duration?: string }
         providers?: {
           [x: string]: {

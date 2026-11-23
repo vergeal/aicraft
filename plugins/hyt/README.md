@@ -63,7 +63,7 @@
 ## 目录
 
 ```text
-ocplugin.json          清单：id、入口、工具、技能、配置
+METAINF          清单：id、入口、工具、技能、配置
 server/main.ts         激活：装配 Service、注册技能与工具，返回 cleanup
 gui/main.tsx           界面占位（后续接 RPC 与设置页）
 src/
@@ -91,7 +91,7 @@ skills/hyt-assistant/SKILL.md
 bun run typecheck          # 服务端与 src
 bun run typecheck:gui      # gui 入口
 bun run build              # dist/server、dist/gui、技能与标准文档
-bun run pack               # 生成 .craf
+bun run pack               # 生成 .exc
 bun test test/xxx.test.ts  # 单个测试文件
 ```
 

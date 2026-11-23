@@ -1,13 +1,13 @@
 # Webwright
 
-`@opencode/plugin-webwright` is the `.craf` bundle that gives the agent `webwright.*` tools. It drives a dedicated
+`@opencode/plugin-webwright` is the `.exc` bundle that gives the agent `webwright.*` tools. It drives a dedicated
 Playwright browser instead of an extension, so nothing has to be installed into the user's own browser. The built-in
 `browser` plugin keeps its own `browser.*` namespace for the desktop browser; this package never claims it.
 
 The bundle ships as one file:
-`~/.distribution/plugins/changhong.webwright/<version>/changhong.webwright-<version>.craf`. It contains the server entry,
+`~/.distribution/plugins/changhong.webwright/<version>/changhong.webwright-<version>.exc`. It contains the server entry,
 the `webwright` skill, and the Playwright driver under `assets/playwright-core`. Installing unpacks it into
-`~/.opencode/ocplugins/changhong.webwright/`; removing that directory uninstalls it.
+`~/.opencode/exc/changhong.webwright/`; removing that directory uninstalls it.
 
 ## Browser selection
 
@@ -62,7 +62,7 @@ bun run pack    # ~/.distribution/plugins/changhong.webwright/<version>/
 `build` bundles only the plugin's own code. `effect` and `@opencode/*` stay external so the plugin shares the host's
 module instances, and Playwright is vendored under `assets/` because its driver resolves files relative to its package
 directory — inlining it into the server bundle breaks that lookup. `pack` writes a reproducible tar+gzip: sorted paths,
-zero mtime, sha256 manifest in `ocplugin.json`; packing twice from the same `dist/` yields the same file. It writes to
+zero mtime, sha256 manifest in `METAINF`; packing twice from the same `dist/` yields the same file. It writes to
 `~/.distribution/plugins/<id>/<version>/` so the app's catalog lists the version and its installer finds the bundle; it also
 writes a `manifest.json` there so the catalog never opens the archive. Set `OCPLUGIN_OUT` for a release build.
 

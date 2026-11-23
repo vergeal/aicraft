@@ -1,5 +1,8 @@
 import { Plugin } from "@opencode/plugin"
-import manifest from "../ocplugin.json" with { type: "json" }
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { join } from "node:path"
+
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 import * as ItsmContract from "../src/contract.js"
 import { validateTemplate } from "../src/logic.js"
 import * as ItsmSkill from "../src/skill.js"
@@ -12,7 +15,7 @@ export default Plugin.define({
     name: manifest.display.name,
     description: manifest.display.description,
     category: manifest.display.category,
-    skills: manifest.skills.map((skill) => ({
+    skills: (manifest.skills ?? []).map((skill) => ({
       id: skill.id,
       name: skill.name,
       description: skill.description,

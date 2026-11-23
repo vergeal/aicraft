@@ -54,7 +54,7 @@ HytProfile = {
 
 - `resolveProfile` 一次算完这条链路，调用方不要自己拼。
 - `mergeProfile(base, patch)` 只覆盖 patch 里出现的字段：对象逐字段合并，数组整体替换，`undefined` 不覆盖。
-- `applyConfiguration` 把 `ocplugin.json` 的 configuration 映射到语义字段：
+- `applyConfiguration` 把 `METAINF` 的 configuration 映射到语义字段：
 
 | configuration | profile 字段 |
 | --- | --- |

@@ -3,7 +3,7 @@ import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -28,8 +28,7 @@ if (!build.success) {
 const toolsRoot = join(root, "python")
 const assets = join(dist, "assets", "dbro")
 const gate = join(toolsRoot, "dbro", "dbro.py")
-if (!(await Bun.file(gate).exists()))
-  throw new Error(`找不到 ${gate}。Python 脚本应当由仓库内的 python/ 目录提供。`)
+if (!(await Bun.file(gate).exists())) throw new Error(`找不到 ${gate}。Python 脚本应当由仓库内的 python/ 目录提供。`)
 
 // dbro.py resolves the executors from its parent directory in the source layout. The bundle flattens all four files
 // into assets/dbro, so prefer the script's own directory and keep the old layout as the fallback.
@@ -59,7 +58,7 @@ for (const name of ["dm8_exec.py", "mysql_exec.py", "pgsql_exec.py"]) {
 // installed plugin can tell a user exactly what to install when `dbro.doctor` reports a missing import.
 await cp(join(toolsRoot, "requirements.txt"), join(assets, "requirements.txt"))
 
-for (const item of ["skills", "ocplugin.json", "README.md"]) {
+for (const item of ["skills", "METAINF", "README.md"]) {
   await cp(join(root, item), join(dist, item), { recursive: true }).catch(() => undefined)
 }
 

@@ -22,8 +22,8 @@ export function PluginInstallDialog(props: {
   package?: string
   name?: string
   integrated?: boolean
-  /** A `.craf` bundle: the host unpacks the file itself, so there is no package to write into the config. */
-  bundle?: { file: string; format: "craf" }
+  /** A `.exc` bundle: the host unpacks the file itself, so there is no package to write into the config. */
+  bundle?: { file: string; format: "exc" }
   /** Plugin id a bundle install targets. */
   id?: string
   /** The catalog entry a bundle install renders. */

@@ -6,7 +6,7 @@ import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -56,7 +56,10 @@ const gui = await Bun.build({
         build.onLoad({ filter: /\.tsx$/ }, async (args) => {
           const result = transformSync(await Bun.file(args.path).text(), {
             filename: args.path,
-            presets: [[solidPreset, {}], [tsPreset, {}]],
+            presets: [
+              [solidPreset, {}],
+              [tsPreset, {}],
+            ],
             babelrc: false,
             configFile: false,
             sourceMaps: "inline",
@@ -73,7 +76,7 @@ if (!gui.success) {
   process.exit(1)
 }
 
-for (const item of ["skills", "ocplugin.json", "README.md"]) {
+for (const item of ["skills", "METAINF", "README.md"]) {
   await cp(join(root, item), join(dist, item), { recursive: true }).catch(() => undefined)
 }
 

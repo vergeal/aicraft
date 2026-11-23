@@ -1,10 +1,11 @@
 import { Plugin } from "@opencode/plugin"
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { AbsolutePath } from "@opencode/schema/schema"
 import { Skill } from "@opencode/schema/skill"
 import { existsSync } from "node:fs"
 import { readFile, appendFile, mkdir } from "node:fs/promises"
 import { join } from "node:path"
-import manifest from "../ocplugin.json" with { type: "json" }
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 import { analyzeOnce, capabilityList, startAnalysisLoop } from "../src/ai/loop.js"
 import type { AnalysisSink } from "../src/ai/loop.js"
 import { startReminders } from "../src/ai/reminders.js"
@@ -23,7 +24,7 @@ export default Plugin.define({
     name: manifest.display.name,
     description: manifest.display.description,
     category: manifest.display.category,
-    skills: manifest.skills.map((skill) => ({
+    skills: (manifest.skills ?? []).map((skill) => ({
       id: skill.id,
       name: skill.name,
       description: skill.description,
@@ -38,7 +39,12 @@ export default Plugin.define({
     })
     const note = (text: string) =>
       mkdir(ctx.paths.data, { recursive: true })
-        .then(() => appendFile(join(ctx.paths.data, "bridge-warm.log"), `${new Date().toISOString()} pid=${process.pid} ${text}\n`))
+        .then(() =>
+          appendFile(
+            join(ctx.paths.data, "bridge-warm.log"),
+            `${new Date().toISOString()} pid=${process.pid} ${text}\n`,
+          ),
+        )
         .catch(() => undefined)
     // 插件自带 SDK：启动后台把桥接拉起来并登录，之后收发都不必先运行虹云通客户端。
     void service.warm().catch((error: unknown) => {
@@ -81,14 +87,13 @@ export default Plugin.define({
       onError: (error) => console.warn("[hyt] analysis loop failed", error),
     })
 
-    const stopReminders =
-      profile.capabilities.reminders.enabled
-        ? startReminders({
-            dataDir: service.dataDir,
-            port: ctx.inbox,
-            onError: (error) => console.warn("[hyt] reminder loop failed", error),
-          })
-        : () => undefined
+    const stopReminders = profile.capabilities.reminders.enabled
+      ? startReminders({
+          dataDir: service.dataDir,
+          port: ctx.inbox,
+          onError: (error) => console.warn("[hyt] reminder loop failed", error),
+        })
+      : () => undefined
     if (profile.capabilities.reminders.enabled)
       console.log("[hyt] 到期提醒使用插件内定时器 + 收件箱消息（宿主尚未向插件暴露 experimental.schedule）。")
 
@@ -149,7 +154,7 @@ function skillsRoot() {
  * 构建后 SKILL.md 在 dist/skills 下，源码运行时在插件根目录的 skills 下。
  */
 async function loadSkill() {
-  const entry = manifest.skills.find((skill) => skill.id === "hyt-assistant")!
+  const entry = (manifest.skills ?? []).find((skill) => skill.id === "hyt-assistant")!
   const candidates = [join(import.meta.dir, "..", entry.path), join(import.meta.dir, "..", "..", entry.path)]
   const path = candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!
   return Skill.Info.make({

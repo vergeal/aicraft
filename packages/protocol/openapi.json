@@ -1047,7 +1047,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Find a local .craf bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
+        "description": "Experimental: may change without compatibility guarantees. Find a local .exc bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
         "summary": "Install a plugin bundle",
         "requestBody": {
           "content": {
@@ -1170,7 +1170,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Remove an installed .craf bundle's directory so the host unloads it.",
+        "description": "Experimental: may change without compatibility guarantees. Remove an installed .exc bundle's directory so the host unloads it.",
         "summary": "Uninstall a plugin bundle",
         "requestBody": {
           "content": {
@@ -1512,6 +1512,109 @@
         },
         "description": "Experimental: may change without compatibility guarantees. Every message plugins published into the app's inbox in this location, with the plugin that published it. The app shows one list across plugins; a plugin only sees its own messages through `ctx.inbox.list`.",
         "summary": "List plugin inbox messages"
+      }
+    },
+    "/api/experimental/plugin/inbox/publish": {
+      "post": {
+        "tags": ["plugin"],
+        "operationId": "experimental.plugin.inbox.publish",
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "required": false,
+            "style": "deepObject",
+            "explode": true
+          }
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "location": {
+                      "$ref": "#/components/schemas/Location.PublicRef"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["location", "data"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "LocationNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Experimental: may change without compatibility guarantees. Publishes one message into the app's inbox under the plugin the window sends, or updates the record with the same `externalID`. `/inbox` lists it, and opening it renders that plugin's `InboxContent`.",
+        "summary": "Publish a plugin inbox message",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Plugin.InboxPublish"
+              }
+            }
+          },
+          "required": true
+        }
       }
     },
     "/api/experimental/plugin/inbox/mark": {
@@ -14599,6 +14702,48 @@
         "summary": "List background jobs"
       }
     },
+    "/api/experimental/diagnostics/server": {
+      "get": {
+        "tags": ["experimental"],
+        "operationId": "experimental.diagnostics.server",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Diagnostics.Server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diagnostics.Server"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return this server process's recent spans, database statements slower than 50ms, and model transport phases grouped by trace, all read from in-memory buffers. Spans are kept for 60 seconds, at most 5000 of them, and only when they are slower than 5ms or failed. Slow query entries carry statement text and the active span but never bound parameters. Experimental: may change without compatibility guarantees.",
+        "summary": "Read server diagnostics"
+      }
+    },
     "/api/shell": {
       "get": {
         "tags": ["shell"],
@@ -17969,6 +18114,9 @@
               "auto": {
                 "type": "boolean"
               },
+              "background": {
+                "type": "boolean"
+              },
               "keep": {
                 "type": "object",
                 "properties": {
@@ -18055,6 +18203,25 @@
           },
           "worktree": {
             "$ref": "#/components/schemas/Config.Worktree"
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "auto_inject": {
+                "type": "boolean"
+              },
+              "max_injected_chars": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max_entries": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "additionalProperties": false
           },
           "warming": {
             "anyOf": [
@@ -19007,6 +19174,232 @@
             "$ref": "#/components/schemas/Credential.External"
           }
         ]
+      },
+      "Diagnostics.LlmTrace": {
+        "type": "object",
+        "properties": {
+          "traceID": {
+            "type": "string"
+          },
+          "totalMs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "phase": {
+                  "type": "string"
+                },
+                "spans": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["Infinity", "-Infinity", "NaN"]
+                    }
+                  ]
+                },
+                "durationMs": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["Infinity", "-Infinity", "NaN"]
+                    }
+                  ]
+                }
+              },
+              "required": ["phase", "spans", "durationMs"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["traceID", "totalMs", "segments"],
+        "additionalProperties": false
+      },
+      "Diagnostics.Server": {
+        "type": "object",
+        "properties": {
+          "spans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Diagnostics.Span"
+            }
+          },
+          "slowQueries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Diagnostics.SlowQuery"
+            }
+          },
+          "llm": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Diagnostics.LlmTrace"
+            },
+            "description": "Model transport phases grouped by trace, built from the existing SessionModelTransport spans."
+          },
+          "dropped": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          },
+          "windowSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          }
+        },
+        "required": ["spans", "slowQueries", "llm", "dropped", "windowSeconds"],
+        "additionalProperties": false
+      },
+      "Diagnostics.SlowQuery": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "Statement text with whitespace collapsed; bound parameters are never recorded."
+          },
+          "durationMs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          },
+          "traceID": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spanID": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "span": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Span that was active when the statement ran, standing in for a call site."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["sql", "durationMs", "at"],
+        "additionalProperties": false
+      },
+      "Diagnostics.Span": {
+        "type": "object",
+        "properties": {
+          "traceID": {
+            "type": "string",
+            "description": "Effect trace id of the span."
+          },
+          "spanID": {
+            "type": "string"
+          },
+          "parentSpanID": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Span name as written in `Effect.withSpan`, for example \"Vcs.refreshBranch\"."
+          },
+          "startWall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          },
+          "durationMs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Span attributes, flattened to JSON-safe primitives."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ok", "error"]
+          }
+        },
+        "required": ["traceID", "spanID", "name", "startWall", "durationMs", "attributes", "status"],
+        "additionalProperties": false
       },
       "Event.ID": {
         "type": "string",
@@ -23012,6 +23405,36 @@
       "Plugin.ID": {
         "type": "string"
       },
+      "Plugin.InboxPublish": {
+        "type": "object",
+        "properties": {
+          "externalID": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "done", "failed"]
+          },
+          "createdAt": {
+            "type": "number"
+          },
+          "expiresAt": {
+            "type": "number"
+          },
+          "payload": {},
+          "plugin": {
+            "$ref": "#/components/schemas/Plugin.ID"
+          }
+        },
+        "required": ["externalID", "title", "summary", "plugin"],
+        "additionalProperties": false
+      },
       "Plugin.InboxRecord": {
         "type": "object",
         "properties": {
@@ -25442,6 +25865,9 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "icon": {
             "type": "string"
           },
           "executed": {
@@ -31263,6 +31689,48 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
+              },
+              "context": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "chars": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "chars": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["name", "chars", "text"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["key", "chars", "text"],
+                  "additionalProperties": false
+                }
               }
             },
             "required": ["sessionID", "assistantMessageID", "agent", "model", "started"],
@@ -31837,6 +32305,9 @@
                 "type": "string"
               },
               "name": {
+                "type": "string"
+              },
+              "icon": {
                 "type": "string"
               }
             },

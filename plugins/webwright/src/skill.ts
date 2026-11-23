@@ -1,14 +1,15 @@
 export * as BrowserSkill from "./skill.js"
 
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { AbsolutePath } from "@opencode/schema/schema"
 import { Skill } from "@opencode/schema/skill"
 import { Effect } from "effect"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
-import manifest from "../ocplugin.json" with { type: "json" }
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 
-const entry = manifest.skills.find((skill) => skill.id === "webwright")!
+const entry = (manifest.skills ?? []).find((skill) => skill.id === "webwright")!
 
 export const id = Skill.ID.make(entry.id)
 

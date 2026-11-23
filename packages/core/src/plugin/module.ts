@@ -218,10 +218,7 @@ const load = Effect.fn("PluginModule.load")(function* (
     onInstall: undefined,
     onUninstall: undefined,
   }
-  const revision = JSON.stringify([
-    operation,
-    prepared.server ? prepared.server.version : prepared.installed?.revision,
-  ])
+  const revision = JSON.stringify([operation, prepared.server ? prepared.server.version : prepared.installed?.revision])
   // A bundle's manifest declares its flat configuration and, when it uses an interpreter, its runtime; a plugin
   // without one gets no `ctx.config` values and no environment.
   const directory = local
@@ -334,7 +331,7 @@ function withDeadline<T>(work: Promise<T>, millis: number, timedOut: () => LoadE
 
 /** The manifest's configuration and runtime are optional. Its configuration is only validated strictly on install. */
 function readManifest(directory: string) {
-  const file = path.join(directory, "ocplugin.json")
+  const file = path.join(directory, "METAINF")
   if (!existsSync(file)) return undefined
   const parsed = JSON.parse(readFileSync(file, "utf8")) as { configuration?: unknown; runtime?: unknown }
   return {

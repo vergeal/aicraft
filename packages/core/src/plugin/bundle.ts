@@ -34,9 +34,9 @@ type Manifest = {
 }
 
 /**
- * Installs an `.craf` bundle that already exists on this machine, so the app can offer one button instead of
+ * Installs an `.exc` bundle that already exists on this machine, so the app can offer one button instead of
  * explaining the container format. Versions live under the local discover directory, and the chosen one is verified
- * and unpacked into `~/.opencode/ocplugins/<id>/`, where plugin discovery picks it up.
+ * and unpacked into `~/.opencode/exc/<id>/`, where plugin discovery picks it up.
  */
 export async function install(input: {
   readonly id: string
@@ -122,7 +122,7 @@ async function find(input: { id: string; version?: string; config: string; cwd: 
   for (const folder of folders) {
     const names = await readdir(folder).catch(() => [])
     for (const name of names) {
-      if (!name.startsWith(input.id) || !name.endsWith(".craf")) continue
+      if (!name.startsWith(input.id) || !name.endsWith(".exc")) continue
       const info = await stat(path.join(folder, name)).catch(() => undefined)
       if (info?.isFile()) candidates.push({ file: path.join(folder, name), mtime: info.mtimeMs })
     }
@@ -145,17 +145,21 @@ async function findLocal(input: { id: string; version?: string; home: string }) 
   const version = input.version ?? names.at(-1)
   if (!version) return undefined
   const files = await readdir(path.join(directory, version)).catch(() => [])
-  const file = files.find((name) => name.endsWith(".craf"))
+  const file = files.find((name) => name.endsWith(".exc"))
   return file ? path.join(directory, version, file) : undefined
 }
 
 async function readManifest(entries: Map<string, File>, opencodeVersion?: string): Promise<Manifest> {
-  const file = entries.get("ocplugin.json")
-  if (!file) throw new Error("This is not a plugin bundle: ocplugin.json is missing.")
+  const file = entries.get("METAINF")
+  if (!file) throw new Error("This is not a plugin bundle: METAINF is missing.")
   const parsed: unknown = JSON.parse(await file.text())
   if (typeof parsed !== "object" || parsed === null) throw new Error("This plugin bundle has an unreadable manifest.")
   const manifest = parsed as Partial<Manifest>
-  if (typeof manifest.id !== "string" || typeof manifest.version !== "string" || typeof manifest.apiVersion !== "number")
+  if (
+    typeof manifest.id !== "string" ||
+    typeof manifest.version !== "string" ||
+    typeof manifest.apiVersion !== "number"
+  )
     throw new Error("This plugin bundle has an unreadable manifest.")
   // An unreadable entry falls back to the legacy paths like a missing one, so a bundle built before the `main`
   // standard still installs while its author migrates.
@@ -174,11 +178,7 @@ async function readManifest(entries: Map<string, File>, opencodeVersion?: string
  * Finds a shipped file for every part the bundle declares, preferring the `main` entry and falling back to the legacy
  * paths with a deprecation warning. A part with neither is refused with the path its author has to create.
  */
-function requireEntries(
-  id: string,
-  declared: PluginManifest.Entry,
-  entries: Map<string, File>,
-): PluginManifest.Entry {
+function requireEntries(id: string, declared: PluginManifest.Entry, entries: Map<string, File>): PluginManifest.Entry {
   const server = resolveKind(id, declared, entries, "server")
   const gui = resolveKind(id, declared, entries, "gui")
   const tui = resolveKind(id, declared, entries, "tui")
@@ -190,12 +190,7 @@ function requireEntries(
  * One part: its declared entry first, then the legacy paths, each tried with that kind's extensions in order. A part
  * missing every candidate is refused with the files the author may ship.
  */
-function resolveKind(
-  id: string,
-  declared: PluginManifest.Entry,
-  entries: Map<string, File>,
-  kind: "server",
-): string
+function resolveKind(id: string, declared: PluginManifest.Entry, entries: Map<string, File>, kind: "server"): string
 function resolveKind(
   id: string,
   declared: PluginManifest.Entry,
@@ -241,8 +236,7 @@ function entryFiles(kind: PluginManifest.Kind, wanted: PluginManifest.Entrypoint
 
 function requireDisplay(input: unknown) {
   if (input === undefined) return
-  if (typeof input !== "object" || input === null)
-    throw new Error("This plugin bundle has an unreadable display.")
+  if (typeof input !== "object" || input === null) throw new Error("This plugin bundle has an unreadable display.")
   const display = input as Record<string, unknown>
   if (typeof display.name !== "string" || typeof display.description !== "string")
     throw new Error("This plugin bundle has a display without a name and description.")
@@ -335,7 +329,7 @@ async function exists(target: string) {
 }
 
 async function installedVersion(target: string, fallback: string) {
-  const manifest = await readFile(path.join(target, "ocplugin.json"), "utf8").then(
+  const manifest = await readFile(path.join(target, "METAINF"), "utf8").then(
     (text) => JSON.parse(text) as { version?: unknown },
     () => undefined,
   )

@@ -48,9 +48,9 @@ export interface Deprecation {
  * - drop the `plugin uses a legacy entry` warning at both `Host.resolve` call sites.
  *
  * The fallback may be removed only when all four hold:
- * 1. every built-in plugin under `plugins/*` declares `main` entries in `ocplugin.json` and its source layout
+ * 1. every built-in plugin under `plugins/*` declares `main` entries in `METAINF` and its source layout
  *    matches the standard (directory name = entry name);
- * 2. `docs/ocplugin-dev/index.html` no longer shows a legacy path (`entry.server: "server/index.js"`, `"src/index"`,
+ * 2. `docs/exc-dev/index.html` no longer shows a legacy path (`entry.server: "server/index.js"`, `"src/index"`,
  *    ...) and the 2.0 "current behavior" and migration tables are gone;
  * 3. at least one minor release has passed with the deprecation recorded in `CHANGELOG.md`;
  * 4. no plugin triggers a fallback warning on a real load path.
@@ -67,7 +67,7 @@ export const LegacyEntrypoints = {
 /**
  * The `package.json` subpaths a published plugin used before the `main` standard. A package resolved through npm
  * reads through its own `exports` (the specifier is its self-reference), so its files are not at the paths
- * `ocplugin.json` names; this is the last fallback before a part is missing.
+ * `METAINF` names; this is the last fallback before a part is missing.
  *
  * @deprecated Removed in the next minor, when every published plugin ships and exports `main` entries.
  */
@@ -79,7 +79,7 @@ const PackageSubpaths = {
 } as const satisfies Record<PluginManifest.Kind, readonly string[]>
 
 /**
- * Resolves a plugin's entry files from its `ocplugin.json`. The manifest's `entry` is the only source: each declared
+ * Resolves a plugin's entry files from its `METAINF`. The manifest's `entry` is the only source: each declared
  * part is a path relative to the plugin root without an extension, named `main`, and the host tries that kind's
  * extensions in order. `package.json` takes no part in resolving a directory's files. It stays required because
  * `packageID` reads its `name` when the manifest declares no id, and because a package that arrives through npm
@@ -117,7 +117,7 @@ export function load(entrypoint: string): Promise<unknown> {
 }
 
 /**
- * The id of a plugin without a server part: the one its `ocplugin.json` declares, a package's name, or a local
+ * The id of a plugin without a server part: the one its `METAINF` declares, a package's name, or a local
  * directory's name when it declares neither. A server part names its plugin in `Plugin.define` instead.
  */
 export function packageID(target: Target) {
@@ -133,11 +133,7 @@ interface Found {
   readonly deprecated?: Deprecation
 }
 
-function findEntry(
-  input: Target,
-  declared: PluginManifest.Entrypoint | undefined,
-  kind: PluginManifest.Kind,
-): Found {
+function findEntry(input: Target, declared: PluginManifest.Entrypoint | undefined, kind: PluginManifest.Kind): Found {
   for (const candidate of entryCandidates(kind, declared)) {
     for (const extension of PluginManifest.Extensions[kind]) {
       const file = path.resolve(input.directory, `${candidate}${extension}`)
@@ -172,12 +168,16 @@ function missing(error: unknown) {
   return (
     error instanceof Error &&
     "code" in error &&
-    ["ENOENT", "ENOTDIR", "MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND", "ERR_PACKAGE_PATH_NOT_EXPORTED", "ERR_UNSUPPORTED_DIR_IMPORT"].includes(
-      String(error.code),
-    )
+    [
+      "ENOENT",
+      "ENOTDIR",
+      "MODULE_NOT_FOUND",
+      "ERR_MODULE_NOT_FOUND",
+      "ERR_PACKAGE_PATH_NOT_EXPORTED",
+      "ERR_UNSUPPORTED_DIR_IMPORT",
+    ].includes(String(error.code))
   )
 }
-
 
 // A manifest that is not JSON, or whose `entry` does not match the standard (an extension, a path not ending in
 // `main`), is ignored as a whole and contributes no entries: the directory silently falls back to the legacy paths
@@ -189,7 +189,7 @@ const Manifest = Schema.fromJsonString(
 )
 
 function manifest(directory: string): Schema.Schema.Type<typeof Manifest> {
-  const file = path.join(directory, "ocplugin.json")
+  const file = path.join(directory, "METAINF")
   if (!existsSync(file)) return {}
   return Option.getOrElse(Schema.decodeUnknownOption(Manifest)(readFileSync(file, "utf8")), () => ({}))
 }

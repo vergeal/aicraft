@@ -6,7 +6,7 @@ import { isAllowed } from "../service.js"
  * 托管发送判定。默认关闭；开启后仍要过三道硬校验，任何一道不过就只出草稿：
  *   1. profile.capabilities.autopilot 开启且 scope ≠ off；
  *   2. 会话（或私聊对方账号）在 profile 的白名单里；
- *   3. ocplugin configuration 的 whitelist 允许这个会话——与 hyt.send.text 用同一套判断，不另立口径。
+ *   3. METAINF 里 configuration 的 whitelist 允许这个会话——与 hyt.send.text 用同一套判断，不另立口径。
  * 这是一个纯函数：不读文件、不发消息，判定结果与原因都回给调用方展示。
  */
 

@@ -3,7 +3,7 @@ import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -63,7 +63,7 @@ if (!gui.success) {
 }
 
 // `skill.ts` reads SKILL.md at activation, so the text travels with the bundle instead of being inlined.
-for (const item of ["skills", "ocplugin.json", "README.md"]) {
+for (const item of ["skills", "METAINF", "README.md"]) {
   await cp(join(root, item), join(dist, item), { recursive: true }).catch(() => undefined)
 }
 

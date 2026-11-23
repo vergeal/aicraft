@@ -1,16 +1,17 @@
 import { describe, expect, test } from "bun:test"
+import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-import manifest from "../ocplugin.json" with { type: "json" }
+const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 import * as Dialects from "../src/dialects.js"
 import * as Sources from "../src/sources.js"
 
-describe("ocplugin manifest", () => {
+describe("exc manifest", () => {
   test("reserves the dbro namespace and advertises its skill", () => {
     expect(manifest.id).toBe("changhong.dbro")
     expect(manifest.display.tools).toEqual(["dbro.*"])
-    expect(manifest.skills.map((skill) => skill.id)).toEqual(["dbro"])
-    for (const skill of manifest.skills) expect(existsSync(join(import.meta.dir, "..", skill.path))).toBe(true)
+    expect((manifest.skills ?? []).map((skill) => skill.id)).toEqual(["dbro"])
+    for (const skill of manifest.skills ?? []) expect(existsSync(join(import.meta.dir, "..", skill.path))).toBe(true)
   })
 })
 
@@ -19,7 +20,14 @@ describe("sources", () => {
     const settings = Sources.settings({ sources: ["mysql://readonly@10.0.0.6/mall"] }, {})
     expect(settings.errors).toEqual([])
     expect(settings.sources).toEqual([
-      { name: "mysql:10.0.0.6/mall", dialect: "mysql", host: "10.0.0.6", port: 3306, user: "readonly", database: "mall" },
+      {
+        name: "mysql:10.0.0.6/mall",
+        dialect: "mysql",
+        host: "10.0.0.6",
+        port: 3306,
+        user: "readonly",
+        database: "mall",
+      },
     ])
   })
 

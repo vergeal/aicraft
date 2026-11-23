@@ -7,7 +7,7 @@ import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -57,7 +57,10 @@ const gui = await Bun.build({
         build.onLoad({ filter: /\.tsx$/ }, async (args) => {
           const result = transformSync(await Bun.file(args.path).text(), {
             filename: args.path,
-            presets: [[solidPreset, {}], [tsPreset, {}]],
+            presets: [
+              [solidPreset, {}],
+              [tsPreset, {}],
+            ],
             babelrc: false,
             configFile: false,
             sourceMaps: "inline",
@@ -78,7 +81,7 @@ if (!gui.success) {
 // and style standards ship with the bundle so a user can read the rules the plugin applies.
 for (const item of [
   "skills",
-  "ocplugin.json",
+  "METAINF",
   "README.md",
   "src/knowledge/README.md",
   "src/style/README.md",
@@ -147,12 +150,7 @@ async function shipMacFramework(executable: string) {
   const target = join(dist, "native", "Frameworks", "ECMediaSDK.framework")
   await cp(source, target, { recursive: true })
   // native/<platform-arch>/../Frameworks
-  const add = Bun.spawnSync([
-    "install_name_tool",
-    "-add_rpath",
-    "@executable_path/../Frameworks",
-    executable,
-  ])
+  const add = Bun.spawnSync(["install_name_tool", "-add_rpath", "@executable_path/../Frameworks", executable])
   if (add.exitCode !== 0) console.warn(`install_name_tool failed: ${add.stderr.toString()}`)
 }
 
@@ -171,4 +169,3 @@ async function shipWindowsRuntime(target: string) {
     }
   }
 }
-

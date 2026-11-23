@@ -4,7 +4,7 @@ import { dirname, join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -30,7 +30,7 @@ const require = createRequire(import.meta.url)
 const playwright = dirname(require.resolve("playwright-core/package.json"))
 await cp(playwright, join(dist, "assets", "playwright-core"), { recursive: true })
 
-for (const item of ["skills", "ocplugin.json", "README.md"]) {
+for (const item of ["skills", "METAINF", "README.md"]) {
   await cp(join(root, item), join(dist, item), { recursive: true })
 }
 

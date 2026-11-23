@@ -23,14 +23,20 @@ async function publish(input: {
   /** The server file the bundle ships by default; tests about legacy layouts replace it so no `main` exists. */
   readonly entryFile?: string
 }) {
-  const directory = path.join(input.home, ".distribution", "plugins", String(input.manifest.id), String(input.manifest.version))
+  const directory = path.join(
+    input.home,
+    ".distribution",
+    "plugins",
+    String(input.manifest.id),
+    String(input.manifest.version),
+  )
   await mkdir(directory, { recursive: true })
   const archive = new Bun.Archive({
-    "ocplugin.json": JSON.stringify(input.manifest),
+    METAINF: JSON.stringify(input.manifest),
     [input.entryFile ?? "server/main.js"]: "export default { id: 'test.bundle', effect: () => {} }",
     ...input.files,
   })
-  await writeFile(path.join(directory, "bundle.craf"), await archive.bytes())
+  await writeFile(path.join(directory, "bundle.exc"), await archive.bytes())
 }
 
 const install = (input: {
@@ -51,9 +57,7 @@ const install = (input: {
 it.effect("refuses a bundle that needs a newer OpenCode", () =>
   Effect.gen(function* () {
     const temp = yield* tmpdirScoped()
-    yield* Effect.promise(() =>
-      publish({ home: temp.path, manifest: { ...base, requires: { opencode: "^9.0.0" } } }),
-    )
+    yield* Effect.promise(() => publish({ home: temp.path, manifest: { ...base, requires: { opencode: "^9.0.0" } } }))
 
     const exit = yield* Effect.promise(() =>
       install({ home: temp.path, version: "1.0.0", opencodeVersion: "2.0.0" }).then(
@@ -137,11 +141,13 @@ it.effect("installs the webwright manifest as it ships", () =>
     const temp = yield* tmpdirScoped()
     const manifest = JSON.parse(
       yield* Effect.promise(() =>
-        readFile(path.resolve(import.meta.dir, "../../../../plugins/webwright/ocplugin.json"), "utf8"),
+        readFile(path.resolve(import.meta.dir, "../../../../plugins/webwright/METAINF"), "utf8"),
       ),
     ) as { id: string; version: string; entry: { server: string }; skills?: { path: string }[] }
     // The manifest may still point at a file with its extension, so add one only when it has none.
-    const entry = /\.[cm]?jsx?$|\.tsx?$/.test(manifest.entry.server) ? manifest.entry.server : `${manifest.entry.server}.js`
+    const entry = /\.[cm]?jsx?$|\.tsx?$/.test(manifest.entry.server)
+      ? manifest.entry.server
+      : `${manifest.entry.server}.js`
 
     yield* Effect.promise(() =>
       publish({

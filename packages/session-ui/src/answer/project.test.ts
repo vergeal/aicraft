@@ -52,8 +52,8 @@ describe("answer projection", () => {
 
     const turn = snapshot.turns.get(1)
     expect(turn?.foldable).toBe(true)
-    expect(turn?.processStart).toBe(1)
-    expect(turn?.answer).toBe(3)
+    expect(turn?.processStart).toBe("reasoning:msg_2:0")
+    expect(turn?.answer).toBe("assistant:msg_3:0")
     expect(turn?.elapsedMs).toBe(19)
 
     // Search and part reveal address rows by the timeline's content-part identity.
@@ -123,7 +123,7 @@ describe("answer projection", () => {
     expect(first?.members.map((key) => snapshot.nodes.get(key)?.payload.kind)).toEqual(["reasoning"])
     expect(first?.counts).toEqual([])
     expect(second?.members.map((key) => snapshot.nodes.get(key)?.payload.kind)).toEqual(["tool"])
-    expect(snapshot.turns.get(1)?.answer).toBe(4)
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:1")
   })
 
   test("keeps only the newest run of a running turn live", () => {
@@ -247,7 +247,7 @@ describe("answer projection", () => {
       assistant("msg_2", 2, [{ type: "text", text: "step summary" }, tool("tool_1")], 9),
     ])
 
-    expect(snapshot.turns.get(1)?.answer).toBe(1)
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
     expect(snapshot.turns.get(1)?.status).toBe("open")
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
   })
@@ -267,7 +267,7 @@ describe("answer projection", () => {
       { id: "msg_4", type: "idle", outcome: "succeeded", time: { created: 6 } } satisfies SessionMessageInfo,
     ])
 
-    expect(snapshot.turns.get(1)?.answer).toBe(1)
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
     expect(snapshot.turns.get(1)?.status).toBe("closed")
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
   })
@@ -280,7 +280,7 @@ describe("answer projection", () => {
     ])
 
     expect(snapshot.turns.get(1)?.status).toBe("closed")
-    expect(snapshot.turns.get(1)?.answer).toBe(1)
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
   })
 
   test("keeps row keys stable across streamed deltas", () => {
@@ -289,13 +289,22 @@ describe("answer projection", () => {
       assistant("msg_2", 2, [text("par")]),
     ])
 
-    const after = projectTimeline([
-      user("msg_1", "go", 1),
-      assistant("msg_2", 2, [text("partial answer")]),
-    ])
+    const after = projectTimeline(
+      [
+        user("msg_1", "go", 1),
+        assistant("msg_2", 2, [text("partial answer")]),
+      ],
+      before,
+    )
 
     expect([...after.nodes.keys()]).toEqual([...before.nodes.keys()])
     expect(after.entries).toEqual(before.entries)
+    // A delta replaces only the row it touched. Everything else keeps its object, which is what stops mounted
+    // rows from re-rendering on every streamed frame.
+    expect(after.entries).toBe(before.entries)
+    expect(after.nodes.get("input:msg_1")).toBe(before.nodes.get("input:msg_1"))
+    expect(after.nodes.get("assistant:msg_2:0")).not.toBe(before.nodes.get("assistant:msg_2:0"))
+    expect(after.turns.get(1)).toBe(before.turns.get(1))
   })
 
   test("keeps legacy context sources recorded before injected text was captured", () => {
@@ -407,6 +416,7 @@ describe("answer projection", () => {
       { key: "system", chars: 4, text: "sys\n" },
       { key: "core/instructions", chars: instructions.length, text: instructions },
     ]
+
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),
       { ...assistant("msg_2", 2, [tool("tool_1")], 3), metadata: { context: sources("a") } } satisfies SessionMessageInfo,
@@ -600,6 +610,35 @@ describe("answer projection", () => {
       retrying,
       { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 4 } } satisfies SessionMessageInfo,
     ])
+
     expect([...settled.nodes.values()].map((node) => node.payload.kind)).toEqual(["input"])
+  })
+
+  test("sums the files a turn changed once, and keeps the list a delta did not touch", () => {
+    const edit = (id: string, file: string, additions: number, deletions: number): Content => ({
+      type: "tool",
+      id,
+      name: "edit",
+      state: {
+        status: "completed",
+        input: { filePath: file },
+        content: [{ type: "text", text: "ok" }],
+        metadata: { files: [{ file, patch: "", additions, deletions, status: "modified" }] },
+      },
+      time: { created: 2, completed: 3 },
+    })
+
+    const rows = [edit("tool_1", "src/a.ts", 2, 1), edit("tool_2", "src/a.ts", 3, 0), edit("tool_3", "src/b.ts", 1, 4)]
+    const before = projectTimeline([user("msg_1", "go", 1), assistant("msg_2", 2, rows, 10)])
+
+    // One path counts once per turn, summed across every step that recorded it.
+    expect(before.changes.get(1)).toEqual([
+      { path: "src/a.ts", additions: 5, deletions: 1 },
+      { path: "src/b.ts", additions: 1, deletions: 4 },
+    ])
+
+    const after = projectTimeline([user("msg_1", "go", 1), assistant("msg_2", 2, [...rows, text("more")], 10)], before)
+
+    expect(after.changes.get(1)).toBe(before.changes.get(1))
   })
 })

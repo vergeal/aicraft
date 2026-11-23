@@ -1,9 +1,11 @@
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { Option, Schema } from "effect"
+import { changedFileDiff } from "../components/apply-patch-file"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
 import { toolActivity, toolDescription, toolLabel, toolMark, toolSummary } from "./tool"
 import type {
   ActivityCount,
+  ChangedFile,
   GroupItem,
   GroupTree,
   NodePayload,
@@ -63,6 +65,7 @@ const decodeContext = Schema.decodeUnknownOption(
 /** Context the Step injected ahead of the conversation, as its assistant message recorded it. */
 function injectedContext(message: SessionMessageInfo) {
   const sources = Option.getOrUndefined(decodeContext(message))?.metadata.context
+
   return sources && sources.length > 0 ? sources : undefined
 }
 
@@ -74,6 +77,7 @@ function injectedContext(message: SessionMessageInfo) {
 function noticeCopy(message: SessionMessageInfo) {
   const value = Option.getOrUndefined(decodeNotice(message))
   const body = value?.text?.trim()
+
   // Instruction updates carry an English description from the event; show localized copy instead.
   if (message.metadata?.notice === "instructions" || value?.description?.trim().startsWith("Instructions updated: "))
     return { text: "", detail: body, notice: "instructions-updated" as const }
@@ -144,6 +148,170 @@ function reusePayload(previous: NodePayload | undefined, next: NodePayload): Nod
 }
 
 /**
+ * Keeps the previous row when this projection produced the same row. Every field but the payload is an
+ * identity the projection derives from the message, so an equal row is the same row: reusing it stops a
+ * streamed delta from invalidating rows it did not touch.
+ */
+function reuseNode(previous: TimelineNode | undefined, next: TimelineNode): TimelineNode {
+  return previous && sameNode(previous, next) ? previous : next
+}
+
+function sameNode(left: TimelineNode, right: TimelineNode) {
+  return (
+    left.key === right.key &&
+    left.turn === right.turn &&
+    left.messageID === right.messageID &&
+    left.partID === right.partID &&
+    left.groupTree === right.groupTree &&
+    left.hidden === right.hidden &&
+    left.payload === right.payload
+  )
+}
+
+function reuseTurn(previous: TimelineTurn | undefined, next: TimelineTurn): TimelineTurn {
+  if (!previous) return next
+
+  return previous.turn === next.turn &&
+    previous.status === next.status &&
+    previous.answer === next.answer &&
+    previous.hasProcess === next.hasProcess &&
+    previous.processStart === next.processStart &&
+    previous.foldable === next.foldable &&
+    previous.startedAt === next.startedAt &&
+    previous.completedAt === next.completedAt &&
+    previous.elapsedMs === next.elapsedMs
+    ? previous
+    : next
+}
+
+function reuseEntries(previous: readonly TimelineEntry[] | undefined, next: TimelineEntry[]) {
+  if (!previous || previous.length !== next.length) return next
+
+  return previous.every((entry, index) => sameEntry(entry, next[index]!)) ? previous : next
+}
+
+function sameEntry(left: TimelineEntry, right: TimelineEntry) {
+  if (left.kind !== right.kind || left.key !== right.key) return false
+
+  return left.kind === "node" || right.kind === "node" || left.turn === right.turn
+}
+
+function reuseChildren(
+  previous: readonly TimelineChild[] | undefined,
+  next: TimelineChild[],
+): readonly TimelineChild[] {
+  if (!previous || previous.length !== next.length) return next
+
+  return previous.every((child, index) => sameChild(child, next[index]!)) ? previous : next
+}
+
+function sameChild(left: TimelineChild, right: TimelineChild) {
+  return left.kind === right.kind && left.key === right.key
+}
+
+/**
+ * Keeps the previous group when its rendering inputs did not change. Groups are rebuilt every projection,
+ * so without this every mounted fold re-reads its heading and rows on each streamed delta.
+ */
+function reuseGroup(previous: TimelineGroup | undefined, next: TimelineGroup): TimelineGroup {
+  return previous && sameGroup(previous, next) ? previous : next
+}
+
+function sameGroup(left: TimelineGroup, right: TimelineGroup) {
+  return (
+    left.key === right.key &&
+    left.turn === right.turn &&
+    left.closed === right.closed &&
+    left.running === right.running &&
+    left.icon === right.icon &&
+    left.single === right.single &&
+    left.runningDetail === right.runningDetail &&
+    left.lead === right.lead &&
+    sameStrings(left.members, right.members) &&
+    sameItems(left.items, right.items) &&
+    sameCounts(left.counts, right.counts) &&
+    sameStrings(left.uncategorized, right.uncategorized)
+  )
+}
+
+function sameStrings(left: readonly string[], right: readonly string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function sameItems(left: readonly GroupItem[], right: readonly GroupItem[]) {
+  if (left.length !== right.length) return false
+
+  return left.every((item, index) => {
+    const other = right[index]
+
+    if (!other || item.kind !== other.kind || item.key !== other.key) return false
+
+    if (item.kind === "row" || other.kind === "row") return item.kind === other.kind
+
+    return item.activity === other.activity && sameStrings(item.members, other.members)
+  })
+}
+
+function sameCounts(left: readonly ActivityCount[], right: readonly ActivityCount[]) {
+  if (left.length !== right.length) return false
+
+  return left.every((count, index) => {
+    const other = right[index]
+
+    return other !== undefined && count.kind === other.kind && count.count === other.count
+  })
+}
+
+/** Keeps a turn's changed-file entries when a step recorded the same file and counts again. */
+function reuseChanges(previous: readonly ChangedFile[] | undefined, next: ChangedFile[]) {
+  if (!previous || previous.length !== next.length) return next
+
+  let same = true
+
+  const files = next.map((file, index) => {
+    const old = previous[index]
+
+    if (!old || old.path !== file.path || old.additions !== file.additions || old.deletions !== file.deletions) {
+      same = false
+
+      return file
+    }
+
+    return old
+  })
+
+  return same ? previous : files
+}
+
+/**
+ * The files a turn changed, summed per path, read from the tool results that recorded them. This runs once
+ * per projection over the turn's own rows; a per-row component would rescan the whole transcript each time.
+ */
+function turnChanges(nodes: readonly TimelineNode[], turn: number): ChangedFile[] {
+  const changed = new Map<string, ChangedFile>()
+
+  for (const node of nodes) {
+    if (node.turn !== turn || node.hidden || node.payload.kind !== "tool") continue
+    const metadata = "metadata" in node.payload.tool.state ? node.payload.tool.state.metadata : undefined
+
+    if (!Array.isArray(metadata?.files)) continue
+
+    for (const diff of metadata.files) {
+      if (!changedFileDiff(diff)) continue
+
+      const file = changed.get(diff.file) ?? { path: diff.file, additions: 0, deletions: 0 }
+      changed.set(diff.file, {
+        path: file.path,
+        additions: file.additions + diff.additions,
+        deletions: file.deletions + diff.deletions,
+      })
+    }
+  }
+
+  return [...changed.values()]
+}
+
+/**
  * Project the loaded message window into ordered turns: one input, one process run, and the answer
  * per turn. Streaming parts keep their identity, so a delta updates a row instead of replacing it.
  * `previous` is the last projection: a row whose payload did not change keeps that payload object, so a
@@ -152,8 +320,8 @@ function reusePayload(previous: NodePayload | undefined, next: NodePayload): Nod
 export function projectTimeline(messages: readonly SessionMessageInfo[], previous?: Snapshot): Snapshot {
   const drafts: TurnDraft[] = []
   const turns = new Map<number, TimelineTurn>()
+  const changes = new Map<number, readonly ChangedFile[]>()
   const nodes: TimelineNode[] = []
-  let anchor = 0
   let current: TurnDraft | undefined
   /** What the previous step injected, so an unchanged baseline is not reported as a new event. */
   let injected: Map<string, string> | undefined
@@ -175,16 +343,16 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     partID?: string,
     hidden?: boolean,
   ) => {
-    const node: TimelineNode = {
+    const node = reuseNode(previous?.nodes.get(key), {
       key,
       turn: draft.turn,
-      anchor: anchor++,
       payload: reusePayload(previous?.nodes.get(key)?.payload, payload),
       messageID,
       partID,
       groupTree,
       hidden,
-    }
+    })
+
     draft.nodes.push(node)
     nodes.push(node)
 
@@ -194,13 +362,16 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
   // A later step supersedes the one before it, so the turn's failure and retry notice belong to its last step.
   const drop = (draft: TurnDraft, node: TimelineNode) => {
     const local = draft.nodes.indexOf(node)
+
     if (local >= 0) draft.nodes.splice(local, 1)
     const global = nodes.indexOf(node)
+
     if (global >= 0) nodes.splice(global, 1)
   }
 
   const supersede = (draft: TurnDraft) => {
     if (draft.errorNode) drop(draft, draft.errorNode)
+
     if (draft.retryNode) drop(draft, draft.retryNode)
     draft.errorNode = undefined
     draft.retryNode = undefined
@@ -233,6 +404,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     if (message.type === "idle") {
       draft.idle = true
+
       // A settled turn cannot still be waiting to retry; a late label must not outlive the execution.
       if (draft.retryNode) drop(draft, draft.retryNode)
       draft.retryNode = undefined
@@ -328,6 +500,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     if (message.error) {
       const interrupted = isInterruptedError(message.error)
       draft.failure = interrupted ? "stopped" : "failed"
+
       // A stopped turn already says it stopped; repeating "Step interrupted" under a failure title only
       // restates the state in worse words.
       if (!interrupted)
@@ -352,6 +525,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     const toolMessages = new Set(
       draft.nodes.filter((node) => node.payload.kind === "tool").map((node) => node.messageID),
     )
+
     const answer =
       draft.nodes.findLast(
         (node) =>
@@ -450,6 +624,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     // A group is live while the running turn has nothing after it but replies: those replies are the same
     // step's text, not a later block that already closed the run.
     const liveIndex = turnChildren.findLastIndex((child) => child.kind === "group")
+
     const liveKey =
       status === "open" && liveIndex >= 0 && turnChildren.slice(liveIndex + 1).every((child) => child.kind === "node")
         ? turnChildren[liveIndex]!.key
@@ -458,10 +633,16 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     for (const item of runs) {
       const closed = item.notice || item.key !== liveKey
 
-      groups.set(item.key, summarizeGroup(item.key, draft.turn, item.members, closed, item.notice))
+      groups.set(
+        item.key,
+        reuseGroup(
+          previous?.groups.get(item.key),
+          summarizeGroup(item.key, draft.turn, item.members, closed, item.notice),
+        ),
+      )
     }
 
-    children.set(draft.turn, turnChildren)
+    children.set(draft.turn, reuseChildren(previous?.children.get(draft.turn), turnChildren))
 
     const input = draft.nodes.find((node) => node.payload.kind === "input")
 
@@ -480,25 +661,30 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
         ? undefined
         : Math.max(0, draft.completedAt - draft.startedAt)
 
-    turns.set(draft.turn, {
-      turn: draft.turn,
-      status,
-      answer: answer?.anchor ?? null,
-      hasProcess: process.length > 0,
-      processStart: process[0]?.anchor ?? null,
-      foldable,
-      startedAt: draft.startedAt,
-      completedAt: draft.completedAt,
-      elapsedMs,
-    })
+    turns.set(
+      draft.turn,
+      reuseTurn(previous?.turns.get(draft.turn), {
+        turn: draft.turn,
+        status,
+        answer: answer?.key ?? null,
+        hasProcess: process.length > 0,
+        processStart: process[0]?.key ?? null,
+        foldable,
+        startedAt: draft.startedAt,
+        completedAt: draft.completedAt,
+        elapsedMs,
+      }),
+    )
+    changes.set(draft.turn, reuseChanges(previous?.changes.get(draft.turn), turnChanges(draft.nodes, draft.turn)))
   }
 
   return {
-    entries,
+    entries: reuseEntries(previous?.entries, entries),
     nodes: new Map(nodes.map((node) => [node.key, node] as const)),
     groups,
     turns,
     children,
+    changes,
   }
 }
 
@@ -529,7 +715,7 @@ function summarizeGroup(
   const order: ProcessActivity[] = []
   let running: ProcessActivity | undefined
   let runningDetail = ""
-  let runningAnchor = -1
+  let runningIndex = -1
   let reasoningStreaming = false
   let reasoningDetail = ""
   // The heading speaks for the running call, else the last one.
@@ -538,7 +724,7 @@ function summarizeGroup(
   let lead: ToolContent | undefined
   let runningLead: ToolContent | undefined
 
-  for (const member of members) {
+  for (const [index, member] of members.entries()) {
     if (member.payload.kind === "reasoning") {
       if (member.payload.streaming) {
         reasoningStreaming = true
@@ -562,7 +748,9 @@ function summarizeGroup(
 
     icon = memberIcon
     lead = member.payload.tool
+
     if (!names.includes(name)) names.push(name)
+
     if (kind === "tools" && !uncategorized.includes(name)) uncategorized.push(name)
 
     if (!counts.has(kind)) order.push(kind)
@@ -570,10 +758,10 @@ function summarizeGroup(
 
     const state = member.payload.tool.state.status
 
-    if ((state === "running" || state === "streaming") && member.anchor >= runningAnchor) {
+    if ((state === "running" || state === "streaming") && index >= runningIndex) {
       running = kind
       runningDetail = toolDescription(member.payload.tool) ?? ""
-      runningAnchor = member.anchor
+      runningIndex = index
       runningIcon = memberIcon
       runningLead = member.payload.tool
     }

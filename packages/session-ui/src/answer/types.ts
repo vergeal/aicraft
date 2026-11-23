@@ -47,7 +47,7 @@ export type NodePayload =
   | { readonly kind: "error"; readonly text: string }
   | { readonly kind: "retry"; readonly attempt: number; readonly text: string }
 
-/** One rendered row with a stable identity and an ordering anchor. */
+/** One rendered row with a stable identity. */
 export interface TimelineNode {
   readonly key: string
   readonly turn: number
@@ -55,8 +55,6 @@ export interface TimelineNode {
   readonly messageID?: string
   /** The content part this row renders, using the timeline's `messageID:kind:ordinal` identity. */
   readonly partID?: string
-  /** Monotonic position in the loaded window. */
-  readonly anchor: number
   readonly groupTree?: GroupTree
   /** A leading thought stays in the model but is not drawn. */
   readonly hidden?: boolean
@@ -126,10 +124,11 @@ export type TimelineChild = { readonly kind: "group"; readonly key: string } | {
 export interface TimelineTurn {
   readonly turn: number
   readonly status: "open" | "closed" | "stopped" | "failed"
-  readonly answer: number | null
+  /** The row key of the turn's closing answer. */
+  readonly answer: string | null
   readonly hasProcess: boolean
-  /** Anchor of the first process row, when the turn has any. */
-  readonly processStart: number | null
+  /** The row key of the turn's first process row, when the turn has any. */
+  readonly processStart: string | null
   /** A closed turn with an answer can fold its process. */
   readonly foldable: boolean
   /** When the turn's prompt was created. */
@@ -140,10 +139,19 @@ export interface TimelineTurn {
   readonly elapsedMs?: number
 }
 
+/** One file a turn changed, summed across every step that recorded it. */
+export interface ChangedFile {
+  readonly path: string
+  readonly additions: number
+  readonly deletions: number
+}
+
 export interface Snapshot {
   readonly entries: readonly TimelineEntry[]
   readonly nodes: ReadonlyMap<string, TimelineNode>
   readonly groups: ReadonlyMap<string, TimelineGroup>
   readonly turns: ReadonlyMap<number, TimelineTurn>
   readonly children: ReadonlyMap<number, readonly TimelineChild[]>
+  /** The files each turn changed, keyed by turn number. */
+  readonly changes: ReadonlyMap<number, readonly ChangedFile[]>
 }

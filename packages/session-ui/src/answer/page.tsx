@@ -30,6 +30,7 @@ import {
   type RestoreState,
 } from "./restore-machine"
 import type {
+  ChangedFile,
   ContextSource,
   GroupItem,
   NodePayload,
@@ -428,23 +429,28 @@ export function AnswerPage(props: AnswerPageProps) {
   const running = createMemo(() => [...snapshot().turns.values()].findLast((turn) => turn.status === "open"))
 
   const rowIndex = createMemo(() => new Map(keys().map((key, position) => [key, position] as const)))
-  const rowGaps = createMemo(() => entries().map((_, position) => flowGapPx(snapshot(), entries(), position)))
+
+  // Gaps depend on the entry kinds, not on their text, so a streamed delta keeps the previous array and every
+  // row keeps its `padding-top` without re-running.
+  const rowGaps = createMemo<readonly number[]>((previous) => {
+    const next = entries().map((_, position) => flowGapPx(snapshot(), entries(), position))
+
+    return previous && previous.length === next.length && previous.every((gap, index) => gap === next[index])
+      ? previous
+      : next
+  })
 
   // Every row keeps its box in the document, so a restore, a position report or a reveal still reads a real offset for
   // any row. Only the rows near the viewport render their content; the rest reserve the height they last measured at.
   // A long transcript therefore keeps its true height while the live DOM holds a window of rows instead of all of them.
-  const heights = new Map<string, number>()
-  const [measured, setMeasured] = createSignal(0)
+  // Heights live in a store so a streamed row that grows every frame only re-renders its own placeholder.
+  const [heights, setHeights] = createStore<Record<string, number>>({})
   const [near, setNear] = createStore<Record<string, boolean | undefined>>({})
   const forced = new Set<string>()
   const [forcedVersion, setForcedVersion] = createSignal(0)
   const [observer, setObserver] = createSignal<IntersectionObserver>()
 
-  let measuredQueued = false
-
   const resize = new ResizeObserver((records) => {
-    let changed = false
-
     for (const record of records) {
       const element = record.target as HTMLElement
       const key = element.dataset.answerKey
@@ -452,18 +458,9 @@ export function AnswerPage(props: AnswerPageProps) {
       if (!key) continue
       const height = record.borderBoxSize?.[0]?.blockSize ?? element.offsetHeight
 
-      if (height <= 0 || heights.get(key) === height) continue
-      heights.set(key, height)
-      changed = true
+      if (height <= 0 || heights[key] === height) continue
+      setHeights(key, height)
     }
-
-    // One bump per frame: a streamed row grows every frame, and every row that reads its reserved height depends on it.
-    if (!changed || measuredQueued) return
-    measuredQueued = true
-    requestAnimationFrame(() => {
-      measuredQueued = false
-      setMeasured((version) => version + 1)
-    })
   })
 
   onCleanup(() => resize.disconnect())
@@ -472,6 +469,7 @@ export function AnswerPage(props: AnswerPageProps) {
     const root = props.viewport?.()
 
     if (!root) return
+
     const next = new IntersectionObserver(
       (records) => {
         for (const record of records) {
@@ -600,6 +598,7 @@ export function AnswerPage(props: AnswerPageProps) {
     const next = transitionRestore(current, event)
 
     if (next !== current) setRestoreState(next)
+
     // A miss is final for this activation: the host lands on the newest content and holds the remembered row.
     if (next === "missed") props.onRestoreMiss?.()
   }
@@ -626,6 +625,7 @@ export function AnswerPage(props: AnswerPageProps) {
     const root = props.viewport?.()
 
     if (!root || keys().length === 0) return
+
     if (restoreState() !== "idle") return
 
     const target = pendingRestore
@@ -722,10 +722,13 @@ export function AnswerPage(props: AnswerPageProps) {
       if (frame !== undefined) return
       frame = requestAnimationFrame(() => {
         frame = undefined
+
         if (!root.isConnected) return
+
         // A following view sits at the end, and that place is already remembered as the end. Measuring its top row on
         // every streamed frame would force a layout per frame for a position nothing reads.
         if (props.following?.() === true) return
+
         // An activation that still waits for its remembered row has not decided where the reader belongs. The
         // reinsertion clamps the view to the top, and saving that would replace the position the restore needs.
         if (pendingRestore && restoreState() === "idle") return
@@ -737,6 +740,7 @@ export function AnswerPage(props: AnswerPageProps) {
 
     onCleanup(() => {
       root.removeEventListener("scroll", onScroll)
+
       if (frame !== undefined) cancelAnimationFrame(frame)
     })
   })
@@ -776,7 +780,7 @@ export function AnswerPage(props: AnswerPageProps) {
 
       if (!owner || owner.status !== "closed") return undefined
 
-      return owner.answer === value.anchor ? owner : undefined
+      return owner.answer === value.key ? owner : undefined
     })
 
     const visibleNode = createMemo(() => {
@@ -793,7 +797,7 @@ export function AnswerPage(props: AnswerPageProps) {
       // a closed folded turn hides them; otherwise the fold renders the reply at its own position.
       if (!folded || owner.status !== "closed") return undefined
 
-      if ((props.foldedReplies ?? "final") !== "final" || value.anchor === owner.answer) return value
+      if ((props.foldedReplies ?? "final") !== "final" || value.key === owner.answer) return value
 
       return undefined
     })
@@ -818,8 +822,7 @@ export function AnswerPage(props: AnswerPageProps) {
     // A row that has not been measured yet reserves an estimate built from its kind and its text; the transcript
     // corrects it as soon as the reader scrolls the row into view and it mounts for real.
     const reserved = () => {
-      measured()
-      const known = heights.get(key)
+      const known = heights[key]
 
       if (known !== undefined) return known
       const gap = rowGaps()[position()] ?? 0
@@ -827,7 +830,9 @@ export function AnswerPage(props: AnswerPageProps) {
       const payload = value?.kind === "node" ? snapshot().nodes.get(value.key)?.payload : undefined
 
       if (!payload) return gap + ROW_ESTIMATE.fold
+
       if (payload.kind === "input") return gap + textEstimate(ROW_ESTIMATE.input, payload.text)
+
       if (payload.kind === "assistant") return gap + textEstimate(ROW_ESTIMATE.answer, payload.text)
 
       return gap + ROW_ESTIMATE.row
@@ -851,16 +856,21 @@ export function AnswerPage(props: AnswerPageProps) {
       })
     })
 
+    // The gap and the placeholder are separate memos: a streamed row that grows re-runs only the row it belongs to.
+    const gap = createMemo(() => `${rowGaps()[position()] ?? 0}px`)
+    const placeholder = createMemo(() => (mounted() ? undefined : reserved()))
+
+    const rowStyle = createMemo<JSX.CSSProperties>(() => {
+      const top = gap()
+      const height = placeholder()
+
+      if (height === undefined) return { "padding-top": top }
+
+      return { "padding-top": top, height: `${height}px`, "box-sizing": "border-box", overflow: "hidden" }
+    })
+
     return (
-      <div
-        ref={setRow}
-        data-answer-key={key}
-        class="select-text"
-        style={{
-          "padding-top": `${rowGaps()[position()] ?? 0}px`,
-          ...(mounted() ? {} : { height: `${reserved()}px`, "box-sizing": "border-box", overflow: "hidden" }),
-        }}
-      >
+      <div ref={setRow} data-answer-key={key} class="select-text" style={rowStyle()}>
         <Show when={mounted()}>
           <Show when={visibleNode()}>
             {(value) => (
@@ -896,6 +906,7 @@ export function AnswerPage(props: AnswerPageProps) {
     const root = props.viewport?.()
 
     if (!root) return false
+
     const node = [...snapshot().nodes.values()].find((value) =>
       partID ? value.partID === partID : value.messageID === id,
     )
@@ -1133,6 +1144,7 @@ function FoldRow(props: {
                     }
 
                     const group = createMemo(() => props.snapshot.groups.get(key))
+
                     // A group with one row has nothing to summarize: a heading around it would restate that row
                     // and opening it would show the same line twice. Lay the row itself down instead.
                     const solo = createMemo(() => {
@@ -1188,33 +1200,12 @@ function FoldRow(props: {
   )
 }
 
-/** The files a turn changed, summed per path, read from the tool results that recorded them. */
-function turnChanges(snapshot: Snapshot, turn: number) {
-  const changed = new Map<string, { path: string; additions: number; deletions: number }>()
+/** The files a turn changed come from the projection, which sums them in one pass over the turn's rows. */
+const NO_FILES: readonly ChangedFile[] = []
 
-  for (const node of snapshot.nodes.values()) {
-    if (node.turn !== turn || node.hidden || node.payload.kind !== "tool") continue
-    const metadata = "metadata" in node.payload.tool.state ? node.payload.tool.state.metadata : undefined
-
-    if (!Array.isArray(metadata?.files)) continue
-
-    for (const diff of metadata.files) {
-      if (!changedFileDiff(diff)) continue
-
-      const file = changed.get(diff.file) ?? { path: diff.file, additions: 0, deletions: 0 }
-      file.additions += diff.additions
-      file.deletions += diff.deletions
-      changed.set(diff.file, file)
-    }
-  }
-
-  return [...changed.values()]
-}
-
-/** The turn's changed files under its closing answer: one row per file with the line counts the tool recorded. */
 function TurnChanges(props: { snapshot: Snapshot; turn: TimelineTurn; onOpenFile?: (path: string) => void }) {
   const i18n = useI18n()
-  const files = createMemo(() => turnChanges(props.snapshot, props.turn.turn))
+  const files = () => props.snapshot.changes.get(props.turn.turn) ?? NO_FILES
 
   return (
     <Show when={files().length > 0}>
@@ -1508,6 +1499,7 @@ function RepeatRow(props: {
     const members = props.item.members.map((key) => props.snapshot.nodes.get(key)?.payload)
 
     if (members.some((payload) => payload?.kind === "tool" && payload.tool.state.status === "error")) return "error"
+
     if (members.some((payload) => payload?.kind === "tool" && (payload.tool.state.status === "running" || payload.tool.state.status === "streaming")))
       return "running"
 
@@ -1807,6 +1799,7 @@ function RetryRow(props: { attempt: number; text: string }) {
   const copy = async () => {
     if (!(await writeClipboard(props.text))) return
     setCopied(true)
+
     if (copyTimer !== undefined) window.clearTimeout(copyTimer)
     copyTimer = window.setTimeout(() => setCopied(false), 1200)
   }
@@ -1886,6 +1879,7 @@ function NoticeRow(props: {
 }) {
   const i18n = useI18n()
   const expanded = () => props.rowOpen ?? false
+
   const title = () =>
     props.notice === "instructions-updated"
       ? i18n.t("ui.answer.notice.instructionsUpdated")
@@ -1932,11 +1926,15 @@ function ContextRow(props: {
   const i18n = useI18n()
   const rows = useContext(RowDisclosureContext)
   const expanded = () => props.rowOpen ?? false
+
   const label = (key: string) => {
     const known = CONTEXT_LABELS[key]
+
     if (known) return i18n.t(known)
+
     return key.startsWith("api/") ? key.slice(4) : key
   }
+
   // A source that breaks down into files lists the files directly; anything else is one entry of its own.
   const entries = () =>
     props.sources.flatMap((source) =>
@@ -1956,6 +1954,7 @@ function ContextRow(props: {
             },
           ],
     )
+
   return (
     <DisclosureRow
       title={i18n.t(props.change === "inject" ? "ui.answer.context.inject" : "ui.answer.context.change")}
@@ -1970,6 +1969,7 @@ function ContextRow(props: {
           {(entry) => {
             const open = () => rows?.open(entry.key) ?? false
             const chars = () => i18n.t("ui.answer.context.chars", { count: String(entry.chars) })
+
             return (
               <Show
                 when={entry.text}

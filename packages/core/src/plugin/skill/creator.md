@@ -1,7 +1,7 @@
 ---
 name: 插件创造
 description: "当用户要新建、修改或打包一个 AI Craft 插件（.exc）时使用。覆盖工程骨架、METAINF 清单、服务端与界面入口、随包技能、构建与打包脚本，以及按设计规范生成插件图标。"
-icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#16785f"/><g fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.9" y="4.9" width="5.8" height="5.8" rx="1.6"/><rect x="13.3" y="13.3" width="5.8" height="5.8" rx="1.6"/><path d="M10.7 7.8h2.1a1.7 1.7 0 0 1 1.7 1.7v3.8"/></g></svg>'
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2b2740"/><path d="M12 5.2 18.7 9v6L12 18.8 5.3 15V9z" fill="#6c5ae0"/><path d="M12 5.2 18.7 9 12 12.9 5.3 9z" fill="#a48bf5"/><path d="M5.3 9 12 12.9v5.9L5.3 15z" fill="#7d63e0"/><path d="M18.7 9 12 12.9v5.9l6.7-3.8z" fill="#f0a06a"/></svg>'
 ---
 
 <!--

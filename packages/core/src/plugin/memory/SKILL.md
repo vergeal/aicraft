@@ -1,7 +1,7 @@
 ---
 name: 记忆
 description: "用 `memory.*` 工具记住用户的长期习惯、项目约定与重要事实，并按全局或项目隔离保存。用户表达长期偏好、纠正你的做法或要求记住时，先加载本技能再保存。"
-icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#9c4a7a"/><g fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.1 5.6h7.8a1.4 1.4 0 0 1 1.4 1.4v12.1l-5.3-3.4-5.3 3.4V7a1.4 1.4 0 0 1 1.4-1.4z"/></g></svg>'
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#a83c6b"/><path d="M8 6.4h8a1.7 1.7 0 0 1 1.7 1.7v11.5L12 15.9l-5.7 3.7V8.1A1.7 1.7 0 0 1 8 6.4z" fill="#fbeef4"/></svg>'
 ---
 
 # 记忆

@@ -427,8 +427,9 @@ function Message(props: {
           </div>
         </Show>
 
-        <Show when={props.tail}>
-          <div class="message-tools">
+        {/* 复制行：每条消息都留出同一块高度，组内组间的行距才不会因为这条有没有按钮而变化。 */}
+        <div class="message-tools">
+          <Show when={props.tail}>
             <Show when={props.message.kind === "image" && props.message.filePath.length > 0}>
               <button type="button" onClick={() => props.onOpenImage(props.message.filePath)}>
                 {text(props.ctx, "hyt.chat.msg.enlarge")}
@@ -444,8 +445,8 @@ function Message(props: {
                 {text(props.ctx, "hyt.chat.msg.reveal")}
               </button>
             </Show>
-          </div>
-        </Show>
+          </Show>
+        </div>
       </div>
     </div>
   )
@@ -486,6 +487,12 @@ function Shot(props: {
   onOpen: (path: string) => void
 }) {
   const [src] = createResource(() => props.path, props.onMedia)
+  /** 读到了地址但解码失败：一样退回色块，不要浏览器默认的破图图标。 */
+  const [broken, setBroken] = createSignal(false)
+  createEffect(() => {
+    src()
+    setBroken(false)
+  })
 
   return (
     <button
@@ -496,8 +503,8 @@ function Shot(props: {
       disabled={props.path.length === 0}
       onClick={() => props.onOpen(props.path)}
     >
-      <Show when={src()} fallback={text(props.ctx, "hyt.chat.msg.image.missing")}>
-        <img src={src()} alt="" />
+      <Show when={src() !== undefined && !broken()} fallback={text(props.ctx, "hyt.chat.msg.image.missing")}>
+        <img src={src()} alt="" onError={() => setBroken(true)} />
       </Show>
     </button>
   )

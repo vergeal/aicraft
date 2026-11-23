@@ -72,6 +72,8 @@ export function ChatPage(props: {
   const [draftText, setDraftText] = createSignal("")
   /** 卡片里点「发消息」后让输入框拿到焦点，值只是变化通知。 */
   const [composerFocus, setComposerFocus] = createSignal(0)
+  /** 会话头像解码失败：退回名字的首字，别让浏览器画破图图标。 */
+  const [headBroken, setHeadBroken] = createSignal(false)
 
   /** 左栏与聊天区之间的分隔线：拖动改左栏宽度，松手才写存储。 */
   const [resizing, setResizing] = createSignal(false)
@@ -514,10 +516,10 @@ export function ChatPage(props: {
             <Show when={selected()}>
               <span class="head-face" aria-hidden="true">
                 <Show
-                  when={headAvatar()}
+                  when={headSource()}
                   fallback={(selected()?.members[0]?.name ?? selected()?.name ?? "").slice(0, 2)}
                 >
-                  <img src={headAvatar()} alt="" />
+                  <img src={headSource()} alt="" onError={() => setHeadBroken(true)} />
                 </Show>
               </span>
               <div class="head-text">
@@ -620,6 +622,16 @@ export function ChatPage(props: {
       <ProfileCard ctx={ctx} profile={profile} onOpenSession={openSession} onCopy={copy} />
     </div>
   )
+
+  /** 头像地址会随会话切换和头像表刷新变化，一变化就允许重新解码。 */
+  createEffect(() => {
+    headAvatar()
+    setHeadBroken(false)
+  })
+
+  function headSource() {
+    return headBroken() ? undefined : headAvatar()
+  }
 
   function headAvatar() {
     const session = selected()

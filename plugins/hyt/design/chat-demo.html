@@ -133,14 +133,15 @@ textarea { font: inherit; color: inherit; }
   display: grid;
   grid-template-columns: var(--rail) minmax(0, 1fr);
   height: calc(100dvh - 34px);
-  background: var(--paper);
+  /* 底色跟左栏一致：聊天区的圆角就是从这层底色里挖出来的。 */
+  background: var(--chrome);
 }
 
 .shell[data-panel="open"] {
   grid-template-columns: var(--rail) minmax(0, 1fr) var(--panel);
 }
 
-.shell[data-blank="true"] { grid-template-columns: minmax(0, 1fr); }
+.shell[data-blank="true"] { grid-template-columns: minmax(0, 1fr); background: var(--paper); }
 
 .shell[data-blank="true"] > .rail,
 .shell[data-blank="true"] > .desk,
@@ -152,8 +153,9 @@ textarea { font: inherit; color: inherit; }
   flex-direction: column;
   min-height: 0;
   background: var(--chrome);
-  border-right: 1px solid var(--line);
 }
+
+/* 两栏之间的界线由聊天区那张纸自己的边缘给出（见 .desk），左栏不再另画一条线。 */
 
 .brand {
   display: flex;
@@ -465,6 +467,10 @@ textarea { font: inherit; color: inherit; }
   min-width: 0;
   min-height: 0;
   background: var(--paper);
+  /* 聊天区是浮在左栏底色上的一张纸：抬起左上角、给一道很淡的边影，和目录分开。 */
+  border-top-left-radius: 12px;
+  box-shadow: -1px 0 0 var(--line-soft), -6px 0 14px -10px var(--shadow);
+  overflow: hidden;
 }
 
 .head {
@@ -619,12 +625,17 @@ textarea { font: inherit; color: inherit; }
   background: var(--seal-bg);
 }
 
+/* 行距只有两档：同一个人连续发言贴紧，换人或隔了 5 分钟以上空出一段。
+   复制行每条都占同一块高度（见 #message-tools），所以组内、组间的间距都是确定的。 */
 .msg {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 10px;
-  margin-bottom: 14px;
+  margin: 0;
 }
+
+/* 新的一组：换人，或者距上一条超过 5 分钟。 */
+.msg:not([data-grouped="true"]) { margin-top: 10px; }
 
 .msg-face {
   display: grid;
@@ -657,8 +668,7 @@ textarea { font: inherit; color: inherit; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 连续同人：头像位保留，隐去重复的头像与名字，整块收紧 */
-.msg[data-grouped="true"] { margin-top: -8px; margin-bottom: 8px; }
+/* 连续同人：头像位保留，隐去重复的头像与名字 */
 .msg[data-grouped="true"] .msg-face,
 .msg[data-grouped="true"] .msg-meta { visibility: hidden; }
 
@@ -706,13 +716,16 @@ textarea { font: inherit; color: inherit; }
 
 .msg[data-self="true"] .msg-meta { align-self: flex-end; }
 
+/* 复制行贴在气泡正下方：他人左对齐、自己右对齐；平时透明但占住 14px，
+   悬浮时不跳。每条消息都留同一块高度，行距才不会因为有没有按钮而变。 */
 .message-tools {
   display: flex;
   gap: 4px;
-  justify-content: flex-end;
-  margin-top: 3px;
+  align-items: center;
+  min-height: 14px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 14px;
   opacity: 0;
   transition: opacity 120ms ease-out;
 }
@@ -721,12 +734,13 @@ textarea { font: inherit; color: inherit; }
 .msg:focus-within .message-tools { opacity: 1; }
 
 .message-tools button {
-  padding: 0 4px;
+  padding: 0 3px;
   border: 0;
   border-radius: 4px;
   background: none;
   color: inherit;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 14px;
   cursor: pointer;
 }
 
@@ -786,9 +800,8 @@ textarea { font: inherit; color: inherit; }
 /* 图片 */
 .shots {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 3px;
-  width: min(320px, 100%);
+  width: 100%;
   margin-top: 9px;
   overflow: hidden;
   border-radius: var(--r-row);
@@ -1280,6 +1293,8 @@ details.tech pre {
 @media (max-width: 760px) {
   .shell { grid-template-columns: minmax(0, 1fr); }
   .rail { display: none; }
+  /* 没有左栏时聊天区铺满整扇窗，不再需要从底色里浮起来。 */
+  .desk { border-top-left-radius: 0; box-shadow: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1549,10 +1564,9 @@ details.tech pre {
           <div class="msg-body">
             <div class="msg-meta"><span class="msg-name">罗添胜</span><span class="msg-time">09:22</span></div>
             <div class="bubble bubble--block bubble--w">
-              现场拍了两张，二号线的柜门锁已经换掉了。
+              现场拍了一张，二号线的柜门锁已经换掉了。
               <div class="shots">
-                <span class="shot" aria-hidden="true">现场照片 1</span>
-                <span class="shot" data-hue="a" aria-hidden="true">现场照片 2</span>
+                <span class="shot" data-hue="a" aria-hidden="true">现场照片</span>
               </div>
             </div>
             <div class="message-tools"><button type="button">放大</button><button type="button">保存</button></div>

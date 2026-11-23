@@ -69,7 +69,8 @@ export const css = `
   grid-template-columns: var(--rail) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
-  background: var(--paper);
+  /* 底色跟左栏一致：聊天区的圆角就是从这层底色里挖出来的。 */
+  background: var(--chrome);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 15px;
@@ -81,7 +82,8 @@ export const css = `
   grid-template-columns: var(--rail) minmax(0, 1fr) var(--panel);
 }
 
-.hyt-shell[data-blank="true"] { grid-template-columns: minmax(0, 1fr); }
+/* 两条栏都没有时整页只有一张纸，不需要再垫一层左栏底色。 */
+.hyt-shell[data-blank="true"] { grid-template-columns: minmax(0, 1fr); background: var(--paper); }
 
 .hyt-shell[data-blank="true"] > .rail,
 .hyt-shell[data-blank="true"] > .desk,
@@ -547,6 +549,10 @@ export const css = `
   min-width: 0;
   min-height: 0;
   background: var(--paper);
+  /* 聊天区是浮在左栏底色上的一张纸：抬起左上角、给一道很淡的边影，和目录分开。 */
+  border-top-left-radius: 12px;
+  box-shadow: -1px 0 0 var(--line-soft), -6px 0 14px -10px var(--shadow);
+  overflow: hidden;
 }
 
 .hyt-shell .head {
@@ -707,10 +713,15 @@ export const css = `
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 10px;
-  margin-bottom: 14px;
+  /* 行距只有两档：同一个人连续发言贴紧，换人或隔了 5 分钟以上空出一段。
+     复制行每条都占同一块高度（见 messages.tsx），所以组内、组间的间距都是确定的。 */
+  margin: 0;
   border-radius: 10px;
   outline: none;
 }
+
+/* 新的一组：换人，或者距上一条超过 5 分钟。 */
+.hyt-shell .msg:not([data-grouped="true"]) { margin-top: 8px; }
 
 /* 消息行本身可以被键盘聚焦（Shift+F10 开菜单），聚焦只给一圈浅环，不抢气泡的颜色。 */
 .hyt-shell .msg:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
@@ -759,7 +770,6 @@ export const css = `
 }
 
 /* 连续同人：头像位保留，隐去重复的头像与名字，整块收紧 */
-.hyt-shell .msg[data-grouped="true"] { margin-top: -8px; margin-bottom: 8px; }
 .hyt-shell .msg[data-grouped="true"] .msg-face,
 .hyt-shell .msg[data-grouped="true"] .msg-face-btn,
 .hyt-shell .msg[data-grouped="true"] .msg-meta { visibility: hidden; }
@@ -808,16 +818,16 @@ export const css = `
 
 .hyt-shell .msg[data-self="true"] .msg-meta { align-self: flex-end; }
 
-/* 复制行贴在气泡正下方：他人左对齐、自己右对齐；平时透明但占住 20px，悬浮时不跳。
-   只有同人分组的最后一条渲染它（见 messages.tsx 的 tail）。 */
+/* 复制行贴在气泡正下方：他人左对齐、自己右对齐；平时透明但占住 14px，
+   悬浮时不跳。每条消息都留同一块高度，行距才不会因为有没有按钮而变。 */
 .hyt-shell .message-tools {
   display: flex;
   gap: 4px;
   align-items: center;
-  min-height: 20px;
-  margin-top: 2px;
+  min-height: 14px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 14px;
   opacity: 0;
   transition: opacity 120ms ease-out;
 }
@@ -827,12 +837,13 @@ export const css = `
 .hyt-shell .msg[data-selected="true"] .message-tools { opacity: 1; }
 
 .hyt-shell .message-tools button {
-  padding: 0 4px;
+  padding: 0 3px;
   border: 0;
   border-radius: 4px;
   background: none;
   color: inherit;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 14px;
   cursor: pointer;
 }
 
@@ -892,9 +903,8 @@ export const css = `
 /* 图片 */
 .hyt-shell .shots {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 3px;
-  width: min(320px, 100%);
+  width: 100%;
   margin-top: 9px;
   overflow: hidden;
   border-radius: var(--r-row);
@@ -1601,6 +1611,8 @@ export const css = `
   .hyt-shell { grid-template-columns: minmax(0, 1fr); }
   .hyt-shell .rail { display: none; }
   .hyt-shell .splitter { display: none; }
+  /* 没有左栏时聊天区铺满整扇窗，不再需要从底色里浮起来。 */
+  .hyt-shell .desk { border-top-left-radius: 0; box-shadow: none; }
   .hyt-shell .stream { padding: 0 16px; }
   .hyt-shell .composer { padding: 8px 12px 10px; }
 }

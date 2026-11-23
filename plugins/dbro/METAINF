@@ -18,7 +18,7 @@
     "description": "只读查询达梦 8、MySQL 和 PostgreSQL：统一入口、方言适配的表清单与表结构，没有写开关。",
     "category": "data",
     "tools": ["dbro.*"],
-    "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><ellipse cx=\"12\" cy=\"5.5\" rx=\"7.5\" ry=\"3\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M4.5 5.5v13c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-13\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><rect width=\"24\" height=\"24\" rx=\"7\" fill=\"#0f6b60\"/><path d=\"M6.6 6.75H17.4V17.25A5.4 2.1 0 0 1 6.6 17.25Z\" fill=\"#f2fbf7\" stroke=\"#064a42\" stroke-width=\"1.2\" stroke-linejoin=\"round\"/><ellipse cx=\"12\" cy=\"6.75\" rx=\"5.4\" ry=\"2.1\" fill=\"#8ad9c8\" stroke=\"#064a42\" stroke-width=\"1.2\"/><rect x=\"7.4\" y=\"10.6\" width=\"9.2\" height=\"1.4\" rx=\"0.7\" fill=\"#0f8f7d\"/><rect x=\"7.4\" y=\"14.1\" width=\"9.2\" height=\"1.4\" rx=\"0.7\" fill=\"#0f8f7d\"/></svg>",
     "skills": [
       {
         "id": "dbro",

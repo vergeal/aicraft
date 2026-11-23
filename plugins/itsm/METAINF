@@ -21,7 +21,7 @@
     "tools": [
       "itsm.*"
     ],
-    "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6.5 2.5h8l5 5v12a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M14.5 2.5V7.5H19.5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M8.5 10h8M8.5 13.5h8M8.5 17h5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><rect width=\"24\" height=\"24\" rx=\"7\" fill=\"#c14b2e\"/><rect x=\"5.6\" y=\"4.4\" width=\"12.8\" height=\"15.2\" rx=\"2.8\" fill=\"#fff6f0\" stroke=\"#7a2a14\" stroke-width=\"1.2\"/><rect x=\"8.4\" y=\"8.6\" width=\"7.2\" height=\"1.4\" rx=\"0.7\" fill=\"#d0704f\"/><rect x=\"8.4\" y=\"11.8\" width=\"5\" height=\"1.4\" rx=\"0.7\" fill=\"#d0704f\"/><circle cx=\"14.8\" cy=\"16.3\" r=\"2.8\" fill=\"#2f8f5b\"/><path d=\"M13.6 16.3 14.8 17.5 16.4 15.5\" fill=\"none\" stroke=\"#fff6f0\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
     "skills": [
       {
         "id": "itsm",

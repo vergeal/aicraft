@@ -9,5 +9,4 @@ These packages are not bundled with AI Craft or loaded automatically. Do not add
 | [Webwright](webwright/README.md) | `plugins/webwright` | `.exc` |
 | [DBRO](dbro/README.md)       | `plugins/dbro`   | `.exc` |
 | [Orchestrator](orchestrator/README.md) | `plugins/orchestrator` | `.exc` |
-| [Figma](figma/README.md)     | `plugins/figma`  | Git package  |
 | [IT 工单](itsm/README.md)    | `plugins/itsm`   | `.exc`      |

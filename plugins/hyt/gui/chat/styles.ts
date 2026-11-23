@@ -838,7 +838,6 @@ export const css = `
 .hyt-shell .receipt-line:hover { color: var(--link); }
 .hyt-shell .receipt-line b { color: var(--link); font-weight: 500; }
 .hyt-shell .receipt-line[disabled] { opacity: 0.7; cursor: default; }
-.hyt-shell .msg[data-self="true"] .receipt-line { justify-content: flex-end; }
 
 /* 回执弹窗：遮罩只压暗一点，弹窗与整页同一张纸，靠边框和阴影分层。 */
 .hyt-shell .receipt-veil {

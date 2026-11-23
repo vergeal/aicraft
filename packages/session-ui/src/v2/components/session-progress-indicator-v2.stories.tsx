@@ -2,22 +2,23 @@ import { SessionProgressIndicatorV2 } from "./session-progress-indicator-v2"
 import { createSignal, onCleanup, onMount } from "solid-js"
 
 const docs = `### Overview
-Animated 5×5 dot grid loader for in-progress session state.
+Animated glowing orb for in-progress session state.
 
-Derived from Figma \`_sessionProgressIndicator\` with 8-frame rotation.
+Ported from uiverse.io/terenceodonoghue/rare-cow-16 (MIT).
 
 ### API
-- Accepts standard SVG props.
+- Accepts \`width\` and \`height\` plus standard span props.
 
 ### Behavior
-- A shared, pre-rendered alpha mask preserves the smooth opacity changes between 8 key poses (1.2s loop).
-- Center dot stays at full opacity throughout the cycle.
+- Four blurred copies of a gradient sit under a solid core; the whole orb rotates in a 1.2s loop.
+- Blur radius, inset and core border are fractions of the orb size, so 12px and 96px keep the same shape.
+- Pauses while scrolled out of view through \`syncSpinPhase\`.
 
 ### Accessibility
 - Sets \`aria-hidden="true"\` by default.
 
 ### Theming
-- Uses \`currentColor\` via \`--v2-icon-icon-muted\`.
+- Colors come from \`--glow-orb-from\`, \`--glow-orb-mid\`, \`--glow-orb-to\` and \`--glow-orb-core\`, defaulting to the purple, blue and cyan palette.
 `
 
 export default {

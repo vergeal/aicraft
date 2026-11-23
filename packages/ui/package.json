@@ -50,6 +50,7 @@
     "./document-surface.css": "./src/components/document-surface.css",
     "./field": "./src/forms/field/field.tsx",
     "./file-tree.css": "./src/styles/file-tree.css",
+    "./glow-orb": "./src/feedback/glow-orb/glow-orb.tsx",
     "./icon": "./src/icons/icon/icon.tsx",
     "./icons/catalog": "./src/icons/catalog.ts",
     "./icon-button": "./src/actions/icon-button/icon-button.tsx",

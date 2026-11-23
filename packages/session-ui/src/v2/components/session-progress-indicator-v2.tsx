@@ -1,11 +1,11 @@
 import { type ComponentProps } from "solid-js"
-import { Spinner } from "@opencode/ui/spinner"
+import { GlowOrb } from "@opencode/ui/glow-orb"
 import "./session-progress-indicator-v2.css"
 
 // The app's one activity spinner, shared by the activity chip, subagent rows, task cards and loading tabs.
-export function SessionProgressIndicatorV2(props: ComponentProps<typeof Spinner>) {
+export function SessionProgressIndicatorV2(props: ComponentProps<typeof GlowOrb>) {
   return (
-    <Spinner
+    <GlowOrb
       {...props}
       width={props.width ?? 16}
       height={props.height ?? 16}

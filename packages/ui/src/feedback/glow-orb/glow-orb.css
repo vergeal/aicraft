@@ -1,0 +1,74 @@
+/* Ported from uiverse.io/terenceodonoghue/rare-cow-16 (MIT). The four blurred copies and the core are sized as
+   fractions of the orb so the 96px original keeps its proportions when the orb renders at 12–24px. */
+[data-slot="glow-orb"] {
+  --_size: var(--glow-orb-size, 16px);
+  --_from: var(--glow-orb-from, var(--v2-purple-500));
+  --_mid: var(--glow-orb-mid, var(--v2-blue-300));
+  --_to: var(--glow-orb-to, var(--v2-cyan-400));
+  --_core: var(--glow-orb-core, var(--v2-grey-50));
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--_size);
+  height: var(--_size);
+  border-radius: 50%;
+  background-color: var(--_from);
+  background-image: linear-gradient(var(--_from), var(--_mid), var(--_to));
+  transform-origin: center;
+  will-change: transform;
+  animation: glow-orb-spin 1.2s linear infinite;
+}
+
+[data-slot="glow-orb"] > span {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: var(--_from);
+  background-image: linear-gradient(var(--_from), var(--_mid), var(--_to));
+}
+
+/* 5 / 10 / 25 / 50 at the original 96px. */
+[data-slot="glow-orb"] > span:nth-child(1) {
+  filter: blur(calc(var(--_size) * 0.052));
+}
+
+[data-slot="glow-orb"] > span:nth-child(2) {
+  filter: blur(calc(var(--_size) * 0.104));
+}
+
+[data-slot="glow-orb"] > span:nth-child(3) {
+  filter: blur(calc(var(--_size) * 0.26));
+}
+
+[data-slot="glow-orb"] > span:nth-child(4) {
+  filter: blur(calc(var(--_size) * 0.52));
+}
+
+/* Original 10px inset and 5px border at 96px draw a 86px core inside the gradient ring. */
+[data-slot="glow-orb"]::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--_size) * 0.104);
+  box-sizing: content-box;
+  border: calc(var(--_size) * 0.052) solid var(--_core);
+  border-radius: 50%;
+  background-color: var(--_core);
+}
+
+@keyframes glow-orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* syncSpinPhase marks orbs out of view; the animation is static, so pausing it drops the compositor layers. */
+[data-slot="glow-orb"][data-offscreen] {
+  animation-play-state: paused !important;
+}
+
+:root[data-motion="reduce"] {
+  [data-slot="glow-orb"] {
+    animation: none;
+    will-change: auto;
+  }
+}

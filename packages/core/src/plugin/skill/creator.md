@@ -1,7 +1,7 @@
 ---
 name: 插件创造
 description: "当用户要新建、修改或打包一个 AI Craft 插件（.exc）时使用。覆盖工程骨架、METAINF 清单、服务端与界面入口、随包技能、构建与打包脚本，以及按设计规范生成插件图标。"
-icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#3a2f66"/><path d="M5.4 8.4 8.6 5.4h10L15.4 8.4z" fill="#b49bff"/><path d="M15.4 8.4 18.6 5.4v10L15.4 18.4z" fill="#5f41d8"/><rect x="5.4" y="8.4" width="10" height="10" rx="1.8" fill="#8265ff"/><path d="M7.6 10.6c.9-.9 2.6-1.4 3.9-1.1" stroke="#c4b4ff" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".9"/></svg>'
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#6d4fd6"/><rect x="7.8" y="5.8" width="3.6" height="3.4" rx="1.5" fill="#e6dcff" stroke="#3d2790" stroke-width="1.2" stroke-linejoin="round"/><rect x="12.6" y="5.8" width="3.6" height="3.4" rx="1.5" fill="#e6dcff" stroke="#3d2790" stroke-width="1.2" stroke-linejoin="round"/><rect x="5.6" y="9.2" width="12.8" height="9" rx="2.2" fill="#f4efff" stroke="#3d2790" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.2 11.8c1-.6 2.3-.8 3.4-.5" stroke="#c9b8ff" stroke-width="1.1" stroke-linecap="round" fill="none"/></svg>'
 ---
 
 <!--

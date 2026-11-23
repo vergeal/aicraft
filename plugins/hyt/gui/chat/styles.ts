@@ -99,8 +99,8 @@ export const css = `
   --hyt-text-135: 14px;
   --hyt-text-14: 14px;
   --hyt-text-145: 14px;
-  --hyt-lh-normal: 1.5;
-  --hyt-lh-large: 1.6;
+  --hyt-lh-normal: 1.45;
+  --hyt-lh-large: 1.5;
   --hyt-radius-4: 4px;
   --hyt-radius-6: 6px;
   --hyt-radius-8: 8px;
@@ -122,17 +122,17 @@ export const css = `
 .hyt-side-brand {
   display: flex;
   align-items: center;
-  gap: calc(var(--spacing) * 2.25);
+  gap: calc(var(--spacing) * 2);
   flex: 0 0 auto;
-  height: 60px;
-  padding: 0 calc(var(--spacing) * 4);
+  height: 52px;
+  padding: 0 14px;
 }
 .hyt-side-logo {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-accent);
   color: var(--hyt-on-accent);
@@ -147,8 +147,8 @@ export const css = `
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   margin-left: auto;
   padding: 0;
   border: 0;
@@ -183,9 +183,9 @@ export const css = `
   align-items: center;
   gap: calc(var(--spacing) * 2);
   flex: 0 0 auto;
-  height: 34px;
-  margin: 12px 12px 10px;
-  padding: 0 10px;
+  height: 32px;
+  margin: 10px 10px 8px;
+  padding: 0 9px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-surface-raised);
   box-shadow: inset 0 0 0 0.5px transparent;
@@ -306,7 +306,7 @@ export const css = `
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 14px 8px 6px;
+  padding: 10px 8px 4px;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-bold);
@@ -331,9 +331,9 @@ export const css = `
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 10px;
+  padding: 8px;
   border: 0;
   border-radius: var(--hyt-radius-8);
   background: transparent;
@@ -418,15 +418,15 @@ export const css = `
   align-items: center;
   gap: 6px;
   min-width: 0;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 .hyt-chat-session-preview {
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
   color: var(--hyt-text-3);
-  font-size: var(--hyt-text-13);
-  line-height: 1.4;
+  font-size: var(--hyt-text-125);
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -485,8 +485,8 @@ export const css = `
   align-items: center;
   gap: 5px;
   flex: 0 0 auto;
-  height: 28px;
-  padding: 0 9px;
+  height: 26px;
+  padding: 0 8px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -652,10 +652,10 @@ export const css = `
 .hyt-chat-head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: 0 0 auto;
-  height: 60px;
-  padding: 0 24px;
+  height: 52px;
+  padding: 0 20px;
 }
 .hyt-chat-head-id {
   display: flex;
@@ -740,7 +740,7 @@ export const css = `
   overflow-x: hidden;
   /* 滚动条出现/消失会让内容宽度跳 1~2px，消息一多像是闪了一下；留出固定槽位。 */
   scrollbar-gutter: stable;
-  padding: 20px 24px 12px;
+  padding: 16px 20px 10px;
   scrollbar-width: thin;
   scrollbar-color: var(--hyt-line-strong) transparent;
 }
@@ -753,7 +753,7 @@ export const css = `
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 24px 0;
+  margin: 16px 0;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-medium);
@@ -769,8 +769,8 @@ export const css = `
 
 .hyt-chat-item {
   display: flex;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 18px;
 }
 /* 搜索结果定位到的那一条：整行短暂亮一下再褪掉。 */
 .hyt-chat-item[data-focus="true"] {
@@ -788,7 +788,7 @@ export const css = `
 }
 /* 组内后续消息：不重复头像与名字，气泡之间只留 6px，和飞书一样是同一个人连发的紧凑感。 */
 .hyt-chat-item[data-first="false"] {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 .hyt-chat-item[data-first="false"] > .hyt-chat-avatar {
   visibility: hidden;
@@ -854,7 +854,7 @@ export const css = `
 /* 气泡：对方是浮层色，自己是主色；宽度随内容，最长 100%。 */
 .hyt-chat-bubble {
   max-width: 100%;
-  padding: 9px 13px;
+  padding: 7px 11px;
   border-radius: var(--hyt-radius-10);
   background: var(--hyt-bubble);
   color: var(--hyt-text-body);
@@ -1219,11 +1219,11 @@ export const css = `
 .hyt-chat-composer {
   position: relative;
   flex: 0 0 auto;
-  padding: 8px 24px 18px;
+  padding: 6px 20px 12px;
 }
 .hyt-chat-composer-card {
   position: relative;
-  padding: 8px 10px;
+  padding: 6px 9px;
   border-radius: var(--hyt-radius-12);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
@@ -1243,9 +1243,9 @@ export const css = `
 .hyt-chat-composer-row textarea {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 40px;
+  min-height: 34px;
   max-height: 140px;
-  padding: 10px 6px;
+  padding: 8px 6px;
   border: 0;
   outline: 0;
   background: transparent;

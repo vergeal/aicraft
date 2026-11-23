@@ -50,10 +50,10 @@ describe("SkillPlugin.Plugin", () => {
           id: "report",
           name: "问题反馈",
           path: "skill://report/SKILL.md",
-          description: expect.stringContaining("当用户想报告 OpenCode 的问题或缺陷时使用"),
+          description: expect.stringContaining("当用户想报告 AI Craft 的问题或缺陷时使用"),
         }),
       )
-      expect(report?.content).toContain("- opencode version: 1.2.3")
+      expect(report?.content).toContain("- AI Craft version: 1.2.3")
       expect(report?.content).toContain("- install/channel: beta")
     }),
   )

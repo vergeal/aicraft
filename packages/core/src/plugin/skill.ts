@@ -18,7 +18,7 @@ export const ReportContent = reportContent
 export const OpencodeDescription =
   "回答一切关于 AI Craft 自身的问题：工作方式、使用与配置、从 V1 迁移到 V2、故障排查、开发插件或集成、使用 AI Craft SDK、客户端、服务器或 API，以及参与 AI Craft 代码库开发。也适用于 AI Craft 的 agent、命令、技能、工具、权限、MCP 服务器、提供商、模型、主题、快捷键、格式化工具、CLI、TUI、桌面端与 Web 端。"
 const REPORT_DESCRIPTION =
-  "当用户想报告 OpenCode 的问题或缺陷时使用。收集标准诊断信息，补充用户的具体复现上下文，并用 GitHub CLI 发布问题。"
+  "当用户想报告 AI Craft 的问题或缺陷时使用。收集标准诊断信息，补充用户的具体复现上下文，并用 GitHub CLI 发布问题。"
 
 export const Plugin = define({
   id: "opencode.skill",
@@ -61,7 +61,7 @@ const reportContentWithDiagnostics = Effect.fn("SkillPlugin.reportContentWithDia
     "",
     "这些值在注册内置 report 技能时采集。发布之前请先核实。",
     "",
-    `- opencode version: ${app.version}`,
+    `- AI Craft version: ${app.version}`,
     `- install/channel: ${app.channel}`,
     `- OS: ${os.type()} ${os.release()} (${os.platform()} ${os.arch()}${emulated ? ", emulated on ARM64" : ""})`,
     `- Terminal: ${terminal()}`,

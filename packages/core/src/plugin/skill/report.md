@@ -4,9 +4,9 @@
   内容。
 -->
 
-# 报告 OpenCode 问题
+# 报告 AI Craft 问题
 
-当用户想报告 OpenCode 的问题或缺陷时使用本技能。你的工作是把用户的问题转化为一个有价值的 GitHub issue，包含标准诊断信息以及复现和解决所需的上下文。
+当用户想报告 AI Craft 的问题或缺陷时使用本技能。你的工作是把用户的问题转化为一个有价值的 GitHub issue，包含标准诊断信息以及复现和解决所需的上下文。
 
 ## 工作流
 
@@ -21,12 +21,12 @@
 
 尽可能收集这些值：
 
-- opencode 版本：运行 `opencode --version`。
+- AI Craft 版本：运行 `opencode --version`。
 - 操作系统：在类 Unix 系统上运行 `uname -a`，在 Windows 上运行 `ver`。
 - 终端：检查 `$TERM`、`$TERM_PROGRAM`、`$COLORTERM`，以及用户提供的任何明显的终端应用上下文。
 - Shell：在相关时，检查类 Unix 系统上的 `$SHELL`，或 Windows 上的 `%COMSPEC%`/`$ComSpec`。
 - 安装/渠道上下文：如果版本输出或环境能显示，说明它看起来是本地、dev、beta 还是 release。
-- 活动插件：尽可能检查 OpenCode 配置中已配置的插件。检查可能的配置位置，例如 `aicraft.json`、`aicraft.jsonc`、`.aicraft/aicraft.json` 和 `~/.config/opencode/aicraft.json`。记录已配置的插件条目、`.aicraft/plugin/` 或 `.aicraft/plugins/` 下的本地插件文件，并注明是否无法确定插件状态。
+- 活动插件：尽可能检查 AI Craft 配置中已配置的插件。检查可能的配置位置，例如 `aicraft.json`、`aicraft.jsonc`、`.aicraft/aicraft.json` 和 `~/.config/aicraft/aicraft.json`。记录已配置的插件条目、`.aicraft/plugin/` 或 `.aicraft/plugins/` 下的本地插件文件，并注明是否无法确定插件状态。
 
 如果某个诊断命令失败，写明 `Unavailable` 并附上原因，而不是猜测。
 
@@ -40,7 +40,7 @@
 - 复现步骤，最好是最小化且编号的。
 - 相关的日志、堆栈跟踪、截图、终端输出或配置片段。
 - 问题是稳定复现、偶发还是只出现一次。
-- 可能相关的近期改动，例如更新 OpenCode、更改配置、安装插件、更改终端或切换工作区。
+- 可能相关的近期改动，例如更新 AI Craft、更改配置、安装插件、更改终端或切换工作区。
 - 尝试过的变通方案以及是否有效。
 
 避免粘贴密钥。除非用户明确说可以，否则涂掉 token、API key、私有 URL、用户名和项目特定的机密数据。
@@ -56,7 +56,7 @@
 
 ## 环境
 
-- opencode version: <!-- 值或 Unavailable: 原因 -->
+- AI Craft version: <!-- 值或 Unavailable: 原因 -->
 - OS: <!-- 值或 Unavailable: 原因 -->
 - Terminal: <!-- 值或 Unavailable: 原因 -->
 - Shell: <!-- 值或 Unavailable: 原因 -->

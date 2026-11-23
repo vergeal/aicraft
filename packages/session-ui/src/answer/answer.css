@@ -1,5 +1,6 @@
-/* The answer column mirrors the DSH conversation surface: its own label ramp, system UI face, and
-   command surface, so the transcript does not inherit the app's configurable UI font. */
+/* The answer column mirrors the DSH conversation surface: its own label ramp and command surface. The transcript
+   takes the reader's UI font rather than a hardcoded system stack: a stack that resolved to a different face from
+   the rest of the app replaced every glyph the first time this column mounted, which read as the page jumping. */
 .answer-scope {
   --answer-ink: rgb(15, 17, 21);
   --answer-ink-secondary: rgb(97, 102, 107);
@@ -7,7 +8,7 @@
   --answer-surface: rgb(249, 250, 251);
   /* Branch guides of a step tree; kept low so the rail never competes with the labels. */
   --answer-guide: rgba(129, 133, 140, 0.45);
-  --answer-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  --answer-font-sans: var(--font-family-sans);
   font-family: var(--answer-font-sans);
   color: var(--answer-ink);
 }

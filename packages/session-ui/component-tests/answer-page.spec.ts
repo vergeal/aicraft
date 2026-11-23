@@ -429,6 +429,8 @@ story("keeps a running row's title clear of a long detail", async ({ mount, page
   const row = root.locator('[data-slot="answer-row"] [data-disclosure-row]').first()
   const title = row.locator('[data-slot="answer-row-title"]')
   const summary = row.locator('[data-slot="answer-row-summary"]')
+  // The row measures text, so the comparison below is only meaningful once the face behind it has loaded.
+  await page.evaluate(() => document.fonts.ready)
   const before = await summary.boundingBox()
   const icon = await row.locator('[data-slot="leading-idle"]').boundingBox()
 

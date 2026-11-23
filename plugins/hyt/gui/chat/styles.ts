@@ -98,9 +98,6 @@ export const css = `
   --hyt-text-13: 13px;
   --hyt-text-135: 14px;
   --hyt-text-14: 14px;
-  --hyt-text-145: 14px;
-  --hyt-text-15: 15px;
-  --hyt-text-16: 16px;
   --hyt-lh-normal: 1.45;
   --hyt-lh-large: 1.5;
   --hyt-radius-4: 4px;
@@ -127,7 +124,7 @@ export const css = `
   gap: calc(var(--spacing) * 2);
   flex: 0 0 auto;
   height: 48px;
-  padding: 0 14px;
+  padding: 0 12px;
 }
 .hyt-side-name {
   font-size: var(--hyt-text-14);
@@ -214,7 +211,7 @@ export const css = `
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 30px;
+  height: 28px;
   padding: 0 8px;
   border: 0;
   border-radius: var(--hyt-radius-6);
@@ -251,6 +248,7 @@ export const css = `
 .hyt-side-filter-count {
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -309,10 +307,10 @@ export const css = `
 .hyt-ai-entry {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 0 0 auto;
   margin: 0 12px 4px;
-  padding: 10px 11px;
+  padding: 8px 12px;
   border: 0;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-surface-raised);
@@ -339,8 +337,8 @@ export const css = `
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-accent);
   color: var(--hyt-on-accent);
@@ -348,7 +346,7 @@ export const css = `
 .hyt-ai-entry-body {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -391,7 +389,7 @@ export const css = `
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 8px 4px;
+  padding: 8px 8px 4px;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-bold);
@@ -399,7 +397,7 @@ export const css = `
 }
 .hyt-side-section-count {
   margin-left: auto;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: var(--hyt-radius-4);
   background: var(--hyt-surface-raised);
   color: var(--hyt-text-2);
@@ -532,7 +530,7 @@ export const css = `
   flex: 0 0 auto;
   min-width: 18px;
   height: 18px;
-  padding: 0 5px;
+  padding: 0 4px;
   border-radius: 999px;
   background: var(--hyt-danger);
   color: var(--hyt-on-accent);
@@ -555,9 +553,9 @@ export const css = `
 .hyt-side-user {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   flex: 0 0 auto;
-  height: 52px;
+  height: 48px;
   padding: 0 12px;
   box-shadow: inset 0 0.5px 0 0 var(--hyt-line);
 }
@@ -572,7 +570,7 @@ export const css = `
   color: var(--hyt-text);
   font-size: var(--hyt-text-125);
   font-weight: var(--font-weight-bold);
-  line-height: 1.35;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -580,14 +578,14 @@ export const css = `
   overflow: hidden;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
-  line-height: 1.35;
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .hyt-side-user-tools {
   display: flex;
   flex: 0 0 auto;
-  gap: 1px;
+  gap: 2px;
 }
 
 /* ============================================================================
@@ -596,8 +594,8 @@ export const css = `
 .hyt-icon-button {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: var(--hyt-radius-6);
@@ -708,7 +706,7 @@ export const css = `
 }
 .hyt-chat-pill {
   flex: 0 0 auto;
-  padding: 1px 8px;
+  padding: 2px 8px;
   border-radius: var(--hyt-radius-4);
   background: color-mix(in srgb, var(--hyt-text) 7%, transparent);
   color: var(--hyt-text-2);
@@ -817,9 +815,9 @@ export const css = `
 .hyt-chat-item-name {
   overflow: hidden;
   color: var(--hyt-text-2);
-  font-size: var(--hyt-text-13);
+  font-size: var(--hyt-text-125);
   font-weight: var(--font-weight-medium);
-  line-height: 1.3;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -827,12 +825,12 @@ export const css = `
   flex: 0 0 auto;
   max-width: 132px;
   overflow: hidden;
-  padding: 1px 5px;
+  padding: 2px 4px;
   border-radius: var(--hyt-radius-4);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
   color: var(--hyt-text-3);
-  font-size: var(--hyt-text-10);
-  line-height: 1.4;
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -844,6 +842,7 @@ export const css = `
   flex: 0 0 auto;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
   font-variant-numeric: tabular-nums;
 }
 .hyt-chat-at-mark {
@@ -860,7 +859,7 @@ export const css = `
 /* 气泡：对方是浮层色，自己是主色；宽度随内容，最长 100%。 */
 .hyt-chat-bubble {
   max-width: 100%;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bubble);
   color: var(--hyt-text-body);
@@ -904,10 +903,10 @@ export const css = `
 .hyt-chat-file {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   max-width: 300px;
   margin-top: 8px;
-  padding: 9px 11px;
+  padding: 8px 12px;
   border: 0;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
@@ -930,8 +929,8 @@ export const css = `
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--hyt-radius-6);
   background: var(--hyt-bg-elev);
   color: var(--hyt-text-2);
@@ -940,7 +939,7 @@ export const css = `
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 1px;
+  gap: 2px;
 }
 .hyt-chat-file-name {
   overflow: hidden;
@@ -980,7 +979,7 @@ export const css = `
   align-items: center;
   gap: 6px;
   margin-top: 8px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
   color: var(--hyt-text-3);
@@ -1016,7 +1015,7 @@ export const css = `
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 11px;
+  padding: 8px 12px;
   box-shadow: inset 0 calc(-1 * 0.5px) 0 0 var(--hyt-line);
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
@@ -1048,8 +1047,8 @@ export const css = `
 .hyt-chat-merge-items {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 9px 11px;
+  gap: 4px;
+  padding: 8px 12px;
 }
 .hyt-chat-merge-item {
   display: flex;
@@ -1057,7 +1056,7 @@ export const css = `
   min-width: 0;
   color: var(--hyt-text-2);
   font-size: var(--hyt-text-125);
-  line-height: 1.5;
+  line-height: 18px;
 }
 .hyt-chat-merge-item-name {
   flex: 0 0 auto;
@@ -1081,15 +1080,15 @@ export const css = `
 .hyt-chat-placeholder {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin-top: 4px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
   color: var(--hyt-text-2);
   font-size: var(--hyt-text-125);
-  line-height: 1.5;
+  line-height: 18px;
 }
 .hyt-chat-placeholder strong {
   color: var(--hyt-text);
@@ -1099,9 +1098,9 @@ export const css = `
 /* AI 草稿卡：消息流末尾，与消息同列，蓝框标出不是人发的。 */
 .hyt-chat-draft {
   display: flex;
-  gap: 11px;
-  margin: 10px 0;
-  padding: 13px 15px;
+  gap: 12px;
+  margin: 8px 0;
+  padding: 12px 16px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-accent-soft, color-mix(in srgb, var(--hyt-accent) 10%, transparent));
   box-shadow:
@@ -1127,22 +1126,23 @@ export const css = `
 .hyt-chat-draft-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 5px;
+  gap: 8px;
+  margin-bottom: 6px;
   min-width: 0;
 }
 .hyt-chat-draft-name {
   color: var(--hyt-text);
   font-size: var(--hyt-text-13);
   font-weight: var(--font-weight-bold);
+  line-height: 20px;
 }
 .hyt-chat-draft-tag {
   flex: 0 0 auto;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: var(--hyt-radius-4);
   background: var(--hyt-accent);
   color: var(--hyt-on-accent);
-  font-size: var(--hyt-text-10);
+  font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.3px;
 }
@@ -1164,14 +1164,14 @@ export const css = `
 .hyt-chat-draft-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
   margin-top: 12px;
 }
 .hyt-chat-draft-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
+  gap: 4px;
+  padding: 4px 12px;
   border: 0;
   border-radius: var(--hyt-radius-6);
   background: transparent;
@@ -1205,9 +1205,9 @@ export const css = `
   z-index: 3;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   transform: translateX(-50%);
-  padding: 5px 10px;
+  padding: 4px 12px;
   border: 0;
   border-radius: 999px;
   background: var(--hyt-bg-elev);
@@ -1230,7 +1230,7 @@ export const css = `
 }
 .hyt-chat-composer-card {
   position: relative;
-  padding: 7px 10px;
+  padding: 4px 12px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
@@ -1275,16 +1275,16 @@ export const css = `
 .hyt-chat-composer-tools {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   flex: 0 0 auto;
-  padding-bottom: 1px;
+  padding-bottom: 2px;
 }
 .hyt-ai-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   margin-right: 4px;
-  padding: 4px 9px;
+  padding: 4px 8px;
   border: 0;
   border-radius: var(--hyt-radius-6);
   background: transparent;
@@ -1301,8 +1301,8 @@ export const css = `
 .hyt-chat-tool {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: var(--hyt-radius-6);
@@ -1325,8 +1325,8 @@ export const css = `
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -1365,7 +1365,7 @@ export const css = `
   z-index: 12;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   max-height: 240px;
   overflow-y: auto;
   padding: 4px;
@@ -1380,7 +1380,7 @@ export const css = `
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 5px 7px;
+  padding: 4px 8px;
   border: 0;
   border-radius: var(--hyt-radius-6);
   background: transparent;
@@ -1431,7 +1431,7 @@ export const css = `
   justify-content: space-between;
   gap: 8px;
   flex: 0 0 auto;
-  padding: 18px 16px 8px;
+  padding: 16px 16px 8px;
   color: var(--hyt-text);
   font-size: var(--hyt-text-125);
   font-weight: var(--font-weight-bold);
@@ -1459,7 +1459,7 @@ export const css = `
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px 4px;
+  padding: 8px 16px 4px;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-bold);
@@ -1474,9 +1474,9 @@ export const css = `
 .hyt-ctx-member {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   width: 100%;
-  padding: 5px 16px;
+  padding: 4px 16px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -1516,7 +1516,7 @@ export const css = `
 }
 .hyt-ctx-card {
   margin: 16px 12px 0;
-  padding: 11px;
+  padding: 12px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
@@ -1549,7 +1549,7 @@ export const css = `
 }
 .hyt-ctx-cmd kbd {
   flex: 0 0 auto;
-  padding: 0 5px;
+  padding: 0 4px;
   border-radius: var(--hyt-radius-4);
   background: var(--hyt-accent-soft, color-mix(in srgb, var(--hyt-accent) 12%, transparent));
   box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 28%, transparent));
@@ -1599,7 +1599,7 @@ export const css = `
   align-items: center;
   gap: 8px;
   max-width: 420px;
-  padding: 28px 32px;
+  padding: 24px 32px;
   border-radius: var(--hyt-radius-12);
   background: var(--hyt-bg-elev);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);

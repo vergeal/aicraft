@@ -43,6 +43,14 @@ export function SessionList(props: {
   })
 
   const atCount = () => rows().filter((session) => session.atMe).length
+  const [filterOpen, setFilterOpen] = createSignal(false)
+  const filterOptions = () => [
+    { id: "all" as const, label: text(ctx, "hyt.chat.sessions.filter.all"), count: rows().length },
+    { id: "unread" as const, label: text(ctx, "hyt.chat.sessions.filter.unread"), count: props.unread },
+    { id: "at" as const, label: text(ctx, "hyt.chat.sessions.filter.at"), count: atCount() },
+    { id: "direct" as const, label: text(ctx, "hyt.chat.sessions.direct"), count: rows().filter((session) => !session.group).length },
+    { id: "groups" as const, label: text(ctx, "hyt.chat.sessions.groups"), count: rows().filter((session) => session.group).length },
+  ]
   const visible = () => {
     const mode = filter()
     if (mode === "unread") return rows().filter((session) => session.unread > 0)
@@ -56,16 +64,56 @@ export function SessionList(props: {
     <>
       <div class="hyt-side-brand">
         <span class="hyt-side-name">{text(ctx, "hyt.chat.side.title")}</span>
-        <button
-          type="button"
-          class="hyt-side-read"
-          aria-label={text(ctx, "hyt.chat.action.readAll")}
-          title={text(ctx, "hyt.chat.action.readAll")}
-          disabled={props.unread === 0}
-          onClick={() => props.onMarkAllRead()}
-        >
-          <ctx.ui.Icon name="check" size="small" />
-        </button>
+        <div class="hyt-side-tools">
+          <div class="hyt-side-filter">
+            <button
+              type="button"
+              class="hyt-side-tool"
+              aria-label={text(ctx, "hyt.chat.sessions.filter.label")}
+              title={text(ctx, "hyt.chat.sessions.filter.label")}
+              aria-haspopup="menu"
+              aria-expanded={filterOpen() ? "true" : "false"}
+              onClick={() => setFilterOpen(!filterOpen())}
+            >
+              <ctx.ui.Icon name="outline-sliders" size="small" />
+              <Show when={filter() !== "all"}>
+                <span class="hyt-side-tool-dot" aria-hidden="true" />
+              </Show>
+            </button>
+            <Show when={filterOpen()}>
+              <div class="hyt-side-filter-scrim" onClick={() => setFilterOpen(false)} />
+              <div class="hyt-side-filter-menu" role="menu" aria-label={text(ctx, "hyt.chat.sessions.filter.label")}>
+                <For each={filterOptions()}>
+                  {(item) => (
+                    <button
+                      type="button"
+                      class="hyt-side-filter-item"
+                      role="menuitemradio"
+                      aria-checked={filter() === item.id ? "true" : "false"}
+                      onClick={() => {
+                        setFilter(item.id)
+                        setFilterOpen(false)
+                      }}
+                    >
+                      <span class="hyt-side-filter-label">{item.label}</span>
+                      <span class="hyt-side-filter-count">{item.count}</span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </div>
+          <button
+            type="button"
+            class="hyt-side-tool"
+            aria-label={text(ctx, "hyt.chat.action.readAll")}
+            title={text(ctx, "hyt.chat.action.readAll")}
+            disabled={props.unread === 0}
+            onClick={() => props.onMarkAllRead()}
+          >
+            <ctx.ui.Icon name="check" size="small" />
+          </button>
+        </div>
       </div>
 
       <label class="hyt-chat-search">
@@ -80,55 +128,6 @@ export function SessionList(props: {
           onInput={(event) => props.onSearch(event.currentTarget.value)}
         />
       </label>
-
-      <div class="hyt-chat-filters" role="group" aria-label={text(ctx, "hyt.chat.sessions.filter.label")}>
-        <button
-          type="button"
-          class="hyt-chat-filter-chip"
-          aria-pressed={filter() === "all" ? "true" : "false"}
-          onClick={() => setFilter("all")}
-        >
-          {text(ctx, "hyt.chat.sessions.filter.all")}
-        </button>
-        <button
-          type="button"
-          class="hyt-chat-filter-chip"
-          aria-pressed={filter() === "unread" ? "true" : "false"}
-          onClick={() => setFilter("unread")}
-        >
-          {text(ctx, "hyt.chat.sessions.filter.unread")}
-          <Show when={props.unread > 0}>
-            <span class="hyt-chat-filter-dot" aria-hidden="true" />
-          </Show>
-        </button>
-        <button
-          type="button"
-          class="hyt-chat-filter-chip"
-          aria-pressed={filter() === "at" ? "true" : "false"}
-          onClick={() => setFilter("at")}
-        >
-          {text(ctx, "hyt.chat.sessions.filter.at")}
-          <Show when={atCount() > 0}>
-            <span class="hyt-chat-filter-dot" aria-hidden="true" />
-          </Show>
-        </button>
-        <button
-          type="button"
-          class="hyt-chat-filter-chip"
-          aria-pressed={filter() === "direct" ? "true" : "false"}
-          onClick={() => setFilter("direct")}
-        >
-          {text(ctx, "hyt.chat.sessions.direct")}
-        </button>
-        <button
-          type="button"
-          class="hyt-chat-filter-chip"
-          aria-pressed={filter() === "groups" ? "true" : "false"}
-          onClick={() => setFilter("groups")}
-        >
-          {text(ctx, "hyt.chat.sessions.groups")}
-        </button>
-      </div>
 
       <div class="hyt-side-scroll">
         <Show

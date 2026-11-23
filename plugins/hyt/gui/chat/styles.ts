@@ -99,6 +99,7 @@ export const css = `
   --hyt-text-135: 14px;
   --hyt-text-14: 14px;
   --hyt-text-145: 14px;
+  --hyt-text-15: 15px;
   --hyt-text-16: 16px;
   --hyt-lh-normal: 1.45;
   --hyt-lh-large: 1.5;
@@ -134,13 +135,21 @@ export const css = `
   letter-spacing: 0.1px;
   white-space: nowrap;
 }
-.hyt-side-read {
+.hyt-side-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+/* 标题右侧的图标按钮：筛选与一键已读共用同一套外观。 */
+.hyt-side-tool {
+  position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   width: 28px;
   height: 28px;
-  margin-left: auto;
   padding: 0;
   border: 0;
   border-radius: var(--hyt-radius-8);
@@ -151,20 +160,87 @@ export const css = `
     background-color var(--duration-fast, 120ms) var(--ease-out, ease),
     color var(--duration-fast, 120ms) var(--ease-out, ease);
 }
-.hyt-side-read:focus-visible {
+.hyt-side-tool:focus-visible {
   outline: var(--focus-width, 2px) solid var(--hyt-accent);
   outline-offset: 2px;
 }
 /* 没有未读时置灰：这个位置常驻，灰掉比消失更好找。 */
-.hyt-side-read:disabled {
+.hyt-side-tool:disabled {
   opacity: 0.35;
   cursor: default;
 }
 @media (hover: hover) {
-  .hyt-side-read:hover:not(:disabled) {
+  .hyt-side-tool:hover:not(:disabled) {
     background: var(--hyt-hover);
     color: var(--hyt-text);
   }
+}
+/* 筛选不是「全部」时留一个小点，收起菜单也能看出被过滤了。 */
+.hyt-side-tool-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--hyt-accent);
+}
+.hyt-side-filter {
+  position: relative;
+  display: flex;
+}
+.hyt-side-filter-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+.hyt-side-filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  min-width: 148px;
+  padding: 4px;
+  border-radius: var(--hyt-radius-8);
+  background: var(--hyt-bg-elev);
+  box-shadow:
+    inset 0 0 0 0.5px var(--hyt-line),
+    0 8px 24px color-mix(in srgb, var(--hyt-shadow, #000) 14%, transparent);
+}
+.hyt-side-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--hyt-radius-6);
+  background: transparent;
+  color: var(--hyt-text);
+  font-family: inherit;
+  font-size: var(--hyt-text-125);
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.hyt-side-filter-item[aria-checked="true"] {
+  color: var(--hyt-accent-ink);
+  font-weight: var(--font-weight-bold);
+}
+@media (hover: hover) {
+  .hyt-side-filter-item:hover {
+    background: var(--hyt-hover);
+  }
+}
+.hyt-side-filter-label {
+  flex: 1 1 auto;
+}
+.hyt-side-filter-count {
+  color: var(--hyt-text-3);
+  font-size: var(--hyt-text-11);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 搜索：叠在栏上的一层浅色，不用边框。 */
@@ -324,7 +400,7 @@ export const css = `
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 0;
   border-radius: var(--hyt-radius-8);
   background: transparent;
@@ -339,9 +415,9 @@ export const css = `
     background: var(--hyt-surface-hover);
   }
 }
-/* 选中态只留一块浅灰：飞书没有左侧色条，靠底色就够了。 */
+/* 选中态是飞书式的中性浅灰块，不用主色，免得和未读标记抢注意力。 */
 .hyt-chat-session[aria-current="true"] {
-  background: color-mix(in srgb, var(--hyt-accent) 9%, transparent);
+  background: color-mix(in srgb, var(--hyt-text) 6%, transparent);
 }
 .hyt-chat-session:focus-visible {
   outline: var(--focus-width, 2px) solid var(--hyt-accent);
@@ -362,7 +438,7 @@ export const css = `
 .hyt-chat-session-name {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--hyt-text-14);
+  font-size: var(--hyt-text-15);
   font-weight: var(--font-weight-medium);
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -409,7 +485,7 @@ export const css = `
   flex: 1 1 auto;
   overflow: hidden;
   color: var(--hyt-text-3);
-  font-size: var(--hyt-text-125);
+  font-size: var(--hyt-text-13);
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -451,63 +527,6 @@ export const css = `
   background: var(--hyt-accent);
 }
 
-/* 筛选：一条横向胶囊，选中态用主色低饱和底 + 主色字。 */
-.hyt-chat-filters {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 0 auto;
-  margin: 0 10px 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.hyt-chat-filters::-webkit-scrollbar {
-  display: none;
-}
-.hyt-chat-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  height: 26px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--hyt-radius-6);
-  background: transparent;
-  color: var(--hyt-text-2);
-  font-family: inherit;
-  font-size: var(--hyt-text-125);
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    color var(--duration-fast, 120ms) var(--ease-out, ease);
-}
-.hyt-chat-filter-chip:focus-visible {
-  outline: var(--focus-width, 2px) solid var(--hyt-accent);
-  outline-offset: 1px;
-}
-@media (hover: hover) {
-  .hyt-chat-filter-chip:hover {
-    background: var(--hyt-hover);
-    color: var(--hyt-text);
-  }
-}
-.hyt-chat-filter-chip[aria-pressed="true"] {
-  background: transparent;
-  color: var(--hyt-accent-ink);
-  font-weight: var(--font-weight-bold);
-}
-.hyt-chat-filter-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: var(--hyt-accent);
-}
-.hyt-chat-filter-chip[aria-pressed="true"] .hyt-chat-filter-dot {
-  background: var(--hyt-accent-ink);
-}
 
 /* ============================================================================
    3 · 左栏：当前用户
@@ -638,7 +657,7 @@ export const css = `
   align-items: center;
   gap: 10px;
   flex: 0 0 auto;
-  height: 52px;
+  height: 56px;
   padding: 0 20px;
   /* 飞书的会话头下面有一条极细的分隔，不占布局高度。 */
   box-shadow: inset 0 -0.5px 0 var(--hyt-line);
@@ -668,11 +687,11 @@ export const css = `
 }
 .hyt-chat-pill {
   flex: 0 0 auto;
-  padding: 1px 7px;
+  padding: 1px 8px;
   border-radius: var(--hyt-radius-4);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
+  background: color-mix(in srgb, var(--hyt-text) 7%, transparent);
+  color: var(--hyt-text-2);
+  font-size: var(--hyt-text-125);
   font-weight: var(--font-weight-regular);
   white-space: nowrap;
 }
@@ -690,81 +709,11 @@ export const css = `
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
-.hyt-chat-head-sub {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.hyt-chat-live-dot {
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--hyt-green);
-}
 .hyt-chat-head-actions {
   display: flex;
   align-items: center;
   gap: 1px;
   flex: 0 0 auto;
-}
-
-/* 会话头下面一行「消息」页签，和飞书一致：主色文字 + 2px 下划线，右侧加号聚焦输入框。 */
-.hyt-chat-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 0 auto;
-  height: 36px;
-  padding: 0 20px;
-}
-.hyt-chat-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  color: var(--hyt-accent-ink);
-  font-size: var(--hyt-text-13);
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
-}
-.hyt-chat-tab::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--hyt-accent);
-}
-.hyt-chat-tab-add {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hyt-radius-6);
-  background: transparent;
-  color: var(--hyt-text-3);
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    color var(--duration-fast, 120ms) var(--ease-out, ease);
-}
-@media (hover: hover) {
-  .hyt-chat-tab-add:hover {
-    background: var(--hyt-hover);
-    color: var(--hyt-text);
-  }
 }
 
 /* ============================================================================
@@ -777,13 +726,17 @@ export const css = `
   overflow-x: hidden;
   /* 滚动条出现/消失会让内容宽度跳 1~2px，消息一多像是闪了一下；留出固定槽位。 */
   scrollbar-gutter: stable;
-  padding: 16px 20px 10px;
+  padding: 16px 28px 10px;
   scrollbar-width: thin;
   scrollbar-color: var(--hyt-line-strong) transparent;
 }
 .hyt-chat-flow {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  /* 飞书的消息内容居中限宽，宽窗口下不贴着两边拉满。 */
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 /* 日期像飞书一样只是一行居中的灰字，不加贯穿的分隔线。 */
@@ -884,12 +837,13 @@ export const css = `
 /* 气泡：对方是浮层色，自己是主色；宽度随内容，最长 100%。 */
 .hyt-chat-bubble {
   max-width: 100%;
-  padding: 9px 12px;
+  padding: 12px 16px;
   border-radius: var(--hyt-radius-8);
   background: var(--hyt-bubble);
   color: var(--hyt-text-body);
   font-size: var(--hyt-text-135);
-  line-height: var(--hyt-lh-large);
+  /* 飞书气泡行高 22：14px 文字配 1.5 会偏紧。 */
+  line-height: 22px;
   word-break: break-word;
   white-space: pre-wrap;
 }
@@ -1249,7 +1203,7 @@ export const css = `
 .hyt-chat-composer {
   position: relative;
   flex: 0 0 auto;
-  padding: 6px 20px 12px;
+  padding: 4px 20px 10px;
 }
 .hyt-chat-composer-card {
   position: relative;

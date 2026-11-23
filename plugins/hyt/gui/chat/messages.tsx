@@ -67,7 +67,6 @@ export function MessageStream(props: {
     stableEntries = reuseRows(stableEntries, collapseSystem(props.messages), (entry) => entry.message.id)
     return stableEntries
   })
-  const todayCount = () => props.messages.filter((message) => dayBucket(message.createdAt) === "today").length
 
   // 非平滑时必须立刻落位：切会话时内容在同一帧换掉，若等下一帧再滚，浏览器会先把新会话画在顶部
   // （scrollTop 仍是 0），再跳到底部——那就是「像 F5」的观感。effect 阶段 DOM 已是新内容，同步设置有效。
@@ -236,19 +235,6 @@ export function MessageStream(props: {
               </span>
             </Show>
           </div>
-          <div class="hyt-chat-head-sub">
-            <Show
-              when={props.session !== undefined}
-              fallback={<span>{text(ctx, "hyt.chat.messages.pick")}</span>}
-            >
-              <span class="hyt-chat-live-dot" aria-hidden="true" />
-              <span>{text(ctx, "hyt.chat.head.messages", { count: todayCount() })}</span>
-              <Show when={props.status.bridge === "missing"}>
-                <span>·</span>
-                <span>{text(ctx, "hyt.chat.status.bridge.missing")}</span>
-              </Show>
-            </Show>
-          </div>
         </div>
         <div class="hyt-chat-head-actions">
           <button
@@ -281,23 +267,6 @@ export function MessageStream(props: {
           </button>
         </div>
       </header>
-
-      <Show when={props.session !== undefined}>
-        <div class="hyt-chat-tabs">
-          <span class="hyt-chat-tab" aria-current="true">
-            {text(ctx, "hyt.chat.side.title")}
-          </span>
-          <button
-            type="button"
-            class="hyt-chat-tab-add"
-            aria-label={text(ctx, "hyt.chat.tabs.new")}
-            title={text(ctx, "hyt.chat.tabs.new")}
-            onClick={() => document.querySelector<HTMLTextAreaElement>(".hyt-chat-composer textarea")?.focus()}
-          >
-            <ctx.ui.Icon name="plus" size="small" />
-          </button>
-        </div>
-      </Show>
 
       <Show
         when={props.session !== undefined}
@@ -451,16 +420,18 @@ function MessageItem(props: {
         data-message-id={String(message().id)}
         data-focus={props.focus ? "true" : undefined}
       >
-        <Avatar
-          name={senderName()}
-          members={
-            message().senderHead.length > 0
-              ? [{ name: senderName(), headPath: message().senderHead }]
-              : []
-          }
-          avatars={props.avatars}
-          size="bubble"
-        />
+        <Show when={!message().outgoing}>
+          <Avatar
+            name={senderName()}
+            members={
+              message().senderHead.length > 0
+                ? [{ name: senderName(), headPath: message().senderHead }]
+                : []
+            }
+            avatars={props.avatars}
+            size="bubble"
+          />
+        </Show>
         <div class="hyt-chat-item-body">
           <Show when={props.first}>
             <div class="hyt-chat-item-meta">

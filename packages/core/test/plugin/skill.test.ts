@@ -40,9 +40,9 @@ describe("SkillPlugin.Plugin", () => {
       expect(skills).toContainEqual(
         expect.objectContaining({
           id: "opencode",
-          name: "OpenCode 使用指南",
+          name: "AI Craft 使用指南",
           path: "skill://opencode/SKILL.md",
-          description: expect.stringContaining("回答一切关于 OpenCode 自身的问题"),
+          description: expect.stringContaining("回答一切关于 AI Craft 自身的问题"),
         }),
       )
       expect(skills).toContainEqual(

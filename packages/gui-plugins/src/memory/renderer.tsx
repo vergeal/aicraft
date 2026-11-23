@@ -20,7 +20,7 @@ const MAX_TAGS = 8
 const MAX_TAG_LENGTH = 30
 /** Below this an entry fits the two clamped lines the row shows without a "show all" action. */
 
-const CLAMP_AT = 44
+const CLAMP_AT = 96
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
   if (!ctx.desktop) return
@@ -536,8 +536,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
           </Show>
         }
         description={
-          <Show when={props.entry.tags.length > 0}>
-            <div class="memory-entry-meta">
+          <div class="memory-entry-meta">
+            <Show when={props.entry.tags.length > 0}>
               <div class="memory-tags">
                 <For each={props.entry.tags}>
                   {(tag) => (
@@ -553,11 +553,11 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                   )}
                 </For>
               </div>
-            </div>
-          </Show>
+            </Show>
+            <span class="memory-entry-time">{stamp(props.entry)}</span>
+          </div>
         }
       >
-        <span class="memory-entry-time">{stamp(props.entry)}</span>
         <Show when={props.scope !== "plugin"}>
           <ctx.ui.Tooltip value={ctx.t("edit")}>
             <ctx.ui.IconButton

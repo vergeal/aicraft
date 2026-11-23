@@ -54,6 +54,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     return state === "ready" || state === "refreshing" ? (avatars.latest ?? {}) : {}
   }
   const [text_, setDraft] = createSignal("")
+  /** 每个会话各自保留未发送的输入，切走再切回来还在，且不会串到别的会话。 */
+  const drafts = new Map<string, string>()
   const [sending, setSending] = createSignal(false)
   // 右栏是「会话信息」，按需打开：默认不占宽度，需要看成员或指令时从会话头部开关。
   const [infoOpen, setInfoOpen] = createSignal(false)
@@ -103,13 +105,16 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   const [focusId, setFocusId] = createSignal<number | undefined>()
 
   const select = (id: string, messageId?: number) => {
-    // 先记下当前会话停在哪，再切——切走之后位置就取不到了。
+    // 先记下当前会话停在哪、输入框里还剩什么，再切——切走之后这两样就取不到了。
     rememberCurrentScroll()
+    const from = state()?.selected
+    if (from !== undefined && from !== id) drafts.set(from, text_())
     if (searchTimer !== undefined) window.clearTimeout(searchTimer)
     setQuery("")
     setNotice(undefined)
     setSearching(false)
     setFocusId(messageId)
+    setDraft(drafts.get(id) ?? "")
     void run(async () => {
       await props.client.selectSession({ sessionId: id })
       await props.client.markRead({ sessionId: id })
@@ -134,6 +139,13 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     void run(() => props.client.loadMore()).then(() => setLoadingMore(false))
   }
 
+  /** 输入框变化时同时记到当前会话名下，轮询重渲染也不会丢。 */
+  const writeDraft = (value: string) => {
+    const id = state()?.selected
+    if (id !== undefined) drafts.set(id, value)
+    setDraft(value)
+  }
+
   const send = (body: string, at: readonly string[]) => {
     const sessionId = state()?.selected ?? ""
     setSending(true)
@@ -141,6 +153,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
       setSending(false)
       if (result === undefined) return
       if (result.ok) {
+        drafts.delete(sessionId)
         setDraft("")
         setNotice(undefined)
         return
@@ -177,7 +190,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   }
 
   const insertComposer = (value: string) => {
-    setDraft(value)
+    writeDraft(value)
     composer?.focus()
   }
 
@@ -240,7 +253,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
               <Composer
                 ctx={ctx}
                 value={text_()}
-                onInput={setDraft}
+                onInput={writeDraft}
                 send={snapshot().send}
                 sending={sending()}
                 members={snapshot().members}

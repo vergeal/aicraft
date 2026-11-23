@@ -181,7 +181,7 @@ export function Composer(props: {
               aria-label={text(ctx, "hyt.chat.composer.send")}
               title={text(ctx, "hyt.chat.composer.send")}
               aria-busy={props.sending ? "true" : undefined}
-              disabled={!props.send.enabled || props.sending}
+              disabled={!props.send.enabled || props.sending || props.value.trim().length === 0}
               onClick={() => submit()}
             >
               <ctx.ui.Icon name="arrow-up" size="normal" />

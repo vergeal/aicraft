@@ -1233,7 +1233,11 @@ function TurnChanges(props: { snapshot: Snapshot; turn: TimelineTurn; onOpenFile
                 <FileIcon node={{ path: file.path, type: "file" }} />
                 <span data-slot="answer-change-name">
                   <Show when={getDirectory(file.path)}>
-                    {(directory) => <span data-slot="answer-change-directory">{directory()}</span>}
+                    {(directory) => (
+                      <span data-slot="answer-change-directory">
+                        <span data-slot="answer-change-directory-inner">{directory()}</span>
+                      </span>
+                    )}
                   </Show>
                   <span data-slot="answer-change-filename">{getFilename(file.path)}</span>
                 </span>

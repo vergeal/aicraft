@@ -431,6 +431,13 @@
   color: var(--answer-ink-tertiary);
 }
 
+/* The outer span stays rtl so overflow trims the path's head; the inner span keeps the path itself LTR, so its
+   trailing slash stays at the end instead of being reordered to the front. */
+.answer-scope [data-slot="answer-change-directory-inner"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 .answer-scope [data-slot="answer-change-filename"] {
   flex-shrink: 0;
   max-width: 100%;

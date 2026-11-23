@@ -477,6 +477,7 @@ function messageRow(row: ChatRow, account: string, people: Map<string, PersonEnt
   const message = toMessage(row)
   return {
     id: message.id,
+    msgId: message.msgId,
     kind: message.kind,
     text: message.text,
     sender: message.sender,

@@ -52,6 +52,8 @@ export const SessionRow = Schema.Struct({
 export const MessageRow = Schema.Struct({
   /** 自增 Id，分页游标与 React key 都用它。 */
   id: Schema.Number,
+  /** 客户端消息 id，形如 `1795146745802|95360`；已读回执按它关联。 */
+  msgId: Schema.String,
   /** 消息类型。 */
   kind: MessageKind,
   /** 正文；图片/文件/语音正文可能为空。 */
@@ -76,6 +78,22 @@ export const MessageRow = Schema.Struct({
   fileSize: Schema.Number,
   /** 本地绝对路径：图片读取、合并转发解码、打开文件都用它。 */
   filePath: Schema.String,
+  /**
+   * 自己发出的消息的已读回执摘要；别人发来的消息没有这个字段。
+   * `unread` 为 -1 表示还没拿到群成员名单，此时界面只报「N 人已读」。
+   */
+  receipt: Schema.optional(
+    Schema.Struct({
+      /** 回执数据源是否可用；false 时界面写「已读信息暂不可用」。 */
+      available: Schema.Boolean,
+      /** 群聊。 */
+      group: Schema.Boolean,
+      /** 已读人数。 */
+      read: Schema.Number,
+      /** 未读人数；-1 表示未知。 */
+      unread: Schema.Number,
+    }),
+  ),
 })
 
 /** 合并转发里的一条。 */
@@ -146,6 +164,32 @@ export const SearchHit = Schema.Struct({
   message: MessageRow,
 })
 
+/** 已读回执里的一个人。 */
+export const ReceiptPerson = Schema.Struct({
+  /** 账号。 */
+  account: Schema.String,
+  /** 显示名；读不到时退回账号。 */
+  name: Schema.String,
+  /** 已读时间 epoch 毫秒；未读为 0。 */
+  at: Schema.Number,
+})
+
+/** 一条自己发出的消息的回执名单。 */
+export const ReceiptView = Schema.Struct({
+  /** 回执是否可用：桥接还没连过、或离线期间的回执补不回来时为 false。 */
+  available: Schema.Boolean,
+  /** 群聊。 */
+  group: Schema.Boolean,
+  /** 群成员总数（不含自己）；-1 表示还没拿到名单。 */
+  total: Schema.Number,
+  /** 已读的人，按时间倒序。 */
+  read: Schema.Array(ReceiptPerson),
+  /** 未读的人。 */
+  unread: Schema.Array(ReceiptPerson),
+  /** 不可用的原因；可用时为空串。 */
+  reason: Schema.String,
+})
+
 /** 页面阶段：决定窗口显示整页空态还是三栏内容。 */
 export const Phase = Schema.Literals(["loading", "ready", "no-account", "no-data", "error"])
 
@@ -206,6 +250,8 @@ export const ChatState = Schema.Struct({
   send: SendState,
   /** 知识库命中。 */
   knowledge: Schema.Array(KnowledgeHit),
+  /** 回执版本号：收到新回执时自增，窗口据此重新取弹窗名单。 */
+  receiptsVersion: Schema.Number,
 })
 
 /** 聊天主界面的 Ipc。state 是每个窗口一份的快照，方法改完就推新的。 */
@@ -235,6 +281,17 @@ export const ChatIpc = Ipc.define({
       input: Schema.Struct({ path: Schema.String }),
       output: Schema.Struct({ items: Schema.Array(MergeItemRow), error: Schema.String }),
     },
+    /** 读一张自己发出的消息的已读回执名单；`retry` 会忽略成员缓存重新拉一次群成员。 */
+    receipts: {
+      input: Schema.Struct({
+        sessionId: Schema.String,
+        msgId: Schema.String,
+        /** 消息发出时间：用来判断这条回执是否还补得回来。 */
+        createdAt: Schema.Number,
+        retry: Schema.optional(Schema.Boolean),
+      }),
+      output: ReceiptView,
+    },
     /** 读一张图片，返回 data URL，供窗口内联显示。 */
     media: {
       input: Schema.Struct({ path: Schema.String }),
@@ -259,6 +316,8 @@ export type DraftRow = typeof DraftRow.Type
 export type MemberRow = typeof MemberRow.Type
 export type KnowledgeHit = typeof KnowledgeHit.Type
 export type SearchHit = typeof SearchHit.Type
+export type ReceiptPerson = typeof ReceiptPerson.Type
+export type ReceiptView = typeof ReceiptView.Type
 export type Phase = typeof Phase.Type
 export type ChatStatus = typeof ChatStatus.Type
 export type SendState = typeof SendState.Type

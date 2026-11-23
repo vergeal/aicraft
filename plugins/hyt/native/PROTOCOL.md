@@ -125,6 +125,17 @@
 
 未登录或未连接时 `ok=false`、`members=[]`、`error="未登录或未连接"`。
 
+### im.markRead
+
+参数 `{msgId, group?: boolean, waitMs?: number}`（默认 3000）。把「我已经读过这条」上报给服务端：
+群聊走 `ReadMessageGroup`，单聊走 `ReadMessage`。别人看到的「N 人已读」里就有这一次。
+
+```json
+{ "ok": true, "msgId": "...", "error": "" }
+```
+
+上报失败时 `ok=false`、`error` 说明原因。这个接口只上报当前账号自己的已读，不改任何人的人员名单。
+
 ### im.history
 
 参数 `{sessionId, beforeId?, limit?}`（默认 30，上限 200）。按 `Id` 倒序分页，
@@ -196,12 +207,19 @@
 | `event.onKicked` | 同 `onConnectState`，被踢或强制下线时额外推送 |
 | `event.onGroups` | `[{groupId, name}]`（数组） |
 | `event.onGroupNotice` | `{notice, msgId}`，`notice` 为 SDK 通知类型 |
-| `event.onReadReceipt` | `{msgId, sessionId, account, voice}` |
+| `event.onReadReceipt` | `{msgId, sessionId, account, nick, at, voice, targetId, content, userData, relate}` |
 | `event.onOfflineMessage` | `{msgId, sessionId}`，离线消息同步时逐条推送 |
 | `event.onOffline` | `{count, complete:false}` 或 `{complete:true}` |
 | `event.onUploadProgress` | `{matchKey, uploaded, total}` |
 | `event.onDownload` | `{ok, msgId, path, ret}` |
 | `event.onStoreError` | `{msgId, error}`，写/更新 `chatmsg.db` 失败 |
+
+`event.onReadReceipt` 是别人读了你发的消息后服务端推回来的通知：`msgId` 是通知自身 id，
+`account` 是**读的人**（`nick` 是对应昵称），`targetId` 才是被读消息 id。SDK 不同版本可能把它
+放在 `targetId`、`content` 或 `relate[0]` 里，插件侧按这个顺序归一。`voice` 区分语音消息已读。
+
+这是推送流，桥接层不落库；离线期间没收到就补不回来，所以界面拿不到时显示「已读信息暂不可用」，
+而不是先报 0 人。
 
 ## 消息载荷
 

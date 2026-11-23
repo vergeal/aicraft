@@ -818,36 +818,175 @@ export const css = `
 
 .hyt-shell .msg[data-self="true"] .msg-meta { align-self: flex-end; }
 
-/* 复制行贴在气泡正下方：他人左对齐、自己右对齐；平时透明但占住 14px，
-   悬浮时不跳。每条消息都留同一块高度，行距才不会因为有没有按钮而变。 */
-.hyt-shell .message-tools {
-  display: flex;
-  gap: 4px;
+/* 回执入口：气泡右下一行小字，只有自己发出的消息才有。它是常驻说明，不是悬浮工具，
+   所以不占额外高度，也不随悬浮显示/隐藏。 */
+.hyt-shell .receipt-line {
+  display: inline-flex;
   align-items: center;
-  min-height: 14px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 14px;
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-
-.hyt-shell .msg:hover .message-tools,
-.hyt-shell .msg:focus-within .message-tools,
-.hyt-shell .msg[data-selected="true"] .message-tools { opacity: 1; }
-
-.hyt-shell .message-tools button {
-  padding: 0 3px;
+  gap: 5px;
+  margin-top: 3px;
+  padding: 0;
   border: 0;
-  border-radius: 4px;
   background: none;
-  color: inherit;
-  font-size: 11px;
-  line-height: 14px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 16px;
   cursor: pointer;
 }
 
-.hyt-shell .message-tools button:hover { background: var(--chrome); color: var(--ink); }
+.hyt-shell .receipt-line:hover { color: var(--link); }
+.hyt-shell .receipt-line b { color: var(--link); font-weight: 500; }
+.hyt-shell .receipt-line[disabled] { opacity: 0.7; cursor: default; }
+.hyt-shell .msg[data-self="true"] .receipt-line { justify-content: flex-end; }
+
+/* 回执弹窗：遮罩只压暗一点，弹窗与整页同一张纸，靠边框和阴影分层。 */
+.hyt-shell .receipt-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.hyt-shell .receipt {
+  display: flex;
+  flex-direction: column;
+  width: min(380px, 100%);
+  max-height: min(560px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 18px 48px -24px var(--shadow-lg);
+  outline: none;
+}
+
+.hyt-shell .receipt-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px 9px;
+}
+
+.hyt-shell .receipt-head strong { font-size: 14px; font-weight: 600; }
+
+.hyt-shell .receipt-head .sum {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hyt-shell .receipt-head .x {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.hyt-shell .receipt-head .x:hover { background: var(--hover); color: var(--ink); }
+
+.hyt-shell .receipt-search {
+  margin: 0 14px 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--tint);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.hyt-shell .receipt-search::placeholder { color: var(--muted); }
+
+.hyt-shell .receipt-body { overflow-y: auto; padding: 0 6px 8px; }
+
+.hyt-shell .pgroup {
+  margin: 6px 8px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.hyt-shell .people { margin: 0; padding: 0; list-style: none; }
+
+.hyt-shell .people li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: 7px;
+}
+
+.hyt-shell .people li:hover { background: var(--hover); }
+
+.hyt-shell .pface {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--face-b-bg);
+  color: var(--face-b-fg);
+  font-size: 10px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.hyt-shell .pface[data-hue="a"] { background: var(--face-a-bg); color: var(--face-a-fg); }
+.hyt-shell .people li[data-unread="true"] .pface { background: var(--hover); color: var(--muted); }
+
+.hyt-shell .pname {
+  overflow: hidden;
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hyt-shell .pside { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.hyt-shell .receipt-state {
+  margin: 0;
+  padding: 16px 14px 18px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.hyt-shell .receipt-state p { margin: 0 0 10px; }
+
+.hyt-shell .receipt-retry {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hyt-shell .receipt-retry:hover { background: var(--hover); }
+
+.hyt-shell .receipt-foot {
+  padding: 8px 14px 11px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
 
 .hyt-shell .expand {
   display: block;

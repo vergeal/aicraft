@@ -1,7 +1,8 @@
 import { connectBridge } from "../../src/bridge/client.js"
 import { ensureLogin } from "../../src/bridge/native.js"
 import type { BridgeCredentials } from "../../src/bridge/native.js"
-import { METHODS, parseSendResult, readEndpoint } from "../../src/bridge/protocol.js"
+import { METHODS, parseMarkRead, parseMembers, parseSendResult, readEndpoint } from "../../src/bridge/protocol.js"
+import type { MarkReadResult, MembersResult } from "../../src/bridge/protocol.js"
 import { createSupervisor } from "../../src/bridge/supervisor.js"
 import type { BridgeSupervisor } from "../../src/bridge/supervisor.js"
 
@@ -21,10 +22,19 @@ export interface SenderOptions {
   readonly executable: () => string
   /** 登录凭据；读不到时发送会给出明确原因。 */
   readonly credentials: () => BridgeCredentials | undefined
+  /**
+   * 桥接推送的事件。`event.onReadReceipt` 也走这里：回执是实时推送，
+   * 离线期间补不回来，所以必须一建连就订阅，不能等打开弹窗才接。
+   */
+  readonly onEvent?: (method: string, params: unknown) => void
 }
 
 export interface MessageSender {
   send(sessionId: string, text: string): Promise<SendOutcome>
+  /** 拉群成员，用来算「未读」；单聊不需要。 */
+  members(groupId: string): Promise<MembersResult>
+  /** 把「我已经读过这条」上报给服务端。 */
+  markRead(msgId: string, group: boolean): Promise<MarkReadResult>
   /** 后台预热：拉起桥接并登录，失败只记录状态，不抛给界面。 */
   warm(): Promise<void>
   /** 当前是否已有可用的连接；只读发现文件探测，不主动拉起进程。 */
@@ -49,6 +59,7 @@ export function createSender(options: SenderOptions): MessageSender {
       executable,
       autoStart: true,
       requestTimeoutMs: 20_000,
+      ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
     })
     cached = { key, supervisor: created }
     return created
@@ -84,6 +95,24 @@ export function createSender(options: SenderOptions): MessageSender {
         return result.ok ? { ok: true, msgId: result.msgId } : { ok: false, reason: "消息通道没有确认已发出" }
       } catch (cause) {
         return { ok: false, reason: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async members(groupId) {
+      try {
+        const client = await channel()
+        return parseMembers(await client.request(METHODS.members, { groupId }))
+      } catch (cause) {
+        return { ok: false, members: [], error: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async markRead(msgId, group) {
+      try {
+        const client = await channel()
+        return parseMarkRead(await client.request(METHODS.markRead, { msgId, group }), msgId)
+      } catch (cause) {
+        return { ok: false, msgId, error: cause instanceof Error ? cause.message : String(cause) }
       }
     },
 

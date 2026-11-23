@@ -13,6 +13,8 @@ export const METHODS = {
   state: "auth.state",
   sendMessage: "im.sendMessage",
   sessions: "im.sessions",
+  members: "im.members",
+  markRead: "im.markRead",
   call: "sdk.call",
 } as const
 
@@ -23,7 +25,54 @@ export const EVENTS = {
   connectState: "event.onConnectState",
   logOut: "event.onLogOut",
   userState: "event.onUserState",
+  readReceipt: "event.onReadReceipt",
 } as const
+
+/** 群成员，对应 `im.members` 的 `members` 一项。 */
+export interface BridgeMember {
+  readonly account: string
+  readonly name: string
+  readonly role?: number
+  readonly sex?: number
+}
+
+export interface MembersResult {
+  readonly ok: boolean
+  readonly members: readonly BridgeMember[]
+  readonly error: string
+}
+
+export interface MarkReadResult {
+  readonly ok: boolean
+  readonly msgId: string
+  readonly error: string
+}
+
+/** `im.members` 的回包：字段缺失时当作失败，避免把半截名单算成「没有未读」。 */
+export function parseMembers(value: unknown): MembersResult {
+  if (!isRecord(value)) return { ok: false, members: [], error: "bridge 没有返回群成员" }
+  const list = Array.isArray(value.members) ? value.members : []
+  return {
+    ok: value.ok === true,
+    members: list.flatMap((item) => {
+      if (!isRecord(item)) return []
+      const account = typeof item.account === "string" ? item.account : ""
+      if (account.length === 0) return []
+      return [{ account, name: typeof item.name === "string" ? item.name : "", role: number(item.role), sex: number(item.sex) }]
+    }),
+    error: typeof value.error === "string" ? value.error : "",
+  }
+}
+
+/** `im.markRead` 的回包。 */
+export function parseMarkRead(value: unknown, msgId: string): MarkReadResult {
+  if (!isRecord(value)) return { ok: false, msgId, error: "bridge 没有返回已读上报结果" }
+  return { ok: value.ok === true, msgId, error: typeof value.error === "string" ? value.error : "" }
+}
+
+function number(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined
+}
 
 export interface Endpoint {
   readonly host: string

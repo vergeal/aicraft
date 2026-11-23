@@ -81,6 +81,13 @@ struct DownloadResult {
   std::string error;
 };
 
+/** 上报「我已读」的结果。群聊走 ReadMessageGroup，单聊走 ReadMessage。 */
+struct ReadResult {
+  bool ok = false;
+  std::string msgId;
+  std::string error;
+};
+
 using EventSink = std::function<void(const std::string&, const nhjson::Value&)>;
 using StoreWrite = std::function<bool(const OwnMessage&, std::string*)>;
 using StoreLookup = std::function<bool(const std::string&, StoredMessage*)>;
@@ -103,6 +110,8 @@ class SdkHost {
   SendResult sendText(const SendRequest& request);
   SendResult sendMedia(const SendRequest& request);
   MemberResult queryMembers(const std::string& groupId, int waitMs);
+  /** 把「我已经读过这条」上报给服务端，才是别人回执里那个 N 的来源。 */
+  ReadResult markRead(const std::string& msgId, bool group, int waitMs);
   DownloadResult download(const StoredMessage& message, const std::string& account,
                           int waitMs);
   void fetchGroups();
@@ -130,6 +139,7 @@ class SdkHost {
                             unsigned long long total, void* ecMessage);
   void handleQueryMembers(unsigned int matchKey, int reason,
                           std::vector<MemberInfo> members);
+  void handleReadResult(unsigned int matchKey, int reason);
   void handleOwnGroups(const std::vector<std::pair<std::string, std::string>>& groups);
   void handleGroupNotice(const nhjson::Value& notice);
   void handleOfflineCount(int count);
@@ -171,6 +181,13 @@ class SdkHost {
     std::string path;
   };
 
+  struct ReadWait {
+    std::mutex mutex;
+    std::condition_variable cv;
+    bool done = false;
+    int reason = 0;
+  };
+
   mutable std::mutex stateMutex_;
   std::condition_variable stateCv_;
   std::mutex callMutex_;
@@ -200,6 +217,7 @@ class SdkHost {
   std::map<unsigned int, PendingSend> pendingSends_;
   std::map<unsigned int, std::shared_ptr<MemberWait>> pendingMembers_;
   std::map<unsigned int, std::shared_ptr<DownloadWait>> pendingDownloads_;
+  std::map<unsigned int, std::shared_ptr<ReadWait>> pendingReads_;
   std::map<std::string, std::pair<std::string, std::string>> groups_;
   /** 群名缓存是否已经从磁盘读过，避免每次 groups() 都开文件。 */
   bool groupsLoaded_ = false;

@@ -1,0 +1,1277 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>虹云通 · 聊天气泡与已读未读样式提案</title>
+<style>
+  /* ------------------------------------------------------------------
+     这份页面只画形态：颜色、圆角、字号全部取自 gui/chat/styles.ts 的
+     同一组 token，确认后按同样的规则落到实现与 chat-demo.html。
+     ------------------------------------------------------------------ */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 28px;
+    background: #dde1e5;
+    color: #1b2430;
+    font-family: "MiSans", "HarmonyOS Sans SC", "PingFang SC", system-ui, "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet-head { max-width: 1180px; margin: 0 auto 22px; }
+  .sheet-head h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .sheet-head p { margin: 0; color: #55636f; font-size: 13px; line-height: 1.65; }
+  .sheet-head ol { margin: 10px 0 0; padding-left: 20px; color: #55636f; font-size: 13px; line-height: 1.7; }
+  .sheet-head b { color: #1b2430; font-weight: 600; }
+
+  .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 20px; max-width: 1180px; margin: 0 auto; }
+
+  /* ── 主题 ─────────────────────────────────────────────────────── */
+  .stage[data-theme="light"] {
+    color-scheme: light;
+    --paper: #ffffff;
+    --chrome: #f3f5f7;
+    --ink: #1b2430;
+    --muted: #55636f;
+    --line: #e4e8ec;
+    --line-soft: #edf0f3;
+    --seal: #c33a2e;
+    --seal-ink: #b03227;
+    --seal-bg: #fbe9e6;
+    --bubble: #f2f4f6;
+    --bubble-self: #dfeaf4;
+    --link: #2e5f8a;
+    --media: #e3e7ea;
+    --media-a: #dde8e0;
+    --face-a-bg: #e6f2e8;
+    --face-a-fg: #2f6b3f;
+    --hover: #ebeef1;
+    --tint: #fafbfc;
+    --shadow: rgba(27, 36, 48, 0.08);
+    --shadow-lg: rgba(27, 36, 48, 0.1);
+  }
+  .stage[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #1a1e23;
+    --chrome: #0d1013;
+    --ink: #e3e8ed;
+    --muted: #96a2ae;
+    --line: #303740;
+    --line-soft: #262c33;
+    --seal: #d7564a;
+    --seal-ink: #e88a80;
+    --seal-bg: #39221f;
+    --bubble: #2a3038;
+    --bubble-self: #29384a;
+    --link: #86b6da;
+    --media: #2f363e;
+    --media-a: #26332b;
+    --face-a-bg: #22342a;
+    --face-a-fg: #93cfa4;
+    --hover: #1f252b;
+    --tint: #1f252b;
+    --shadow: rgba(0, 0, 0, 0.4);
+    --shadow-lg: rgba(0, 0, 0, 0.5);
+  }
+
+  .stage {
+    --r-bubble: 12px;
+    --r-row: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 640px;
+    overflow: hidden;
+    border-radius: 14px;
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(27, 36, 48, 0.08);
+  }
+
+  .stage-head {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--chrome);
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  .flow { flex: 1 1 auto; padding: 8px 18px 20px; }
+
+  .cap {
+    margin: 14px 0 6px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── 消息行 ───────────────────────────────────────────────────── */
+  .msg {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 9px;
+    /* 行距只有两档：换人或隔了 5 分钟以上 22px，同一个人连续发言 14px。 */
+    margin-top: 22px;
+  }
+  .msg[data-group] { margin-top: 14px; }
+  .msg[data-self] { grid-template-columns: minmax(0, 1fr); }
+  .msg[data-group] .face, .msg[data-group] .meta { visibility: hidden; }
+
+  .face {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: var(--face-a-bg);
+    color: var(--face-a-fg);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .body { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+  .msg[data-self] .body { align-items: flex-end; }
+
+  .meta { display: flex; align-items: baseline; gap: 7px; margin-bottom: 4px; }
+  .name { font-size: 12px; color: var(--muted); }
+  .time { font-size: 11px; color: var(--muted); opacity: 0.72; font-variant-numeric: tabular-nums; }
+
+  /* ── 气泡：一套圆角，不再切角 ─────────────────────────────────── */
+  .bubble {
+    display: inline-block;
+    max-width: min(420px, 100%);
+    padding: 7px 12px;
+    border-radius: var(--r-bubble);
+    background: var(--bubble);
+    font-size: 14.5px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .bubble--prose { width: 100%; padding: 10px 14px; }
+  /* 读不到图片时退成一句说明，不占一块 4:3 的空地 */
+  .bubble--muted { color: var(--muted); font-size: 12.5px; padding: 6px 11px; }
+  .msg[data-self] .bubble { background: var(--bubble-self); }
+
+  /* 图片、文件、链接卡：气泡自己不留内边距，内容满出血，圆角负责裁切 */
+  .bubble--tight { padding: 0; overflow: hidden; width: min(360px, 100%); display: block; }
+
+  .bubble-cap {
+    padding: 7px 12px 8px;
+    border-top: 1px solid var(--line-soft);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* 正文里的 @ 与链接 */
+  .at {
+    padding: 0 3px;
+    border-radius: 5px;
+    background: var(--seal-bg);
+    color: var(--seal-ink);
+    font-weight: 500;
+  }
+  .bubble a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--link) 32%, transparent);
+  }
+  .bubble a:hover { border-bottom-color: currentColor; }
+  .expand {
+    display: block;
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--link);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* ── 图片：满出血，按原比例，最高 320px ──────────────────────── */
+  .shot {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    background: var(--media);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .shot[data-hue="a"] { background: var(--media-a); }
+  .shot[data-frame] { aspect-ratio: 4 / 3; }
+  .shot img { display: block; width: 100%; height: auto; max-height: 320px; object-fit: contain; }
+
+  /* ── 文件：一行版式，不再画一条内部分隔线 ─────────────────────── */
+  .file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+  }
+  .file:hover { background: var(--hover); }
+  .file-mark {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-row);
+    background: var(--chrome);
+    border: 1px solid var(--line-soft);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .file-mark[data-kind="sheet"] { background: var(--face-a-bg); border-color: transparent; color: var(--face-a-fg); }
+  .file-text { min-width: 0; }
+  .file-name {
+    display: block;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-size { display: block; margin-top: 1px; color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+  /* ── 链接卡：整条就是一个地址时用 ─────────────────────────────── */
+  .link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+  }
+  .link:hover { background: var(--hover); }
+  .link-mark {
+    display: grid;
+    place-items: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-row);
+    background: var(--chrome);
+    border: 1px solid var(--line-soft);
+    color: var(--muted);
+  }
+  .link-mark svg { width: 14px; height: 14px; }
+  .link-text { min-width: 0; }
+  .link-dom { display: block; font-size: 13px; }
+  .link-url {
+    display: block;
+    margin-top: 1px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .link-go { flex: 0 0 auto; margin-left: auto; color: var(--link); opacity: 0.8; }
+
+  /* ── 语音 / 视频 / 通话：与气泡同族，不再单独一套 ─────────────── */
+  .capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 148px;
+    padding: 7px 12px;
+    border-radius: var(--r-bubble);
+    background: var(--bubble);
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .msg[data-self] .capsule { background: var(--bubble-self); }
+  .capsule:hover { background: var(--hover); }
+  .capsule svg { flex: 0 0 auto; color: var(--muted); }
+  .capsule .go { margin-left: auto; color: var(--link); font-size: 12px; }
+  .capsule .hint { margin-left: auto; color: var(--muted); font-size: 11.5px; }
+
+  .wave { display: flex; align-items: center; gap: 2px; }
+  .wave i { width: 2px; height: 9px; border-radius: 1px; background: var(--muted); }
+  .wave i:nth-child(2) { height: 14px; }
+  .wave i:nth-child(3) { height: 7px; }
+  .wave i:nth-child(4) { height: 11px; }
+
+  /* ── 合并转发：同一族，去掉外面的 1px 边框 ───────────────────── */
+  .merge {
+    width: min(320px, 100%);
+    overflow: hidden;
+    border-radius: var(--r-bubble);
+    background: var(--bubble);
+    text-align: start;
+    cursor: pointer;
+  }
+  .merge:hover { background: var(--hover); }
+  .merge-head { padding: 9px 12px 8px; }
+  .merge-title { display: block; font-size: 13px; font-weight: 500; }
+  .merge-text {
+    display: block;
+    margin-top: 3px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .merge-list { border-top: 1px solid var(--line-soft); padding: 4px 12px 8px; }
+  .merge-item { display: flex; gap: 8px; padding: 5px 0; font-size: 12.5px; }
+  .merge-item + .merge-item { border-top: 1px solid var(--line-soft); }
+  .merge-item b { flex: 0 0 auto; color: var(--ink); font-weight: 500; }
+  .merge-item span { min-width: 0; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── 读不到的类型：不做气泡，退成一行说明 ────────────────────── */
+  .unknown {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .unknown i {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--line); display: inline-block;
+  }
+
+  /* ── 系统提示 ─────────────────────────────────────────────────── */
+  .system, .stamp {
+    margin: 14px 0 2px;
+    color: var(--muted);
+    font-size: 11.5px;
+    text-align: center;
+  }
+  .divider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 14px 0 6px;
+    padding-top: 7px;
+    border-top: 1px dashed var(--line);
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .divider .markread {
+    position: absolute;
+    right: 0;
+    top: 2px;
+    padding: 1px 4px;
+    border: 0;
+    border-radius: 5px;
+    background: none;
+    color: var(--link);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .divider .markread:hover { background: var(--hover); }
+
+  /* 悬浮才出现的复制行：绝对定位压在消息下方的间隙里，不参与行距计算 */
+  .tools {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    display: flex;
+    gap: 2px;
+    height: 14px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 14px;
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+  }
+  .msg[data-self] .tools { left: auto; right: 0; }
+  .msg:hover .tools { opacity: 1; }
+  .tools span { padding: 0 3px; }
+
+  .notes { max-width: 1180px; margin: 22px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .note { padding: 12px 14px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgba(27, 36, 48, 0.06); }
+  .note h3 { margin: 0 0 4px; font-size: 12.5px; font-weight: 600; }
+  .note p { margin: 0; color: #55636f; font-size: 12px; line-height: 1.6; }
+
+  /* ══ 已读 / 未读 ═══════════════════════════════════════════════ */
+
+  .stage--split {
+    display: grid;
+    grid-template-columns: 296px minmax(0, 1fr);
+    min-height: 392px;
+  }
+
+  .rail {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--chrome);
+  }
+  /* 只有左栏本身要一条右侧分隔；画在卡片右缘时由 stage 的裁切负责 */
+  .rail[data-rule] { border-right: 1px solid var(--line); }
+
+  .rail-brand {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 52px;
+    padding: 0 10px 0 16px;
+    border-bottom: 2px solid var(--seal);
+  }
+  .rail-brand strong { font-size: 14px; font-weight: 600; }
+  .rail-brand .sum { color: var(--muted); font-size: 11px; }
+  .rail-brand .sum b { color: var(--seal-ink); font-weight: 600; }
+
+  .readall {
+    margin-left: auto;
+    padding: 3px 6px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--link);
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  .readall:hover { background: var(--hover); }
+  .readall[disabled] { color: var(--muted); opacity: 0.45; cursor: default; background: none; }
+
+  .filters { display: flex; gap: 6px; padding: 9px 12px 5px 16px; }
+
+  .fchip {
+    padding: 2px 9px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: none;
+    color: var(--muted);
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  .fchip[aria-pressed="true"] { border-color: var(--line); background: var(--paper); color: var(--ink); }
+
+  .rows { padding: 4px 8px 10px; }
+
+  .srow {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 9px;
+  }
+  .srow[data-selected] { background: var(--hover); }
+
+  .sface {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--face-a-bg);
+    color: var(--face-a-fg);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .sface[data-group] { border: 1px solid var(--line); background: var(--chrome); color: var(--muted); }
+
+  .sname { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--ink); }
+  .stime { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sprev {
+    display: block;
+    margin-top: 1px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .srow[data-unread] .sprev { color: var(--ink); }
+
+  .badge {
+    display: grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--seal-bg);
+    color: var(--seal-ink);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  /* 有人 @ 我：胶囊改实心红，不再额外挂一个点 */
+  .badge[data-at] { background: var(--seal); color: #fff; }
+
+  .annot {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 16px 18px;
+    background: var(--tint);
+  }
+  .annot span { color: var(--muted); font-size: 11.5px; line-height: 1.55; }
+  .annot span b { color: var(--ink); font-weight: 500; }
+  .annot span b::after { content: " · "; }
+
+  /* 会话内：未读吸附条 */
+  .unread-bar {
+    display: flex;
+    width: fit-content;
+    align-items: center;
+    gap: 7px;
+    margin: 10px auto 2px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--seal-bg);
+    color: var(--seal-ink);
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  .unread-bar i { width: 5px; height: 5px; border-radius: 50%; background: var(--seal); display: inline-block; }
+
+  .empty {
+    display: grid;
+    place-items: center;
+    flex: 1 1 auto;
+    padding: 26px 16px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+  .empty b { display: block; margin-bottom: 3px; color: var(--ink); font-size: 12.5px; font-weight: 500; }
+
+  /* 右键菜单：作用于会话行 */
+  .menu {
+    position: absolute;
+    top: 92px;
+    left: 132px;
+    z-index: 2;
+    min-width: 132px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--paper);
+    box-shadow: 0 8px 24px -12px var(--shadow-lg);
+    font-size: 12px;
+  }
+  .menu button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+    text-align: start;
+    cursor: pointer;
+  }
+  .menu button:hover { background: var(--hover); }
+  .menu hr { margin: 4px 6px; border: 0; border-top: 1px solid var(--line-soft); }
+  .menu .dim { color: var(--muted); }
+
+  .mini { min-height: 268px; }
+  .mini .rail { position: relative; flex: 1 1 auto; }
+  .mini .split { flex: 1 1 auto; display: grid; grid-template-columns: 296px minmax(0, 1fr); }
+
+  /* ══ 消息已读回执 ═════════════════════════════════════════════ */
+
+  /* 气泡下方一行，只有自己发出的消息才有；它是常驻说明，不是悬浮工具 */
+  .receipt-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 11.5px;
+    line-height: 16px;
+    cursor: pointer;
+  }
+  .receipt-line:hover { color: var(--link); }
+  .receipt-line b { color: var(--link); font-weight: 500; }
+  .receipt-line[disabled] { color: var(--muted); opacity: 0.7; cursor: default; }
+  .msg[data-self] .receipt-line { justify-content: flex-end; }
+
+  .stage--receipt { min-height: 560px; }
+  .veil {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 22px;
+    background: color-mix(in srgb, var(--ink) 12%, var(--paper));
+  }
+
+  .receipt {
+    display: flex;
+    flex-direction: column;
+    width: min(380px, 100%);
+    max-height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--paper);
+    box-shadow: 0 18px 48px -24px var(--shadow-lg);
+  }
+
+  .receipt-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 12px 14px 9px;
+  }
+  .receipt-head strong { font-size: 14px; font-weight: 600; }
+  .receipt-head .sum { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .receipt-head .x {
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+  }
+  .receipt-head .x:hover { background: var(--hover); color: var(--ink); }
+
+  .receipt-search {
+    margin: 0 14px 8px;
+    padding: 5px 9px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--tint);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .receipt-search::placeholder { color: var(--muted); }
+
+  .receipt-body { overflow-y: auto; padding: 0 6px 8px; }
+
+  .pgroup {
+    margin: 6px 8px 2px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .people { margin: 0; padding: 0; list-style: none; }
+  .people li {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 8px;
+    border-radius: 7px;
+  }
+  .people li:hover { background: var(--hover); }
+  .pface {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--face-a-bg);
+    color: var(--face-a-fg);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pface[data-off] { background: var(--hover); color: var(--muted); }
+  .pname { overflow: hidden; font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+  .pside { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  .receipt-foot {
+    padding: 8px 14px 11px;
+    border-top: 1px solid var(--line-soft);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .receipt-note { margin: 0; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="sheet-head">
+  <h1>聊天气泡样式 · 提案</h1>
+  <p>同一套圆角（12px）与内边距贯穿所有类型；图片、文件、链接卡把内边距让给内容，用气泡自身的圆角裁切。</p>
+  <ol>
+    <li><b>去掉切角</b>：气泡四角同为 12px。自己 / 他人的区分交给底色与对齐，不靠一个被削掉的角。</li>
+    <li><b>图片满出血</b>：图片贴到气泡边缘，带说明时说明单独一条压在下面，按原比例显示，最高 320px。</li>
+    <li><b>文件改一行</b>：32px 类型标记 + 文件名 + 大小，去掉气泡内部那条分隔线；表格类给一点绿，其余中性色。</li>
+    <li><b>链接有样子</b>：正文里的地址是浅下划线链接，整条只有一个地址时升级成链接卡（域名 + 完整地址）。</li>
+    <li><b>语音 / 视频 / 通话、合并转发</b>收进同一族：同底色、同圆角，悬停才加深。</li>
+    <li><b>读不到的类型</b>不再用虚线框假装成消息，退成一行灰色说明。</li>
+    <li><b>行距两档</b>：换人或隔了 5 分钟以上 22px，同一个人连续发言 14px。</li>
+  </ol>
+</div>
+
+<div class="stages">
+  <section class="stage" data-theme="light">
+    <div class="stage-head">浅色 · 白天</div>
+    <div class="flow">
+
+      <p class="cap">文本</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:15</span></div>
+          <div class="bubble">这个是嘉为蓝鲸的Demo环境</div>
+
+        </div>
+      </div>
+
+      <div class="msg" data-group>
+        <div class="face">范</div>
+        <div class="body">
+          <div class="bubble"><span class="at">@罗添胜</span> 你那边看一下这台的告警</div>
+
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="meta"><span class="name">我</span><span class="time">11:16</span></div>
+          <div class="bubble bubble--prose">
+            收到。我先把过去两小时的指标拉一遍，确认是应用侧还是网络侧的问题，再把结论发到群里。如果确实是网络抖动，我会顺手把链路的丢包曲线一起截出来。
+            <button class="expand" type="button">展开全文（78 字）</button>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="cap">链接</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:18</span></div>
+          <div class="bubble">文档在这里 <a href="#">https://wiki.example.com/ops/blue-king</a></div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="bubble bubble--tight">
+            <div class="link">
+              <span class="link-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+              </span>
+              <span class="link-text">
+                <span class="link-dom">wiki.example.com</span>
+                <span class="link-url">/ops/blue-king/release-notes-2026-11</span>
+              </span>
+              <span class="link-go">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">图片</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:20</span></div>
+          <div class="bubble bubble--tight">
+            <div class="shot" data-hue="a" data-frame>图片预览（4:3 占位）</div>
+            <div class="bubble-cap">这台的内存曲线，11:05 之后开始抖</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble bubble--muted">图片不在本地</div>
+        </div>
+      </div>
+
+      <p class="cap">文件</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:22</span></div>
+          <div class="bubble bubble--tight">
+            <div class="file">
+              <span class="file-mark" data-kind="sheet">XLSX</span>
+              <span class="file-text">
+                <span class="file-name">11月值班表.xlsx</span>
+                <span class="file-size">248 KB · 范婷婷 · 11:22</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble bubble--tight">
+            <div class="file">
+              <span class="file-mark">PDF</span>
+              <span class="file-text">
+                <span class="file-name">故障复盘-2026-11-18.pdf</span>
+                <span class="file-size">1.4 MB · 我 · 11:24</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">语音 · 视频 · 通话</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="capsule">
+            <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>语音 8″</span>
+            <span class="go">播放</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-group>
+        <div class="face">范</div>
+        <div class="body">
+          <div class="capsule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="m15 11 6-3v8l-6-3z"/></svg>
+            <span>视频通话 · 03:12</span>
+            <span class="go">打开</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-group>
+        <div class="face">范</div>
+        <div class="body">
+          <div class="capsule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>
+            <span>通话 · 通话结束</span>
+            <span class="hint">仅客户端可见</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">合并转发</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="merge">
+            <div class="merge-head">
+              <span class="merge-title">群聊的聊天记录</span>
+              <span class="merge-text">范婷婷：这个是嘉为蓝鲸的Demo环境</span>
+            </div>
+            <div class="merge-list">
+              <div class="merge-item"><b>范婷婷</b><span>这个是嘉为蓝鲸的Demo环境</span></div>
+              <div class="merge-item"><b>罗添胜</b><span>[图片]</span></div>
+              <div class="merge-item"><b>我</b><span>收到，我先拉一下指标</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">读不到的类型 · 撤回</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="unknown"><i></i>暂不支持的消息类型 · 位置</div>
+        </div>
+      </div>
+
+      <p class="system">范婷婷 撤回了一条消息</p>
+      <div class="divider">以下 3 条为新消息</div>
+    </div>
+  </section>
+
+  <section class="stage" data-theme="dark">
+    <div class="stage-head">深色 · 夜间</div>
+    <div class="flow">
+
+      <p class="cap">文本</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:15</span></div>
+          <div class="bubble">这个是嘉为蓝鲸的Demo环境</div>
+
+        </div>
+      </div>
+
+      <div class="msg" data-group>
+        <div class="face">范</div>
+        <div class="body">
+          <div class="bubble"><span class="at">@罗添胜</span> 你那边看一下这台的告警</div>
+
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="meta"><span class="name">我</span><span class="time">11:16</span></div>
+          <div class="bubble bubble--prose">
+            收到。我先把过去两小时的指标拉一遍，确认是应用侧还是网络侧的问题，再把结论发到群里。如果确实是网络抖动，我会顺手把链路的丢包曲线一起截出来。
+            <button class="expand" type="button">展开全文（78 字）</button>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="cap">链接</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:18</span></div>
+          <div class="bubble">文档在这里 <a href="#">https://wiki.example.com/ops/blue-king</a></div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="bubble bubble--tight">
+            <div class="link">
+              <span class="link-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+              </span>
+              <span class="link-text">
+                <span class="link-dom">wiki.example.com</span>
+                <span class="link-url">/ops/blue-king/release-notes-2026-11</span>
+              </span>
+              <span class="link-go">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">图片</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:20</span></div>
+          <div class="bubble bubble--tight">
+            <div class="shot" data-hue="a" data-frame>图片预览（4:3 占位）</div>
+            <div class="bubble-cap">这台的内存曲线，11:05 之后开始抖</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble bubble--muted">图片不在本地</div>
+        </div>
+      </div>
+
+      <p class="cap">文件</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:22</span></div>
+          <div class="bubble bubble--tight">
+            <div class="file">
+              <span class="file-mark" data-kind="sheet">XLSX</span>
+              <span class="file-text">
+                <span class="file-name">11月值班表.xlsx</span>
+                <span class="file-size">248 KB · 范婷婷 · 11:22</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble bubble--tight">
+            <div class="file">
+              <span class="file-mark">PDF</span>
+              <span class="file-text">
+                <span class="file-name">故障复盘-2026-11-18.pdf</span>
+                <span class="file-size">1.4 MB · 我 · 11:24</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">语音 · 视频 · 通话</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="capsule">
+            <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>语音 8″</span>
+            <span class="go">播放</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-group>
+        <div class="face">范</div>
+        <div class="body">
+          <div class="capsule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="m15 11 6-3v8l-6-3z"/></svg>
+            <span>视频通话 · 03:12</span>
+            <span class="go">打开</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" data-group>
+        <div class="face">范</div>
+        <div class="body">
+          <div class="capsule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>
+            <span>通话 · 通话结束</span>
+            <span class="hint">仅客户端可见</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">合并转发</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="merge">
+            <div class="merge-head">
+              <span class="merge-title">群聊的聊天记录</span>
+              <span class="merge-text">范婷婷：这个是嘉为蓝鲸的Demo环境</span>
+            </div>
+            <div class="merge-list">
+              <div class="merge-item"><b>范婷婷</b><span>这个是嘉为蓝鲸的Demo环境</span></div>
+              <div class="merge-item"><b>罗添胜</b><span>[图片]</span></div>
+              <div class="merge-item"><b>我</b><span>收到，我先拉一下指标</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cap">读不到的类型 · 撤回</p>
+
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="unknown"><i></i>暂不支持的消息类型 · 位置</div>
+        </div>
+      </div>
+
+      <p class="system">范婷婷 撤回了一条消息</p>
+      <div class="divider">以下 3 条为新消息</div>
+    </div>
+  </section>
+</div>
+
+<div class="notes">
+  <div class="note">
+    <h3>行距两档</h3>
+    <p>换人或隔了 5 分钟以上 22px，同一个人连续发言 14px。复制行改成绝对定位压在间隙里，不再用一段透明高度撑开行距。</p>
+  </div>
+  <div class="note">
+    <h3>一套几何</h3>
+    <p>气泡 12px、内部块 8px、类型标记 32px。所有类型都落在这三个数上，不再各写一套内边距。</p>
+  </div>
+  <div class="note">
+    <h3>内边距让给内容</h3>
+    <p>图片 / 文件 / 链接卡用 <code>bubble--tight</code>：气泡 padding 归零，圆角负责裁切，说明文字单独一条压在下面。</p>
+  </div>
+  <div class="note">
+    <h3>颜色只做轻提示</h3>
+    <p>只有表格类文件标记带一点绿（复用 <code>--face-a-*</code>），其余全是中性底；红色只留给 @、未读与撤回。</p>
+  </div>
+  <div class="note">
+    <h3>链接可点</h3>
+    <p>正文里的地址渲染成浅下划线链接，点击走 <code>ctx.system.openExternal</code>；整条只有一个地址时升级成卡片。</p>
+  </div>
+</div>
+
+<div class="sheet-head" style="margin-top: 36px">
+  <h1>消息已读回执</h1>
+  <p>自己发出的消息，气泡下方报「N 人已读」，点开看谁读了、谁没读。回执是虹云通客户端逐条上报的，插件只做聚合与展示，不自己编状态。</p>
+  <ol>
+    <li><b>入口只有一行</b>：气泡右下一行小字，群聊写「3 人已读 · 2 人未读」，全部读完只留「5 人已读」；单聊写「已读 / 未读」。</li>
+    <li><b>弹窗两段</b>：未读在上、已读在下，都带头像与名字；已读区带时间，未读区只写「未读」。成员多时给搜索。</li>
+    <li><b>谁算进去</b>：已读人数来自回执；未读 = 群成员 − 已读 − 自己。退群的人从两段里同时消失，不会一直挂在未读。</li>
+    <li><b>实时</b>：弹窗开着时回执进来就往上加，不关不重排；关掉不改任何状态。</li>
+    <li><b>拿不到就说拿不到</b>：历史消息或离线期间没收到的回执，显示「已读信息暂不可用」，不显示 0 人。</li>
+  </ol>
+</div>
+
+<div class="stages">
+  <section class="stage stage--receipt" data-theme="light">
+    <div class="stage-head">自己发出的消息 · 回执入口（浅色）</div>
+    <div class="flow">
+      <p class="cap">群里已读与未读都报数</p>
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble">我先拉一下指标，十分钟后同步结论</div>
+          <button class="receipt-line" type="button"><b>3 人已读</b>· 2 人未读</button>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble">收到，这个我来处理</div>
+          <button class="receipt-line" type="button"><b>5 人已读</b></button>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble">回执还没回来的时候不报 0 人</div>
+          <button class="receipt-line" type="button" disabled>已读信息暂不可用</button>
+        </div>
+      </div>
+
+      <p class="cap">别人的消息不挂回执</p>
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:18</span></div>
+          <div class="bubble">好，等你结论</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage stage--receipt" data-theme="dark">
+    <div class="stage-head">自己发出的消息 · 回执入口（深色）</div>
+    <div class="flow">
+      <p class="cap">群里已读与未读都报数</p>
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble">我先拉一下指标，十分钟后同步结论</div>
+          <button class="receipt-line" type="button"><b>3 人已读</b>· 2 人未读</button>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble">收到，这个我来处理</div>
+          <button class="receipt-line" type="button"><b>5 人已读</b></button>
+        </div>
+      </div>
+
+      <div class="msg" data-self>
+        <div class="body">
+          <div class="bubble">回执还没回来的时候不报 0 人</div>
+          <button class="receipt-line" type="button" disabled>已读信息暂不可用</button>
+        </div>
+      </div>
+
+      <p class="cap">别人的消息不挂回执</p>
+      <div class="msg">
+        <div class="face">范</div>
+        <div class="body">
+          <div class="meta"><span class="name">范婷婷</span><span class="time">11:18</span></div>
+          <div class="bubble">好，等你结论</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="stages" style="margin-top: 20px">
+  <section class="stage stage--receipt" data-theme="light">
+    <div class="stage-head">群聊回执弹窗（浅色）</div>
+    <div class="veil">
+      <div class="receipt">
+        <div class="receipt-head">
+          <strong>已读回执</strong>
+          <span class="sum">3 人已读 · 2 人未读</span>
+          <button class="x" type="button">×</button>
+        </div>
+        <input class="receipt-search" placeholder="搜索成员">
+        <div class="receipt-body">
+          <p class="pgroup">未读 2</p>
+          <ul class="people">
+            <li><span class="pface" data-off>张晓</span><span class="pname">张晓东</span><span class="pside">未读</span></li>
+            <li><span class="pface" data-off>值班</span><span class="pname">值班机器人</span><span class="pside">未读</span></li>
+          </ul>
+          <p class="pgroup">已读 3</p>
+          <ul class="people">
+            <li><span class="pface">范婷</span><span class="pname">范婷婷</span><span class="pside">11:32</span></li>
+            <li><span class="pface">罗添</span><span class="pname">罗添胜</span><span class="pside">11:31</span></li>
+            <li><span class="pface">王海</span><span class="pname">王海涛</span><span class="pside">11:29</span></li>
+          </ul>
+        </div>
+        <p class="receipt-foot">回执由成员收到消息后上报，晚到的记录会补在列表里。</p>
+      </div>
+      <p class="receipt-note">弹窗外点一下关闭；Esc 同样关闭。</p>
+    </div>
+  </section>
+
+  <section class="stage stage--receipt" data-theme="dark">
+    <div class="stage-head">单聊回执弹窗（深色）</div>
+    <div class="veil">
+      <div class="receipt" style="width: min(320px, 100%)">
+        <div class="receipt-head">
+          <strong>已读回执</strong>
+          <span class="sum">单聊 · 对方未读</span>
+          <button class="x" type="button">×</button>
+        </div>
+        <div class="receipt-body">
+          <ul class="people">
+            <li><span class="pface" data-off>范婷</span><span class="pname">范婷婷</span><span class="pside">未读</span></li>
+          </ul>
+        </div>
+        <p class="receipt-foot">对方读过就换成「11:32 已读」，不留第二条记录。</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="notes">
+  <div class="note">
+    <h3>只有自己的消息有回执</h3>
+    <p>别人发来的消息不挂回执：我们知道的是「自己有没有读」，不是「别人读了别人什么」。发给自己的附件、系统提示同样不挂。</p>
+  </div>
+  <div class="note">
+    <h3>人数怎么算</h3>
+    <p>已读人数取回执聚合；未读 = 群成员 − 已读 − 自己。成员退群后从两段同时移除，未读数跟着降，不会留一个永远清不掉的尾巴。</p>
+  </div>
+  <div class="note">
+    <h3>一行文案的两种写法</h3>
+    <p>还有未读时写「3 人已读 · 2 人未读」，全部读完只留「5 人已读」。单聊不用人数，直接写「已读 / 未读」。</p>
+  </div>
+  <div class="note">
+    <h3>实时增量</h3>
+    <p>弹窗打开期间收到回执只往上加、不动已渲染的行；关闭弹窗不改变任何状态，也不再把这条标成什么。</p>
+  </div>
+  <div class="note">
+    <h3>拿不到就说拿不到</h3>
+    <p>历史消息、离线期间没收到的回执，显示「已读信息暂不可用」并可重试，绝不先显示 0 人再跳成 3 人。</p>
+  </div>
+  <div class="note">
+    <h3>不挂送达 / 已读双勾</h3>
+    <p>气泡里不再叠一层「送达 / 已读」图标：群聊的回执本来就是人数事实，双勾只会把同一件事说得更模糊。</p>
+  </div>
+</div>
+
+</body>
+</html>

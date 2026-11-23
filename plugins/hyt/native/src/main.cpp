@@ -452,6 +452,23 @@ Value rpcMembers(const Value& params) {
   return v;
 }
 
+Value rpcMarkRead(const Value& params) {
+  std::string msgId = paramString(params, "msgId");
+  bool group = params.getBool("group", false);
+  int waitMs = paramInt(params, "waitMs", 3000);
+  Value v = Value::object();
+  if (msgId.empty()) {
+    v.set("ok", Value::boolean(false));
+    v.set("error", Value::string("缺少 msgId"));
+    return v;
+  }
+  hyt::ReadResult result = hyt::SdkHost::instance().markRead(msgId, group, waitMs);
+  v.set("ok", Value::boolean(result.ok));
+  v.set("msgId", Value::string(result.msgId));
+  v.set("error", Value::string(result.error));
+  return v;
+}
+
 Value rpcHistory(const Value& params) {
   std::string sessionId = paramString(params, "sessionId");
   std::string beforeId = paramString(params, "beforeId");
@@ -630,6 +647,8 @@ void handleRequest(hyt_socket fd, const Value& req) {
     respond(fd, id, rpcGroups());
   } else if (method == "im.members") {
     respond(fd, id, rpcMembers(params));
+  } else if (method == "im.markRead") {
+    respond(fd, id, rpcMarkRead(params));
   } else if (method == "im.history") {
     respond(fd, id, rpcHistory(params));
   } else if (method == "im.sendMessage") {

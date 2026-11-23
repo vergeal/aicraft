@@ -313,6 +313,10 @@ export function ChatPage(props: {
     if (body.length > 0 && body !== selected)
       entries.push({ label: text(ctx, "hyt.chat.menu.message.copyAll"), onSelect: () => copy(body) })
     if (entries.length > 0) entries.push({ separator: true })
+    if (message.kind === "image" && message.filePath.length > 0)
+      entries.push({ label: text(ctx, "hyt.chat.msg.enlarge"), onSelect: () => openImage(message.filePath) })
+    if (message.filePath.length > 0)
+      entries.push({ label: text(ctx, "hyt.chat.msg.reveal"), onSelect: () => reveal(message.filePath) })
     entries.push({ label: text(ctx, "hyt.chat.menu.message.copySender"), onSelect: () => copy(message.sender) })
     entries.push({
       label: text(ctx, "hyt.chat.menu.message.profile"),
@@ -574,6 +578,9 @@ export function ChatPage(props: {
             onLatest={latest}
             onLoadMore={loadMore}
             avatars={avatarMap()}
+            sessionId={selected()?.id ?? ""}
+            receiptVersion={state()?.receiptsVersion ?? 0}
+            onReceipts={(input) => props.client.receipts(input)}
             onMedia={onMedia}
             onMerge={onMerge}
             onOpenFile={reveal}

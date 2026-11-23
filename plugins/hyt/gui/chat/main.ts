@@ -5,12 +5,25 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
 import type { MergeItem } from "../../src/chat/merge.js"
+import { parseReceipt } from "../../src/chat/receipts.js"
 import { bridgeExecutable } from "../../src/bridge/native.js"
+import { EVENTS } from "../../src/bridge/protocol.js"
+import type { BridgeMember } from "../../src/bridge/protocol.js"
 import * as Bridge from "./bridge.js"
 import * as Data from "../shared/data.js"
 import { ChatIpc } from "./contract.js"
-import type { AvatarEntry, ChatState, DraftRow, MergeItemRow, MessageRow, SearchHit, SendState } from "./contract.js"
+import type {
+  AvatarEntry,
+  ChatState,
+  DraftRow,
+  MergeItemRow,
+  MessageRow,
+  ReceiptPerson,
+  SearchHit,
+  SendState,
+} from "./contract.js"
 import * as Db from "./db.js"
+import { createReceiptLedger } from "./receipts.js"
 
 /**
  * 聊天主界面的主进程入口。
@@ -30,6 +43,8 @@ const MIME: Readonly<Record<string, string>> = {
 }
 
 const MAX_MEDIA_BYTES = 24 * 1024 * 1024
+/** 群成员名单的缓存时长：退群、拉人不会每 4 秒就变，弹窗里点「重试」可以立刻重拉。 */
+const MEMBER_TTL = 5 * 60_000
 
 function emptyState(phase: ChatState["status"]["phase"]): ChatState {
   return {
@@ -53,6 +68,7 @@ function emptyState(phase: ChatState["status"]["phase"]): ChatState {
     members: [],
     send: { enabled: false, reason: "" },
     knowledge: [],
+    receiptsVersion: 0,
   }
 }
 
@@ -64,16 +80,6 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   })
   // 插件自带的桥接安装在 exc 下；打包布局与版本无关，路径固定。
   const pluginRoot = join(homedir(), ".aicraft", "exc", "changhong.aicraft.hyt")
-  const sender = Bridge.createSender({
-    root: () => Data.resolveChfileRoot(settings.value.chfileRoot),
-    executable: () => bridgeExecutable(pluginRoot, settings.value.bridgePath),
-    credentials: () => {
-      const root = Data.resolveChfileRoot(settings.value.chfileRoot)
-      const account = current.status.account || (Data.readLastUser(root) ?? "")
-      return Data.readCredential(root, account)
-    },
-  })
-  ctx.onCleanup(() => void sender.stop())
 
   let current = emptyState("loading")
   let selected = ""
@@ -86,12 +92,100 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   // 搜索命中或「定位」要落在某条旧消息上：这一页以它为最新一条，下一次刷新回落到最新一页。
   let anchorId: number | undefined
 
+  // 已读回执：桥接推送的实时流，落一份盘；`connectedAt` 之前发出的消息补不回来，标成不可用。
+  const receipts = createReceiptLedger(join(dataDir, "receipts.json"))
+  let connectedAt = 0
+  let receiptsVersion = 0
+  // 群成员按会话缓存：未读要用成员总数，而 SDK 拉一次要等回调，不能每次 4 秒轮询都拉。
+  const memberCache = new Map<string, { readonly at: number; readonly ok: boolean; readonly members: readonly BridgeMember[] }>()
+  // 已经上报过已读的消息：轮询不能反复上报同一条。
+  const reported = new Set<string>()
+
   // 头像按「路径 + mtime」缓存：同一张图跨窗口、跨 4 秒轮询只读一次盘。
   const avatarCache = new Map<string, { readonly stamp: number; readonly dataUrl: string }>()
 
   const report = () => provider?.changed()
 
   const rootOf = () => Data.resolveChfileRoot(settings.value.chfileRoot)
+
+  const isGroup = (sessionId: string) => current.sessions.find((item) => item.id === sessionId)?.group === true
+
+  /** 缓存里的群成员；过期或上次失败都算未知（返回 undefined），不用 0 个成员冒充「都读完了」。 */
+  const knownMembers = (sessionId: string) => {
+    const cached = memberCache.get(sessionId)
+    if (cached === undefined || !cached.ok || Date.now() - cached.at > MEMBER_TTL) return undefined
+    return cached.members
+  }
+
+  /**
+   * 拉群成员并缓存。失败也记一条短缓存，避免每次轮询都等一轮 SDK 超时。
+   * 成功或失败都推新状态：未读人数依赖它。
+   */
+  const refreshMembers = async (sessionId: string, force = false) => {
+    const cached = memberCache.get(sessionId)
+    if (!force && cached !== undefined && Date.now() - cached.at < MEMBER_TTL) return
+    const result = await sender.members(sessionId)
+    const fresh = { at: Date.now(), ok: result.ok, members: result.members }
+    memberCache.set(sessionId, fresh)
+    if (sessionId !== selected) return
+    refreshReceipts()
+    report()
+  }
+
+  /** 消息行上的回执摘要；别人的消息没有回执。 */
+  const receiptOf = (message: MessageRow, group: boolean): MessageRow["receipt"] => {
+    if (!message.outgoing || message.msgId.length === 0) return undefined
+    const record = receipts.get(message.msgId)
+    // 有记录就是事实；没记录且消息早于本次连接，说明这段回执永远补不回来，不能报 0。
+    if (record === undefined && !(connectedAt > 0 && message.createdAt >= connectedAt)) {
+      return { available: false, group, read: 0, unread: -1 }
+    }
+    const read = record === undefined ? [] : [...record.read.keys()].filter((account) => account !== current.status.account)
+    if (!group) return { available: true, group, read: read.length > 0 ? 1 : 0, unread: read.length > 0 ? 0 : 1 }
+    const members = knownMembers(selected)
+    const known = members === undefined ? undefined : members.filter((item) => item.account !== current.status.account)
+    const counted = known === undefined ? read : read.filter((account) => known.some((item) => item.account === account))
+    return {
+      available: true,
+      group,
+      read: counted.length,
+      unread: known === undefined ? -1 : Math.max(0, known.length - counted.length),
+    }
+  }
+
+  /** 回执进来时只重算消息行上的摘要与版本号，不读库；窗口按版本号重新取弹窗名单。 */
+  const refreshReceipts = () => {
+    const group = isGroup(selected)
+    messages = messages.map((message) =>
+      message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message,
+    )
+    receiptsVersion += 1
+    current = { ...current, messages, receiptsVersion }
+  }
+
+  const sender = Bridge.createSender({
+    root: () => Data.resolveChfileRoot(settings.value.chfileRoot),
+    executable: () => bridgeExecutable(pluginRoot, settings.value.bridgePath),
+    credentials: () => {
+      const root = Data.resolveChfileRoot(settings.value.chfileRoot)
+      const account = current.status.account || (Data.readLastUser(root) ?? "")
+      return Data.readCredential(root, account)
+    },
+    onEvent: (method, params) => {
+      if (method !== EVENTS.readReceipt) return
+      const notice = parseReceipt(params)
+      if (notice === undefined) return
+      if (!receipts.record(notice, current.status.account)) return
+      connectedAt = connectedAt > 0 ? connectedAt : Date.now()
+      refreshReceipts()
+      report()
+    },
+  })
+  ctx.onCleanup(() => {
+    receipts.flush()
+    void sender.stop()
+  })
+
 
   const readConfigWhitelist = () => {
     const parsed = readJson(join(dataDir, "config.json"))
@@ -157,6 +251,20 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
 
       const whitelist = mergedWhitelist(profile)
       const bridge = (await sender.ready()) ? "ready" : "missing"
+      if (bridge === "ready" && connectedAt === 0) connectedAt = Date.now()
+      // 回执摘要同步算；群成员不在缓存里就后台拉一次，拉到后自己推新状态。
+      const group = chosen?.group === true
+      messages = messages.map((message) => (message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message))
+      if (group && chosen !== undefined && knownMembers(chosen.id) === undefined) void refreshMembers(chosen.id)
+      // 在这个界面读了别人的消息，也要上报一次，否则对方永远看不到「已读」。
+      // 只报当前会话最新一条，失败的从记录里去掉，下次轮询再试。
+      const lastIncoming = [...messages].reverse().find((message) => !message.outgoing && message.msgId.length > 0)
+      if (bridge === "ready" && lastIncoming !== undefined && !reported.has(lastIncoming.msgId)) {
+        reported.add(lastIncoming.msgId)
+        void sender.markRead(lastIncoming.msgId, group).then((result) => {
+          if (!result.ok) reported.delete(lastIncoming.msgId)
+        })
+      }
       const drafts = readDrafts(dataDir, selected)
       const unread = sessions.reduce((total, item) => total + item.unread, 0)
       current = {
@@ -180,6 +288,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         members: Db.readSessionMembers(root, login.account, selected),
         send: sendState(selected),
         knowledge: [],
+        receiptsVersion,
       }
       return current
     } catch (cause) {
@@ -237,7 +346,12 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       const before = messages[0]?.id
       if (before === undefined) return
       const page = Db.readMessages(rootOf(), account, selected, before)
-      messages = [...page.messages, ...messages]
+      // 翻上来的旧消息同样要报回执状态：有记录报人数，没记录就报「暂不可用」。
+      const group = isGroup(selected)
+      messages = [
+        ...page.messages.map((message) => (message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message)),
+        ...messages,
+      ]
       hasMore = page.hasMore
       current = { ...current, messages, hasMore }
       report()
@@ -294,6 +408,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       const account = current.status.account
       const sent = await sender.send(sessionId, body)
       if (!sent.ok) return { ok: false, reason: sent.reason }
+      connectedAt = connectedAt > 0 ? connectedAt : Date.now()
 
       // 消息已经发出去了：写库失败只影响本地历史，不能把成功报成失败。
       const recorded = Db.appendOwnMessage(rootOf(), account, {
@@ -316,6 +431,54 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (text === undefined) return { items: [], error: "文件不存在或无法读取" }
       const names = Db.readPersonNames(root, current?.status.account ?? "")
       return { items: decodeMergeText(text).map((item) => mergeRow(item, names)), error: "" }
+    },
+
+    async receipts(input) {
+      const root = rootOf()
+      const account = current.status.account
+      const group = isGroup(input.sessionId)
+      const record = receipts.get(input.msgId)
+      if (group) await refreshMembers(input.sessionId, input.retry === true)
+      // 与消息行同一口径：有记录就是事实；没记录且早于本次连接，回执补不回来。
+      if (record === undefined && !(connectedAt > 0 && input.createdAt >= connectedAt)) {
+        return { available: false, group, total: -1, read: [], unread: [], reason: "offline" }
+      }
+
+      const people = Db.readPersonNames(root, account)
+      const person = (who: string, at: number): ReceiptPerson => ({
+        account: who,
+        name: people.get(who) ?? who,
+        at,
+      })
+      const readAccounts = record === undefined ? new Map<string, number>() : new Map(record.read)
+      readAccounts.delete(account)
+
+      if (!group) {
+        const peer = input.sessionId
+        const at = readAccounts.get(peer)
+        const read = at === undefined ? [] : [person(peer, at)]
+        return { available: true, group: false, total: 1, read, unread: read.length > 0 ? [] : [person(peer, 0)], reason: "" }
+      }
+
+      const members = knownMembers(input.sessionId)
+      const read = [...readAccounts.entries()]
+        .filter(([who]) => members === undefined || members.some((item) => item.account === who))
+        .sort((left, right) => right[1] - left[1])
+        .map(([who, at]) => person(who, at))
+      const unread =
+        members === undefined
+          ? []
+          : members
+              .filter((item) => item.account !== account && !readAccounts.has(item.account))
+              .map((item) => person(item.account, 0))
+      return {
+        available: true,
+        group: true,
+        total: members === undefined ? -1 : Math.max(0, members.filter((item) => item.account !== account).length),
+        read,
+        unread,
+        reason: "",
+      }
     },
 
     async media(input) {
@@ -350,6 +513,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   // 打开页面就在后台把独立通道准备好：拉起桥接、用本地凭据登录，之后发消息不再等启动。
   void sender
     .warm()
+    .then(() => {
+      connectedAt = connectedAt > 0 ? connectedAt : Date.now()
+    })
     .then(() => load(false))
     .then(report)
     .catch((error: unknown) => {

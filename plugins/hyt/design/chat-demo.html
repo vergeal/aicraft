@@ -626,7 +626,7 @@ textarea { font: inherit; color: inherit; }
 }
 
 /* 行距只有两档：同一个人连续发言贴紧，换人或隔了 5 分钟以上空出一段。
-   复制行每条都占同一块高度（见 #message-tools），所以组内、组间的间距都是确定的。 */
+   回执入口只在自己消息下面多一行小字，不预留透明高度。 */
 .msg {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
@@ -716,35 +716,26 @@ textarea { font: inherit; color: inherit; }
 
 .msg[data-self="true"] .msg-meta { align-self: flex-end; }
 
-/* 复制行贴在气泡正下方：他人左对齐、自己右对齐；平时透明但占住 14px，
-   悬浮时不跳。每条消息都留同一块高度，行距才不会因为有没有按钮而变。 */
-.message-tools {
-  display: flex;
-  gap: 4px;
+/* 回执入口：自己发出的消息，气泡右下一行小字；复制走右键菜单，不在气泡下再挂工具栏。 */
+.receipt-line {
+  display: inline-flex;
   align-items: center;
-  min-height: 14px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 14px;
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-
-.msg:hover .message-tools,
-.msg:focus-within .message-tools { opacity: 1; }
-
-.message-tools button {
-  padding: 0 3px;
+  gap: 5px;
+  margin-top: 3px;
+  padding: 0;
   border: 0;
-  border-radius: 4px;
   background: none;
-  color: inherit;
-  font-size: 11px;
-  line-height: 14px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 16px;
   cursor: pointer;
 }
 
-.message-tools button:hover { background: var(--chrome); color: var(--ink); }
+.receipt-line:hover { color: var(--link); }
+.receipt-line b { color: var(--link); font-weight: 500; }
+.receipt-line[disabled] { opacity: 0.7; cursor: default; }
+.msg[data-self="true"] .receipt-line { justify-content: flex-end; }
 
 .expand {
   display: block;
@@ -1523,7 +1514,6 @@ details.tech pre {
                 </span>
               </div>
             </div>
-            <div class="message-tools"><button type="button">复制</button><button type="button">定位</button></div>
           </div>
         </div>
 
@@ -1547,7 +1537,7 @@ details.tech pre {
           <div class="msg-body">
             <div class="msg-meta"><span class="msg-name">我</span><span class="msg-time">09:18</span></div>
             <div class="bubble">收到。我先把三号线的巡检跑完，备件到之前用备用件顶上。</div>
-            <div class="message-tools"><button type="button">复制</button></div>
+            <button class="receipt-line" type="button"><b>3 人已读</b>· 2 人未读</button>
           </div>
         </div>
 
@@ -1569,7 +1559,6 @@ details.tech pre {
                 <span class="shot" data-hue="a" aria-hidden="true">现场照片</span>
               </div>
             </div>
-            <div class="message-tools"><button type="button">放大</button><button type="button">保存</button></div>
           </div>
         </div>
 

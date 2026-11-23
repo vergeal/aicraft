@@ -166,6 +166,9 @@ void installCallbacks() {
         }
         SdkHost::instance().handleQueryMembers(key, reason, members);
       };
+  gMessageCallbacks.pfonReadMessage = [](unsigned int key, int reason) {
+    SdkHost::instance().handleReadResult(key, reason);
+  };
   gMessageCallbacks.pfonReceiveGroupNoticeMessage =
       [](const ECGroupNoticeMessage* notice) {
         nhjson::Value p = nhjson::Value::object();
@@ -705,6 +708,51 @@ MemberResult SdkHost::queryMembers(const std::string& groupId, int waitMs) {
 #endif
 }
 
+ReadResult SdkHost::markRead(const std::string& msgId, bool group, int waitMs) {
+  ReadResult result;
+  result.msgId = msgId;
+#ifdef HYT_WITH_EC_SDK
+  if (!available_) {
+    result.error = unavailableReason_;
+    return result;
+  }
+  if (!connected()) {
+    result.error = "未登录或未连接";
+    return result;
+  }
+  auto wait = std::make_shared<ReadWait>();
+  unsigned int matchKey = 0;
+  int ret = group ? ReadMessageGroup(&matchKey, msgId.c_str())
+                  : ReadMessage(&matchKey, msgId.c_str());
+  if (ret != 0) {
+    result.error = "上报已读失败（" + std::to_string(ret) + "）";
+    return result;
+  }
+  {
+    std::lock_guard<std::mutex> lk(pendingMutex_);
+    pendingReads_[matchKey] = wait;
+  }
+
+  std::unique_lock<std::mutex> lk(wait->mutex);
+  int timeout = waitMs > 0 ? waitMs : 3000;
+  if (!wait->cv.wait_for(lk, std::chrono::milliseconds(timeout),
+                         [&wait] { return wait->done; })) {
+    result.error = "等待已读上报结果超时";
+    return result;
+  }
+  result.ok = wait->reason == EC_Response_Success;
+  if (!result.ok) {
+    result.error = "服务端拒绝了已读上报（reason=" + std::to_string(wait->reason) + "）";
+  }
+  return result;
+#else
+  (void)group;
+  (void)waitMs;
+  result.error = unavailableReason_;
+  return result;
+#endif
+}
+
 DownloadResult SdkHost::download(const StoredMessage& message,
                                  const std::string& account, int waitMs) {
   DownloadResult result;
@@ -930,11 +978,28 @@ void SdkHost::handleReceive(void* ecMessage, bool offline) {
   }
 
   if (message.msgType == Msg_Type_ReadNotify || message.msgType == kMsgTypeReadVoiceNotify) {
+    ECMessage* ec = static_cast<ECMessage*>(ecMessage);
     nhjson::Value receipt = nhjson::Value::object();
     receipt.set("msgId", nhjson::Value::string(message.msgId));
     receipt.set("sessionId", nhjson::Value::string(message.sessionId));
+    // 回执通知本身是「读的人」发出来的，所以 sender 是读者，不是被读消息的发送人。
     receipt.set("account", nhjson::Value::string(message.sender));
+    receipt.set("nick", nhjson::Value::string(message.senderNick));
+    receipt.set("at", nhjson::Value::string(message.createdTime));
     receipt.set("voice", nhjson::Value::boolean(message.msgType == kMsgTypeReadVoiceNotify));
+    // 被读消息 id：SDK 各版本分别放在 userDataMsgId、msgContent 与关联数组里，
+    // 这里原样透出，由插件侧归一成 targetId，避免在桥接层猜格式。
+    receipt.set("targetId", nhjson::Value::string(ec ? ecStr(ec->userDataMsgId) : ""));
+    receipt.set("content", nhjson::Value::string(message.msg));
+    receipt.set("userData", nhjson::Value::string(message.userData));
+    nhjson::Value relate = nhjson::Value::array();
+    if (ec && ec->relateArry) {
+      for (int i = 0; i < ec->relateCount; ++i) {
+        if (!ec->relateArry[i]) continue;
+        relate.arr.push_back(nhjson::Value::string(ecStr(ec->relateArry[i])));
+      }
+    }
+    receipt.set("relate", relate);
     emit("event.onReadReceipt", receipt);
   }
   if (offline) {
@@ -1126,6 +1191,25 @@ void SdkHost::handleQueryMembers(unsigned int matchKey, int reason,
     wait->done = true;
     wait->reason = reason;
     wait->members = std::move(members);
+  }
+  wait->cv.notify_all();
+}
+
+void SdkHost::handleReadResult(unsigned int matchKey, int reason) {
+  std::shared_ptr<ReadWait> wait;
+  {
+    std::lock_guard<std::mutex> lk(pendingMutex_);
+    auto it = pendingReads_.find(matchKey);
+    if (it != pendingReads_.end()) {
+      wait = it->second;
+      pendingReads_.erase(it);
+    }
+  }
+  if (!wait) return;
+  {
+    std::lock_guard<std::mutex> lk(wait->mutex);
+    wait->done = true;
+    wait->reason = reason;
   }
   wait->cv.notify_all();
 }

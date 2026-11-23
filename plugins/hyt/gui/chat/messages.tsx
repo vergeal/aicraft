@@ -1,6 +1,6 @@
 import type { Context } from "@opencode/plugin/gui"
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
-import type { MergeItemRow, MessageRow } from "./contract.js"
+import type { MergeItemRow, MessageRow, ReceiptPerson, ReceiptView } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
 import { Face } from "./avatar.js"
@@ -10,7 +10,7 @@ type Row =
   | { kind: "day"; key: string; label: string }
   | { kind: "system"; key: string; body: string }
   | { kind: "divider"; key: string; label: string }
-  | { kind: "message"; key: string; message: MessageRow; grouped: boolean; self: boolean; tail: boolean }
+  | { kind: "message"; key: string; message: MessageRow; grouped: boolean; self: boolean }
 
 /**
  * 消息流。
@@ -31,6 +31,11 @@ export function MessageStream(props: {
   onLatest: () => void
   onLoadMore: () => void
   avatars: Record<string, string>
+  /** 当前会话 id：取回执名单要用。 */
+  sessionId: string
+  /** 回执版本号：收到新回执就变，弹窗据此重新取名单。 */
+  receiptVersion: number
+  onReceipts: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
   onMedia: (path: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
@@ -44,8 +49,15 @@ export function MessageStream(props: {
 }) {
   let stream: HTMLDivElement | undefined
   const [atBottom, setAtBottom] = createSignal(true)
-  /** 正在划词的那条消息：划线时把它的复制行亮出来，不用先悬浮。 */
-  const [selectedRow, setSelectedRow] = createSignal(0)
+  /** 打开回执弹窗的那条消息；空表示弹窗关闭。 */
+  const [receiptOf, setReceiptOf] = createSignal<MessageRow>()
+  // 换了会话，原来那条消息的回执名单就不再属于当前视图，直接关掉弹窗。
+  let lastSession = props.sessionId
+  createEffect(() => {
+    if (props.sessionId === lastSession) return
+    lastSession = props.sessionId
+    setReceiptOf(undefined)
+  })
 
   const scrollToBottom = () => {
     if (stream === undefined) return
@@ -60,14 +72,6 @@ export function MessageStream(props: {
 
   onMount(() => {
     scrollToBottom()
-    const onSelectionChange = () => {
-      const anchor = window.getSelection()?.anchorNode
-      const element = anchor instanceof Element ? anchor : anchor?.parentElement
-      const row = element?.closest<HTMLElement>("[data-mid]")
-      setSelectedRow(row === null || row === undefined ? 0 : Number(row.dataset.mid ?? 0))
-    }
-    document.addEventListener("selectionchange", onSelectionChange)
-    onCleanup(() => document.removeEventListener("selectionchange", onSelectionChange))
   })
 
   // 只认「首尾 id + 条数」：轮询每次都推来新对象，按数组身份会一直重滚。
@@ -129,80 +133,90 @@ export function MessageStream(props: {
         !message.outgoing &&
         previous.sender === message.sender &&
         message.createdAt - previous.createdAt <= 5 * 60_000
-      if (grouped) {
-        const before = out[out.length - 1]
-        if (before !== undefined && before.kind === "message") before.tail = false
-      }
-      out.push({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing, tail: true })
+      out.push({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing })
       previous = message
     }
     return out
   })
 
   return (
-    <div class="stream-wrap">
-      <div
-        class="stream"
-        ref={stream}
-        role="log"
-        aria-live="polite"
-        aria-label={text(props.ctx, "hyt.chat.side.title")}
-        onScroll={() => setAtBottom(nearBottom())}
-      >
-        <div class="flow">
-          <Show when={props.hasMore}>
-            <button class="more" type="button" disabled={props.loadingMore} onClick={() => props.onLoadMore()}>
-              {props.loadingMore
-                ? text(props.ctx, "hyt.chat.messages.loadingMore")
-                : text(props.ctx, "hyt.chat.messages.loadMore")}
-            </button>
-          </Show>
+    <>
+      <div class="stream-wrap">
+        <div
+          class="stream"
+          ref={stream}
+          role="log"
+          aria-live="polite"
+          aria-label={text(props.ctx, "hyt.chat.side.title")}
+          onScroll={() => setAtBottom(nearBottom())}
+        >
+          <div class="flow">
+            <Show when={props.hasMore}>
+              <button class="more" type="button" disabled={props.loadingMore} onClick={() => props.onLoadMore()}>
+                {props.loadingMore
+                  ? text(props.ctx, "hyt.chat.messages.loadingMore")
+                  : text(props.ctx, "hyt.chat.messages.loadMore")}
+              </button>
+            </Show>
 
-          <Show when={props.messages.length === 0}>
-            <p class="system">{text(props.ctx, "hyt.chat.messages.empty")}</p>
-          </Show>
+            <Show when={props.messages.length === 0}>
+              <p class="system">{text(props.ctx, "hyt.chat.messages.empty")}</p>
+            </Show>
 
-          <For each={rows()}>
-            {(row) => {
-              if (row.kind === "day") return <div class="stamp">{row.label}</div>
-              if (row.kind === "divider") return <div class="divider">{row.label}</div>
-              if (row.kind === "system") return <p class="system">{row.body}</p>
-              return (
-                <Message
-                  ctx={props.ctx}
-                  message={row.message}
-                  grouped={row.grouped}
-                  self={row.self}
-                  tail={row.tail}
-                  selected={row.message.id === selectedRow()}
-                  avatars={props.avatars}
-                  onMedia={props.onMedia}
-                  onMerge={props.onMerge}
-                  onOpenFile={props.onOpenFile}
-                  onOpenImage={props.onOpenImage}
-                  onMenu={props.onMenu}
-                  onProfile={props.onProfile}
-                  onPersonMenu={props.onPersonMenu}
-                />
-              )
-            }}
-          </For>
+            <For each={rows()}>
+              {(row) => {
+                if (row.kind === "day") return <div class="stamp">{row.label}</div>
+                if (row.kind === "divider") return <div class="divider">{row.label}</div>
+                if (row.kind === "system") return <p class="system">{row.body}</p>
+                return (
+                  <Message
+                    ctx={props.ctx}
+                    message={row.message}
+                    grouped={row.grouped}
+                    self={row.self}
+                    avatars={props.avatars}
+                    onMedia={props.onMedia}
+                    onMerge={props.onMerge}
+                    onOpenFile={props.onOpenFile}
+                    onOpenImage={props.onOpenImage}
+                    onMenu={props.onMenu}
+                    onProfile={props.onProfile}
+                    onPersonMenu={props.onPersonMenu}
+                    onReceipt={() => setReceiptOf(row.message)}
+                  />
+                )
+              }}
+            </For>
+          </div>
         </div>
+
+        <Show when={!atBottom()}>
+          <button
+            class="jump"
+            type="button"
+            onClick={() => {
+              scrollToBottom()
+              props.onLatest()
+            }}
+          >
+            {text(props.ctx, "hyt.chat.jump.latest")}
+          </button>
+        </Show>
       </div>
 
-      <Show when={!atBottom()}>
-        <button
-          class="jump"
-          type="button"
-          onClick={() => {
-            scrollToBottom()
-            props.onLatest()
-          }}
-        >
-          {text(props.ctx, "hyt.chat.jump.latest")}
-        </button>
+      <Show when={receiptOf()}>
+        {(message) => (
+          <ReceiptDialog
+            ctx={props.ctx}
+            sessionId={props.sessionId}
+            message={message()}
+            version={props.receiptVersion}
+            onFetch={props.onReceipts}
+            onClose={() => setReceiptOf(undefined)}
+          />
+        )}
       </Show>
-    </div>
+    </>
   )
 }
 
@@ -212,10 +226,6 @@ function Message(props: {
   message: MessageRow
   grouped: boolean
   self: boolean
-  /** 同人分组里的最后一条：只有它显示复制行，避免每行都挂一条。 */
-  tail: boolean
-  /** 这条消息里有正在划的词。 */
-  selected: boolean
   avatars: Record<string, string>
   onMedia: (path: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
@@ -224,24 +234,16 @@ function Message(props: {
   onMenu: (message: MessageRow, target: MenuTarget) => void
   onProfile: (message: MessageRow, element: HTMLElement) => void
   onPersonMenu: (message: MessageRow, target: MenuTarget) => void
+  /** 打开这条消息的已读回执弹窗。 */
+  onReceipt: () => void
 }) {
   const [expanded, setExpanded] = createSignal(false)
-  const [copied, setCopied] = createSignal(false)
   const [merge, setMerge] = createSignal<{ items: readonly MergeItemRow[]; error: string } | undefined>()
   const [merging, setMerging] = createSignal(false)
 
   const body = () => props.message.text.trim()
   const clamped = () => body().length > CLAMP_AT && !expanded()
   const long = () => body().length > CLAMP_AT
-
-  const copy = () => {
-    const value = body().length > 0 ? body() : props.message.fileName
-    if (value.length === 0) return
-    void props.ctx.system.copy(value).then(() => {
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1_400)
-    })
-  }
 
   const openMerge = async () => {
     if (merging()) return
@@ -260,7 +262,6 @@ function Message(props: {
       data-mid={props.message.id}
       data-grouped={props.grouped ? "true" : undefined}
       data-self={props.self ? "true" : undefined}
-      data-selected={props.selected ? "true" : undefined}
       tabIndex={0}
       onContextMenu={(event) => props.onMenu(props.message, event)}
       onKeyDown={(event) => {
@@ -427,26 +428,242 @@ function Message(props: {
           </div>
         </Show>
 
-        {/* 复制行：每条消息都留出同一块高度，组内组间的行距才不会因为这条有没有按钮而变化。 */}
-        <div class="message-tools">
-          <Show when={props.tail}>
-            <Show when={props.message.kind === "image" && props.message.filePath.length > 0}>
-              <button type="button" onClick={() => props.onOpenImage(props.message.filePath)}>
-                {text(props.ctx, "hyt.chat.msg.enlarge")}
-              </button>
-            </Show>
-            <Show when={body().length > 0 || props.message.fileName.length > 0}>
-              <button type="button" onClick={copy}>
-                {copied() ? text(props.ctx, "hyt.chat.msg.copied") : text(props.ctx, "hyt.chat.msg.copy")}
-              </button>
-            </Show>
-            <Show when={props.message.filePath.length > 0}>
-              <button type="button" onClick={() => props.onOpenFile(props.message.filePath)}>
-                {text(props.ctx, "hyt.chat.msg.reveal")}
-              </button>
-            </Show>
+        {/* 回执：只有自己发出的消息挂一行；它是常驻说明，不是悬浮工具栏。 */}
+        <Show when={props.message.receipt}>
+          {(receipt) => (
+            <button
+              class="receipt-line"
+              type="button"
+              disabled={!receipt().available}
+              title={receipt().available ? text(props.ctx, "hyt.chat.receipt.title") : text(props.ctx, "hyt.chat.receipt.unavailable.hint")}
+              onClick={() => props.onReceipt()}
+            >
+              <ReceiptLabel ctx={props.ctx} value={receipt()} />
+            </button>
+          )}
+        </Show>
+      </div>
+    </div>
+  )
+}
+
+/** 回执入口的一行文案：群聊报人数，单聊报状态，拿不到就直说拿不到。 */
+function ReceiptLabel(props: {
+  ctx: Context
+  value: { available: boolean; group: boolean; read: number; unread: number }
+}) {
+  return (
+    <Show
+      when={props.value.available}
+      fallback={<>{text(props.ctx, "hyt.chat.receipt.unavailable")}</>}
+    >
+      <Show
+        when={props.value.group}
+        fallback={
+          <>{text(props.ctx, props.value.read > 0 ? "hyt.chat.receipt.direct.read" : "hyt.chat.receipt.direct.unread")}</>
+        }
+      >
+        <Show
+          when={props.value.read > 0}
+          fallback={
+            <>
+              {text(props.ctx, "hyt.chat.receipt.none")}
+              {props.value.unread > 0
+                ? ` · ${text(props.ctx, "hyt.chat.receipt.unread", { count: props.value.unread })}`
+                : ""}
+            </>
+          }
+        >
+          <b>{text(props.ctx, "hyt.chat.receipt.read", { count: props.value.read })}</b>
+          {props.value.unread > 0
+            ? ` · ${text(props.ctx, "hyt.chat.receipt.unread", { count: props.value.unread })}`
+            : ""}
+        </Show>
+      </Show>
+    </Show>
+  )
+}
+
+/**
+ * 已读回执弹窗：未读在上、已读在下，都带头像与名字；已读区带时间。
+ *
+ * 打开期间收到新回执只合并、不重排：同账号的人沿用上一次的对象，
+ * `For` 不会重建已经渲染的行，未读的人挪到已读段时也只会移动这一条。
+ */
+function ReceiptDialog(props: {
+  ctx: Context
+  sessionId: string
+  message: MessageRow
+  /** 回执版本号：变一次就重新取一次名单。 */
+  version: number
+  onFetch: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
+  onClose: () => void
+}) {
+  const [data, setData] = createSignal<ReceiptView>()
+  const [query, setQuery] = createSignal("")
+  const [error, setError] = createSignal("")
+  const [retrying, setRetrying] = createSignal(false)
+  let dialog: HTMLDivElement | undefined
+
+  const apply = (next: ReceiptView) => {
+    const previous = data()
+    if (previous === undefined) {
+      setData(next)
+      return
+    }
+    const known = new Map([...previous.read, ...previous.unread].map((person) => [person.account, person]))
+    const keep = (list: readonly ReceiptPerson[]) => list.map((person) => known.get(person.account) ?? person)
+    setData({ ...next, read: keep(next.read), unread: keep(next.unread) })
+  }
+
+  const fetch = (retry: boolean) => {
+    setRetrying(true)
+    void props.onFetch({
+      sessionId: props.sessionId,
+      msgId: props.message.msgId,
+      createdAt: props.message.createdAt,
+      retry,
+    })
+      .then((next) => {
+        apply(next)
+        setError("")
+      })
+      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .then(() => setRetrying(false))
+  }
+
+  createEffect(() => {
+    // 只依赖版本号与消息 id：轮询推来的新对象不该让弹窗重新请求。
+    void props.version
+    void props.message.msgId
+    fetch(false)
+  })
+
+  onMount(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") props.onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    onCleanup(() => window.removeEventListener("keydown", onKey))
+    dialog?.focus()
+  })
+
+  const matches = (person: ReceiptPerson) => {
+    const needle = query().trim().toLowerCase()
+    if (needle.length === 0) return true
+    return person.name.toLowerCase().includes(needle) || person.account.toLowerCase().includes(needle)
+  }
+
+  const people = (list: readonly ReceiptPerson[], unread: boolean) => (
+    <ul class="people">
+      <For each={list}>
+        {(person) => (
+          <li data-unread={unread ? "true" : undefined}>
+            <Face class="pface" name={person.name} />
+            <span class="pname">{person.name}</span>
+            <span class="pside">
+              {unread ? text(props.ctx, "hyt.chat.receipt.unreadTag") : clockOf(person.at)}
+            </span>
+          </li>
+        )}
+      </For>
+    </ul>
+  )
+
+  return (
+    <div
+      class="receipt-veil"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) props.onClose()
+      }}
+    >
+      <div
+        class="receipt"
+        role="dialog"
+        aria-modal="true"
+        aria-label={text(props.ctx, "hyt.chat.receipt.title")}
+        tabIndex={-1}
+        ref={dialog}
+      >
+        <div class="receipt-head">
+          <strong>{text(props.ctx, "hyt.chat.receipt.title")}</strong>
+          <Show when={data()}>
+            {(view) => (
+              <span class="sum">
+                <ReceiptLabel
+                  ctx={props.ctx}
+                  value={{
+                    available: view().available,
+                    group: view().group,
+                    read: view().read.length,
+                    unread: view().unread.length,
+                  }}
+                />
+              </span>
+            )}
           </Show>
+          <button class="x" type="button" aria-label={text(props.ctx, "hyt.chat.receipt.close")} onClick={props.onClose}>
+            ×
+          </button>
         </div>
+
+        <Show
+          when={data()}
+          fallback={
+            <p class="receipt-state">
+              {error().length > 0 ? error() : text(props.ctx, "hyt.chat.receipt.loading")}
+            </p>
+          }
+        >
+          {(view) => (
+            <Show
+              when={view().available}
+              fallback={
+                <div class="receipt-state">
+                  <p>{text(props.ctx, "hyt.chat.receipt.unavailable.hint")}</p>
+                  <button class="receipt-retry" type="button" disabled={retrying()} onClick={() => fetch(true)}>
+                    {retrying() ? text(props.ctx, "hyt.chat.receipt.loading") : text(props.ctx, "hyt.chat.receipt.retry")}
+                  </button>
+                </div>
+              }
+            >
+              <Show when={view().group && view().read.length + view().unread.length > 6}>
+                <input
+                  class="receipt-search"
+                  type="search"
+                  value={query()}
+                  placeholder={text(props.ctx, "hyt.chat.receipt.search")}
+                  aria-label={text(props.ctx, "hyt.chat.receipt.search")}
+                  onInput={(event) => setQuery(event.currentTarget.value)}
+                />
+              </Show>
+
+              <div class="receipt-body">
+                <Show when={view().unread.filter(matches).length > 0}>
+                  <p class="pgroup">{text(props.ctx, "hyt.chat.receipt.group.unread", { count: view().unread.length })}</p>
+                  {people(view().unread.filter(matches), true)}
+                </Show>
+                <Show when={view().read.filter(matches).length > 0}>
+                  <p class="pgroup">{text(props.ctx, "hyt.chat.receipt.group.read", { count: view().read.length })}</p>
+                  {people(view().read.filter(matches), false)}
+                </Show>
+                <Show when={view().read.filter(matches).length + view().unread.filter(matches).length === 0}>
+                  <p class="receipt-state">
+                    {query().trim().length > 0
+                      ? text(props.ctx, "hyt.chat.receipt.noMatch")
+                      : text(props.ctx, "hyt.chat.receipt.empty")}
+                  </p>
+                </Show>
+              </div>
+
+              <p class="receipt-foot">
+                {view().group
+                  ? text(props.ctx, "hyt.chat.receipt.foot")
+                  : text(props.ctx, "hyt.chat.receipt.direct.foot")}
+              </p>
+            </Show>
+          )}
+        </Show>
       </div>
     </div>
   )

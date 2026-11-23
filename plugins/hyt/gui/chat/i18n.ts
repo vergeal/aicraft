@@ -78,6 +78,7 @@ export const zh: Record<string, string> = {
   "hyt.chat.msg.image.open": "查看原图",
   "hyt.chat.msg.file.open": "在文件夹中显示",
   "hyt.chat.msg.merge": "合并转发",
+  "hyt.chat.msg.merge.count": "{{count}} 条",
   "hyt.chat.msg.merge.expand": "展开",
   "hyt.chat.msg.merge.collapse": "收起",
   "hyt.chat.msg.merge.empty": "这条合并转发读不到内容。",

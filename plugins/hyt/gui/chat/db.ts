@@ -482,7 +482,7 @@ function previewOf(row: ChatRow) {
     recall: "[撤回了一条消息]",
     call: "[通话]",
     notice: "[系统通知]",
-    merge: name.length > 0 ? `[合并转发]${name}` : "[合并转发]",
+    merge: "[合并转发]",
     other: "[消息]",
   }
   return label[kind] ?? ""

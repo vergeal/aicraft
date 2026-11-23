@@ -584,8 +584,10 @@ function MergeBody(props: { ctx: Context; message: MessageRow; onMerge: (path: s
   return (
     <div class="hyt-chat-merge">
       <div class="hyt-chat-merge-head">
-        <span class="hyt-chat-merge-title">{props.message.fileName || text(ctx, "hyt.chat.msg.merge")}</span>
-        <span class="hyt-chat-merge-note">{text(ctx, "hyt.chat.msg.merge")}</span>
+        <span class="hyt-chat-merge-title">{text(ctx, "hyt.chat.msg.merge")}</span>
+        <Show when={open() && (items()?.length ?? 0) > 0}>
+          <span class="hyt-chat-merge-note">{text(ctx, "hyt.chat.msg.merge.count", { count: items()?.length ?? 0 })}</span>
+        </Show>
         <button type="button" class="hyt-chat-merge-toggle" onClick={() => void toggle()}>
           {open() ? text(ctx, "hyt.chat.msg.merge.collapse") : text(ctx, "hyt.chat.msg.merge.expand")}
         </button>

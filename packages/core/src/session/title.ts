@@ -3,7 +3,7 @@ export * as SessionTitle from "./title.js"
 import { isDeepStrictEqual } from "node:util"
 import { LLMClient, LLMEvent, Message, SystemPart } from "@opencode/ai/effect"
 import type { Agent } from "@opencode/schema/agent"
-import { Context, DateTime, Effect, Layer, Stream } from "effect"
+import { Context, DateTime, Effect, Layer, Option, Stream } from "effect"
 import { Database } from "../database/database.js"
 import { Bus } from "../bus.js"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
@@ -20,6 +20,8 @@ import { SessionStore } from "./store.js"
 const MAX_LENGTH = 100
 const MAX_CONTEXT_LENGTH = 8_000
 const MAX_FIRST_MESSAGE_LENGTH = 2_000
+// A title is cosmetic: never let one stalled request hold up the conversation.
+const ATTEMPT_TIMEOUT = "8 seconds"
 const titleChanged = Symbol("Session title changed")
 
 export interface Interface {
@@ -84,8 +86,8 @@ export const layer = Layer.effect(
         system: input.agent.system ? [SystemPart.make(input.agent.system)] : [],
         messages: [Message.user(input.text)],
       })
-      if (prepared.event.result !== undefined) return prepared.event.result
-      yield* llm.stream(prepared.request, prepared.options).pipe(
+      if (prepared.event.result !== undefined) return { timedOut: false, title: prepared.event.result }
+      const outcome = yield* llm.stream(prepared.request, prepared.options).pipe(
         Stream.runForEach((event) => {
           if (LLMEvent.is.textDelta(event)) chunks.push(event.text)
           if (LLMEvent.is.stepFinish(event)) {
@@ -99,15 +101,20 @@ export const layer = Layer.effect(
             failed = true
           }),
         ),
+        Effect.timeoutOption(ATTEMPT_TIMEOUT),
         Effect.onInterrupt(() => recordUsage.pipe(Effect.asVoid)),
       )
       yield* recordUsage
-      if (failed) return
-      return chunks
-        .join("")
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
+      if (Option.isNone(outcome)) return { timedOut: true, title: undefined }
+      if (failed) return { timedOut: false, title: undefined }
+      return {
+        timedOut: false,
+        title: chunks
+          .join("")
+          .split("\n")
+          .map((line) => line.trim())
+          .find((line) => line.length > 0),
+      }
     })
 
     const generate = Effect.fn("SessionTitle.generate")(function* (sessionID: SessionSchema.ID) {
@@ -140,10 +147,14 @@ export const layer = Layer.effect(
         : messagePrompt(firstUser.text)
       const selection = yield* context.selectTitle(session)
       if (!selection) return
+      // A stalled request is abandoned after 8 seconds and retried with the Session's own model, even when the
+      // preferred model already is that model. Other failures keep the usual fallback to a different model.
+      const retry = selection.primary ?? selection.selected
+      const first = yield* attempt({ session, agent: selection.agent, text, model: selection.selected })
       const title =
-        (yield* attempt({ session, agent: selection.agent, text, model: selection.selected })) ??
-        (selection.primary && !isDeepStrictEqual(selection.selected.ref, selection.primary.ref)
-          ? yield* attempt({ session, agent: selection.agent, text, model: selection.primary })
+        first.title ??
+        (first.timedOut || !isDeepStrictEqual(selection.selected.ref, retry.ref)
+          ? (yield* attempt({ session, agent: selection.agent, text, model: retry })).title
           : undefined)
       if (!title) return
       const next = withForkSuffix(session, title)

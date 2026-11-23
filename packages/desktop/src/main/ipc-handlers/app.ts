@@ -56,7 +56,7 @@ export const appHandlers = AppRpcs.toLayer(
       AppReadDiagnosticsMain: () => Effect.sync(() => mainDiagnostics.snapshot()),
       AppSetForceFocus: ({ enabled }, context) => promise(() => setForceFocus(sender(handoff, context), enabled)),
       AppRecordFatalRendererError: ({ error }) =>
-        scoped("renderer", Effect.logError("fatal renderer error", { ...error })),
+        scoped("renderer", Effect.logError(`fatal renderer error ${JSON.stringify(error)}`)),
       AppSetNativeTranslations: ({ value }, context) =>
         Effect.sync(() => {
           const contents = sender(handoff, context)

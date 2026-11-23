@@ -91,6 +91,10 @@ export async function seed(page: Page, input: SeedInput) {
 }
 
 function storageEntries(input: SeedInput): [string, string, boolean][] {
+  // Specs assert the English source copy they were written against, so the seeded app pins English
+  // instead of relying on which keys a locale happens to leave untranslated. Real-server runs keep
+  // the app's own default; a spec that wants another language passes `locale`.
+  const locale = input.locale ?? (process.env.AICRAFT_E2E_REAL_SERVER === "1" ? undefined : "en")
   const server = {
     ...(input.usedProjects ? { usedProjectIDs: input.usedProjects } : {}),
     ...(input.legacyProjects ? { projects: input.legacyProjects } : {}),
@@ -114,7 +118,7 @@ function storageEntries(input: SeedInput): [string, string, boolean][] {
         }
       : {}),
     ...(input.settings ? { "settings.v3": input.settings } : {}),
-    ...(input.locale ? { "aicraft.global.dat:language": { locale: input.locale } } : {}),
+    ...(locale ? { "aicraft.global.dat:language": { locale } } : {}),
     ...(input.theme ? { "opencode-theme-id": input.theme.id, "opencode-color-scheme": input.theme.scheme } : {}),
     ...input.storage,
   }

@@ -12,12 +12,21 @@ the `webwright` skill, and the Playwright driver under `assets/playwright-core`.
 ## Browser selection
 
 The plugin drives the installed Google Chrome through the DevTools protocol (CDP); it never launches Playwright's
-bundled Chromium, which is branded "Chrome for Testing". On the first tool call it:
+bundled Chromium, which is branded "Chrome for Testing". On the first tool call it resolves a browser in this order,
+and every step is a check rather than a fallback:
 
 1. Connects to `options.cdp` when that endpoint is set, leaving that browser running on dispose.
-2. Otherwise starts `/Applications/Google Chrome.app` (or the platform equivalent) with
-   `--remote-debugging-port=0 --user-data-dir=<profile>`, reads the port Chrome picked from
-   `<profile>/DevToolsActivePort`, and attaches with `chromium.connectOverCDP`. This Chrome is stopped on dispose.
+2. Otherwise probes the CDP endpoints of browsers that are already running: `9222`, `9223`, `9224`, `9333` and the
+   port recorded in `<profile>/DevToolsActivePort` from an earlier session. The first endpoint that answers
+   `/json/version` with a browser (the desktop client's own Electron endpoint is ignored) is attached to, and it is
+   left running on dispose.
+3. Otherwise, if any browser process is running at all (Chrome, Chrome Canary, Chromium, Edge, Brave, Arc, Safari,
+   Firefox, Opera, Vivaldi), it fails with an error that says the browser has no debugging port and how to start one.
+   A browser without a CDP port cannot be driven, so the plugin neither starts a second Chrome nor closes the user's.
+4. Only when no browser is running does it start `/Applications/Google Chrome.app` (or the platform equivalent) with
+   `--remote-debugging-port=0 --user-data-dir=<profile>`, read the port Chrome picked from
+   `<profile>/DevToolsActivePort`, and attach with `chromium.connectOverCDP`. `status` and `tabs.list` then carry a
+   `note` saying the browser was started because none was available. This Chrome is stopped on dispose.
 
 The default profile is `~/.opencode/webwright/chrome-profile`, separate from the old Playwright profile because a
 profile written by the bundled Chromium blocks the installed Chrome from starting. Plugin options:

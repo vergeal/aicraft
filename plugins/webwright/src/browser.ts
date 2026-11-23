@@ -28,6 +28,8 @@ type State = {
   next: number
   logs: WeakMap<Page, Log[]>
   error?: string
+  /** Set when this plugin had to start Chrome because no other browser was available. */
+  note?: string
 }
 
 /**
@@ -85,6 +87,12 @@ async function start(state: State) {
     const browser = await chromium.connectOverCDP(configured)
     return adopt(state, browser, configured, undefined)
   }
+  const existing = await connectExisting(state, chromium)
+  if (existing) return existing
+  // Attaching to a browser the user already has open is always preferred. Only when nothing at all is running may
+  // this plugin start its own Chrome: a second Chrome window appearing behind the user's back is not acceptable.
+  const running = await runningBrowsers()
+  if (running.length > 0) throw blocked(running)
   const chrome = chromePath()
   if (!chrome)
     throw new Error(
@@ -94,6 +102,7 @@ async function start(state: State) {
   const { port, pid } = await startChrome(chrome, state.profile, state.options.headless === true)
   try {
     const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`)
+    state.note = `本机没有任何浏览器在运行，已为你启动独立的 Chrome（用户目录 ${state.profile}，调试端口 ${port}）`
     return adopt(state, browser, `chrome-cdp:${port}`, pid)
   } catch (error) {
     stopProcess(pid)
@@ -102,6 +111,114 @@ async function start(state: State) {
         `Close any Chrome already using ${state.profile} and try again.`,
     )
   }
+}
+
+/** Ports a browser that a user started by hand most often publishes for CDP. */
+const KNOWN_CDP_PORTS = [9222, 9223, 9224, 9333]
+
+const PROBE_TIMEOUT_MS = 800
+
+/**
+ * Attach to an already running browser that exposes a debugging port, including the one this plugin started in an
+ * earlier session (its port is recorded in the profile). Returns undefined when no reachable endpoint exists.
+ */
+async function connectExisting(state: State, chromium: Playwright["chromium"]) {
+  const own = readDevToolsPort(join(state.profile, "DevToolsActivePort"))
+  const ports = [...new Set([...KNOWN_CDP_PORTS, ...(own === undefined ? [] : [own])])]
+  for (const port of ports) {
+    if (!(await probe(port))) continue
+    const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`).catch(() => undefined)
+    if (!browser) continue
+    // A browser with no window has no context to drive; leave it alone instead of failing the whole call.
+    if (browser.contexts().length === 0) {
+      await browser.close().catch(() => {})
+      continue
+    }
+    return adopt(state, browser, `chrome-cdp:${port}`, undefined)
+  }
+  return undefined
+}
+
+async function probe(port: number) {
+  const response = await fetch(`http://127.0.0.1:${port}/json/version`, {
+    signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+  }).catch(() => undefined)
+  if (!response?.ok) return false
+  const body: unknown = await response.json().catch(() => undefined)
+  if (typeof body !== "object" || body === null) return false
+  const fields = body as Record<string, unknown>
+  if (fields.webSocketDebuggerUrl === undefined) return false
+  // The desktop client is Electron too and publishes CDP on 9222 in development. Driving the app itself is never a
+  // web browser, so its endpoint is rejected even though it answers the same protocol and even reports a Chrome
+  // version; only its User-Agent names Electron.
+  return !String(fields["User-Agent"]).includes("Electron/")
+}
+
+/** Process names of the browsers we look for before deciding that no browser is running at all. */
+const BROWSER_PROCESSES: Record<string, string[]> = {
+  darwin: [
+    "Google Chrome",
+    "Google Chrome Canary",
+    "Chromium",
+    "Microsoft Edge",
+    "Brave Browser",
+    "Brave Browser Beta",
+    "Arc",
+    "Safari",
+    "firefox",
+    "Firefox",
+    "Opera",
+    "Vivaldi",
+  ],
+  win32: ["chrome.exe", "msedge.exe", "brave.exe", "chromium.exe", "firefox.exe", "opera.exe", "vivaldi.exe"],
+  linux: [
+    "google-chrome",
+    "google-chrome-stable",
+    "chromium",
+    "chromium-browser",
+    "microsoft-edge",
+    "brave-browser",
+    "firefox",
+    "opera",
+  ],
+}
+
+/** Browsers the user already has open, by process name. Empty means the desktop has no browser at all. */
+export async function runningBrowsers() {
+  const key = platform() === "darwin" ? "darwin" : platform() === "win32" ? "win32" : "linux"
+  const names = BROWSER_PROCESSES[key] ?? []
+  if (key === "win32") {
+    const output = await run("tasklist", ["/NH"])
+    return names.filter((name) => output?.toLowerCase().includes(name.toLowerCase()) === true)
+  }
+  const found = await Promise.all(
+    names.map(async (name) => ((await run("pgrep", ["-x", name])) === undefined ? undefined : name)),
+  )
+  return found.filter((name) => name !== undefined)
+}
+
+function run(command: string, args: string[]) {
+  return new Promise<string | undefined>((resolve) => {
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "ignore"] })
+    let output = ""
+    child.stdout?.on("data", (chunk) => (output += chunk))
+    child.on("error", () => resolve(undefined))
+    child.on("close", (code) => resolve(code === 0 ? output : undefined))
+  })
+}
+
+/**
+ * Never start a second browser behind the user's back, and never kill the one they already own. A browser without a
+ * debugging port cannot be driven over CDP, so the only honest answer is an error that says how to fix it.
+ */
+function blocked(running: string[]) {
+  return new Error(
+    `检测到你已打开 ${running.join("、")}，但它没有开启 CDP 调试端口，无法接管；` +
+      `webwright 不会另外启动一个 Chrome 实例，也不会关掉你的浏览器。` +
+      "请用一个独立的用户数据目录带 --remote-debugging-port=9222 重启 Chrome（例如 " +
+      `open -na "Google Chrome" --args --user-data-dir=/tmp/webwright-cdp --remote-debugging-port=9222），` +
+      "或把这个端点配置到插件的 cdp 选项后重试。",
+  )
 }
 
 function adopt(state: State, browser: CdpBrowser, channel: string, pid?: number) {
@@ -406,6 +523,7 @@ export function create(options: PluginOptions) {
       profile: string
       tabs: number
       error?: string
+      note?: string
     }> {
       try {
         const { context, channel } = await launch(state)
@@ -416,6 +534,7 @@ export function create(options: PluginOptions) {
           version: context.browser()?.version() ?? "",
           profile: state.profile,
           tabs: context.pages().length,
+          ...(state.note === undefined ? {} : { note: state.note }),
         }
       } catch (error) {
         state.error = error instanceof Error ? error.message : String(error)
@@ -425,7 +544,10 @@ export function create(options: PluginOptions) {
 
     async tabs() {
       const { context } = await launch(state)
-      return { tabs: await Promise.all(context.pages().map((item) => tab(state, item))) }
+      return {
+        tabs: await Promise.all(context.pages().map((item) => tab(state, item))),
+        ...(state.note === undefined ? {} : { note: state.note }),
+      }
     },
 
     async open(input: { url?: string; active?: boolean }) {

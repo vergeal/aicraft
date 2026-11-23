@@ -28,7 +28,6 @@ export const Tab = Schema.Struct({
   active: Schema.Boolean,
 }).annotate({ identifier: "Browser.Tab" })
 
-const tabs = Schema.Struct({ tabs: Schema.Array(Tab) })
 const ok = Schema.Struct({ ok: Schema.Boolean })
 const snapshot = Schema.Struct({
   content: text,
@@ -61,7 +60,7 @@ function operation<
 export const Operations = [
   operation(
     "status",
-    "Start or reuse the dedicated OpenCode browser and report which browser and profile it uses. Call this first when webwright.* fails to launch.",
+    "Report which browser and profile webwright uses, and start one only when no other browser is running. Call this first when webwright.* cannot attach: it explains whether a browser is already open without a CDP port.",
     {},
     Schema.Struct({
       ready: Schema.Boolean,
@@ -70,13 +69,14 @@ export const Operations = [
       profile: short,
       tabs: count,
       error: optional(short),
+      note: optional(short),
     }),
   ),
   operation(
     "tabs.list",
     "List the open tabs of the dedicated webwright. Use the returned numeric ids for every page operation.",
     {},
-    tabs,
+    Schema.Struct({ tabs: Schema.Array(Tab), note: optional(short) }),
   ),
   operation(
     "tabs.open",

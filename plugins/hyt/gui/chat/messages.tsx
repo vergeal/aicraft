@@ -484,23 +484,28 @@ function ImageBody(props: {
     () => props.message.filePath,
     (path) => (path.length > 0 ? props.onMedia(path) : Promise.resolve({ dataUrl: "", error: "" })),
   )
+  // 同上：直接读 media() 会让图片加载期间整个页面进 Suspense（切到有新图的会话时会闪一下）。
+  const source = () => {
+    const state = media.state
+    return state === "ready" || state === "refreshing" ? (media.latest?.dataUrl ?? "") : ""
+  }
   return (
     <Show
-      when={media()?.dataUrl}
+      when={source()}
       fallback={
         <div class="hyt-chat-media-missing">
           {media.loading ? <props.ctx.ui.Loader size="small" /> : text(props.ctx, "hyt.chat.msg.image.missing")}
         </div>
       }
     >
-      {(source) => (
+      {(image) => (
         <button
           type="button"
           class="hyt-chat-media"
           aria-label={text(props.ctx, "hyt.chat.msg.image.open")}
-          onClick={() => props.onOpenImage(source())}
+          onClick={() => props.onOpenImage(image())}
         >
-          <img src={source()} alt={text(props.ctx, "hyt.chat.msg.image.open")} loading="lazy" />
+          <img src={image()} alt={text(props.ctx, "hyt.chat.msg.image.open")} loading="lazy" />
         </button>
       )}
     </Show>

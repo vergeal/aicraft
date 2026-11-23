@@ -47,7 +47,12 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
       rows.flatMap((row) => (row.dataUrl.length > 0 ? [[row.path, row.dataUrl] as const] : [])),
     )
   })
-  const avatarMap = () => avatars() ?? {}
+  // 不要直接读 resource 的值：重新取头像时会挂起，而最近的 Suspense 是整页，切会话时页面会被移出约 80ms，
+  // 看起来就是闪一下。读 state 不挂起，取回来之前先不画头像。
+  const avatarMap = () => {
+    const state = avatars.state
+    return state === "ready" || state === "refreshing" ? (avatars.latest ?? {}) : {}
+  }
   const [text_, setDraft] = createSignal("")
   const [sending, setSending] = createSignal(false)
   // 右栏是「会话信息」，按需打开：默认不占宽度，需要看成员或指令时从会话头部开关。

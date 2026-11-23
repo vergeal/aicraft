@@ -3,6 +3,12 @@
  * 不读盘、不依赖宿主 API，便于单独推理与测试。头像规则在 `head.ts`。
  */
 
+/** 快捷键提示里的修饰键：macOS 给 ⌘，其他平台给 Ctrl。图上的「⌘K」「⌘+Enter」都按这个渲染。 */
+export function modKey() {
+  const agent = globalThis.navigator?.userAgent ?? ""
+  return /Mac|iPhone|iPad/.test(agent) ? "⌘" : "Ctrl"
+}
+
 export function formatClock(locale: string, at: number) {
   if (at <= 0) return ""
   return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(at))

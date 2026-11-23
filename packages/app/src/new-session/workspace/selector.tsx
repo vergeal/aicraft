@@ -10,6 +10,7 @@ import { Typeahead } from "@opencode/ui/typeahead"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useCommand } from "@/shell/commands/command"
 import type { NewSessionWorkspaceController } from "./controller"
+import "@/new-session/card.css"
 
 export function NewSessionBranch(props: { workspace: NewSessionWorkspaceController; onDone: () => void }) {
   const language = useLanguage()
@@ -139,6 +140,7 @@ export function NewSessionBranch(props: { workspace: NewSessionWorkspaceControll
             <Show when={initial()}>
               {(initial) => (
                 <Popover.Content
+                  data-component="new-session-card"
                   class="w-[min(243px,calc(100vw_-_32px))] overflow-hidden rounded-lg bg-v2-background-bg-layer-01 shadow-[var(--v2-elevation-floating)] focus:outline-none"
                   onInteractOutside={() => (outside = true)}
                   onCloseAutoFocus={(event) => {

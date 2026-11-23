@@ -4,8 +4,12 @@
  * 插件源码不在应用的 Tailwind 扫描范围内，所以用 CSS 字符串注册。颜色、字号、间距、圆角全部引用
  * `docs/standard/design` 对应的语义变量，深浅色由变量自己跟随主题，不写死任何色值。
  *
- * 骨架按评审稿：左侧 280 会话栏（品牌 + 搜索 + AI 入口 + 分组列表 + 用户栏），
- * 中间聊天，右侧 280 通讯录与 AI 快捷指令。层次只靠背景与 0.5px 发丝线。
+ * 骨架照设计图 `docs/standard/design/prototypes/hyt-chat.html` 1:1：
+ * 左侧 280 会话栏（常驻搜索 + 「会话」标题行 + 群会话 + 「私人会话」分组），
+ * 中间聊天（56 会话头 + 760 消息列 + 88 输入卡）。顶栏与模块导航由宿主提供，这里不重复画。
+ *
+ * 数值出处就近标在注释里：字号 04 §2、间距 05 §1、控件高 05 §3、圆角 06 §1–2、
+ * 侧栏列宽 08 §3、消息列 08 §4、输入卡 09 §13、列表行与徽标 09 §11。
  */
 export const css = `
 /* ============================================================================
@@ -25,20 +29,14 @@ export const css = `
 }
 
 /* 侧栏比聊天亮一档：layer-01 对 base，深浅两套主题都成立。 */
-.hyt-chat-side,
-.hyt-chat-ai {
+.hyt-chat-side {
   display: flex;
   flex-direction: column;
   flex: 0 0 280px;
   min-width: 0;
   min-height: 0;
   background: var(--hyt-bg-side);
-}
-.hyt-chat-side {
   box-shadow: inset calc(-1 * 0.5px) 0 0 0 var(--hyt-line);
-}
-.hyt-chat-ai {
-  box-shadow: inset 0.5px 0 0 0 var(--hyt-line);
 }
 .hyt-chat-main {
   position: relative;
@@ -53,18 +51,21 @@ export const css = `
 /* 配色全部走语义 token（设计规范的 --v2-*），深浅色由宿主主题切换，页面自己不做颜色决策。
    这里只做一层别名，组件规则只引用 --hyt-*，不再出现任何色值。 */
 .hyt-chat {
-  /* 插件页面挂在外壳的工作区里，而工作区（含它头顶的 titlebar 段）是同一块 --color-main 表面。
-     三栏都用它，顶部才不会在 titlebar 下沿切出一条更亮的横带；分栏只靠 0.5px 边线。
-     不在外壳里时退回语义 token。 */
-  --hyt-bg-surface: var(--color-main, var(--v2-background-bg-base));
   /* 左栏压暗一档、中栏抬亮一档：浅色下是「微灰栏 + 白频道」，深色下是「更暗栏 + 抬亮的频道」，
-     与 Discord 的三层关系一致，消息区不再和侧栏糊成一整块。 */
+     消息区不再和侧栏糊成一整块。 */
   --hyt-bg-side: light-dark(
     color-mix(in srgb, var(--v2-background-bg-deep) 55%, var(--v2-background-bg-layer-01)),
     var(--v2-background-bg-base)
   );
   --hyt-bg-chat: light-dark(var(--v2-background-bg-base), var(--v2-background-bg-layer-01));
   --hyt-bg-elev: var(--v2-background-bg-layer-02);
+  /* 气泡与输入卡同档（图上的 layer-01），卡内子卡再抬一档：浅色比气泡亮，深色也比气泡亮。 */
+  --hyt-bg-bubble: light-dark(var(--v2-background-bg-layer-01), var(--v2-background-bg-layer-02));
+  --hyt-bg-card: light-dark(var(--v2-background-bg-base), var(--v2-background-bg-layer-03));
+  /* 右栏自成一层：底用 base，次级按钮 layer-02、工具行 layer-01，悬停各抬一档。 */
+  --hyt-bg-info: var(--v2-background-bg-base);
+  --hyt-bg-row: var(--v2-background-bg-layer-01);
+  --hyt-bg-row-hover: var(--v2-background-bg-layer-03);
   --hyt-line: var(--v2-border-border-muted);
   --hyt-line-strong: var(--v2-border-border-base);
   --hyt-text-body: var(--v2-text-text-base);
@@ -72,9 +73,11 @@ export const css = `
   --hyt-text-strong: var(--v2-text-text-base);
   --hyt-text-2: var(--v2-text-text-muted);
   --hyt-text-3: var(--v2-text-text-faint);
-  --hyt-on-accent: var(--v2-text-text-contrast);
+  --hyt-on-accent: var(--v2-grey-50);
   --hyt-accent: var(--v2-background-bg-accent);
+  --hyt-accent-hover: var(--v2-background-bg-accent-hover);
   --hyt-accent-soft: color-mix(in srgb, var(--v2-background-bg-accent) 12%, transparent);
+  --hyt-accent-faint: color-mix(in srgb, var(--v2-background-bg-accent) 10%, transparent);
   --hyt-accent-line: color-mix(in srgb, var(--v2-background-bg-accent) 32%, transparent);
   --hyt-accent-ink: var(--v2-text-text-accent);
   --hyt-green: var(--v2-state-fg-success);
@@ -88,9 +91,14 @@ export const css = `
   --hyt-active: var(--v2-overlay-simple-overlay-pressed);
   --hyt-scrim: var(--v2-overlay-simple-overlay-scrim);
   --hyt-shadow-float: var(--v2-elevation-floating);
-  /* 主操作键：与产品 submit 按钮同一对黑白，深色主题下反相成浅键帽。 */
-  --hyt-key-bg: var(--v2-background-bg-contrast);
-  --hyt-key-fg: var(--v2-text-text-contrast);
+  /* 卡片与输入卡的浮起高度：图上靠这一档阴影分层，不额外压底色。 */
+  --hyt-shadow-input: var(--v2-elevation-input);
+  --hyt-focus-ring: var(--v2-focus-ring-color);
+  --hyt-focus-width: var(--focus-width, 2px);
+  /* 主操作键：图上发送键是强调底 + 白字。accent 蓝不随主题变，所以字色也固定取白，
+     用 --v2-text-text-contrast 的话深色主题会给出黑字，蓝底黑字对比不足。 */
+  --hyt-key-bg: var(--v2-background-bg-accent);
+  --hyt-key-fg: var(--v2-grey-50);
   /* 字号收敛到设计规范的四档：11 元信息 / 12 次级 / 13 次要 UI / 14 正文。 */
   --hyt-text-10: 11px;
   --hyt-text-11: 11px;
@@ -105,76 +113,104 @@ export const css = `
   --hyt-radius-8: 8px;
   --hyt-radius-10: 10px;
   --hyt-radius-12: 12px;
-  /* 消息气泡：对方用浮层色，自己用主色。都在语义层，随深浅主题走。 */
-  --hyt-bubble: var(--v2-background-bg-layer-02);
-  --hyt-bubble-self: var(--v2-background-bg-accent);
-  --hyt-bubble-self-ink: var(--v2-text-text-contrast);
+  --hyt-radius-16: 16px;
+  /* 消息气泡：对方用浮层色，自己用强调色的浅染——图上两枚气泡都是可读的深字，不反相。 */
+  --hyt-bubble: var(--hyt-bg-bubble);
+  --hyt-bubble-self: color-mix(in srgb, var(--hyt-accent) 12%, var(--hyt-bg-bubble));
+  --hyt-bubble-self-ink: var(--hyt-text-body);
 }
-:is([data-color-scheme="dark"]) .hyt-chat {
-  --hyt-key-bg: var(--v2-grey-100);
-  --hyt-key-fg: var(--v2-grey-1100);
+/* ============================================================================
+   1 · 左栏：常驻搜索 + 标题行
+   ========================================================================= */
+/* 搜索区上下 8/6、左右 12（05 §1），输入控件 28 高（05 §3）。 */
+.hyt-chat-searcher {
+  flex: 0 0 auto;
+  padding: 8px 12px 6px;
+}
+.hyt-chat-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  border-radius: var(--hyt-radius-6);
+  background: var(--hyt-bg-card);
+  box-shadow: var(--hyt-shadow-input);
+  color: var(--hyt-text-3);
+  transition:
+    box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
+}
+.hyt-chat-search:focus-within {
+  box-shadow:
+    var(--hyt-shadow-input),
+    0 0 0 var(--hyt-focus-width) var(--hyt-focus-ring);
+}
+.hyt-chat-search-icon {
+  position: absolute;
+  left: 8px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--hyt-text-3);
+  pointer-events: none;
+}
+.hyt-chat-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 20px 0 28px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--hyt-text);
+  font: inherit;
+  font-size: var(--hyt-text-13);
+  line-height: 20px;
+}
+.hyt-chat-search input::placeholder {
+  color: var(--hyt-text-3);
+}
+.hyt-chat-search input::-webkit-search-cancel-button {
+  display: none;
+}
+/* 快捷键提示贴在输入框内右侧，不占交互。 */
+.hyt-chat-search-key {
+  position: absolute;
+  right: 6px;
+  color: var(--hyt-text-3);
+  font-family: var(--font-family-mono, inherit);
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
+  pointer-events: none;
 }
 
-/* ============================================================================
-   1 · 左栏：品牌、搜索、AI 入口
-   ========================================================================= */
-.hyt-side-brand {
+/* 标题行 44：「会话」13/500 + 未读计数 + 右侧 28 图标（05 §3）。 */
+.hyt-chat-side-head {
   display: flex;
   align-items: center;
-  gap: calc(var(--spacing) * 2);
+  gap: 6px;
   flex: 0 0 auto;
-  height: 48px;
+  height: 44px;
   padding: 0 12px;
 }
-.hyt-side-name {
-  font-size: var(--hyt-text-14);
-  font-weight: var(--font-weight-bold);
-  line-height: 22px;
-  letter-spacing: 0.1px;
+.hyt-chat-side-title {
+  margin-right: auto;
+  color: var(--hyt-text);
+  font-size: var(--hyt-text-13);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
+}
+.hyt-chat-side-count {
+  color: var(--hyt-text-3);
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.hyt-side-tools {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
-  margin-left: auto;
+.hyt-chat-side-count[data-tone="warning"] {
+  color: var(--hyt-yellow);
 }
-/* 标题右侧的图标按钮：筛选与一键已读共用同一套外观。 */
-.hyt-side-tool {
-  position: relative;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hyt-radius-8);
-  background: transparent;
-  color: var(--hyt-text-2);
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    color var(--duration-fast, 120ms) var(--ease-out, ease);
-}
-.hyt-side-tool:focus-visible {
-  outline: var(--focus-width, 2px) solid var(--hyt-accent);
-  outline-offset: 2px;
-}
-/* 没有未读时置灰：这个位置常驻，灰掉比消失更好找。 */
-.hyt-side-tool:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-@media (hover: hover) {
-  .hyt-side-tool:hover:not(:disabled) {
-    background: var(--hyt-hover);
-    color: var(--hyt-text);
-  }
-}
+
 /* 筛选不是「全部」时留一个小点，收起菜单也能看出被过滤了。 */
-.hyt-side-tool-dot {
+.hyt-chat-icon-dot {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -205,7 +241,7 @@ export const css = `
   background: var(--hyt-bg-elev);
   box-shadow:
     inset 0 0 0 0.5px var(--hyt-line),
-    0 8px 24px color-mix(in srgb, var(--hyt-shadow, #000) 14%, transparent);
+    var(--hyt-shadow-float);
 }
 .hyt-side-filter-item {
   display: flex;
@@ -252,172 +288,44 @@ export const css = `
   font-variant-numeric: tabular-nums;
 }
 
-/* 搜索：叠在栏上的一层浅色，不用边框。默认收起，点「消息」右侧的放大镜才展开。 */
-@keyframes hyt-search-in {
-  from {
-    opacity: 0;
-    transform: translateY(-3px);
-  }
-}
-.hyt-chat-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--spacing) * 2);
-  flex: 0 0 auto;
-  height: 28px;
-  margin: 8px 8px 8px;
-  padding: 0 8px;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-surface-raised);
-  box-shadow: inset 0 0 0 0.5px transparent;
-  color: var(--hyt-text-3);
-  animation: hyt-search-in 140ms var(--ease-out, ease);
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
-}
-.hyt-chat-search:focus-within {
-  background: var(--hyt-hover);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line);
-}
-.hyt-chat-search input {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--hyt-text);
-  font: inherit;
-  font-size: var(--hyt-text-125);
-}
-.hyt-chat-search input::placeholder {
-  color: var(--hyt-text-3);
-}
-.hyt-chat-search input::-webkit-search-cancel-button {
-  display: none;
-}
-.hyt-chat-search-icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-  color: var(--hyt-text-3);
-}
-
-.hyt-ai-entry {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 0 0 auto;
-  margin: 0 12px 4px;
-  padding: 8px 12px;
-  border: 0;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-surface-raised);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
-}
-.hyt-ai-entry:focus-visible {
-  outline: var(--focus-width, 2px) solid var(--hyt-accent);
-  outline-offset: 2px;
-}
-@media (hover: hover) {
-  .hyt-ai-entry:hover {
-    background: var(--hyt-hover);
-    box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
-  }
-}
-.hyt-ai-entry-mark {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-accent);
-  color: var(--hyt-on-accent);
-}
-.hyt-ai-entry-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.hyt-ai-entry-name {
-  font-size: var(--hyt-text-13);
-  font-weight: var(--font-weight-bold);
-  line-height: 1.2;
-  color: var(--hyt-text);
-  white-space: nowrap;
-}
-.hyt-ai-entry-sub {
-  font-size: var(--hyt-text-11);
-  line-height: 1.3;
-  color: var(--hyt-text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.hyt-ai-entry-go {
-  display: inline-flex;
-  flex: 0 0 auto;
-  color: var(--hyt-text-3);
-}
-
 /* ============================================================================
    2 · 左栏：分组与会话行
    ========================================================================= */
-.hyt-side-scroll {
+/* 列表左右 6、行内左右 6：文字与头像的左缘落在 12（05 §1）。 */
+.hyt-chat-side-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
-  padding: 8px;
+  padding: 0 6px 8px;
   scrollbar-width: thin;
   scrollbar-color: var(--hyt-line-strong) transparent;
 }
 
-.hyt-side-section {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 8px 4px;
+/* 分组标题 11/16/500 + 字距（04 §2.1 侧栏分组标题）。 */
+.hyt-chat-side-label {
+  padding: 6px 6px 4px;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.5px;
-}
-.hyt-side-section-count {
-  margin-left: auto;
-  padding: 2px 6px;
-  border-radius: var(--hyt-radius-4);
-  background: var(--hyt-surface-raised);
-  color: var(--hyt-text-2);
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  line-height: 16px;
 }
 
 .hyt-chat-sessions {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
+/* 会话行 64：头像 40 + 名字 20 + 预览 18 + 组内 2（09 §11 双行列表项）。 */
 .hyt-chat-session {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  min-height: 56px;
-  padding: 8px;
+  min-height: 64px;
+  padding: 0 6px;
   border: 0;
   border-radius: var(--hyt-radius-8);
   background: transparent;
@@ -432,202 +340,165 @@ export const css = `
     background: var(--hyt-surface-hover);
   }
 }
-/* 选中态是飞书式的中性浅灰块，不用主色，免得和未读标记抢注意力。 */
+/* 选中 = 淡强调底 + 左缘 2px 指示条，两个信号同时给（08 §3）。 */
 .hyt-chat-session[aria-current="true"] {
-  background: color-mix(in srgb, var(--hyt-text) 6%, transparent);
+  background: var(--hyt-accent-faint);
+}
+@media (hover: hover) {
+  .hyt-chat-session[aria-current="true"]:hover {
+    background: color-mix(in srgb, var(--hyt-accent) 14%, transparent);
+  }
+}
+.hyt-chat-session[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--hyt-accent);
 }
 .hyt-chat-session:focus-visible {
-  outline: var(--focus-width, 2px) solid var(--hyt-accent);
+  outline: var(--hyt-focus-width) solid var(--hyt-focus-ring);
   outline-offset: -2px;
 }
-.hyt-chat-session-body {
+/* 名字与预览在同一列，时间与未读在右列（图上的两列读法）。 */
+.hyt-chat-session-text {
   display: flex;
   flex-direction: column;
+  gap: 4px;
   min-width: 0;
   flex: 1 1 auto;
 }
-.hyt-chat-session-top {
+.hyt-chat-session-side {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
 }
+/* 会话名 14/20/400，当前项与未读提到 500（04 §2.1）。 */
 .hyt-chat-session-name {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--hyt-text-13);
+  font-size: var(--hyt-text-14);
   font-weight: var(--font-weight-regular);
   line-height: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--hyt-text);
 }
-/* 选中项只提字重到 500：字色留给未读，字重留给当前项，两条规则不合并。 */
-.hyt-chat-session[aria-current="true"] .hyt-chat-session-name {
-  color: var(--hyt-text-strong);
-  font-weight: var(--font-weight-medium);
-}
+.hyt-chat-session[aria-current="true"] .hyt-chat-session-name,
 .hyt-chat-session[data-unread="true"] .hyt-chat-session-name {
   color: var(--hyt-text-strong);
   font-weight: var(--font-weight-medium);
 }
-.hyt-chat-session[data-unread="true"] .hyt-chat-session-preview {
-  color: var(--hyt-text-2);
-}
-.hyt-chat-session-tag {
-  flex: 0 0 auto;
-  padding: 0 4px;
-  border-radius: var(--hyt-radius-4);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-medium);
-  line-height: 16px;
-}
-.hyt-chat-session-time {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  line-height: 16px;
-  font-variant-numeric: tabular-nums;
-}
-.hyt-chat-session-bottom {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  margin-top: 2px;
-}
 .hyt-chat-session-preview {
   min-width: 0;
-  flex: 1 1 auto;
   overflow: hidden;
-  color: var(--hyt-text-3);
+  color: var(--hyt-text-2);
   font-size: var(--hyt-text-125);
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.hyt-chat-group-mark {
-  display: inline-flex;
-  flex: 0 0 auto;
+.hyt-chat-session[data-unread="false"] .hyt-chat-session-preview {
   color: var(--hyt-text-3);
 }
-.hyt-chat-session-at {
+.hyt-chat-session-time {
   flex: 0 0 auto;
-  padding: 0 4px;
-  border-radius: var(--hyt-radius-4);
-  background: var(--hyt-accent-soft);
-  color: var(--hyt-accent-ink);
+  color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
   line-height: 16px;
+  font-variant-numeric: tabular-nums;
 }
-.hyt-chat-session-badge {
+.hyt-chat-session[aria-current="true"] .hyt-chat-session-time,
+.hyt-chat-session[data-unread="true"] .hyt-chat-session-time {
+  color: var(--hyt-text-2);
+}
+/* 未读徽标 16 高胶囊，状态红（09 §11 Badge）。 */
+.hyt-chat-badge {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  min-width: 18px;
-  height: 18px;
+  min-width: 16px;
+  height: 16px;
   padding: 0 4px;
   border-radius: 999px;
   background: var(--hyt-danger);
   color: var(--hyt-on-accent);
   font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.hyt-chat-session-dot {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--hyt-accent);
+/* 被人 @ 到时换成警示色，形状与徽标一致（图上的 mention 档）。 */
+.hyt-chat-badge[data-tone="mention"] {
+  background: var(--hyt-yellow);
+  color: var(--hyt-on-accent);
 }
-
-
-/* ============================================================================
-   3 · 左栏：当前用户
-   ========================================================================= */
-.hyt-side-user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  height: 48px;
-  padding: 0 12px;
-  box-shadow: inset 0 0.5px 0 0 var(--hyt-line);
-}
-.hyt-side-user-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.hyt-side-user-name {
-  overflow: hidden;
-  color: var(--hyt-text);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-bold);
-  line-height: 18px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hyt-side-user-sub {
-  overflow: hidden;
+.hyt-chat-hint {
+  margin: 8px 6px;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
   line-height: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hyt-side-user-tools {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
 }
 
 /* ============================================================================
-   4 · 通用控件：图标按钮、头像
+   3 · 通用控件：图标按钮、头像
    ========================================================================= */
-.hyt-icon-button {
+/* 图标按钮：全页唯一的图标交互形态，标题行、会话头、工具行、文件卡都用它（09 §1）。 */
+.hyt-chat-icon {
+  position: relative;
   display: grid;
   place-items: center;
+  flex: 0 0 auto;
   width: 28px;
   height: 28px;
   padding: 0;
   border: 0;
   border-radius: var(--hyt-radius-6);
   background: transparent;
-  color: var(--hyt-text-3);
+  color: var(--hyt-text-2);
   cursor: pointer;
   transition:
     background-color var(--duration-fast, 120ms) var(--ease-out, ease),
     color var(--duration-fast, 120ms) var(--ease-out, ease);
 }
+.hyt-chat-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.hyt-chat-icon:focus-visible {
+  outline: var(--hyt-focus-width) solid var(--hyt-focus-ring);
+  outline-offset: 1px;
+}
+.hyt-chat-icon[aria-pressed="true"] {
+  background: var(--hyt-active);
+  color: var(--hyt-text);
+}
+/* 没有未读时置灰：这个位置常驻，灰掉比消失更好找。 */
+.hyt-chat-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 @media (hover: hover) {
-  .hyt-icon-button:hover {
-    background: var(--hyt-surface-hover, var(--hyt-hover));
+  .hyt-chat-icon:hover:not(:disabled) {
+    background: var(--hyt-hover);
     color: var(--hyt-text);
   }
 }
-.hyt-icon-button:focus-visible {
-  outline: var(--focus-width, 2px) solid var(--hyt-accent);
-  outline-offset: 1px;
-}
-.hyt-icon-button[aria-pressed="true"] {
-  background: var(--hyt-surface-active, var(--hyt-active));
-  color: var(--hyt-text);
-}
 
-/* 头像：一律圆形（与飞书一致），群拼图也被容器裁成圆，四角格子自然切掉。 */
+/* 头像：真人圆形，群与机器人与系统账号是 10 圆角的容器（06 §4 形状区分身份）。
+   尺寸由组件按档写进 style：会话行 40、消息 36、会话头 32。 */
 .hyt-chat-avatar {
   position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   overflow: hidden;
+  border-radius: 50%;
   color: var(--hyt-on-accent);
   font-weight: var(--font-weight-medium);
   letter-spacing: 0;
@@ -669,34 +540,33 @@ export const css = `
 }
 
 /* ============================================================================
-   5 · 中栏：会话头
+   4 · 中栏：会话头
    ========================================================================= */
+/* 会话头 56：头像 32 + 名字 14/20/500 + 元信息 11/16，右侧 28 图标（08 §5）。 */
 .hyt-chat-head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex: 0 0 auto;
-  height: 52px;
-  padding: 0 20px;
-  /* 飞书的会话头下面有一条极细的分隔，不占布局高度。 */
+  height: 56px;
+  padding: 0 16px;
   box-shadow: inset 0 -0.5px 0 var(--hyt-line);
 }
-.hyt-chat-head-id {
+.hyt-chat-head-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
   flex: 1 1 auto;
 }
 .hyt-chat-head-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   color: var(--hyt-text);
-  font-size: var(--hyt-text-14);
-  font-weight: var(--font-weight-bold);
-  line-height: 22px;
+  font-size: var(--hyt-text-135);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
 }
 .hyt-chat-head-name {
   min-width: 0;
@@ -704,15 +574,14 @@ export const css = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.hyt-chat-pill {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  border-radius: var(--hyt-radius-4);
-  background: color-mix(in srgb, var(--hyt-text) 7%, transparent);
+/* 元信息：单聊给部门，群聊给近期发言人数——只用本地库真的查得到的信息。 */
+.hyt-chat-head-meta {
+  min-width: 0;
+  overflow: hidden;
   color: var(--hyt-text-2);
   font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-regular);
   line-height: 16px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .hyt-chat-ai-inline {
@@ -720,24 +589,24 @@ export const css = `
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
-  padding: 2px 8px;
-  border-radius: var(--hyt-radius-4);
-  background: var(--hyt-accent-soft, color-mix(in srgb, var(--hyt-accent) 12%, transparent));
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 34%, transparent));
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--hyt-accent-soft);
   color: var(--hyt-accent-ink);
   font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
+  line-height: 16px;
   white-space: nowrap;
 }
 .hyt-chat-head-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex: 0 0 auto;
 }
 
 /* ============================================================================
-   6 · 中栏：消息流
+   5 · 中栏：消息流
    ========================================================================= */
 .hyt-chat-messages {
   flex: 1 1 auto;
@@ -746,7 +615,7 @@ export const css = `
   overflow-x: hidden;
   /* 滚动条出现/消失会让内容宽度跳 1~2px，消息一多像是闪了一下；留出固定槽位。 */
   scrollbar-gutter: stable;
-  padding: 16px 24px 8px;
+  padding: 8px 16px;
   scrollbar-width: thin;
   scrollbar-color: var(--hyt-line-strong) transparent;
 }
@@ -754,16 +623,16 @@ export const css = `
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* 飞书的消息内容居中限宽，宽窗口下不贴着两边拉满。 */
-  max-width: 1000px;
+  /* 阅读列 760（08 §4）：宽窗口下不贴着两边拉满。 */
+  max-width: 760px;
   margin: 0 auto;
 }
 
-/* 日期像飞书一样只是一行居中的灰字，不加贯穿的分隔线。 */
+/* 日期只是一行居中的灰字，不加贯穿的分隔线（图上如此）。 */
 .hyt-chat-day {
   display: flex;
   justify-content: center;
-  margin: 16px 0 4px;
+  margin: 16px 0 0;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-regular);
@@ -771,9 +640,11 @@ export const css = `
   white-space: nowrap;
 }
 
+/* 一条消息 = 头像 + 内容列；组间 16、组内 4。 */
 .hyt-chat-item {
   display: flex;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 6px;
   margin-top: 16px;
 }
 /* 搜索结果定位到的那一条：整行短暂亮一下再褪掉。 */
@@ -790,7 +661,7 @@ export const css = `
     background: transparent;
   }
 }
-/* 组内后续消息：不重复头像与名字，气泡之间只留 6px，和飞书一样是同一个人连发的紧凑感。 */
+/* 组内后续消息：不重复头像与名字，只留 4px，同一个人连发的紧凑感。 */
 .hyt-chat-item[data-first="false"] {
   margin-top: 4px;
 }
@@ -801,17 +672,18 @@ export const css = `
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 4px;
   min-width: 0;
-  max-width: min(68%, 620px);
+  max-width: 560px;
   flex: 0 1 auto;
 }
 .hyt-chat-item-meta {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  align-items: baseline;
+  gap: 6px;
   min-width: 0;
 }
+/* 消息元信息：名字 12/18/500 + 时间 11/16 弱色（04 §2.1）。 */
 .hyt-chat-item-name {
   overflow: hidden;
   color: var(--hyt-text-2);
@@ -821,11 +693,18 @@ export const css = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.hyt-chat-item-time {
+  flex: 0 0 auto;
+  color: var(--hyt-text-3);
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
 .hyt-chat-msg-role {
   flex: 0 0 auto;
   max-width: 132px;
   overflow: hidden;
-  padding: 2px 4px;
+  padding: 0 4px;
   border-radius: var(--hyt-radius-4);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
   color: var(--hyt-text-3);
@@ -835,15 +714,8 @@ export const css = `
   white-space: nowrap;
 }
 .hyt-chat-msg-role[data-you="true"] {
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 34%, transparent));
+  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line);
   color: var(--hyt-accent-ink);
-}
-.hyt-chat-item-time {
-  flex: 0 0 auto;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  line-height: 16px;
-  font-variant-numeric: tabular-nums;
 }
 .hyt-chat-at-mark {
   flex: 0 0 auto;
@@ -851,20 +723,40 @@ export const css = `
   border-radius: var(--hyt-radius-4);
   background: color-mix(in srgb, var(--hyt-red) 16%, transparent);
   color: var(--hyt-red);
-  font-size: var(--hyt-text-10);
+  font-size: var(--hyt-text-11);
   font-weight: var(--font-weight-bold);
   line-height: 16px;
 }
 
-/* 气泡：对方是浮层色，自己是主色；宽度随内容，最长 100%。 */
+/* 「以下为新消息」：线 + 文字，一条流里只出现一次强调。 */
+.hyt-chat-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  color: var(--hyt-text-3);
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
+  white-space: nowrap;
+}
+.hyt-chat-divider::before,
+.hyt-chat-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--hyt-line);
+}
+
+/* 气泡：内边距 8/12、圆角 12，靠头像那一角收到 4（06 §8 气泡例外）。 */
 .hyt-chat-bubble {
   max-width: 100%;
   padding: 8px 12px;
-  border-radius: var(--hyt-radius-8);
+  border-radius: var(--hyt-radius-12);
+  border-top-left-radius: var(--hyt-radius-4);
   background: var(--hyt-bubble);
+  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
   color: var(--hyt-text-body);
   font-size: var(--hyt-text-135);
-  /* 飞书气泡行高 22：14px 文字配 1.5 会偏紧。 */
   line-height: 22px;
   word-break: break-word;
   white-space: pre-wrap;
@@ -876,94 +768,86 @@ export const css = `
   color: var(--hyt-accent-ink);
   font-weight: var(--font-weight-medium);
 }
-/* 自己的消息：飞书式右侧气泡，不重复头像与名字，只留时间。 */
+/* 自己的消息：靠右、朝向自己的一角收 4，底色是强调色的浅染，文字仍是正文色。 */
 .hyt-chat-item[data-outgoing="true"] {
   flex-direction: row-reverse;
+}
+.hyt-chat-item[data-outgoing="true"] .hyt-chat-item-body {
+  align-items: flex-end;
 }
 .hyt-chat-item[data-outgoing="true"] .hyt-chat-item-name,
 .hyt-chat-item[data-outgoing="true"] .hyt-chat-msg-role {
   display: none;
 }
-.hyt-chat-item[data-outgoing="true"] .hyt-chat-item-body {
-  align-items: flex-end;
-}
-.hyt-chat-item[data-outgoing="true"] .hyt-chat-item-meta {
-  justify-content: flex-end;
-}
 .hyt-chat-item[data-outgoing="true"] .hyt-chat-bubble {
+  border-top-left-radius: var(--hyt-radius-12);
+  border-bottom-right-radius: var(--hyt-radius-4);
   background: var(--hyt-bubble-self);
   color: var(--hyt-bubble-self-ink);
 }
 .hyt-chat-item[data-outgoing="true"] .hyt-chat-mention {
-  background: color-mix(in srgb, var(--hyt-bubble-self-ink) 18%, transparent);
-  color: inherit;
+  background: color-mix(in srgb, var(--hyt-accent) 18%, transparent);
+  color: var(--hyt-accent-ink);
 }
 
-/* 文件卡 */
+/* 文件卡：气泡内的子卡，圆角 8 = 外层 12 − 内缩（06 §3 同心圆角）。 */
 .hyt-chat-file {
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: 300px;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border: 0;
+  gap: 6px;
+  width: 100%;
+  min-width: 260px;
+  margin-top: 4px;
+  padding: 6px;
   border-radius: var(--hyt-radius-8);
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
+  background: var(--hyt-bg-card);
+  box-shadow: var(--hyt-shadow-input);
   color: inherit;
   font-family: inherit;
   text-align: start;
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
-}
-@media (hover: hover) {
-  .hyt-chat-file:hover {
-    background: var(--hyt-bg-elev);
-    box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
-  }
 }
 .hyt-chat-file-glyph {
   display: grid;
   place-items: center;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--hyt-radius-6);
-  background: var(--hyt-bg-elev);
-  color: var(--hyt-text-2);
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--hyt-radius-8);
+  background: color-mix(in srgb, var(--hyt-red) 14%, var(--hyt-bg-elev));
+  color: var(--hyt-red);
 }
-.hyt-chat-file-body {
-  display: flex;
-  flex-direction: column;
+.hyt-chat-file-text {
   min-width: 0;
-  gap: 2px;
+  flex: 1 1 auto;
 }
 .hyt-chat-file-name {
+  display: block;
   overflow: hidden;
   color: var(--hyt-text);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--hyt-text-13);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .hyt-chat-file-size {
+  display: block;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
 }
+/* 下载是卡内唯一的按钮，用通用的 .hyt-chat-icon；整卡不再假装可点。 */
 
 /* 图片 */
 .hyt-chat-media {
   display: block;
   max-width: 340px;
-  margin-top: 8px;
   padding: 0;
   border: 0;
-  border-radius: var(--hyt-radius-8);
+  border-radius: var(--hyt-radius-12);
   overflow: hidden;
-  background: var(--hyt-bg-elev);
+  background: var(--hyt-bg-card);
   box-shadow: inset 0 0 0 0.5px var(--hyt-line);
   cursor: zoom-in;
 }
@@ -978,12 +862,12 @@ export const css = `
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
   padding: 8px 12px;
   border-radius: var(--hyt-radius-8);
-  background: var(--hyt-bg-elev);
+  background: var(--hyt-bg-card);
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
 }
 .hyt-chat-viewer {
   position: fixed;
@@ -999,23 +883,22 @@ export const css = `
 .hyt-chat-viewer img {
   max-width: 100%;
   max-height: 100%;
-  border-radius: var(--hyt-radius-8);
+  border-radius: var(--hyt-radius-12);
 }
 
 /* 合并转发 */
 .hyt-chat-merge {
   max-width: 400px;
-  margin-top: 8px;
   border-radius: var(--hyt-radius-8);
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
+  background: var(--hyt-bg-card);
+  box-shadow: var(--hyt-shadow-input);
   overflow: hidden;
 }
 .hyt-chat-merge-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 8px;
   box-shadow: inset 0 calc(-1 * 0.5px) 0 0 var(--hyt-line);
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
@@ -1024,8 +907,8 @@ export const css = `
   min-width: 0;
   overflow: hidden;
   color: var(--hyt-text);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--hyt-text-13);
+  font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1048,7 +931,7 @@ export const css = `
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 12px;
+  padding: 8px;
 }
 .hyt-chat-merge-item {
   display: flex;
@@ -1073,39 +956,38 @@ export const css = `
 .hyt-chat-system {
   display: flex;
   justify-content: center;
-  margin: 24px 0;
+  margin: 16px 0 0;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
+  text-align: center;
 }
 .hyt-chat-placeholder {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-  padding: 8px 12px;
+  padding: 6px 8px;
   border-radius: var(--hyt-radius-8);
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
+  background: var(--hyt-bg-card);
+  box-shadow: var(--hyt-shadow-input);
   color: var(--hyt-text-2);
   font-size: var(--hyt-text-125);
   line-height: 18px;
 }
 .hyt-chat-placeholder strong {
   color: var(--hyt-text);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
 }
 
 /* AI 草稿卡：消息流末尾，与消息同列，蓝框标出不是人发的。 */
 .hyt-chat-draft {
   display: flex;
-  gap: 12px;
-  margin: 8px 0;
-  padding: 12px 16px;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-accent-soft, color-mix(in srgb, var(--hyt-accent) 10%, transparent));
-  box-shadow:
-    inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 28%, transparent)),
-    inset 2px 0 0 0 var(--hyt-accent);
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--hyt-radius-12);
+  background: var(--hyt-accent-faint);
+  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line);
 }
 .hyt-chat-draft-mark {
   display: grid;
@@ -1113,7 +995,7 @@ export const css = `
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
-  border-radius: var(--hyt-radius-8);
+  border-radius: var(--hyt-radius-10);
   background: var(--hyt-accent);
   color: var(--hyt-on-accent);
 }
@@ -1126,38 +1008,39 @@ export const css = `
 .hyt-chat-draft-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
   min-width: 0;
 }
 .hyt-chat-draft-name {
   color: var(--hyt-text);
   font-size: var(--hyt-text-13);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   line-height: 20px;
 }
 .hyt-chat-draft-tag {
   flex: 0 0 auto;
-  padding: 2px 6px;
+  padding: 0 4px;
   border-radius: var(--hyt-radius-4);
   background: var(--hyt-accent);
   color: var(--hyt-on-accent);
   font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.3px;
+  font-weight: var(--font-weight-medium);
+  line-height: 16px;
 }
 .hyt-chat-draft-meta {
   min-width: 0;
   overflow: hidden;
-  color: var(--hyt-text-3);
+  color: var(--hyt-text-2);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .hyt-chat-draft-text {
+  margin-top: 4px;
   color: var(--hyt-text-body);
   font-size: var(--hyt-text-135);
-  line-height: var(--hyt-lh-large);
+  line-height: 22px;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1165,17 +1048,18 @@ export const css = `
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .hyt-chat-draft-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 12px;
+  height: 28px;
+  padding: 0 8px;
   border: 0;
   border-radius: var(--hyt-radius-6);
   background: transparent;
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 28%, transparent));
+  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line);
   color: var(--hyt-accent-ink);
   font: inherit;
   font-size: var(--hyt-text-125);
@@ -1185,16 +1069,18 @@ export const css = `
 }
 @media (hover: hover) {
   .hyt-chat-draft-btn:hover {
-    background: var(--hyt-accent-soft, color-mix(in srgb, var(--hyt-accent) 12%, transparent));
+    background: var(--hyt-accent-soft);
   }
 }
 .hyt-chat-draft-btn[data-ghost="true"] {
   box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
   color: var(--hyt-text-2);
 }
-.hyt-chat-draft-btn[data-ghost="true"]:hover {
-  background: var(--hyt-hover);
-  color: var(--hyt-text);
+@media (hover: hover) {
+  .hyt-chat-draft-btn[data-ghost="true"]:hover {
+    background: var(--hyt-hover);
+    color: var(--hyt-text);
+  }
 }
 
 /* 回到最新 */
@@ -1207,13 +1093,14 @@ export const css = `
   align-items: center;
   gap: 4px;
   transform: translateX(-50%);
-  padding: 4px 12px;
+  height: 28px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: var(--hyt-bg-elev);
   box-shadow:
     inset 0 0 0 0.5px var(--hyt-line),
-    0 2px 8px color-mix(in srgb, var(--hyt-scrim) 40%, transparent);
+    var(--hyt-shadow-float);
   color: var(--hyt-text-2);
   font: inherit;
   font-size: var(--hyt-text-11);
@@ -1221,45 +1108,52 @@ export const css = `
 }
 
 /* ============================================================================
-   7 · 中栏：输入区
+   6 · 中栏：输入区
    ========================================================================= */
+/* 输入卡 88 高、圆角 16：上排 36 工具行，下排输入 + 提示 + 36 发送（09 §13）。 */
 .hyt-chat-composer {
   position: relative;
   flex: 0 0 auto;
-  padding: 4px 20px 8px;
+  padding: 6px 16px 16px;
 }
 .hyt-chat-composer-card {
   position: relative;
-  padding: 4px 12px;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
-  transition:
-    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
-    box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 760px;
+  min-height: 88px;
+  margin: 0 auto;
+  border-radius: var(--hyt-radius-16);
+  background: var(--hyt-bg-bubble);
+  box-shadow: var(--hyt-shadow-input);
+  transition: box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
 }
 .hyt-chat-composer-card:focus-within {
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 30%, transparent));
+  box-shadow:
+    var(--hyt-shadow-input),
+    0 0 0 var(--hyt-focus-width) var(--hyt-focus-ring);
+}
+.hyt-chat-composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 36px;
+  padding: 0 6px;
 }
 .hyt-chat-composer-row {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-}
-/* 工具栏独立一行：左侧附件/表情/@，右侧发送键，和飞书底部一致。 */
-.hyt-chat-composer-bar {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  flex: 1 1 auto;
+  padding: 0 6px 2px;
 }
 .hyt-chat-composer-row textarea {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 32px;
+  min-height: 22px;
   max-height: 140px;
-  padding: 6px 6px;
+  padding: 0 4px;
   border: 0;
   outline: 0;
   background: transparent;
@@ -1267,96 +1161,98 @@ export const css = `
   color: var(--hyt-text);
   font: inherit;
   font-size: var(--hyt-text-135);
-  line-height: var(--hyt-lh-large);
+  line-height: 22px;
 }
 .hyt-chat-composer-row textarea::placeholder {
   color: var(--hyt-text-3);
 }
-.hyt-chat-composer-tools {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+.hyt-chat-composer-hint {
   flex: 0 0 auto;
-  padding-bottom: 2px;
-}
-.hyt-ai-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-right: 4px;
-  padding: 4px 8px;
-  border: 0;
-  border-radius: var(--hyt-radius-6);
-  background: transparent;
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 28%, transparent));
-  color: var(--hyt-accent-ink);
-  font: inherit;
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-.hyt-ai-chip:hover {
-  background: color-mix(in srgb, var(--hyt-accent) 12%, transparent);
-}
-.hyt-chat-tool {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hyt-radius-6);
-  background: transparent;
   color: var(--hyt-text-3);
-  font: inherit;
-  cursor: pointer;
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
+  white-space: nowrap;
 }
-@media (hover: hover) {
-  .hyt-chat-tool:hover {
-    background: var(--hyt-hover);
-    color: var(--hyt-text);
-  }
+.hyt-chat-composer-hint kbd {
+  font-family: var(--font-family-mono, inherit);
 }
-.hyt-chat-tool[aria-pressed="true"] {
-  background: var(--hyt-active);
-  color: var(--hyt-text);
-}
+/* 发送 36×36，圆角取 36/3 档的 8，强调底 + 反色字（09 §13、06 §1.2）。 */
 .hyt-chat-send {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--hyt-radius-8);
   background: var(--hyt-key-bg);
   color: var(--hyt-key-fg);
   cursor: pointer;
-  transition: opacity var(--duration-fast, 120ms) var(--ease-out, ease);
+  transition:
+    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
+    opacity var(--duration-fast, 120ms) var(--ease-out, ease);
+}
+.hyt-chat-send svg {
+  width: 16px;
+  height: 16px;
+}
+.hyt-chat-send:focus-visible {
+  outline: var(--hyt-focus-width) solid var(--hyt-focus-ring);
+  outline-offset: 2px;
 }
 @media (hover: hover) {
   .hyt-chat-send:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--hyt-key-bg) 90%, var(--hyt-key-fg));
+    background: var(--hyt-accent-hover, color-mix(in srgb, var(--hyt-key-bg) 90%, var(--hyt-key-fg)));
   }
 }
 .hyt-chat-send:active:not(:disabled) {
-  background: color-mix(in srgb, var(--hyt-key-bg) 80%, var(--hyt-key-fg));
+  background: color-mix(in srgb, var(--hyt-key-bg) 84%, var(--hyt-key-fg));
 }
+/* 空输入不发：降到 28% 透明度，比换成灰色图标更接近「按下去也不会发生什么」。 */
 .hyt-chat-send:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  opacity: 0.28;
+  cursor: default;
 }
 .hyt-chat-composer-note {
-  margin: 6px 2px 0;
+  max-width: 760px;
+  margin: 6px auto 0;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
-  line-height: 1.4;
+  line-height: 16px;
 }
 .hyt-chat-composer-note[data-tone="warning"] { color: var(--hyt-yellow); }
 .hyt-chat-composer-note[data-tone="danger"] { color: var(--hyt-red); }
 
-/* @ 候选与表情：贴着输入框上沿弹出。 */
+/* 工具行与表情面板里的按钮都用 .hyt-chat-icon；面板里的表情是文字，需要单独给字号。 */
+.hyt-chat-emoji .hyt-chat-icon {
+  font-size: 16px;
+  line-height: 20px;
+}
+/* @AI：工具行里唯一的带字按钮，用描边跟普通图标分开。 */
+.hyt-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--hyt-radius-6);
+  background: transparent;
+  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line);
+  color: var(--hyt-accent-ink);
+  font: inherit;
+  font-size: var(--hyt-text-11);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .hyt-ai-chip:hover {
+    background: var(--hyt-accent-soft);
+  }
+}
+
+/* @ 候选与表情：贴着输入卡上沿弹出。 */
 .hyt-chat-mentions {
   position: absolute;
   left: 0;
@@ -1380,7 +1276,8 @@ export const css = `
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 4px 8px;
+  height: 32px;
+  padding: 0 8px;
   border: 0;
   border-radius: var(--hyt-radius-6);
   background: transparent;
@@ -1389,8 +1286,10 @@ export const css = `
   text-align: start;
   cursor: pointer;
 }
-.hyt-chat-mention-row:hover {
-  background: var(--hyt-hover);
+@media (hover: hover) {
+  .hyt-chat-mention-row:hover {
+    background: var(--hyt-hover);
+  }
 }
 .hyt-chat-mention-name {
   color: var(--hyt-text);
@@ -1423,168 +1322,7 @@ export const css = `
 }
 
 /* ============================================================================
-   8 · 右栏：通讯录与 AI 快捷指令
-   ========================================================================= */
-.hyt-ctx-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex: 0 0 auto;
-  padding: 16px 16px 8px;
-  color: var(--hyt-text);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-bold);
-}
-.hyt-ctx-head-tools {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.hyt-ctx-head-count {
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-regular);
-}
-.hyt-ctx-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 20px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--hyt-line-strong) transparent;
-}
-.hyt-ctx-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px 4px;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.5px;
-}
-.hyt-ctx-group-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: var(--hyt-green);
-}
-.hyt-ctx-member {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px 16px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  text-align: start;
-  cursor: pointer;
-  transition: background-color 100ms var(--ease-out, ease);
-}
-@media (hover: hover) {
-  .hyt-ctx-member:hover {
-    background: var(--hyt-hover);
-  }
-}
-.hyt-ctx-member-name {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--hyt-text);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hyt-ctx-member-role {
-  flex: 0 0 auto;
-  max-width: 96px;
-  margin-left: auto;
-  overflow: hidden;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hyt-ctx-empty {
-  padding: 6px 16px;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-}
-.hyt-ctx-card {
-  margin: 16px 12px 0;
-  padding: 12px;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
-}
-.hyt-ctx-card-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  color: var(--hyt-accent-ink);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-bold);
-}
-.hyt-ctx-cmd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--hyt-text-2);
-  font: inherit;
-  font-size: var(--hyt-text-125);
-  text-align: start;
-  cursor: pointer;
-}
-.hyt-ctx-cmd:hover {
-  color: var(--hyt-text);
-}
-.hyt-ctx-cmd kbd {
-  flex: 0 0 auto;
-  padding: 0 4px;
-  border-radius: var(--hyt-radius-4);
-  background: var(--hyt-accent-soft, color-mix(in srgb, var(--hyt-accent) 12%, transparent));
-  box-shadow: inset 0 0 0 0.5px var(--hyt-accent-line, color-mix(in srgb, var(--hyt-accent) 28%, transparent));
-  color: var(--hyt-accent-ink);
-  font-family: inherit;
-  font-size: var(--hyt-text-11);
-  font-weight: var(--font-weight-bold);
-  line-height: 17px;
-}
-.hyt-ctx-kb-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 0;
-}
-.hyt-ctx-kb-item + .hyt-ctx-kb-item {
-  box-shadow: inset 0 0.5px 0 0 var(--hyt-line);
-}
-.hyt-ctx-kb-title {
-  color: var(--hyt-text);
-  font-size: var(--hyt-text-125);
-  font-weight: var(--font-weight-medium);
-}
-.hyt-ctx-kb-snippet {
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* ============================================================================
-   9 · 空态与提示
+   7 · 空态与提示
    ========================================================================= */
 .hyt-chat-empty {
   display: grid;
@@ -1600,9 +1338,11 @@ export const css = `
   gap: 8px;
   max-width: 420px;
   padding: 24px 32px;
-  border-radius: var(--hyt-radius-12);
-  background: var(--hyt-bg-elev);
-  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
+  border-radius: var(--hyt-radius-16);
+  background: var(--hyt-bg-card);
+  box-shadow:
+    inset 0 0 0 0.5px var(--hyt-line),
+    var(--hyt-shadow-input);
   text-align: center;
 }
 .hyt-chat-empty-glyph {
@@ -1611,7 +1351,7 @@ export const css = `
   width: 44px;
   height: 44px;
   margin-bottom: 4px;
-  border-radius: var(--hyt-radius-10);
+  border-radius: var(--hyt-radius-12);
   background: var(--hyt-bg-elev);
   color: var(--hyt-text-2);
 }
@@ -1619,6 +1359,7 @@ export const css = `
   color: var(--hyt-text);
   font-size: var(--hyt-text-14);
   font-weight: var(--font-weight-bold);
+  line-height: 22px;
 }
 .hyt-chat-empty-body {
   color: var(--hyt-text-2);
@@ -1630,6 +1371,7 @@ export const css = `
   overflow-wrap: anywhere;
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
+  line-height: 16px;
 }
 .hyt-chat-empty-actions {
   display: flex;
@@ -1641,11 +1383,13 @@ export const css = `
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px;
+  height: 20px;
+  padding: 0 8px;
   border-radius: 999px;
   background: var(--hyt-bg-elev);
   color: var(--hyt-text-2);
   font-size: var(--hyt-text-11);
+  line-height: 20px;
 }
 .hyt-chat-status-dot {
   width: 6px;
@@ -1658,12 +1402,7 @@ export const css = `
 .hyt-chat-heading-sub {
   color: var(--hyt-text-3);
   font-size: var(--hyt-text-11);
-}
-.hyt-chat-hint {
-  margin: 8px;
-  color: var(--hyt-text-3);
-  font-size: var(--hyt-text-11);
-  line-height: 1.5;
+  line-height: 16px;
 }
 .hyt-chat-link {
   padding: 0;
@@ -1675,11 +1414,197 @@ export const css = `
   cursor: pointer;
 }
 
+/* ============================================================================
+   8 · 右栏：会话信息面板（08 §8：第三列 320、贴右缘、左缘 hairline、独立滚动）
+   ========================================================================= */
+.hyt-chat-info {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 320px;
+  min-height: 0;
+  padding: 0 12px 16px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hyt-line-strong) transparent;
+  background: var(--hyt-bg-info);
+  box-shadow: inset 0.5px 0 0 0 var(--hyt-line);
+}
+
+/* 群身份区：头像 72，居中一列，名字与编辑键同一条基线。 */
+.hyt-chat-info-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 0 12px;
+  text-align: center;
+}
+.hyt-chat-info-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--hyt-text-14);
+  line-height: 22px;
+  font-weight: var(--font-weight-medium);
+}
+.hyt-chat-info-sub {
+  color: var(--hyt-text-2);
+  font-size: var(--hyt-text-12);
+  line-height: 18px;
+}
+
+/* 面板内动作：两个次级按钮等宽并排，高 32（05 §3）。 */
+.hyt-chat-info-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  margin-top: 20px;
+}
+.hyt-chat-info-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--hyt-radius-4);
+  background: var(--hyt-bg-elev);
+  box-shadow: inset 0 0 0 0.5px var(--hyt-line-strong);
+  color: var(--hyt-text);
+  font: inherit;
+  font-size: var(--hyt-text-12);
+  line-height: 18px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.hyt-chat-info-button:hover {
+  background: var(--hyt-bg-row-hover);
+}
+.hyt-chat-info-button svg {
+  width: 16px;
+  height: 16px;
+  color: var(--hyt-text-2);
+}
+
+/* 分节标题：12/500，右侧留一个图标位。 */
+.hyt-chat-info-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  font-size: var(--hyt-text-12);
+  line-height: 18px;
+  font-weight: var(--font-weight-medium);
+  color: var(--hyt-text);
+}
+
+/* 成员行 48：头像 32 + 名字 13/20 + 副行 11/16。 */
+.hyt-chat-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 4px 0;
+}
+.hyt-chat-member-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.hyt-chat-member-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--hyt-text-13);
+  line-height: 20px;
+}
+.hyt-chat-member-status {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hyt-text-2);
+  font-size: var(--hyt-text-11);
+  line-height: 16px;
+}
+
+/* 在线状态点 6px（09 §状态点）：只作辅助，同一行必有「在线」文字。 */
+.hyt-chat-face {
+  position: relative;
+  flex: 0 0 auto;
+}
+.hyt-chat-side .hyt-chat-face-dot {
+  box-shadow: 0 0 0 1.5px var(--hyt-bg-side);
+}
+.hyt-chat-face-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--hyt-green);
+  box-shadow: 0 0 0 1.5px var(--hyt-bg-info);
+}
+
+/* 快捷工具 2×2：高 36，图标 16 + 文字 12。 */
+.hyt-chat-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 12px;
+}
+.hyt-chat-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--hyt-radius-4);
+  background: var(--hyt-bg-row);
+  box-shadow: inset 0 0 0 0.5px var(--hyt-line);
+  color: var(--hyt-text);
+  font: inherit;
+  font-size: var(--hyt-text-12);
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+.hyt-chat-tool:hover {
+  background: var(--hyt-bg-elev);
+}
+.hyt-chat-tool svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--hyt-accent-ink);
+}
+
+/* 滚动条只留 4px，且不抢内容宽度（08 §7）。 */
+.hyt-chat-side-list::-webkit-scrollbar,
+.hyt-chat-messages::-webkit-scrollbar,
+.hyt-chat-info::-webkit-scrollbar,
+.hyt-chat-mentions::-webkit-scrollbar {
+  width: 4px;
+}
+.hyt-chat-side-list::-webkit-scrollbar-thumb,
+.hyt-chat-messages::-webkit-scrollbar-thumb,
+.hyt-chat-info::-webkit-scrollbar-thumb,
+.hyt-chat-mentions::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--hyt-line-strong);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hyt-chat * {
     transition: none !important;
-  }
-  .hyt-chat-search {
     animation: none !important;
   }
 }

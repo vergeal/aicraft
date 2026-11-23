@@ -125,7 +125,7 @@ export const Trial = Schema.Struct({
 export type HytState = typeof HytStateSchema.Type
 
 export const HytIpc = Ipc.define({
-  id: "changhong.hyt",
+  id: "changhong.aicraft.hyt",
   state: HytStateSchema,
   methods: {
     /** 合并写入档案里出现的字段；返回写入后的完整 state。 */

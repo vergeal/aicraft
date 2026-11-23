@@ -657,39 +657,25 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   transition: none;
 }
 
-/* A drag marks its landing slot with a 2px line instead of moving anything midway, and the dragged row just fades.
-   The selected row already owns ::before for its 2px edge bar, so the insertion line uses ::after and keeps it. */
-[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target],
-[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target] {
-  position: relative;
-}
-
-[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target]::after,
-[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target]::after {
-  content: "";
-  position: absolute;
-  inset-inline: var(--sidebar-row-padding-inline);
-  height: 2px;
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--color-text-primary) 55%, transparent);
-  pointer-events: none;
-}
-
-/* The line sits on the edge the pointer is closer to, so it reads as the gap the row would drop into. */
-[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target="start"]::after,
-[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target="start"]::after {
-  inset-block-start: -1px;
-}
-
-[data-slot="replica-sidebar"] [data-slot="replica-row"][data-drop-target="end"]::after,
-[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-drop-target="end"]::after {
-  inset-block-end: -1px;
-}
-
 [data-slot="replica-sidebar"] [data-slot="replica-row"][data-dragging],
 [data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-dragging] {
   opacity: 0.45;
   transition: opacity 120ms ease;
+}
+
+/* The landing slot is dnd-kit's own placeholder copy: it is what the list leaves empty where the row would be
+   inserted, so the frame belongs there and never on the row being carried. dnd-kit hides that copy, so it is shown
+   again as an empty accent slot with its own row content kept out of sight. */
+[data-slot="replica-sidebar"] [data-slot="replica-row"][data-dnd-placeholder],
+[data-slot="replica-sidebar"] [data-slot="replica-project-row"][data-dnd-placeholder] {
+  visibility: visible;
+  opacity: 1;
+  background-color: color-mix(in oklab, var(--v2-system-accent) 8%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--v2-system-accent);
+}
+
+[data-slot="replica-sidebar"] [data-dnd-placeholder] > * {
+  visibility: hidden;
 }
 
 /* The folder of the project that holds the open session brightens, and its name steps up to primary while the rest

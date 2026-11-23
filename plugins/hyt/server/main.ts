@@ -1,11 +1,11 @@
 import { Plugin } from "@opencode/plugin"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import type { Manifest } from "@opencode/schema/plugin-manifest"
 import { AbsolutePath } from "@opencode/schema/schema"
 import { Skill } from "@opencode/schema/skill"
 import { existsSync } from "node:fs"
 import { readFile, appendFile, mkdir } from "node:fs/promises"
 import { join } from "node:path"
-const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
+const manifest = (await Bun.file(join(import.meta.dir, "..", "METAINF")).json()) as Manifest
 import { analyzeOnce, capabilityList, startAnalysisLoop } from "../src/ai/loop.js"
 import type { AnalysisSink } from "../src/ai/loop.js"
 import { startReminders } from "../src/ai/reminders.js"

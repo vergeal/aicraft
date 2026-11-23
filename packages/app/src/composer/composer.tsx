@@ -1,3 +1,4 @@
+import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { Show, createEffect, createMemo, createSignal, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
@@ -202,73 +203,84 @@ function ComposerModelControl(props: {
                 onMouseDown: (event: MouseEvent) => event.preventDefault(),
               }}
             >
-              <div
-                data-slot="composer-model-panel"
-                class="flex w-[264px] flex-col"
-                classList={{ "gap-3 p-3": !list() }}
-              >
-                <Show
-                  when={list()}
-                  fallback={
-                    <>
-                      <Show when={hasVariant()}>
-                        <span class="text-center text-[13px] font-[530] capitalize leading-5 text-v2-text-text-accent">
-                          {variantLabel()}
-                        </span>
-                      </Show>
-                      <button
-                        type="button"
-                        data-slot="composer-model-row"
-                        class="flex h-7 w-full items-center gap-2 rounded-full px-1.5 text-[13px] leading-5 transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
-                        onClick={() => setStore("page", "models")}
-                      >
-                        {/* Mirrors the chevron's width so the label centers in the button itself, not in the space left of
-                            the arrow. Without it the label sits 11px left of centre. */}
-                        <span aria-hidden="true" class="w-3.5 shrink-0" />
-                        <span class="flex min-w-0 flex-1 items-center justify-center">
-                          <Show when={props.label.provider}>
-                            {(name) => (
-                              <>
-                                <span class="shrink-0 text-v2-text-text-faint">{name()}</span>
-                                <Slash />
-                              </>
-                            )}
-                          </Show>
-                          <span class="min-w-0 truncate text-v2-text-text-base">{props.label.model}</span>
-                        </span>
-                        <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
-                      </button>
-                      <Show when={hasVariant() && props.variant}>
-                        {(control) => <ComposerVariantSlider control={control()} label={props.variantTitle} />}
-                      </Show>
-                    </>
+              {/* The card resizes with its search; the height transition matches the branch card's list. */}
+              <div class="overflow-hidden transition-[height] duration-[200ms] ease-[cubic-bezier(0.645,0.045,0.355,1)] motion-reduce:transition-none">
+                <div
+                  ref={(element) =>
+                    createResizeObserver(element, (rect) =>
+                      element.parentElement?.style.setProperty("height", `${rect.height}px`),
+                    )
                   }
                 >
-                  <div class="flex h-8 shrink-0 items-center gap-1 px-1.5">
-                    <Show when={hasVariant()}>
-                      <IconButton
-                        size="small"
-                        variant="ghost-muted"
-                        class="size-6 shrink-0"
-                        icon={<Icon name="chevron-left" />}
-                        aria-label={language.t("common.goBack")}
-                        onMouseDown={(event: MouseEvent) => event.preventDefault()}
-                        onClick={() => setStore("page", "main")}
+                  <div
+                    data-slot="composer-model-panel"
+                    class="flex w-[264px] flex-col"
+                    classList={{ "gap-3 p-3": !list() }}
+                  >
+                    <Show
+                      when={list()}
+                      fallback={
+                        <>
+                          <Show when={hasVariant()}>
+                            <span class="text-center text-[13px] font-[530] capitalize leading-5 text-v2-text-text-accent">
+                              {variantLabel()}
+                            </span>
+                          </Show>
+                          <button
+                            type="button"
+                            data-slot="composer-model-row"
+                            class="flex h-7 w-full items-center gap-2 rounded-full px-1.5 text-[13px] leading-5 transition-colors hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+                            onClick={() => setStore("page", "models")}
+                          >
+                            {/* Mirrors the chevron's width so the label centers in the button itself, not in the space left of
+                            the arrow. Without it the label sits 11px left of centre. */}
+                            <span aria-hidden="true" class="w-3.5 shrink-0" />
+                            <span class="flex min-w-0 flex-1 items-center justify-center">
+                              <Show when={props.label.provider}>
+                                {(name) => (
+                                  <>
+                                    <span class="shrink-0 text-v2-text-text-faint">{name()}</span>
+                                    <Slash />
+                                  </>
+                                )}
+                              </Show>
+                              <span class="min-w-0 truncate text-v2-text-text-base">{props.label.model}</span>
+                            </span>
+                            <Icon name="chevron-right" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+                          </button>
+                          <Show when={hasVariant() && props.variant}>
+                            {(control) => <ComposerVariantSlider control={control()} label={props.variantTitle} />}
+                          </Show>
+                        </>
+                      }
+                    >
+                      <div class="flex h-8 shrink-0 items-center gap-1 px-1.5">
+                        <Show when={hasVariant()}>
+                          <IconButton
+                            size="small"
+                            variant="ghost-muted"
+                            class="size-6 shrink-0"
+                            icon={<Icon name="chevron-left" />}
+                            aria-label={language.t("common.goBack")}
+                            onMouseDown={(event: MouseEvent) => event.preventDefault()}
+                            onClick={() => setStore("page", "main")}
+                          />
+                        </Show>
+                        <span class="min-w-0 flex-1 truncate text-[13px] leading-5 text-v2-text-text-muted">
+                          {props.title}
+                        </span>
+                      </div>
+                      <ModelList
+                        model={props.model}
+                        open={store.open && list()}
+                        onSelect={() => {
+                          setStore("open", false)
+                          props.onClose()
+                        }}
                       />
                     </Show>
-                    <span class="min-w-0 flex-1 truncate text-[13px] leading-5 text-v2-text-text-muted">
-                      {props.title}
-                    </span>
                   </div>
-                  <ModelList
-                    model={props.model}
-                    open={store.open && list()}
-                    onSelect={() => {
-                      setStore("open", false)
-                      props.onClose()
-                    }}
-                  />
-                </Show>
+                </div>
               </div>
             </Popover>
           }

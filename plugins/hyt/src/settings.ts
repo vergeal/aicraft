@@ -1,5 +1,5 @@
 /**
- * 插件设置：清单里声明的 configuration 是用户级扁平配置，opencode.json 里的插件 options 是项目级入口配置。
+ * 插件设置：清单里声明的 configuration 是用户级扁平配置，aicraft.json 里的插件 options 是项目级入口配置。
  * 两者合并时用户级优先，因为它们来自设置界面，是用户最后一次明确的意图。
  */
 

@@ -20,16 +20,16 @@ import type { StyleProfile } from "../../src/style/profile.js"
  * 只读客户端库、读写档案、风格与知识库都在这一层，窗口侧完全不碰文件系统。
  */
 
-const PLUGIN_ID = "changhong.hyt"
+const PLUGIN_ID = "changhong.aicraft.hyt"
 
 /**
  * 数据目录。宿主目前没有把 plugin data 路径交给 GUI 主进程，所以默认按服务端的规则推导：
- * `~/.opencode/plugin-data/<插件 id>`。以后宿主能提供路径时，从 options 传进来即可。
+ * `~/.aicraft/plugin-data/<插件 id>`。以后宿主能提供路径时，从 options 传进来即可。
  */
 export function resolveDataDir(explicit?: string) {
   const value = explicit?.trim() ?? ""
   if (value.length > 0) return value
-  return join(homedir(), ".opencode", "plugin-data", PLUGIN_ID)
+  return join(homedir(), ".aicraft", "plugin-data", PLUGIN_ID)
 }
 
 const decodeProfile = Schema.decodeUnknownOption(HytProfileSchema)

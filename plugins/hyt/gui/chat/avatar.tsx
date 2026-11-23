@@ -2,16 +2,26 @@ import { For, Show } from "solid-js"
 import type { HeadMember } from "./contract.js"
 import { GROUP_HEAD_BG, headColor, headLayout, headText } from "./head.js"
 
-/** 头像尺寸档：会话行 36（设计规范的列表密度）、搜索 36、会话头 32、消息 40、@ 候选 24、成员 28。 */
-export type AvatarSize = "session" | "row" | "head" | "bubble" | "mention" | "member"
+/**
+ * 头像尺寸档（照设计图）：信息面板 72、会话行 40、消息 36、会话头与成员行 32、@ 候选 24。
+ * 字号按位置给：两个字的名字要留在圆内，图上 40 用 14、36 用 13、72 用 18。
+ */
+export type AvatarSize = "panel" | "session" | "head" | "bubble" | "mention"
 
 const SIZE: Record<AvatarSize, number> = {
-  session: 36,
-  row: 36,
+  panel: 72,
+  session: 40,
   head: 32,
-  bubble: 40,
+  bubble: 36,
   mention: 24,
-  member: 28,
+}
+
+const FACE: Record<AvatarSize, number> = {
+  panel: 18,
+  session: 14,
+  head: 12,
+  bubble: 13,
+  mention: 9,
 }
 
 /** 拼图小格子的圆角，与虹云通 `Tile` 一致：16%，最小 2px。 */
@@ -59,19 +69,21 @@ export function Avatar(props: {
     const headPath = single()?.headPath ?? ""
     return headPath.length > 0 && props.avatars[headPath] === undefined
   }
-  const faceSize = (box: number) => Math.max(8, Math.floor(Math.min(box * 0.42, (box * 0.9) / 2)))
+  // 群与机器人是圆角方块，个人是圆形：形状用来区分身份（06 §4），尺寸越大圆角越大（72 → 16）。
+  const radius = () => (stack() ? (size() >= 64 ? "16px" : size() >= 36 ? "10px" : "8px") : "50%")
 
   return (
     <span
       class="hyt-chat-avatar"
       data-stack={stack() ? "true" : undefined}
+      data-shape={stack() ? "block" : undefined}
       aria-hidden="true"
       style={{
         width: `${size()}px`,
         height: `${size()}px`,
-        "border-radius": "50%",
+        "border-radius": radius(),
         "background-color": stack() ? GROUP_HEAD_BG : headColor(name()),
-        "font-size": `${faceSize(size())}px`,
+        "font-size": `${FACE[props.size]}px`,
       }}
     >
       <Show

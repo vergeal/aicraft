@@ -46,6 +46,7 @@ function emptyState(phase: ChatState["status"]["phase"]): ChatState {
     selected: "",
     messages: [],
     hasMore: false,
+    newMessageId: 0,
     unread: 0,
     search: { query: "", hits: [] },
     drafts: [],
@@ -62,7 +63,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     initial: { chfileRoot: "", bridgePath: "" },
   })
   // 插件自带的桥接安装在 exc 下；打包布局与版本无关，路径固定。
-  const pluginRoot = join(homedir(), ".opencode", "exc", "changhong.hyt")
+  const pluginRoot = join(homedir(), ".aicraft", "exc", "changhong.aicraft.hyt")
   const sender = Bridge.createSender({
     root: () => Data.resolveChfileRoot(settings.value.chfileRoot),
     executable: () => bridgeExecutable(pluginRoot, settings.value.bridgePath),
@@ -78,6 +79,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   let selected = ""
   let messages: MessageRow[] = []
   let hasMore = false
+  let newMessageId = 0
   let markedRead = new Map<string, number>()
   let searchState = { query: "", hits: [] as SearchHit[] }
   let provider: IpcProvider<typeof ChatIpc.spec> | undefined
@@ -141,6 +143,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       } else {
         messages = latest.messages
         hasMore = latest.hasMore
+        // 只在整页换掉时重算分界：进入会话后马上会标已读，若让 4 秒轮询也重算，分隔线会在几秒内自己消失。
+        newMessageId = latest.firstUnreadId
       }
 
       const whitelist = mergedWhitelist(profile)
@@ -161,6 +165,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         selected,
         messages,
         hasMore,
+        newMessageId,
         unread,
         search: searchState.query.length === 0 ? { query: "", hits: [] } : searchState,
         drafts,

@@ -38,6 +38,8 @@ export function MessageStream(props: {
   draft: DraftRow | undefined
   hasMore: boolean
   loadingMore: boolean
+  /** 「以下为新消息」的分界消息 id：进入会话时记录，0 表示不分隔。 */
+  newMessageId: number
   onLoadMore: () => void
   /** 从搜索结果进来的目标消息 id：滚到它并短暂高亮。 */
   focusId?: number
@@ -46,8 +48,6 @@ export function MessageStream(props: {
   onUseDraft: (body: string) => void
   onRefresh: () => void
   onFocusSearch: () => void
-  infoOpen: boolean
-  onToggleInfo: () => void
   avatars: Readonly<Record<string, string>>
   onMedia: (path: string) => Promise<{ dataUrl: string; error: string }>
   onMerge: (path: string) => Promise<MergeResult>
@@ -208,6 +208,15 @@ export function MessageStream(props: {
     return member?.department ?? ""
   }
 
+  // 会话头第二行只用本地库真查得到的信息：单聊给对方的部门，群聊给近期发言人数。
+  const headMeta = () => {
+    const session = props.session
+    if (session === undefined) return ""
+    if (!session.group) return props.members.find((member) => member.account !== props.status.account)?.department ?? ""
+    if (props.members.length === 0) return ""
+    return text(ctx, "hyt.chat.head.members", { count: props.members.length })
+  }
+
   return (
     <>
       <header class="hyt-chat-head">
@@ -220,36 +229,24 @@ export function MessageStream(props: {
             group={props.session!.group}
           />
         </Show>
-        <div class="hyt-chat-head-id">
+        <div class="hyt-chat-head-text">
           <div class="hyt-chat-head-title">
             <span class="hyt-chat-head-name">{props.session?.name ?? text(ctx, "hyt.chat.title")}</span>
-            <Show when={props.session !== undefined}>
-              <span class="hyt-chat-pill">
-                {props.session!.group ? text(ctx, "hyt.chat.sessions.groups") : text(ctx, "hyt.chat.sessions.direct")}
-              </span>
-            </Show>
             <Show when={props.status.autopilot}>
               <span class="hyt-chat-ai-inline">
-                <ctx.ui.Icon name="brain" size="small" />
+                <ctx.ui.Icon name="outline-brain" size="small" />
                 {text(ctx, "hyt.chat.head.ai")}
               </span>
             </Show>
           </div>
+          <Show when={headMeta().length > 0}>
+            <div class="hyt-chat-head-meta">{headMeta()}</div>
+          </Show>
         </div>
         <div class="hyt-chat-head-actions">
           <button
             type="button"
-            class="hyt-icon-button"
-            aria-label={text(ctx, "hyt.chat.head.info")}
-            title={text(ctx, "hyt.chat.head.info")}
-            aria-expanded={props.infoOpen ? "true" : "false"}
-            onClick={() => props.onToggleInfo()}
-          >
-            <ctx.ui.Icon name="info" size="small" />
-          </button>
-          <button
-            type="button"
-            class="hyt-icon-button"
+            class="hyt-chat-icon"
             aria-label={text(ctx, "hyt.chat.search.label")}
             title={text(ctx, "hyt.chat.search.label")}
             onClick={() => props.onFocusSearch()}
@@ -258,7 +255,7 @@ export function MessageStream(props: {
           </button>
           <button
             type="button"
-            class="hyt-icon-button"
+            class="hyt-chat-icon"
             aria-label={text(ctx, "hyt.chat.action.refresh")}
             title={text(ctx, "hyt.chat.action.refresh")}
             onClick={() => props.onRefresh()}
@@ -306,6 +303,9 @@ export function MessageStream(props: {
                           <span>{dayLabel(ctx, entry.message.createdAt)}</span>
                         </div>
                       </Show>
+                      <Show when={props.newMessageId === entry.message.id}>
+                        <div class="hyt-chat-divider" role="separator">{text(ctx, "hyt.chat.messages.newDivider")}</div>
+                      </Show>
                       <MessageItem
                         ctx={ctx}
                         message={entry.message}
@@ -327,7 +327,7 @@ export function MessageStream(props: {
             <Show when={props.draft !== undefined}>
               <div class="hyt-chat-draft">
                 <span class="hyt-chat-draft-mark" aria-hidden="true">
-                  <ctx.ui.Icon name="brain" size="normal" />
+                  <ctx.ui.Icon name="outline-brain" size="normal" />
                 </span>
                 <div class="hyt-chat-draft-body">
                   <div class="hyt-chat-draft-head">
@@ -361,7 +361,7 @@ export function MessageStream(props: {
               setAway(false)
             }}
           >
-            <ctx.ui.Icon name="arrow-down-to-line" size="small" />
+            <ctx.ui.Icon name="chevron-down" size="small" />
             {text(ctx, "hyt.chat.messages.toEnd")}
           </button>
         </Show>
@@ -546,19 +546,29 @@ function ImageBody(props: {
 
 function FileBody(props: { ctx: Context; message: MessageRow }) {
   const ctx = props.ctx
-  const open = () => {
+  const reveal = () => {
     if (props.message.filePath.length > 0) void ctx.desktop?.reveal(props.message.filePath)
   }
   return (
-    <button type="button" class="hyt-chat-file" onClick={open} title={props.message.filePath}>
-      <span class="hyt-chat-file-glyph">
-        <ctx.ui.Icon name="file-document" size="normal" />
+    <div class="hyt-chat-file" title={props.message.filePath}>
+      <span class="hyt-chat-file-glyph" aria-hidden="true">
+        <ctx.ui.Icon name="file-document" size="large" />
       </span>
-      <span class="hyt-chat-file-body">
+      <span class="hyt-chat-file-text">
         <span class="hyt-chat-file-name">{props.message.fileName || text(ctx, "hyt.chat.msg.other")}</span>
         <span class="hyt-chat-file-size">{formatSize(props.message.fileSize)}</span>
       </span>
-    </button>
+      <button
+        type="button"
+        class="hyt-chat-icon"
+        aria-label={text(ctx, "hyt.chat.msg.file.open")}
+        title={text(ctx, "hyt.chat.msg.file.open")}
+        disabled={props.message.filePath.length === 0}
+        onClick={reveal}
+      >
+        <ctx.ui.Icon name="folder-open" size="small" />
+      </button>
+    </div>
   )
 }
 

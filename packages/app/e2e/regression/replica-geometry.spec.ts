@@ -250,6 +250,7 @@ test("replica workspace folder context menu", async ({ page }) => {
 
   const menu = page.getByRole("menu")
   await expect(menu.getByRole("menuitem", { name: "新建会话", exact: true })).toBeVisible()
+  await expect(menu.getByRole("menuitem", { name: "重命名", exact: true })).toBeVisible()
   await expect(menu.getByRole("menuitem", { name: "折叠会话", exact: true })).toBeVisible()
   await expect(menu.getByRole("menuitem", { name: "复制路径", exact: true })).toBeVisible()
   await expect(menu.getByRole("menuitem", { name: "项目设置…", exact: true })).toBeVisible()
@@ -280,4 +281,41 @@ test("replica workspace folder starts a session in its project", async ({ page }
   // Home is the new-chat page in this shell, so the draft lands there instead of under a /new-session URL.
   await expect(page).not.toHaveURL(/\/session\//)
   await expect(newSessionLocation(page)).toContainText("ReplicaFolderNewSession")
+})
+
+// The folder's label is the project's display name, and the menu renames it where it stands: the row keeps its place,
+// the name becomes a field, Escape abandons the edit, and Enter writes the label onto the project.
+test("replica workspace folder renames its project in place", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 960 })
+  await mockWorkspace(page, {
+    name: "ReplicaFolderRename",
+    sessions: [{ id: "ses_folder_rename", title: "重命名工作区文件夹" }],
+    seed: { locale: "zh" },
+  })
+  await page.goto(sessionHref("ses_folder_rename"))
+
+  const folder = page.locator('[data-slot="replica-project-row"]')
+  await expect(folder).toBeVisible({ timeout: 15_000 })
+
+  await folder.click({ button: "right" })
+  await page.getByRole("menu").getByRole("menuitem", { name: "重命名", exact: true }).click()
+
+  const field = page.getByRole("textbox", { name: "重命名" })
+  await expect(field).toBeVisible()
+  await expect(field).toHaveValue("ReplicaFolderRename")
+
+  await field.fill("暂时不保存")
+  await field.press("Escape")
+  await expect(folder).toContainText("ReplicaFolderRename")
+  await expect(field).toHaveCount(0)
+
+  await folder.click({ button: "right" })
+  await page.getByRole("menu").getByRole("menuitem", { name: "重命名", exact: true }).click()
+  await expect(field).toHaveValue("ReplicaFolderRename")
+
+  await field.fill("长虹工作台")
+  await field.press("Enter")
+
+  await expect(folder).toContainText("长虹工作台")
+  await expect(field).toHaveCount(0)
 })

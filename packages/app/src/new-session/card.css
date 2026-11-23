@@ -1,0 +1,17 @@
+/* Cards hanging from the new-session chips settle like a macOS popover: no fade from nothing, a short scale-and-rise
+   from the trigger's edge. `popover-v2-in` is the shared keyframe from the UI popover. The location card, the branch
+   card and the model card open with it. */
+[data-component="new-session-card"] {
+  transform-origin: var(--kb-popover-content-transform-origin, top left);
+  animation: popover-v2-in 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-motion="reduce"] [data-component="new-session-card"] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="new-session-card"] {
+    animation: none;
+  }
+}

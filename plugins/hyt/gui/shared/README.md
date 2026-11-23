@@ -18,7 +18,7 @@
 主进程按下面的顺序确定数据根目录：
 
 1. `provideHytIpc(ctx, { dataDir })` 传入的路径（宿主若提供 plugin data 路径，从这里传）；
-2. 否则推导 `~/.opencode/plugin-data/changhong.hyt`，与服务端 `ctx.paths.data` 的规则一致。
+2. 否则推导 `~/.aicraft/plugin-data/changhong.aicraft.hyt`，与服务端 `ctx.paths.data` 的规则一致。
 
 档案、知识库与风格都放在这个目录的 `hyt/` 下：
 

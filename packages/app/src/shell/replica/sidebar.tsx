@@ -7,11 +7,13 @@ import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
 import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { Accessibility, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
+import { RestrictToElement } from "@dnd-kit/dom/modifiers"
 import { ActivityRing } from "@opencode/ui/activity-ring"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
+import { InlineInput } from "@opencode/ui/inline-input"
 import { Menu } from "@opencode/ui/menu"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { displayName } from "@opencode/ui/project-avatar"
@@ -29,11 +31,12 @@ import { SessionMenuCopyID, useCopySessionID, useCopyText } from "@/session/menu
 import { SessionSettingsDialog } from "@/session/settings-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useTabs } from "@/shell/tabs/tabs"
-import { useLayout } from "@/shell/state/layout"
+import { useLayout, type LocalProject } from "@/shell/state/layout"
 import { homeProjectDirectories } from "@/shell/layout/helpers"
 import { addProjects } from "@/home/projects/add"
 import { createProjectActions } from "@/home/projects/actions"
 import { fileManagerApp } from "@/home/projects/file-manager"
+import { useRenameProject } from "@/home/projects/rename"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { showToast } from "@/shell/notifications/toast"
 import { sessionHref } from "@/shell/routes/session"
@@ -81,6 +84,8 @@ type ReplicaProjectGroup = {
   server: ServerConnection.Key
   conn: ServerConnection.Any
   directory: string
+  /** The project record a rename writes to. A session whose project has not synced yet has none. */
+  project: LocalProject | undefined
 }
 
 /** One container per project: a session's index counts inside its own project, which is what its DOM order shows. */
@@ -214,6 +219,8 @@ function SessionRow(props: {
   onOpen: (entry: InboxEntry) => void
   onArchive: (entry: InboxEntry) => void
   onDelete: (entry: InboxEntry) => void
+  /** Whether a row from another project may land here, which moves the session into this project. */
+  crossProject?: boolean
   /** The edge of this row the insertion line sits on, while a drag is over it. */
   dropEdge?: Accessor<"start" | "end" | undefined>
 }) {
@@ -246,9 +253,15 @@ function SessionRow(props: {
     get data() {
       return { group: props.group }
     },
-    accept: (source) => source.data?.group === props.group,
-  })
+    accept: (source) => {
+      const group = String(source.data?.group ?? "")
 
+      if (group === props.group) return true
+
+      // A project folder takes conversations from its siblings; pinned rows keep their own section.
+      return !!props.crossProject && group.startsWith(`${RECENT_GROUP}:`)
+    },
+  })
 
   const nativeMenu = () => !!platform.showContextMenu
 
@@ -571,8 +584,9 @@ function SessionRow(props: {
 
 /**
  * One project row: a fold button that is also the project's sortable handle. The folder icon brightens when the
- * project holds the open session, so the tree and the conversation it came from stay connected. Right-click opens the
- * actions a conversation row offers its session, so the folder is a way into the project rather than a dead label.
+ * project holds the open session, so the tree and the conversation it came from stay connected. Right-click offers the
+ * same actions a conversation row offers its session, so the folder is a way into the project rather than a dead label,
+ * and a rename edits the label where it stands.
  */
 function ProjectRow(props: {
   project: Accessor<ReplicaProjectGroup>
@@ -586,6 +600,10 @@ function ProjectRow(props: {
   const language = useLanguage()
 
   const platform = usePlatform()
+
+  const global = useGlobal()
+
+  const renameProject = useRenameProject()
 
   const copyPath = useCopyText({
     title: language.t("toast.project.copyPath.failed.title"),
@@ -623,6 +641,55 @@ function ProjectRow(props: {
       fileManagerApp(platform.platform === "desktop" ? (platform.os ?? "unknown") : "unknown").actionLabel,
     )
 
+  // A folder the server has not reported yet still takes a name: the write falls back to the local record of it.
+  const target = (): LocalProject => group().project ?? { worktree: directory() }
+
+  const [renaming, setRenaming] = createSignal(false)
+
+  const [draft, setDraft] = createSignal("")
+
+  const [saving, setSaving] = createSignal(false)
+
+  let row!: HTMLDivElement
+
+  let input: HTMLInputElement | undefined
+
+  const startRename = () => {
+    if (renaming()) return
+    setDraft(group().name)
+    setRenaming(true)
+    requestAnimationFrame(() => {
+      input?.focus()
+      input?.select()
+    })
+  }
+
+  const endRename = () => {
+    setRenaming(false)
+    setSaving(false)
+    requestAnimationFrame(() => row.focus())
+  }
+
+  const commitRename = async () => {
+    if (saving()) return
+
+    const name = draft().trim()
+    const ctx = global.serverCtx(group().server)
+
+    // Nothing to write, or nothing changed: the label simply goes back to standing still.
+    if (!name || name === group().name || !ctx) {
+      endRename()
+
+      return
+    }
+
+    setSaving(true)
+
+    // A failed write keeps the field open with the name in it, so a retry is a keystroke instead of a menu dive.
+    if (await renameProject(ctx, target(), name)) endRename()
+    else setSaving(false)
+  }
+
   // Desktop draws the platform menu; only the web build needs the in-app one.
   const showNativeMenu = async (position: { x: number; y: number }) => {
     const show = platform.showContextMenu
@@ -631,17 +698,20 @@ function ProjectRow(props: {
 
     const conn = group().conn
 
+    // Every row carries a glyph: a menu where only some items have one reads as a list with holes in it.
     const chosen = await show(
       [
-        { id: "newSession", label: language.t("command.session.new") },
+        { id: "newSession", label: language.t("command.session.new"), icon: "newSession" },
         { type: "separator" },
+        { id: "rename", label: language.t("common.rename"), icon: "rename" },
         {
           id: "fold",
           label: language.t(props.folded() ? "replica.project.unfold" : "replica.project.fold"),
+          icon: props.folded() ? "unfold" : "fold",
         },
         { type: "separator" },
         { id: "copyPath", label: language.t("session.location.copyPath"), icon: "copy" },
-        ...(canReveal() ? [{ id: "reveal", label: revealLabel() }] : []),
+        ...(canReveal() ? [{ id: "reveal", label: revealLabel(), icon: "reveal" }] : []),
         { type: "separator" },
         { id: "settings", label: `${language.t("project.settings.menu")}…`, icon: "project" },
       ],
@@ -649,19 +719,22 @@ function ProjectRow(props: {
     )
 
     if (chosen === "newSession") props.actions.openNewSession(conn, directory())
+    else if (chosen === "rename") startRename()
     else if (chosen === "fold") props.onToggle()
     else if (chosen === "copyPath") void copyPath(directory())
-    else if (chosen === "reveal") props.actions.reveal(conn, { worktree: directory() })
-    else if (chosen === "settings") props.actions.edit(conn, { worktree: directory() })
+    else if (chosen === "reveal") props.actions.reveal(conn, target())
+    else if (chosen === "settings") props.actions.edit(conn, target())
   }
 
   return (
     <Menu.Context modal={false}>
       <Menu.Context.Trigger
-        as="button"
-        type="button"
+        as="div"
         data-replica-control
-        ref={sortable.ref}
+        ref={(element: HTMLDivElement) => {
+          row = element
+          sortable.ref(element)
+        }}
         data-slot="replica-project-row"
         data-state={props.active() ? "active" : undefined}
         data-sortable-key={`project:${props.project().key}`}
@@ -669,21 +742,73 @@ function ProjectRow(props: {
         data-dragging={sortable.isDragging() ? "" : undefined}
         data-drop-target={props.dropEdge()}
         aria-expanded={!props.folded()}
-        class={ROW}
-        onClick={props.onToggle}
+        role="button"
+        tabindex={renaming() ? undefined : 0}
+        class={`${ROW} outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)]`}
+        onClick={() => {
+          if (renaming()) return
+          props.onToggle()
+        }}
         onContextMenu={(event) => {
           if (!nativeMenu()) return
           event.preventDefault()
           void showNativeMenu({ x: event.clientX, y: event.clientY })
         }}
+        onKeyDown={(event: KeyboardEvent) => {
+          if (renaming() || event.key !== "Enter") return
+          event.preventDefault()
+          props.onToggle()
+        }}
       >
-        <Icon
-          name={props.folded() ? "folder" : "folder-open"}
-          class="replica-project-icon size-4 shrink-0"
-        />
-        <span data-slot="replica-project-name" class="min-w-0 flex-1 truncate">
-          {props.project().name}
-        </span>
+        <Icon name={props.folded() ? "folder" : "folder-open"} class="replica-project-icon size-4 shrink-0" />
+        <Show
+          when={!renaming()}
+          fallback={
+            <InlineInput
+              ref={input}
+              data-slot="replica-project-name-input"
+              aria-label={language.t("common.rename")}
+              dir="auto"
+              value={draft()}
+              disabled={saving()}
+              class="min-w-0 flex-1"
+              onInput={(event) => setDraft(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                event.stopPropagation()
+
+                if (event.isComposing || event.keyCode === 229) return
+
+                if (event.key === "Enter") {
+                  event.preventDefault()
+                  void commitRename()
+
+                  return
+                }
+
+                if (event.key !== "Escape") return
+                event.preventDefault()
+                endRename()
+              }}
+              onPointerDown={(event) => {
+                if (renaming()) event.stopPropagation()
+              }}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+              }}
+              onBlur={() => {
+                // Escape already closed the field; the blur that follows it is the row taking focus back, not the
+                // user leaving the name to keep. A menu closing takes focus with it, and that is not a leave either.
+                if (!renaming() || !document.hasFocus()) return
+                void commitRename()
+              }}
+            />
+          }
+        >
+          <span data-slot="replica-project-name" class="min-w-0 flex-1 truncate">
+            {props.project().name}
+          </span>
+        </Show>
         <Icon
           name="chevron-down"
           size="small"
@@ -691,7 +816,11 @@ function ProjectRow(props: {
         />
       </Menu.Context.Trigger>
       <Menu.Context.Portal>
-        <Menu.Context.Content>
+        <Menu.Context.Content
+          onCloseAutoFocus={(event) => {
+            if (renaming()) event.preventDefault()
+          }}
+        >
           <Menu.Group>
             <Menu.GroupLabel>{language.t("menu.group.open")}</Menu.GroupLabel>
             <Menu.Item onSelect={() => props.actions.openNewSession(group().conn, directory())}>
@@ -701,6 +830,7 @@ function ProjectRow(props: {
           <Menu.Separator />
           <Menu.Group>
             <Menu.GroupLabel>{language.t("menu.group.organize")}</Menu.GroupLabel>
+            <Menu.Item onSelect={startRename}>{language.t("common.rename")}</Menu.Item>
             <Menu.Item onSelect={props.onToggle}>
               {language.t(props.folded() ? "replica.project.unfold" : "replica.project.fold")}
             </Menu.Item>
@@ -710,7 +840,7 @@ function ProjectRow(props: {
             <Menu.GroupLabel>{language.t("menu.group.copyExport")}</Menu.GroupLabel>
             <Menu.Item onSelect={() => void copyPath(directory())}>{language.t("session.location.copyPath")}</Menu.Item>
             <Show when={canReveal()}>
-              <Menu.Item onSelect={() => props.actions.reveal(group().conn, { worktree: directory() })}>
+              <Menu.Item onSelect={() => props.actions.reveal(group().conn, target())}>
                 {revealLabel()}
               </Menu.Item>
             </Show>
@@ -718,7 +848,7 @@ function ProjectRow(props: {
           <Menu.Separator />
           <Menu.Group>
             <Menu.GroupLabel>{language.t("menu.group.settings")}</Menu.GroupLabel>
-            <Menu.Item onSelect={() => props.actions.edit(group().conn, { worktree: directory() })}>
+            <Menu.Item onSelect={() => props.actions.edit(group().conn, target())}>
               {language.t("project.settings.menu")}…
             </Menu.Item>
           </Menu.Group>
@@ -870,6 +1000,10 @@ function ConversationNav() {
   // operation target, so the slot comes from the pointer: the row stack under it, minus the row being carried.
   const [dropSlot, setDropSlot] = createSignal<{ key: string; edge: "start" | "end" } | undefined>()
 
+  // The index the visible slot was last computed for: a pointer move that does not resolve another index keeps the
+  // frame as it is instead of reading the list's layout again.
+  let lastSlotIndex = ""
+
   const slotEdge = (key: string) => (dropSlot()?.key === key ? dropSlot()?.edge : undefined)
 
   // Pinned sessions live in their own section above the tree, in pin order, so pinning reads as a promotion instead
@@ -943,6 +1077,7 @@ function ConversationNav() {
         server: entry.server,
         conn: entry.conn,
         directory,
+        project,
       })
     }
 
@@ -1139,12 +1274,16 @@ function ConversationNav() {
           </div>
         </div>
         <DragDropProvider
-          sensors={[
+          sensors={(defaults) => [
+            ...defaults.filter((sensor) => sensor !== PointerSensor),
             PointerSensor.configure({
               activationConstraints: [new PointerActivationConstraints.Distance({ value: 4 })],
+              // A row is a button (a project folder) or holds the session's own click target, and the sensor's
+              // default guard refuses a drag that starts on one of those. The whole row is the handle here.
+              preventActivation: () => false,
             }),
           ]}
-          modifiers={[RestrictToVerticalAxis]}
+          modifiers={[RestrictToVerticalAxis, RestrictToElement.configure({ element: () => list() ?? null })]}
           plugins={(defaults) => [
             ...defaults.filter((plugin) => plugin !== Accessibility),
             Feedback.configure({ dropAnimation: null }),
@@ -1152,13 +1291,31 @@ function ConversationNav() {
           onDragMove={(event) => {
             const source = event.operation.source
 
-            if (!isSortable(source)) return setDropSlot(undefined)
+            if (!isSortable(source)) {
+              lastSlotIndex = ""
+              return setDropSlot(undefined)
+            }
 
             const { index, initialIndex } = source
+            const sourceGroup = String(source.data?.group ?? "")
+            const droppable = event.operation.target
+            // The carried row joins the group it hovers, so `source.group` names the list the line belongs to; the
+            // target row only fills in while dnd-kit has not moved the row yet.
+            const group = String(
+              source.group ?? (droppable?.data as { group?: string } | undefined)?.group ?? sourceGroup,
+            )
+            const crossGroup = group !== sourceGroup
+            const slot = `${group}:${index}`
 
-            if (index === initialIndex) return setDropSlot(undefined)
+            // Every pointer move would otherwise read the layout of the whole list again; the slot only moves when
+            // dnd-kit resolves another index. The group belongs in the key so a pointer crossing into another
+            // project's list cannot reuse the slot it left behind.
+            if (slot === lastSlotIndex) return
 
-            const group = String(source.data?.group ?? "")
+            lastSlotIndex = slot
+
+            if (!crossGroup && index === initialIndex) return setDropSlot(undefined)
+
             const y = event.operation.position.current.y
 
             // dnd-kit already resolves the slot the row would take, which is the only answer that matches where the
@@ -1187,20 +1344,63 @@ function ConversationNav() {
 
             if (y < top - 4 || y > bottom + 4) return setDropSlot(undefined)
 
-            const key = rows[index]?.getAttribute("data-sortable-key")
+            // A drop past the last row resolves to the slot after it, which is the last row's end edge.
+            const row = rows[Math.min(index, rows.length - 1)]
+            const key = row?.getAttribute("data-sortable-key")
 
             if (!key) return setDropSlot(undefined)
+
+            // The carried row is not part of the destination list, so its index can sit one past the last row,
+            // and only the pointer's side of that row says which edge the line belongs to.
+            if (crossGroup) {
+              const rect = row.getBoundingClientRect()
+
+              return setDropSlot({
+                key,
+                edge: index >= rows.length || y > rect.top + rect.height / 2 ? "end" : "start",
+              })
+            }
 
             setDropSlot({ key, edge: index > initialIndex ? "end" : "start" })
           }}
           onDragEnd={(event) => {
             const source = event.operation.source
 
+            lastSlotIndex = ""
             setDropSlot(undefined)
 
-            if (event.canceled || !isSortable(source) || source.initialIndex === source.index) return
+            if (event.canceled || !isSortable(source)) return
 
-            const group = String(source.group ?? "")
+            const sourceGroup = String(source.data?.group ?? "")
+            // dnd-kit moves the carried row into the destination group before the drop settles, so `source.group`
+            // names the group it lands in.
+            const group = String(source.group ?? sourceGroup)
+
+            // A conversation dropped into another project's list moves into that folder: the server changes the
+            // session's directory and records the switch, so the agent learns its working directory changed.
+            if (group !== sourceGroup) {
+              const entry = inbox.byKey().get(String(source.id))
+              const target = projectGroups().find((item) => projectSessionGroup(item.key) === group)
+
+              if (!sourceGroup.startsWith(`${RECENT_GROUP}:`) || !entry || !target) return
+
+              // Place the arrival where it was dropped so the folder does not reshuffle once the change lands.
+              // `source.index` already counts the carried row at its destination, so it matches the list without it.
+              const ids = target.entries.map((item) => item.session.id)
+              const at = Math.max(0, Math.min(source.index, ids.length))
+              const moved = [...ids.slice(0, at), entry.session.id, ...ids.slice(at)]
+              const current = recent().map((item) => item.session.id)
+              const slots = current.flatMap((id, index) => (ids.includes(id) ? [index] : []))
+              const next = [...current]
+
+              slots.forEach((slot, index) => (next[slot] = moved[index]))
+              setOrder("recent", next)
+              void inbox.relocate(entry, { directory: target.directory, projectID: target.project?.id })
+
+              return
+            }
+
+            if (source.initialIndex === source.index) return
 
             if (group === PROJECT_GROUP) {
               setOrder(
@@ -1305,6 +1505,7 @@ function ConversationNav() {
                               active={() => active(entry())}
                               group={projectSessionGroup(group().key)}
                               index={sessionIndex()}
+                              crossProject
                               onOpen={open}
                               onArchive={archive}
                               onDelete={confirmDelete}

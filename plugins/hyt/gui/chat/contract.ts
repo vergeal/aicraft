@@ -42,6 +42,8 @@ export const SessionRow = Schema.Struct({
   atMe: Schema.Boolean,
   /** 群聊。 */
   group: Schema.Boolean,
+  /** 对方的在线快照（本地库 `OnLineState = 1`）；群聊恒为 false。 */
+  online: Schema.Boolean,
   /** 头像成员：单聊就是对方，群聊是会话内出现过的成员（最多 9 个），窗口按虹云通的拼图规则渲染。 */
   members: Schema.Array(HeadMember),
 })
@@ -114,6 +116,8 @@ export const MemberRow = Schema.Struct({
   department: Schema.String,
   /** 头像文件绝对路径；没有则为空串。 */
   headPath: Schema.String,
+  /** 在线快照（本地库 `OnLineState = 1`）。 */
+  online: Schema.Boolean,
 })
 
 /** 知识库命中提示。第一版没有写入方，保持空数组。 */
@@ -183,6 +187,8 @@ export const ChatState = Schema.Struct({
   messages: Schema.Array(MessageRow),
   /** 还有更早的消息。 */
   hasMore: Schema.Boolean,
+  /** 当前会话「新消息」分界的消息 id：进入会话那一刻的第一条未读，0 表示不分隔。 */
+  newMessageId: Schema.Number,
   /** 所有会话的未读总数，供导航角标使用。 */
   unread: Schema.Number,
   /** 左栏搜索结果。 */
@@ -204,7 +210,7 @@ export const ChatState = Schema.Struct({
 
 /** 聊天主界面的 Ipc。state 是每个窗口一份的快照，方法改完就推新的。 */
 export const ChatIpc = Ipc.define({
-  id: "changhong.hyt.chat",
+  id: "changhong.aicraft.hyt.chat",
   state: ChatState,
   methods: {
     /** 重新读库：会话列表、当前会话最新一页、未读、草稿。窗口每 4 秒调用一次。 */

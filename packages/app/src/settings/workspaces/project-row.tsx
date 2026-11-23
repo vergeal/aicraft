@@ -1,7 +1,6 @@
 import { Show, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { InlineInput } from "@opencode/ui/inline-input"
-import { getFilename } from "@opencode/util/path"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useGlobal } from "@/runtime/server/runtime"
@@ -9,11 +8,10 @@ import { ServerConnection } from "@/runtime/server/registry"
 import type { LocalProject } from "@/shell/state/layout"
 import { displayName } from "@opencode/ui/project-avatar"
 import { ProjectFolder } from "@opencode/ui/project-folder"
-import { errorMessage } from "@/shell/layout/helpers"
-import { showToast } from "@/shell/notifications/toast"
 import { ContextMenu } from "@opencode/ui/context-menu"
 import { Project } from "@opencode/schema/project"
 import { useDeleteProject } from "@/home/projects/delete"
+import { useRenameProject } from "@/home/projects/rename"
 import { ProjectOptions, projectMenuItems } from "./project-options"
 
 export function SettingsProjectRow(props: {
@@ -33,6 +31,8 @@ export function SettingsProjectRow(props: {
   }>({
     menu: false,
   })
+
+  const renameProject = useRenameProject()
 
   let button: HTMLButtonElement | undefined
   let input: HTMLInputElement | undefined
@@ -69,26 +69,8 @@ export function SettingsProjectRow(props: {
     const context = global.serverCtx(ServerConnection.key(props.server))
 
     if (!context) return
-    const value = name === getFilename(props.project.worktree) ? "" : name
 
-    const saved = await (
-      props.project.id && props.project.id !== "global"
-        ? context.sdk.api.project
-            .update({ projectID: props.project.id, name: value })
-            .then((project) => context.sync.project.update(project))
-        : Promise.resolve(context.sync.project.meta(props.project.worktree, { name: value }))
-    )
-      .then(() => true)
-      .catch((cause: unknown) => {
-        showToast({
-          variant: "error",
-          title: language.t("common.requestFailed"),
-          description: errorMessage(cause, language.t("common.requestFailed")),
-        })
-
-        return false
-      })
-
+    const saved = await renameProject(context, props.project, name)
     const restore = document.activeElement === document.body || document.activeElement === input
 
     if (saved) setStore("editor", undefined)

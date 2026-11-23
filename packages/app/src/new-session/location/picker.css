@@ -1,20 +1,8 @@
-[data-component="dialog-v2"]:has(.new-session-location) {
-  align-items: flex-start;
-}
-
-[data-component="dialog-v2"]:has(.new-session-location) [data-slot="dialog-container"] {
-  width: min(calc(100vw - 24px), 480px);
-  height: auto;
-  max-height: min(calc(100vh - 96px), 480px);
-  min-height: 0;
-  margin-top: max(48px, calc((100vh - 480px) / 2));
-  background: var(--v2-material-surface-strong);
-  backdrop-filter: var(--v2-material-blur-thick);
-  box-shadow: var(--v2-elevation-overlay);
-}
+/* The location card reuses the command palette's list rows at popover scale. Everything below is scoped to the card,
+   which sits inside a fixed 320px surface instead of the command palette's 480px dialog. */
 
 .new-session-location .palette-menu-search {
-  padding: 6px 6px 0;
+  padding: 4px 4px 0;
 }
 
 .new-session-location .palette-menu-search [data-component="text-input-v2"] {
@@ -38,40 +26,45 @@
 
 .new-session-location-divider {
   position: relative;
-  height: 9px;
+  height: 5px;
   flex-shrink: 0;
-  margin-block: 4px;
+  margin-block: 2px;
 }
 
 .new-session-location-divider::after {
   position: absolute;
   inset-inline: 0;
-  top: 4px;
+  top: 2px;
   border-top: 0.5px solid var(--v2-border-border-base);
   content: "";
 }
 
+/* The card never outgrows the window; the list scrolls inside it. */
+.new-session-location-scroll {
+  max-height: min(320px, calc(100dvh - 220px));
+}
+
 .new-session-location .command-palette-results {
-  gap: 4px;
-  padding: 0 6px 6px;
+  gap: 2px;
+  padding: 0 4px 4px;
 }
 
 .new-session-location .command-palette-group {
-  gap: 4px;
+  gap: 2px;
 }
 
 .new-session-location-action-divider {
   height: 1px;
   flex-shrink: 0;
   margin-block: 2px;
-  margin-inline: -6px;
+  margin-inline: -4px;
   background: var(--v2-border-border-muted);
   transform: scaleY(0.5);
 }
 
 .new-session-location .command-palette-group-title {
   display: flex;
-  height: 28px;
+  height: 24px;
   flex-shrink: 0;
   align-items: center;
   margin: 0;
@@ -80,18 +73,8 @@
   line-height: var(--line-height-compact);
 }
 
-.new-session-location-back {
-  border: 0;
-  border-radius: 9999px;
-  background: transparent;
-  font: inherit;
-  font-size: 14px;
-  text-align: start;
-  cursor: pointer;
-}
-
 .new-session-location .palette-menu-row[data-size="compact"] {
-  padding-inline: 6px;
+  padding-inline: 4px;
 }
 
 .new-session-location .palette-menu-row:is([data-active], :focus-visible) {
@@ -123,37 +106,6 @@
 
 .new-session-location .new-session-location-option .command-palette-title {
   color: var(--v2-text-text-muted);
-}
-
-.new-session-location-other {
-  gap: 8px;
-}
-
-.new-session-location-count {
-  color: var(--v2-text-text-faint);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: var(--line-height-compact);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Its own hover, layered over the row's, shows that it drills in rather than choosing the row. The negative margin
-   keeps the glyph where the 16px slot put it. */
-.new-session-location-drill {
-  display: flex;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  margin-inline: -2px;
-  border-radius: 4px;
-  color: var(--v2-icon-icon-faint);
-}
-
-.new-session-location-drill:hover {
-  background: var(--v2-overlay-simple-overlay-hover);
-  color: var(--v2-icon-icon-base);
 }
 
 /* Keep the name legible while the path gives up space first. */

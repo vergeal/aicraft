@@ -982,7 +982,7 @@ test("executes a selected slash command after creating its worktree", async ({ p
   expect(mock.prompts).toEqual([])
 })
 
-test("the location dialog separates added projects from server projects and tags the remote ones", async ({ page }) => {
+test("the location card separates added projects from server projects and tags the remote ones", async ({ page }) => {
   const apollo = "http://apollo.test:4096"
 
   const entry = (id: string, directory: string, active: number) =>
@@ -1054,7 +1054,7 @@ test("the location dialog separates added projects from server projects and tags
   await expect(options.nth(0)).toHaveCSS("height", "28px")
   await expect(dialog.locator(".palette-menu-search [data-component='text-input-v2']")).toHaveCSS("height", "28px")
   await expect(dialog.locator(".new-session-location-hints")).toHaveCount(0)
-  await expect(dialog.locator("..")).toHaveCSS("width", "480px")
+  await expect(page.locator('[data-slot="new-session-location-card"]')).toHaveCSS("width", "320px")
   await expect(options.nth(0)).toHaveCSS("display", "flex")
   await expect(names.nth(0).locator(".command-palette-title")).toHaveCSS("font-size", "13px")
   await expect(names.nth(0).locator(".command-palette-title")).toHaveCSS("white-space", "nowrap")
@@ -1140,7 +1140,7 @@ test("the location dialog separates added projects from server projects and tags
 })
 
 for (const binding of ["mod+alt+p", "none"]) {
-  test(`the location dialog honors the Open project shortcut override: ${binding}`, async ({ page }) => {
+  test(`the location card honors the Open project shortcut override: ${binding}`, async ({ page }) => {
     await openDraft(page, {
       name: "ProjectShortcut",
       fileList: () => [],

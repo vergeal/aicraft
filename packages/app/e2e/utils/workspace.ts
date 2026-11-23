@@ -87,7 +87,7 @@ export async function openDraft(page: Page, input: WorkspaceInput & { draftID?: 
 // Opens a draft on the local project with "New worktree" selected. Worktree creation stays pending until the test
 // resolves `worktree`; POST order (`worktree`, `session`, `prompt`), worktree requests, session creates and prompts are
 // recorded. The draft tab comes first, then a tab per session.
-// The new-session trigger that shows the draft's project and opens the location dialog on its projects.
+// The new-session trigger that shows the draft's project and opens the location card on its projects.
 export function newSessionLocation(page: Page) {
   return page.locator('[data-component="new-session"] [data-action="prompt-project"]')
 }

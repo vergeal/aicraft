@@ -1,5 +1,5 @@
 import { createPromptProjectController } from "@/new-session/project/selector"
-import { useNewSessionLocationDialog } from "@/new-session/location/dialog"
+import { useNewSessionLocationPicker } from "@/new-session/location/picker"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
 import { useSearchParams } from "@solidjs/router"
@@ -55,13 +55,13 @@ export default function NewSessionPage(props: { draftId: string }) {
   useComposerCommands({ model: composer.model })
 
   const project = createPromptProjectController({ controls: composer.project })
-  const location = useNewSessionLocationDialog({ project, workspace, onDone: model.restoreFocus })
+  const location = useNewSessionLocationPicker({ project, workspace, onDone: model.restoreFocus })
 
   useNewSessionCommands({
     restoreFocus: model.restoreFocus,
     project: {
       empty: project.empty,
-      open: () => location(),
+      open: () => location.open(),
     },
     workspace: {
       enabled: workspace.bar.visible,
@@ -75,7 +75,7 @@ export default function NewSessionPage(props: { draftId: string }) {
       if (!ready) return
 
       // Search projects opened this draft; the picker returns focus to the composer when it closes.
-      if (layout.draft.projectSearch.take()) location()
+      if (layout.draft.projectSearch.take()) location.open()
       else model.restoreFocus()
     }),
   )

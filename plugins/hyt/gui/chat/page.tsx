@@ -1,10 +1,10 @@
 import type { Context, IpcClient } from "@opencode/plugin/gui"
 import { Show, createEffect, createResource, createSignal, onCleanup, onMount } from "solid-js"
-import { AiPanel } from "./ai-panel.js"
 import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"
 import type { ChatState, MergeItemRow } from "./contract.js"
 import { text } from "./i18n.js"
+import { InfoPanel } from "./info.js"
 import { MessageStream, rememberCurrentScroll } from "./messages.js"
 import { SessionList } from "./sessions.js"
 
@@ -57,13 +57,11 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   /** 每个会话各自保留未发送的输入，切走再切回来还在，且不会串到别的会话。 */
   const drafts = new Map<string, string>()
   const [sending, setSending] = createSignal(false)
-  // 右栏是「会话信息」，按需打开：默认不占宽度，需要看成员或指令时从会话头部开关。
-  const [infoOpen, setInfoOpen] = createSignal(false)
   const [notice, setNotice] = createSignal<Notice | undefined>()
   const [error, setError] = createSignal<string | undefined>()
   const [query, setQuery] = createSignal("")
-  // 左栏搜索框按飞书做成点开式：图标在「消息」右侧，展开时才占一行高度。
-  const [searchOpen, setSearchOpen] = createSignal(false)
+  /** 搜索框常驻左栏顶部：主区的放大镜与 ⌘K 都只做一件事——把焦点送到它里面。 */
+  const focusSearch = () => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()
   const [searching, setSearching] = createSignal(false)
   const [loadingMore, setLoadingMore] = createSignal(false)
   let searchTimer: number | undefined
@@ -86,9 +84,16 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     }
     tick()
     const timer = window.setInterval(tick, POLL_MS)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return
+      event.preventDefault()
+      focusSearch()
+    }
+    window.addEventListener("keydown", onKeyDown)
     document.addEventListener("visibilitychange", tick)
     onCleanup(() => {
       window.clearInterval(timer)
+      window.removeEventListener("keydown", onKeyDown)
       document.removeEventListener("visibilitychange", tick)
       if (searchTimer !== undefined) window.clearTimeout(searchTimer)
     })
@@ -223,10 +228,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 draftCount={currentDraft() === undefined ? 0 : 1}
                 knowledgeCount={snapshot().knowledge.length}
                 unread={snapshot().unread}
-                searchOpen={searchOpen()}
                 onSelect={select}
                 onSearch={search}
-                onSearchOpen={setSearchOpen}
                 onMarkAllRead={() => void run(() => props.client.markAllRead())}
                 onRefresh={() => void run(() => props.client.refresh())}
               />
@@ -241,18 +244,14 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 members={snapshot().members}
                 draft={currentDraft()}
                 hasMore={snapshot().hasMore}
+                newMessageId={snapshot().newMessageId}
                 loadingMore={loadingMore()}
                 onLoadMore={loadMore}
                 focusId={focusId()}
                 onFocusDone={() => setFocusId(undefined)}
                 onUseDraft={insertComposer}
                 onRefresh={() => void run(() => props.client.refresh())}
-                onFocusSearch={() => {
-                  setSearchOpen(true)
-                  requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus())
-                }}
-                infoOpen={infoOpen()}
-                onToggleInfo={() => setInfoOpen(!infoOpen())}
+                onFocusSearch={focusSearch}
                 avatars={avatarMap()}
                 onMedia={media}
                 onMerge={merge}
@@ -273,18 +272,14 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
               />
             </section>
 
-            <Show when={infoOpen()}>
-              <aside class="hyt-chat-ai">
-                <AiPanel
-                  ctx={ctx}
-                  members={snapshot().members}
-                  knowledge={snapshot().knowledge}
-                  onMention={(name) => insertComposer(`${text_()}@${name} `)}
-                  onCommand={insertComposer}
-                  onClose={() => setInfoOpen(false)}
-                />
-              </aside>
-            </Show>
+            <InfoPanel
+              ctx={ctx}
+              session={snapshot().sessions.find((item) => item.id === snapshot().selected)}
+              members={snapshot().members}
+              account={snapshot().status.account}
+              avatars={avatarMap()}
+              onNotice={(message, tone) => setNotice({ message, tone })}
+            />
           </div>
       </Show>
     </Show>

@@ -17,7 +17,8 @@ import {
   type PromptProject,
   type PromptProjectController,
 } from "@/new-session/project/selector"
-import type { useNewSessionLocationDialog } from "@/new-session/location/dialog"
+import { NewSessionLocationCard, type NewSessionLocationPicker } from "@/new-session/location/picker"
+import { Popover } from "@kobalte/core/popover"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { useProviders } from "@/providers/catalog/providers"
@@ -40,7 +41,7 @@ export function NewSessionView(props: {
   composer: ComposerModel
   project: PromptProjectController
   workspace: NewSessionWorkspaceController
-  location: ReturnType<typeof useNewSessionLocationDialog>
+  location: NewSessionLocationPicker
 }) {
   const [onboarding, setOnboarding, , onboardingReady] = persisted(
     Persist.global("workspace-onboarding"),
@@ -51,7 +52,7 @@ export function NewSessionView(props: {
   const language = useLanguage()
 
   const location = (project?: PromptProject) =>
-    props.location({
+    props.location.open({
       project,
       onWorkspace: (value) => {
         if (value !== "main") setOnboarding("used", true)
@@ -111,6 +112,7 @@ export function NewSessionView(props: {
                     root={props.workspace.project.root()}
                     branch={<NewSessionBranch workspace={props.workspace} onDone={props.composer.restoreFocus} />}
                     onboarding={onboardingReady() && !onboarding.used && props.workspace.bar.visible()}
+                    picker={props.location}
                     onClick={() => location()}
                     onWorktree={project().id && project().vcs === "git" ? () => location(project()) : undefined}
                   />
@@ -228,6 +230,7 @@ function NewSessionLocation(props: {
   root: string
   branch?: JSX.Element
   onboarding: boolean
+  picker: NewSessionLocationPicker
   onClick: () => void
   /** Opens the project's worktree step; without it the project has no worktrees to choose. */
   onWorktree?: () => void
@@ -253,96 +256,130 @@ function NewSessionLocation(props: {
     return getFilename(props.workspace)
   }
 
+  // The chips toggle their card: the chip that opened it closes it, the other one switches to its own view.
+  const toggle = (open: () => void, isOpen: boolean) => (isOpen ? props.picker.setOpen(false) : open())
+
+  let chips: HTMLDivElement | undefined
+
   return (
-    <div class="relative flex min-h-[30px] min-w-0 items-center gap-3 text-[13px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px]">
-      <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1">
-        <div class="flex min-w-0 max-w-full items-center gap-3">
-          <Show when={props.onWorktree}>
-            {(onWorktree) => (
-              <Tooltip
-                appearance={props.onboarding ? "large" : undefined}
-                placement="top"
-                openDelay={800}
-                value={
-                  <div class="flex flex-col gap-1 text-start">
-                    <Show when={props.onboarding}>
-                      <div class="flex items-center gap-1.5 font-[530] text-v2-text-text-base">
-                        <Icon name="outline-worktree" size="small" class="shrink-0 text-v2-text-text-accent" />
-                        <span>{language.t("workspace.onboarding.title")}</span>
-                      </div>
-                      <span class="font-[400] text-v2-text-text-muted">
-                        {language.t("workspace.onboarding.description")}
-                      </span>
-                    </Show>
-                    <span
-                      class="flex items-center justify-between gap-2"
-                      classList={{ "font-[400] text-v2-text-text-muted": props.onboarding }}
-                    >
-                      {language.t("session.location.worktree")}
-                      <Show when={command.keybindParts("session.location.select").length}>
-                        <Keybind keys={command.keybindParts("session.location.select")} variant="neutral" />
+    <Popover
+      open={props.picker.state.open}
+      onOpenChange={(open) => props.picker.setOpen(open)}
+      placement="bottom-start"
+      gutter={8}
+    >
+      <Popover.Anchor
+        as="div"
+        class="relative flex min-h-[30px] min-w-0 items-center gap-3 text-[13px] font-[400] leading-[var(--line-height-compact)] tracking-[-0.04px]"
+      >
+        <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1">
+          <div ref={chips} class="flex min-w-0 max-w-full items-center gap-3">
+            <Show when={props.onWorktree}>
+              {(onWorktree) => (
+                <Tooltip
+                  appearance={props.onboarding ? "large" : undefined}
+                  placement="top"
+                  openDelay={800}
+                  value={
+                    <div class="flex flex-col gap-1 text-start">
+                      <Show when={props.onboarding}>
+                        <div class="flex items-center gap-1.5 font-[530] text-v2-text-text-base">
+                          <Icon name="outline-worktree" size="small" class="shrink-0 text-v2-text-text-accent" />
+                          <span>{language.t("workspace.onboarding.title")}</span>
+                        </div>
+                        <span class="font-[400] text-v2-text-text-muted">
+                          {language.t("workspace.onboarding.description")}
+                        </span>
                       </Show>
-                    </span>
-                  </div>
-                }
-                contentClass={props.onboarding ? "max-w-[280px]" : undefined}
-                class="flex min-w-0 shrink-[1000]"
-              >
-                <button
-                  type="button"
-                  data-action="prompt-worktree"
-                  aria-haspopup="dialog"
-                  aria-description={language.t("session.location.worktree")}
-                  class={`${TRIGGER} min-w-0`}
-                  onClick={onWorktree()}
+                      <span
+                        class="flex items-center justify-between gap-2"
+                        classList={{ "font-[400] text-v2-text-text-muted": props.onboarding }}
+                      >
+                        {language.t("session.location.worktree")}
+                        <Show when={command.keybindParts("session.location.select").length}>
+                          <Keybind keys={command.keybindParts("session.location.select")} variant="neutral" />
+                        </Show>
+                      </span>
+                    </div>
+                  }
+                  contentClass={props.onboarding ? "max-w-[280px]" : undefined}
+                  class="flex min-w-0 shrink-[1000]"
                 >
-                  <Icon
-                    name={props.workspace === "create" ? "plus" : worktree() ? "outline-worktree" : "monitor"}
-                    size="small"
-                    class="shrink-0 text-v2-icon-icon-muted"
-                  />
-                  <span class="min-w-0 truncate">
-                    {worktree() ?? language.t("session.new.workspace.triggerLocal")}
-                  </span>
-                  <Show when={props.onboarding}>
-                    <span
-                      data-slot="workspace-onboarding-dot"
-                      aria-hidden="true"
-                      class="size-1.5 shrink-0 rounded-full bg-v2-text-text-accent"
+                  <button
+                    type="button"
+                    data-action="prompt-worktree"
+                    aria-haspopup="dialog"
+                    aria-expanded={props.picker.state.open && !!props.onWorktree}
+                    aria-description={language.t("session.location.worktree")}
+                    class={`${TRIGGER} min-w-0`}
+                    onClick={() => toggle(onWorktree(), props.picker.state.open && !!props.picker.state.drilled)}
+                  >
+                    <Icon
+                      name={props.workspace === "create" ? "plus" : worktree() ? "outline-worktree" : "monitor"}
+                      size="small"
+                      class="shrink-0 text-v2-icon-icon-muted"
                     />
+                    <span class="min-w-0 truncate">
+                      {worktree() ?? language.t("session.new.workspace.triggerLocal")}
+                    </span>
+                    <Show when={props.onboarding}>
+                      <span
+                        data-slot="workspace-onboarding-dot"
+                        aria-hidden="true"
+                        class="size-1.5 shrink-0 rounded-full bg-v2-text-text-accent"
+                      />
+                    </Show>
+                  </button>
+                </Tooltip>
+              )}
+            </Show>
+            <Tooltip
+              placement="top"
+              openDelay={800}
+              value={
+                <span class="flex items-center gap-2">
+                  {language.t("session.new.project.trigger.tooltip")}
+                  <Show when={command.keybindParts("project.select").length}>
+                    <Keybind keys={command.keybindParts("project.select")} variant="neutral" />
                   </Show>
-                </button>
-              </Tooltip>
-            )}
-          </Show>
-          <Tooltip
-            placement="top"
-            openDelay={800}
-            value={
-              <span class="flex items-center gap-2">
-                {language.t("session.new.project.trigger.tooltip")}
-                <Show when={command.keybindParts("project.select").length}>
-                  <Keybind keys={command.keybindParts("project.select")} variant="neutral" />
-                </Show>
-              </span>
-            }
-            class="flex min-w-0"
-          >
-            <button
-              type="button"
-              data-action="prompt-project"
-              aria-haspopup="dialog"
-              aria-description={language.t("session.new.project.trigger.tooltip")}
-              class={`${TRIGGER} min-w-0`}
-              onClick={props.onClick}
+                </span>
+              }
+              class="flex min-w-0"
             >
-              <ProjectFolder class="shrink-0" />
-              <span class="min-w-0 truncate">{displayName(props.project)}</span>
-            </button>
-          </Tooltip>
+              <button
+                type="button"
+                data-action="prompt-project"
+                aria-haspopup="dialog"
+                aria-expanded={props.picker.state.open && !props.picker.state.drilled}
+                aria-description={language.t("session.new.project.trigger.tooltip")}
+                class={`${TRIGGER} min-w-0`}
+                onClick={() => toggle(props.onClick, props.picker.state.open && !props.picker.state.drilled)}
+              >
+                <ProjectFolder class="shrink-0" />
+                <span class="min-w-0 truncate">{displayName(props.project)}</span>
+              </button>
+            </Tooltip>
+          </div>
+          {props.branch}
         </div>
-        {props.branch}
-      </div>
-    </div>
+      </Popover.Anchor>
+      <Popover.Portal>
+        <Show when={props.picker.state.open} keyed>
+          <Popover.Content
+            data-component="new-session-card"
+            data-slot="new-session-location-card"
+            class="z-50 w-[min(320px,calc(100vw-32px))] overflow-hidden rounded-lg bg-v2-background-bg-layer-01 shadow-[var(--v2-elevation-floating)] outline-none"
+            onInteractOutside={(event) => {
+              // The chips themselves toggle the card; without this the pointerdown would close it before the click.
+              if (chips?.contains(event.target as Node)) event.preventDefault()
+            }}
+            onOpenAutoFocus={(event: Event) => event.preventDefault()}
+            onCloseAutoFocus={(event: Event) => event.preventDefault()}
+          >
+            <NewSessionLocationCard picker={props.picker} drilled={props.picker.state.drilled} />
+          </Popover.Content>
+        </Show>
+      </Popover.Portal>
+    </Popover>
   )
 }

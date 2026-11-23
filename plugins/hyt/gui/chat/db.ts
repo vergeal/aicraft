@@ -28,6 +28,8 @@ export interface PersonView {
   readonly name: string
   readonly department: string
   readonly headPath: string
+  /** 通讯录里的在线快照，只有确认在线才为真。 */
+  readonly online: boolean
 }
 
 export function chatDbPath(root: string, account: string) {
@@ -96,6 +98,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
           unread: markedAt(item, marked, unread),
           atMe: item.atMe === 1,
           group,
+          online: group ? false : (person?.online ?? false),
           members,
         },
       ]
@@ -112,9 +115,9 @@ export function readMessages(
   sessionId: string,
   beforeId: number | undefined,
   limit = PAGE_SIZE,
-): { messages: MessageRow[]; hasMore: boolean } {
+): { messages: MessageRow[]; hasMore: boolean; firstUnreadId: number } {
   const path = chatDbPath(root, account)
-  if (!existsSync(path) || sessionId.length === 0) return { messages: [], hasMore: false }
+  if (!existsSync(path) || sessionId.length === 0) return { messages: [], hasMore: false, firstUnreadId: 0 }
   const db = open(path)
   try {
     const rows = query(
@@ -128,7 +131,11 @@ export function readMessages(
     const hasMore = known.length > limit
     const people = readPeople(root, account)
     const page = (hasMore ? known.slice(0, limit) : known).map((row) => messageRow(row, account, people))
-    return { messages: page.reverse(), hasMore }
+    // 「以下为新消息」的分界：这一页里最早的未读消息。自己发的不算（撤回的消息 ReadStatus 也是 0）。
+    const unreadIds = known
+      .filter((row) => row.ReadStatus === 0 && text(row.Sender) !== account)
+      .map((row) => row.Id)
+    return { messages: page.reverse(), hasMore, firstUnreadId: unreadIds.length === 0 ? 0 : Math.min(...unreadIds) }
   } finally {
     db.close()
   }
@@ -204,7 +211,7 @@ export function readSessionMembers(
   try {
     const rows = query(
       address,
-      `select Account, Name, Remark, DptFullName, LocalHeadUrl from Person
+      `select Account, Name, Remark, DptFullName, LocalHeadUrl, OnLineState from Person
        where Account in (${order.map(() => "?").join(", ")})`,
       order,
     )
@@ -220,13 +227,14 @@ export function readSessionMembers(
               name: text(row.Remark) || text(row.Name) || id,
               department: text(row.DptFullName),
               headPath: text(row.LocalHeadUrl),
+              online: numberOf(row.OnLineState) === 1,
             } satisfies PersonView,
           ] as const,
         ]
       }),
     )
     // 保持「最近发言在前」的顺序；通讯录里查不到的人仍占一行，用账号当名字。
-    return order.map((id) => known.get(id) ?? { account: id, name: id, department: "", headPath: "" })
+    return order.map((id) => known.get(id) ?? { account: id, name: id, department: "", headPath: "", online: false })
   } finally {
     address.close()
   }
@@ -361,6 +369,8 @@ interface PersonEntry {
   readonly name: string
   readonly remark: string
   readonly headPath: string
+  /** 本地库的在线快照：只有 `OnLineState = 1` 算在线，其余值一律不画状态点。 */
+  readonly online: boolean
 }
 
 function readPeople(root: string, account: string) {
@@ -369,13 +379,18 @@ function readPeople(root: string, account: string) {
   if (!existsSync(path)) return map
   const db = open(path)
   try {
-    for (const row of query(db, "select Account, Name, Remark, DptFullName, IsFriend, LocalHeadUrl, Url from Person where Account is not null and Account <> ''", [])) {
+    for (const row of query(
+      db,
+      "select Account, Name, Remark, DptFullName, IsFriend, LocalHeadUrl, Url, OnLineState from Person where Account is not null and Account <> ''",
+      [],
+    )) {
       const key = text(row.Account)
       if (key.length === 0) continue
       map.set(key, {
         name: text(row.Name),
         remark: text(row.Remark),
         headPath: localHeadFile(root, text(row.LocalHeadUrl), text(row.Url)),
+        online: numberOf(row.OnLineState) === 1,
       })
     }
   } finally {

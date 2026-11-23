@@ -2,6 +2,7 @@ import { Badge } from "@opencode/ui/badge"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { displayName } from "@opencode/ui/project-avatar"
 import { ProjectFolder } from "@opencode/ui/project-folder"
 import { TextInput } from "@opencode/ui/text-input"
@@ -222,6 +223,7 @@ export function NewSessionLocationCard(props: { picker: NewSessionLocationPicker
   const activeEntry = typeahead.activeItem
 
   let resultsRef: HTMLDivElement | undefined
+  let resultsList: HTMLDivElement | undefined
   let inputRef: HTMLInputElement | undefined
 
   // The popover hands focus back to the chips, so the search field takes it when the card mounts.
@@ -375,7 +377,17 @@ export function NewSessionLocationCard(props: { picker: NewSessionLocationPicker
             viewportClass="command-palette-scroll"
             viewportRef={(el) => (resultsRef = el)}
           >
-            <div id={typeahead.listID} class="command-palette-results" role="listbox">
+            <div
+              ref={(element) => (resultsList = element)}
+              id={typeahead.listID}
+              class="command-palette-results"
+              role="listbox"
+            >
+              <SelectionIndicator
+                container={() => resultsList}
+                selector={'.palette-menu-row[data-active]'}
+                attribute="data-active"
+              />
               <div class="command-palette-group">
                 <Show when={title()}>{(value) => <div class="command-palette-group-title">{value()}</div>}</Show>
                 <Show

@@ -101,12 +101,17 @@ button[data-component="font-picker"][data-expanded] svg {
 }
 
 [data-slot="font-picker-list"] {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+[data-slot="font-picker-list"] [data-slot="selection-indicator"] {
+  border-radius: 4px;
 }
 
 [data-slot="font-picker-option"] {
@@ -120,10 +125,6 @@ button[data-component="font-picker"][data-expanded] svg {
   color: var(--v2-text-text-base);
   cursor: default;
   user-select: none;
-}
-
-[data-slot="font-picker-option"][data-active] {
-  background: var(--v2-overlay-simple-overlay-hover);
 }
 
 [data-slot="font-picker-option-name"] {

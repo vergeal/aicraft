@@ -100,6 +100,7 @@
   }
 
   [data-slot="search-list-results"] {
+    position: relative;
     display: flex;
     flex-direction: column;
     padding: 6px 6px 8px;
@@ -158,17 +159,18 @@
     text-align: start;
     cursor: default;
     scroll-margin-block: 0 24px;
-    /* Sweeping the list should glide between rows instead of blinking one fill on after another. */
-    transition: background-color 110ms ease;
 
     &[data-active] {
-      background: var(--v2-overlay-simple-overlay-hover);
       outline: none;
     }
 
     &[data-size="compact"] {
       height: 28px;
     }
+  }
+
+  [data-slot="search-list-results"] [data-slot="selection-indicator"] {
+    border-radius: var(--radius-sm);
   }
 
   /* A row under the one above it keeps clear of the fade beneath the header; a section's first row sits right under it. */
@@ -226,10 +228,6 @@
       flex: 0 1 auto;
     }
   }
-}
-
-[data-color-scheme="dark"] [data-component="search-list"] [data-slot="search-list-row"][data-active] {
-  background: var(--v2-alpha-light-10);
 }
 
 @media (prefers-reduced-motion: reduce) {

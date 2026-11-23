@@ -25,6 +25,7 @@ import { IconButton } from "@opencode/ui/icon-button"
 import { Keybind } from "@opencode/ui/keybind"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { SearchHighlight, SearchList, type SearchListHandle, type SearchListRow } from "@opencode/ui/search-list"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { TextInput } from "@opencode/ui/text-input"
 import { ModelTooltip } from "./tooltip"
@@ -175,9 +176,9 @@ export const ModelList: Component<{
               type="button"
               data-component="settings-row"
               data-option-key={modelKey(item)}
+              data-active={store.active === modelKey(item) ? "" : undefined}
               aria-pressed={controller.current() === modelKey(item)}
-              class="-mx-4 w-[calc(100%+32px)] px-4 text-start hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
-              classList={{ "bg-v2-overlay-simple-overlay-hover": store.active === modelKey(item) }}
+              class="-mx-4 w-[calc(100%+32px)] rounded-lg px-4 text-start focus-visible:outline-none"
               onMouseEnter={() => setStore("active", modelKey(item))}
               onMouseLeave={() => setStore("active", "")}
               onClick={() => controller.select(item)}
@@ -264,6 +265,11 @@ export const ModelList: Component<{
           class="settings-panel settings-models pt-1 pb-4"
           classList={{ "h-full px-4": !props.mobile, "max-h-[min(360px,40dvh)]": props.mobile }}
         >
+          <SelectionIndicator
+            container={() => scrollRef}
+            selector={'[data-component="settings-row"][data-option-key][data-active]'}
+            attribute="data-active"
+          />
           <Show
             when={models().length > 0}
             fallback={<div class="settings-models-status">{language.t("dialog.model.empty")}</div>}

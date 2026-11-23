@@ -1030,6 +1030,7 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
 }
 
 .settings-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   /* The tab content slot defaults to `overflow: auto`, which made every page panel its own scroll container: the

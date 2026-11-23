@@ -21,7 +21,7 @@
 
 允许：`transform`、`opacity`、`background-color`、`color`、`border-color`、`box-shadow`（仅小面积、单次）、`grid-template-rows`（折叠）。
 
-禁止：`width` / `height`（布局动画除外，且必须用 FLIP 或 grid 技巧）、`top` / `left`、`filter` / `backdrop-filter`、`margin`、`font-size`。
+禁止：`width` / `height`（布局动画除外，且必须用 FLIP 或 grid 技巧；浮层内容尺寸按 §11 的测量写法例外）、`top` / `left`、`filter` / `backdrop-filter`、`margin`、`font-size`。
 
 折叠动画标准写法：
 
@@ -51,6 +51,8 @@
 | 抽屉进入 | 220 | cubic-bezier(.2,0,0,1) | translateX(12px→0) + opacity | 布局由 grid 负责 |
 | 侧栏折叠 | 220 | cubic-bezier(.2,0,0,1) | flex-basis | 标签 100ms 淡出 |
 | 标签切换 | 160 | ease-out | transform（指示器） | 不重排 |
+| 列表选区移动 | 160 | ease-out | transform（共享指示器，见 §10） | 行本身不画选中底色 |
+| 浮层内容尺寸变化 | 200 | cubic-bezier(.645,.045,.355,1) | height（例外，见 §11） | 底部锚定，末行不裁切 |
 | 页面进入 | 180 | ease-out | opacity + translateY(8px) | 标题不重建 |
 | 页面返回 | 160 | ease-in | opacity | 反向不做整页滑动 |
 | Toast 进入 | 180 | ease-out | opacity + translateY(8px) | 停留 4s |
@@ -157,3 +159,74 @@
 - 鼠标跟随光效、视差滚动。
 - 用动画掩盖加载延迟（动画结束后仍在等待）。
 - 同一个元素同时有多个相互冲突的 transition 属性列表。
+
+## 10. 共享选区指示器（强制）
+
+列表的"当前选中项"由**一个共享图层**表达：高亮块是列表容器内唯一的绝对定位元素，用 `transform: translate3d()` 在行之间移动；行自身保持透明，只保留 `data-active` 这类语义属性。
+
+业界叫法：shared layout / sliding selection indicator（也写作 "magic move" 式高亮）。中文写作「共享选区指示器」。
+
+### 10.1 必须使用
+
+凡是有键盘上下（或左右）移动选中的列表，都用 `@opencode/ui/selection-indicator`：
+
+- Composer 的 `@` / `/` 弹窗、历史弹窗
+- 菜单、下拉菜单、上下文菜单（含 Build/Plan 切换、agent 菜单）
+- `Select` 组件
+- 模型选择、字体选择、项目 / 工作区 / 分支选择、目录建议
+- 命令面板、搜索结果列表、Fork 列表、首页会话搜索
+- 以上共享组件派生的任何新列表
+
+接入方式：
+
+```tsx
+<SelectionIndicator
+  container={() => list} // 行所在的定位容器
+  selector={'[data-slot="row"][data-active]'} // 当前选中行
+  attribute="data-active" // 触发重新测量的语义属性
+/>
+```
+
+- 容器必须有 `position: relative`（滚动容器或其内容包装层均可），指示器是它的第一个子元素。
+- 行的选中背景从行的 CSS / `classList` 中删除；只保留 `data-active`（或其他既有语义属性）供指示器与无障碍使用。
+- 指示器圆角必须与行一致：行是 8px 就用 8px，行是方形就用方角。
+- 不新增每行各自的 `transition`、`::before` 边条或背景闪烁来替代它。
+
+### 10.2 时长与降级
+
+- `transform`/`width`/`height` 过渡 160ms `ease-out`（`fast` 档），只动 `transform` 与测量出的尺寸，不触发布局。
+- 首次出现直接落位，从第二次移动开始动画；列表重新打开时重置。
+- 滚动容器内滚动时重新测量，指示器始终贴在目标行下方。
+- `prefers-reduced-motion` 与应用内 `data-motion="reduce"` 下关闭过渡，直接切换。
+
+### 10.3 不适用的场景
+
+| 场景 | 做法 |
+| --- | --- |
+| 指针连续扫过的区域（侧栏导航、整页会话列表） | 行 `background-color` 120ms `ease-out` 过渡，不做滑动块 |
+| 活动标签页（非选项列表） | 沿用分段指示器，不在本文范围 |
+| 行高不一致且会折行的富内容卡片 | 行内过渡，避免指示器尺寸抖动 |
+
+## 11. 浮层内容尺寸过渡（强制）
+
+弹窗、Popover、命令面板的内容随查询或页签增减时，高度要平滑跟随，不能跳变；同时第一行到最后一行的完整可见是硬要求。
+
+### 11.1 写法
+
+- 外层固定 `height` 并加 `transition-[height] duration-[200ms] ease-[cubic-bezier(0.645,0.045,0.355,1)]`。
+- 内容自然高度用 `ResizeObserver` 测出后写入外层 `height`，不能给 `height: auto` 做过渡。
+- 首帧不写 `height`（保持 `auto`），避免入场时从 0 撑开；内层 `shrink-0`，滚动交给外层或既有 `MenuScroll`。
+- 高度上限必须包含浮层自身的上下内边距与搜索框，否则最后一行会被裁切；达到上限后仍保留 `max-height` 作为兜底。
+- 需要坐标稳定的列表（如 Composer 历史弹窗）不加大高度过渡，保持既有 `max-height` 行为。
+
+### 11.2 入场
+
+- 底部对齐的浮层（`@` / `/` 弹窗）用 `transform-origin: bottom center`。
+- 入场 160ms `ease-out`，只动 `opacity` 与独立的 `scale` 属性（`0.98 → 1`）；不要用 `transform: scale()` 覆盖定位用的 `translate`。
+- `prefers-reduced-motion` 与 `data-motion="reduce"` 下取消入场动画，只保留即时状态。
+
+### 11.3 审查
+
+- 内容从 1 行变 20 行、再变回 1 行，高度连续且末行始终完整。
+- 切换筛选条件时，浮层不闪白、不重建，滚动位置落在选中行附近。
+- 缩放窗口时高度上限同步，内容不被裁切。

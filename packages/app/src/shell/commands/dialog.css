@@ -246,35 +246,19 @@
     border-radius: var(--command-palette-radius-row);
   }
 
-  /* The chosen row is marked by a short accent rail on its leading edge, so the eye can track selection while
-     sweeping the list with the keyboard. */
-  [data-component="search-list"] [data-slot="search-list-row"]::before {
-    position: absolute;
-    inset-block: 8px;
-    inset-inline-start: 0;
-    width: 2px;
-    border-radius: 2px;
-    background: var(--v2-system-accent);
-    content: "";
-    opacity: 0;
-    transition: opacity 110ms ease;
+  /* The chosen row is one sliding block; its fill and hairline travel with the keyboard instead of snapping row to
+     row. See docs/standard/design/13-motion.md. */
+  [data-slot="search-list-results"] [data-slot="selection-indicator"] {
+    border-radius: var(--command-palette-radius-row);
+    background: var(--v2-overlay-simple-overlay-pressed);
+    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
   }
 
-  [data-component="search-list"] [data-slot="search-list-row"][data-active]::before {
-    opacity: 1;
-  }
-
-  /* Pointer hover is a whisper. The row the field has chosen carries the neutral fill. */
+  /* Pointer hover is a whisper. The row the field has chosen carries the sliding block. */
   @media (hover: hover) {
     [data-component="search-list"] [data-slot="search-list-row"]:hover:not([data-active]) {
       background: var(--v2-overlay-simple-overlay-hover);
     }
-  }
-
-  [data-component="search-list"] [data-slot="search-list-row"][data-active] {
-    background: var(--v2-overlay-simple-overlay-pressed);
-    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
-    outline: none;
   }
 
   /* A row that takes focus itself (Tab) gets a quiet 1px ring; normally the search field owns focus. */

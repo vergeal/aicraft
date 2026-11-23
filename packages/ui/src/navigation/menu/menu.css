@@ -5,6 +5,7 @@
 
 [data-component="menu-v2-content"] {
   box-sizing: border-box;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -148,7 +149,7 @@
   }
 
   &[data-highlighted] {
-    background: var(--menu-v2-hover);
+    color: var(--menu-v2-fg);
   }
 
   &[data-checked] [data-slot="menu-v2-item-content"] {
@@ -227,10 +228,6 @@
       line-height: inherit;
       letter-spacing: inherit;
       color: inherit;
-    }
-
-    &[data-highlighted] {
-      background: var(--v2-overlay-simple-overlay-hover);
     }
 
     &[data-variant="critical"] {

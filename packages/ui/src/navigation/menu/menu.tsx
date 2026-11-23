@@ -12,7 +12,10 @@ import {
   type JSX,
   type ParentProps,
 } from "solid-js"
+import { SelectionIndicator } from "../../components/selection-indicator"
 import "./menu.css"
+
+const MENU_ITEM_SELECTOR = '[data-component="menu-v2-item"][data-highlighted]'
 
 const ChevronRight: Component = () => (
   <svg
@@ -205,15 +208,20 @@ function MenuSubTrigger(props: ParentProps<MenuSubTriggerProps>) {
 
 function MenuSubContent(props: ComponentProps<typeof DropdownMenu.SubContent>) {
   const ctx = useMenuContext()
-  const [s, r] = splitProps(props, ["class", "classList"])
+  const [s, r] = splitProps(props, ["class", "classList", "children"])
+  let content: HTMLElement | undefined
 
   return (
     <DropdownMenu.SubContent
       {...r}
+      ref={(element) => (content = element)}
       data-component="menu-v2-content"
       data-appearance={ctx.appearance()}
       classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
-    />
+    >
+      <SelectionIndicator container={() => content} selector={MENU_ITEM_SELECTOR} attribute="data-highlighted" />
+      {s.children}
+    </DropdownMenu.SubContent>
   )
 }
 
@@ -247,7 +255,8 @@ function MenuSeparator(props: ComponentProps<typeof DropdownMenu.Separator>) {
 
 function MenuContent(props: ComponentProps<typeof DropdownMenu.Content>) {
   const ctx = useMenuContext()
-  const [s, r] = splitProps(props, ["class", "classList", "onCloseAutoFocus"])
+  const [s, r] = splitProps(props, ["class", "classList", "onCloseAutoFocus", "children"])
+  let content: HTMLElement | undefined
 
   // A menu returns focus to its trigger when it closes. Closing with Escape counts as keyboard use, so Chromium would
   // ring a trigger the pointer opened; restore focus without the ring and keep it for keyboard opens.
@@ -268,11 +277,15 @@ function MenuContent(props: ComponentProps<typeof DropdownMenu.Content>) {
   return (
     <DropdownMenu.Content
       {...r}
+      ref={(element) => (content = element)}
       onCloseAutoFocus={onCloseAutoFocus}
       data-component="menu-v2-content"
       data-appearance={ctx.appearance()}
       classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
-    />
+    >
+      <SelectionIndicator container={() => content} selector={MENU_ITEM_SELECTOR} attribute="data-highlighted" />
+      {s.children}
+    </DropdownMenu.Content>
   )
 }
 
@@ -322,15 +335,20 @@ function MenuContextRoot(props: MenuContextProps) {
 
 function MenuContextContent(props: ComponentProps<typeof ContextMenu.Content>) {
   const ctx = useMenuContext()
-  const [s, r] = splitProps(props, ["class", "classList"])
+  const [s, r] = splitProps(props, ["class", "classList", "children"])
+  let content: HTMLElement | undefined
 
   return (
     <ContextMenu.Content
       {...r}
+      ref={(element) => (content = element)}
       data-component="menu-v2-content"
       data-appearance={ctx.appearance()}
       classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
-    />
+    >
+      <SelectionIndicator container={() => content} selector={MENU_ITEM_SELECTOR} attribute="data-highlighted" />
+      {s.children}
+    </ContextMenu.Content>
   )
 }
 

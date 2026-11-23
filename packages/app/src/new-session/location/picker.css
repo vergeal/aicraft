@@ -45,6 +45,7 @@
 }
 
 .new-session-location .command-palette-results {
+  position: relative;
   gap: 2px;
   padding: 0 4px 4px;
 }
@@ -77,8 +78,8 @@
   padding-inline: 4px;
 }
 
-.new-session-location .palette-menu-row:is([data-active], :focus-visible) {
-  background: var(--v2-overlay-simple-overlay-hover);
+.new-session-location .command-palette-results [data-slot="selection-indicator"] {
+  border-radius: 6px;
 }
 
 .new-session-location .command-palette-row-text {

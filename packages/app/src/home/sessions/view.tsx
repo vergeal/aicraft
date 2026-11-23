@@ -10,6 +10,7 @@ import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { prefersReducedMotion } from "@opencode/ui/motion"
 import { useDialog } from "@opencode/ui/context/dialog"
@@ -328,6 +329,8 @@ function HomeSessionSearch(
     onHoverSession: (sessionID: string | undefined) => void
   },
 ) {
+  let searchList: HTMLDivElement | undefined
+
   return (
     <div class="w-full max-w-[420px]">
       <div ref={props.onSetSearchRoot} data-component="home-session-search" class="relative z-30 w-full">
@@ -376,7 +379,20 @@ function HomeSessionSearch(
                       >
                         {props.language.t("home.sessions.search.sessions")}
                       </p>
-                      <MenuScroll class="max-h-[min(20rem,40dvh)]" viewportRef={props.onSetSearchList}>
+                      <MenuScroll
+                        class="max-h-[min(20rem,40dvh)]"
+                        viewportClass="relative"
+                        viewportRef={(element) => {
+                          searchList = element
+                          props.onSetSearchList(element)
+                        }}
+                      >
+                        <SelectionIndicator
+                          class="rounded-none"
+                          container={() => searchList}
+                          selector={'[data-component="home-session-search-row"][data-active]'}
+                          attribute="data-active"
+                        />
                         <div class="flex flex-col gap-px pb-2">
                           <For each={props.searchResults}>
                             {(record) => (
@@ -497,6 +513,7 @@ function HomeSessionSearchResultRow(
       data-key={key()}
       data-component="home-session-search-row"
       data-project-name={!!showProjectName()}
+      data-active={props.selected ? "" : undefined}
       role="option"
       aria-selected={props.selected}
       class={`
@@ -505,7 +522,6 @@ function HomeSessionSearchResultRow(
         hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--v2-border-border-focus)]
       `}
       classList={{
-        "bg-v2-overlay-simple-overlay-hover": props.selected,
         "gap-1.5": props.desktop,
         "gap-2": !props.desktop,
       }}

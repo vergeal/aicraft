@@ -1,0 +1,32 @@
+/* One shared highlight for keyboard and pointer selection. Lists do not paint the selected row themselves; this layer
+   travels between rows so the eye can follow the selection. See docs/standard/design/13-motion.md. */
+[data-slot="selection-indicator"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  border-radius: var(--radius-lg);
+  background: var(--v2-overlay-simple-overlay-hover);
+  opacity: 0;
+}
+
+[data-slot="selection-indicator"][data-visible] {
+  opacity: 1;
+}
+
+[data-slot="selection-indicator"][data-animated] {
+  transition:
+    transform 160ms ease-out,
+    width 160ms ease-out,
+    height 160ms ease-out;
+}
+
+:root[data-motion="reduce"] [data-slot="selection-indicator"] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="selection-indicator"] {
+    transition: none;
+  }
+}

@@ -12,6 +12,7 @@ import {
 } from "@kobalte/core/select"
 import { Show, createMemo, onCleanup, splitProps, type ComponentProps, type JSX } from "solid-js"
 import { MenuScroll } from "../../components/menu-scroll"
+import { SelectionIndicator } from "../../components/selection-indicator"
 import "./select.css"
 
 function groupOptions<T>(options: T[], groupBy?: (x: T) => string): { category: string; options: T[] }[] {
@@ -114,6 +115,7 @@ export function Select<T>(props: SelectProps<T>) {
   const state: HighlightState = {}
 
   let scroller: HTMLDivElement | undefined
+  let content: HTMLDivElement | undefined
 
   const stop = () => {
     state.cleanup?.()
@@ -233,7 +235,17 @@ export function Select<T>(props: SelectProps<T>) {
         </span>
       </Trigger>
       <Portal>
-        <Content class={local.contentClass} data-component="menu-v2-content" data-slot="select-v2-content">
+        <Content
+          ref={(element) => (content = element)}
+          class={local.contentClass}
+          data-component="menu-v2-content"
+          data-slot="select-v2-content"
+        >
+          <SelectionIndicator
+            container={() => content}
+            selector={'[data-component="menu-v2-item"][data-highlighted]'}
+            attribute="data-highlighted"
+          />
           <MenuScroll viewportRef={(element) => (scroller = element)}>
             <Listbox data-slot="select-v2-listbox" scrollRef={() => scroller} />
           </MenuScroll>

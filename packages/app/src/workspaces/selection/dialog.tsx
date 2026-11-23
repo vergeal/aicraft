@@ -6,6 +6,7 @@ import { Divider } from "@opencode/ui/divider"
 import { Loader } from "@opencode/ui/loader"
 import { displayName } from "@opencode/ui/project-avatar"
 import { ProjectFolder } from "@opencode/ui/project-folder"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { TextInput } from "@opencode/ui/text-input"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { useDialog } from "@opencode/ui/context/dialog"
@@ -87,6 +88,7 @@ export function DirectoryPickerDialog(props: DirectoryPickerDialogProps) {
   let tree: FileTree | undefined
   let container: HTMLDivElement | undefined
   let pathArea: HTMLDivElement | undefined
+  let suggestionList: HTMLDivElement | undefined
   let navigation = 0
 
   const knownGitRepos = createMemo(() => {
@@ -733,7 +735,17 @@ export function DirectoryPickerDialog(props: DirectoryPickerDialogProps) {
             </Button>
           </div>
           <Show when={state.suggestionsOpen && currentSuggestions().length > 0}>
-            <div id="directory-picker-suggestions" role="listbox" class="directory-picker-suggestions">
+            <div
+              ref={(element) => (suggestionList = element)}
+              id="directory-picker-suggestions"
+              role="listbox"
+              class="directory-picker-suggestions"
+            >
+              <SelectionIndicator
+                container={() => suggestionList}
+                selector={'[data-directory-path][data-active]'}
+                attribute="data-active"
+              />
               <For each={currentSuggestions()}>
                 {(suggestion, index) => (
                   <button

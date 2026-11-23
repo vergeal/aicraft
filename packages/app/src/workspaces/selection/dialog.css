@@ -104,7 +104,10 @@
 .directory-picker-suggestions button:hover,
 .directory-picker-suggestions button[data-active] {
   color: var(--v2-text-text-base);
-  background: var(--v2-overlay-simple-overlay-hover);
+}
+
+.directory-picker-suggestions [data-slot="selection-indicator"] {
+  border-radius: 4px;
 }
 
 .directory-picker-browser {

@@ -6,6 +6,7 @@ import { Dialog, DialogBody, DialogTitle, DialogTitleGroup } from "@opencode/ui/
 import { useFilteredList } from "@opencode/ui/hooks"
 import { Icon } from "@opencode/ui/icon"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { TextInput } from "@opencode/ui/text-input"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSessionFork } from "@/session/fork"
@@ -78,6 +79,7 @@ export function ForkDialog(props: { messages: ForkableMessage[]; onSelect: (mess
   })
 
   let resultsRef: HTMLDivElement | undefined
+  let resultsList: HTMLDivElement | undefined
 
   const onKeyDown = (event: KeyboardEvent) => {
     // The pointer leaving the rows clears the highlight, so Enter then forks from the newest match.
@@ -135,7 +137,17 @@ export function ForkDialog(props: { messages: ForkableMessage[]; onSelect: (mess
               </div>
             }
           >
-            <div role="listbox" class="search-list-results" data-slot="search-list-results">
+            <div
+              ref={(element) => (resultsList = element)}
+              role="listbox"
+              class="search-list-results"
+              data-slot="search-list-results"
+            >
+              <SelectionIndicator
+                container={() => resultsList}
+                selector={'[data-slot="search-list-row"][data-active]'}
+                attribute="data-active"
+              />
               <For each={list.flat()}>
                 {(item) => (
                   <button

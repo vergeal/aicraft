@@ -55,9 +55,18 @@
   scroll-margin: 6px 0;
 }
 
-.palette-menu-row:is([data-active], :focus-visible) {
+.palette-menu-row:focus-visible {
   background: var(--v2-overlay-simple-overlay-hover);
   outline: none;
+}
+
+/* The list draws the selection for its rows; the block travels with the keyboard. See 13-motion.md §10. */
+.palette-menu-list {
+  position: relative;
+}
+
+.palette-menu-list [data-slot="selection-indicator"] {
+  border-radius: 6px;
 }
 
 .palette-menu-row[data-size="compact"] {
@@ -66,7 +75,7 @@
   scroll-margin-block: 0;
 }
 
-[data-color-scheme="dark"] .palette-menu-row:is([data-active], :focus-visible) {
+[data-color-scheme="dark"] .palette-menu-row:focus-visible {
   background: var(--v2-alpha-light-10);
 }
 

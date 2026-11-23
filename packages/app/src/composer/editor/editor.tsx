@@ -26,6 +26,7 @@ import { Button } from "@opencode/ui/button"
 import { Keybind } from "@opencode/ui/keybind"
 import { Menu } from "@opencode/ui/menu"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { AttachmentCard } from "@opencode/session-ui/attachment-card"
 import { ProgressCircle } from "@opencode/ui/progress-circle"
@@ -1382,6 +1383,8 @@ function ComposerEditorPopover(props: {
   const i18n = useI18n()
   const listID = props.id ?? createUniqueId()
   let container: HTMLDivElement | undefined
+  let list: HTMLDivElement | undefined
+  let historyList: HTMLDivElement | undefined
 
   const [store, setStore] = createStore({
     maxHeight: COMPOSER_SUGGESTION_MAX_HEIGHT,
@@ -1391,12 +1394,6 @@ function ComposerEditorPopover(props: {
 
   // The panel's own padding is inside its border box, so the content height alone would clip the last row.
   const panelHeight = () => Math.min(store.contentHeight + COMPOSER_SUGGESTION_TOP_PADDING * 2, store.maxHeight)
-
-  const activeIndex = createMemo(() => {
-    if (!props.activeID) return -1
-
-    return props.items.findIndex((item) => item.id === props.activeID)
-  })
 
   const resize = (height: number) =>
     setStore(
@@ -1491,7 +1488,18 @@ function ComposerEditorPopover(props: {
             )}
           </Show>
           <MenuScroll class="min-h-0 flex-1">
-            <div id={listID} role="listbox" aria-label={i18n.t("ui.promptInput.history")} class="flex flex-col">
+            <div
+              ref={(element) => (historyList = element)}
+              id={listID}
+              role="listbox"
+              aria-label={i18n.t("ui.promptInput.history")}
+              class="palette-menu-list flex flex-col"
+            >
+              <SelectionIndicator
+                container={() => historyList}
+                selector={'[data-suggestion-id][data-active]'}
+                attribute="data-active"
+              />
               <Show
                 when={props.items.length}
                 fallback={
@@ -1562,15 +1570,12 @@ function ComposerEditorPopover(props: {
               </div>
             }
           >
-            <div class="relative flex flex-col">
-              {/* One indicator slides between rows, so keyboard selection reads as movement rather than a jump. */}
-              <Show when={activeIndex() >= 0}>
-                <div
-                  aria-hidden="true"
-                  class="pointer-events-none absolute inset-x-0 top-0 h-[30px] rounded-lg bg-v2-overlay-simple-overlay-hover transition-transform duration-150 ease-out motion-reduce:transition-none"
-                  style={{ transform: `translateY(${activeIndex() * COMPOSER_SUGGESTION_ROW_HEIGHT}px)` }}
-                />
-              </Show>
+            <div ref={(element) => (list = element)} class="relative flex flex-col">
+              <SelectionIndicator
+                container={() => list}
+                selector={'[data-suggestion-id][data-active]'}
+                attribute="data-active"
+              />
               <For each={props.items}>
                 {(item) => (
                   <button

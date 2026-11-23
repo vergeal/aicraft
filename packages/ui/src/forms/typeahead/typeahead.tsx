@@ -6,6 +6,7 @@ import { abort } from "@opencode/util/abort"
 import { useI18n } from "../../context/i18n"
 import { Loader } from "../../feedback/loader/loader"
 import { MenuScroll } from "../../components/menu-scroll"
+import { SelectionIndicator } from "../../components/selection-indicator"
 import { createTypeahead } from "./controller"
 
 export { createTypeahead } from "./controller"
@@ -41,6 +42,7 @@ export function Typeahead<T>(props: {
   const cache = new Map<string, T[]>()
   let request: AbortController | undefined
   let input: HTMLInputElement | undefined
+  let viewport: HTMLDivElement | undefined
   onCleanup(() => abort(request))
 
   const query = () => store.query.trim()
@@ -170,9 +172,16 @@ export function Typeahead<T>(props: {
             id={typeahead.listID}
             role="listbox"
             class="max-h-56"
-            viewportClass="p-1"
+            viewportClass="relative p-1"
+            viewportRef={(element) => (viewport = element)}
             classList={{ hidden: results().items.length === 0 }}
           >
+            <SelectionIndicator
+              class="rounded-sm"
+              container={() => viewport}
+              selector={'[role="option"][aria-selected="true"]'}
+              attribute="aria-selected"
+            />
             <For each={results().items}>
               {(item) => (
                 <div
@@ -180,7 +189,7 @@ export function Typeahead<T>(props: {
                   role="option"
                   aria-selected={typeahead.activeItem() === item}
                   aria-current={props.selected === props.key(item) ? "true" : undefined}
-                  class="flex h-7 min-w-0 cursor-default select-none items-center gap-2 rounded-sm px-2 transition-opacity duration-150 aria-selected:bg-v2-overlay-simple-overlay-hover"
+                  class="flex h-7 min-w-0 cursor-default select-none items-center gap-2 rounded-sm px-2 transition-opacity duration-150"
                   classList={{ "opacity-50": results().stale }}
                   onMouseMove={(event) => {
                     // A static cursor must not steal the active row while the keyboard scrolls the list.

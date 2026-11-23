@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createMemo, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
+import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { useLanguage } from "@/runtime/i18n/language"
 import { bundledFonts, isMonospace, quoteFamily, type FontOption } from "@/runtime/platform/fonts"
 import "./font-picker.css"
@@ -284,6 +285,11 @@ export const FontPicker: Component<{
             />
 
             <div ref={list} data-slot="font-picker-list" id={listID} role="listbox" aria-label={props.label}>
+              <SelectionIndicator
+                container={() => list}
+                selector={'[data-slot="font-picker-option"][data-active]'}
+                attribute="data-active"
+              />
               <For each={options()}>
                 {(option, index) => (
                   <div

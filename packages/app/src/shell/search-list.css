@@ -26,10 +26,15 @@
 }
 
 .search-list-results {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
   padding: 0 8px 8px;
+}
+
+.search-list-results [data-slot="selection-indicator"] {
+  border-radius: var(--radius-sm);
 }
 
 .search-list-row {
@@ -46,10 +51,6 @@
   text-align: start;
   cursor: default;
   scroll-margin-block: 8px;
-}
-
-.search-list-row[data-active] {
-  background: var(--v2-overlay-simple-overlay-hover);
 }
 
 .search-list-row:focus-visible {

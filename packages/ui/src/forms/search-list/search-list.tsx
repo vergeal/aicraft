@@ -13,6 +13,7 @@ import {
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { Icon } from "@opencode/ui/icon"
 import { MenuScroll } from "../../components/menu-scroll"
+import { SelectionIndicator } from "../../components/selection-indicator"
 import { TextInput } from "../text-input/text-input"
 import { createTypeahead } from "../typeahead/controller"
 import { searchListMove, searchListTarget } from "./navigation"
@@ -325,6 +326,11 @@ export function SearchList<T>(props: {
               hidden={rows().length === 0}
               aria-label={props.label ?? props.placeholder}
             >
+              <SelectionIndicator
+                container={() => results}
+                selector={'[data-slot="search-list-row"][data-active]'}
+                attribute="data-active"
+              />
               <For each={sectionKeys()}>
                 {(section) => {
                   const keys = createMemo<string[]>((previous) =>

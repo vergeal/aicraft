@@ -22,7 +22,15 @@ function arg(name, fallback) {
   return value && !value.startsWith("--") ? value : true;
 }
 
-const bin = arg("bin", path.join(root, "build/bin/hyt-native-bridge"));
+const bin = arg(
+  "bin",
+  path.join(
+    root,
+    process.platform === "win32"
+      ? "build-win/bin/hyt-native-bridge.exe"
+      : "build/bin/hyt-native-bridge",
+  ),
+);
 const port = Number(arg("port", 37299));
 const noSpawn = arg("no-spawn", false) === true;
 const chRoot = arg("ch-root", process.env.HYT_CH_ROOT || path.join(os.homedir(), "Documents", "CHFile"));

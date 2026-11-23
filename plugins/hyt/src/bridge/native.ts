@@ -36,6 +36,8 @@ export function bridgeExecutable(pluginRoot: string, configured = "") {
   const name = process.platform === "win32" ? "hyt-native-bridge.exe" : "hyt-native-bridge"
   const candidates = [
     join(pluginRoot, "native", `${process.platform}-${process.arch}`, name),
+    // 桥接只按 x64 宿主构建：Windows ARM、Apple Silicon 上分别由系统模拟 x86 / Rosetta 运行 x64 产物。
+    join(pluginRoot, "native", `${process.platform}-x64`, name),
     join(pluginRoot, "native", process.platform, name),
     join(pluginRoot, "native", "build", "bin", name),
     join(pluginRoot, "native", name),

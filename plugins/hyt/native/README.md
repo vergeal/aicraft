@@ -12,6 +12,8 @@
 native/
   CMakeLists.txt        三平台构建配置
   sdk/                  构建所需的 EC SDK 头文件与库，随仓库分发
+  sdk-runtime/win/      虹云通 Windows 运行库（Ecmedia 及视频/加密等 dll），打包时随 exe 复制
+  third_party/sqlite3/  SQLite amalgamation，系统没有 sqlite3 时就地编译
   prebuilt/             各平台预编译产物，随插件包分发
   src/
     main.cpp            TCP 监听、RPC 路由、bridge.json、单实例锁
@@ -47,13 +49,21 @@ macOS 链接 `libECMacSDK.a` 与 `ECMediaSDK.framework`，另需系统自带 SQL
 
 ```bat
 scripts\build-windows.bat                        rem 默认用 native\sdk
-rem 产物：build-win\Release\hyt-native-bridge.exe，并复制到 prebuilt\win32-x64\
+rem 产物：build-win\bin\hyt-native-bridge.exe，并复制到 prebuilt\win32-x64\
 ```
 
+虹云通的 Windows SDK 是 32 位（`ECsdk.dll`、`Ecmedia.dll` 均为 x86），脚本因此固定 `-A Win32`。
+桥接是独立进程，x64 桌面端可以直接拉起 32 位 exe；目录仍叫 `win32-x64`，因为那是桌面端的
+`process.platform-process.arch`。SDK 换成 x64 时把 `-A` 改成 `x64`。
+
 SDK 目录布局：`include/win/`（头文件）与 `lib/win/`（`ECsdk.lib`、`ecmedia.lib`、`ECsdk.dll`）。
-CMake 也兼容 `libSdk/` 下的库文件。运行时把 `ECsdk.dll`、`ecmedia.dll` 放到可执行文件同目录；
-插件打包时会把 `native/sdk/lib/win` 下的 `*.dll` 一并复制。
-HTTP 走 WinHTTP，不依赖 libcurl；SQLite3 需自行提供（例如 vcpkg 的 `sqlite3`）。
+CMake 也兼容 `libSdk/` 下的库文件。运行时把 `ECsdk.dll`、`Ecmedia.dll` 等放在可执行文件同目录；
+插件打包时会把 `native/sdk/lib/win` 与 `native/sdk-runtime/win` 下的 `*.dll` 一起复制。
+HTTP 走 WinHTTP，不依赖 libcurl；SQLite3 优先用系统或 vcpkg 的库，找不到时编译
+`native/third_party/sqlite3`，克隆仓库后无需另外安装。
+
+exe 静态链接 CRT，不依赖 VC++ 运行库；`sdk-runtime/win` 里的 `msvcp140.dll`、`vcruntime140.dll`
+（MediaInfo）与 `msvcr100.dll`（libeay32/ssleay32）是给这些第三方 DLL 用的，安装包内依赖自洽。
 
 ### 插件打包布局
 
@@ -61,8 +71,9 @@ HTTP 走 WinHTTP，不依赖 libcurl；SQLite3 需自行提供（例如 vcpkg �
 
 ```
 native/prebuilt/darwin-x64/hyt-native-bridge      # 入库的发布产物
-native/prebuilt/win32-x64/hyt-native-bridge.exe   # Windows 上构建一次后入库
+native/prebuilt/win32-x64/hyt-native-bridge.exe   # Windows 上构建一次后入库（x86，供 x64 客户端拉起）
 native/sdk/{include,lib}/{mac,win}                # 构建输入，随仓库分发
+native/sdk-runtime/win/*.dll                      # Windows 运行库，打包时复制到 exe 旁
 dist/native/darwin-x64/hyt-native-bridge
 dist/native/win32-x64/hyt-native-bridge.exe
 dist/native/Frameworks/ECMediaSDK.framework       # 仅 macOS
@@ -118,7 +129,7 @@ node scripts/selftest.mjs --no-spawn     # 连已在运行的实例
 | 平台 | 构建 | 登录/收发 | 本地历史 | 说明 |
 | --- | --- | --- | --- | --- |
 | macOS | 已跑通 | 已实现，待用真实账号验收 | 已验证 | 与 GUI 同账号会互踢，验收时先关 GUI |
-| Windows | CMake 已配好 | 未验证 | 未验证 | 需在 Windows 上跑一次构建脚本产出 exe |
+| Windows | 已构建（x86） | 已实现，待用真实账号验收 | 待验证 | SDK 只有 32 位；exe 放在 `win32-x64` 目录供 x64 客户端拉起 |
 | Linux | 配置参考 | 不可用（stub） | 可用 | 缺 `.so` 时运行时明确报错 |
 
 ## 已知限制

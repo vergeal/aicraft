@@ -22,6 +22,10 @@ namespace {
 
 #ifdef HYT_WITH_EC_SDK
 
+// Windows 版 SDK 头文件还没有 69（语音已读通知），按 macOS 头文件里的值补齐，
+// 两个平台走同一套判断。
+constexpr int kMsgTypeReadVoiceNotify = 69;
+
 ECGeneralCallBackInterface gGeneralCallbacks;
 ECMessageCallBackInterface gMessageCallbacks;
 bool gCallbacksReady = false;
@@ -921,16 +925,16 @@ void SdkHost::handleReceive(void* ecMessage, bool offline) {
   emit("event.onMessage", messageToJson(message));
 
   // 插件自带桥接收到的消息也写进本地库，界面在客户端不开时也能看到；读取回执是通知类，不进聊天列表。
-  if (message.msgType != Msg_Type_ReadNotify && message.msgType != Msg_Type_ReadVoiceNotify) {
+  if (message.msgType != Msg_Type_ReadNotify && message.msgType != kMsgTypeReadVoiceNotify) {
     writeMessage(message, true, false);
   }
 
-  if (message.msgType == Msg_Type_ReadNotify || message.msgType == Msg_Type_ReadVoiceNotify) {
+  if (message.msgType == Msg_Type_ReadNotify || message.msgType == kMsgTypeReadVoiceNotify) {
     nhjson::Value receipt = nhjson::Value::object();
     receipt.set("msgId", nhjson::Value::string(message.msgId));
     receipt.set("sessionId", nhjson::Value::string(message.sessionId));
     receipt.set("account", nhjson::Value::string(message.sender));
-    receipt.set("voice", nhjson::Value::boolean(message.msgType == Msg_Type_ReadVoiceNotify));
+    receipt.set("voice", nhjson::Value::boolean(message.msgType == kMsgTypeReadVoiceNotify));
     emit("event.onReadReceipt", receipt);
   }
   if (offline) {

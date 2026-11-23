@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
-project(hyt-native-bridge CXX)
+project(hyt-native-bridge C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
+endif()
+if(MSVC)
+  # 静态链接 CRT：exe 不再依赖 MSVCP140.dll / VCRUNTIME140.dll，装到没装 VC++ 运行库的机器也能启动。
+  # MediaInfo.dll 之类第三方库还是动态的，运行库仍会随包分发。
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 # EC SDK 根目录：形如 native/sdk（含 include/<platform> 与 lib/<platform>）。
@@ -16,7 +21,19 @@ if(NOT HYT_SDK_ROOT AND DEFINED ENV{HYT_SDK_ROOT})
 endif()
 
 find_package(Threads REQUIRED)
-find_package(SQLite3 REQUIRED)
+# SQLite3 优先用系统或 vcpkg 提供的库；没有时编译 third_party 里的 amalgamation。
+# bridge 只做普通读写，chatmsg.db 不是加密库，所以不需要 SDK 里的加密变体。
+find_package(SQLite3 QUIET)
+if(SQLite3_FOUND)
+  set(HYT_SQLITE_TARGET SQLite::SQLite3)
+  set(HYT_SQLITE_INCLUDE "${SQLite3_INCLUDE_DIRS}")
+else()
+  add_library(hyt-sqlite3 STATIC "${CMAKE_CURRENT_SOURCE_DIR}/third_party/sqlite3/sqlite3.c")
+  target_include_directories(hyt-sqlite3 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/third_party/sqlite3")
+  target_compile_definitions(hyt-sqlite3 PRIVATE SQLITE_THREADSAFE=1 SQLITE_ENABLE_COLUMN_METADATA=1)
+  set(HYT_SQLITE_TARGET hyt-sqlite3)
+  set(HYT_SQLITE_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/sqlite3")
+endif()
 
 add_executable(hyt-native-bridge
   src/main.cpp
@@ -27,9 +44,12 @@ add_executable(hyt-native-bridge
 )
 # 只用 SQLite 的头文件：macOS 链接了 EC SDK 时，sqlite3 的实现由 SDK 静态库提供。
 # 同时链系统 libsqlite3 会让同一个进程里出现两套 sqlite3，SDK 内部查询会跳到另一版实现并崩溃。
-target_include_directories(hyt-native-bridge PRIVATE ${SQLite3_INCLUDE_DIRS})
+target_include_directories(hyt-native-bridge PRIVATE ${HYT_SQLITE_INCLUDE})
 target_link_libraries(hyt-native-bridge PRIVATE Threads::Threads)
-if(NOT MSVC)
+if(MSVC)
+  # 源码是 UTF-8；中文系统默认按 GBK(936) 读，字符串字面量会被拆坏。
+  target_compile_options(hyt-native-bridge PRIVATE /utf-8)
+else()
   target_compile_options(hyt-native-bridge PRIVATE -Wall -Wextra -Wno-unused-parameter)
 endif()
 
@@ -112,11 +132,11 @@ if(HYT_SDK_FOUND)
       "${HYT_WIN_SDK_LIB}/ecmedia.lib"
       ws2_32
       winhttp
-      SQLite::SQLite3
+      ${HYT_SQLITE_TARGET}
     )
   else()
     # Linux 版仅提供配置参考：SDK 运行时依赖较多，缺 .so 时请留在 stub 模式。
-    target_link_libraries(hyt-native-bridge PRIVATE SQLite::SQLite3)
+    target_link_libraries(hyt-native-bridge PRIVATE ${HYT_SQLITE_TARGET})
     if(EXISTS "${HYT_SDK_LIB}/libECsdk.so")
       target_link_directories(hyt-native-bridge PRIVATE "${HYT_SDK_LIB}")
       target_link_libraries(hyt-native-bridge PRIVATE
@@ -130,7 +150,7 @@ if(HYT_SDK_FOUND)
   endif()
 else()
   message(STATUS "EC SDK 未找到，编译 stub（仅本地历史/会话可用）")
-  target_link_libraries(hyt-native-bridge PRIVATE SQLite::SQLite3)
+  target_link_libraries(hyt-native-bridge PRIVATE ${HYT_SQLITE_TARGET})
 endif()
 
 if(NOT WIN32)

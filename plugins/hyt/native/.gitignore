@@ -5,4 +5,4 @@ bin/
 *.obj
 .DS_Store
 # 早于 sdk/ 与 prebuilt/ 的本机构建残留；构建输入与发布产物现在随仓库分发。
-sdk-runtime/
+# sdk-runtime/ 例外：Windows 的 Ecmedia 等运行库只在这个仓库里，打包时要随 exe 一起入库分发。

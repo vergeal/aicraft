@@ -592,9 +592,9 @@
 }
 
 /* The side region's leading slot owns the strip's start. The bar's own 8px gap is dropped here so the slot can place
-   its rule 6px before the first pill; the "+" keeps the strip's 4px gap so its hover surface clears the last pill
-   instead of crowding it. The pills and the "+" stay centred on the 48px strip, matching the leading slot and the
-   trailing actions. */
+   its rule 6px before the first pill; the "+" keeps 8px after the last pill so its hover surface clears it, and its
+   28px surface is a rounded square. The pills and the "+" stay centred on the 48px strip, matching the leading slot
+   and the trailing actions. */
 :root
   body
   #review-panel
@@ -622,7 +622,8 @@
   gap: 4px;
 }
 
-/* The "+" keeps the strip's own gap after the last pill, so its hover surface does not crowd it. */
+/* The "+" keeps a little air after the last pill: the strip's 4px gap plus 4px, so its hover surface does not crowd
+   the pill beside it. */
 :root
   body
   #review-panel
@@ -630,7 +631,7 @@
   .session-review-v2-tabs-bar:has([data-slot="session-panel-lead"])
   [data-slot="tabs-list"]
   > .sticky {
-  margin-inline-start: 0;
+  margin-inline-start: 4px;
 }
 
 /* The "+" button's 28px hover surface is a rounded square rather than a circle, so it reads with the pills beside it. */

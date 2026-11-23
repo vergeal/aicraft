@@ -1,6 +1,7 @@
 ---
 name: 前端设计
 description: 当你从零搭建新界面、或重塑现有界面时使用：给出有辨识度、有意图的视觉设计方向，在配色、排版与布局上做明确取舍，避免读起来像模板生成的默认稿。
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#6a45e0"/><g transform="translate(-0.64 0.64)"><g transform="rotate(45 12 12)"><rect x="10.2" y="2.6" width="3.6" height="13.6" rx="1.8" fill="#fdf4e6" stroke="#3a1f8f" stroke-width="1.1"/><polygon points="12,21.4 9.5,16 14.5,16" fill="#e94b5c" stroke="#3a1f8f" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/></g></g></svg>'
 license: Complete terms in LICENSE.txt
 ---
 

@@ -1,0 +1,251 @@
+/* Spotlight: a wide field with results attached beneath it, opened at the top of the window like a search prompt. */
+[data-component="dialog-v2"]:has(.spotlight) {
+  --spotlight-width: min(calc(100vw - 48px), 680px);
+  --spotlight-max-height: min(calc(100vh - 128px), 560px);
+  --spotlight-radius: 12px;
+  --spotlight-row-height: 44px;
+  --spotlight-row-radius: 10px;
+
+  align-items: flex-start;
+}
+
+[data-component="dialog-v2"]:has(.spotlight) [data-slot="dialog-container"] {
+  width: var(--spotlight-width);
+  height: auto;
+  max-height: var(--spotlight-max-height);
+  min-height: 0;
+  /* Sits above the optical centre so the eye lands on the field, not on the empty lower half. */
+  margin-top: max(80px, calc((100vh - var(--spotlight-max-height)) / 3));
+}
+
+.spotlight-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.spotlight [data-slot="search-list-search"] {
+  position: relative;
+  padding: 8px;
+
+  /* The field is the panel's whole header: no rule between it and the results. */
+  &::after {
+    display: none;
+  }
+
+  [data-component="text-input-v2"] {
+    height: 52px;
+    padding-inline-end: 10px;
+    border-radius: var(--spotlight-radius);
+    background: color-mix(in srgb, var(--v2-background-bg-layer-02) 55%, transparent);
+  }
+
+  [data-component="text-input-v2"]:where(:hover):not([data-disabled], [data-invalid]) {
+    background: color-mix(in srgb, var(--v2-background-bg-layer-02) 80%, transparent);
+  }
+
+  [data-component="text-input-v2"]:where(:focus-within):not([data-disabled], [data-invalid]) {
+    background: var(--v2-background-bg-layer-02);
+    outline: 1px solid var(--v2-border-border-strong);
+    outline-offset: -1px;
+    box-shadow: none;
+  }
+
+  [data-slot="text-input-v2-value"] {
+    gap: 10px;
+  }
+
+  [data-slot="text-input-v2-leading-icon"] {
+    padding-inline-start: 14px;
+    color: var(--v2-icon-icon-muted);
+
+    :is(svg, [data-slot="icon-svg"]) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  [data-slot="text-input-v2-input"] {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: var(--line-height-base);
+    letter-spacing: -0.02px;
+  }
+
+  [data-slot="text-input-v2-input"]::placeholder {
+    color: var(--v2-text-text-faint);
+    opacity: 1;
+  }
+}
+
+.spotlight [data-slot="search-list-results"] {
+  padding: 0 8px 8px;
+}
+
+.spotlight [data-slot="search-list-section"] {
+  gap: 2px;
+
+  &:not(:last-child) {
+    padding-bottom: 10px;
+  }
+}
+
+/* The header bleeds to the viewport edge so rows scroll under an opaque band, while its text stays on the row spine. */
+.spotlight [data-slot="search-list-header"] {
+  margin-inline: -8px;
+  padding-inline: 20px;
+  background: transparent;
+  backdrop-filter: var(--v2-material-blur-thick);
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.06em;
+}
+
+.spotlight [data-slot="search-list-row"],
+.spotlight [data-slot="search-list-row"][data-size="compact"] {
+  position: relative;
+  height: var(--spotlight-row-height);
+  padding-inline: 10px;
+  border-radius: var(--spotlight-row-radius);
+}
+
+.spotlight [data-slot="search-list-results"] [data-slot="selection-indicator"] {
+  border-radius: var(--spotlight-row-radius);
+  background: var(--v2-overlay-simple-overlay-pressed);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
+}
+
+@media (hover: hover) {
+  .spotlight [data-component="search-list"] [data-slot="search-list-row"]:hover:not([data-active]) {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+.spotlight-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+}
+
+.spotlight-row-icon {
+  display: flex;
+  width: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--v2-icon-icon-muted);
+
+  :is(svg, [data-slot="icon-svg"]) {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.spotlight-row-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.spotlight-row-title {
+  overflow: hidden;
+  color: var(--v2-text-text-base);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.02px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-row-snippet {
+  overflow: hidden;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: -0.01px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A file row reads as one path: a dimmed directory, then its name, the way the command palette shows files. */
+.spotlight-file-path {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  gap: 0;
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.04px;
+}
+
+.spotlight-file-dir {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--v2-text-text-muted);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-file-name {
+  flex-shrink: 0;
+  color: var(--v2-text-text-base);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.spotlight-row-meta {
+  flex-shrink: 0;
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.spotlight-state {
+  display: flex;
+  min-height: 128px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.01px;
+  text-align: center;
+
+  [data-slot="spotlight-state-icon"] {
+    display: flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    color: var(--v2-icon-icon-muted);
+  }
+}
+
+.spotlight [data-slot="search-list-footer"] {
+  padding: 6px 20px 12px;
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+}
+
+@media (pointer: coarse) {
+  .spotlight [data-slot="search-list-row"],
+  .spotlight [data-slot="search-list-search"] [data-component="text-input-v2"] {
+    min-height: 44px;
+  }
+}

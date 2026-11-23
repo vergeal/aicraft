@@ -279,6 +279,8 @@ import type {
   ExperimentalScheduleResumeOutput,
   ExperimentalScheduleDeleteInput,
   ExperimentalScheduleDeleteOutput,
+  ExperimentalSearchMessagesInput,
+  ExperimentalSearchMessagesOutput,
   ExperimentalArtifactsProvidersInput,
   ExperimentalArtifactsProvidersOutput,
   ExperimentalArtifactsListInput,
@@ -350,6 +352,8 @@ import type {
   ExperimentalServerKnowledgeSyncOutput,
   ExperimentalServerKnowledgeRemoveInput,
   ExperimentalServerKnowledgeRemoveOutput,
+  ExperimentalServerKnowledgeSearchInput,
+  ExperimentalServerKnowledgeSearchOutput,
   ExperimentalServerKnowledgeAssignedInput,
   ExperimentalServerKnowledgeAssignedOutput,
   ExperimentalServerKnowledgeAssignInput,
@@ -1324,6 +1328,20 @@ export function make(options: ClientOptions) {
             requestOptions,
           ),
       },
+      search: {
+        messages: (input: ExperimentalSearchMessagesInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalSearchMessagesOutput }>(
+            {
+              method: "GET",
+              path: `/api/experimental/search/messages`,
+              query: { query: input["query"], limit: input["limit"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+      },
       artifacts: {
         providers: (input?: ExperimentalArtifactsProvidersInput, requestOptions?: RequestOptions) =>
           request<ExperimentalArtifactsProvidersOutput>(
@@ -1531,6 +1549,18 @@ export function make(options: ClientOptions) {
               successStatus: 204,
               declaredStatuses: [400, 401],
               empty: true,
+            },
+            requestOptions,
+          ),
+        search: (input: ExperimentalServerKnowledgeSearchInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalServerKnowledgeSearchOutput>(
+            {
+              method: "GET",
+              path: `/api/experimental/knowledge/search`,
+              query: { query: input["query"], projectID: input["projectID"], limit: input["limit"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
             },
             requestOptions,
           ),
@@ -3121,6 +3151,8 @@ export function make(options: ClientOptions) {
       sync: client.experimental["server.knowledge"].sync,
       /** @deprecated Use `client.experimental.server.knowledge.remove`. Removed in the next minor. */
       remove: client.experimental["server.knowledge"].remove,
+      /** @deprecated Use `client.experimental.server.knowledge.search`. Removed in the next minor. */
+      search: client.experimental["server.knowledge"].search,
       /** @deprecated Use `client.experimental.server.knowledge.assigned`. Removed in the next minor. */
       assigned: client.experimental["server.knowledge"].assigned,
       /** @deprecated Use `client.experimental.server.knowledge.assign`. Removed in the next minor. */

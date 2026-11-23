@@ -255,6 +255,7 @@ export function createActiveSessionRegion(input: {
 
     setResendPending(true)
   }
+
   const fork = useSessionFork()
   const forkMessage: NonNullable<SessionUserActions["fork"]> = (target) => fork(target).then(() => undefined)
 
@@ -341,7 +342,10 @@ export function createActiveSessionRegion(input: {
       id: "command.palette",
       title: language.t("command.palette"),
       hidden: true,
-      onSelect: () => command.trigger("file.open", "palette"),
+      onSelect: async () => {
+        const { Spotlight } = await import("@/shell/commands/spotlight")
+        void dialog.show(() => <Spotlight />)
+      },
     },
   ])
 

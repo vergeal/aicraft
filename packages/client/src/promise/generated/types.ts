@@ -436,6 +436,16 @@ export type ConfigShellOption = { path: string; name: string; acceptable: boolea
 
 export type KnowledgeStatus = "empty" | "indexing" | "ready" | "stale" | "failed"
 
+export type KnowledgeSearchHit = {
+  libraryID: string
+  libraryName: string
+  path: string
+  name: string
+  ordinal: number
+  text: string
+  score: number
+}
+
 export type LocationPublicRef = { directory: AbsolutePath }
 
 export type FileSystemWrite = { path: AbsolutePath }
@@ -529,6 +539,18 @@ export type SessionMessageCompactionRunning = {
   status: "running"
   reason: "auto" | "manual"
   summary: string
+}
+
+export type SearchMessageHit = {
+  sessionID: SessionID
+  messageID: SessionMessageID
+  type: string
+  snippet: string
+  time: number
+  sessionTitle?: string
+  projectID: ProjectID
+  directory: string
+  archived: boolean
 }
 
 export type UsageLimitsBudgetModel = { providerID: ProviderID; modelID: string; name: string; spent?: MoneyUSD }
@@ -4920,6 +4942,10 @@ export type ExperimentalScheduleDeleteInput = { readonly scheduleID: string }
 
 export type ExperimentalScheduleDeleteOutput = void
 
+export type ExperimentalSearchMessagesInput = { readonly query: string; readonly limit?: number | undefined }
+
+export type ExperimentalSearchMessagesOutput = { data: Array<SearchMessageHit> }["data"]
+
 export type ExperimentalArtifactsProvidersInput = {
   readonly location?: { readonly directory?: string | undefined } | undefined
 }
@@ -5202,6 +5228,14 @@ export type ExperimentalServerKnowledgeRemoveInput = { readonly libraryID: strin
 
 export type ExperimentalServerKnowledgeRemoveOutput = void
 
+export type ExperimentalServerKnowledgeSearchInput = {
+  readonly query: string
+  readonly projectID?: string | undefined
+  readonly limit?: number | undefined
+}
+
+export type ExperimentalServerKnowledgeSearchOutput = Array<KnowledgeSearchHit>
+
 export type ExperimentalServerKnowledgeAssignedInput = { readonly projectID: string }
 
 export type ExperimentalServerKnowledgeAssignedOutput = Array<KnowledgeInfo>
@@ -5444,6 +5478,12 @@ export type ServerKnowledgeRemoveInput = ExperimentalServerKnowledgeRemoveInput
 
 /** @deprecated Use `ExperimentalServerKnowledgeRemoveOutput`. Removed in the next minor. */
 export type ServerKnowledgeRemoveOutput = ExperimentalServerKnowledgeRemoveOutput
+
+/** @deprecated Use `ExperimentalServerKnowledgeSearchInput`. Removed in the next minor. */
+export type ServerKnowledgeSearchInput = ExperimentalServerKnowledgeSearchInput
+
+/** @deprecated Use `ExperimentalServerKnowledgeSearchOutput`. Removed in the next minor. */
+export type ServerKnowledgeSearchOutput = ExperimentalServerKnowledgeSearchOutput
 
 /** @deprecated Use `ExperimentalServerKnowledgeAssignedInput`. Removed in the next minor. */
 export type ServerKnowledgeAssignedInput = ExperimentalServerKnowledgeAssignedInput

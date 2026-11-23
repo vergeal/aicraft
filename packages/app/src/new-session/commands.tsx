@@ -26,8 +26,8 @@ export function useNewSessionCommands(input: {
       title: language.t("command.palette"),
       hidden: true,
       onSelect: async () => {
-        const { DialogCommandPalette } = await import("@/shell/commands/dialog")
-        void dialog.show(() => <DialogCommandPalette />)
+        const { Spotlight } = await import("@/shell/commands/spotlight")
+        void dialog.show(() => <Spotlight />)
       },
     },
   ])

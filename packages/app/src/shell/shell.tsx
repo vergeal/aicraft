@@ -10,7 +10,7 @@ import { COMMAND_SEARCH_ID, useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useGlobal } from "@/runtime/server/runtime"
-import { ServerConnection, useServers } from "@/runtime/server/registry"
+import { ServerConnection } from "@/runtime/server/registry"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
 import { useNavigate } from "@solidjs/router"
@@ -69,11 +69,15 @@ function HomeNewChat() {
     }
 
     const conn = global.servers.list()[0]
+
     if (!conn) return
+
     const ctx = global.serverCtx(ServerConnection.key(conn))
+
     if (!ctx) return
 
     const directory = ctx.projects.last()?.worktree ?? ctx.projects.list()[0]?.worktree
+
     if (!directory) return
 
     void tabs
@@ -98,9 +102,6 @@ function ReplicaLayer(props: ParentProps) {
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()
-  const global = useGlobal()
-  const servers = useServers()
-  const tabs = useTabs()
   const layout = useLayout()
   const navigate = useNavigate()
   const mobile = createMediaQuery("(max-width: 767px)")
@@ -118,6 +119,7 @@ function ReplicaLayer(props: ParentProps) {
   // the painted background, because a browser tab has no material behind it.
   createEffect(() => {
     document.documentElement.dataset.replicaWindow = platform.platform === "desktop" ? "translucent" : "opaque"
+
     // The frame height differs per OS, so the stylesheet sizes the window bar from the platform, not the viewport.
     if (platform.platform === "desktop" && platform.os) document.documentElement.dataset.os = platform.os
   })
@@ -163,10 +165,14 @@ function ReplicaLayer(props: ParentProps) {
       frame = 0
 
       if (draggingWidth === undefined) return
+
       const slot = root?.querySelector<HTMLElement>('[data-slot="replica-sidebar-slot"]')
+
       if (slot) slot.style.flexBasis = showSidebar() ? `${draggingWidth}px` : "0px"
+
       // The window bar's left segment shares the column's width, so it follows the same frame write.
       const bar = root?.querySelector<HTMLElement>('[data-slot="replica-titlebar-side"]')
+
       if (bar) bar.style.flexBasis = draggingWidth ? `${draggingWidth}px` : "0px"
     })
   }
@@ -240,22 +246,8 @@ function ReplicaLayer(props: ParentProps) {
       title: language.t("command.palette"),
       hidden: true,
       onSelect: async () => {
-        const conn = servers.visible.find((item) => servers.current(item)) ?? servers.visible[0]
-
-        if (!conn) return
-        const { HomeCommandPalette } = await import("@/home/start/command-palette")
-        void dialog.show(() => (
-          <HomeCommandPalette
-            server={conn}
-            onSelectSession={(entry) => {
-              if (!entry.sessionID || !entry.directory || !entry.server) return
-              const sessionID = entry.sessionID
-              const server = entry.server
-              global.serverCtx(server)?.projects.touch(entry.project?.worktree ?? entry.directory)
-              void tabs.select(tabs.addSessionTab({ server, sessionId: sessionID }))
-            }}
-          />
-        ))
+        const { Spotlight } = await import("@/shell/commands/spotlight")
+        void dialog.show(() => <Spotlight />)
       },
     },
   ])

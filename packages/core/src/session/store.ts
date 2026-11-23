@@ -1,6 +1,6 @@
 export * as SessionStore from "./store.js"
 
-import { and, asc, desc, eq, gt, isNotNull, isNull, lt, notInArray, or, sql, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or, sql, type SQL } from "drizzle-orm"
 import { Context, Effect, Layer, Schema } from "effect"
 import { Project } from "@opencode/schema/project"
 import { Workspace } from "@opencode/schema/workspace"
@@ -11,7 +11,7 @@ import { SessionHistory } from "./history.js"
 import { MessageDecodeError } from "./error.js"
 import { SessionMessage } from "./message.js"
 import { Session } from "@opencode/schema/session"
-import { SessionMessageTable, SessionTable } from "./sql.js"
+import { SessionMessageTable, SessionPartTable, SessionTable } from "./sql.js"
 import { fromRow } from "./info.js"
 
 const ListInputBase = {
@@ -51,6 +51,25 @@ export type MessagesInput = {
   }
 }
 
+/** One message whose text matches a search, with enough context to open it and preview the match. */
+export type MessageSearchHit = {
+  readonly sessionID: Session.ID
+  readonly messageID: SessionMessage.ID
+  readonly type: SessionMessage.Type
+  readonly snippet: string
+  readonly time: number
+  readonly sessionTitle?: string
+  readonly projectID: Project.ID
+  readonly directory: string
+  readonly archived: boolean
+}
+
+export type MessageSearchInput = {
+  readonly query: string
+  readonly limit?: number
+}
+
+
 export interface Interface {
   readonly get: (sessionID: Session.ID) => Effect.Effect<Session.Info | undefined>
   readonly list: (input?: ListInput) => Effect.Effect<Session.Info[]>
@@ -65,6 +84,11 @@ export interface Interface {
   readonly messageWithRefs: (
     messageID: SessionMessage.ID,
   ) => Effect.Effect<{ readonly sessionID: Session.ID; readonly message: SessionMessage.MediaInfo } | undefined>
+  /**
+   * Messages whose visible text matches `query`, newest first. The same text the transcript shows: prompt text,
+   * assistant prose and reasoning, synthetic and system notes, shell commands, and compaction summaries.
+   */
+  readonly searchMessages: (input: MessageSearchInput) => Effect.Effect<ReadonlyArray<MessageSearchHit>>
   /**
    * Top-level Sessions holding an execution claim. Recoverable background
    * children are resumed separately through their durable Job records.
@@ -204,6 +228,82 @@ const layer = Layer.effect(
         const [message] = yield* SessionHistory.decodeMessageRowsWithRefs(db, [row]).pipe(Effect.orDie)
         return message && { sessionID: row.session_id, message }
       }),
+      searchMessages: Effect.fn("SessionStore.searchMessages")(function* (input) {
+        const query = input.query.trim()
+        if (!query) return []
+
+        // The coarse pass runs in SQLite over the stored JSON; only the matches it returns are parsed, so a large
+        // history costs one scan instead of decoding every message.
+        const pattern = `%${escapeLike(query)}%`
+        const rows = yield* db
+          .select({
+            id: SessionMessageTable.id,
+            session_id: SessionMessageTable.session_id,
+            type: SessionMessageTable.type,
+            data: SessionMessageTable.data,
+            time_created: SessionMessageTable.time_created,
+            title: SessionTable.title,
+            directory: SessionTable.directory,
+            project_id: SessionTable.project_id,
+            time_archived: SessionTable.time_archived,
+          })
+          .from(SessionMessageTable)
+          .innerJoin(SessionTable, eq(SessionTable.id, SessionMessageTable.session_id))
+          .where(
+            sql`(${SessionMessageTable.data} LIKE ${pattern} ESCAPE '\\' OR EXISTS (SELECT 1 FROM session_part WHERE session_part.message_id = session_message.id AND session_part.data LIKE ${pattern} ESCAPE '\\'))`,
+          )
+          .orderBy(desc(SessionMessageTable.time_created), desc(SessionMessageTable.id))
+          .limit(MESSAGE_SEARCH_CANDIDATES)
+          .all()
+          .pipe(Effect.orDie)
+        if (rows.length === 0) return []
+
+        const parts = yield* db
+          .select({ message_id: SessionPartTable.message_id, data: SessionPartTable.data })
+          .from(SessionPartTable)
+          .where(
+            inArray(
+              SessionPartTable.message_id,
+              rows.map((row) => row.id),
+            ),
+          )
+          .orderBy(asc(SessionPartTable.message_id), asc(SessionPartTable.ordinal))
+          .all()
+          .pipe(Effect.orDie)
+
+        const partsText = new Map<SessionMessage.ID, string[]>()
+        for (const part of parts) {
+          const text = partText(part.data)
+          if (text === undefined) continue
+          const list = partsText.get(part.message_id)
+          if (list) list.push(text)
+          else partsText.set(part.message_id, [text])
+        }
+
+        const needle = query.toLocaleLowerCase()
+        const limit = Math.min(Math.max(input.limit ?? 20, 1), 50)
+
+        return rows
+          .flatMap((row): MessageSearchHit[] => {
+            const text = messageText(row.type, row.data, partsText.get(row.id) ?? [])
+            if (!text || !text.toLocaleLowerCase().includes(needle)) return []
+
+            return [
+              {
+                sessionID: row.session_id,
+                messageID: row.id,
+                type: row.type,
+                snippet: snippet(text, query),
+                time: row.time_created,
+                sessionTitle: row.title ?? undefined,
+                projectID: row.project_id,
+                directory: row.directory,
+                archived: row.time_archived !== null,
+              },
+            ]
+          })
+          .slice(0, limit)
+      }),
       listSuspended: Effect.fn("SessionStore.listSuspended")(function* () {
         return yield* db
           .select({ sessionID: SessionTable.id })
@@ -267,6 +367,50 @@ const layer = Layer.effect(
 )
 
 export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node] })
+
+/** How many matching rows the coarse pass hands to the text extraction, newest first. */
+const MESSAGE_SEARCH_CANDIDATES = 400
+
+/** A LIKE pattern matches literally: the user typed `%`, `_` and `\`, not a wildcard or an escape. */
+function escapeLike(value: string) {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`)
+}
+
+/** One window of text around the first match, so a long message reads as a result rather than a wall. */
+function snippet(text: string, query: string) {
+  const at = text.toLocaleLowerCase().indexOf(query.toLocaleLowerCase())
+  if (at === -1) return text.slice(0, 160)
+  const start = Math.max(0, at - 60)
+  const end = Math.min(text.length, at + query.length + 100)
+  const window = text.slice(start, end).replace(/\s+/g, " ").trim()
+  return `${start > 0 ? "…" : ""}${window}${end < text.length ? "…" : ""}`
+}
+
+/** The visible prose of one message; tool inputs, files and metadata are not part of what a person reads. */
+function messageText(type: SessionMessage.Type, data: unknown, parts: ReadonlyArray<string>) {
+  const record = data as { text?: unknown; command?: unknown; summary?: unknown }
+  switch (type) {
+    case "assistant":
+      return parts.join("\n\n") || undefined
+    case "user":
+    case "synthetic":
+    case "system":
+    case "skill":
+      return typeof record.text === "string" ? record.text : undefined
+    case "shell":
+      return typeof record.command === "string" ? record.command : undefined
+    case "compaction":
+      return typeof record.summary === "string" ? record.summary : undefined
+    default:
+      return undefined
+  }
+}
+
+function partText(data: unknown) {
+  const record = data as { type?: unknown; text?: unknown }
+  if ((record.type === "text" || record.type === "reasoning") && typeof record.text === "string") return record.text
+  return undefined
+}
 
 // SQLite's LIKE folds case for ASCII only, and none of our drivers (bun, node, Durable Objects) ships ICU or lets us
 // register a lowercase function everywhere. GLOB is case-sensitive but supports character classes, so each cased

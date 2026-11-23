@@ -57,9 +57,9 @@ export interface Interface {
     libraryID: string
   }) => Effect.Effect<void, LibraryNotFoundError>
   readonly assigned: (projectID: Project.ID) => Effect.Effect<ReadonlyArray<KnowledgeSchema.Info>>
-  /** Chunks from the libraries assigned to one Project, best match first. */
+  /** Chunks from the libraries assigned to one Project, best match first. Omitting the Project searches every library. */
   readonly search: (input: {
-    projectID: Project.ID
+    projectID?: Project.ID
     query: string
     limit?: number
   }) => Effect.Effect<ReadonlyArray<KnowledgeSchema.SearchHit>>
@@ -469,12 +469,18 @@ const layer = Layer.effect(
       search: Effect.fn("Knowledge.search")(function* (input) {
         const tokens = queryTokens(input.query)
         if (tokens.length === 0) return []
-        const libraryIDs = yield* db
-          .select({ libraryID: ProjectKnowledgeTable.library_id })
-          .from(ProjectKnowledgeTable)
-          .where(eq(ProjectKnowledgeTable.project_id, input.projectID))
-          .all()
-          .pipe(Effect.orDie)
+        const libraryIDs = input.projectID
+          ? yield* db
+              .select({ libraryID: ProjectKnowledgeTable.library_id })
+              .from(ProjectKnowledgeTable)
+              .where(eq(ProjectKnowledgeTable.project_id, input.projectID))
+              .all()
+              .pipe(Effect.orDie)
+          : yield* db
+              .select({ libraryID: KnowledgeLibraryTable.id })
+              .from(KnowledgeLibraryTable)
+              .all()
+              .pipe(Effect.orDie)
         if (libraryIDs.length === 0) return []
 
         const ids = libraryIDs.map((row) => row.libraryID)

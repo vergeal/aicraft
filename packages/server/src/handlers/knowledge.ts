@@ -20,6 +20,11 @@ export const KnowledgeHandler = HttpApiBuilder.group(Api, "server.knowledge", (h
     .handle("knowledge.assigned", (ctx) =>
       Knowledge.Service.use((knowledge) => knowledge.assigned(ctx.params.projectID)),
     )
+    .handle("knowledge.search", (ctx) =>
+      Knowledge.Service.use((knowledge) =>
+        knowledge.search({ query: ctx.query.query, projectID: ctx.query.projectID, limit: ctx.query.limit }),
+      ),
+    )
     .handle("knowledge.assign", (ctx) =>
       Knowledge.Service.use((knowledge) =>
         knowledge

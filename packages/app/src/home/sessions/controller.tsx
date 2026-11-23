@@ -215,29 +215,8 @@ export function createHomeSessionsController(home: HomeController) {
       title: language.t("command.palette"),
       hidden: true,
       onSelect: async () => {
-        const conn = home.server.focused()
-
-        if (!conn) return
-        const ctx = home.server.focusedContext()
-
-        if (!ctx) return
-        const { HomeCommandPalette } = await import("../start/command-palette")
-        void dialog.show(() => (
-          <HomeCommandPalette
-            server={conn}
-            onSelectSession={(entry) => {
-              if (!entry.sessionID || !entry.directory || !entry.server) return
-              const sessionID = entry.sessionID
-              const server = entry.server
-              const directory = entry.project?.worktree ?? entry.directory
-              ctx.projects.touch(directory)
-              void startTransition(() => {
-                const tab = tabs.addSessionTab({ server, sessionId: sessionID })
-                tabs.select(tab)
-              })
-            }}
-          />
-        ))
+        const { Spotlight } = await import("@/shell/commands/spotlight")
+        void dialog.show(() => <Spotlight />)
       },
     },
   ])

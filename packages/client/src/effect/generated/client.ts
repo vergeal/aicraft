@@ -279,6 +279,8 @@ import type {
   ExperimentalScheduleResumeOutput,
   ExperimentalScheduleDeleteInput,
   ExperimentalScheduleDeleteOutput,
+  ExperimentalSearchMessagesInput,
+  ExperimentalSearchMessagesOutput,
   ExperimentalArtifactsProvidersInput,
   ExperimentalArtifactsProvidersOutput,
   ExperimentalArtifactsListInput,
@@ -348,6 +350,8 @@ import type {
   ExperimentalServerKnowledgeSyncOutput,
   ExperimentalServerKnowledgeRemoveInput,
   ExperimentalServerKnowledgeRemoveOutput,
+  ExperimentalServerKnowledgeSearchInput,
+  ExperimentalServerKnowledgeSearchOutput,
   ExperimentalServerKnowledgeAssignedInput,
   ExperimentalServerKnowledgeAssignedOutput,
   ExperimentalServerKnowledgeAssignInput,
@@ -1804,6 +1808,15 @@ const EndpointExperimentalScheduleDelete =
       raw["schedule.delete"]({ params: { scheduleID: input["scheduleID"] } }).pipe(Effect.mapError(mapClientError)),
     )
 
+const EndpointExperimentalSearchMessages =
+  (raw: RawClient["server.experimental"]) => (input: ExperimentalSearchMessagesInput) =>
+    preserveEffect<ExperimentalSearchMessagesOutput>()(
+      raw["search.messages"]({ query: { query: input["query"], limit: input["limit"] } }).pipe(
+        Effect.mapError(mapClientError),
+        Effect.map((value) => value.data),
+      ),
+    )
+
 const EndpointExperimentalArtifactsProviders =
   (raw: RawClient["server.experimental"]) => (input?: ExperimentalArtifactsProvidersInput) =>
     preserveEffect<ExperimentalArtifactsProvidersOutput>()(
@@ -1902,6 +1915,7 @@ const adaptGroupExperimental = (raw: RawClient["server.experimental"]) => ({
     resume: EndpointExperimentalScheduleResume(raw),
     delete: EndpointExperimentalScheduleDelete(raw),
   },
+  search: { messages: EndpointExperimentalSearchMessages(raw) },
   artifacts: {
     providers: EndpointExperimentalArtifactsProviders(raw),
     list: EndpointExperimentalArtifactsList(raw),
@@ -2150,6 +2164,14 @@ const EndpointExperimentalServerKnowledgeRemove =
       raw["knowledge.remove"]({ params: { libraryID: input["libraryID"] } }).pipe(Effect.mapError(mapClientError)),
     )
 
+const EndpointExperimentalServerKnowledgeSearch =
+  (raw: RawClient["server.knowledge"]) => (input: ExperimentalServerKnowledgeSearchInput) =>
+    preserveEffect<ExperimentalServerKnowledgeSearchOutput>()(
+      raw["knowledge.search"]({
+        query: { query: input["query"], projectID: input["projectID"], limit: input["limit"] },
+      }).pipe(Effect.mapError(mapClientError)),
+    )
+
 const EndpointExperimentalServerKnowledgeAssigned =
   (raw: RawClient["server.knowledge"]) => (input: ExperimentalServerKnowledgeAssignedInput) =>
     preserveEffect<ExperimentalServerKnowledgeAssignedOutput>()(
@@ -2176,6 +2198,7 @@ const adaptGroupExperimentalServerKnowledge = (raw: RawClient["server.knowledge"
   list: EndpointExperimentalServerKnowledgeList(raw),
   sync: EndpointExperimentalServerKnowledgeSync(raw),
   remove: EndpointExperimentalServerKnowledgeRemove(raw),
+  search: EndpointExperimentalServerKnowledgeSearch(raw),
   assigned: EndpointExperimentalServerKnowledgeAssigned(raw),
   assign: EndpointExperimentalServerKnowledgeAssign(raw),
   unassign: EndpointExperimentalServerKnowledgeUnassign(raw),
@@ -2366,6 +2389,8 @@ const adaptClient = (raw: RawClient) => {
       sync: client.experimental["server.knowledge"].sync,
       /** @deprecated Use `client.experimental.server.knowledge.remove`. Removed in the next minor. */
       remove: client.experimental["server.knowledge"].remove,
+      /** @deprecated Use `client.experimental.server.knowledge.search`. Removed in the next minor. */
+      search: client.experimental["server.knowledge"].search,
       /** @deprecated Use `client.experimental.server.knowledge.assigned`. Removed in the next minor. */
       assigned: client.experimental["server.knowledge"].assigned,
       /** @deprecated Use `client.experimental.server.knowledge.assign`. Removed in the next minor. */

@@ -1,5 +1,6 @@
 import { Knowledge } from "@opencode/schema/knowledge"
 import { Project } from "@opencode/schema/project"
+import { optional } from "@opencode/schema/schema"
 import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/http-api"
 import { InvalidRequestError } from "../errors.js"
@@ -60,6 +61,23 @@ export const KnowledgeGroup = HttpApiGroup.make("server.knowledge")
         "remove",
         "Remove knowledge library",
         "Delete the server copy of a library, including its documents, chunks, and assignments.",
+      ),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.get("knowledge.search", `${root}/search`, {
+      query: {
+        query: Schema.String,
+        projectID: optional(Project.ID),
+        limit: optional(Schema.NumberFromString),
+      },
+      success: Schema.Array(Knowledge.SearchHit),
+    })
+      .annotateMerge(
+      annotations(
+        "search",
+        "Search knowledge",
+        "Find the indexed passages that best match a query, best first. Pass a Project to search only the libraries assigned to it; omit it to search every library on the server.",
       ),
     ),
   )

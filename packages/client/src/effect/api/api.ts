@@ -2682,6 +2682,22 @@ export type ExperimentalScheduleDeleteOperation<E = never> = (
   input: ExperimentalScheduleDeleteInput,
 ) => Effect.Effect<ExperimentalScheduleDeleteOutput, E>
 
+export type ExperimentalSearchMessagesInput = { readonly query: string; readonly limit?: number | undefined }
+export type ExperimentalSearchMessagesOutput = ReadonlyArray<{
+  readonly sessionID: Session.ID
+  readonly messageID: SessionMessage.ID
+  readonly type: string
+  readonly snippet: string
+  readonly time: DateTime.Utc
+  readonly sessionTitle?: string | undefined
+  readonly projectID: Project.ID
+  readonly directory: string
+  readonly archived: boolean
+}>
+export type ExperimentalSearchMessagesOperation<E = never> = (
+  input: ExperimentalSearchMessagesInput,
+) => Effect.Effect<ExperimentalSearchMessagesOutput, E>
+
 export type ExperimentalArtifactsProvidersInput = {
   readonly location?: { readonly directory?: string | undefined } | undefined
 }
@@ -2814,6 +2830,7 @@ export interface ExperimentalApi<E = never> {
     readonly resume: ExperimentalScheduleResumeOperation<E>
     readonly delete: ExperimentalScheduleDeleteOperation<E>
   }
+  readonly search: { readonly messages: ExperimentalSearchMessagesOperation<E> }
   readonly artifacts: {
     readonly providers: ExperimentalArtifactsProvidersOperation<E>
     readonly list: ExperimentalArtifactsListOperation<E>
@@ -3142,6 +3159,24 @@ export type ExperimentalServerKnowledgeRemoveOperation<E = never> = (
   input: ExperimentalServerKnowledgeRemoveInput,
 ) => Effect.Effect<ExperimentalServerKnowledgeRemoveOutput, E>
 
+export type ExperimentalServerKnowledgeSearchInput = {
+  readonly query: string
+  readonly projectID?: Project.ID | undefined
+  readonly limit?: number | undefined
+}
+export type ExperimentalServerKnowledgeSearchOutput = ReadonlyArray<{
+  readonly libraryID: string
+  readonly libraryName: string
+  readonly path: string
+  readonly name: string
+  readonly ordinal: number
+  readonly text: string
+  readonly score: number
+}>
+export type ExperimentalServerKnowledgeSearchOperation<E = never> = (
+  input: ExperimentalServerKnowledgeSearchInput,
+) => Effect.Effect<ExperimentalServerKnowledgeSearchOutput, E>
+
 export type ExperimentalServerKnowledgeAssignedInput = { readonly projectID: Project.ID }
 export type ExperimentalServerKnowledgeAssignedOutput = ReadonlyArray<{
   readonly id: string
@@ -3176,6 +3211,7 @@ export interface ExperimentalServerKnowledgeApi<E = never> {
   readonly list: ExperimentalServerKnowledgeListOperation<E>
   readonly sync: ExperimentalServerKnowledgeSyncOperation<E>
   readonly remove: ExperimentalServerKnowledgeRemoveOperation<E>
+  readonly search: ExperimentalServerKnowledgeSearchOperation<E>
   readonly assigned: ExperimentalServerKnowledgeAssignedOperation<E>
   readonly assign: ExperimentalServerKnowledgeAssignOperation<E>
   readonly unassign: ExperimentalServerKnowledgeUnassignOperation<E>
@@ -3523,6 +3559,15 @@ export type ServerKnowledgeRemoveOutput = ExperimentalServerKnowledgeRemoveOutpu
 /** @deprecated Use `ExperimentalServerKnowledgeRemoveOperation`. Removed in the next minor. */
 export type ServerKnowledgeRemoveOperation<E = never> = ExperimentalServerKnowledgeRemoveOperation<E>
 
+/** @deprecated Use `ExperimentalServerKnowledgeSearchInput`. Removed in the next minor. */
+export type ServerKnowledgeSearchInput = ExperimentalServerKnowledgeSearchInput
+
+/** @deprecated Use `ExperimentalServerKnowledgeSearchOutput`. Removed in the next minor. */
+export type ServerKnowledgeSearchOutput = ExperimentalServerKnowledgeSearchOutput
+
+/** @deprecated Use `ExperimentalServerKnowledgeSearchOperation`. Removed in the next minor. */
+export type ServerKnowledgeSearchOperation<E = never> = ExperimentalServerKnowledgeSearchOperation<E>
+
 /** @deprecated Use `ExperimentalServerKnowledgeAssignedInput`. Removed in the next minor. */
 export type ServerKnowledgeAssignedInput = ExperimentalServerKnowledgeAssignedInput
 
@@ -3655,6 +3700,9 @@ export interface AppApi<E = never> {
 
     /** @deprecated Use `client.experimental.server.knowledge.remove`. Removed in the next minor. */
     readonly remove: ExperimentalServerKnowledgeRemoveOperation<E>
+
+    /** @deprecated Use `client.experimental.server.knowledge.search`. Removed in the next minor. */
+    readonly search: ExperimentalServerKnowledgeSearchOperation<E>
 
     /** @deprecated Use `client.experimental.server.knowledge.assigned`. Removed in the next minor. */
     readonly assigned: ExperimentalServerKnowledgeAssignedOperation<E>

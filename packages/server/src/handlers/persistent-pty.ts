@@ -24,6 +24,7 @@ import { makeJob } from "./job"
 import { makeMediaGet } from "./media"
 import { type Outbound, runPtySocket } from "./pty-socket"
 import { makeSchedule } from "./schedule"
+import { makeSearch } from "./search"
 
 export const PersistentPtyHandler = HttpApiBuilder.group(Api, "server.experimental", (handlers) =>
   Effect.gen(function* () {
@@ -34,6 +35,7 @@ export const PersistentPtyHandler = HttpApiBuilder.group(Api, "server.experiment
     const job = yield* makeJob
     const mediaGet = yield* makeMediaGet
     const schedule = yield* makeSchedule
+    const search = yield* makeSearch
 
     return handlers
       .handleRaw("media.get", (ctx) => mediaGet(ctx.params.hash, ctx.request))
@@ -52,6 +54,7 @@ export const PersistentPtyHandler = HttpApiBuilder.group(Api, "server.experiment
       .handle("schedule.pause", (ctx) => schedule.pause(ctx.params.scheduleID))
       .handle("schedule.resume", (ctx) => schedule.resume(ctx.params.scheduleID))
       .handle("schedule.delete", (ctx) => schedule.remove(ctx.params.scheduleID))
+      .handle("search.messages", (ctx) => search.messages(ctx.query.query, ctx.query.limit))
       .handle(
         "persistentPty.read",
         Effect.fn(function* (ctx) {

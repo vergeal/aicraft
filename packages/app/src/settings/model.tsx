@@ -336,7 +336,12 @@ export const settingsPersistence = Persistence.migrate(
         const general = value.general
         const appearance = value.appearance
         const mapped = Predicate.isObject(appearance)
-          ? { ...appearance, reduceMotion: legacyReduceMotion(appearance.reduceMotion) }
+          ? {
+              ...appearance,
+              // Inter shipped as the UI face until it was removed from the bundle; an empty value selects the default.
+              sans: appearance.sans === "Inter" ? "" : appearance.sans,
+              reduceMotion: legacyReduceMotion(appearance.reduceMotion),
+            }
           : appearance
         const base = { ...value, appearance: mapped }
 

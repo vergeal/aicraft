@@ -183,6 +183,9 @@ async function shipMacFramework(executable: string) {
   }
 
   await cp(source, join(dist, "native", "Frameworks", "ECMediaSDK.framework"), { recursive: true })
+  // 打包可以在别的平台进行（一个 .exc 同时带 macOS 与 Windows 桥接），但 rpath 只能由 macOS 的
+  // install_name_tool / otool 修改；其他平台上复制完 framework 就结束。
+  if (process.platform !== "darwin") return
   // native/<platform-arch>/../Frameworks
   const rpath = "@executable_path/../Frameworks"
   // 入库的二进制已经补过这条 rpath，重复添加会多出一条无效记录。

@@ -14,9 +14,6 @@
   border-radius: 50%;
   background-color: var(--_from);
   background-image: linear-gradient(var(--_from), var(--_mid), var(--_to));
-  transform-origin: center;
-  will-change: transform;
-  animation: glow-orb-spin 1.2s linear infinite;
 }
 
 [data-slot="glow-orb"] > span {
@@ -53,22 +50,4 @@
   border: calc(var(--_size) * 0.052) solid var(--_core);
   border-radius: 50%;
   background-color: var(--_core);
-}
-
-@keyframes glow-orb-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* syncSpinPhase marks orbs out of view; the animation is static, so pausing it drops the compositor layers. */
-[data-slot="glow-orb"][data-offscreen] {
-  animation-play-state: paused !important;
-}
-
-:root[data-motion="reduce"] {
-  [data-slot="glow-orb"] {
-    animation: none;
-    will-change: auto;
-  }
 }

@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=aicraft
+Name=AI Craft
 Exec=/opt/aicraft/changhong.aicraft %U
 Terminal=false
 Type=Application

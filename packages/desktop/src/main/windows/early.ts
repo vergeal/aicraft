@@ -93,7 +93,7 @@ export function createEarlyWindow() {
     height: state.height,
     show: !deferReveal,
     autoHideMenuBar: true,
-    title: "aicraft",
+    title: "AI Craft",
     icon: path.join(icons, `icon.${process.platform === "win32" ? "ico" : "png"}`),
     backgroundColor: "#00000000",
     ...platformFrame(tone(), zoom),

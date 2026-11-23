@@ -1,4 +1,4 @@
-# aicraft 桌面端项目经理手册
+# AI Craft 桌面端项目经理手册
 
 状态：工作手册（长期维护）
 适用范围：`packages/app`、`packages/desktop`、`packages/gui-plugins`、`packages/session-ui`、`packages/ui`、`packages/theme`

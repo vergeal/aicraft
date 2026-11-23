@@ -6,7 +6,7 @@ const channel = arg === "dev" || arg === "beta" || arg === "prod" ? arg : resolv
 
 const appId = channel === "prod" ? "changhong.aicraft.desktop" : `changhong.aicraft.desktop.${channel}`
 
-const productName = channel === "prod" ? "aicraft" : `aicraft ${channel.charAt(0).toUpperCase() + channel.slice(1)}`
+const productName = channel === "prod" ? "AI Craft" : `AI Craft ${channel.charAt(0).toUpperCase() + channel.slice(1)}`
 
 const summary = `Open source AI coding agent${channel !== "prod" ? ` (${channel})` : ""}`
 
@@ -26,7 +26,7 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 
   <description>
     <p>
-      aicraft is an open source agent that helps you write and run code with any AI model.
+      AI Craft is an open source agent that helps you write and run code with any AI model.
     </p>
   </description>
 

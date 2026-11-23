@@ -61,7 +61,7 @@ export function AppBaseProviders(
 ) {
   return (
     <MetaProvider>
-      <Title>aicraft</Title>
+      <Title>AI Craft</Title>
       <Font />
       <ThemeProvider onThemeApplied={(mode, scheme) => props.onThemeApplied?.(mode, scheme)}>
         <LanguageProvider locale={props.locale} onNativeTranslations={props.onNativeTranslations}>

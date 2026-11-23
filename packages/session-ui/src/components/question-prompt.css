@@ -292,9 +292,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    inline-size: 16px;
+    inline-size: 18px;
     block-size: 20px;
-    flex: 0 0 16px;
+    flex: 0 0 18px;
   }
 
   [data-slot="question-option-box"] {

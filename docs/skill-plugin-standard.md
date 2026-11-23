@@ -85,6 +85,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 | `name`                         | 否   | string  | 显示名。省略时等于 `id`。可以包含中文。                          |
 | `description`                  | 否   | string  | 何时使用该技能。**省略则该技能不会出现在模型的可用技能列表里**。 |
 | `icon`                         | 否   | string  | 技能的内联 SVG 图标，取值规则见下。优先用同目录的 `icon.svg`。    |
+| `category`                     | 否   | string  | 探索页把技能归到哪个分组，取值见下；未知取值导致技能不被加载。     |
 | `metadata.aicraft/autoinvoke` | 否   | boolean | 是否允许模型自动调用。优先级最高。                               |
 | `disable-model-invocation`     | 否   | boolean | 与上一条同义，兼容其他 agent 的写法。                            |
 
@@ -95,6 +96,22 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 内置技能走同一套图标规则，但它们被打进 core 的资源、没有独立目录，所以仍在 frontmatter 里内联 `icon`（`packages/core/src/plugin/skill/*.md`、`memory/SKILL.md`）；注册时不写死图标。
 
 布尔值接受 `true/false`、`yes/no`、`on/off`、`1/0`（不区分大小写、允许前后空格）。
+
+`category` 由**客户端定义**，作者只能在下列取值里选一个（`@opencode/schema` 的 `Catalog.Categories`）：
+
+| 取值              | 中文标签 |
+| ----------------- | -------- |
+| `automation`      | 自动化   |
+| `productivity`    | 效率     |
+| `design`          | 设计     |
+| `developer-tools` | 开发工具 |
+| `data`            | 数据     |
+
+规则：
+
+- 省略 `category` → 仍然加载，归入「其他」分组。
+- 声明了白名单以外的值 → 该技能**不被加载**（`skill file skipped` 日志的 `reason: "category"` 会带出原值）。不要自己发明分类：没有对应标题的条目无法出现在探索页。
+- 分组的顺序与标题由客户端决定，同时声明多个分类不受支持。
 
 可见性规则（`SkillInstructions.load`）：
 
@@ -402,6 +419,7 @@ README.md                # 可选
 - **`display` 是展示的唯一事实源。** 入口应从 `METAINF` 派生 `Plugin.define` 的 `display`，不要在代码里再写一份文案或图标，避免安装前后显示不一致。
 - `display.icon` 是**内联 SVG 源码字符串**，约定 24×24 视口。禁止 `<script>`、`<foreignObject>`、事件属性（`on*`）、外部 `href`/`url(...)` 引用；品牌色可以用固定值。客户端把它转成 data URI 用 `<img>` 渲染，不注入 HTML、不执行脚本。
 - `display.skills` 与 `skills` 必须一致；`display` 只是展示，真正的技能注册仍由入口调用 `ctx.skill.transform` 完成（见 2.6 红线）。
+- `display.category` 与技能 `category` 共用同一份客户端分类表（见 1.3）。省略时归入「其他」；声明了白名单以外的值，组合包在校验阶段就被拒绝，不会安装也不会出现在探索页。
 - `skills[].icon` 与技能 `SKILL.md` 的 `icon` 同时存在时，以 `SKILL.md` 为准：运行时读的是技能文件本身，清单只用于安装前的展示。两处都省略时，探索页按技能标题与说明生成彩色图标。
 - 缺少 `display` 的组合包可以安装，但不出现在探索页，只按配置与目录规则加载。
 
@@ -491,7 +509,7 @@ README.md                # 可选
 - 技能日志：
   - `skill source loaded`（debug）：某个来源解析出了哪些 id。
   - `skills rescanned`（info）：文件变化触发的重扫。
-  - `skill file skipped`（debug）：`reason: "markdown"` 表示文件不是合法 Markdown，`reason: "frontmatter"` 会带出 YAML 解码问题。
+  - `skill file skipped`（debug）：`reason: "markdown"` 表示文件不是合法 Markdown，`reason: "frontmatter"` 会带出 YAML 解码问题，`reason: "category"` 表示 `category` 不是客户端支持的分类（会带出原值）。
 - 插件日志：插件激活失败会记录在 `plugin` 服务；本地路径不是目录会打印 `configured plugin path must be a directory`。
 - 修改技能或插件后通常会热更新；配置类改动以 `config.updated` 事件为准。
 

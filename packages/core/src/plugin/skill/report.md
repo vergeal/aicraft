@@ -1,5 +1,6 @@
 ---
 name: 问题反馈
+category: productivity
 description: "当用户想报告 AI Craft 的问题或缺陷时使用。收集标准诊断信息，补充用户的具体复现上下文，并用 GitHub CLI 发布问题。"
 icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#f2873c"/><path d="M8.5 11.6 5.9 10.3M8.3 14.4H5.4M8.7 17.1l-2.4 1.4M15.5 11.6l2.6-1.3M15.7 14.4h2.9M15.3 17.1l2.4 1.4" stroke="#7a3a12" stroke-width="1.5" stroke-linecap="round"/><path d="M10.7 7.4 9.6 5.8M13.3 7.4l1.1-1.6" stroke="#7a3a12" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="12" cy="13.3" rx="3.7" ry="4.6" fill="#fff5e8" stroke="#7a3a12" stroke-width="1.4"/><circle cx="12" cy="8.4" r="2.1" fill="#fff5e8" stroke="#7a3a12" stroke-width="1.4"/><circle cx="11.2" cy="8.2" r=".55" fill="#7a3a12"/><circle cx="12.8" cy="8.2" r=".55" fill="#7a3a12"/><path d="M12 10.6v7" stroke="#eab391" stroke-width="1" stroke-linecap="round"/></svg>'
 ---

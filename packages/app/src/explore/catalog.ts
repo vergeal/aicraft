@@ -6,10 +6,7 @@
  * `SKILL.md`. `loadLocalCatalog` is the one seam that changes when a real registry lands.
  */
 import type { PluginLocalEntry } from "@opencode/client/promise"
-
-export const PLUGIN_CATEGORIES = ["developer-tools", "productivity", "automation"] as const
-
-export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number]
+import { Catalog } from "@opencode/schema/catalog"
 
 export type CatalogVersion = { version: string; file: string }
 
@@ -17,7 +14,7 @@ export type CatalogPlugin = {
   id: string
   name: string
   /** Which shelf the list groups this entry under. */
-  category: PluginCategory
+  category: Catalog.Category | undefined
   /** The publisher shown under the name on the detail page. */
   author: string
   /** One line under the name in the list. */
@@ -59,6 +56,8 @@ export type CatalogSkill = {
   description: string
   /** The skill's own inline SVG mark, when its SKILL.md declares `icon`. */
   icon?: string
+  /** The client-defined shelf this skill belongs to, when its SKILL.md declares a known one. */
+  category?: Catalog.Category
   /** The markdown body written below the frontmatter. */
   instructions: string
 }
@@ -77,7 +76,14 @@ export type CatalogServer = {
   }
 }
 
-type LocalSkill = { id: string; name: string; description?: string; icon?: string; content: string }
+type LocalSkill = {
+  id: string
+  name: string
+  description?: string
+  icon?: string
+  category?: string
+  content: string
+}
 
 /**
  * The skills shelf reads the local distribution directory, where each skill is a directory with a `SKILL.md`.
@@ -95,6 +101,8 @@ export function loadCatalog(server: CatalogServer): Promise<CatalogSource> {
       }
 
       if (skill.icon) entry.icon = skill.icon
+
+      if (Catalog.isCategory(skill.category)) entry.category = skill.category
 
       return entry
     }),
@@ -143,7 +151,10 @@ export function loadLocalCatalog(server: {
   }))
 }
 
-export function categoryOf(input: string | undefined): PluginCategory {
-  // SAFETY: `includes` rejects every string outside the tuple, so the narrowing below only runs for a real category.
-  return PLUGIN_CATEGORIES.some((category) => category === input) ? (input as PluginCategory) : "automation"
+/**
+ * The client's categories only. A value the product does not ship has no shelf to land on, so it is left out instead
+ * of being guessed into a heading the author never asked for.
+ */
+export function categoryOf(input: string | undefined): Catalog.Category | undefined {
+  return Catalog.isCategory(input) ? input : undefined
 }

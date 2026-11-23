@@ -1,5 +1,6 @@
 ---
 name: DBRO
+category: data
 description: "用 `dbro.*` 工具只读查询达梦 8、MySQL 和 PostgreSQL。第一次查库前先加载本技能，按数据源或方言选择入口。"
 ---
 

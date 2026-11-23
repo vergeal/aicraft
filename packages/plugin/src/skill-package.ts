@@ -1,17 +1,23 @@
 export * as SkillPackage from "./skill-package.js"
 
 import { AbsolutePath } from "@opencode/schema/schema"
+import { Catalog } from "@opencode/schema/catalog"
 import { optional } from "@opencode/schema/schema"
 import { Skill } from "@opencode/schema/skill"
 import { Schema } from "effect"
 import matter from "gray-matter"
 
-/** The frontmatter a skill package carries: the copy the market lists and the icon its tile paints. */
+/**
+ * The frontmatter a skill package carries: the copy the market lists, the icon its tile paints, and the client-owned
+ * category its shelf is grouped under. A category outside the client's list fails the decode, so a package author
+ * learns about the typo instead of landing in a shelf nobody asked for.
+ */
 export interface Frontmatter extends Schema.Schema.Type<typeof Frontmatter> {}
 export const Frontmatter = Schema.Struct({
   name: Schema.String,
   description: Schema.String,
   icon: optional(Schema.NullOr(Schema.String)),
+  category: optional(Catalog.Category),
 })
 
 /**
@@ -28,6 +34,7 @@ export function read(id: string, markdown: string): Skill.Info {
     name: Skill.Name.make(frontmatter.name),
     description: frontmatter.description,
     ...(icon ? { icon } : {}),
+    ...(frontmatter.category ? { category: frontmatter.category } : {}),
     path: AbsolutePath.make(`skill://${id}/SKILL.md`),
     content: parsed.content,
   })

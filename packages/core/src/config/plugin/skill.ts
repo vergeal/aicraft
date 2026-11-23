@@ -131,6 +131,7 @@ export const Plugin = define({
               filepath,
               reason: parsed.reason,
               ...(parsed.reason === "frontmatter" ? { issue: parsed.issue } : {}),
+              ...(parsed.reason === "category" ? { category: parsed.category } : {}),
             })
             continue
           }

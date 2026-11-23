@@ -11,6 +11,7 @@ export const info = SkillPackage.define({
   id: "browser",
   frontmatter: {
     name: "浏览器",
+    category: "automation",
     description:
       "使用应用内浏览器：打开并阅读页面、点击与填写表单、截图、查看控制台与网络日志，以及分析性能与内存。在第一次调用浏览器工具前加载它。",
     // A round, bright globe on its own blue tile: the browser skill's identity.

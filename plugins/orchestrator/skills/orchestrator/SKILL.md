@@ -1,5 +1,6 @@
 ---
 name: Orchestrator
+category: automation
 description: "用 `orchestrator.*` 工具驱动批次任务：plan 提交任务图、approve 放行、status 看异常、resolve 裁决。第一次编排前先加载本技能。"
 ---
 

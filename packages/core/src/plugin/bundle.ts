@@ -5,6 +5,7 @@ import { createRequire } from "node:module"
 import { mkdir, readdir, readFile, rename, rm, stat, symlink, utimes } from "node:fs/promises"
 import path from "node:path"
 import { Host } from "@opencode/plugin/host"
+import { Catalog } from "@opencode/schema/catalog"
 import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { Option, Schema } from "effect"
 import { compareVersions, installRoot, root as localRoot } from "./local.js"
@@ -240,8 +241,10 @@ function requireDisplay(input: unknown) {
   const display = input as Record<string, unknown>
   if (typeof display.name !== "string" || typeof display.description !== "string")
     throw new Error("This plugin bundle has a display without a name and description.")
-  if (display.category !== undefined && typeof display.category !== "string")
-    throw new Error("This plugin bundle has a display category that is not text.")
+  if (display.category !== undefined && !Catalog.isCategory(display.category))
+    throw new Error(
+      `This plugin bundle has an unknown display category: ${String(display.category)}. The client only accepts ${Catalog.Categories.join(", ")}.`,
+    )
   if (
     display.tools !== undefined &&
     !(Array.isArray(display.tools) && display.tools.every((value) => typeof value === "string"))

@@ -35,7 +35,9 @@ export type MarketEntry = {
   installLabel?: string
 }
 
-export type MarketGroup = { key: string; title: string; entries: MarketEntry[] }
+export type MarketSection = { key: string; title: string; entries: MarketEntry[] }
+
+export type MarketGroup = { key: string; title: string; entries: MarketEntry[]; sections?: readonly MarketSection[] }
 
 export type MarketTab = { id: string; label: string; selected: boolean; onSelect: () => void }
 
@@ -61,8 +63,9 @@ function SkillGlyph() {
 }
 
 /**
- * The market list: a title and its tools, an optional scope chip, then one group per category and two rows per line.
- * A row opens the entry, and the trailing mark installs it or reports that it is installed.
+ * The market list: a title and its tools, then one group per installed shelf, each split into the client's
+ * categories with two rows per line. A row opens the entry, and the trailing mark installs it or reports that it is
+ * installed.
  */
 export function ExploreMarket(props: {
   sectionKey: string
@@ -80,7 +83,6 @@ export function ExploreMarket(props: {
   onRefresh: () => void
   addLabel: string
   onAdd: () => void
-  chip?: { label: string; pressed: boolean; onToggle: () => void }
   loading: boolean
   groups: readonly MarketGroup[]
   emptyTitle: string
@@ -150,16 +152,6 @@ export function ExploreMarket(props: {
         </div>
       </header>
 
-      <Show when={props.chip}>
-        {(chip) => (
-          <div class="explore-market-scope">
-            <button type="button" aria-pressed={chip().pressed} onClick={() => chip().onToggle()}>
-              {chip().label}
-            </button>
-          </div>
-        )}
-      </Show>
-
       {props.alert}
 
       <Show
@@ -190,9 +182,18 @@ export function ExploreMarket(props: {
                         <h2 class="explore-market-group-title">{group.title}</h2>
                         <span class="explore-market-group-rule" aria-hidden="true" />
                       </div>
-                      <div class="explore-market-items">
-                        <For each={group.entries}>{(entry) => <MarketRow entry={entry} />}</For>
-                      </div>
+                      <Show when={group.sections} fallback={<MarketRows entries={group.entries} />}>
+                        {(sections) => (
+                          <For each={sections()}>
+                            {(section) => (
+                              <div class="explore-market-section">
+                                <h3 class="explore-market-section-title">{section.title}</h3>
+                                <MarketRows entries={section.entries} />
+                              </div>
+                            )}
+                          </For>
+                        )}
+                      </Show>
                     </section>
                   )}
                 </For>
@@ -201,6 +202,15 @@ export function ExploreMarket(props: {
           </Show>
         </Show>
       </Show>
+    </div>
+  )
+}
+
+/** One grid of rows: two per line, or one when the content column is narrow. */
+function MarketRows(props: { entries: readonly MarketEntry[] }) {
+  return (
+    <div class="explore-market-items">
+      <For each={props.entries}>{(entry) => <MarketRow entry={entry} />}</For>
     </div>
   )
 }

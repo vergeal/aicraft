@@ -3,6 +3,7 @@ export * as SkillFile from "./skill-file.js"
 import path from "path"
 import { isRecord } from "@opencode/util/record"
 import { Result, Schema, type SchemaIssue, SchemaParser } from "effect"
+import { Catalog } from "@opencode/schema/catalog"
 import { ConfigMarkdown } from "../markdown.js"
 import { AbsolutePath } from "../../schema.js"
 import { Skill } from "../../skill.js"
@@ -11,6 +12,7 @@ const Frontmatter = Schema.Struct({
   name: Schema.String.pipe(Schema.optional),
   description: Schema.String.pipe(Schema.optional),
   icon: Schema.String.pipe(Schema.optional),
+  category: Schema.String.pipe(Schema.optional),
   metadata: Schema.Unknown.pipe(Schema.optional),
   "disable-model-invocation": Schema.Unknown.pipe(Schema.optional),
 })
@@ -19,6 +21,7 @@ const decodeFrontmatter = SchemaParser.decodeUnknownResult(Frontmatter)
 export type ParseResult =
   | { readonly _tag: "Parsed"; readonly skill: Skill.Info }
   | { readonly _tag: "Skipped"; readonly reason: "markdown" }
+  | { readonly _tag: "Skipped"; readonly reason: "category"; readonly category: string }
   | { readonly _tag: "Skipped"; readonly reason: "frontmatter"; readonly issue: SchemaIssue.Issue }
 
 const metadataBoolean = (metadata: unknown, key: string) => {
@@ -50,6 +53,10 @@ export function parse(directory: string, filepath: string, content: string): Par
   const disableModelInvocation = booleanValue(frontmatter["disable-model-invocation"])
   const autoinvoke = opencodeAutoinvoke ?? (disableModelInvocation ? false : undefined)
   const icon = frontmatter.icon?.trim()
+  const category = frontmatter.category?.trim()
+  // A category the product does not ship would have no heading in the library, so the skill is not loaded at all.
+  if (category !== undefined && !Catalog.isCategory(category))
+    return { _tag: "Skipped", reason: "category", category }
   return {
     _tag: "Parsed",
     skill: {
@@ -57,6 +64,7 @@ export function parse(directory: string, filepath: string, content: string): Par
       name: Skill.Name.make(frontmatter.name ?? id),
       ...(frontmatter.description === undefined ? {} : { description: frontmatter.description }),
       ...(icon ? { icon } : {}),
+      ...(category ? { category } : {}),
       ...(autoinvoke === undefined ? {} : { autoinvoke }),
       path: AbsolutePath.make(filepath),
       content: markdown.content,

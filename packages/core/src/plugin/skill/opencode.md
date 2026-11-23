@@ -1,5 +1,6 @@
 ---
 name: AI Craft 使用指南
+category: productivity
 description: "回答一切关于 AI Craft 自身的问题：工作方式、使用与配置、从 V1 迁移到 V2、故障排查、开发插件或集成、使用 AI Craft SDK、客户端、服务器或 API，以及参与 AI Craft 代码库开发。也适用于 AI Craft 的 agent、命令、技能、工具、权限、MCP 服务器、提供商、模型、主题、快捷键、格式化工具、CLI、TUI、桌面端与 Web 端。"
 icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#4c53c8"/><path d="M12 7.4c-1.6-1.1-3.6-1.5-5.7-1.2-.5.1-.9.5-.9 1v9.1c0 .6.5 1.1 1.1 1 1.8-.2 3.6.2 5 1.2.3.2.7.2 1 0 1.4-1 3.2-1.4 5-1.2.6.1 1.1-.4 1.1-1V7.2c0-.5-.4-.9-.9-1-2.1-.3-4.1.1-5.7 1.2z" fill="#eef1ff" stroke="#2b2f7a" stroke-width="1.25" stroke-linejoin="round"/><path d="M12 7.6v10.1" stroke="#2b2f7a" stroke-width="1.25" stroke-linecap="round"/><path d="M8.2 9.6c.8-.1 1.5 0 2.2.3M8.2 12c.8-.1 1.5 0 2.2.3M15.8 9.6c-.8-.1-1.5 0-2.2.3M15.8 12c-.8-.1-1.5 0-2.2.3" stroke="#9aa0ee" stroke-width="1" stroke-linecap="round"/></svg>'
 ---

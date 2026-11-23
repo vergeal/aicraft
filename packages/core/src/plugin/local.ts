@@ -1,6 +1,7 @@
 export * as PluginLocal from "./local.js"
 
 import type { Plugin } from "@opencode/schema/plugin"
+import { Catalog } from "@opencode/schema/catalog"
 import { PluginManifest } from "@opencode/schema/plugin-manifest"
 import { Option, Schema } from "effect"
 import { readdir, readFile } from "node:fs/promises"
@@ -74,7 +75,16 @@ async function readVersion(directory: string, version: string): Promise<Found | 
   const files = await readdir(folder).catch(() => [])
   const file = files.find((name) => name.endsWith(".exc"))
   if (!file) return undefined
-  return { version, file, manifest: await readManifest(path.join(folder, file)) }
+  const manifest = await readManifest(path.join(folder, file))
+  // A bundle naming a category the client does not ship has no shelf to land on, so it is not discoverable either.
+  if (!hasKnownCategory(manifest)) return undefined
+  return { version, file, manifest }
+}
+
+function hasKnownCategory(manifest: Manifest | undefined) {
+  if (typeof manifest?.display !== "object" || manifest.display === null) return true
+  const category = (manifest.display as { category?: unknown }).category
+  return category === undefined || Catalog.isCategory(category)
 }
 
 /**
@@ -107,7 +117,7 @@ function displayOf(manifest: Manifest | undefined): Plugin.Display | undefined {
   return {
     name: display.name,
     description: display.description,
-    ...(typeof display.category === "string" ? { category: display.category } : {}),
+    ...(Catalog.isCategory(display.category) ? { category: display.category } : {}),
     ...(typeof display.icon === "string" && display.icon.trim() !== "" ? { icon: display.icon } : {}),
     ...(Array.isArray(display.tools) ? { tools: display.tools } : {}),
     ...(skills ? { skills } : {}),

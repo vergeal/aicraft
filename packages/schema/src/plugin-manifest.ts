@@ -7,6 +7,7 @@ export * as PluginManifest from "./plugin-manifest.js"
  */
 
 import { Schema } from "effect"
+import { Catalog } from "./catalog.js"
 
 /** The four parts a plugin can ship. Each one lives in a directory of the same name, with a `main` file inside. */
 export const Kind = Schema.Literals(["server", "gui", "tui", "rpc"])
@@ -84,7 +85,8 @@ export const Manifest = Schema.Struct({
   display: Schema.Struct({
     name: Schema.String,
     description: Schema.String,
-    category: Schema.optional(Schema.String),
+    /** The shelf the plugin browser files this plugin under; the client owns the value set. */
+    category: Schema.optional(Catalog.Category),
     tools: Schema.optional(Schema.Array(Schema.String)),
     icon: Schema.optional(Schema.String),
   }),

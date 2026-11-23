@@ -1,6 +1,7 @@
 export * as Skill from "./skill.js"
 
 import { Schema } from "effect"
+import { Catalog } from "./catalog.js"
 import { optional } from "./schema.js"
 import { AbsolutePath } from "./schema.js"
 import { ephemeral, inventory } from "./event.js"
@@ -36,6 +37,8 @@ export const Info = Schema.Struct({
    * design system's brand-mark exception allows color here even though functional icons stay monochrome.
    */
   icon: Schema.String.pipe(optional),
+  /** The shelf the skill browser files this skill under; the client owns the value set. */
+  category: Catalog.Category.pipe(optional),
   /** The plugin that contributed this skill; absent for the user's own skills. */
   plugin: Schema.String.pipe(optional),
 }).annotate({ identifier: "Skill.Info" })

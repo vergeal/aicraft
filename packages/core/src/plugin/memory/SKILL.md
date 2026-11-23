@@ -1,5 +1,6 @@
 ---
 name: 记忆
+category: productivity
 description: "用 `memory.*` 工具记住用户的长期习惯、项目约定与重要事实，并按全局或项目隔离保存。用户表达长期偏好、纠正你的做法或要求记住时，先加载本技能再保存。"
 icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#b8406f"/><path d="M7 7.5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v11.2l-5-2.9-5 2.9z" fill="#ffeef6" stroke="#77214a" stroke-width="1.25" stroke-linejoin="round"/><path d="M9.4 8.4h5.2" stroke="#e29ab8" stroke-width="1.1" stroke-linecap="round"/></svg>'
 ---

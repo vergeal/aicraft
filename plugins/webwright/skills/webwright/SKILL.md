@@ -1,5 +1,6 @@
 ---
 name: Webwright
+category: automation
 description: "用 `webwright.*` 工具操作专用的 Playwright 浏览器：列出和切换标签页、读取页面结构、点击和填表、执行页面脚本、截图并抓取页面内容。第一次调用 `webwright.*` 前先加载本技能。"
 ---
 

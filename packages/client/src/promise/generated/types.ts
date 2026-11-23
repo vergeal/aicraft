@@ -51,14 +51,7 @@ export type PluginReason =
   | { kind: "load-timeout"; seconds: number | "Infinity" | "-Infinity" | "NaN" }
   | { kind: "load-failed" }
 
-export type PluginDisplay = {
-  name: string
-  description: string
-  category?: string
-  icon?: string
-  skills?: Array<{ id: string; name: string; description: string; icon?: string }>
-  tools?: Array<string>
-}
+export type CatalogCategory = "automation" | "productivity" | "design" | "developer-tools" | "data"
 
 export type PluginRuntime = {
   status: "ready" | "preparing" | "failed"
@@ -493,11 +486,13 @@ export type PluginState =
   | { status: "active" }
   | { status: "failed"; error: string; ref?: string; reason?: PluginReason }
 
-export type PluginLocalEntry = {
-  id: string
-  display?: PluginDisplay
-  runtime?: PluginManifestRuntime
-  versions: Array<{ version: string; file: string }>
+export type PluginDisplay = {
+  name: string
+  description: string
+  category?: CatalogCategory
+  icon?: string
+  skills?: Array<{ id: string; name: string; description: string; icon?: string }>
+  tools?: Array<string>
 }
 
 export type SessionForkBoundary =
@@ -597,6 +592,7 @@ export type SkillInfo = {
   path: AbsolutePath
   content: string
   icon?: string
+  category?: CatalogCategory
   plugin?: string
 }
 
@@ -1218,6 +1214,13 @@ export type PluginInfo = {
   state: PluginState
   display?: PluginDisplay
   runtime?: PluginRuntime
+}
+
+export type PluginLocalEntry = {
+  id: string
+  display?: PluginDisplay
+  runtime?: PluginManifestRuntime
+  versions: Array<{ version: string; file: string }>
 }
 
 export type UsageLimitsBudget = {

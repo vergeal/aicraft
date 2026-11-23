@@ -1,5 +1,6 @@
 import type { PluginInfo } from "@opencode/client"
 import type { SkillInfo } from "@opencode/client/promise"
+import { Catalog } from "@opencode/schema/catalog"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
@@ -16,8 +17,8 @@ import { ServerProvider, useData } from "@/runtime/server/current"
 import { useServers } from "@/runtime/server/registry"
 import { showToast } from "@/shell/notifications/toast"
 import { ModuleHeader, ModulePage } from "@/shell/module-page"
-import { loadCatalog, loadLocalCatalog, categoryOf, PLUGIN_CATEGORIES, type CatalogPlugin, type CatalogSkill } from "./catalog"
-import { ExploreMarket, type MarketEntry, type MarketGroup, type MarketSource } from "./market"
+import { loadCatalog, loadLocalCatalog, type CatalogPlugin, type CatalogSkill } from "./catalog"
+import { ExploreMarket, type MarketEntry, type MarketGroup, type MarketSection, type MarketSource } from "./market"
 import { PluginInstallDialog } from "./plugin-install-dialog"
 import { CatalogPluginDetail, categoryLabels, InstalledPluginDetail, UninstallPluginDialog } from "./plugins"
 import {
@@ -122,16 +123,7 @@ const SKILL_SHELVES = [
   { key: "available", title: "explore.skills.group.available" },
 ] as const
 
-/** The catalog category a plugin belongs to; an installed plugin without one is automation, the catalog's default. */
-const pluginCategoryOf = (item: ExploreItem) => {
-  if (item.kind === "catalog-plugin") return item.entry.category
-
-  if (item.kind === "plugin") return categoryOf(item.plugin.display?.category)
-
-  return undefined
-}
-
-/** Built-in skills ship with the app; they end the installed shelf and carry a badge instead of a shelf of their own. */
+/** Built-in skills ship with the app; they end their category section and carry a badge instead of a shelf of their own. */
 const isBuiltinItem = (item: ExploreItem) => item.kind === "skill" && isBuiltinSkill(item.skill)
 
 const skillShelfOf = (item: ExploreItem) => {
@@ -155,9 +147,8 @@ function ExplorePage() {
   const params = useParams<{ section?: string; id?: string }>()
   const navigate = useNavigate()
 
-  const [filter, setFilter] = createStore<{ query: string; publicOnly: boolean }>({
+  const [filter, setFilter] = createStore<{ query: string }>({
     query: "",
-    publicOnly: true,
   })
 
   const [syncing, setSyncing] = createSignal(true)
@@ -412,17 +403,65 @@ function ExplorePage() {
     }
   }
 
-  // The shelf becomes one group per category or skill shelf, in reading order; a group with no rows is not painted.
+  /** The category a plugin with this id declares, used when a plugin-contributed skill does not carry its own. */
+  const pluginCategory = (id: string) => installed.plugins().find((plugin) => plugin.id === id)?.display?.category
+
+  const categoryOfItem = (item: ExploreItem): Catalog.Category | undefined => {
+    switch (item.kind) {
+      case "plugin":
+        return item.plugin.display?.category
+      case "catalog-plugin":
+        return item.entry.category
+      case "skill":
+        return item.skill.category ?? (item.skill.plugin ? pluginCategory(item.skill.plugin) : undefined)
+      case "catalog-skill":
+        return item.entry.category
+    }
+  }
+
+  /**
+   * One section per client category, in the order the product defines them, then the entries whose author declared
+   * none. An empty category is not painted, so a shelf shows only the headings it has content for.
+   */
+  const sectionsOf = (items: readonly ExploreItem[]): MarketSection[] =>
+    [...Catalog.Categories, undefined].flatMap((category) => {
+      const group = items.filter((item) => categoryOfItem(item) === category)
+
+      if (group.length === 0) return []
+
+      return [
+        {
+          key: category ?? "other",
+          title: language.t(category ? categoryLabels[category] : "explore.market.category.other"),
+          entries: group.map(marketEntry),
+        },
+      ]
+    })
+
+  // A shelf is one installed state; each shelf is split into the client's categories in reading order.
   const groups = createMemo<MarketGroup[]>(() => {
-    const items = results().filter((item) => !filter.publicOnly || sourceKindOf(item) !== "local")
+    const items = results()
 
     if (section() === "plugins") {
-      return PLUGIN_CATEGORIES.flatMap((category) => {
-        const group = items.filter((item) => pluginCategoryOf(item) === category)
+      const shelves = [
+        {
+          key: "installed",
+          title: "explore.plugins.group.installed",
+          items: items.filter((item) => item.kind === "plugin"),
+        },
+        {
+          key: "available",
+          title: "explore.plugins.group.available",
+          items: items.filter((item) => item.kind === "catalog-plugin"),
+        },
+      ] as const
 
-        if (group.length === 0) return []
+      return shelves.flatMap((shelf) => {
+        const sections = sectionsOf(shelf.items)
 
-        return [{ key: `plugin:${category}`, title: language.t(categoryLabels[category]), entries: group.map(marketEntry) }]
+        if (sections.length === 0) return []
+
+        return [{ key: `plugin:${shelf.key}`, title: language.t(shelf.title), entries: [], sections }]
       })
     }
 
@@ -431,13 +470,13 @@ function ExplorePage() {
 
       if (group.length === 0) return []
 
-      // The app's own skills sit at the end of the installed shelf, so the project's work reads first.
+      // The app's own skills trail their category section, so the project's work reads first inside the shelf.
       const ordered =
         shelf.key === "installed"
           ? [...group.filter((item) => !isBuiltinItem(item)), ...group.filter(isBuiltinItem)]
           : group
 
-      return [{ key: `skill:${shelf.key}`, title: language.t(shelf.title), entries: ordered.map(marketEntry) }]
+      return [{ key: `skill:${shelf.key}`, title: language.t(shelf.title), entries: [], sections: sectionsOf(ordered) }]
     })
   })
 
@@ -557,15 +596,6 @@ function ExplorePage() {
         onRefresh={refresh}
         addLabel={language.t("explore.plugins.add")}
         onAdd={section() === "plugins" ? installPlugin : installSkill}
-        chip={
-          section() === "plugins"
-            ? {
-                label: language.t("explore.market.scope.public"),
-                pressed: filter.publicOnly,
-                onToggle: () => setFilter("publicOnly", (value) => !value),
-              }
-            : undefined
-        }
         loading={loading()}
         groups={groups()}
         emptyTitle={language.t(section() === "plugins" ? "explore.market.empty.plugins" : "explore.market.empty.skills")}

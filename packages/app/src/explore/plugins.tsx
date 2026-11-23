@@ -1,5 +1,6 @@
 import type { PluginInfo } from "@opencode/client"
 import type { SkillInfo } from "@opencode/client/promise"
+import type { Catalog } from "@opencode/schema/catalog"
 import { Button } from "@opencode/ui/button"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Progress } from "@opencode/ui/progress"
@@ -42,10 +43,12 @@ const phaseLabels = {
 } as const
 
 export const categoryLabels = {
-  "developer-tools": "explore.plugins.category.developer-tools",
-  productivity: "explore.plugins.category.productivity",
   automation: "explore.plugins.category.automation",
-} as const
+  productivity: "explore.plugins.category.productivity",
+  design: "explore.plugins.category.design",
+  "developer-tools": "explore.plugins.category.developer-tools",
+  data: "explore.plugins.category.data",
+} as const satisfies Record<Catalog.Category, string>
 
 const sourceDetail = (plugin: PluginInfo) => {
   if (plugin.source.type === "package") return plugin.source.target

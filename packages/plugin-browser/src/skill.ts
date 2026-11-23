@@ -13,8 +13,8 @@ export const info = SkillPackage.define({
     name: "浏览器",
     description:
       "使用应用内浏览器：打开并阅读页面、点击与填写表单、截图、查看控制台与网络日志，以及分析性能与内存。在第一次调用浏览器工具前加载它。",
-    // A precise globe on its own blue tile: the browser skill's identity.
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#1f5fbf"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#eaf2ff" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="2.9" ry="6.6" fill="none" stroke="#eaf2ff" stroke-width="1.2" opacity=".72"/><path d="M5.4 12h13.2" stroke="#eaf2ff" stroke-width="1.2" opacity=".72"/></svg>',
+    // A round, bright globe on its own blue tile: the browser skill's identity.
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#2166d6"/><circle cx="12" cy="12" r="6.5" fill="#4f92f2" stroke="#123a7a" stroke-width="1.3"/><ellipse cx="12" cy="12" rx="2.8" ry="6.5" fill="none" stroke="#123a7a" stroke-width="1.05" opacity=".5"/><path d="M5.7 12h12.6" stroke="#123a7a" stroke-width="1.05" opacity=".5"/><path d="M7.9 8a5 5 0 0 1 3.4-2.3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".6"/></svg>',
   },
   body: [
     "# 应用内浏览器",

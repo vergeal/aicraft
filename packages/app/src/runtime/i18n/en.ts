@@ -1824,7 +1824,7 @@ export const dict = {
   "perf.monitor.depth.warmHint": "Adds 10 minutes of downsampled events; the dump gets bigger.",
   "perf.monitor.depth.coldHint": "Adds 60 minutes of failure events; the dump is largest.",
   "replica.rail.label": "Primary navigation",
-  "replica.rail.product": "Changhong AI",
+  "replica.rail.product": "Changhong Craft AI",
   "replica.rail.preview": "Preview",
   "replica.rail.home": "Home",
   "replica.rail.newSession": "New session",

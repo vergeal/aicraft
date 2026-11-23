@@ -1503,7 +1503,7 @@ export const dict = {
   "perf.monitor.depth.warmHint": "含 10 分钟降采样事件，dump 会变大。",
   "perf.monitor.depth.coldHint": "含 60 分钟故障事件，dump 最大。",
   "replica.rail.label": "一级导航",
-  "replica.rail.product": "长虹 AI",
+  "replica.rail.product": "长虹 Craft AI",
   "replica.rail.preview": "预览版",
   "replica.rail.home": "首页",
   "replica.rail.newSession": "新会话",

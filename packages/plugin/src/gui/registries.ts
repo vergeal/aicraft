@@ -1029,6 +1029,23 @@ export const TitlebarItem = Registry.define<TitlebarItem>("titlebar-item")
 export const ComposerPill = Registry.define<ComposerPill>("composer-pill")
 
 /**
+ * The titlebar colors a main surface asks for while its page is open, so the window's top bar matches the page
+ * instead of the app's default surface.
+ */
+export interface MainSurfaceTitlebar {
+  /**
+   * The bar's background, as a CSS background value: a color, or a gradient when the page has columns that the bar
+   * should continue. Match the page's top edge so the bar reads as part of it.
+   */
+  readonly background: string
+  /**
+   * The bar's text and icon color, as a CSS color. It also colors the window controls on Windows, so pick a color that
+   * stays readable on `background`.
+   */
+  readonly foreground: string
+}
+
+/**
  * A first-level page a plugin contributes to the app's primary navigation. The host lists it after the app's own
  * destinations at `/plugins/<plugin>/<id>`, with the same row, and renders it in the main workspace. The row is
  * withdrawn with the plugin, so disabling or removing it takes the row away and the address shows an unavailable page.
@@ -1054,6 +1071,11 @@ export interface MainSurface {
   badge?: () => number
   /** Keeps the row out of the navigation. A direct address still renders the page. */
   readonly hidden?: boolean
+  /**
+   * The titlebar colors while this page is open; omit it to keep the app's titlebar. Return the colors from the
+   * function so a theme switch repaints the bar. The host restores its own colors when the page closes.
+   */
+  readonly titlebar?: () => MainSurfaceTitlebar | undefined
   /**
    * Renders the page in the main workspace, as its whole content area. A throw renders the host's unavailable page and
    * records the error under your plugin; the plugin keeps running.
@@ -1121,6 +1143,7 @@ export interface InboxRecord {
  *     return ctx.t("surface.overview")
  *   },
  *   icon: "rail-compass",
+ *   titlebar: () => ({ background: "#ffffff", foreground: "#1b2430" }),
  *   render: () => <Overview />,
  * })
  * ```

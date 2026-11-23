@@ -1,13 +1,17 @@
-import { createEffect, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { Icon } from "@opencode/ui/icon"
+import { MainSurface, type MainSurfaceTitlebar } from "@opencode/plugin/gui"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useGlobal } from "@/runtime/server/runtime"
 import { useCommand } from "@/shell/commands/command"
 import { goBackCommand, goForwardCommand } from "@/shell/titlebar/history-commands"
 import { createTitlebarHistory } from "@/shell/titlebar/history-store"
 import { useLayout } from "@/shell/state/layout"
+import { usePlatform } from "@/runtime/platform/platform"
+import { usePluginHost } from "@/runtime/plugin/host"
+import { findMainSurface } from "@/runtime/plugin/main-surface"
 import { SidebarToggle } from "@/shell/sidebar-toggle"
 import { WindowsMenuBar } from "@/shell/titlebar/windows-menu"
 import { ReplicaTitlebarActions } from "./titlebar-actions"
@@ -26,6 +30,21 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
   const global = useGlobal()
   const command = useCommand()
   const history = createTitlebarHistory()
+  const platform = usePlatform()
+  const pluginHost = usePluginHost()
+
+  // A plugin's page may paint the workspace segment in its own colors, so the bar and the page below read as one
+  // surface. Leaving the page restores the app's chrome.
+  const pluginTitlebar = createMemo(() => {
+    const route = layout.route()
+
+    if (route.type !== "plugin") return
+
+    return findMainSurface(pluginHost.items(MainSurface), route.plugin, route.surface)?.value.titlebar?.()
+  })
+
+  // The Windows caption buttons are native, so they take the plugin bar's foreground outside CSS.
+  createEffect(() => void platform.setTitlebarControls?.(pluginTitlebar()?.foreground))
 
   const back = history.back
   const forward = history.forward
@@ -158,7 +177,11 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
         </Show>
       </div>
 
-      <div data-slot="replica-titlebar-main" data-ui="titlebar-main">
+      <div
+        data-slot="replica-titlebar-main"
+        data-ui="titlebar-main"
+        style={titlebarColors(pluginTitlebar())}
+      >
         {/* Collapsed, the column's head is gone, so the workspace bar offers the way back in and the menu bar that
             otherwise sits beside it. Kept in its own group so the empty state can hide the rest of the bar while
             the way back to the column stays available. */}
@@ -239,4 +262,28 @@ export function ReplicaTitleBar(props: { sidebarOpen: boolean; width: number; em
       <div data-slot="replica-titlebar-panel" aria-hidden="true" />
     </header>
   )
+}
+
+/**
+ * The chrome tokens a plugin page's colors replace on the workspace segment. The segment's own background comes from
+ * `background`; the rest fade the given foreground so the title, icons, hover states and dividers stay legible on it.
+ */
+function titlebarColors(tint: MainSurfaceTitlebar | undefined) {
+  if (!tint) return
+
+  const faded = (percent: number) => `color-mix(in srgb, ${tint.foreground} ${percent}%, transparent)`
+
+  return {
+    "--color-main": tint.background,
+    "--color-text-main": tint.foreground,
+    "--color-text-primary": tint.foreground,
+    "--color-text-secondary": faded(70),
+    "--color-text-tertiary": faded(56),
+    "--color-icon-primary": tint.foreground,
+    "--color-icon-secondary": faded(64),
+    "--color-hover": faded(9),
+    "--color-selected": faded(14),
+    "--color-border": faded(18),
+    "--color-divider": faded(12),
+  }
 }

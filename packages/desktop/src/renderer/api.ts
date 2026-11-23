@@ -92,6 +92,7 @@ export const api: ElectronAPI = {
   setZoomLevel: (level) => invoke("WindowSetZoomLevel", { level }),
   onZoomChanged: (cb) => listen("WindowZoomChanged", (event) => cb({ factor: event.factor, level: event.level })),
   setTitlebar: (theme) => invoke("WindowSetTitlebar", { theme }),
+  setTitlebarControls: (color) => invoke("WindowSetTitlebarControls", color === undefined ? {} : { color }),
   setTrafficLightsPosition: (position) => invoke("WindowSetTrafficLightsPosition", position),
   runDesktopMenuAction: (action) => invoke("MenuRunAction", { action }),
   showContextMenu: (items, position) =>

@@ -147,6 +147,7 @@ export type ElectronAPI = {
   setZoomLevel(level: DesktopZoomLevel): Promise<void>
   onZoomChanged(cb: (zoom: { factor: number; level: DesktopZoomLevel }) => void): () => void
   setTitlebar(theme: TitlebarTheme): Promise<void>
+  setTitlebarControls(color: string | undefined): Promise<void>
   setTrafficLightsPosition(position: { x: number; y: number }): Promise<void>
   runDesktopMenuAction(action: DesktopMenuAction): Promise<void>
   showContextMenu(items: ContextMenuItem[], position?: { x: number; y: number }): Promise<string | undefined>

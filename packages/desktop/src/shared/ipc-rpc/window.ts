@@ -49,6 +49,10 @@ export const WindowSetTrafficLightsPosition = Rpc.make("WindowSetTrafficLightsPo
   payload: { x: Schema.Number, y: Schema.Number },
 })
 
+export const WindowSetTitlebarControls = Rpc.make("WindowSetTitlebarControls", {
+  payload: { color: Schema.optionalKey(Schema.String) },
+})
+
 export const WindowRpcs = RpcGroup.make(
   WindowRequestMicrophone,
   WindowSetVoiceCallActive,
@@ -64,5 +68,6 @@ export const WindowRpcs = RpcGroup.make(
   WindowGetPinchZoomEnabled,
   WindowSetPinchZoomEnabled,
   WindowSetTitlebar,
+  WindowSetTitlebarControls,
   WindowSetTrafficLightsPosition,
 )

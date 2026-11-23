@@ -23,6 +23,8 @@ import {
 
 const titlebarThemes = new WeakMap<BrowserWindow, Partial<TitlebarTheme>>()
 
+const titlebarControlColors = new WeakMap<BrowserWindow, string>()
+
 const pinchZoomEnabled = new WeakMap<BrowserWindow, boolean>()
 
 const maxZoomLevel = 10
@@ -87,9 +89,19 @@ export function setTrafficLightsPosition(win: BrowserWindow, position: { x: numb
   win.setWindowButtonPosition({ x: Math.round(position.x), y: Math.round(position.y) })
 }
 
+/** Colors the native caption symbols of a titlebar painted in custom colors; `undefined` follows the theme again. */
+export function setTitlebarControls(win: BrowserWindow, color: string | undefined) {
+  if (color === undefined) titlebarControlColors.delete(win)
+  else titlebarControlColors.set(win, color)
+
+  updateTitlebar(win)
+}
+
 export function updateTitlebar(win: BrowserWindow) {
   if (process.platform !== "win32") return
-  win.setTitleBarOverlay(overlay(titlebarThemes.get(win), win.webContents.getZoomFactor()))
+  win.setTitleBarOverlay(
+    overlay(titlebarThemes.get(win), win.webContents.getZoomFactor(), titlebarControlColors.get(win)),
+  )
 }
 
 export function setPinchZoomEnabled(enabled: boolean) {
@@ -153,7 +165,9 @@ export function wireReload(win: BrowserWindow) {
 
   win.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return
+
     if (!input.control || input.shift || input.alt || input.meta) return
+
     if (input.key.toLowerCase() !== "r") return
 
     event.preventDefault()
@@ -179,8 +193,10 @@ function iconPath(path: Path.Path, paths: DesktopPaths.Resolved) {
   return path.join(iconsDir(path, paths), `icon.${process.platform === "win32" ? "ico" : "png"}`)
 }
 
-function overlay(theme: Partial<TitlebarTheme> = {}, zoom = 1) {
-  return titlebarOverlay(theme.mode ?? tone(), zoom)
+function overlay(theme: Partial<TitlebarTheme> = {}, zoom = 1, symbolColor?: string) {
+  const values = titlebarOverlay(theme.mode ?? tone(), zoom)
+
+  return symbolColor === undefined ? values : { ...values, symbolColor }
 }
 
 function clampZoom(value: number) {

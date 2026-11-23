@@ -6,6 +6,7 @@ import {
   getPinchZoomEnabled,
   setPinchZoomEnabled,
   setTitlebar,
+  setTitlebarControls,
   setTrafficLightsPosition,
   setWindowThemeReady,
   setZoomLevel,
@@ -61,6 +62,12 @@ export const windowHandlers = WindowRpcs.toLayer(
           const win = BrowserWindow.fromWebContents(sender(handoff, context))
 
           if (win) setTitlebar(win, theme)
+        }),
+      WindowSetTitlebarControls: ({ color }, context) =>
+        Effect.sync(() => {
+          const win = BrowserWindow.fromWebContents(sender(handoff, context))
+
+          if (win) setTitlebarControls(win, color)
         }),
       WindowSetTrafficLightsPosition: (position, context) =>
         Effect.sync(() => {

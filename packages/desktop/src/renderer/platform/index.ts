@@ -52,6 +52,7 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
     requestMicrophone: () => api.requestMicrophone(),
     setVoiceCallActive: (active) => api.setVoiceCallActive(active),
     setTrafficLightsPosition: (position) => api.setTrafficLightsPosition(position),
+    setTitlebarControls: (color) => api.setTitlebarControls(color),
     getPinchZoomEnabled: () => api.getPinchZoomEnabled(),
     setPinchZoomEnabled,
     getSpellcheckEnabled: () => api.getSpellcheckEnabled(),

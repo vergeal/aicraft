@@ -2253,6 +2253,31 @@ await ctx.session.hook("retry", (event) =&gt; {
         <tr><td><code>render(input)</code></td><td>用 <code>ctx.ui.SettingsLayout/Section/Row</code> 渲染。</td></tr>
       </table>
 
+      <h4><code>MainSurface</code> — 一级导航页</h4>
+      <p>页面地址是 <code>/plugins/&lt;插件 id&gt;/&lt;id&gt;</code>，渲染在主工作区；插件被停用时导航行一起消失。</p>
+      <table>
+        <tr><th>字段</th><th>说明</th></tr>
+        <tr><td><code>id</code></td><td>页面 id，插件内唯一；建议只用小写字母、数字和连字符，地址可读。</td></tr>
+        <tr><td><code>title</code></td><td>导航显示名。用 getter 读取，跟随语言切换。</td></tr>
+        <tr><td><code>icon</code></td><td>导航图标。</td></tr>
+        <tr><td><code>order</code></td><td>排在应用自有入口之后的顺序，升序。</td></tr>
+        <tr><td><code>badge()</code></td><td>导航行徽标数字，≤ 0 不显示；响应式。</td></tr>
+        <tr><td><code>hidden</code></td><td>不进导航，但直接访问地址仍可打开。</td></tr>
+        <tr><td><code>titlebar()</code></td><td>页面打开时窗口顶栏的配色，返回 <code>{ background, foreground }</code>。它只改顶栏在页面上方的那一段（工作区段）：底色、标题、图标、悬停层和分隔线一起换成给定颜色，左侧导航栏保持应用配色；<code>foreground</code> 同时决定 Windows 窗口按钮颜色。<code>background</code> 接受任意 CSS 背景值：页面分栏时可以用渐变，让顶栏每一段都接上下面的栏。<code>foreground</code> 是颜色。函数会被响应式重读，主题切换或拖动分栏后返回新的颜色即可；离开页面自动恢复应用顶栏。省略则沿用应用顶栏。</td></tr>
+        <tr><td><code>render()</code></td><td>渲染整块内容区。</td></tr>
+      </table>
+      <pre><span class="path">gui/main.tsx</span><code>ctx.add(MainSurface, {
+  id: "chat",
+  title: "虹云通",
+  icon: "bubble-5",
+  // 顶栏跟着页面配色走：深浅两套各给一份。
+  titlebar: () =&gt;
+    ctx.appearance.mode() === "dark"
+      ? { background: "#1a1e23", foreground: "#e3e8ed" }
+      : { background: "#ffffff", foreground: "#1b2430" },
+  render: () =&gt; &lt;Chat /&gt;,
+})</code></pre>
+
       <h4><code>TitlebarItem</code> — 标题栏按钮</h4>
       <table>
         <tr><th>字段</th><th>说明</th></tr>

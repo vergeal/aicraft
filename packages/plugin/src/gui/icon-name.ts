@@ -22,6 +22,7 @@ export type IconName =
   | "answer-web-search"
   | "appearance"
   | "archive"
+  | "archive-box"
   | "arrow-down"
   | "arrow-down-to-line"
   | "arrow-left"

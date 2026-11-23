@@ -1,111 +1,14 @@
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
-import { SettingsPage, Plugin } from "@opencode/plugin/gui"
-import { MemoryContract } from "../src/contract.js"
+import { SettingsPage, type Plugin } from "@opencode/plugin/gui"
+import { Memory } from "@opencode/schema/memory"
+import type definition from "./index"
 
-type Scope = MemoryContract.Scope
-type Entry = MemoryContract.Entry
+type Scope = Memory.Scope
+type Entry = Memory.Entry
 type EmptyIcon = "brain" | "outline-brain" | "magnifying-glass" | "warning"
 
-const i18n = {
-  en: {
-    title: "Memory",
-    description:
-      "What the assistant remembers across sessions. Global memories apply in every project; project memories apply only in the project you pick.",
-    search: "Search memories",
-    "search.clear": "Clear search",
-    global: "Global memories",
-    project: "Project memories",
-    "project.hint": "Applies only in the project you select",
-    "project.select": "Project",
-    "project.none": "No project open",
-    "project.none.hint": "Open a project to keep memories that apply only there.",
-    add: "Add",
-    "add.global": "Add global memory",
-    "add.project": "Add project memory",
-    "empty.global": "No global memories yet",
-    "empty.global.hint": "Ask the assistant to remember something, or add one here.",
-    "empty.project": "Nothing remembered for this project",
-    "empty.project.hint": "Ask the assistant to remember something in a session here, or add one.",
-    "empty.search": "No memories match",
-    "empty.search.hint": "Try another word, or clear the search.",
-    loading: "Loading memories…",
-    offline: "Memories are unavailable",
-    "offline.hint": "The app is not connected to its server. Reconnect to manage memories.",
-    "error.title": "Couldn't load memories",
-    "error.hint": "The server did not answer. Try again.",
-    "error.retry": "Try again",
-    edit: "Edit memory",
-    "new.global": "New global memory",
-    "new.project": "New project memory",
-    "field.text": "Memory",
-    "field.text.placeholder": "A fact or preference that stands on its own",
-    "field.text.hint": "The assistant reads this in every conversation.",
-    "field.tags": "Tags",
-    "field.tags.placeholder": "One or two words each",
-    "field.tags.hint": "Optional. Separate tags with commas.",
-    "editor.scope.global": "This memory applies in every project.",
-    "editor.scope.project": "This memory applies only in “{{project}}”.",
-    save: "Save",
-    cancel: "Cancel",
-    delete: "Delete memory",
-    "delete.title": "Delete this memory?",
-    "delete.description": "“{{text}}” will stop appearing in new sessions. This cannot be undone.",
-    saved: "Memory saved",
-    deleted: "Memory deleted",
-    failed: "Couldn't update memories",
-    updated: "Updated {{date}}",
-  },
-  zh: {
-    title: "记忆",
-    description: "跨会话记住你的习惯和项目约定。全局记忆在所有项目中生效，项目记忆只在所选项目中生效。",
-    search: "搜索记忆",
-    "search.clear": "清空搜索",
-    global: "全局记忆",
-    project: "项目记忆",
-    "project.hint": "只在所选项目中生效",
-    "project.select": "项目",
-    "project.none": "还没有打开的项目",
-    "project.none.hint": "打开一个项目后，就能保存只在该项目生效的记忆。",
-    add: "添加",
-    "add.global": "添加全局记忆",
-    "add.project": "添加项目记忆",
-    "empty.global": "还没有全局记忆",
-    "empty.global.hint": "对助手说「记住……」，或者在这里手动添加。",
-    "empty.project": "这个项目还没有记忆",
-    "empty.project.hint": "在会话里对助手说「记住……」，或者在这里添加。",
-    "empty.search": "没有匹配的记忆",
-    "empty.search.hint": "换个关键词，或者清空搜索。",
-    loading: "正在加载记忆…",
-    offline: "暂时无法管理记忆",
-    "offline.hint": "应用还没有连接到服务端，连接后即可查看和编辑。",
-    "error.title": "加载记忆失败",
-    "error.hint": "服务端没有响应，可以重试一次。",
-    "error.retry": "重试",
-    edit: "编辑记忆",
-    "new.global": "新的全局记忆",
-    "new.project": "新的项目记忆",
-    "field.text": "记忆内容",
-    "field.text.placeholder": "一句独立、可复述的事实或偏好",
-    "field.text.hint": "助手在每轮对话中都会看到这句话。",
-    "field.tags": "标签",
-    "field.tags.placeholder": "每个标签一两个词",
-    "field.tags.hint": "可选。用逗号分隔。",
-    "editor.scope.global": "这条记忆在所有项目中生效。",
-    "editor.scope.project": "这条记忆只在「{{project}}」中生效。",
-    save: "保存",
-    cancel: "取消",
-    delete: "删除记忆",
-    "delete.title": "删除这条记忆？",
-    "delete.description": "「{{text}}」将不再出现在新会话中，且无法恢复。",
-    saved: "已保存记忆",
-    deleted: "已删除记忆",
-    failed: "操作失败",
-    updated: "更新于 {{date}}",
-  },
-}
-
-const setup: Plugin.Setup = (ctx) => {
+const setup: Plugin.Setup<typeof definition> = (ctx) => {
   if (!ctx.desktop) return
 
   /** The app's own server carries the plugin and its storage; a remote server has its own memories. */
@@ -114,7 +17,7 @@ const setup: Plugin.Setup = (ctx) => {
       .list()
       .map((id) => ctx.servers.get(id))
       .find((item) => item?.builtin || item?.local)
-  const rpc = () => server()?.client.rpc(MemoryContract.Definition)
+  const rpc = () => server()?.client.rpc(Memory.Definition)
 
   const [global, setGlobal] = createSignal<readonly Entry[]>([])
   const [project, setProject] = createSignal<readonly Entry[]>([])
@@ -578,4 +481,4 @@ const setup: Plugin.Setup = (ctx) => {
   })
 }
 
-export default Plugin.define({ setup, i18n })
+export default setup

@@ -239,6 +239,9 @@ function SessionRow(props: {
 
   const project = () => props.entry().ctx.projects.forSession(props.entry().session)
 
+  /** An archived row is kept visible only so it can be unarchived, so it never reopens the conversation. */
+  const archived = () => inboxArchived(props.entry())
+
   const creator = () => createdFrom(props.entry().session.metadata)
 
   // Keeping the origin on the row itself leaves it readable after the chip has faded, even across reloads.
@@ -446,12 +449,14 @@ function SessionRow(props: {
         data-dragging={sortable.isDragging() ? "" : undefined}
         data-drop-target={props.dropEdge?.()}
         data-renaming={renaming() ? "" : undefined}
+        data-archived={archived() ? "" : undefined}
         title={createdByTitle()}
         role="button"
         tabindex={renaming() ? undefined : 0}
         class={`${ROW} outline-none focus-visible:[box-shadow:inset_0_0_0_1px_var(--color-icon-secondary)]`}
+        classList={{ "cursor-default": archived() }}
         onClick={() => {
-          if (renaming()) return
+          if (renaming() || archived()) return
           props.onOpen(props.entry())
         }}
         onContextMenu={(event) => {
@@ -460,7 +465,7 @@ function SessionRow(props: {
           void showNativeMenu({ x: event.clientX, y: event.clientY })
         }}
         onKeyDown={(event: KeyboardEvent) => {
-          if (renaming() || event.key !== "Enter") return
+          if (renaming() || archived() || event.key !== "Enter") return
           event.preventDefault()
           props.onOpen(props.entry())
         }}
@@ -471,7 +476,11 @@ function SessionRow(props: {
           data-slot="replica-row-title"
           dir="auto"
           class="min-w-0 flex-1 outline-none"
-          classList={{ truncate: !renaming(), "cursor-text select-text": renaming() }}
+          classList={{
+            truncate: !renaming(),
+            "cursor-text select-text": renaming(),
+            "text-[var(--color-text-tertiary)]": archived(),
+          }}
           contenteditable={renaming() ? "plaintext-only" : undefined}
           onDblClick={beginRename}
           onKeyDown={(event) => {
@@ -607,7 +616,7 @@ function ConversationNav() {
   const tabs = useTabs()
   const layout = useLayout()
   const global = useGlobal()
-  const inbox = createSessionInbox()
+  const inbox = createSessionInbox({ archived: true })
   const pins = usePinnedSessions()
   const dialog = useDialog()
   const pickDirectory = useDirectoryPicker()
@@ -733,8 +742,8 @@ function ConversationNav() {
     projects: [],
   })
 
-  // The workspace head's filter: every project, or only the pinned section.
-  const [onlyPinned, setOnlyPinned] = createSignal(false)
+  // The workspace head's archive toggle: archived rows stay out of the list until the user asks to see them.
+  const [showArchived, setShowArchived] = createSignal(false)
 
   // Where the insertion line goes while a row is being dragged. dnd-kit reports the dragged row itself as the
   // operation target, so the slot comes from the pointer: the row stack under it, minus the row being carried.
@@ -749,8 +758,8 @@ function ConversationNav() {
   // A dragged order wins for the sessions it lists. A session that arrives afterwards joins the top in creation
   // order, so sending a message never reorders the list under the pointer.
   const recent = createMemo(() => {
-    // Archiving keeps the session in the local store, so the row has to leave the list here as well as from the index.
-    const list = inbox.entries().filter((entry) => !inboxArchived(entry))
+    // Archiving keeps the session in the local store, so the row leaves the list until the archive toggle asks for it.
+    const list = inbox.entries().filter((entry) => showArchived() || !inboxArchived(entry))
     const byID = new Map(list.map((entry) => [entry.session.id, entry]))
     const ranked = new Set(order.recent)
     const fresh = list
@@ -966,18 +975,22 @@ function ConversationNav() {
             <Tooltip
               placement="top"
               openDelay={400}
-              value={language.t(onlyPinned() ? "replica.workspace.filter.all" : "replica.workspace.filter.pinned")}
+              value={language.t(
+                showArchived() ? "replica.workspace.archive.hide" : "replica.workspace.archive.show",
+              )}
             >
               <button
                 type="button"
                 data-replica-control
-                data-state={onlyPinned() ? "pressed" : undefined}
-                aria-pressed={onlyPinned()}
-                aria-label={language.t("replica.workspace.filter")}
+                data-state={showArchived() ? "pressed" : undefined}
+                aria-pressed={showArchived()}
+                aria-label={language.t(
+                  showArchived() ? "replica.workspace.archive.hide" : "replica.workspace.archive.show",
+                )}
                 class={HEAD_BUTTON}
-                onClick={() => setOnlyPinned((value) => !value)}
+                onClick={() => setShowArchived((value) => !value)}
               >
-                <Icon name="filter" size="small" />
+                <Icon name="archive-box" size="small" />
               </button>
             </Tooltip>
             <Tooltip placement="top" openDelay={400} value={language.t("replica.workspace.newProject")}>
@@ -1135,7 +1148,7 @@ function ConversationNav() {
               </div>
             </div>
           </Show>
-          <Show when={!onlyPinned() && projectGroups().length > 0}>
+          <Show when={projectGroups().length > 0}>
             <div class="flex flex-col gap-[2px]" classList={{ "mt-3": pinnedEntries().length > 0 }}>
               <h3 class={SECTION}>{language.t("replica.workspace.name")}</h3>
               <Key each={projectGroups()} by={(group) => group.key}>
@@ -1173,9 +1186,11 @@ function ConversationNav() {
               </Key>
             </div>
           </Show>
-          <Show when={onlyPinned() ? pinnedEntries().length === 0 : pinnedEntries().length === 0 && projectGroups().length === 0}>
+          <Show when={pinnedEntries().length === 0 && projectGroups().length === 0}>
             <p class="px-1 py-2 text-[13px] leading-5 text-[var(--color-text-tertiary)]">
-              {language.t(onlyPinned() ? "replica.workspace.filter.empty" : "replica.project.empty")}
+              {language.t(
+                showArchived() ? "replica.workspace.archive.empty" : "replica.project.empty",
+              )}
             </p>
           </Show>
         </DragDropProvider>

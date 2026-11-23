@@ -416,6 +416,12 @@ const icons = {
     viewBox: "0 0 24 24",
     body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54Z"/></g>`,
   },
+  // The workspace head's archive toggle: an archive box (lid, body, pull slot) on the same 24 grid and 2px stroke
+  // as `filter`, so the head's marks share one weight when rendered at 16px.
+  "archive-box": {
+    viewBox: "0 0 24 24",
+    body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></g>`,
+  },
   "folder-plus": {
     viewBox: "0 0 24 24",
     body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6M9 13h6"/></g>`,

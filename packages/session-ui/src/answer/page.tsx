@@ -1793,6 +1793,19 @@ function ErrorRow(props: { text: string }) {
 /** A scheduled retry stays one line: the attempt it is on, shimmering while it waits, with the provider's reason behind a button. */
 function RetryRow(props: { attempt: number; text: string }) {
   const i18n = useI18n()
+  const [copied, setCopied] = createSignal(false)
+  let copyTimer: number | undefined
+
+  onCleanup(() => {
+    if (copyTimer !== undefined) window.clearTimeout(copyTimer)
+  })
+
+  const copy = async () => {
+    if (!(await writeClipboard(props.text))) return
+    setCopied(true)
+    if (copyTimer !== undefined) window.clearTimeout(copyTimer)
+    copyTimer = window.setTimeout(() => setCopied(false), 1200)
+  }
 
   return (
     <div
@@ -1822,8 +1835,8 @@ function RetryRow(props: { attempt: number; text: string }) {
         <dialog
           data-slot="answer-retry-dialog"
           aria-label={i18n.t("ui.answer.retry.errorDetails")}
-          class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4 backdrop:bg-black/30"
-          style={{ background: "var(--v2-background-bg-base)", color: "var(--answer-ink)" }}
+          class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4"
+          style={{ color: "var(--answer-ink)" }}
           onClick={(event) => {
             if (event.target === event.currentTarget) event.currentTarget.close()
           }}
@@ -1833,7 +1846,16 @@ function RetryRow(props: { attempt: number; text: string }) {
             <pre class="max-h-[50vh] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]">
               {props.text}
             </pre>
-            <form method="dialog" class="flex items-center justify-end">
+            <form method="dialog" class="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                data-slot="answer-copy"
+                class="text-[12px] leading-[20px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+                style={{ color: "var(--answer-ink-secondary)" }}
+                onClick={() => void copy()}
+              >
+                {copied() ? i18n.t("ui.answer.copied") : i18n.t("ui.answer.copy")}
+              </button>
               <button
                 type="submit"
                 class="text-[12px] leading-[20px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
@@ -2409,8 +2431,8 @@ function ToolRow(props: {
           </button>
           <dialog
             data-slot="answer-inspect-dialog"
-            class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4 backdrop:bg-black/30"
-            style={{ background: "var(--v2-background-bg-base)", color: "var(--answer-ink)" }}
+            class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4"
+            style={{ color: "var(--answer-ink)" }}
             onClick={(event) => {
               if (event.target === event.currentTarget) event.currentTarget.close()
             }}

@@ -450,3 +450,21 @@
   gap: 6px;
   font-variant-numeric: tabular-nums;
 }
+
+/*
+  Both 查看 sheets are native modals in the top layer, where the global reset drops the UA's centred margin, and
+  they used to sit on an opaque base. Centre them explicitly and reuse the model picker's glass: the strong
+  material fill over the same blurred scrim as the shared dialog overlay. `--v2-material-*` degrades to its opaque
+  twin under reduced transparency, so the sheet stays readable.
+*/
+.answer-scope :is([data-slot="answer-retry-dialog"], [data-slot="answer-inspect-dialog"]) {
+  margin: auto;
+  background: var(--v2-material-surface-strong);
+  backdrop-filter: var(--v2-material-blur-thick);
+  box-shadow: var(--v2-elevation-overlay);
+}
+
+.answer-scope :is([data-slot="answer-retry-dialog"], [data-slot="answer-inspect-dialog"])::backdrop {
+  background: var(--v2-overlay-simple-overlay-scrim);
+  backdrop-filter: blur(6px);
+}

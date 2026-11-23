@@ -141,6 +141,7 @@
 /* A card is the item: its summary row opens the full content and the actions in place. */
 .module-card {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--radius-card);
@@ -155,6 +156,7 @@
 .module-card-head {
   display: flex;
   width: 100%;
+  min-width: 0;
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
@@ -199,10 +201,13 @@
 
 .module-card-title strong {
   min-width: 0;
+  overflow: hidden;
   color: var(--v2-text-text-base);
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .module-card-meta {
@@ -397,6 +402,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 12px;
+}
+
+/* A grid item's automatic minimum size would let a long card title widen its own column. */
+.module-grid > * {
+  min-width: 0;
 }
 
 .module-tag {

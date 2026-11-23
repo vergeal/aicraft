@@ -263,6 +263,10 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
             yield* (ctx.payload.archived ? session.archive : session.unarchive)(ctx.params.sessionID).pipe(
               Effect.catchTag("Session.NotFoundError", missingSession),
             )
+          if (ctx.payload.pinned !== undefined)
+            yield* (ctx.payload.pinned ? session.pin : session.unpin)(ctx.params.sessionID).pipe(
+              Effect.catchTag("Session.NotFoundError", missingSession),
+            )
           return HttpApiSchema.NoContent.make()
         }),
       )

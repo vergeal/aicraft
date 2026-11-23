@@ -1693,6 +1693,7 @@ export function make(options: ClientOptions) {
               permissions: input["permissions"],
               prompt: input["prompt"],
               archived: input["archived"],
+              pinned: input["pinned"],
             },
             successStatus: 204,
             declaredStatuses: [400, 401, 404],

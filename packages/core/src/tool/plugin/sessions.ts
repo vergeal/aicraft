@@ -15,7 +15,7 @@ const DEFAULT_BASE = "lts/ocdev"
 
 export const description = [
   "List sessions with the worktree and branch each one runs in, so one call answers who is where and what they are doing.",
-  "Each row carries the session id, title, agent, running or idle status, timestamps, working directory, and the worktree it lives in: path, branch, short HEAD, dirty state, and commits ahead and behind `base`.",
+  "Each row carries the session id, title, agent, running or idle status, the outcome of its last completed run, how many items wait in its task queue, whether it is pinned or archived, timestamps, working directory, and the worktree it lives in: path, branch, short HEAD, dirty state, and commits ahead and behind `base`.",
   "`base` defaults to `lts/ocdev` and is read from local git refs only: nothing is fetched, checked out or written.",
   "`worktree` is null when the directory is not inside a git worktree or the repository could not be read. `directory` is empty when the session does not report one.",
   "Rows are newest first by update time and `limit` (default 40, maximum 200) truncates the result. `search` matches titles and ids. Pass `parentID: null` to list only root sessions.",
@@ -57,6 +57,12 @@ export const Output = Schema.Struct({
       agent: Schema.optional(Schema.String),
       parentID: Schema.optional(SessionSchema.ID),
       status: Schema.Literals(["running", "idle"]),
+      /** Outcome of the last completed run; absent until one finishes. */
+      outcome: Schema.optional(Schema.Literals(["succeeded", "failed", "interrupted"])),
+      /** Items admitted but not yet delivered to the model. */
+      queue: Schema.Int,
+      pinned: Schema.Boolean,
+      archived: Schema.Boolean,
       created: Schema.String,
       updated: Schema.String,
       directory: Schema.String,
@@ -97,6 +103,20 @@ export const Plugin = {
                   ),
                 )
               const sessions = listed.data.slice(0, limit)
+              // Queue depth is per session, so one lookup each.
+              const queues = yield* Effect.forEach(
+                sessions,
+                (session) =>
+                  ctx.session.inbox
+                    .list({ sessionID: session.id })
+                    .pipe(
+                      Effect.map((items) => items.length),
+                      Effect.mapError(
+                        (error) => new ToolFailure({ message: "Could not read a session queue", error }),
+                      ),
+                    ),
+                { concurrency: 8 },
+              )
 
               // One git lookup per directory, and one per worktree after that: sessions in the same
               // worktree share a branch, a HEAD and a dirty state.
@@ -139,7 +159,7 @@ export const Plugin = {
                 { concurrency: 4, discard: true },
               )
 
-              const rows = sessions.map((session) => {
+              const rows = sessions.map((session, index) => {
                 const repository = repositories.get(session.location.directory)
 
                 return {
@@ -148,6 +168,10 @@ export const Plugin = {
                   agent: session.agent,
                   parentID: session.parentID,
                   status: SessionSchema.sessionStatus(session.time),
+                  outcome: session.outcome,
+                  queue: queues[index] ?? 0,
+                  pinned: session.time.pinned !== undefined,
+                  archived: session.time.archived !== undefined,
                   created: DateTime.formatIso(session.time.created),
                   updated: DateTime.formatIso(session.time.updated),
                   directory: session.location.directory,
@@ -165,8 +189,9 @@ export const Plugin = {
                       ? `${row.worktree.branch} ${row.worktree.head}${row.worktree.dirty ? " dirty" : ""} +${row.worktree.ahead}/-${row.worktree.behind}`
                       : "no worktree"
                     const directory = row.directory || "(no directory)"
+                    const state = `${row.status}${row.outcome ? ` (${row.outcome})` : ""}${row.queue > 0 ? ` · ${row.queue} queued` : ""}${row.pinned ? " · pinned" : ""}${row.archived ? " · archived" : ""}`
 
-                    return `- ${row.id} · ${row.title ?? "Untitled"}${agent} · ${row.status} · ${position} · ${directory}`
+                    return `- ${row.id} · ${row.title ?? "Untitled"}${agent} · ${state} · ${position} · ${directory}`
                   }),
                   ...(missing.count > 0
                     ? [

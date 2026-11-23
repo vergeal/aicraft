@@ -55,6 +55,8 @@ export const Info = Schema.Struct({
     idle: DateTimeUtcFromMillis.pipe(optional),
     viewed: DateTimeUtcFromMillis.pipe(optional),
     archived: DateTimeUtcFromMillis.pipe(optional),
+    /** When the session was pinned, as the client reported it. Absent when not pinned. */
+    pinned: DateTimeUtcFromMillis.pipe(optional),
   }),
   title: Schema.String.pipe(optional),
   location: Location.Ref,

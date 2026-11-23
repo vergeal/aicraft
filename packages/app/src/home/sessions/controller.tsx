@@ -104,6 +104,35 @@ export function createHomeSessionsController(home: HomeController) {
   })
 
   const groups = createMemo(() => groupSessions(records(), pinnedIDs(), language))
+
+  // The server owns whether a session is pinned so tools can report it, while the client keeps
+  // deciding pin order here. Mirror each difference to the server once.
+  const mirroredPins = new Map<string, boolean>()
+
+  createEffect(() => {
+    const ctx = home.server.focusedContext()
+    const conn = home.server.focused()
+
+    if (!ctx || !conn) return
+    const pinned = new Set(pinnedIDs())
+
+    for (const record of allRecords()) {
+      const sessionID = record.session.id
+      const key = `${ServerConnection.key(conn)}\0${sessionID}`
+      const next = pinned.has(sessionID)
+
+      if (next === (record.session.time.pinned !== undefined)) {
+        mirroredPins.delete(key)
+        continue
+      }
+
+      if (mirroredPins.get(key) === next) continue
+      mirroredPins.set(key, next)
+      void ctx.sdk.api.session
+        .update({ sessionID, pinned: next })
+        .catch(() => mirroredPins.delete(key))
+    }
+  })
   const [state, setState] = createSignal<HomeSessionsState>({ status: "loading" })
 
   createEffect(

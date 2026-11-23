@@ -203,6 +203,8 @@ export interface Interface {
   readonly rename: (input: { sessionID: SessionSchema.ID; title: string }) => Effect.Effect<void, NotFoundError>
   readonly archive: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
   readonly unarchive: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
+  readonly pin: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
+  readonly unpin: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
   readonly setMetadata: (input: {
     sessionID: SessionSchema.ID
     metadata: SessionSchema.Metadata
@@ -509,6 +511,8 @@ const layer = Layer.effect(
       rename: (input) => sessions.forSession(input.sessionID).rename(input),
       archive: (sessionID) => sessions.forSession(sessionID).archive(),
       unarchive: (sessionID) => sessions.forSession(sessionID).unarchive(),
+      pin: (sessionID) => sessions.forSession(sessionID).pin(),
+      unpin: (sessionID) => sessions.forSession(sessionID).unpin(),
       setMetadata: (input) => sessions.forSession(input.sessionID).setMetadata(input),
       setPermissions: (input) => sessions.forSession(input.sessionID).setPermissions(input),
       setPrompt: (input) => sessions.forSession(input.sessionID).setPrompt(input),

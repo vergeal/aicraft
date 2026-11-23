@@ -70,6 +70,7 @@ export const SessionTable = sqliteTable(
     idle_outcome: text().$type<NonNullable<Session.Info["outcome"]>>(),
     time_compacting: integer(),
     time_archived: integer(),
+    time_pinned: integer(),
     /** The execution claim timestamp (historical column name; see SessionStore.claim). */
     time_suspended: integer(),
     resume_attempts: integer().notNull().default(0),

@@ -1020,6 +1020,13 @@ const layer = Layer.effectDiscard(
     yield* bus.project(SessionEvent.Unarchived, (event) =>
       setSession(db, event.data.sessionID, { time_archived: null, time_updated: event.created }),
     )
+    // Pinning is presentation state: it must not reorder a session in date-grouped lists.
+    yield* bus.project(SessionEvent.Pinned, (event) =>
+      setSession(db, event.data.sessionID, { time_pinned: event.created }),
+    )
+    yield* bus.project(SessionEvent.Unpinned, (event) =>
+      setSession(db, event.data.sessionID, { time_pinned: null }),
+    )
     yield* bus.project(SessionEvent.MessageContentUpdated, (event) => run(db, event))
     yield* bus.project(SessionEvent.UsageRecorded, (event) => applyUsage(db, event.data.sessionID, event.data))
     yield* bus.project(SessionEvent.Forked, (event) => projectFork(db, event))

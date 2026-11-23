@@ -82,6 +82,16 @@ export const make = Effect.fn("Session.make")(function* () {
     if (!session.time.archived) return
     yield* bus.publish(SessionEvent.Unarchived, { sessionID })
   })
+  const pin = Effect.fn("Session.pin")(function* (sessionID: SessionSchema.ID) {
+    const session = yield* get(sessionID)
+    if (session.time.pinned) return
+    yield* bus.publish(SessionEvent.Pinned, { sessionID })
+  })
+  const unpin = Effect.fn("Session.unpin")(function* (sessionID: SessionSchema.ID) {
+    const session = yield* get(sessionID)
+    if (!session.time.pinned) return
+    yield* bus.publish(SessionEvent.Unpinned, { sessionID })
+  })
   const setMetadata = Effect.fn("Session.setMetadata")(function* (
     sessionID: SessionSchema.ID,
     input: { metadata: SessionSchema.Metadata },
@@ -368,6 +378,8 @@ export const make = Effect.fn("Session.make")(function* () {
     rename,
     archive,
     unarchive,
+    pin,
+    unpin,
     setMetadata,
     setPermissions,
     setPrompt,
@@ -395,6 +407,8 @@ export const make = Effect.fn("Session.make")(function* () {
     const rename = operations.rename.bind(undefined, sessionID)
     const archive = operations.archive.bind(undefined, sessionID)
     const unarchive = operations.unarchive.bind(undefined, sessionID)
+    const pin = operations.pin.bind(undefined, sessionID)
+    const unpin = operations.unpin.bind(undefined, sessionID)
     const setMetadata = operations.setMetadata.bind(undefined, sessionID)
     const setPermissions = operations.setPermissions.bind(undefined, sessionID)
     const setPrompt = operations.setPrompt.bind(undefined, sessionID)
@@ -425,6 +439,8 @@ export const make = Effect.fn("Session.make")(function* () {
       rename,
       archive,
       unarchive,
+      pin,
+      unpin,
       setMetadata,
       setPermissions,
       setPrompt,

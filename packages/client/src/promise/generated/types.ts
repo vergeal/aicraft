@@ -55,6 +55,7 @@ export type PluginDisplay = {
   name: string
   description: string
   category?: string
+  icon?: string
   skills?: Array<{ id: string; name: string; description: string }>
   tools?: Array<string>
 }
@@ -1363,6 +1364,26 @@ export type SessionUnarchived = {
   data: { sessionID: SessionID }
 }
 
+export type SessionPinned = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "session.pinned"
+  durable: { aggregateID: string; seq: EventSeq; version: 1 }
+  location?: LocationRef
+  data: { sessionID: SessionID }
+}
+
+export type SessionUnpinned = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "session.unpinned"
+  durable: { aggregateID: string; seq: EventSeq; version: 1 }
+  location?: LocationRef
+  data: { sessionID: SessionID }
+}
+
 export type SessionDeleted = {
   id: EventID
   created: number
@@ -2457,7 +2478,15 @@ export type SessionInfo = {
   cost: MoneyUSD
   tokens: TokenUsageInfo
   outcome?: "succeeded" | "failed" | "interrupted"
-  time: { created: number; updated: number; busy?: number; idle?: number; viewed?: number; archived?: number }
+  time: {
+    created: number
+    updated: number
+    busy?: number
+    idle?: number
+    viewed?: number
+    archived?: number
+    pinned?: number
+  }
   title?: string
   subpath?: RelativePath
   metadata?: SessionMetadata
@@ -2948,6 +2977,8 @@ export type SessionEventDurable =
   | SessionViewed
   | SessionArchived
   | SessionUnarchived
+  | SessionPinned
+  | SessionUnpinned
   | SessionDeleted
   | SessionForked
   | SessionInboxDelivered
@@ -3006,6 +3037,8 @@ export type V2Event =
   | SessionViewed
   | SessionArchived
   | SessionUnarchived
+  | SessionPinned
+  | SessionUnpinned
   | SessionUsageUpdated
   | SessionDeleted
   | SessionForked
@@ -3595,6 +3628,7 @@ export type SessionUpdateInput = {
     | undefined
   readonly prompt?: string | undefined
   readonly archived?: boolean | undefined
+  readonly pinned?: boolean | undefined
 }
 
 export type SessionUpdateOutput = void
@@ -4050,6 +4084,7 @@ export type ExperimentalSessionImportInput = {
       readonly idle?: number
       readonly viewed?: number
       readonly archived?: number
+      readonly pinned?: number
     }
     readonly title?: string
     readonly subpath?: string
@@ -4597,6 +4632,8 @@ export type EventSubscribeInput = {
         | "session.viewed"
         | "session.archived"
         | "session.unarchived"
+        | "session.pinned"
+        | "session.unpinned"
         | "session.usage.updated"
         | "session.deleted"
         | "session.forked"

@@ -91,6 +91,8 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
       "session.archived": () => Effect.void,
       "session.prompt.updated": () => Effect.void,
       "session.unarchived": () => Effect.void,
+      "session.pinned": () => Effect.void,
+      "session.unpinned": () => Effect.void,
       "session.message.content.updated": (event) =>
         adapter.replaceAssistantParts(event.data.messageID, decodeAssistantContent(event.data.content)),
       "session.usage.recorded": () => Effect.void,

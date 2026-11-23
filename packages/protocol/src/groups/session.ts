@@ -311,6 +311,10 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
             description:
               "Archive the session with true or restore it with false. Repeating the current state is a no-op.",
           }),
+          pinned: Schema.Boolean.pipe(Schema.optional).annotate({
+            description:
+              "Pin the session with true or unpin it with false. Repeating the current state is a no-op.",
+          }),
         }),
         success: HttpApiSchema.NoContent,
         error: [SessionNotFoundError, LocationNotFoundError],

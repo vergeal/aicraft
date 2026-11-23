@@ -158,6 +158,20 @@ export const Unarchived = Event.durable({
 })
 export type Unarchived = typeof Unarchived.Type
 
+export const Pinned = Event.durable({
+  type: "session.pinned",
+  ...options,
+  schema: Base,
+})
+export type Pinned = typeof Pinned.Type
+
+export const Unpinned = Event.durable({
+  type: "session.unpinned",
+  ...options,
+  schema: Base,
+})
+export type Unpinned = typeof Unpinned.Type
+
 // Replay-only: older releases allowed replacing completed assistant content.
 export const MessageContentUpdated = Event.durable({
   type: "session.message.content.updated",
@@ -699,6 +713,8 @@ export const Definitions = Event.inventory(
   Viewed,
   Archived,
   Unarchived,
+  Pinned,
+  Unpinned,
   UsageUpdated,
   Deleted,
   Forked,

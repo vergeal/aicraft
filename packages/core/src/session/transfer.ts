@@ -175,6 +175,9 @@ const layer = Layer.effect(
                       time_archived: input.data.info.time.archived
                         ? DateTime.toEpochMillis(input.data.info.time.archived)
                         : null,
+                      time_pinned: input.data.info.time.pinned
+                        ? DateTime.toEpochMillis(input.data.info.time.pinned)
+                        : null,
                     })
                     .where(eq(SessionTable.id, sessionID))
                     .run()

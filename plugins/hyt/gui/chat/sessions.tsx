@@ -55,10 +55,7 @@ export function SessionList(props: {
   return (
     <>
       <div class="hyt-side-brand">
-        <span class="hyt-side-logo" aria-hidden="true">
-          <ctx.ui.Icon name="bubble-5" size="normal" />
-        </span>
-        <span class="hyt-side-name">{text(ctx, "hyt.chat.nav")}</span>
+        <span class="hyt-side-name">{text(ctx, "hyt.chat.side.title")}</span>
         <button
           type="button"
           class="hyt-side-read"

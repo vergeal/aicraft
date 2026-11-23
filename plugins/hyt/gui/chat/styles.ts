@@ -99,6 +99,7 @@ export const css = `
   --hyt-text-135: 14px;
   --hyt-text-14: 14px;
   --hyt-text-145: 14px;
+  --hyt-text-16: 16px;
   --hyt-lh-normal: 1.45;
   --hyt-lh-large: 1.5;
   --hyt-radius-4: 4px;
@@ -127,20 +128,10 @@ export const css = `
   height: 52px;
   padding: 0 14px;
 }
-.hyt-side-logo {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--hyt-radius-8);
-  background: var(--hyt-accent);
-  color: var(--hyt-on-accent);
-}
 .hyt-side-name {
-  font-size: var(--hyt-text-14);
+  font-size: var(--hyt-text-16);
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.2px;
+  letter-spacing: 0.1px;
   white-space: nowrap;
 }
 .hyt-side-read {
@@ -350,7 +341,7 @@ export const css = `
 }
 /* 选中态只留一块浅灰：飞书没有左侧色条，靠底色就够了。 */
 .hyt-chat-session[aria-current="true"] {
-  background: color-mix(in srgb, var(--hyt-text) 6%, transparent);
+  background: color-mix(in srgb, var(--hyt-accent) 9%, transparent);
 }
 .hyt-chat-session:focus-visible {
   outline: var(--focus-width, 2px) solid var(--hyt-accent);
@@ -501,9 +492,9 @@ export const css = `
   }
 }
 .hyt-chat-filter-chip[aria-pressed="true"] {
-  background: var(--hyt-accent-soft);
+  background: transparent;
   color: var(--hyt-accent-ink);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-bold);
 }
 .hyt-chat-filter-dot {
   width: 5px;
@@ -662,9 +653,9 @@ export const css = `
   gap: 8px;
   min-width: 0;
   color: var(--hyt-text);
-  font-size: var(--hyt-text-145);
+  font-size: var(--hyt-text-16);
   font-weight: var(--font-weight-bold);
-  line-height: 1.3;
+  line-height: 1.25;
 }
 .hyt-chat-head-name {
   min-width: 0;
@@ -720,6 +711,57 @@ export const css = `
   align-items: center;
   gap: 1px;
   flex: 0 0 auto;
+}
+
+/* 会话头下面一行「消息」页签，和飞书一致：主色文字 + 2px 下划线，右侧加号聚焦输入框。 */
+.hyt-chat-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 20px;
+}
+.hyt-chat-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  color: var(--hyt-accent-ink);
+  font-size: var(--hyt-text-13);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+.hyt-chat-tab::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--hyt-accent);
+}
+.hyt-chat-tab-add {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hyt-radius-6);
+  background: transparent;
+  color: var(--hyt-text-3);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 120ms) var(--ease-out, ease),
+    color var(--duration-fast, 120ms) var(--ease-out, ease);
+}
+@media (hover: hover) {
+  .hyt-chat-tab-add:hover {
+    background: var(--hyt-hover);
+    color: var(--hyt-text);
+  }
 }
 
 /* ============================================================================
@@ -859,7 +901,6 @@ export const css = `
 .hyt-chat-item[data-outgoing="true"] {
   flex-direction: row-reverse;
 }
-.hyt-chat-item[data-outgoing="true"] > .hyt-chat-avatar,
 .hyt-chat-item[data-outgoing="true"] .hyt-chat-item-name,
 .hyt-chat-item[data-outgoing="true"] .hyt-chat-msg-role {
   display: none;
@@ -1224,6 +1265,14 @@ export const css = `
   display: flex;
   align-items: flex-end;
   gap: 6px;
+}
+/* 工具栏独立一行：左侧附件/表情/@，右侧发送键，和飞书底部一致。 */
+.hyt-chat-composer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
 }
 .hyt-chat-composer-row textarea {
   flex: 1 1 auto;

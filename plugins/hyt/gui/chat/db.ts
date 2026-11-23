@@ -385,6 +385,14 @@ function readPeople(root: string, account: string) {
 }
 
 /**
+ * 账号 → 昵称。合并转发的文件里只有账号，列表里显示 `cs11003625` 无法阅读；
+ * 通讯录里有名字就用名字，没有就退回账号本身。
+ */
+export function readPersonNames(root: string, account: string) {
+  return new Map([...readPeople(root, account)].map(([key, person]) => [key, person.remark || person.name || key]))
+}
+
+/**
  * 本地头像文件。`LocalHeadUrl` 有文件就直接用；否则按 `Url` 最后一段首个 `.` 之前的部分去 `HeadFiles` 找。
  * 客户端下载头像时就是用这个文件名，所以远程地址与本地文件能对得上。
  */

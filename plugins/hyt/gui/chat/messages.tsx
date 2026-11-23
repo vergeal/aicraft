@@ -268,6 +268,23 @@ export function MessageStream(props: {
         </div>
       </header>
 
+      <Show when={props.session !== undefined}>
+        <div class="hyt-chat-tabs">
+          <span class="hyt-chat-tab" aria-current="true">
+            {text(ctx, "hyt.chat.side.title")}
+          </span>
+          <button
+            type="button"
+            class="hyt-chat-tab-add"
+            aria-label={text(ctx, "hyt.chat.tabs.new")}
+            title={text(ctx, "hyt.chat.tabs.new")}
+            onClick={() => document.querySelector<HTMLTextAreaElement>(".hyt-chat-composer textarea")?.focus()}
+          >
+            <ctx.ui.Icon name="plus" size="small" />
+          </button>
+        </div>
+      </Show>
+
       <Show
         when={props.session !== undefined}
         fallback={

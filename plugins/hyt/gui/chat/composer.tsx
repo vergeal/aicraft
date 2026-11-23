@@ -109,16 +109,6 @@ export function Composer(props: {
         </Show>
 
         <div class="hyt-chat-composer-row">
-          <button
-            type="button"
-            class="hyt-chat-tool"
-            aria-label={text(ctx, "hyt.chat.composer.attach")}
-            title={text(ctx, "hyt.chat.composer.attach")}
-            onClick={attach}
-          >
-            <ctx.ui.Icon name="plus" size="small" />
-          </button>
-
           <textarea
             ref={(element) => {
               textarea = element
@@ -141,8 +131,20 @@ export function Composer(props: {
               }
             }}
           />
+        </div>
 
+        <div class="hyt-chat-composer-bar">
           <div class="hyt-chat-composer-tools">
+            <button
+              type="button"
+              class="hyt-chat-tool"
+              aria-label={text(ctx, "hyt.chat.composer.attach")}
+              title={text(ctx, "hyt.chat.composer.attach")}
+              onClick={attach}
+            >
+              <ctx.ui.Icon name="plus" size="small" />
+            </button>
+
             <button
               type="button"
               class="hyt-ai-chip"
@@ -175,18 +177,18 @@ export function Composer(props: {
                 @
               </span>
             </button>
-            <button
-              type="button"
-              class="hyt-chat-send"
-              aria-label={text(ctx, "hyt.chat.composer.send")}
-              title={text(ctx, "hyt.chat.composer.send")}
-              aria-busy={props.sending ? "true" : undefined}
-              disabled={!props.send.enabled || props.sending || props.value.trim().length === 0}
-              onClick={() => submit()}
-            >
-              <ctx.ui.Icon name="arrow-up" size="normal" />
-            </button>
           </div>
+          <button
+            type="button"
+            class="hyt-chat-send"
+            aria-label={text(ctx, "hyt.chat.composer.send")}
+            title={text(ctx, "hyt.chat.composer.send")}
+            aria-busy={props.sending ? "true" : undefined}
+            disabled={!props.send.enabled || props.sending || props.value.trim().length === 0}
+            onClick={() => submit()}
+          >
+            <ctx.ui.Icon name="arrow-up" size="normal" />
+          </button>
         </div>
 
         <Show when={emojiOpen()}>

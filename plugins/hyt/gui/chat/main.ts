@@ -295,10 +295,12 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
 
     async merge(input) {
       const path = input.path
-      if (!insideRoot(path, rootOf())) return { items: [], error: "路径不在数据目录内" }
+      const root = rootOf()
+      if (!insideRoot(path, root)) return { items: [], error: "路径不在数据目录内" }
       const text = readText(path)
       if (text === undefined) return { items: [], error: "文件不存在或无法读取" }
-      return { items: decodeMergeText(text).map(mergeRow), error: "" }
+      const names = Db.readPersonNames(root, current?.status.account ?? "")
+      return { items: decodeMergeText(text).map((item) => mergeRow(item, names)), error: "" }
     },
 
     async media(input) {
@@ -344,9 +346,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   return provided
 }
 
-function mergeRow(item: MergeItem): MergeItemRow {
+function mergeRow(item: MergeItem, names: ReadonlyMap<string, string>): MergeItemRow {
   return {
-    account: item.account,
+    account: names.get(item.account) ?? item.account,
     title: item.title,
     content: item.content,
     kind: item.kind,

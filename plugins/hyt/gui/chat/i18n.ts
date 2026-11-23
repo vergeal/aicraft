@@ -42,6 +42,8 @@ export const zh: Record<string, string> = {
   "hyt.chat.search.clear": "清除搜索",
 
   "hyt.chat.sessions.title": "会话",
+  "hyt.chat.side.title": "消息",
+  "hyt.chat.tabs.new": "新消息",
   "hyt.chat.sessions.empty": "还没有会话。",
   "hyt.chat.sessions.group": "群聊",
   "hyt.chat.sessions.groups": "群聊",

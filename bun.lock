@@ -853,7 +853,7 @@
     },
     "plugins/hyt": {
       "name": "@opencode/plugin-hyt",
-      "version": "0.1.1",
+      "version": "0.6.0",
       "dependencies": {
         "@opencode/plugin": "workspace:*",
         "@opencode/schema": "workspace:*",
@@ -890,22 +890,6 @@
         "typescript": "catalog:",
       },
     },
-    "plugins/memory": {
-      "name": "@opencode/plugin-memory",
-      "version": "0.3.5",
-      "dependencies": {
-        "@opencode/plugin": "workspace:*",
-        "@opencode/schema": "workspace:*",
-        "effect": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/bun": "catalog:",
-        "@types/bun": "catalog:",
-        "@typescript/native": "catalog:",
-        "solid-js": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
     "plugins/orchestrator": {
       "name": "@opencode/plugin-orchestrator",
       "version": "0.1.3",
@@ -924,7 +908,7 @@
     },
     "plugins/webwright": {
       "name": "@opencode/plugin-webwright",
-      "version": "2.2.6",
+      "version": "2.3.1",
       "dependencies": {
         "@opencode/plugin": "workspace:*",
         "@opencode/schema": "workspace:*",
@@ -1893,8 +1877,6 @@
     "@opencode/plugin-hyt": ["@opencode/plugin-hyt@workspace:plugins/hyt"],
 
     "@opencode/plugin-itsm": ["@opencode/plugin-itsm@workspace:plugins/itsm"],
-
-    "@opencode/plugin-memory": ["@opencode/plugin-memory@workspace:plugins/memory"],
 
     "@opencode/plugin-orchestrator": ["@opencode/plugin-orchestrator@workspace:plugins/orchestrator"],
 

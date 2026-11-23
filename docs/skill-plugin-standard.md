@@ -67,7 +67,6 @@
 ---
 name: 代码评审清单
 description: 当用户要求评审改动、或提交前自查时使用。
-icon: '<svg viewBox="0 0 24 24">…</svg>'
 metadata:
   opencode/autoinvoke: true
 ---
@@ -77,21 +76,23 @@ metadata:
 正文……
 ```
 
+图标放在技能目录里的 `icon.svg`，和 `SKILL.md` 一起分发。
+
 frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里含冒号的老写法）。支持的字段：
 
 | 字段                           | 必填 | 类型    | 说明                                                             |
 | ------------------------------ | ---- | ------- | ---------------------------------------------------------------- |
 | `name`                         | 否   | string  | 显示名。省略时等于 `id`。可以包含中文。                          |
 | `description`                  | 否   | string  | 何时使用该技能。**省略则该技能不会出现在模型的可用技能列表里**。 |
-| `icon`                         | 否   | string  | 技能的内联 SVG 图标，取值规则见下。省略时探索页按标题与说明生成彩色图标。 |
+| `icon`                         | 否   | string  | 技能的内联 SVG 图标，取值规则见下。优先用同目录的 `icon.svg`。    |
 | `metadata.aicraft/autoinvoke` | 否   | boolean | 是否允许模型自动调用。优先级最高。                               |
 | `disable-model-invocation`     | 否   | boolean | 与上一条同义，兼容其他 agent 的写法。                            |
 
-`icon` 是**内联 SVG 源码字符串**，约定 24×24 视口，与插件 `display.icon` 同一套约束：禁止 `<script>`、`<foreignObject>`、事件属性（`on*`）、外部 `href`/`url(...)` 引用；品牌色可以用固定值。客户端把它当作身份标（品牌 mark），允许彩色，不当作功能图标用。
+`icon` 按优先级有两个来源：frontmatter 的 `icon`（内联 SVG 源码字符串），以及技能目录里的 `icon.svg`（加载器在 frontmatter 没有 `icon` 时读取它）。推荐用 `icon.svg`：图标作为文件与 `SKILL.md` 放在同一个目录，分发时整包复制即可，不必把 SVG 挤进 YAML。两种来源的约束相同：约定 24×24 视口，与插件 `display.icon` 同一套限制——禁止 `<script>`、`<foreignObject>`、事件属性（`on*`）、外部 `href`/`url(...)` 引用；品牌色可以用固定值。客户端把它当作身份标（品牌 mark），允许彩色，不当作功能图标用。
 
 技能图标是**完整的方形身份标**：探索页把它铺满 40×40 的图标位，而不是缩到 24px 再居中。所以 SVG 要自己画满视口的底色（例如 `<rect width="24" height="24" rx="6" fill="#…"/>`），再在上面画图形；只画一个白色图形会因为没有底色而在浅色主题下看不清。省略 `icon` 时，探索页用技能标题与说明派生一个稳定的彩色底，并叠加默认技能图形；不要在正文里用 emoji 冒充图标。
 
-内置技能走同一条规范：它们的 `SKILL.md`（`packages/core/src/plugin/skill/*.md`、`memory/SKILL.md`）与发布技能包一样在 frontmatter 里声明 `name`、`description` 和 `icon`，注册时由同一个解析器读取，不在注册代码里写死图标。
+内置技能走同一套图标规则，但它们被打进 core 的资源、没有独立目录，所以仍在 frontmatter 里内联 `icon`（`packages/core/src/plugin/skill/*.md`、`memory/SKILL.md`）；注册时不写死图标。
 
 布尔值接受 `true/false`、`yes/no`、`on/off`、`1/0`（不区分大小写、允许前后空格）。
 

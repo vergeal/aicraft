@@ -134,7 +134,12 @@ export const Plugin = define({
             })
             continue
           }
-          skills.push(parsed.skill)
+          const icon =
+            parsed.skill.icon ??
+            (yield* fs
+              .readFileStringSafe(path.join(path.dirname(filepath), "icon.svg"))
+              .pipe(Effect.orElseSucceed(() => undefined)))?.trim()
+          skills.push(icon ? { ...parsed.skill, icon } : parsed.skill)
         }
       }
       yield* Effect.logDebug("skill source loaded", {

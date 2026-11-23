@@ -651,8 +651,13 @@ function downloadSkill(http: HttpClient.HttpClient, server: string, slug: string
     if (!main) return yield* Effect.fail(new Error(`skill ${slug} has no SKILL.md`))
     const parsed = SkillFile.parse(`/${slug}`, `/${slug}/SKILL.md`, main.content)
     if (parsed._tag !== "Parsed") return yield* Effect.fail(new Error(`skill ${slug} has an invalid SKILL.md`))
+    const icon = parsed.skill.icon ?? bundle.files.find((file) => file.path === "icon.svg")?.content.trim()
     return {
-      skill: { ...parsed.skill, path: AbsolutePath.make(Skill.uri(slug, "SKILL.md")) },
+      skill: {
+        ...parsed.skill,
+        ...(icon ? { icon } : {}),
+        path: AbsolutePath.make(Skill.uri(slug, "SKILL.md")),
+      },
       files: Object.fromEntries(
         bundle.files.filter((file) => file.path !== "SKILL.md").map((file) => [file.path, file.content]),
       ),

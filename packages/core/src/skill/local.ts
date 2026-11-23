@@ -31,5 +31,15 @@ async function read(directory: string, name: string): Promise<Skill.Info | undef
     .catch(() => undefined)
   if (content === undefined) return undefined
   const parsed = SkillFile.parse(folder, file, content)
-  return parsed._tag === "Parsed" ? parsed.skill : undefined
+  if (parsed._tag !== "Parsed") return undefined
+  const icon = parsed.skill.icon ?? (await readIcon(folder))
+  return icon ? { ...parsed.skill, icon } : parsed.skill
+}
+
+/** A skill ships its mark beside the manifest, so one folder is the whole package. */
+async function readIcon(folder: string) {
+  const icon = await Bun.file(path.join(folder, "icon.svg"))
+    .text()
+    .catch(() => undefined)
+  return icon?.trim() || undefined
 }

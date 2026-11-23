@@ -1,7 +1,6 @@
 ---
 name: 图标设计
 description: "当你为技能、插件或任何条目设计身份标图标时使用：24px 画布上的彩色方形图标，要求视觉居中、圆润卡通、缩到 24px 仍可辨，并避免手写曲线、字母头像与灰底灰图。"
-icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#d99a22"/><rect x="5.6" y="5.6" width="12.8" height="12.8" rx="3.6" fill="#fffaf0"/><circle cx="12" cy="12" r="3.2" fill="#b87316"/><circle cx="16.4" cy="7.6" r="1.6" fill="#8a5210"/></svg>'
 ---
 
 # 图标设计

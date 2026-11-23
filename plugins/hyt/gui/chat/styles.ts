@@ -143,7 +143,7 @@ export const css = `
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
-.hyt-side-ai {
+.hyt-side-read {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -160,12 +160,17 @@ export const css = `
     background-color var(--duration-fast, 120ms) var(--ease-out, ease),
     color var(--duration-fast, 120ms) var(--ease-out, ease);
 }
-.hyt-side-ai:focus-visible {
+.hyt-side-read:focus-visible {
   outline: var(--focus-width, 2px) solid var(--hyt-accent);
   outline-offset: 2px;
 }
+/* 没有未读时置灰：这个位置常驻，灰掉比消失更好找。 */
+.hyt-side-read:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 @media (hover: hover) {
-  .hyt-side-ai:hover {
+  .hyt-side-read:hover:not(:disabled) {
     background: var(--hyt-hover);
     color: var(--hyt-text);
   }
@@ -592,16 +597,6 @@ export const css = `
 .hyt-icon-button[aria-pressed="true"] {
   background: var(--hyt-surface-active, var(--hyt-active));
   color: var(--hyt-text);
-}
-.hyt-icon-button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-@media (hover: hover) {
-  .hyt-icon-button:disabled:hover {
-    background: transparent;
-    color: var(--hyt-text-3);
-  }
 }
 
 /* 头像：方形圆角，尺寸、圆角与底色由组件按虹云通的公式算好（inline）。 */

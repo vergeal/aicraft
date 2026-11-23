@@ -210,7 +210,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 unread={snapshot().unread}
                 onSelect={select}
                 onSearch={search}
-                onAi={() => insertComposer(`${text_()}@AI `)}
+                onMarkAllRead={() => void run(() => props.client.markAllRead())}
                 onRefresh={() => void run(() => props.client.refresh())}
               />
             </aside>
@@ -232,8 +232,6 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 onFocusSearch={() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()}
                 infoOpen={infoOpen()}
                 onToggleInfo={() => setInfoOpen(!infoOpen())}
-                unread={snapshot().unread}
-                onMarkAllRead={() => void run(() => props.client.markAllRead())}
                 avatars={avatarMap()}
                 onMedia={media}
                 onMerge={merge}

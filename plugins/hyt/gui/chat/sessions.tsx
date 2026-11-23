@@ -27,7 +27,8 @@ export function SessionList(props: {
   unread: number
   onSelect: (id: string, messageId?: number) => void
   onSearch: (query: string) => void
-  onAi: () => void
+  /** 一键阅读：把所有会话的未读标为已读。 */
+  onMarkAllRead: () => void
   onRefresh: () => void
 }) {
   const ctx = props.ctx
@@ -60,12 +61,13 @@ export function SessionList(props: {
         <span class="hyt-side-name">{text(ctx, "hyt.chat.nav")}</span>
         <button
           type="button"
-          class="hyt-side-ai"
-          aria-label={text(ctx, "hyt.chat.ai.title")}
-          title={text(ctx, "hyt.chat.ai.title")}
-          onClick={() => props.onAi()}
+          class="hyt-side-read"
+          aria-label={text(ctx, "hyt.chat.action.readAll")}
+          title={text(ctx, "hyt.chat.action.readAll")}
+          disabled={props.unread === 0}
+          onClick={() => props.onMarkAllRead()}
         >
-          <ctx.ui.Icon name="brain" size="small" />
+          <ctx.ui.Icon name="check" size="small" />
         </button>
       </div>
 

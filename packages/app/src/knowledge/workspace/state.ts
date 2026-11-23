@@ -3,19 +3,10 @@ import { createStore } from "solid-js/store"
 import type { IconName } from "./bits"
 import type { FileTypeGroup } from "./format"
 
-export type WorkspaceView =
-  | "home"
-  | "libraries"
-  | "library"
-  | "doc"
-  | "search"
-  | "jobs"
-  | "agents"
-  | "recent"
-  | "favorites"
-  | "trash"
+export type WorkspaceView = "libraries" | "library" | "doc" | "search" | "jobs" | "agents"
 
-export type FileMode = "list" | "grid"
+/** The library list has three datasets: everything, pinned entries, and removed documents. */
+export type LibraryCollection = "libraries" | "favorites" | "trash"
 
 export type FileStatusFilter = "all" | "active" | "failed"
 
@@ -53,13 +44,13 @@ export type DialogState =
 
 type WorkspaceStore = {
   view: WorkspaceView
+  collection: LibraryCollection
   libraryID: string | undefined
   docPath: string | undefined
   folder: string
   type: FileTypeGroup | "all"
   status: FileStatusFilter
   sort: FileSort
-  mode: FileMode
   query: string
   selected: string[]
   jobTab: JobTab
@@ -77,14 +68,14 @@ type WorkspaceStore = {
  */
 export function createWorkspaceState() {
   const [store, setStore] = createStore<WorkspaceStore>({
-    view: "home",
+    view: "libraries",
+    collection: "libraries",
     libraryID: undefined,
     docPath: undefined,
     folder: "all",
     type: "all",
     status: "all",
     sort: "updated",
-    mode: "list",
     query: "",
     selected: [],
     jobTab: "active",
@@ -118,6 +109,11 @@ export function createWorkspaceState() {
       query: "",
       selected: [],
     })
+  }
+
+  const closeLibrary = () => {
+    setStore("libraryID", undefined)
+    go("libraries")
   }
 
   const openDoc = (libraryID: string, path: string) => {
@@ -169,6 +165,7 @@ export function createWorkspaceState() {
     setDragging,
     go,
     openLibrary,
+    closeLibrary,
     openDoc,
     closeDoc,
     clearFileFilters,

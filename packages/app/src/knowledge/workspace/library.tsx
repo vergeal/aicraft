@@ -1,10 +1,10 @@
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
-import { createEffect, createMemo, For, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, For, Show } from "solid-js"
 import { knowledgeImports } from "../import-status"
 import type { KnowledgeFileStatus } from "../store"
-import { FileGlyph, FileStatus, LibraryGlyph, View } from "./bits"
+import { FileGlyph, FileStatus, PageHead, View } from "./bits"
 import { useWorkspace } from "./context"
 import {
   FILE_TYPE_GROUPS,
@@ -17,7 +17,6 @@ import {
   formatBytes,
   formatWhen,
   libraryUpdatedAt,
-  sourceLabel,
   typeLabelKey,
   type FileTypeGroup,
 } from "./format"
@@ -25,7 +24,7 @@ import type { FileStatusFilter, MenuItem } from "./state"
 
 const ACTIVE_STATUSES: ReadonlyArray<KnowledgeFileStatus> = ["pending", "parsing", "indexing"]
 
-/** One library: its folders, its documents, and the bulk actions over the selection. */
+/** One library: its documents as a single list, filtered from the row above it. */
 export function LibraryView() {
   const ws = useWorkspace()
   const language = useLanguage()
@@ -120,6 +119,7 @@ export function LibraryView() {
 
   const openMenu = (event: MouseEvent, path: string) => {
     event.stopPropagation()
+
     const lib = library()
 
     if (!lib) return
@@ -204,21 +204,6 @@ export function LibraryView() {
     ws.ui.openMenu({ x: rect.right, y: rect.bottom + 4, items })
   }
 
-  const typeMenu = (event: MouseEvent) => {
-    if (!(event.currentTarget instanceof HTMLElement)) return
-
-    const rect = event.currentTarget.getBoundingClientRect()
-    const options: ReadonlyArray<FileTypeGroup | "all"> = ["all", ...FILE_TYPE_GROUPS]
-
-    const items: MenuItem[] = options.map((option) => ({
-      label: language.t(option === "all" ? "knowledge.workspace.type.all" : typeLabelKey(option)),
-      checked: ws.ui.store.type === option,
-      onSelect: () => ws.ui.setStore("type", option),
-    }))
-
-    ws.ui.openMenu({ x: rect.left, y: rect.bottom + 4, items })
-  }
-
   const exportFiles = async (paths: ReadonlyArray<string>) => {
     const lib = library()
 
@@ -241,13 +226,6 @@ export function LibraryView() {
       filtered().map((file) => file.path),
       checked,
     )
-
-  const stat = createMemo(() => ({
-    documents: own().length,
-    chunks: chunks(),
-    processing: active(),
-    failed: failed(),
-  }))
 
   const drop = async (event: DragEvent) => {
     event.preventDefault()
@@ -289,103 +267,12 @@ export function LibraryView() {
   })
 
   return (
-    <Show when={library()} fallback={<div class="page-scroll scroll" />}>
+    <Show when={library()} fallback={<div class="kb-scroll" />}>
       {(current) => (
         <View name="library">
-          <header class="lib-head">
-            <div class="lib-title-row">
-              <span class="lib-glyph" aria-hidden="true">
-                <LibraryGlyph />
-              </span>
-              <div class="lib-copy">
-                <h1>{current().name}</h1>
-                <p>{current().summary || current().description || ""}</p>
-              </div>
-              <div class="lib-actions">
-                <button
-                  class="icon-btn star-btn"
-                  type="button"
-                  aria-pressed={Boolean(current().favorite)}
-                  aria-label={language.t("knowledge.workspace.library.star")}
-                  onClick={() => {
-                    ws.knowledge.libraries.setFavorite(current().id, !current().favorite)
-                    ws.ui.notify(
-                      language.t(
-                        current().favorite
-                          ? "knowledge.workspace.toast.unfavorite"
-                          : "knowledge.workspace.toast.favorite",
-                        { name: current().name },
-                      ),
-                    )
-                  }}
-                >
-                  <Icon name="pin" class="ico" />
-                </button>
-                <button
-                  class="icon-btn"
-                  type="button"
-                  aria-label={language.t("knowledge.workspace.library.settings")}
-                  onClick={() => ws.ui.openDialog({ type: "settings", libraryID: current().id })}
-                >
-                  <Icon name="settings-gear" class="ico" />
-                </button>
-                <button
-                  class="icon-btn"
-                  type="button"
-                  aria-label={language.t("knowledge.workspace.library.more")}
-                  onClick={libraryMenu}
-                >
-                  <Icon name="outline-dots" class="ico" />
-                </button>
-                <Show when={stat().documents > 0}>
-                  <button class="btn btn-primary" type="button" onClick={() => void upload()}>
-                    <Icon name="plus" class="ico" />
-                    {language.t("knowledge.workspace.library.addFiles")}
-                  </button>
-                </Show>
-              </div>
-            </div>
-            <div class="meta-row">
-              <span>
-                <strong>{stat().documents}</strong> {language.t("knowledge.workspace.library.meta.documents")}
-              </span>
-              <span class="meta-sep" aria-hidden="true" />
-              <span>
-                <strong>{stat().chunks}</strong> {language.t("knowledge.workspace.library.meta.chunks")}
-              </span>
-              <Show when={current().sources.length > 0}>
-                <span class="meta-sep" aria-hidden="true" />
-                <span>
-                  {language.t("knowledge.workspace.library.meta.source", {
-                    source: current().sources.map(sourceLabel).join(" \u00b7 "),
-                  })}
-                </span>
-              </Show>
-              <span class="meta-sep" aria-hidden="true" />
-              <span>
-                {language.t("knowledge.workspace.library.meta.updated", {
-                  time: formatWhen(libraryUpdatedAt(current()), language),
-                })}
-              </span>
-              <Show when={stat().processing > 0}>
-                <span class="meta-sep" aria-hidden="true" />
-                <span class="status" data-state="busy">
-                  <span class="dot" aria-hidden="true" />
-                  {language.t("knowledge.workspace.library.meta.processing", { count: stat().processing })}
-                </span>
-              </Show>
-              <Show when={stat().failed > 0}>
-                <span class="meta-sep" aria-hidden="true" />
-                <span class="status" data-state="failed">
-                  <span class="dot" aria-hidden="true" />
-                  {language.t("knowledge.workspace.library.meta.failed", { count: stat().failed })}
-                </span>
-              </Show>
-            </div>
-          </header>
-
           <div
-            class="lib-body"
+            class="kb-scroll"
+            data-scrollable
             onDragOver={(event) => {
               if (!event.dataTransfer?.types.includes("Files")) return
               event.preventDefault()
@@ -394,73 +281,93 @@ export function LibraryView() {
             onDragLeave={() => ws.ui.setDragging(false)}
             onDrop={(event) => void drop(event)}
           >
-            <aside class="folder-tabs" aria-label={language.t("knowledge.workspace.library.folders")} data-scrollable>
-              <div class="folder-head">
-                {language.t("knowledge.workspace.library.folders")}
-                <span class="spacer" />
-                <button
-                  class="icon-btn"
-                  type="button"
-                  aria-label={language.t("knowledge.workspace.library.newFolder")}
-                  onClick={() => ws.ui.openDialog({ type: "new-folder", libraryID: current().id })}
-                >
-                  <Icon name="folder-plus" class="ico" />
-                </button>
-              </div>
-              <div class="folder-list">
-                <button
-                  class="folder-row"
-                  type="button"
-                  aria-current={ws.ui.store.folder === "all"}
-                  onClick={() => ws.ui.setStore("folder", "all")}
-                >
-                  <Icon name="folder-open" class="ico" />
-                  <span class="label">{language.t("knowledge.workspace.library.allFiles")}</span>
-                  <span class="n">{own().length}</span>
-                </button>
-                <For each={folders()}>
-                  {(folder) => (
+            <div class="kb-page">
+              <PageHead
+                back={{ label: language.t("knowledge.back"), onClick: () => ws.ui.closeLibrary() }}
+                title={current().name}
+                description={current().summary || current().description || language.t("knowledge.summary.empty")}
+                actions={
+                  <>
                     <button
-                      class="folder-row"
+                      class="kb-btn kb-btn-primary"
                       type="button"
-                      aria-current={ws.ui.store.folder === folder}
-                      onClick={() => ws.ui.setStore("folder", ws.ui.store.folder === folder ? "all" : folder)}
+                      onClick={() => void upload()}
                     >
-                      <Icon name="folder" class="ico" />
-                      <span class="label">{folder}</span>
-                      <span class="n">{own().filter((file) => fileFolder(file) === folder).length}</span>
+                      <Icon name="plus" class="ico" />
+                      <span>{language.t("knowledge.workspace.library.addFiles")}</span>
                     </button>
-                  )}
-                </For>
-              </div>
-              <div class="folder-sep" aria-hidden="true" />
-              <div class="folder-smart">
-                <button
-                  class="folder-row"
-                  type="button"
-                  aria-current={ws.ui.store.status === "failed"}
-                  onClick={() => setStatus(ws.ui.store.status === "failed" ? "all" : "failed")}
-                >
-                  <span class="dot" data-tone="warning" aria-hidden="true" />
-                  <span class="label">{language.t("knowledge.workspace.library.smart.failed")}</span>
-                  <span class="n">{failed()}</span>
-                </button>
-                <button
-                  class="folder-row"
-                  type="button"
-                  aria-current={ws.ui.store.status === "active"}
-                  onClick={() => setStatus(ws.ui.store.status === "active" ? "all" : "active")}
-                >
-                  <span class="dot" aria-hidden="true" />
-                  <span class="label">{language.t("knowledge.workspace.library.smart.active")}</span>
-                  <span class="n">{active()}</span>
-                </button>
-              </div>
-            </aside>
+                    <button
+                      class="kb-icon"
+                      type="button"
+                      aria-pressed={Boolean(current().favorite)}
+                      aria-label={language.t("knowledge.workspace.library.star")}
+                      onClick={() => {
+                        ws.knowledge.libraries.setFavorite(current().id, !current().favorite)
+                        ws.ui.notify(
+                          language.t(
+                            current().favorite
+                              ? "knowledge.workspace.toast.unfavorite"
+                              : "knowledge.workspace.toast.favorite",
+                            { name: current().name },
+                          ),
+                        )
+                      }}
+                    >
+                      <Icon name="pin" class="ico" />
+                    </button>
+                    <button
+                      class="kb-icon"
+                      type="button"
+                      aria-label={language.t("knowledge.workspace.library.settings")}
+                      onClick={() => ws.ui.openDialog({ type: "settings", libraryID: current().id })}
+                    >
+                      <Icon name="settings-gear" class="ico" />
+                    </button>
+                    <button
+                      class="kb-icon"
+                      type="button"
+                      aria-label={language.t("knowledge.workspace.library.more")}
+                      onClick={libraryMenu}
+                    >
+                      <Icon name="outline-dots" class="ico" />
+                    </button>
+                  </>
+                }
+                meta={
+                  <>
+                    <span>
+                      {language.plural("knowledge.files", own().length, { count: own().length })}
+                    </span>
+                    <span class="kb-sep" aria-hidden="true" />
+                    <span>
+                      {language.plural("knowledge.workspace.chunks", chunks(), { count: chunks() })}
+                    </span>
+                    <span class="kb-sep" aria-hidden="true" />
+                    <span>
+                      {language.t("knowledge.workspace.library.meta.updated", {
+                        time: formatWhen(libraryUpdatedAt(current()), language),
+                      })}
+                    </span>
+                    <Show when={active() > 0}>
+                      <span class="kb-sep" aria-hidden="true" />
+                      <span class="status" data-state="busy">
+                        <span class="dot" aria-hidden="true" />
+                        {language.t("knowledge.workspace.library.meta.processing", { count: active() })}
+                      </span>
+                    </Show>
+                    <Show when={failed() > 0}>
+                      <span class="kb-sep" aria-hidden="true" />
+                      <span class="status" data-state="failed">
+                        <span class="dot" aria-hidden="true" />
+                        {language.t("knowledge.workspace.library.meta.failed", { count: failed() })}
+                      </span>
+                    </Show>
+                  </>
+                }
+              />
 
-            <section class="file-pane">
-              <div class="file-toolbar">
-                <label class="field">
+              <div class="kb-toolbar">
+                <label class="kb-field">
                   <Icon name="magnifying-glass" class="ico" />
                   <input
                     type="search"
@@ -470,19 +377,11 @@ export function LibraryView() {
                     onInput={(event) => ws.ui.setStore("query", event.currentTarget.value)}
                   />
                 </label>
-                <button class="tool-btn" type="button" onClick={typeMenu}>
-                  <Icon name="filter" class="ico" />
-                  <span>
-                    {ws.ui.store.type === "all"
-                      ? language.t("knowledge.workspace.library.type")
-                      : language.t(typeLabelKey(ws.ui.store.type))}
-                  </span>
-                </button>
-                <div class="segmented" role="tablist" aria-label={language.t("knowledge.workspace.library.statusFilter")}>
+                <div class="kb-segments" role="tablist" aria-label={language.t("knowledge.workspace.library.statusFilter")}>
                   <For each={["all", "active", "failed"] as const}>
                     {(status) => (
                       <button
-                        class="seg-btn"
+                        class="kb-segment"
                         type="button"
                         role="tab"
                         aria-selected={ws.ui.store.status === status}
@@ -493,9 +392,43 @@ export function LibraryView() {
                     )}
                   </For>
                 </div>
-                <span class="spacer" />
+                <span class="kb-spacer" />
                 <select
-                  class="select"
+                  class="kb-select"
+                  aria-label={language.t("knowledge.workspace.library.folders")}
+                  value={ws.ui.store.folder}
+                  onChange={(event) => ws.ui.setStore("folder", event.currentTarget.value)}
+                >
+                  <option value="all">{language.t("knowledge.workspace.library.allFiles")}</option>
+                  <For each={folders()}>{(folder) => <option value={folder}>{folder}</option>}</For>
+                </select>
+                <button
+                  class="kb-select kb-select-action"
+                  type="button"
+                  aria-label={language.t("knowledge.workspace.library.type")}
+                  onClick={(event) => {
+                    if (!(event.currentTarget instanceof HTMLElement)) return
+
+                    const rect = event.currentTarget.getBoundingClientRect()
+                    const options: ReadonlyArray<FileTypeGroup | "all"> = ["all", ...FILE_TYPE_GROUPS]
+
+                    ws.ui.openMenu({
+                      x: rect.left,
+                      y: rect.bottom + 4,
+                      items: options.map((option) => ({
+                        label: language.t(option === "all" ? "knowledge.workspace.type.all" : typeLabelKey(option)),
+                        checked: ws.ui.store.type === option,
+                        onSelect: () => ws.ui.setStore("type", option),
+                      })),
+                    })
+                  }}
+                >
+                  {ws.ui.store.type === "all"
+                    ? language.t("knowledge.workspace.library.type")
+                    : language.t(typeLabelKey(ws.ui.store.type))}
+                </button>
+                <select
+                  class="kb-select"
                   aria-label={language.t("knowledge.workspace.library.sort")}
                   value={ws.ui.store.sort}
                   onChange={(event) => {
@@ -508,231 +441,172 @@ export function LibraryView() {
                   <option value="name">{language.t("knowledge.workspace.library.sort.name")}</option>
                   <option value="size">{language.t("knowledge.workspace.library.sort.size")}</option>
                 </select>
-                <div class="view-toggle" role="group" aria-label={language.t("knowledge.workspace.library.view")}>
-                  <button
-                    type="button"
-                    aria-pressed={ws.ui.store.mode === "list"}
-                    aria-label={language.t("knowledge.workspace.library.mode.list")}
-                    onClick={() => ws.ui.setStore("mode", "list")}
-                  >
-                    {language.t("knowledge.workspace.library.mode.list")}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={ws.ui.store.mode === "grid"}
-                    aria-label={language.t("knowledge.workspace.library.mode.grid")}
-                    onClick={() => ws.ui.setStore("mode", "grid")}
-                  >
-                    {language.t("knowledge.workspace.library.mode.grid")}
-                  </button>
-                </div>
+                <button
+                  class="kb-icon"
+                  type="button"
+                  aria-label={language.t("knowledge.workspace.library.newFolder")}
+                  onClick={() => ws.ui.openDialog({ type: "new-folder", libraryID: current().id })}
+                >
+                  <Icon name="folder-plus" class="ico" />
+                </button>
               </div>
 
-              <div class="file-scroll scroll" data-scrollable>
-                <Show
-                  when={filtered().length > 0}
-                  fallback={
-                    <div class="empty">
-                      <span class="empty-glyph">
-                        <Icon name={filtersActive() ? "magnifying-glass" : "folder-plus"} class="ico" />
-                      </span>
-                      <h2>
-                        {language.t(
-                          filtersActive()
-                            ? "knowledge.workspace.library.filtered.title"
-                            : "knowledge.workspace.library.empty.title",
-                        )}
-                      </h2>
-                      <p>
-                        {language.t(
-                          filtersActive()
-                            ? "knowledge.workspace.library.filtered.hint"
-                            : "knowledge.workspace.library.empty.hint",
-                        )}
-                      </p>
-                      <div class="empty-actions">
-                        <Show
-                          when={filtersActive()}
-                          fallback={
-                            <>
-                              <button class="btn btn-primary" type="button" onClick={() => void upload()}>
-                                {language.t("knowledge.workspace.library.addFiles")}
-                              </button>
-                              <button
-                                class="btn btn-ghost"
-                                type="button"
-                                onClick={() => ws.ui.openDialog({ type: "new-folder", libraryID: current().id })}
-                              >
-                                {language.t("knowledge.workspace.library.newFolder")}
-                              </button>
-                            </>
-                          }
-                        >
-                          <button class="btn btn-ghost" type="button" onClick={() => ws.ui.clearFileFilters()}>
-                            {language.t("knowledge.workspace.library.clearFilter")}
-                          </button>
-                        </Show>
-                      </div>
-                    </div>
-                  }
-                >
-                  <Show
-                    when={ws.ui.store.mode === "grid"}
-                    fallback={
-                      <>
-                        <div class="file-head">
-                          <span class="check-cell">
-                            <SelectAll checked={allSelected()} indeterminate={!allSelected() && someSelected()} onChange={selectAll} />
-                          </span>
-                          <span>{language.t("knowledge.workspace.library.columns.name")}</span>
-                          <span>{language.t("knowledge.workspace.library.columns.type")}</span>
-                          <span>{language.t("knowledge.workspace.library.columns.folder")}</span>
-                          <span>{language.t("knowledge.workspace.library.columns.size")}</span>
-                          <span>{language.t("knowledge.workspace.library.columns.updated")}</span>
-                          <span>{language.t("knowledge.workspace.library.columns.status")}</span>
-                        </div>
-                        <For each={filtered()}>
-                          {(file) => (
-                            <div
-                              class="file-row"
-                              data-row={file.path}
-                              data-selected={ws.ui.store.selected.includes(file.path)}
-                              tabindex="0"
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter") ws.openDocument(current().id, file.path)
-                              }}
-                            >
-                              <span class="file-check">
-                                <input
-                                  type="checkbox"
-                                  checked={ws.ui.store.selected.includes(file.path)}
-                                  aria-label={fileName(file)}
-                                  onChange={(event) =>
-                                    ws.ui.toggleSelected(file.path, event.currentTarget.checked)
-                                  }
-                                />
-                              </span>
-                              <button
-                                class="file-name"
-                                type="button"
-                                onClick={() => ws.openDocument(current().id, file.path)}
-                              >
-                                <FileGlyph />
-                                <span class="text">{file.name}</span>
-                              </button>
-                              <span class="file-type">{language.t(typeLabelKey(fileType(file)))}</span>
-                              <span class="file-folder">{fileFolder(file)}</span>
-                              <span class="file-size">{formatBytes(file.size)}</span>
-                              <span class="file-updated">{formatWhen(fileUpdatedAt(file), language)}</span>
-                              <span class="file-status">
-                                <FileStatus file={file} />
-                                <Show when={fileStatus(file) === "failed"}>
-                                  <button
-                                    class="retry"
-                                    type="button"
-                                    aria-label={language.t("knowledge.workspace.library.retry", { name: fileName(file) })}
-                                    onClick={(event) => {
-                                      event.stopPropagation()
-                                      void retry(file.path)
-                                    }}
-                                  >
-                                    <Icon name="refresh" class="ico" />
-                                  </button>
-                                </Show>
-                              </span>
-                              <button
-                                class="file-more"
-                                type="button"
-                                aria-label={language.t("knowledge.workspace.library.more")}
-                                onClick={(event) => openMenu(event, file.path)}
-                              >
-                                <Icon name="outline-dots" />
-                              </button>
-                            </div>
-                          )}
-                        </For>
-                      </>
-                    }
-                  >
-                    <div class="file-grid">
-                      <For each={filtered()}>
-                        {(file) => (
-                          <div
-                            class="file-tile"
-                            role="button"
-                            tabindex="0"
-                            data-selected={ws.ui.store.selected.includes(file.path)}
-                            onClick={() => ws.openDocument(current().id, file.path)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") ws.openDocument(current().id, file.path)
-                            }}
-                          >
-                            <span class="tile-check">
-                              <input
-                                type="checkbox"
-                                checked={ws.ui.store.selected.includes(file.path)}
-                                aria-label={fileName(file)}
-                                onClick={(event) => event.stopPropagation()}
-                                onChange={(event) => ws.ui.toggleSelected(file.path, event.currentTarget.checked)}
-                              />
-                            </span>
-                            <span class="tile-glyph">
-                              <FileGlyph />
-                            </span>
-                            <span class="tile-name">{file.name}</span>
-                            <span class="tile-meta">
-                              {language.t(typeLabelKey(fileType(file)))} · {formatBytes(file.size)}
-                            </span>
-                            <span class="tile-meta">{fileFolder(file)}</span>
-                            <span class="tile-status">
-                              <FileStatus file={file} />
-                            </span>
-                          </div>
-                        )}
-                      </For>
-                    </div>
-                  </Show>
-                  <div class="file-list-foot">
-                    <span>
-                      {language.t("knowledge.workspace.library.foot.shown", {
-                        shown: filtered().length,
-                        total: own().length,
-                      })}
+              <Show
+                when={filtered().length > 0}
+                fallback={
+                  <div class="kb-empty">
+                    <span class="kb-empty-glyph">
+                      <Icon name={filtersActive() ? "magnifying-glass" : "folder-plus"} class="ico" />
                     </span>
-                    <span class="spacer" />
-                    <Show when={importing()} fallback={<span>{language.t("knowledge.workspace.library.foot.local")}</span>}>
-                      {(job) => (
-                        <span>
-                          {language.t(`knowledge.import.stage.${job().stage}`)} · {job().processed}/{job().total}
-                        </span>
+                    <h2>
+                      {language.t(
+                        filtersActive()
+                          ? "knowledge.workspace.library.filtered.title"
+                          : "knowledge.workspace.library.empty.title",
                       )}
+                    </h2>
+                    <p>
+                      {language.t(
+                        filtersActive()
+                          ? "knowledge.workspace.library.filtered.hint"
+                          : "knowledge.workspace.library.empty.hint",
+                      )}
+                    </p>
+                    <Show
+                      when={filtersActive()}
+                      fallback={
+                        <button class="kb-btn kb-btn-primary" type="button" onClick={() => void upload()}>
+                          {language.t("knowledge.workspace.library.addFiles")}
+                        </button>
+                      }
+                    >
+                      <button class="kb-btn" type="button" onClick={() => ws.ui.clearFileFilters()}>
+                        {language.t("knowledge.workspace.library.clearFilter")}
+                      </button>
                     </Show>
                   </div>
-                </Show>
-              </div>
-            </section>
+                }
+              >
+                <div class="kb-doc-head">
+                  <label class="kb-check">
+                    <SelectAll
+                      checked={allSelected()}
+                      indeterminate={!allSelected() && someSelected()}
+                      ariaLabel={language.t("knowledge.files.select")}
+                      onChange={selectAll}
+                    />
+                  </label>
+                  <span>{language.t("knowledge.workspace.library.columns.name")}</span>
+                  <span class="kb-doc-head-meta">
+                    {language.t("knowledge.workspace.library.columns.folder")}
+                  </span>
+                  <span class="kb-doc-head-status">
+                    {language.t("knowledge.workspace.library.columns.status")}
+                  </span>
+                  <span />
+                </div>
+                <div class="kb-rows">
+                  <For each={filtered()}>
+                    {(file) => (
+                      <div
+                        class="kb-doc"
+                        data-row={file.path}
+                        data-selected={ws.ui.store.selected.includes(file.path)}
+                        tabindex="0"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") ws.openDocument(current().id, file.path)
+                        }}
+                      >
+                        <span class="kb-check">
+                          <input
+                            type="checkbox"
+                            checked={ws.ui.store.selected.includes(file.path)}
+                            aria-label={fileName(file)}
+                            onChange={(event) => ws.ui.toggleSelected(file.path, event.currentTarget.checked)}
+                          />
+                        </span>
+                        <button class="kb-doc-main" type="button" onClick={() => ws.openDocument(current().id, file.path)}>
+                          <FileGlyph />
+                          <span class="kb-row-body">
+                            <span class="kb-row-title">{fileName(file)}</span>
+                            <span class="kb-row-sub">
+                              {language.t(typeLabelKey(fileType(file)))}
+                              <span class="kb-sep" aria-hidden="true" />
+                              {formatBytes(file.size)}
+                              <span class="kb-sep" aria-hidden="true" />
+                              {formatWhen(fileUpdatedAt(file), language)}
+                            </span>
+                          </span>
+                        </button>
+                        <span class="kb-doc-folder">{fileFolder(file) || language.t("knowledge.workspace.dialog.root")}</span>
+                        <span class="kb-doc-status">
+                          <FileStatus file={file} />
+                          <Show when={fileStatus(file) === "failed"}>
+                            <button
+                              class="kb-icon kb-icon-sm"
+                              type="button"
+                              aria-label={language.t("knowledge.workspace.library.retry", { name: fileName(file) })}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                void retry(file.path)
+                              }}
+                            >
+                              <Icon name="refresh" class="ico ico-sm" />
+                            </button>
+                          </Show>
+                        </span>
+                        <button
+                          class="kb-icon"
+                          type="button"
+                          aria-label={language.t("knowledge.workspace.library.more")}
+                          onClick={(event) => openMenu(event, file.path)}
+                        >
+                          <Icon name="outline-dots" class="ico" />
+                        </button>
+                      </div>
+                    )}
+                  </For>
+                </div>
+                <p class="kb-foot">
+                  <span>
+                    {language.t("knowledge.workspace.library.foot.shown", {
+                      shown: filtered().length,
+                      total: own().length,
+                    })}
+                  </span>
+                  <span class="kb-spacer" />
+                  <Show when={importing()} fallback={<span>{language.t("knowledge.workspace.library.foot.local")}</span>}>
+                    {(job) => (
+                      <span>
+                        {language.t(`knowledge.import.stage.${job().stage}`)} · {job().processed}/{job().total}
+                      </span>
+                    )}
+                  </Show>
+                </p>
+              </Show>
+            </div>
           </div>
 
           <Show when={selectedCount() > 0}>
-            <div class="selbar">
-              <span class="sel-count">
+            <div class="kb-selbar" role="status">
+              <span class="kb-sel-count">
                 {language.t("knowledge.workspace.library.selected", { count: selectedCount() })}
               </span>
-              <span class="sel-sep" aria-hidden="true" />
+              <span class="kb-sel-sep" aria-hidden="true" />
               <button
-                class="btn"
+                class="kb-btn kb-btn-sm"
                 type="button"
                 onClick={() => ws.ui.openDialog({ type: "move", libraryID: current().id, paths: [...ws.ui.store.selected] })}
               >
                 <Icon name="folder" class="ico" />
                 {language.t("knowledge.workspace.library.selection.move")}
               </button>
-              <button class="btn" type="button" onClick={() => void exportFiles([...ws.ui.store.selected])}>
+              <button class="kb-btn kb-btn-sm" type="button" onClick={() => void exportFiles([...ws.ui.store.selected])}>
                 <Icon name="outline-square-arrow" class="ico" />
                 {language.t("knowledge.workspace.library.selection.export")}
               </button>
               <button
-                class="btn btn-danger"
+                class="kb-btn kb-btn-sm kb-btn-danger"
                 type="button"
                 onClick={() =>
                   ws.ui.openDialog({ type: "confirm-delete", libraryID: current().id, paths: [...ws.ui.store.selected] })
@@ -741,8 +615,8 @@ export function LibraryView() {
                 <Icon name="outline-trash" class="ico" />
                 {language.t("knowledge.workspace.library.selection.trash")}
               </button>
-              <span class="sel-sep" aria-hidden="true" />
-              <button class="btn" type="button" onClick={() => ws.ui.clearSelection()}>
+              <span class="kb-sel-sep" aria-hidden="true" />
+              <button class="kb-btn kb-btn-sm kb-btn-ghost" type="button" onClick={() => ws.ui.clearSelection()}>
                 {language.t("knowledge.workspace.library.selection.clear")}
               </button>
             </div>
@@ -753,20 +627,24 @@ export function LibraryView() {
   )
 }
 
-function SelectAll(props: { checked: boolean; indeterminate: boolean; onChange: (checked: boolean) => void }) {
+function SelectAll(props: {
+  checked: boolean
+  indeterminate: boolean
+  ariaLabel: string
+  onChange: (checked: boolean) => void
+}) {
   let element!: HTMLInputElement
 
   createEffect(() => {
     if (element) element.indeterminate = props.indeterminate
   })
 
-  onCleanup(() => undefined)
-
   return (
     <input
       ref={element}
       type="checkbox"
       checked={props.checked}
+      aria-label={props.ariaLabel}
       onChange={(event) => props.onChange(event.currentTarget.checked)}
     />
   )

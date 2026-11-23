@@ -4,18 +4,9 @@ import { Markdown } from "@opencode/session-ui/markdown"
 import { MarkdownProvider } from "@opencode/session-ui/context/markdown"
 import { Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { FileStatus, View } from "./bits"
+import { FileStatus, PageHead, View } from "./bits"
 import { useWorkspace } from "./context"
-import {
-  fileName,
-  fileChunks,
-  fileFolder,
-  fileType,
-  fileUpdatedAt,
-  formatBytes,
-  formatWhen,
-  typeLabelKey,
-} from "./format"
+import { fileName, fileChunks, fileType, fileUpdatedAt, formatWhen, typeLabelKey } from "./format"
 import type { MenuItem } from "./state"
 
 /**
@@ -114,101 +105,94 @@ export function DocView() {
   }
 
   return (
-    <Show when={file()} fallback={<div class="page-scroll scroll" />}>
+    <Show when={file()} fallback={<div class="kb-scroll" />}>
       {(entry) => (
         <View name="doc">
-          <div class="doc-bar">
-            <button class="doc-back" type="button" onClick={() => ws.ui.closeDoc()}>
-              <Icon name="outline-arrow-left" class="ico ico-sm" />
-              <span class="label">{library()?.name}</span>
-            </button>
-            <span class="spacer" />
-            <span class="doc-state">
-              <FileStatus file={entry()} />
-            </span>
-            <button class="btn" type="button" onClick={() => void download()}>
-              <Icon name="outline-square-arrow" class="ico" />
-              {language.t("knowledge.workspace.doc.download")}
-            </button>
-            <button
-              class="icon-btn"
-              type="button"
-              aria-label={language.t("knowledge.workspace.doc.reprocess")}
-              onClick={() => void retry()}
-            >
-              <Icon name="refresh" class="ico ico-sm" />
-            </button>
-            <button
-              class="icon-btn"
-              type="button"
-              aria-label={language.t("knowledge.workspace.doc.more")}
-              onClick={more}
-            >
-              <Icon name="outline-dots" class="ico ico-sm" />
-            </button>
-          </div>
+          <div class="kb-scroll" data-scrollable>
+            <div class="kb-page kb-doc-page">
+              <PageHead
+                back={{ label: library()?.name ?? language.t("knowledge.workspace.title"), onClick: () => ws.ui.closeDoc() }}
+                title={fileName(entry())}
+                actions={
+                  <>
+                    <button class="kb-btn" type="button" onClick={() => void download()}>
+                      <Icon name="outline-square-arrow" class="ico" />
+                      <span>{language.t("knowledge.workspace.doc.download")}</span>
+                    </button>
+                    <button
+                      class="kb-icon"
+                      type="button"
+                      aria-label={language.t("knowledge.workspace.doc.reprocess")}
+                      onClick={() => void retry()}
+                    >
+                      <Icon name="refresh" class="ico" />
+                    </button>
+                    <button
+                      class="kb-icon"
+                      type="button"
+                      aria-label={language.t("knowledge.workspace.doc.more")}
+                      onClick={more}
+                    >
+                      <Icon name="outline-dots" class="ico" />
+                    </button>
+                  </>
+                }
+                meta={
+                  <>
+                    <FileStatus file={entry()} />
+                    <span class="kb-sep" aria-hidden="true" />
+                    <span>{language.t(typeLabelKey(fileType(entry())))}</span>
+                    <span class="kb-sep" aria-hidden="true" />
+                    <span>
+                      {language.t("knowledge.workspace.doc.updated", {
+                        time: formatWhen(fileUpdatedAt(entry()), language),
+                      })}
+                    </span>
+                  </>
+                }
+              />
 
-          <div class="doc-scroll scroll" data-scrollable>
-            <div class="doc-layout">
-              <article class="doc-article">
-                <h1>{fileName(entry())}</h1>
-                <div class="doc-meta">
-                  <span>{library()?.name}</span>
-                  <span class="meta-sep" aria-hidden="true" />
-                  <span>{language.t(typeLabelKey(fileType(entry())))}</span>
-                  <Show when={fileFolder(entry())}>
-                    <span class="meta-sep" aria-hidden="true" />
-                    <span>{fileFolder(entry())}</span>
-                  </Show>
-                  <span class="meta-sep" aria-hidden="true" />
-                  <span>
-                    {language.t("knowledge.workspace.doc.updated", {
-                      time: formatWhen(fileUpdatedAt(entry()), language),
-                    })}
-                  </span>
-                  <span class="meta-sep" aria-hidden="true" />
-                  <span>{formatBytes(entry().size)}</span>
-                </div>
-
+              <Show
+                when={ws.knowledge.preview().status !== "loading"}
+                fallback={
+                  <div class="kb-doc-loading">
+                    <Loader class="size-4" />
+                    {language.t("knowledge.workspace.doc.loading")}
+                  </div>
+                }
+              >
                 <Show
-                  when={ws.knowledge.preview().status !== "loading"}
+                  when={ws.knowledge.preview().status === "failed"}
                   fallback={
-                    <div class="doc-loading">
-                      <Loader class="size-4" />
-                      {language.t("knowledge.workspace.doc.loading")}
-                    </div>
-                  }
-                >
-                  <Show
-                    when={ws.knowledge.preview().status === "failed"}
-                    fallback={
+                    <article class="kb-article">
                       <MarkdownProvider>
                         <Markdown text={ws.knowledge.previewText()} cacheKey={entry().path} />
                       </MarkdownProvider>
-                    }
-                  >
-                    <p class="doc-error">
-                      {language.t("knowledge.workspace.doc.failed", { message: ws.knowledge.previewMessage() })}
-                    </p>
-                  </Show>
+                    </article>
+                  }
+                >
+                  <p class="kb-doc-error">
+                    {language.t("knowledge.workspace.doc.failed", { message: ws.knowledge.previewMessage() })}
+                  </p>
                 </Show>
+              </Show>
 
-                <div class="doc-foot">
-                  <span>
-                    {language.t("knowledge.workspace.doc.foot", {
-                      path: entry().path,
-                      chunks: fileChunks(entry()),
-                    })}
-                  </span>
-                  <button
-                    class="doc-foot-link"
-                    type="button"
-                    onClick={() => void ws.data.reveal(entry().path, entry().source)}
-                  >
-                    {language.t("knowledge.workspace.doc.reveal")}
-                  </button>
-                </div>
-              </article>
+              <p class="kb-foot">
+                <span>
+                  {language.t("knowledge.workspace.doc.foot", {
+                    path: entry().path,
+                    chunks: fileChunks(entry()),
+                  })}
+                </span>
+                <span class="kb-spacer" />
+                <button
+                  class="kb-btn kb-btn-sm kb-btn-ghost"
+                  type="button"
+                  onClick={() => void ws.data.reveal(entry().path, entry().source)}
+                >
+                  {language.t("knowledge.workspace.doc.reveal")}
+                </button>
+              </p>
             </div>
           </div>
         </View>

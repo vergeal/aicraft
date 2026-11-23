@@ -1,15 +1,12 @@
 import { Icon } from "@opencode/ui/icon"
-import { createEffect, createMemo, For, onCleanup, onMount, Show, type JSX } from "solid-js"
+import { createEffect, For, onCleanup, onMount, Show, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { PagePanel } from "@/shell/page"
 import { AgentsView } from "./agents"
-import { type IconName } from "./bits"
-import { FavoritesView, RecentView, TrashView } from "./collections"
 import { useWorkspace } from "./context"
 import { WorkspaceDialog } from "./dialogs"
 import { DocView } from "./doc"
-import { HomeView } from "./home"
 import { JobDrawer, JobsView } from "./jobs"
 import { LibrariesView } from "./libraries"
 import { LibraryView } from "./library"
@@ -21,8 +18,9 @@ const MENU_WIDTH = 208
 const MENU_MAX_HEIGHT = 260
 
 /**
- * The knowledge destination: one top bar for the surfaces and one centred column for the current
- * view, the same measure as an answer. The global rail stays the app's own; nothing here restyles it.
+ * The knowledge destination: one reading column on the app's own canvas, the same measure as an
+ * answer. The app's rail and titlebar stay outside this route; the page adds no navigation of its
+ * own, only the header and the list the current view shows.
  */
 export function WorkspaceScreen() {
   const ws = useWorkspace()
@@ -34,42 +32,6 @@ export function WorkspaceScreen() {
 
     return id && ws.knowledge.libraries.get(id) ? id : undefined
   }
-
-  const pendingJobs = createMemo(() =>
-    ws.documents().filter((entry) => {
-      const status = entry.file.processing?.status ?? "ready"
-
-      return status !== "ready"
-    }),
-  )
-
-  const nav = createMemo(
-    (): ReadonlyArray<{
-      view: "home" | "libraries" | "recent" | "favorites" | "trash" | "jobs" | "agents"
-      label: string
-      icon: IconName
-    }> => [
-      { view: "home", label: language.t("knowledge.workspace.nav.home"), icon: "library" },
-      { view: "libraries", label: language.t("knowledge.workspace.nav.libraries"), icon: "file-tree" },
-      { view: "recent", label: language.t("knowledge.workspace.nav.recent"), icon: "outline-list-changelog" },
-      { view: "favorites", label: language.t("knowledge.workspace.nav.favorites"), icon: "pin" },
-      { view: "trash", label: language.t("knowledge.workspace.nav.trash"), icon: "trash" },
-      { view: "jobs", label: language.t("knowledge.workspace.nav.jobs"), icon: "outline-list-changelog" },
-      { view: "agents", label: language.t("knowledge.workspace.nav.agents"), icon: "outline-brain" },
-    ],
-  )
-
-  const activeView = () => ws.ui.store.view
-
-  // The library view reads from the desktop store, so the knowledge model must point at the same library.
-  createEffect(() => {
-    const id = ws.ui.store.view === "library" || ws.ui.store.view === "doc" ? ws.ui.store.libraryID : undefined
-
-    if (!id) return
-    const library = ws.knowledge.libraries.get(id)
-
-    if (library && ws.knowledge.library()?.id !== id) ws.knowledge.openLibrary(library)
-  })
 
   onMount(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -149,53 +111,13 @@ export function WorkspaceScreen() {
         }}
         onDrop={(event) => void drop(event)}
       >
-        <header class="kb-top">
-          <h2 class="kb-top-title">{language.t("knowledge.workspace.title")}</h2>
-          <nav class="kb-top-nav" aria-label={language.t("knowledge.workspace.nav.label")}>
-            <For each={nav()}>
-              {(item) => (
-                <button
-                  class="top-item"
-                  type="button"
-                  aria-current={activeView() === item.view ? "page" : undefined}
-                  onClick={() => ws.ui.go(item.view)}
-                >
-                  <Icon name={item.icon} class="ico ico-sm" />
-                  <span>{item.label}</span>
-                  <Show when={item.view === "jobs" && pendingJobs().length > 0}>
-                    <span class="badge">{pendingJobs().length}</span>
-                  </Show>
-                </button>
-              )}
-            </For>
-          </nav>
-          <span class="spacer" />
-          <button class="kb-search" type="button" onClick={() => ws.ui.openSearch()}>
-            <Icon name="magnifying-glass" class="ico ico-sm" />
-            <span>{language.t("knowledge.workspace.search.entry")}</span>
-            <span class="kbd">⌘K</span>
-          </button>
-          <button
-            class="icon-btn"
-            type="button"
-            aria-label={language.t("knowledge.new")}
-            onClick={() => ws.ui.openDialog({ type: "new-library" })}
-          >
-            <Icon name="plus" class="ico ico-sm" />
-          </button>
-        </header>
-
         <main class="work">
-          <HomeView />
           <LibrariesView />
           <LibraryView />
           <DocView />
           <SearchView />
           <JobsView />
           <AgentsView />
-          <RecentView />
-          <FavoritesView />
-          <TrashView />
           <WorkspaceDialog />
           <JobDrawer />
           <WorkspaceMenu />

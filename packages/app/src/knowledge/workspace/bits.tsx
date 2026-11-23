@@ -20,6 +20,43 @@ export function View(props: { name: WorkspaceView; children: JSX.Element }) {
   )
 }
 
+/**
+ * The one page header every view uses: an optional way back, the view's name, one line of context,
+ * and its actions. The page header sits on the reading measure; the column is the page.
+ */
+export function PageHead(props: {
+  back?: { label: string; onClick: () => void }
+  title: string
+  description?: string
+  actions?: JSX.Element
+  meta?: JSX.Element
+}) {
+  return (
+    <header class="kb-head">
+      <Show when={props.back}>
+        {(back) => (
+          <button class="kb-back" type="button" onClick={back().onClick}>
+            <Icon name="outline-arrow-left" class="ico ico-sm" />
+            <span>{back().label}</span>
+          </button>
+        )}
+      </Show>
+      <div class="kb-head-row">
+        <div class="kb-head-copy">
+          <h1>{props.title}</h1>
+          <Show when={props.description}>
+            {(description) => <p>{description()}</p>}
+          </Show>
+        </div>
+        <Show when={props.actions}>
+          {(actions) => <div class="kb-head-actions">{actions()}</div>}
+        </Show>
+      </div>
+      <Show when={props.meta}>{(meta) => <div class="kb-meta">{meta()}</div>}</Show>
+    </header>
+  )
+}
+
 /** The one status mark the workspace draws: a dot and a short label, never a colored pill. */
 export function FileStatus(props: { file: KnowledgeFile }) {
   const language = useLanguage()

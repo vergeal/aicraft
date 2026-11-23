@@ -1,7 +1,7 @@
 import { Icon } from "@opencode/ui/icon"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { View } from "./bits"
+import { PageHead, View } from "./bits"
 import { useWorkspace } from "./context"
 import { transition, visibleHits, type SearchState } from "./search-machine"
 
@@ -106,16 +106,21 @@ export function SearchView() {
 
   return (
     <View name="search">
-      <div class="page-scroll scroll" data-scrollable>
-        <div class="page">
-          <header class="page-head">
-            <div class="page-head-copy">
-              <h1>{language.t("knowledge.workspace.search.title")}</h1>
-              <p>{language.t("knowledge.workspace.search.description")}</p>
-            </div>
-          </header>
+      <div class="kb-scroll" data-scrollable>
+        <div class="kb-page">
+          <PageHead
+            back={{ label: language.t("knowledge.workspace.title"), onClick: () => ws.ui.go("libraries") }}
+            title={language.t("knowledge.workspace.search.title")}
+            description={language.t("knowledge.workspace.search.description")}
+            actions={
+              <button class="kb-btn" type="button" onClick={() => ws.ui.go("jobs")}>
+                <Icon name="outline-list-changelog" class="ico" />
+                <span>{language.t("knowledge.workspace.search.jobs")}</span>
+              </button>
+            }
+          />
 
-          <div class="search-field">
+          <div class="kb-search">
             <Icon name="magnifying-glass" class="ico" />
             <input
               ref={input}
@@ -130,162 +135,142 @@ export function SearchView() {
               }}
             />
             <Show when={ws.ui.store.searchQuery}>
-              <button class="clear" type="button" aria-label={language.t("knowledge.workspace.search.clear")} onClick={clear}>
+              <button
+                class="kb-icon kb-icon-sm"
+                type="button"
+                aria-label={language.t("knowledge.workspace.search.clear")}
+                onClick={clear}
+              >
                 <Icon name="close" class="ico ico-sm" />
               </button>
             </Show>
           </div>
 
-          <div class="search-meta">
+          <div class="kb-search-meta">
             <Show
               when={ws.ui.store.searchQuery.trim()}
               fallback={<span>{language.t("knowledge.workspace.search.idle")}</span>}
             >
-              <span>
-                {language.t("knowledge.workspace.search.found", {
-                  count: scoped().length,
-                })}
-              </span>
-              <span class="meta-sep" aria-hidden="true" />
+              <span>{language.t("knowledge.workspace.search.found", { count: scoped().length })}</span>
+              <span class="kb-sep" aria-hidden="true" />
               <span>
                 {state().status === "searching"
                   ? language.t("knowledge.workspace.search.searching")
                   : language.t("knowledge.workspace.search.elapsed", { ms: elapsed() })}
               </span>
-              <span class="spacer" />
-              <button class="text-link" type="button" onClick={() => ws.ui.go("jobs")}>
-                {language.t("knowledge.workspace.search.jobs")}
-                <Icon name="outline-arrow-right" class="ico" />
-              </button>
             </Show>
           </div>
 
-          <div class="search-layout">
-            <aside class="facets" aria-label={language.t("knowledge.workspace.search.facets")}>
-              <div class="facet">
-                <div class="facet-head">
-                  <h3>{language.t("knowledge.workspace.search.facet.libraries")}</h3>
-                  <Show when={selectedLibraries().size > 0}>
-                    <button type="button" onClick={() => ws.ui.setStore("searchLibraries", [])}>
-                      {language.t("knowledge.workspace.search.facet.clear")}
-                    </button>
-                  </Show>
-                </div>
-                <For each={libraries()}>
-                  {(library) => (
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selectedLibraries().has(library.id)}
-                        onChange={(event) => toggleLibrary(library.id, event.currentTarget.checked)}
-                      />
-                      <span>{library.name}</span>
-                      <span class="facet-count">{countOf(library.id)}</span>
-                    </label>
-                  )}
-                </For>
-              </div>
-            </aside>
+          <Show when={ws.ui.store.searchQuery.trim() && libraries().length > 1}>
+            <div class="kb-facets" aria-label={language.t("knowledge.workspace.search.facets")}>
+              <For each={libraries()}>
+                {(library) => (
+                  <label class="kb-chip">
+                    <input
+                      type="checkbox"
+                      checked={selectedLibraries().has(library.id)}
+                      onChange={(event) => toggleLibrary(library.id, event.currentTarget.checked)}
+                    />
+                    <span>{library.name}</span>
+                    <span class="kb-chip-count">{countOf(library.id)}</span>
+                  </label>
+                )}
+              </For>
+              <Show when={selectedLibraries().size > 0}>
+                <button
+                  class="kb-btn kb-btn-sm kb-btn-ghost"
+                  type="button"
+                  onClick={() => ws.ui.setStore("searchLibraries", [])}
+                >
+                  {language.t("knowledge.workspace.search.facet.clear")}
+                </button>
+              </Show>
+            </div>
+          </Show>
 
-            <div class="results" role="list">
+          <div class="kb-results" role="list">
+            <Show
+              when={state().status !== "idle"}
+              fallback={
+                <div class="kb-empty">
+                  <span class="kb-empty-glyph">
+                    <Icon name="magnifying-glass" class="ico" />
+                  </span>
+                  <h2>{language.t("knowledge.workspace.search.empty.title")}</h2>
+                  <p>{language.t("knowledge.workspace.search.empty.hint")}</p>
+                </div>
+              }
+            >
               <Show
-                when={state().status !== "idle"}
+                when={state().status !== "searching"}
                 fallback={
-                  <div class="empty">
-                    <span class="empty-glyph">
-                      <Icon name="magnifying-glass" class="ico" />
-                    </span>
-                    <h2>{language.t("knowledge.workspace.search.empty.title")}</h2>
-                    <p>{language.t("knowledge.workspace.search.empty.hint")}</p>
-                  </div>
+                  <For each={[0, 1, 2, 3]}>
+                    {() => (
+                      <div class="kb-skel">
+                        <span class="kb-sk" style={{ width: "32%" }} />
+                        <span class="kb-sk" style={{ width: "72%" }} />
+                        <span class="kb-sk" style={{ width: "54%" }} />
+                      </div>
+                    )}
+                  </For>
                 }
               >
                 <Show
-                  when={state().status !== "searching"}
+                  when={state().status !== "failed"}
                   fallback={
-                    <For each={[0, 1, 2, 3]}>
-                      {() => (
-                        <div class="result-skel">
-                          <span class="sk" style={{ width: "32%" }} />
-                          <span class="sk" style={{ width: "72%" }} />
-                          <span class="sk" style={{ width: "54%" }} />
-                        </div>
-                      )}
-                    </For>
+                    <div class="kb-empty">
+                      <span class="kb-empty-glyph">
+                        <Icon name="outline-hexagonal-warning" class="ico" />
+                      </span>
+                      <h2>{language.t("knowledge.workspace.search.failed.title")}</h2>
+                      <p>{failureMessage()}</p>
+                      <button class="kb-btn" type="button" onClick={() => void run(ws.ui.store.searchQuery)}>
+                        {language.t("knowledge.workspace.search.retry")}
+                      </button>
+                    </div>
                   }
                 >
                   <Show
-                    when={state().status !== "failed"}
+                    when={scoped().length > 0}
                     fallback={
-                      <div class="empty">
-                        <span class="empty-glyph">
-                          <Icon name="outline-hexagonal-warning" class="ico" />
+                      <div class="kb-empty">
+                        <span class="kb-empty-glyph">
+                          <Icon name="magnifying-glass" class="ico" />
                         </span>
-                        <h2>{language.t("knowledge.workspace.search.failed.title")}</h2>
-                        <p>{failureMessage()}</p>
-                        <div class="empty-actions">
-                          <button class="btn btn-ghost" type="button" onClick={() => void run(ws.ui.store.searchQuery)}>
-                            {language.t("knowledge.workspace.search.retry")}
-                          </button>
-                        </div>
+                        <h2>
+                          {language.t("knowledge.workspace.search.none.title", {
+                            query: ws.ui.store.searchQuery.trim(),
+                          })}
+                        </h2>
+                        <p>{language.t("knowledge.workspace.search.none.hint")}</p>
+                        <button class="kb-btn" type="button" onClick={clear}>
+                          {language.t("knowledge.workspace.search.facet.clear")}
+                        </button>
                       </div>
                     }
                   >
-                    <Show
-                      when={scoped().length > 0}
-                      fallback={
-                        <div class="empty">
-                          <span class="empty-glyph">
-                            <Icon name="magnifying-glass" class="ico" />
+                    <For each={scoped()}>
+                      {(hit) => (
+                        <button class="kb-result" type="button" role="listitem" onClick={() => void openHit(hit)}>
+                          <span class="kb-result-head">
+                            <Icon name="file-document" class="ico" />
+                            <span class="kb-result-name">{hit.name}</span>
+                            <span class="kb-result-lib">{hit.libraryName}</span>
+                            <span class="kb-result-part">
+                              {language.t("knowledge.workspace.search.part", { ordinal: hit.ordinal + 1 })}
+                            </span>
                           </span>
-                          <h2>
-                            {language.t("knowledge.workspace.search.none.title", {
-                              query: ws.ui.store.searchQuery.trim(),
-                            })}
-                          </h2>
-                          <p>{language.t("knowledge.workspace.search.none.hint")}</p>
-                          <div class="empty-actions">
-                            <button class="btn btn-ghost" type="button" onClick={clear}>
-                              {language.t("knowledge.workspace.search.facet.clear")}
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    >
-                      <For each={scoped()}>
-                        {(hit) => (
-                          <button class="result" type="button" role="listitem" onClick={() => void openHit(hit)}>
-                            <span class="result-source">
-                              <Icon name="file-document" class="ico" />
-                              <span class="doc">{hit.name}</span>
-                              <span class="sep" aria-hidden="true" />
-                              <span>{hit.libraryName}</span>
-                              <span class="sep" aria-hidden="true" />
-                              <span>
-                                {language.t("knowledge.workspace.search.part", { ordinal: hit.ordinal + 1 })}
-                              </span>
-                            </span>
-                            <h3>{hit.name}</h3>
-                            <p>
-                              <Highlight text={hit.text} query={ws.ui.store.searchQuery} />
-                            </p>
-                            <span class="result-foot">
-                              <span>{hit.path}</span>
-                              <span class="meta-sep" aria-hidden="true" />
-                              <span class="matches">
-                                {language.t("knowledge.workspace.search.score", {
-                                  score: hit.score.toFixed(2),
-                                })}
-                              </span>
-                            </span>
-                          </button>
-                        )}
-                      </For>
-                    </Show>
+                          <p class="kb-result-text">
+                            <Highlight text={hit.text} query={ws.ui.store.searchQuery} />
+                          </p>
+                          <span class="kb-result-foot">{hit.path}</span>
+                        </button>
+                      )}
+                    </For>
                   </Show>
                 </Show>
               </Show>
-            </div>
+            </Show>
           </div>
         </div>
       </div>

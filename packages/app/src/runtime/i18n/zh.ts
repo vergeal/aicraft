@@ -1906,6 +1906,8 @@ export const dict = {
   "knowledge.workspace.library.filtered.hint": "换个关键词，或清除筛选条件。",
   "knowledge.workspace.library.meta.documents": "份资料",
   "knowledge.workspace.library.meta.chunks": "个切片",
+  "knowledge.workspace.chunks.one": "{{count}} 个片段",
+  "knowledge.workspace.chunks.other": "{{count}} 个片段",
   "knowledge.workspace.library.meta.processing": "{{count}} 个处理中",
   "knowledge.workspace.library.meta.failed": "{{count}} 个失败",
   "knowledge.workspace.library.meta.source": "来源 · {{source}}",

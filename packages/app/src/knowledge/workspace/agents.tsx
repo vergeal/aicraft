@@ -1,7 +1,7 @@
 import { Icon } from "@opencode/ui/icon"
 import { createMemo, For, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { LibraryGlyph, View } from "./bits"
+import { PageHead, View } from "./bits"
 import { useWorkspace } from "./context"
 import type { MenuItem } from "./state"
 
@@ -78,26 +78,25 @@ export function AgentsView() {
 
   return (
     <View name="agents">
-      <div class="page-scroll scroll" data-scrollable>
-        <div class="page">
-          <header class="page-head">
-            <div class="page-head-copy">
-              <h1>{language.t("knowledge.workspace.agents.title")}</h1>
-              <p>{language.t("knowledge.workspace.agents.description")}</p>
-            </div>
-            <div class="page-actions">
-              <button class="btn btn-primary" type="button" onClick={addMenu}>
+      <div class="kb-scroll" data-scrollable>
+        <div class="kb-page">
+          <PageHead
+            back={{ label: language.t("knowledge.workspace.title"), onClick: () => ws.ui.go("libraries") }}
+            title={language.t("knowledge.workspace.agents.title")}
+            description={language.t("knowledge.workspace.agents.description")}
+            actions={
+              <button class="kb-btn kb-btn-primary" type="button" onClick={addMenu}>
                 <Icon name="plus" class="ico" />
-                {language.t("knowledge.workspace.agents.add")}
+                <span>{language.t("knowledge.workspace.agents.add")}</span>
               </button>
-            </div>
-          </header>
+            }
+          />
 
           <Show
             when={libraries().length > 0}
             fallback={
-              <div class="empty">
-                <span class="empty-glyph">
+              <div class="kb-empty">
+                <span class="kb-empty-glyph">
                   <Icon name="library" class="ico" />
                 </span>
                 <h2>{language.t("knowledge.workspace.agents.emptyLibraries.title")}</h2>
@@ -105,114 +104,84 @@ export function AgentsView() {
               </div>
             }
           >
-            <div class="agents-layout">
-              <aside class="agent-picker" aria-label={language.t("knowledge.workspace.agents.pick")}>
-                <div class="picker-head">{language.t("knowledge.workspace.agents.pick")}</div>
+            <div class="kb-toolbar">
+              <span class="kb-toolbar-label">{language.t("knowledge.workspace.agents.pick")}</span>
+              <div class="kb-facets">
                 <For each={libraries()}>
                   {(library) => (
                     <button
-                      class="picker-row"
+                      class="kb-chip"
                       type="button"
-                      aria-current={selected()?.id === library.id}
+                      aria-pressed={selected()?.id === library.id}
                       onClick={() => ws.ui.setStore("agentLibraryID", library.id)}
                     >
-                      <LibraryGlyph />
-                      <span class="name">{library.name}</span>
+                      <span>{library.name}</span>
                       <Show when={ws.data.isLinked(library.id)}>
-                        <span class="dot" data-state="ready" aria-hidden="true" />
+                        <span class="kb-dot" data-state="ready" aria-hidden="true" />
                       </Show>
                     </button>
                   )}
                 </For>
-              </aside>
+              </div>
+            </div>
 
-              <div>
-                <div class="agent-section-head">
-                  {language.t("knowledge.workspace.agents.granted")}
-                  <span class="spacer" />
-                  <span class="count">
-                    {language.t("knowledge.workspace.agents.count", { count: linked().length })}
-                  </span>
-                </div>
+            <section class="kb-section">
+              <div class="kb-section-head">
+                <h2>{language.t("knowledge.workspace.agents.granted")}</h2>
+                <span class="kb-section-count">
+                  {language.t("knowledge.workspace.agents.count", { count: linked().length })}
+                </span>
+                <span class="kb-spacer" />
+                <Show when={selected() && ws.data.isLinked(selected()!.id)}>
+                  <button class="kb-btn kb-btn-sm kb-btn-danger" type="button" onClick={() => void unlink(selected()!.id)}>
+                    {language.t("knowledge.workspace.agents.removeLibrary")}
+                  </button>
+                </Show>
+              </div>
 
-                <Show
-                  when={selected() && ws.data.isLinked(selected()!.id)}
-                  fallback={
-                    <div class="empty">
-                      <span class="empty-glyph">
-                        <Icon name="outline-brain" class="ico" />
-                      </span>
-                      <h2>{language.t("knowledge.workspace.agents.empty.title")}</h2>
-                      <p>{language.t("knowledge.workspace.agents.empty.hint")}</p>
-                      <div class="empty-actions">
-                        <button
-                          class="btn btn-ghost"
-                          type="button"
-                          onClick={() => void link(selected()!.id)}
-                        >
-                          {language.t("knowledge.workspace.agents.empty.action")}
-                        </button>
-                      </div>
-                    </div>
-                  }
-                >
+              <Show
+                when={selected() && ws.data.isLinked(selected()!.id)}
+                fallback={
+                  <div class="kb-empty kb-empty-inline">
+                    <span class="kb-empty-glyph">
+                      <Icon name="outline-brain" class="ico" />
+                    </span>
+                    <h2>{language.t("knowledge.workspace.agents.empty.title")}</h2>
+                    <p>{language.t("knowledge.workspace.agents.empty.hint")}</p>
+                    <button class="kb-btn kb-btn-primary" type="button" onClick={() => void link(selected()!.id)}>
+                      {language.t("knowledge.workspace.agents.empty.action")}
+                    </button>
+                  </div>
+                }
+              >
+                <div class="kb-rows">
                   <For each={linked()}>
                     {(agent) => (
-                      <div class="agent-row">
-                        <span class="agent-avatar-lg">{agent.name.slice(0, 1).toLocaleUpperCase()}</span>
-                        <span class="agent-copy">
-                          <span class="agent-name">{agent.name}</span>
-                          <span class="agent-meta">{agent.description ?? ""}</span>
+                      <div class="kb-row">
+                        <span class="kb-avatar">{agent.name.slice(0, 1).toLocaleUpperCase()}</span>
+                        <span class="kb-row-body">
+                          <span class="kb-row-title">{agent.name}</span>
+                          <Show when={agent.description}>
+                            {(description) => <span class="kb-row-sub">{description()}</span>}
+                          </Show>
                         </span>
-                        <span class="agent-perm">
-                          <button
-                            class="btn btn-sm btn-ghost"
-                            type="button"
-                            onClick={() => ws.ui.notify(language.t("knowledge.workspace.agents.readonlyNote"))}
-                          >
-                            {language.t("knowledge.workspace.agents.readonly")}
-                          </button>
-                        </span>
-                        <button
-                          class="agent-more"
-                          type="button"
-                          aria-label={language.t("knowledge.workspace.agents.remove", { name: agent.name })}
-                          onClick={() => void unlink(selected()!.id)}
-                        >
-                          <Icon name="close" class="ico" />
-                        </button>
+                        <span class="kb-badge">{language.t("knowledge.workspace.agents.readonly")}</span>
                       </div>
                     )}
                   </For>
-                </Show>
+                </div>
+              </Show>
 
-                <Show when={selected() && ws.data.isLinked(selected()!.id)}>
-                  <div class="agent-note">
-                    <Icon name="lock" class="ico" />
-                    <span>{language.t("knowledge.workspace.agents.note")}</span>
-                  </div>
-                </Show>
+              <Show when={selected() && ws.data.isLinked(selected()!.id)}>
+                <p class="kb-note">{language.t("knowledge.workspace.agents.note")}</p>
+              </Show>
 
-                <Show when={!ws.data.connected()}>
-                  <div class="agent-note" data-tone="warning">
-                    <Icon name="outline-hexagonal-warning" class="ico" />
-                    <span>{language.t("knowledge.workspace.agents.offline")}</span>
-                  </div>
-                </Show>
-
-                <Show when={selected() && ws.data.isLinked(selected()!.id)}>
-                  <div class="agent-remove">
-                    <button
-                      class="text-link"
-                      type="button"
-                      onClick={() => void unlink(selected()!.id)}
-                    >
-                      {language.t("knowledge.workspace.agents.removeLibrary")}
-                    </button>
-                  </div>
-                </Show>
-              </div>
-            </div>
+              <Show when={!ws.data.connected()}>
+                <p class="kb-note" data-tone="warning">
+                  {language.t("knowledge.workspace.agents.offline")}
+                </p>
+              </Show>
+            </section>
           </Show>
         </div>
       </div>

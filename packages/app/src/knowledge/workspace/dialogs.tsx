@@ -65,7 +65,7 @@ function DialogShell(props: { title: string; children: JSX.Element; footer: JSX.
             <Icon name="close" class="ico ico-sm" />
           </button>
         </div>
-        <div class="modal-body scroll" data-scrollable>
+        <div class="modal-body" data-scrollable>
           {props.children}
         </div>
         <div class="modal-foot">{props.footer}</div>
@@ -188,7 +188,7 @@ function NewLibrary() {
       <label class="dialog-label">
         {language.t("knowledge.new.about.label")}
         <textarea
-          class="dialog-input dialog-area"
+          class="dialog-input"
           rows={3}
           value={about()}
           placeholder={language.t("knowledge.new.about.placeholder")}

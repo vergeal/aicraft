@@ -2233,6 +2233,8 @@ export const dict = {
   "knowledge.workspace.library.filtered.hint": "Try another keyword, or clear the filters.",
   "knowledge.workspace.library.meta.documents": "documents",
   "knowledge.workspace.library.meta.chunks": "passages",
+  "knowledge.workspace.chunks.one": "{{count}} passage",
+  "knowledge.workspace.chunks.other": "{{count}} passages",
   "knowledge.workspace.library.meta.processing": "{{count}} processing",
   "knowledge.workspace.library.meta.failed": "{{count}} failed",
   "knowledge.workspace.library.meta.source": "Source \u00b7 {{source}}",

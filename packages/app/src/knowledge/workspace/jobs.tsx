@@ -2,7 +2,7 @@ import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
 import { createEffect, createMemo, For, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { FileGlyph, FileStatus, trapModalTab, View } from "./bits"
+import { FileGlyph, FileStatus, PageHead, trapModalTab, View } from "./bits"
 import { useWorkspace } from "./context"
 import {
   fileName,
@@ -90,53 +90,60 @@ export function JobsView() {
 
   return (
     <View name="jobs">
-      <div class="page-scroll scroll" data-scrollable>
-        <div class="page">
-          <header class="page-head">
-            <div class="page-head-copy">
-              <h1>{language.t("knowledge.workspace.jobs.title")}</h1>
-              <p>{language.t("knowledge.workspace.jobs.description")}</p>
-            </div>
-            <div class="page-actions">
-              <button class="btn btn-ghost" type="button" disabled={failed().length === 0} onClick={() => void retryAll()}>
+      <div class="kb-scroll" data-scrollable>
+        <div class="kb-page">
+          <PageHead
+            back={{ label: language.t("knowledge.workspace.title"), onClick: () => ws.ui.go("libraries") }}
+            title={language.t("knowledge.workspace.jobs.title")}
+            description={language.t("knowledge.workspace.jobs.description")}
+            actions={
+              <button
+                class="kb-btn"
+                type="button"
+                disabled={failed().length === 0}
+                onClick={() => void retryAll()}
+              >
                 <Icon name="refresh" class="ico" />
-                {language.t("knowledge.workspace.jobs.retryAll")}
+                <span>{language.t("knowledge.workspace.jobs.retryAll")}</span>
               </button>
+            }
+            meta={
+              <>
+                <span>{language.t("knowledge.workspace.jobs.summary.running", { count: active().length })}</span>
+                <span class="kb-sep" aria-hidden="true" />
+                <span>{language.t("knowledge.workspace.jobs.summary.failed", { count: failed().length })}</span>
+                <span class="kb-sep" aria-hidden="true" />
+                <span>{language.t("knowledge.workspace.jobs.summary.done", { count: done().length })}</span>
+                <span class="kb-sep" aria-hidden="true" />
+                <span>{language.t("knowledge.workspace.jobs.summary.local")}</span>
+              </>
+            }
+          />
+
+          <div class="kb-toolbar">
+            <div class="kb-segments" role="tablist" aria-label={language.t("knowledge.workspace.jobs.tabs")}>
+              <For each={tabs()}>
+                {(tab) => (
+                  <button
+                    class="kb-segment"
+                    type="button"
+                    role="tab"
+                    aria-selected={ws.ui.store.jobTab === tab.id}
+                    onClick={() => ws.ui.setStore("jobTab", tab.id)}
+                  >
+                    {tab.label}
+                    <span class="kb-count">{tab.count}</span>
+                  </button>
+                )}
+              </For>
             </div>
-          </header>
-
-          <div class="jobs-summary">
-            <span>{language.t("knowledge.workspace.jobs.summary.running", { count: active().length })}</span>
-            <span class="meta-sep" aria-hidden="true" />
-            <span>{language.t("knowledge.workspace.jobs.summary.failed", { count: failed().length })}</span>
-            <span class="meta-sep" aria-hidden="true" />
-            <span>{language.t("knowledge.workspace.jobs.summary.done", { count: done().length })}</span>
-            <span class="spacer" />
-            <span>{language.t("knowledge.workspace.jobs.summary.local")}</span>
-          </div>
-
-          <div class="job-tabs" role="tablist" aria-label={language.t("knowledge.workspace.jobs.tabs")}>
-            <For each={tabs()}>
-              {(tab) => (
-                <button
-                  class="job-tab"
-                  type="button"
-                  role="tab"
-                  aria-selected={ws.ui.store.jobTab === tab.id}
-                  onClick={() => ws.ui.setStore("jobTab", tab.id)}
-                >
-                  {tab.label}
-                  <span class="n">{tab.count}</span>
-                </button>
-              )}
-            </For>
           </div>
 
           <Show
             when={rows().length > 0}
             fallback={
-              <div class="empty">
-                <span class="empty-glyph">
+              <div class="kb-empty">
+                <span class="kb-empty-glyph">
                   <Icon name="check" class="ico" />
                 </span>
                 <h2>{language.t(EMPTY_KEYS[ws.ui.store.jobTab])}</h2>
@@ -144,15 +151,7 @@ export function JobsView() {
               </div>
             }
           >
-            <div class="job-head">
-              <span>{language.t("knowledge.workspace.jobs.columns.document")}</span>
-              <span>{language.t("knowledge.workspace.jobs.columns.library")}</span>
-              <span>{language.t("knowledge.workspace.jobs.columns.stage")}</span>
-              <span>{language.t("knowledge.workspace.jobs.columns.progress")}</span>
-              <span>{language.t("knowledge.workspace.jobs.columns.status")}</span>
-              <span />
-            </div>
-            <div role="list">
+            <div class="kb-rows" role="list">
               <For each={rows()}>
                 {(entry) => {
                   const status = () => fileStatus(entry.file)
@@ -160,7 +159,7 @@ export function JobsView() {
 
                   return (
                     <div
-                      class="job-row"
+                      class="kb-job"
                       role="listitem"
                       tabindex="0"
                       onClick={() => ws.ui.openDrawer(entry.library.id, entry.file.path)}
@@ -168,44 +167,48 @@ export function JobsView() {
                         if (event.key === "Enter") ws.ui.openDrawer(entry.library.id, entry.file.path)
                       }}
                     >
-                      <span class="job-name">
+                      <span class="kb-row-glyph">
                         <FileGlyph />
-                        <span class="job-copy">
-                          <span class="n">{fileName(entry.file)}</span>
+                      </span>
+                      <span class="kb-row-body">
+                        <span class="kb-row-title">{fileName(entry.file)}</span>
+                        <span class="kb-row-sub">
                           <Show
                             when={status() === "failed"}
                             fallback={
-                              <span class="file-type">
-                                {language.t(typeLabelKey(fileType(entry.file)))} · {formatBytes(entry.file.size)}
-                              </span>
+                              <>
+                                {language.t(typeLabelKey(fileType(entry.file)))}
+                                <span class="kb-sep" aria-hidden="true" />
+                                {formatBytes(entry.file.size)}
+                              </>
                             }
                           >
-                            <span class="err">{entry.file.processing?.error}</span>
+                            <span class="kb-error">{entry.file.processing?.error}</span>
                           </Show>
+                          <span class="kb-sep" aria-hidden="true" />
+                          {entry.library.name}
                         </span>
                       </span>
-                      <span class="job-lib">{entry.library.name}</span>
-                      <span class="job-stage">{language.t(stageLabelKey(status()))}</span>
-                      <span class="job-progress">
-                        <span class="job-track">
+                      <span class="kb-job-progress">
+                        <span class="kb-track">
                           <span
-                            class="job-fill"
-                            data-state={status() === "failed" ? "failed" : ""}
+                            class="kb-fill"
+                            data-state={status() === "failed" ? "failed" : undefined}
                             style={{ width: `${percent()}%` }}
                           />
                         </span>
-                        <span class="job-pct">{status() === "failed" ? "—" : `${percent()}%`}</span>
+                        <span class="kb-pct">{status() === "failed" ? "—" : `${percent()}%`}</span>
                       </span>
-                      <span>
+                      <span class="kb-job-status">
                         <FileStatus file={entry.file} />
                       </span>
-                      <span class="job-actions">
+                      <span class="kb-job-action">
                         <Show
                           when={status() === "failed"}
-                          fallback={<span class="file-updated">{formatWhen(fileUpdatedAt(entry.file), language)}</span>}
+                          fallback={<span class="kb-row-time">{formatWhen(fileUpdatedAt(entry.file), language)}</span>}
                         >
                           <button
-                            class="btn btn-sm"
+                            class="kb-btn kb-btn-sm"
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation()

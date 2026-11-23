@@ -2,31 +2,6 @@
    what a memory needs on top: a readable entry text, tag chips, and the editor's fields. Colours are semantic tokens,
    so both themes follow the app. */
 
-/* The page is a fixed frame: the header and search stay put, and only the lists scroll inside the body. Without
-   this the whole settings column scrolled, so a long list moved the header away and the scrollbar sat on the window
-   edge where the page read as one endlessly growing sheet. Scoped with `:has`, so every other settings page keeps
-   the host's page scroll. */
-.settings-screen .settings-content > .settings-panel:has(.memory-page),
-.settings-content > .settings-panel:has(.memory-page),
-.settings-panel:has(.memory-page) {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.settings-panel:has(.memory-page) > .settings-tab-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-/* The frame, not the old page, owns the scrollbar lane now. */
-.settings-screen > .settings > .settings-content:has(.memory-page) {
-  scrollbar-gutter: auto;
-}
-
 .memory-page {
   display: flex;
   width: 100%;

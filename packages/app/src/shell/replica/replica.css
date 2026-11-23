@@ -270,6 +270,20 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   -webkit-app-region: drag;
 }
 
+/* The bar's shared axis: a hairline through the native traffic lights' centre. Every segment centres its contents on
+   `--titlebar-axis`, so this is the one line they all sit on. */
+[data-slot="replica-titlebar"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: var(--titlebar-axis);
+  height: 1px;
+  transform: translateY(-50%);
+  background: color-mix(in oklab, var(--color-text-main) 22%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* The navigation column's head: its width follows the column, its surface is the column's own, so the bar's left half
    and the column below read as one piece of chrome rather than two stacked tints. */
 [data-slot="replica-titlebar-side"] {
@@ -324,6 +338,15 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   padding-block-end: var(--titlebar-axis-gutter);
   background: var(--color-main);
   box-shadow: none;
+}
+
+/* The usage readout trims its line box to the cap height and the baseline. A 16px line box keeps half a pixel of
+   descent space under the baseline, which leaves 12px numerals 0.26px below the bar's axis while the vector ring
+   beside them sits exactly on it; the trim moves the digits' own centre onto the same line. */
+[data-ui="titlebar-context"] > span {
+  display: block;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
 }
 
 /* The panel's own head: the session side region writes its width, so the workspace segment ends where the workspace

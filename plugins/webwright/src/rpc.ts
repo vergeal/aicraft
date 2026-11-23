@@ -82,7 +82,7 @@ export const Operations = [
     "tabs.open",
     "Open a URL in the dedicated browser and wait for the document to load. Active by default so the user sees it.",
     {
-      url: optional(short).annotate({ description: "HTTP/HTTPS URL. Defaults to about:blank." }),
+      url: short.annotate({ description: "HTTP/HTTPS URL. Required; about:blank tabs are not allowed." }),
       active: optional(Schema.Boolean).annotate({ description: "Default true. Pass false to open in the background." }),
     },
     Tab,

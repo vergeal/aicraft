@@ -11,11 +11,33 @@ description: "用 `webwright.*` 工具操作专用的 Playwright 浏览器：列
 
 1. 调用 `tools.webwright.status({})`。它能启动系统 Chrome（带调试端口）或复用已有连接，并报告实际使用的浏览器、版本和配置目录。
 2. 只支持系统安装的 Google Chrome：插件会以 `--remote-debugging-port=0` 启动它并连接 CDP。没装 Chrome 时 `status` 会返回明确错误，不会退回自带 Chromium，不要猜测它可以工作。
-3. 需要登录的站点，请用户在这个 Chrome 窗口里登录一次；配置目录会保留登录状态。
+3. 需要登录的站点，**不要直接在插件启动的窗口里登录**，见下面「登录需要账号的站点」。
+
+### 登录需要账号的站点（尤其是 Google）
+
+Google 不接受**带调试端口的 Chrome**登录。即使 `navigator.webdriver` 是 `false`，只要 Chrome 用
+`--remote-debugging-port` 启动就进入 automation 模式，Google 登录会报「此浏览器或应用可能不安全」。
+这是 Chrome 的安全设计（Chromium issue 40746300），没有绕过办法：不要尝试删除自动化标记，也不要换端口重试。
+
+正确做法是**登录与调试分离**：先不带调试端口打开同一个 profile 登录，退出后再让插件接管。
+
+```bash
+# 1. 确认插件启动的 Chrome 已退出（Cmd+Q，或 pkill -f webwright/chrome-profile）
+# 2. 用同一个 profile、不带调试端口打开
+open -na "Google Chrome" --args \
+  --user-data-dir="$HOME/.opencode/webwright/chrome-profile" \
+  --no-first-run --no-default-browser-check https://chatgpt.com/
+# 3. 在这个窗口里登录，完成后 Cmd+Q 完全退出（让 Cookie 落盘）
+# 4. 再调用 webwright.status，插件带端口启动同一 profile，登录态保留
+```
+
+登录态写在 profile 里，只需做一次。之后插件每次启动都是已登录状态。
+不要让无端口窗口和插件实例同时使用这个 profile。
 
 ## 基本规则
 
 - 每个页面操作都要求显式传入 `tabID`，它来自 `webwright.tabs.list` 或 `webwright.tabs.open`。绝不要猜标签页 ID。
+- `tabs.open` 必须传 `http(s)` URL，不接受 `about:blank`；Chrome 启动时自带的空白页会被复用，不会再叠一个空白标签。
 - `snapshot` 返回带 `e12` 这类引用的紧凑 DOM 树。`click`、`hover`、`fill`、`select`、`check`、`press` 和元素级 `evaluate` 都接收这些引用。
 - 引用属于单个标签页，并在页面导航或下一次 snapshot 时失效。任何改动页面的操作之后都要重新 snapshot。
 - 等待加载或文本用 `wait`，不要用固定 sleep。

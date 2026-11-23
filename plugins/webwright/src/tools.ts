@@ -30,7 +30,7 @@ export const register = Effect.fn("BrowserTools.register")(function* (
         case "tabs.list":
           return call(() => runtime.tabs())
         case "tabs.open":
-          return call(() => runtime.open(input as { url?: string; active?: boolean }))
+          return call(() => runtime.open(input as { url: string; active?: boolean }))
         case "tabs.close":
           return call(() => runtime.close(tabID))
         case "tabs.focus":

@@ -224,6 +224,17 @@ async function tab(state: State, item: Page): Promise<Browser.Tab> {
   }
 }
 
+/** about:blank and Chrome's startup new-tab page carry no content, so they are never real targets. */
+function isBlankUrl(url: string) {
+  const value = url.trim().toLowerCase()
+  return (
+    value === "about:blank" ||
+    value.startsWith("about:blank#") ||
+    value === "chrome://newtab/" ||
+    value === "chrome://new-tab-page/"
+  )
+}
+
 function untrusted(action: string, error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
   return new Error(`${action} failed: ${message}`)
@@ -419,10 +430,14 @@ export function create(options: PluginOptions) {
 
     async open(input: { url?: string; active?: boolean }) {
       try {
+        const url = input.url?.trim()
+        if (!url || isBlankUrl(url))
+          throw new Error("tabs.open needs an http(s) URL; about:blank tabs are not allowed")
         const { context } = await launch(state)
-        const item = await context.newPage()
+        // Reuse the blank page Chrome opened on startup instead of stacking another blank tab on top of it.
+        const item = context.pages().find((page) => isBlankUrl(page.url())) ?? (await context.newPage())
         attach(state, item)
-        await item.goto(input.url ?? "about:blank", { waitUntil: "domcontentloaded", timeout: 30_000 })
+        await item.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 })
         if (input.active !== false) await item.bringToFront()
         return tab(state, item)
       } catch (error) {

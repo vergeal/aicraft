@@ -243,6 +243,7 @@ SDK icon fields take an `IconName` from `@opencode/plugin/gui`: the names of the
 | Registry                                             | Process | What an item is                                                                                                                                                                                                                      |
 | ---------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`Command`](../plugin/src/gui/registries.ts)         | window  | A palette command with an optional keybind and slash command                                                                                                                                                                         |
+| [`SearchProvider`](../plugin/src/gui/registries.ts)  | window  | Results for the global search behind Ctrl+K, listed under the provider's own title                                                                                                                                                   |
 | [`MenuItem`](../plugin/src/gui/registries.ts)        | window  | An item of a host menu: the side panel + menu, Add server, a server row                                                                                                                                                              |
 | [`Panel`](../plugin/src/gui/registries.ts)           | window  | Tabs in the session's side region                                                                                                                                                                                                    |
 | [`SettingsPage`](../plugin/src/gui/registries.ts)    | window  | A settings page, a section on a host page, or rows in a host section                                                                                                                                                                 |
@@ -277,6 +278,13 @@ action.
 session context plus its `label` and `icon`; one contribution owns it. Without a contribution, the host keeps its
 static location row. Use it to attach location actions directly
 to the displayed repository or worktree instead of adding a second menu item.
+
+`SearchProvider` answers the global search behind Ctrl+K. The host searches every active provider on each query and
+lists each one's results under its `title`, after the app's own groups (sessions, chat text, files, knowledge and so
+on). `search` runs again on every query change, so stop on the `signal` and resolve what you already have; a rejection
+drops only that provider's results for the query. Each result opens through its own `run`, after the host closes the
+search. Read `title` from a getter, or contribute the provider in the function form, so the section follows the
+language.
 
 ### Host APIs
 
@@ -332,6 +340,7 @@ ctx.add(MainSurface, {
 - The host lists the row after the app's own destinations, at `/plugins/<plugin id>/<surface id>`, with the same row style. `order` sorts rows (ascending, ties keep contribution order), `badge()` shows a count above zero, and `hidden: true` keeps the row out while a direct address still renders the page.
 - The row lives only while the plugin contributes it. Disabling, failing or removing the plugin takes the row away and leaves its address showing the host's unavailable page. A `render` that throws also shows that page and records the error under the plugin; its other contributions keep running.
 - Read `title` from a getter, as above, or contribute the item in the function form, so the row follows the language.
+- `titlebar()` paints the window bar's workspace segment in the page's own colors while the page is open, so the bar and the page below read as one surface. Return `{ background, foreground }`, both CSS colors; `foreground` also colors the Windows window controls. Read the return value reactively so a theme switch repaints the bar, and omit the function to keep the app's titlebar. Leaving the page restores the app's colors.
 
 ```ts
 const id = await ctx.inbox.publish({

@@ -3,6 +3,7 @@ export default {
   description:
     "What the assistant remembers across sessions. Global memories apply in every project; project memories apply only in the project you pick.",
   search: "Search memories",
+  "search.title": "Memory",
   "search.clear": "Clear search",
   global: "Global memories",
   project: "Project memories",

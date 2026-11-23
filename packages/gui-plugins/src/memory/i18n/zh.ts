@@ -2,6 +2,7 @@ export default {
   title: "记忆",
   description: "跨会话记住你的习惯和项目约定。全局记忆在所有项目中生效，项目记忆只在所选项目中生效。",
   search: "搜索记忆",
+  "search.title": "记忆",
   "search.clear": "清空搜索",
   global: "全局记忆",
   project: "项目记忆",

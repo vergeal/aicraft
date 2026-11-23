@@ -1,6 +1,6 @@
 import { createMemo, createSignal, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
-import { createKeyed, SettingsPage, Style, type Plugin } from "@opencode/plugin/gui"
+import { createKeyed, SearchProvider, SettingsPage, Style, type Plugin } from "@opencode/plugin/gui"
 import { Memory } from "@opencode/schema/memory"
 import type definition from "./index"
 import styles from "./memory.css?inline"
@@ -663,6 +663,47 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       </div>
     </Show>
   )
+
+  const SEARCH_LIMIT = 6
+
+  const toSearchResult = (entry: Entry, scope: Scope, projectID: string | null) => ({
+    id: entry.id,
+    title: entry.text,
+    description: [scope === "global" ? ctx.t("global") : ctx.t("project"), entry.tags.join(" · ")]
+      .filter((part) => part.length > 0)
+      .join(" · "),
+    run() {
+      // A project memory opens on its own project, so the page shows the row the user picked.
+      if (projectID !== null) setManualProject(projectID)
+      ctx.layout.settings("memory")
+    },
+  })
+
+  ctx.add(SearchProvider, {
+    id: "memories",
+    icon: "memory",
+    get title() {
+      return ctx.t("search.title")
+    },
+    async search({ query, signal }) {
+      const client = rpc()
+      const projectID = selected()
+
+      if (!client) return []
+
+      const result = await client.list({ projectID }, { signal })
+      const needle = query.toLocaleLowerCase()
+
+      const matches = (entry: Entry) =>
+        entry.text.toLocaleLowerCase().includes(needle) ||
+        entry.tags.some((tag) => tag.toLocaleLowerCase().includes(needle))
+
+      return [
+        ...result.global.filter(matches).map((entry) => toSearchResult(entry, "global", null)),
+        ...result.project.filter(matches).map((entry) => toSearchResult(entry, "project", projectID)),
+      ].slice(0, SEARCH_LIMIT)
+    },
+  })
 
   ctx.add(SettingsPage, {
     id: "memory",

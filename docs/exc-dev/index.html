@@ -2208,6 +2208,34 @@ await ctx.session.hook("retry", (event) =&gt; {
         <tr><td><code>run</code></td><td>执行函数。</td></tr>
       </table>
 
+      <h4><code>SearchProvider</code> — 聚焦搜索（Ctrl+K）</h4>
+      <p>把插件内容接进全局聚焦搜索。用户每次输入，宿主都会搜索所有启用中的搜索源，并把每个源的结果列在它自己的分组标题下，排在内置结果（会话、聊天内容、文件、知识库等）之后。</p>
+      <table>
+        <tr><th>字段</th><th>说明</th></tr>
+        <tr><td><code>id</code></td><td>源 id，插件内唯一。</td></tr>
+        <tr><td><code>title</code></td><td>结果的分组标题。用 getter 读取，跟随语言切换。</td></tr>
+        <tr><td><code>icon</code></td><td>结果没有单独给图标时使用的图标。</td></tr>
+        <tr><td><code>order</code></td><td>多个源之间的排序，升序，默认 0。</td></tr>
+        <tr><td><code>search({ query, signal })</code></td><td>返回 <code>SearchResult[]</code> 或它的 Promise。每次输入都会重新调用：在 <code>signal</code> 中止时停下并返回已有结果；抛错或 Promise 拒绝只会让该源在这次查询里没有结果。</td></tr>
+      </table>
+      <p><code>SearchResult</code> 的字段：<code>id</code>（源内唯一）、<code>title</code>（第一行）、<code>description</code>（第二行，可省略）、<code>icon</code>（可省略）、<code>run()</code>（用户选中时执行；宿主先关闭搜索）。</p>
+      <pre><span class="path">gui/main.tsx</span><code>ctx.add(SearchProvider, {
+  id: "notes",
+  get title() {
+    return ctx.t("search.title")
+  },
+  icon: "file-document",
+  async search({ query, signal }) {
+    const notes = await loadNotes({ query, signal })
+    return notes.map((note) =&gt; ({
+      id: note.id,
+      title: note.title,
+      description: note.path,
+      run: () =&gt; ctx.layout.settings("notes"),
+    }))
+  },
+})</code></pre>
+
       <h4><code>MenuItem</code> — 菜单项</h4>
       <table>
         <tr><th>字段</th><th>说明</th></tr>

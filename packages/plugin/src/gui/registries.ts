@@ -931,6 +931,71 @@ export type Slot = {
 }[keyof SlotMap]
 
 /**
+ * One result a `SearchProvider` answers a query with. The host lists it under the provider's `title` and opens it with
+ * `run`.
+ */
+export interface SearchResult {
+  /** The result's id, unique within the provider. */
+  readonly id: string
+  /** The result's first line, such as a memory's text or a note's title. */
+  readonly title: string
+  /** The result's second line, such as where it comes from. Omit it for none. */
+  readonly description?: string
+  /** The result's icon. Defaults to the provider's `icon`. */
+  readonly icon?: IconName
+  /**
+   * Runs when the user picks the result. The host closes the search first, so open a page, a tab or a dialog from here.
+   * A throw is logged under your plugin and changes nothing else.
+   */
+  run(): void
+}
+
+/**
+ * A source of results for the global search behind Ctrl+K, so the user finds plugin content beside sessions, chat
+ * text, files and knowledge. The host searches every active provider on each query and lists each provider's
+ * results under its `title`.
+ *
+ * @example
+ * ```ts
+ * ctx.add(SearchProvider, {
+ *   id: "notes",
+ *   get title() {
+ *     return ctx.t("search.title")
+ *   },
+ *   icon: "file-document",
+ *   search: async ({ query, signal }) => searchNotes(query, { signal }),
+ * })
+ * ```
+ */
+export interface SearchProvider {
+  /** The provider's id, unique within the plugin. */
+  readonly id: string
+  /** The section title the host lists this provider's results under. Read it from a getter so it follows the locale. */
+  readonly title: string
+  /** The results' icon when a result carries none. Omit it for the host's search icon. */
+  readonly icon?: IconName
+  /**
+   * Providers list in ascending order after the app's own groups, such as sessions and files; ties keep contribution
+   * order. Defaults to 0.
+   */
+  readonly order?: number
+  /**
+   * Searches for what the user typed. Runs again on every query change, so stop early on `signal` and answer what you
+   * already have; a rejection or a throw only drops this provider's results from that query.
+   *
+   * @param input - The trimmed, non-empty query, and the signal that aborts when the query changes or the search
+   * closes.
+   * @returns The matching results, newest first, or a promise of them. An empty array lists nothing for this query.
+   */
+  search(input: {
+    /** The text the user typed, already trimmed. Never empty. */
+    readonly query: string
+    /** Aborts when the query changes or the search closes; stop work and resolve with what you have. */
+    readonly signal: AbortSignal
+  }): readonly SearchResult[] | Promise<readonly SearchResult[]>
+}
+
+/**
  * The registry of palette commands, each with an optional keybind and slash command.
  *
  * @example
@@ -946,6 +1011,16 @@ export type Slot = {
  * ```
  */
 export const Command = Registry.define<Command>("command")
+
+/**
+ * The registry of sources for the global search behind Ctrl+K.
+ *
+ * @example
+ * ```ts
+ * ctx.add(SearchProvider, { id: "notes", get title() { return ctx.t("search.title") }, search: searchNotes })
+ * ```
+ */
+export const SearchProvider = Registry.define<SearchProvider>("search-provider")
 
 /**
  * The registry of host menu items.

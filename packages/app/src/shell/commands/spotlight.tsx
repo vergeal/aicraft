@@ -6,6 +6,7 @@ import { Icon } from "@opencode/ui/icon"
 import type { IconName } from "@opencode/ui/icons/catalog"
 import { Loader } from "@opencode/ui/loader"
 import { displayName } from "@opencode/ui/project-avatar"
+import { SearchProvider } from "@opencode/plugin/gui"
 import { SearchHighlight, SearchList, type SearchListRow } from "@opencode/ui/search-list"
 import { getDirectory, getFilename } from "@opencode/util/path"
 import { useNavigate } from "@solidjs/router"
@@ -25,6 +26,7 @@ import { useInbox } from "@/inbox/context"
 import { useKnowledgeLibraries } from "@/knowledge/store"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePluginAttachment } from "@/runtime/plugin/host-apis"
+import { usePluginHost } from "@/runtime/plugin/host"
 import { isServerFailed } from "@/runtime/server/health-machine"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
@@ -43,7 +45,7 @@ import {
 } from "./palette"
 import "./spotlight.css"
 
-const ICONS: Record<SpotlightItem["type"], IconName> = {
+const ICONS: Record<Exclude<SpotlightItem["type"], "plugin">, IconName> = {
   session: "workspace",
   message: "bubble-5",
   file: "file-document",
@@ -63,6 +65,9 @@ const KNOWLEDGE_LIMIT = 6
 
 const FILE_LIMIT = 8
 
+/** Every plugin provider answers with at most this many results, so one source cannot push the rest out of view. */
+const PLUGIN_LIMIT = 6
+
 type SessionTarget = {
   server: ServerConnection.Key
   sessionID: string
@@ -80,6 +85,7 @@ type SpotlightItem = { id: string; category: string; title: string; snippet?: st
   | { type: "inbox"; key: string }
   | { type: "schedule"; taskID: string }
   | { type: "project"; server: ServerConnection.Key; directory: string }
+  | { type: "plugin"; icon?: IconName; run: () => void }
 )
 
 /**
@@ -99,6 +105,7 @@ export function Spotlight() {
   const scheduled = useScheduled()
   const libraries = useKnowledgeLibraries()
   const attachment = usePluginAttachment()
+  const host = usePluginHost()
   const openFile = createCommandPaletteFileOpener()
 
   const [store, setStore] = createStore({ query: "" })
@@ -230,6 +237,44 @@ export function Spotlight() {
     )
   })
 
+  // Plugin sources answer beside the app's own groups: each one searches its own content and opens its own result.
+  const providers = createMemo(() =>
+    host
+      .items(SearchProvider)
+      .slice()
+      .sort((left, right) => (left.value.order ?? 0) - (right.value.order ?? 0)),
+  )
+
+  const pluginSearch = createQueryResource(
+    createMemo(() => ({ text: query(), providers: providers() })),
+    (input, signal) => {
+      if (!input.text) return Promise.resolve([])
+
+      return Promise.all(
+        input.providers.map((item) =>
+          Promise.resolve()
+            .then(() => item.value.search({ query: input.text, signal }))
+            .then((results) =>
+              results.slice(0, PLUGIN_LIMIT).map(
+                (result): SpotlightItem => ({
+                  id: `plugin:${item.plugin}:${item.value.id}:${result.id}`,
+                  type: "plugin",
+                  category: item.value.title,
+                  title: result.title,
+                  snippet: result.description,
+                  icon: result.icon ?? item.value.icon,
+                  run: () => result.run(),
+                }),
+              ),
+            )
+            // One provider's failure drops only its own results from this query.
+            .catch((): SpotlightItem[] => []),
+        ),
+      ).then((groups) => groups.flat())
+    },
+    (input) => !input.text,
+  )
+
   const libraryItems = createMemo(() => {
     const text = query()
 
@@ -335,13 +380,15 @@ export function Spotlight() {
       ...inboxItems(),
       ...scheduleItems(),
       ...projectItems(),
+      ...latest(pluginSearch),
     ]
   })
 
   const loading = () =>
     messages.some((resource) => resource.loading) ||
     knowledge.some((resource) => resource.loading) ||
-    files.loading
+    files.loading ||
+    pluginSearch.loading
 
   const openSession = (target: SessionTarget) => {
     const ctx = global.serverCtx(target.server)
@@ -397,6 +444,15 @@ export function Spotlight() {
         layout.home.setSelection({ server: item.server, directory: item.directory })
 
         return navigate("/")
+      case "plugin":
+        // A provider's own result cannot break the dialog: report it like any other contribution failure.
+        try {
+          item.run()
+        } catch (cause) {
+          console.error("[plugin] search result", cause)
+        }
+
+        return
     }
   }
 
@@ -449,7 +505,7 @@ function SpotlightRow(props: { row: SearchListRow; item: SpotlightItem }) {
         fallback={
           <>
             <span class="spotlight-row-icon" aria-hidden="true">
-              <Icon name={ICONS[props.item.type]} />
+              <Icon name={iconOf(props.item)} />
             </span>
             <span class="spotlight-row-text">
               <span class="spotlight-row-title">
@@ -540,15 +596,26 @@ function latest<T>(resource: Resource<T[]>): T[] {
   return resource.state === "ready" || resource.state === "refreshing" ? resource.latest : []
 }
 
+/** A plugin result carries its own icon; the app's own groups have one icon each. */
+function iconOf(item: SpotlightItem): IconName {
+  if (item.type === "plugin") return item.icon ?? "magnifying-glass"
+
+  return ICONS[item.type]
+}
+
 /** One remote source: cancels the previous request and waits for a pause before asking the server again. */
-function createQueryResource<T>(query: () => string, load: (query: string, signal: AbortSignal) => Promise<T[]>) {
+function createQueryResource<S, T>(
+  source: () => S,
+  load: (value: S, signal: AbortSignal) => Promise<T[]>,
+  skip: (value: S) => boolean = (value) => !value,
+) {
   let abort: AbortController | undefined
 
   onCleanup(() => abort?.abort())
 
-  const [result] = createResource<T[], string>(
-    query,
-    async (text, info) => {
+  const [result] = createResource<T[], S>(
+    source,
+    async (value, info) => {
       abort?.abort()
       const current = new AbortController()
       abort = current
@@ -558,9 +625,9 @@ function createQueryResource<T>(query: () => string, load: (query: string, signa
 
       if (current.signal.aborted) return previous
 
-      if (!text) return []
+      if (skip(value)) return []
 
-      return load(text, current.signal).then(
+      return load(value, current.signal).then(
         (items) => (current.signal.aborted ? previous : items),
         () => (current.signal.aborted ? previous : []),
       )

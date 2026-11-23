@@ -9,115 +9,11 @@
 }
 
 /* The page scrolls at the panel's edge; its contents keep the session reading measure and stay centred. */
-.explore-page-inner {
-  width: 100%;
-  max-width: var(--container-session, 840px);
-  margin-inline: auto;
-  /* The measure is narrower than the window, so the grid sizes against it rather than the viewport. */
-  container-type: inline-size;
-}
-
-.explore-scroll {
-  min-height: 0;
-}
-
-.explore-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 960px;
-}
-
-.explore-section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.explore-section-copy {
-  min-width: 0;
-}
-
-.explore-section-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: var(--line-height-base);
-  color: var(--v2-text-text-base);
-}
-
-.explore-section-description {
-  margin: 2px 0 0;
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-muted);
-}
-
 .explore-note {
   margin: 16px 0 0;
   font-size: 12px;
   line-height: var(--line-height-compact);
   color: var(--v2-text-text-faint);
-}
-
-.explore-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 40px 24px;
-  border-radius: var(--settings-card-radius, 10px);
-  background-color: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
-  text-align: center;
-}
-
-.explore-status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: var(--v2-background-bg-layer-02);
-  color: var(--v2-icon-icon-muted);
-}
-
-.explore-status-title {
-  margin: 0;
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-base);
-}
-
-.explore-status-description {
-  max-width: 460px;
-  margin: 0;
-  font-size: 12px;
-  line-height: var(--line-height-base);
-  color: var(--v2-text-text-muted);
-  overflow-wrap: anywhere;
-}
-
-.explore-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 24px 0;
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-muted);
-}
-
-/* A first load fills the list area, so its spinner reads at the centre of the panel instead of the top of the column. */
-.explore-loading-screen {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  pointer-events: none;
 }
 
 .explore-error {
@@ -280,172 +176,6 @@
   outline-offset: -2px;
 }
 
-.explore-page-search {
-  width: 260px;
-  max-width: 40vw;
-}
-
-.explore-page-search > [data-component="text-input-v2"] {
-  width: 100%;
-  min-width: 0;
-}
-
-.explore-plugins-icon-button {
-  display: flex;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 9999px;
-  background: transparent;
-  color: var(--v2-icon-icon-muted);
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .explore-plugins-icon-button:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
-    color: var(--v2-text-text-base);
-  }
-}
-
-.explore-plugins-icon-button:focus-visible {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: 1px;
-}
-
-.explore-catalog-body {
-  position: relative;
-  min-height: 0;
-  flex: 1;
-  overflow-y: auto;
-  padding-block: 24px 48px;
-}
-
-/* Inline padding lives on the measured column so the scrollbar sits at the panel edge. */
-.explore-catalog-body > .explore-page-inner {
-  padding-inline: 24px;
-}
-
-.explore-catalog-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 24px;
-}
-
-.explore-catalog-tab {
-  height: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--v2-text-text-muted);
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .explore-catalog-tab:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
-    color: var(--v2-text-text-base);
-  }
-}
-
-.explore-catalog-tab[data-selected] {
-  background: var(--v2-overlay-simple-overlay-pressed);
-  color: var(--v2-text-text-base);
-}
-
-.explore-catalog-tab:focus-visible {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: -2px;
-}
-
-.explore-catalog-group + .explore-catalog-group {
-  margin-top: 32px;
-}
-
-.explore-catalog-group-title {
-  margin: 0 0 10px;
-  padding-inline: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: var(--line-height-base);
-  color: var(--v2-text-text-base);
-}
-
-.explore-catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 32px;
-  row-gap: 4px;
-}
-
-/* Below this measure two columns leave the names too little room, so the cards stack. */
-@container (max-width: 620px) {
-  .explore-catalog-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.explore-catalog-card {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 2px;
-  padding-inline-end: 6px;
-  border-radius: 8px;
-}
-
-.explore-catalog-card-main {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-  gap: 14px;
-  padding: 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .explore-catalog-card-main:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
-  }
-}
-
-.explore-catalog-card-main:focus-visible {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: -2px;
-}
-
-.explore-catalog-card-icon {
-  display: flex;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: var(--v2-background-bg-layer-02);
-  color: var(--v2-icon-icon-muted);
-}
-
-.explore-catalog-card-icon > svg {
-  width: 20px;
-  height: 20px;
-}
-
 /* A plugin's own manifest icon: an inline SVG with a viewBox and no dimensions, sized by this wrapper. */
 .plugin-glyph {
   display: block;
@@ -456,185 +186,6 @@
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.explore-catalog-card-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.explore-catalog-card-name {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  color: var(--v2-text-text-base);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: var(--line-height-compact);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.explore-catalog-card-folder {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  color: var(--v2-icon-icon-faint);
-}
-
-.explore-catalog-card-description {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--v2-text-text-muted);
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* An installed catalog entry reports its state where the install button would be. */
-.explore-catalog-card-installed,
-.explore-catalog-hero-installed {
-  flex-shrink: 0;
-  align-self: center;
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
-  line-height: var(--line-height-compact);
-  white-space: nowrap;
-}
-
-/* The installed label and the version switch sit together at the end of the hero. */
-.explore-catalog-hero-actions {
-  display: flex;
-  flex-shrink: 0;
-  align-self: center;
-  align-items: center;
-  gap: 8px;
-}
-
-.explore-catalog-version-count {
-  color: var(--v2-text-text-muted);
-}
-
-/* A plugin's own page: crumbs back to the catalog, then the entry's introduction and contents. */
-
-.explore-catalog-page {
-  min-height: 0;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.explore-catalog-crumbs {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 24px;
-  border-bottom: 0.5px solid var(--v2-border-border-muted);
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-}
-
-.explore-catalog-crumb {
-  padding: 2px 4px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--v2-text-text-muted);
-  font: inherit;
-  line-height: var(--line-height-compact);
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .explore-catalog-crumb:hover {
-    background: var(--v2-overlay-simple-overlay-hover);
-    color: var(--v2-text-text-base);
-  }
-}
-
-.explore-catalog-crumb:focus-visible {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: 1px;
-}
-
-.explore-catalog-crumb-separator {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  color: var(--v2-icon-icon-faint);
-}
-
-.explore-catalog-crumb-current {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--v2-text-text-base);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.explore-catalog-page-body {
-  width: 100%;
-  padding: 32px 24px 72px;
-}
-
-.explore-catalog-hero {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 18px;
-}
-
-.explore-catalog-hero-icon {
-  display: flex;
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  background: var(--v2-background-bg-layer-02);
-  color: var(--v2-icon-icon-muted);
-}
-
-.explore-catalog-hero-icon > svg {
-  width: 26px;
-  height: 26px;
-}
-
-.explore-catalog-hero-copy {
-  min-width: 0;
-  flex: 1 1 240px;
-}
-
-.explore-catalog-hero-name {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  overflow: hidden;
-  color: var(--v2-text-text-base);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 26px;
-  letter-spacing: -0.2px;
-}
-
-.explore-catalog-hero-meta {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-  color: var(--v2-text-text-muted);
 }
 
 .explore-catalog-about {
@@ -778,62 +329,7 @@
   margin-bottom: 12px;
 }
 
-@media (max-width: 760px) {
-  .explore-catalog-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .explore-catalog-body > .explore-page-inner {
-    padding-inline: 16px;
-  }
-
-  .explore-catalog-page-body {
-    padding-inline: 16px;
-  }
-
-  .explore-catalog-hero {
-    flex-wrap: wrap;
-  }
-}
-
-/* Loading skeletons reserve the list's shape while its data loads. */
-
-.explore-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.explore-skeleton-row {
-  height: 32px;
-  border-radius: 6px;
-  background: var(--v2-background-bg-layer-02);
-  animation: explore-skeleton-pulse 1.4s ease-in-out infinite;
-}
-
-.explore-skeleton-row:nth-child(2n) {
-  width: 82%;
-}
-
-@keyframes explore-skeleton-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .explore-skeleton-row {
-    animation: none;
-  }
-}
-
-/* Skills: the same catalog grid and detail page as plugins, plus the SKILL.md the skill carries. */
+/* Skills: the same detail page as plugins, plus the SKILL.md the skill carries. */
 
 .explore-catalog-path {
   min-width: 0;
@@ -1303,122 +799,6 @@
   min-width: 0;
 }
 
-/* ---------- explore catalog: a search field above a dense grid, so a large catalog stays scannable ---------- */
-
-/* The filter row sticks to the top of the page's scrollport: a catalog of thousands never hides its search. */
-.explore-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-block: 8px;
-  background: var(--v2-background-bg-base);
-}
-
-.explore-search {
-  display: flex;
-  min-width: 200px;
-  flex: 1 1 260px;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: var(--v2-background-bg-layer-01);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
-  color: var(--v2-text-text-muted);
-}
-
-.explore-search:focus-within {
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
-}
-
-.explore-search-icon {
-  flex: none;
-  color: var(--v2-text-text-faint);
-}
-
-.explore-search input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  background: none;
-  outline: none;
-  color: var(--v2-text-text-base);
-  font: inherit;
-  font-size: 13px;
-  line-height: var(--line-height-compact);
-}
-
-.explore-search input::placeholder {
-  color: var(--v2-text-text-faint);
-}
-
-/* The shelves: one segmented control at the top of the page, so the catalog is split before it is listed. */
-.explore-tabs {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 999px;
-  background: var(--v2-background-bg-layer-01);
-}
-
-.explore-tab {
-  display: inline-flex;
-  height: 26px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--v2-text-text-muted);
-  font: inherit;
-  font-size: 12px;
-  line-height: var(--line-height-compact);
-  cursor: default;
-}
-
-.explore-tab .count {
-  color: var(--v2-text-text-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-@media (hover: hover) {
-  .explore-tab:hover {
-    color: var(--v2-text-text-base);
-  }
-}
-
-.explore-tab[data-selected] {
-  background: var(--v2-background-bg-layer-02);
-  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
-  color: var(--v2-text-text-base);
-}
-
-.explore-tab[data-selected] .count {
-  color: var(--v2-text-text-muted);
-}
-
-.explore-tab:focus-visible {
-  outline: 2px solid var(--v2-border-border-focus);
-  outline-offset: -2px;
-}
-
-.explore-toolbar-count {
-  flex: none;
-  margin-inline-start: auto;
-  color: var(--v2-text-text-faint);
-  font-size: 12px;
-  line-height: var(--line-height-compact);
-  font-variant-numeric: tabular-nums;
-}
-
 /* Rows pack into columns; each one opens its own page instead of expanding in place. */
 .module-grid.explore-grid {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1465,7 +845,529 @@
   min-height: 0;
 }
 
-.explore-more {
-  display: flex;
-  justify-content: center;
+/* ---------- the market list: one centred column of categories, one install action per row ---------- */
+
+/* The list takes the widest reading measure the other module pages allow, so two columns of rows fit. */
+.module-page-inner[data-wide]:has(> .explore-market) {
+  max-width: 948px;
+  gap: 0;
+  padding: 26px 24px 90px;
 }
+
+.explore-market {
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+}
+
+/* The shelf switch sits above the title as two quiet labels, the way the reference splits its two pages. */
+.explore-market-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 18px -9px;
+}
+
+.explore-market-tabs button {
+  height: 26px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--v2-text-text-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: var(--line-height-compact);
+  cursor: default;
+  transition:
+    background 130ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .explore-market-tabs button:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-text-text-base);
+  }
+}
+
+.explore-market-tabs button[data-selected] {
+  color: var(--v2-text-text-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.explore-market-tabs button:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+}
+
+.explore-market-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.explore-market-head h1 {
+  margin: 0;
+  color: var(--v2-text-text-base);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 34px;
+  letter-spacing: -0.03em;
+}
+
+.explore-market-sub {
+  margin: 9px 0 0;
+  color: var(--v2-text-text-muted);
+  font-size: 14px;
+  line-height: var(--line-height-base);
+}
+
+.explore-market-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.explore-market-search {
+  display: flex;
+  width: 238px;
+  height: 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border-radius: 18px;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  color: var(--v2-text-text-muted);
+  transition:
+    background 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.explore-market-search:focus-within {
+  background: var(--v2-background-bg-layer-02);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-strong);
+}
+
+.explore-market-search-icon {
+  flex: none;
+  color: var(--v2-text-text-faint);
+}
+
+.explore-market-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--v2-text-text-base);
+  font: inherit;
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+.explore-market-search input::placeholder {
+  color: var(--v2-text-text-faint);
+}
+
+.explore-market-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--v2-icon-icon-muted);
+  cursor: default;
+  transition:
+    background 130ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .explore-market-icon:hover:not(:disabled) {
+    background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-text-text-base);
+  }
+}
+
+.explore-market-icon:disabled {
+  opacity: 0.45;
+}
+
+.explore-market-icon:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 1px;
+}
+
+/* The one high-contrast control on the page, matching the reference's white pill. */
+.explore-market-add {
+  display: inline-flex;
+  height: 36px;
+  margin-left: 4px;
+  padding: 0 15px;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--v2-text-text-base);
+  color: var(--v2-background-bg-base);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
+  cursor: default;
+  transition: opacity 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .explore-market-add:hover {
+    opacity: 0.86;
+  }
+}
+
+.explore-market-add:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+.explore-market-scope {
+  display: flex;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.explore-market-scope button {
+  height: 28px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-base);
+  font: inherit;
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+  cursor: default;
+  transition:
+    background 130ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.explore-market-scope button[aria-pressed="false"] {
+  background: none;
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  color: var(--v2-text-text-muted);
+}
+
+@media (hover: hover) {
+  .explore-market-scope button:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-text-text-base);
+  }
+
+  .explore-market-scope button[aria-pressed="true"]:hover {
+    background: var(--v2-background-bg-layer-03);
+  }
+}
+
+.explore-market-scope button:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 1px;
+}
+
+.explore-market-groups {
+  margin-top: 32px;
+}
+
+/* One group fades up as the shelf or the first page of data arrives; the delays are set per group. */
+.explore-market-group {
+  animation: explore-market-rise 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.explore-market-group + .explore-market-group {
+  margin-top: 56px;
+}
+
+.explore-market-group-title {
+  margin: 0 0 12px;
+  color: var(--v2-text-text-base);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: -0.014em;
+}
+
+/* A skill shelf names itself with the same chip the filter row uses; a category keeps plain text. */
+.explore-market-group[data-pill] .explore-market-group-title {
+  display: inline-flex;
+  height: 28px;
+  margin-bottom: 14px;
+  padding: 0 13px;
+  align-items: center;
+  border-radius: 14px;
+  background: var(--v2-background-bg-layer-02);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+  letter-spacing: 0;
+}
+
+.explore-market-items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 44px;
+}
+
+.explore-market-row {
+  display: grid;
+  height: 60px;
+  margin: 0 -10px;
+  padding: 0 10px;
+  grid-template-columns: 40px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 13px;
+  border-radius: 10px;
+  cursor: default;
+  transition: background 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .explore-market-row:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+.explore-market-row:focus-visible {
+  outline: none;
+  background: var(--v2-overlay-simple-overlay-hover);
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-strong);
+}
+
+/* The tile is the entry's identity: its manifest mark, or its initial over a colour of its own. The palette is
+   brand identity, the one place a fixed colour is the content rather than the chrome. */
+.explore-market-tile {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-03);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  color: var(--v2-text-text-contrast);
+}
+
+.explore-market-tile[data-tone="0"] {
+  background: #2f66d0;
+}
+
+.explore-market-tile[data-tone="1"] {
+  background: #5b46d9;
+}
+
+.explore-market-tile[data-tone="2"] {
+  background: #2b7a4b;
+}
+
+.explore-market-tile[data-tone="3"] {
+  background: #c47a12;
+}
+
+.explore-market-tile[data-tone="4"] {
+  background: #0f8f8a;
+}
+
+.explore-market-tile[data-tone="5"] {
+  background: #c04a5c;
+}
+
+.explore-market-tile[data-tone="6"] {
+  background: #4a5568;
+}
+
+.explore-market-tile[data-tone="7"] {
+  background: #a03bd6;
+}
+
+/* A skill without its own mark keeps the shared glyph on its generated colour, so every skill row reads as a skill. */
+.explore-market-glyph {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.explore-market-mark {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+/* A skill's own mark is drawn on the tile itself, so it fills the 40px square instead of sitting inside it. */
+.explore-market-mark[data-skill] {
+  width: 40px;
+  height: 40px;
+}
+
+.explore-market-mark > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.explore-market-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.explore-market-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.explore-market-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--v2-text-text-base);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.006em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore-market-desc {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore-market-row[data-failed] .explore-market-desc {
+  color: var(--v2-state-fg-danger);
+}
+
+.explore-market-act {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--v2-icon-icon-faint);
+  cursor: default;
+  transition:
+    background 130ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .explore-market-row:hover .explore-market-act {
+    color: var(--v2-text-text-base);
+  }
+
+  .explore-market-act:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+.explore-market-act:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+}
+
+.explore-market-empty {
+  padding: 64px 0;
+}
+
+.explore-market-empty strong {
+  display: block;
+  color: var(--v2-text-text-base);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: var(--line-height-base);
+}
+
+.explore-market-empty span {
+  display: block;
+  margin-top: 6px;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+.explore-market-loading {
+  display: grid;
+  padding: 72px 0;
+  place-items: center;
+  color: var(--v2-text-text-muted);
+}
+
+@keyframes explore-market-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@container (max-width: 640px) {
+  .explore-market-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .explore-market-head {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .explore-market-tools {
+    width: 100%;
+  }
+
+  .explore-market-search {
+    width: auto;
+    min-width: 150px;
+    flex: 1;
+  }
+
+  .explore-market-head h1 {
+    font-size: 26px;
+    line-height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-market-group {
+    animation: none;
+  }
+
+  .explore-market-row,
+  .explore-market-act,
+  .explore-market-search,
+  .explore-market-add,
+  .explore-market-icon,
+  .explore-market-scope button,
+  .explore-market-tabs button {
+    transition: none;
+  }
+}
+

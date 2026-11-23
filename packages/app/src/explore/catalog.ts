@@ -57,6 +57,8 @@ export type CatalogSkill = {
   id: string
   title: string
   description: string
+  /** The skill's own inline SVG mark, when its SKILL.md declares `icon`. */
+  icon?: string
   /** The markdown body written below the frontmatter. */
   instructions: string
 }
@@ -75,7 +77,7 @@ export type CatalogServer = {
   }
 }
 
-type LocalSkill = { id: string; name: string; description?: string; content: string }
+type LocalSkill = { id: string; name: string; description?: string; icon?: string; content: string }
 
 /**
  * The skills shelf reads the local distribution directory, where each skill is a directory with a `SKILL.md`.
@@ -84,12 +86,18 @@ type LocalSkill = { id: string; name: string; description?: string; content: str
 export function loadCatalog(server: CatalogServer): Promise<CatalogSource> {
   return server.api.experimental.skill.local().then((result) => ({
     plugins: [],
-    skills: result.data.map((skill) => ({
-      id: skill.id,
-      title: skill.name,
-      description: skill.description ?? "",
-      instructions: skill.content,
-    })),
+    skills: result.data.map((skill) => {
+      const entry: CatalogSkill = {
+        id: skill.id,
+        title: skill.name,
+        description: skill.description ?? "",
+        instructions: skill.content,
+      }
+
+      if (skill.icon) entry.icon = skill.icon
+
+      return entry
+    }),
   }))
 }
 
@@ -135,7 +143,7 @@ export function loadLocalCatalog(server: {
   }))
 }
 
-function categoryOf(input: string | undefined): PluginCategory {
+export function categoryOf(input: string | undefined): PluginCategory {
   // SAFETY: `includes` rejects every string outside the tuple, so the narrowing below only runs for a real category.
   return PLUGIN_CATEGORIES.some((category) => category === input) ? (input as PluginCategory) : "automation"
 }

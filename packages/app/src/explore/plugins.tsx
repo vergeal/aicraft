@@ -13,11 +13,9 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { showToast } from "@/shell/notifications/toast"
 import { ExternalLink } from "@/runtime/platform/external-link"
 import { usePlatform } from "@/runtime/platform/platform"
-import { PluginSource } from "@/runtime/plugin/extension-plugins"
 import "@/settings/settings.css"
 import "./explore.css"
 import type { CatalogPlugin } from "./catalog"
-import { PluginGlyph } from "./plugin-icon"
 
 const featureLabels = {
   server: "explore.plugins.feature.server",
@@ -43,40 +41,18 @@ const phaseLabels = {
   dependencies: "explore.plugins.runtime.phase.dependencies",
 } as const
 
+export const categoryLabels = {
+  "developer-tools": "explore.plugins.category.developer-tools",
+  productivity: "explore.plugins.category.productivity",
+  automation: "explore.plugins.category.automation",
+} as const
+
 const sourceDetail = (plugin: PluginInfo) => {
   if (plugin.source.type === "package") return plugin.source.target
 
   if (plugin.source.type === "local") return plugin.source.path
 
   return undefined
-}
-
-/** A row in the explore list: it opens the plugin's own page. */
-export function InstalledPluginCard(props: { plugin: PluginInfo; onOpen: () => void }) {
-  const language = useLanguage()
-
-  const failed = () => props.plugin.state.status === "failed"
-
-  return (
-    <article class="module-card">
-      <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
-        <span class="module-card-glyph">
-          <PluginGlyph icon={props.plugin.display?.icon} size={16} />
-        </span>
-        <span class="module-card-title">
-          <strong class="truncate">
-            <bdi dir="ltr">{pluginLabel(props.plugin)}</bdi>
-          </strong>
-          <span class="module-card-meta">
-            <span class="module-tag">{language.t("explore.plugins.title")}</span>
-            <PluginSource source={props.plugin.source.type} />
-            <span>{language.t(failed() ? "explore.plugins.state.failed" : "explore.plugins.state.active")}</span>
-          </span>
-        </span>
-        <Icon name="outline-chevron-right" size="small" class="module-card-trail" />
-      </button>
-    </article>
-  )
 }
 
 /** The installed plugin's own page: its state, what it contributes, and the actions on it. */
@@ -241,31 +217,6 @@ export function InstalledPluginDetail(props: {
         </Show>
       </div>
     </div>
-  )
-}
-
-/** A row in the explore list: it opens the catalog entry's own page. */
-export function CatalogPluginCard(props: { entry: CatalogPlugin; onOpen: () => void }) {
-  const language = useLanguage()
-
-  return (
-    <article class="module-card">
-      <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
-        <span class="module-card-glyph">
-          <PluginGlyph icon={props.entry.icon} size={16} />
-        </span>
-        <span class="module-card-title">
-          <strong class="truncate">
-            <bdi dir="ltr">{props.entry.name}</bdi>
-          </strong>
-          <span class="module-card-meta">
-            <span class="module-tag">{language.t("explore.plugins.title")}</span>
-            <Show when={props.entry.author}>{(author) => <span class="truncate">{author()}</span>}</Show>
-          </span>
-        </span>
-        <Icon name="outline-chevron-right" size="small" class="module-card-trail" />
-      </button>
-    </article>
   )
 }
 

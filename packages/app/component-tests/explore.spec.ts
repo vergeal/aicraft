@@ -32,9 +32,10 @@ story("lists the available plugins and opens one on its own page", async ({ page
 
     // SAFETY: mountExplorePlugins builds its host with document.createElement("div").
     const host = mounted.host as HTMLDivElement
-    const cards = () => Array.from(host.querySelectorAll<HTMLElement>(".module-card"))
+    const cards = () => Array.from(host.querySelectorAll<HTMLElement>(".explore-market-row"))
+
     const names = () =>
-      cards().map((card) => card.querySelector(".module-card-title strong")?.textContent?.trim() ?? "")
+      cards().map((card) => card.querySelector(".explore-market-name")?.textContent?.trim() ?? "")
 
     const initial = {
       cards: cards().length,
@@ -42,8 +43,9 @@ story("lists the available plugins and opens one on its own page", async ({ page
       noHorizontalOverflow: host.scrollWidth <= host.clientWidth,
     }
 
-    cards()[0]?.querySelector<HTMLButtonElement>(".module-card-head")?.click()
+    cards()[0]?.click()
     await frame()
+
     const opened = {
       about: host.querySelector(".explore-catalog-about")?.textContent?.trim(),
       hasFacts: !!host.querySelector(".explore-catalog-facts"),
@@ -72,22 +74,24 @@ story("shows a catalog bundle and hides it once installed", async ({ page }) => 
     const frame = () =>
       new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
 
-    const read = async (input: { catalog: unknown; installed?: unknown }) => {
-      const mounted = mountExplorePlugins(input as never)
+    const read = async (input: Parameters<typeof mountExplorePlugins>[0]) => {
+      const mounted = mountExplorePlugins(input)
       // SAFETY: mountExplorePlugins builds its host with document.createElement("div").
       const host = mounted.host as HTMLDivElement
       await frame()
 
-      const card = host.querySelector<HTMLElement>(".module-card")
+      const card = host.querySelector<HTMLElement>(".explore-market-row")
+
       const state = {
-        cards: host.querySelectorAll(".module-card").length,
-        name: card?.querySelector(".module-card-title strong")?.textContent?.trim() ?? "",
+        cards: host.querySelectorAll(".explore-market-row").length,
+        name: card?.querySelector(".explore-market-name")?.textContent?.trim() ?? "",
       }
 
-      card?.querySelector<HTMLButtonElement>(".module-card-head")?.click()
+      card?.click()
       await frame()
 
       const labels = Array.from(host.querySelectorAll("button")).map((button) => button.textContent?.trim() ?? "")
+
       const detail = {
         type: host.querySelector(".explore-catalog-facts dd")?.textContent?.trim() ?? "",
         hasInstall: labels.includes("Install plugin"),

@@ -2,7 +2,6 @@ import type { SkillInfo } from "@opencode/client/promise"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { Icon } from "@opencode/ui/icon"
 import { Switch } from "@opencode/ui/switch"
 import { TextInput } from "@opencode/ui/text-input"
 import { Textarea } from "@opencode/ui/textarea"
@@ -19,9 +18,8 @@ import { useData } from "@/runtime/server/current"
 import { showToast } from "@/shell/notifications/toast"
 import "./explore.css"
 import type { CatalogSkill } from "./catalog"
-import { SkillIcon } from "./skill-icon"
 
-const isVirtual = (skill: SkillInfo) => skill.path.startsWith("skill://") || skill.path.startsWith("/builtin/")
+export const isBuiltinSkill = (skill: SkillInfo) => skill.path.startsWith("skill://") || skill.path.startsWith("/builtin/")
 
 /**
  * Rewrites `metadata.aicraft/autoinvoke` in a SKILL.md frontmatter block, leaving every other byte of the file
@@ -101,32 +99,6 @@ function SkillDocument(props: { text: string; cacheKey: string }) {
   )
 }
 
-/** A row in the explore list: it opens the skill's own page. */
-export function InstalledSkillCard(props: { skill: SkillInfo; onOpen: () => void }) {
-  const language = useLanguage()
-
-  return (
-    <article class="module-card">
-      <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
-        <span class="module-card-glyph">
-          <SkillIcon size={16} />
-        </span>
-        <span class="module-card-title">
-          <strong class="truncate">{props.skill.name}</strong>
-          <span class="module-card-meta">
-            <span class="module-tag">{language.t("explore.skills.title")}</span>
-            <Show when={isVirtual(props.skill)}>
-              <span class="module-tag">{language.t("explore.skills.group.builtin")}</span>
-            </Show>
-            <span dir="ltr">@{props.skill.id}</span>
-          </span>
-        </span>
-        <Icon name="outline-chevron-right" size="small" class="module-card-trail" />
-      </button>
-    </article>
-  )
-}
-
 /** Copies the `@id` mention that references this skill. It sits beside the detail page's title. */
 export function SkillReferenceButton(props: { skill: SkillInfo }) {
   const language = useLanguage()
@@ -177,7 +149,7 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
     })
 
   const readSkill = async (skill: SkillInfo) => {
-    if (isVirtual(skill)) return skill.content
+    if (isBuiltinSkill(skill)) return skill.content
 
     const bytes = await serverSdk.api.file.read({
       path: getFilename(skill.path),
@@ -188,7 +160,7 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
   }
 
   const toggleAutoinvoke = async (enabled: boolean) => {
-    if (isVirtual(props.skill) || local.toggling) return
+    if (isBuiltinSkill(props.skill) || local.toggling) return
 
     setLocal("toggling", true)
 
@@ -245,7 +217,7 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
   }
 
   const remove = async () => {
-    if (isVirtual(props.skill)) return
+    if (isBuiltinSkill(props.skill)) return
 
     const text = await readSkill(props.skill).catch((error) => {
       showToast({
@@ -286,13 +258,13 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
           <span class="explore-catalog-toggle-title">{language.t("settings.skills.autoinvoke.title")}</span>
           <p class="explore-catalog-toggle-description">
             {language.t(
-              isVirtual(props.skill) ? "settings.skills.autoinvoke.builtin" : "settings.skills.autoinvoke.description",
+              isBuiltinSkill(props.skill) ? "settings.skills.autoinvoke.builtin" : "settings.skills.autoinvoke.description",
             )}
           </p>
         </div>
         <Switch
           checked={autoinvokeOn()}
-          disabled={isVirtual(props.skill) || local.toggling}
+          disabled={isBuiltinSkill(props.skill) || local.toggling}
           hideLabel
           onChange={(enabled) => void toggleAutoinvoke(enabled)}
         >
@@ -300,7 +272,7 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
         </Switch>
       </div>
 
-      <Show when={!isVirtual(props.skill)}>
+      <Show when={!isBuiltinSkill(props.skill)}>
         <span class="explore-catalog-path" dir="ltr" title={props.skill.path}>
           {props.skill.path}
         </span>
@@ -308,11 +280,11 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
 
       <SkillDocument text={props.skill.content} cacheKey={`${props.skill.id}:${props.skill.path}`} />
 
-      <Show when={!isVirtual(props.skill)}>
+      <Show when={!isBuiltinSkill(props.skill)}>
         <p class="explore-note">{language.t("explore.skills.remove.hint")}</p>
       </Show>
 
-      <Show when={!isVirtual(props.skill)}>
+      <Show when={!isBuiltinSkill(props.skill)}>
         <div class="module-card-foot">
           <Button
             size="small"
@@ -338,29 +310,6 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
         </div>
       </Show>
     </div>
-  )
-}
-
-/** A row in the explore list: it opens the catalog skill's own page. */
-export function CatalogSkillCard(props: { entry: CatalogSkill; onOpen: () => void }) {
-  const language = useLanguage()
-
-  return (
-    <article class="module-card">
-      <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
-        <span class="module-card-glyph">
-          <SkillIcon size={16} />
-        </span>
-        <span class="module-card-title">
-          <strong class="truncate">{props.entry.title}</strong>
-          <span class="module-card-meta">
-            <span class="module-tag">{language.t("explore.skills.title")}</span>
-            <span dir="ltr">{props.entry.id}</span>
-          </span>
-        </span>
-        <Icon name="outline-chevron-right" size="small" class="module-card-trail" />
-      </button>
-    </article>
   )
 }
 

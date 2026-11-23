@@ -1,13 +1,9 @@
 import type { PluginInfo } from "@opencode/client"
-import { createSignal, For, Show } from "solid-js"
+import { createSignal, Show } from "solid-js"
 import { render } from "solid-js/web"
 import type { CatalogPlugin } from "../src/explore/catalog"
-import {
-  CatalogPluginCard,
-  CatalogPluginDetail,
-  InstalledPluginCard,
-  InstalledPluginDetail,
-} from "../src/explore/plugins"
+import { ExploreMarket, type MarketEntry, type MarketGroup } from "../src/explore/market"
+import { CatalogPluginDetail, InstalledPluginDetail } from "../src/explore/plugins"
 import { LanguageProvider } from "../src/runtime/i18n/language"
 import { PlatformProvider, type Platform } from "../src/runtime/platform/platform"
 
@@ -44,7 +40,7 @@ const sample: CatalogPlugin[] = [
   },
 ]
 
-/** A discoverable bundle: it ships as one `.exc` file, so the card shows the bundle instead of a package. */
+/** A discoverable bundle: it ships as one `.exc` file, so the row offers the bundle instead of a package. */
 export const webwrightCatalog: CatalogPlugin[] = [
   {
     id: "changhong.aicraft.webwright",
@@ -100,7 +96,7 @@ const webPlatform: Platform = {
 }
 
 /**
- * Mounts the real plugin rows over fixture data. A row opens that plugin's own page the way the explore route does,
+ * Mounts the real market list over fixture data. A row opens that entry's own page the way the explore route does,
  * and the page's back button returns to the list.
  */
 export function mountExplorePlugins(input?: {
@@ -110,25 +106,73 @@ export function mountExplorePlugins(input?: {
 }) {
   const catalog = input?.catalog ?? sample
   const installed = input?.installed ?? []
-  const [open, setOpen] = createSignal<string | undefined>(
-    input?.selected ? `installed:${input.selected.id}` : undefined,
-  )
+  const [open, setOpen] = createSignal<string | undefined>(input?.selected ? `installed:${input.selected.id}` : undefined)
 
   const host = document.createElement("div")
   host.dataset.testid = "explore-plugins-fixture"
   host.style.cssText = "position:fixed;inset:24px;display:flex;flex-direction:column;min-height:0;overflow:hidden"
   document.body.appendChild(host)
 
+  const entries = (): MarketEntry[] => [
+    ...installed.map((plugin, index): MarketEntry => {
+      const name = plugin.display?.name ?? plugin.id ?? ""
+
+      return {
+        key: `installed:${plugin.id}`,
+        name,
+        description: plugin.display?.description ?? "",
+        source: { kind: "local", label: "Local" },
+        tone: index % 8,
+        icon: plugin.display?.icon,
+        glyph: "plugin",
+        failed: plugin.state.status === "failed",
+        label: `${name}, from Local, installed`,
+        open: () => setOpen(`installed:${plugin.id}`),
+      }
+    }),
+    ...catalog
+      .filter((entry) => !installed.some((plugin) => plugin.id === entry.id))
+      .map(
+        (entry, index): MarketEntry => ({
+          key: `catalog:${entry.id}`,
+          name: entry.name,
+          description: entry.description,
+          source: { kind: "available", label: "Available" },
+          tone: index % 8,
+          icon: entry.icon,
+          glyph: "plugin",
+          failed: false,
+          label: `${entry.name}, from Available, not installed`,
+          open: () => setOpen(`catalog:${entry.id}`),
+        }),
+      ),
+  ]
+
+  const groups = (): MarketGroup[] => [{ key: "fixture", title: "Plugins", entries: entries() }]
+
   // The real route swaps the list for the entry's own page, so the fixture renders exactly one of the two.
   const list = () => (
-    <>
-      <For each={installed}>
-        {(plugin) => <InstalledPluginCard plugin={plugin} onOpen={() => setOpen(`installed:${plugin.id}`)} />}
-      </For>
-      <For each={catalog.filter((entry) => !installed.some((plugin) => plugin.id === entry.id))}>
-        {(entry) => <CatalogPluginCard entry={entry} onOpen={() => setOpen(`catalog:${entry.id}`)} />}
-      </For>
-    </>
+    <ExploreMarket
+      sectionKey="plugins"
+      tabsLabel="Resource type"
+      tabs={[]}
+      title="Plugins"
+      description=""
+      query=""
+      searchPlaceholder="Search plugins"
+      searchLabel="Search plugins"
+      onQuery={() => undefined}
+      setField={() => undefined}
+      refreshLabel="Refresh"
+      refreshing={false}
+      onRefresh={() => undefined}
+      addLabel="Add"
+      onAdd={() => undefined}
+      loading={false}
+      groups={groups()}
+      emptyTitle="No matching plugins"
+      emptyHint="Try a shorter keyword."
+    />
   )
 
   const page = (key: string) => {

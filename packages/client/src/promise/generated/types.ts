@@ -56,7 +56,7 @@ export type PluginDisplay = {
   description: string
   category?: string
   icon?: string
-  skills?: Array<{ id: string; name: string; description: string }>
+  skills?: Array<{ id: string; name: string; description: string; icon?: string }>
   tools?: Array<string>
 }
 
@@ -574,6 +574,7 @@ export type SkillInfo = {
   autoinvoke?: boolean
   path: AbsolutePath
   content: string
+  icon?: string
   plugin?: string
 }
 

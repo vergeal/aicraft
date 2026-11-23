@@ -2,20 +2,6 @@
   user-select: none;
 }
 
-/* The titlebar's center axis: a hairline through the native traffic lights' center that every titlebar control
-   centers on. `--titlebar-axis` is written by the titlebar effect that also places the traffic lights. */
-[data-slot="titlebar-v2"][data-titlebar-axis]::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: var(--titlebar-axis);
-  height: 0.5px;
-  transform: translateY(-50%);
-  background-color: var(--v2-border-border-muted);
-  pointer-events: none;
-  z-index: 1;
-}
-
 [data-slot="vertical-tabs-sidebar"] [data-slot="vertical-tabs"] {
   display: flex;
   flex: 1;

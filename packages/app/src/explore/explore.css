@@ -1164,14 +1164,10 @@
   height: 24px;
 }
 
+/* An entry's own mark is drawn on the tile itself, so it fills the 40px square instead of sitting inside it. The tile's
+   10px radius (22% of 40, see 06-shape.md) shapes the corners, and plugin marks paint their own background. */
 .explore-market-mark {
   display: block;
-  width: 24px;
-  height: 24px;
-}
-
-/* A skill's own mark is drawn on the tile itself, so it fills the 40px square instead of sitting inside it. */
-.explore-market-mark[data-skill] {
   width: 40px;
   height: 40px;
 }

@@ -242,11 +242,7 @@ function MarketRow(props: { entry: MarketEntry }) {
           fallback={entry().glyph === "skill" ? <SkillGlyph /> : <PluginGlyph size={24} />}
         >
           {(mark) => (
-            <span
-              class="explore-market-mark"
-              data-skill={entry().glyph === "skill" ? "" : undefined}
-              innerHTML={mark()}
-            />
+            <span class="explore-market-mark" innerHTML={mark()} />
           )}
         </Show>
       </span>

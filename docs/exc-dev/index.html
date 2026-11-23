@@ -1086,6 +1086,15 @@ expected: "server/main"                             # 应该改成的路径</cod
           <td>一句话描述。</td>
         </tr>
         <tr>
+          <td><code>display.icon</code></td>
+          <td>string</td>
+          <td>否</td>
+          <td>
+            插件自己的内联 SVG 标记，取代共享插件图标。带 <code>viewBox="0 0 24 24"</code>、不带
+            <code>width</code>/<code>height</code>；宿主把它铺满 40px、10px 圆角的图标容器，因此图形要自带满版底（<code>&lt;rect width="24" height="24" rx="6"&gt;</code>），前景留在 3–21 的安全区、用 2–3 个色相。只用静态图形，不要脚本、滤镜或外链图片；渐变 <code>id</code> 加插件前缀，避免同页冲突。技能条目的 <code>icon</code> 同此规则。
+          </td>
+        </tr>
+        <tr>
           <td><code>display.category</code></td>
           <td>string</td>
           <td>否</td>

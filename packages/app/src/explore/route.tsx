@@ -31,6 +31,7 @@ import {
   InstallSkillDialog,
   InstalledSkillCard,
   InstalledSkillDetail,
+  SkillReferenceButton,
 } from "./skills"
 import "@/settings/settings.css"
 import "./explore.css"
@@ -110,11 +111,13 @@ function ExplorePage() {
   const installed = useExploreInstalled()
   const params = useParams<{ section?: string; id?: string }>()
   const navigate = useNavigate()
+
   const [filter, setFilter] = createStore<{ query: string; installed: number; available: number }>({
     query: "",
     installed: PAGE_SIZE,
     available: PAGE_SIZE,
   })
+
   const [syncing, setSyncing] = createSignal(true)
   const [syncError, setSyncError] = createSignal("")
 
@@ -180,11 +183,13 @@ function ExplorePage() {
   const detailID = () => params.id
 
   const needle = () => filter.query.trim().toLocaleLowerCase()
+
   const matches = (item: ExploreItem) =>
     sectionOf(item) === section() && (!needle() || itemText(item).toLocaleLowerCase().includes(needle()))
 
   // The page keeps its search field; the platform shortcut focuses it instead of opening a separate overlay.
   let searchField: HTMLInputElement | undefined
+
   const focusSearch = () => {
     searchField?.focus()
     searchField?.select()
@@ -364,7 +369,11 @@ function ExplorePage() {
       case "skill":
         return (
           <ModulePage label={item.skill.name}>
-            <ModuleHeader title={item.skill.name} description={item.skill.description} />
+            <ModuleHeader
+              title={item.skill.name}
+              description={item.skill.description}
+              actions={<SkillReferenceButton skill={item.skill} />}
+            />
             <InstalledSkillDetail skill={item.skill} />
           </ModulePage>
         )

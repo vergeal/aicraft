@@ -127,6 +127,27 @@ export function InstalledSkillCard(props: { skill: SkillInfo; onOpen: () => void
   )
 }
 
+/** Copies the `@id` mention that references this skill. It sits beside the detail page's title. */
+export function SkillReferenceButton(props: { skill: SkillInfo }) {
+  const language = useLanguage()
+  const platform = usePlatform()
+
+  const copy = async () => {
+    try {
+      await (platform.writeClipboardText?.(`@${props.skill.id}`) ?? navigator.clipboard.writeText(`@${props.skill.id}`))
+      showToast({ variant: "success", title: language.t("settings.skills.copiedReference") })
+    } catch {
+      showToast({ variant: "error", title: language.t("settings.skills.copyFailed") })
+    }
+  }
+
+  return (
+    <Button size="small" variant="ghost-muted" onClick={() => void copy()}>
+      @{props.skill.id}
+    </Button>
+  )
+}
+
 /** An installed skill's own page: its rules and the actions on it. */
 export function InstalledSkillDetail(props: { skill: SkillInfo }) {
   const language = useLanguage()
@@ -223,15 +244,6 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
     }
   }
 
-  const copyReference = async () => {
-    try {
-      await (platform.writeClipboardText?.(`@${props.skill.id}`) ?? navigator.clipboard.writeText(`@${props.skill.id}`))
-      showToast({ variant: "success", title: language.t("settings.skills.copiedReference") })
-    } catch {
-      showToast({ variant: "error", title: language.t("settings.skills.copyFailed") })
-    }
-  }
-
   const remove = async () => {
     if (isVirtual(props.skill)) return
 
@@ -300,11 +312,8 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
         <p class="explore-note">{language.t("explore.skills.remove.hint")}</p>
       </Show>
 
-      <div class="module-card-foot">
-        <Button size="small" variant="ghost-muted" onClick={() => void copyReference()}>
-          @{props.skill.id}
-        </Button>
-        <Show when={!isVirtual(props.skill)}>
+      <Show when={!isVirtual(props.skill)}>
+        <div class="module-card-foot">
           <Button
             size="small"
             variant="ghost-muted"
@@ -326,8 +335,8 @@ export function InstalledSkillDetail(props: { skill: SkillInfo }) {
           <Button size="small" variant="ghost-danger" icon="trash" onClick={() => void remove()}>
             {language.t("explore.skills.remove")}
           </Button>
-        </Show>
-      </div>
+        </div>
+      </Show>
     </div>
   )
 }

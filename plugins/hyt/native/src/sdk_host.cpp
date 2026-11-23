@@ -88,11 +88,34 @@ StoredMessage storedFromEc(ECMessage* msg) {
   return s;
 }
 
+// 底层日志量很大且包含整包消息 JSON，只把排查登录/连接需要的单行转进 bridge 日志。
+bool worthRelayingSdkLog(const std::string& line) {
+  static const char* keys[] = {
+      "kickoffText", "ConnectErr",         "registrationStateChanged",
+      "onConnect",   "protoerror",         "LoginEx2",
+      "Logout",
+  };
+  for (const char* key : keys) {
+    if (line.find(key) != std::string::npos) return true;
+  }
+  return false;
+}
+
 void installCallbacks() {
   if (gCallbacksReady) return;
   gCallbacksReady = true;
 
-  gGeneralCallbacks.pfonLogInfo = nullptr;
+  gGeneralCallbacks.pfonLogInfo = [](const char* info) {
+    if (!info) return;
+    for (const auto& rawLine : split(std::string(info), '\n')) {
+      std::string line = trim(rawLine);
+      if (line.empty() || !worthRelayingSdkLog(line)) continue;
+      // 回调里会夹带消息正文，排查登录不需要，也不能把聊天内容写进日志。
+      if (line.find("msgContent") != std::string::npos) continue;
+      if (line.size() > 300) line = line.substr(0, 300) + "…";
+      logInfo("[sdk] %s", line.c_str());
+    }
+  };
   gGeneralCallbacks.pfonConnectState = [](const ECConnectState state) {
     SdkHost::instance().handleConnectState((int)state.code, state.reason);
   };
@@ -257,6 +280,15 @@ std::string defaultEnvFile(const std::string& env) {
   return firstExisting(candidates);
 }
 
+// 客户端登录前会用 CCPsetAppInfo 上报应用版本；服务端会记录并按版本做策略校验，
+// 不设置就等于以空版本登录。优先环境变量覆盖，其次用 CHFile/Config 里客户端下发的版本。
+std::string resolveAppVersion(const std::string& envFile) {
+  if (const char* env = getenv("HYT_APP_VERSION")) {
+    if (*env) return env;
+  }
+  return iniValue(envFile, "app_config", "version");
+}
+
 // 与客户端一致：先 PBS thirdLogin 换取 appId/appToken/comId/account。
 bool pbsLogin(const LoginOptions& options, PbsInfo* out, std::string* error) {
   std::string base = options.pbsBase;
@@ -376,7 +408,9 @@ void SdkHost::initialize() {
   installCallbacks();
   std::string logPath = joinPath(joinPath(configDir(), "logs"), "sdk.log");
   ensureDir(joinPath(configDir(), "logs"));
-  SetTraceFlag(1, logPath.c_str());
+  // level 12 = EC_LOG_LEVEL_LAYER_DEBUG，只有到这一级才记录服务端原始回包与 reason，
+  // 排查登录被拒（例如 code=4）时必须要看到这些内容。
+  SetTraceFlag(12, logPath.c_str());
   SetGeneralCallBackFuction(&gGeneralCallbacks);
   SetMessageCallBackFunction(&gMessageCallbacks);
 
@@ -496,6 +530,19 @@ LoginResult SdkHost::login(const LoginOptions& options) {
     connected_ = false;
   }
 
+  const std::string appVersion = resolveAppVersion(effective.envFile);
+  if (!appVersion.empty()) {
+    std::string appInfo = "{\"appversion\":\"" + appVersion + "\"}";
+    int infoRet = CCPsetAppInfo(appInfo.c_str());
+    if (infoRet != 0) {
+      logError("CCPsetAppInfo 失败: %d (%s)", infoRet, appInfo.c_str());
+    } else {
+      logInfo("上报应用版本 %s", appVersion.c_str());
+    }
+  } else {
+    logError("未找到客户端应用版本（HYT_APP_VERSION 或 app_config.version），将以空版本登录");
+  }
+
   int ret = LoginEx2(&loginInfo, effective.mode, extra.c_str());
   if (ret != 0) {
     result.ret = ret;
@@ -519,6 +566,12 @@ LoginResult SdkHost::login(const LoginOptions& options) {
   } else if (connectCode_ < 0 || connectCode_ == 1) {
     result.pending = true;
     result.message = "登录请求已提交，等待连接状态回调";
+  } else if (connectCode_ == kConnectKickOff) {
+    result.message = "该账号已在其他设备登录，本端被踢下线（reason=" +
+                     std::to_string(connectReason_) + "）";
+  } else if (connectCode_ == kConnectForceLogOff) {
+    result.message = "账号被服务器强制下线（reason=" + std::to_string(connectReason_) +
+                     "）；客户端版本或登录设备可能不符合服务端策略";
   } else {
     result.message = "连接失败（code=" + std::to_string(connectCode_) +
                      " reason=" + std::to_string(connectReason_) + "）";
@@ -959,6 +1012,10 @@ void SdkHost::handleConnectState(int code, int reason) {
   params.set("account", nhjson::Value::string(account()));
   emit("event.onConnectState", params);
   if (code == kConnectKickOff || code == kConnectForceLogOff) {
+    // 客户端断开是用户能直接感知的故障，先落到 bridge.log，避免只能靠事件流回溯。
+    logError("%s reason=%d account=%s",
+             code == kConnectKickOff ? "同设备登录被踢" : "服务器强制下线", reason,
+             account().c_str());
     emit("event.onKicked", params);
   }
   if (code == kConnectSuccess) fetchGroups();

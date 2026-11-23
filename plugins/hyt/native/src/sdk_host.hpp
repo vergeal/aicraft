@@ -27,7 +27,10 @@ struct LoginOptions {
   std::string envFile;            // rxSettings ini，可选
   std::string sdkConfig;          // sdk_server_config*.xml，可选
   std::string pbsBase;            // 覆盖 PBS 地址，可选
-  int mode = 2;                   // LoginEx2 mode：1 用户输入(会踢掉别的设备)，2 自动登录(服务器决定踢出逻辑)
+  // LoginEx2 mode：1 用户输入(会踢掉别的设备)，2 自动登录(服务器决定踢出逻辑)。
+  // 服务端是单端在线策略：mode=2 遇到账号已在其他设备登录会直接强制下线
+  // （code=4 reason=171148），所以这里按「用户输入密码登录」的语义用 1。
+  int mode = 1;
   int waitMs = 5000;              // 等待连接状态的时间
 };
 

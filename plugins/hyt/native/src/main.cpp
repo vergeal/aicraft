@@ -60,6 +60,11 @@ hyt::LoginOptions gLoginTemplate;
 bool gVerbose = false;
 long long gStartedAt = 0;
 
+#ifdef _WIN32
+// 进程存活期间一直持有；进程退出时由系统释放，不能提前关闭，否则会失去单实例保证。
+HANDLE gInstanceMutex = nullptr;
+#endif
+
 long long pidValue() {
 #ifdef _WIN32
   return (long long)_getpid();
@@ -337,7 +342,7 @@ Value rpcAuthLogin(const Value& params) {
   if (params.has("envFile")) options.envFile = paramString(params, "envFile");
   if (params.has("sdkConfig")) options.sdkConfig = paramString(params, "sdkConfig");
   if (params.has("pbsBase")) options.pbsBase = paramString(params, "pbsBase");
-  if (params.has("mode")) options.mode = paramInt(params, "mode", 2);
+  if (params.has("mode")) options.mode = paramInt(params, "mode", 1);
   if (params.has("waitMs")) options.waitMs = paramInt(params, "waitMs", 5000);
 
   hyt::LoginResult result = hyt::SdkHost::instance().login(options);
@@ -748,6 +753,9 @@ void storeHooks() {
 
 int main(int argc, char** argv) {
   gStartedAt = hyt::nowMs();
+  // 正常 return 或 SDK 内部 exit() 会走到这里；被 TerminateProcess 杀死时不会，
+  // 排查「登录后进程消失」时就靠这一行区分。
+  std::atexit([]() { hyt::logInfo("bridge 进程正常退出（atexit）"); });
 #ifdef _WIN32
   WSADATA wsa;
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
@@ -769,6 +777,18 @@ int main(int argc, char** argv) {
   hyt::logSetFile(hyt::joinPath(hyt::joinPath(hyt::configDir(), "logs"), "bridge.log"));
   hyt::logSetLevel(gVerbose ? hyt::LOG_DEBUG : hyt::LOG_INFO);
 
+#ifdef _WIN32
+  // 单实例：桌面端的多个插件宿主（sidecar、窗口、命令行 server）会同时拉起 bridge，
+  // 每个 bridge 都登录同一账号时服务端会把彼此踢下线。命名互斥体是进程级保证，
+  // 比发现文件和端口占用都可靠。句柄要一直持有到进程退出。
+  gInstanceMutex = CreateMutexW(nullptr, FALSE, L"Local\\hyt-native-bridge-single-instance");
+  if (gInstanceMutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS) {
+    hyt::logInfo("已有 bridge 实例在运行，本次启动退出");
+    fprintf(stderr, "another bridge is running\n");
+    return 0;
+  }
+#endif
+
   long long existingPid = 0;
   int existingPort = 0;
   if (readBridgeInfo(&existingPid, &existingPort) && processAlive(existingPid) &&
@@ -789,8 +809,16 @@ int main(int argc, char** argv) {
     hyt::logError("创建监听 socket 失败");
     return 1;
   }
+#ifdef _WIN32
+  // Windows 的 SO_REUSEADDR 允许多个进程同时绑定同一端口，重复启动的 bridge 会各自
+  // 登录同一账号并把彼此踢下线（服务端返回 code=4 强制下线）。必须用独占绑定。
+  BOOL exclusive = TRUE;
+  setsockopt(server, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (const char*)&exclusive,
+             sizeof(exclusive));
+#else
   int opt = 1;
   setsockopt(server, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
+#endif
   sockaddr_in addr;
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;

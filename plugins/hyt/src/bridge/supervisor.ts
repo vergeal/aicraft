@@ -163,6 +163,8 @@ export function createSupervisor(options: SupervisorOptions): BridgeSupervisor {
   }
 
   const stop = async () => {
+    // 多宿主共用同一个 bridge：任何一处误调用都会杀掉别人的登录态，出问题时要能追到调用点。
+    console.error(`[hyt] supervisor.stop child=${child !== undefined}`, new Error().stack)
     stopping = true
     if (restartTimer !== undefined) clearTimeout(restartTimer)
     restartTimer = undefined

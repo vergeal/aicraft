@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>虹云通卡通图标</title>
+    <style>
+      :root {
+        --fg: #161616;
+        --muted: #5c5c5c;
+        --line: rgb(0 0 0 / 10%);
+        --art-bg: #ffffff;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #fff;
+        color: var(--fg);
+        font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      .lead { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
+      section {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      section.dark {
+        background: #161616;
+        border-color: rgb(255 255 255 / 14%);
+        color: #f2f2f2;
+        --fg: #f2f2f2;
+        --muted: #c2c2c2;
+        --line: rgb(255 255 255 / 16%);
+        --art-bg: #242424;
+      }
+      h2 { font-size: 12px; font-weight: 600; margin: 0 0 14px; color: var(--muted); }
+      .row { display: flex; align-items: flex-end; gap: 26px; flex-wrap: wrap; }
+      .cell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .cell span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .s16 { width: 16px; height: 16px; }
+      .s24 { width: 24px; height: 24px; }
+      .s32 { width: 32px; height: 32px; }
+      .s64 { width: 64px; height: 64px; }
+      .s96 { width: 96px; height: 96px; }
+      .s128 { width: 128px; height: 128px; }
+      .mono { color: var(--fg); }
+      .mono-muted { color: #808080; }
+      .mono.dark-ink { color: #f2f2f2; }
+      .card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 340px;
+        margin-top: 20px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--fg) 4%, transparent);
+        border: 1px solid var(--line);
+      }
+      .card .art {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 11px;
+        background: var(--art-bg);
+        border: 1px solid var(--line);
+      }
+      .card .art img { width: 34px; height: 34px; }
+      .card b { font-size: 14px; font-weight: 600; display: block; }
+      .card p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <h1>虹云通助手 · 卡通风图标</h1>
+    <p class="lead">气泡小人：红色渐变底 + 白色对话气泡 + 高光眼、腮红、叶形尾巴。</p>
+
+    <section>
+      <h2>主图标（浅色底 bg-layer-02）</h2>
+      <div class="row">
+        <div class="cell"><img class="s96" src="icon-cartoon.svg" alt="" /><span>96</span></div>
+        <div class="cell"><img class="s64" src="icon-cartoon.svg" alt="" /><span>64</span></div>
+        <div class="cell"><img class="s32" src="icon-cartoon.svg" alt="" /><span>32</span></div>
+        <div class="cell"><img class="s24" src="icon-cartoon.svg" alt="" /><span>24</span></div>
+        <div class="cell"><img class="s16" src="icon-cartoon.svg" alt="" /><span>16</span></div>
+      </div>
+      <div class="card">
+        <div class="art"><img src="icon-cartoon.svg" alt="" /></div>
+        <div>
+          <b>虹云通助手</b>
+          <p>读本地消息、收发消息、积累运维知识库</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dark">
+      <h2>主图标（深色底 bg-layer-02）</h2>
+      <div class="row">
+        <div class="cell"><img class="s96" src="icon-cartoon.svg" alt="" /><span>96</span></div>
+        <div class="cell"><img class="s64" src="icon-cartoon.svg" alt="" /><span>64</span></div>
+        <div class="cell"><img class="s32" src="icon-cartoon.svg" alt="" /><span>32</span></div>
+        <div class="cell"><img class="s24" src="icon-cartoon.svg" alt="" /><span>24</span></div>
+        <div class="cell"><img class="s16" src="icon-cartoon.svg" alt="" /><span>16</span></div>
+      </div>
+      <div class="card">
+        <div class="art"><img src="icon-cartoon.svg" alt="" /></div>
+        <div>
+          <b>虹云通助手</b>
+          <p>读本地消息、收发消息、积累运维知识库</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>单色版（&lt;20px 或界面内联，currentColor）</h2>
+      <div class="row">
+        <div class="cell mono">
+          <svg class="s24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="M12.4 17.5H9.9L8.3 20.1 9.6 17.5H8.8A4.2 4.2 0 0 1 4.6 13.3V9.3A4.2 4.2 0 0 1 8.8 5.1H15.2A4.2 4.2 0 0 1 19.4 9.3V13.3A4.2 4.2 0 0 1 15.2 17.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <circle cx="10.2" cy="11.1" r=".95" fill="currentColor"/>
+  <circle cx="13.8" cy="11.1" r=".95" fill="currentColor"/>
+  <path d="M10.7 13.3c.62 1.09 3 1.09 3.6 0" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+          <span>24 · base</span>
+        </div>
+        <div class="cell mono">
+          <svg class="s16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="M12.4 17.5H9.9L8.3 20.1 9.6 17.5H8.8A4.2 4.2 0 0 1 4.6 13.3V9.3A4.2 4.2 0 0 1 8.8 5.1H15.2A4.2 4.2 0 0 1 19.4 9.3V13.3A4.2 4.2 0 0 1 15.2 17.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <circle cx="10.2" cy="11.1" r=".95" fill="currentColor"/>
+  <circle cx="13.8" cy="11.1" r=".95" fill="currentColor"/>
+  <path d="M10.7 13.3c.62 1.09 3 1.09 3.6 0" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+          <span>16 · base</span>
+        </div>
+        <div class="cell mono-muted">
+          <svg class="s24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="M12.4 17.5H9.9L8.3 20.1 9.6 17.5H8.8A4.2 4.2 0 0 1 4.6 13.3V9.3A4.2 4.2 0 0 1 8.8 5.1H15.2A4.2 4.2 0 0 1 19.4 9.3V13.3A4.2 4.2 0 0 1 15.2 17.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <circle cx="10.2" cy="11.1" r=".95" fill="currentColor"/>
+  <circle cx="13.8" cy="11.1" r=".95" fill="currentColor"/>
+  <path d="M10.7 13.3c.62 1.09 3 1.09 3.6 0" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+          <span>24 · muted</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>应用图标（512 画布）</h2>
+      <div class="row">
+        <div class="cell"><img class="s128" src="app-icon-cartoon.svg" alt="" /><span>128</span></div>
+        <div class="cell"><img class="s64" src="app-icon-cartoon.svg" alt="" /><span>64</span></div>
+        <div class="cell"><img class="s32" src="app-icon-cartoon.svg" alt="" /><span>32</span></div>
+      </div>
+    </section>
+  </body>
+</html>

@@ -20,7 +20,7 @@ const MAX_TAGS = 8
 const MAX_TAG_LENGTH = 30
 /** Below this an entry fits the two clamped lines the row shows without a "show all" action. */
 
-const CLAMP_AT = 96
+const CLAMP_AT = 44
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
   if (!ctx.desktop) return

@@ -2,36 +2,51 @@
    what a memory needs on top: a readable entry text, tag chips, and the editor's fields. Colours are semantic tokens,
    so both themes follow the app. */
 
-/* The page is a fixed frame: the header and search stay put, and only the lists scroll inside the body. Without
-   this the whole settings column scrolled, so a long list moved the header away and the scrollbar sat on the window
-   edge where the page read as one endlessly growing sheet. Scoped with `:has`, so every other settings page keeps
-   the host's page scroll. */
-.settings-screen .settings-content > .settings-panel:has(.memory-page),
-.settings-content > .settings-panel:has(.memory-page),
-.settings-panel:has(.memory-page) {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.settings-panel:has(.memory-page) > .settings-tab-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-/* The frame, not the old page, owns the scrollbar lane now. */
-.settings-screen > .settings > .settings-content:has(.memory-page) {
-  scrollbar-gutter: auto;
-}
-
 .memory-page {
   display: flex;
   width: 100%;
   flex-direction: column;
   gap: var(--settings-space-6);
+}
+
+/* Entries read as list rows (11-pages §2): one line of 13px text with 12px meta and the actions on the same 44px row,
+   separated by the list's hairlines instead of a tall card each. A row that is not expanded stays exactly this tall. */
+.memory-page [data-component="settings-list"] > [data-component="settings-row"] {
+  min-height: 44px;
+  padding-block: 4px;
+  gap: var(--settings-space-3);
+}
+
+.memory-page [data-component="settings-row"] [data-slot="settings-row-copy"] {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--settings-space-3);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.memory-page [data-component="settings-row"] [data-slot="settings-row-title"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+.memory-page [data-component="settings-row"] [data-slot="settings-row-description"] {
+  flex: 0 1 auto;
+  max-width: 45%;
+  min-width: 0;
+  display: flex;
+}
+
+/* An entry the user expanded keeps its text whole, so the row falls back to the stacked copy it grew from. */
+.memory-page [data-component="settings-row"]:has(.memory-entry-text[data-clamped="false"]) [data-slot="settings-row-copy"] {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.memory-page [data-component="settings-row"]:has(.memory-entry-text[data-clamped="false"]) [data-slot="settings-row-description"] {
+  max-width: 100%;
 }
 
 /* Plugin memories group per plugin, so a user can tell which plugin owns an entry. */
@@ -67,8 +82,8 @@
   line-height: 18px;
 }
 
-/* The entry text sits inside the row title slot, whose font it inherits. A long entry clamps to two lines and the
-   whole text becomes a button; a short one is plain text so the pointer never promises an action that does nothing. */
+/* The entry text is the row's main line: one line at 13px, ellipsized, and the whole text becomes a button to expand
+   it. A short entry is plain text so the pointer never promises an action that does nothing. */
 .memory-entry-text {
   display: block;
   width: 100%;
@@ -87,7 +102,7 @@
 .memory-entry-text[data-clamped="true"] {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   overflow: hidden;
 }
 
@@ -104,18 +119,20 @@ button.memory-entry-text:focus-visible {
 /* Tags read as chips rather than "#tag" text: one quiet pill each, and a pressed one becomes the active filter. */
 .memory-entry-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .memory-tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .memory-tag {
@@ -167,6 +184,7 @@ button.memory-tag:focus-visible {
 }
 
 .memory-entry-time {
+  flex: 0 0 auto;
   color: var(--v2-text-text-faint);
   font-size: 12px;
   line-height: 18px;

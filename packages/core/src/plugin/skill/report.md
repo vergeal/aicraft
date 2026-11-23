@@ -26,7 +26,7 @@
 - 终端：检查 `$TERM`、`$TERM_PROGRAM`、`$COLORTERM`，以及用户提供的任何明显的终端应用上下文。
 - Shell：在相关时，检查类 Unix 系统上的 `$SHELL`，或 Windows 上的 `%COMSPEC%`/`$ComSpec`。
 - 安装/渠道上下文：如果版本输出或环境能显示，说明它看起来是本地、dev、beta 还是 release。
-- 活动插件：尽可能检查 AI Craft 配置中已配置的插件。检查可能的配置位置，例如 `aicraft.json`、`aicraft.jsonc`、`.aicraft/aicraft.json` 和 `~/.config/aicraft/aicraft.json`。记录已配置的插件条目、`.aicraft/plugin/` 或 `.aicraft/plugins/` 下的本地插件文件，并注明是否无法确定插件状态。
+- 活动插件：尽可能检查 AI Craft 配置中已配置的插件。检查可能的配置位置，例如 `aicraft.json`、`aicraft.jsonc`、`.aicraft/aicraft.json` 和 `~/.config/opencode/aicraft.json`。记录已配置的插件条目、`.aicraft/plugin/` 或 `.aicraft/plugins/` 下的本地插件文件，并注明是否无法确定插件状态。
 
 如果某个诊断命令失败，写明 `Unavailable` 并附上原因，而不是猜测。
 

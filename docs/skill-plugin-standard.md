@@ -15,11 +15,11 @@
 | 来源         | 位置                                                            | 加载者                          |
 | ------------ | --------------------------------------------------------------- | ------------------------------- |
 | 项目配置目录 | `<project>/.aicraft/skill/`、`<project>/.aicraft/skills/`     | `opencode.config.skill`         |
-| 全局配置目录 | `~/.config/opencode/skill/`、`~/.config/opencode/skills/`       | `opencode.config.skill`         |
+| 全局配置目录 | `~/.config/aicraft/skill/`、`~/.config/aicraft/skills/`       | `opencode.config.skill`         |
 | 配置字段     | `aicraft.json(c)` 的 `skills`，每项是路径或 `https?://` URL    | `opencode.config.skill`         |
 | Claude 兼容  | `<project>/.claude/skills/`、`~/.claude/skills/`                | `opencode.config.compatibility` |
 | Agents 兼容  | `<project>/.agents/skills/`、`~/.agents/skills/`                | `opencode.config.compatibility` |
-| 内置         | 虚拟路径 `skill://opencode/SKILL.md`、`skill://report/SKILL.md` | `opencode.skill`                |
+| 内置         | 虚拟路径 `skill://aicraft/SKILL.md`、`skill://report/SKILL.md` | `opencode.skill`                |
 
 - `skill/` 与 `skills/` 两个目录名都会被扫描，二者等价。
 - `skills` 配置项支持两种写法：数组 `["路径或 URL", ...]`，或对象 `{ "paths": [...], "urls": [...] }`。

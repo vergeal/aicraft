@@ -27,10 +27,10 @@ export const Plugin = define({
     yield* ctx.skill.transform((editor) => {
       editor.add(
         Skill.Info.make({
-          id: Skill.ID.make("opencode"),
+          id: Skill.ID.make("aicraft"),
           name: Skill.Name.make("AI Craft 使用指南"),
           description: OpencodeDescription,
-          path: AbsolutePath.make("skill://opencode/SKILL.md"),
+          path: AbsolutePath.make("skill://aicraft/SKILL.md"),
           content: OpencodeContent,
         }),
       )

@@ -369,7 +369,10 @@ export const css = `
   white-space: nowrap;
   color: var(--hyt-text);
 }
-.hyt-chat-session[aria-current="true"] .hyt-chat-session-name,
+/* 选中只加底色：字重留给未读，否则「选中且未读」的行看不出未读。 */
+.hyt-chat-session[aria-current="true"] .hyt-chat-session-name {
+  color: var(--hyt-text-strong);
+}
 .hyt-chat-session[data-unread="true"] .hyt-chat-session-name {
   color: var(--hyt-text-strong);
   font-weight: var(--font-weight-bold);
@@ -469,7 +472,7 @@ export const css = `
   height: 26px;
   padding: 0 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--hyt-radius-6);
   background: transparent;
   color: var(--hyt-text-2);
   font-family: inherit;

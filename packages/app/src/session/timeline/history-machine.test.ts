@@ -162,7 +162,8 @@ describe("history machine", () => {
     const loading = replay([sync(), SCROLL_TOP_EVENT]).state
     const replaced = transitionTimelineHistory(loading, loaded(loading, "msg_0040"))
 
-    expect(replaced.state).toMatchObject({ status: "idle", probe: "top" })
+    expect(replaced.state).toMatchObject({ status: "idle" })
+    expect(replaced.effects).toEqual([])
   })
 
   test("a session switch aborts the previous load and ignores its late results", () => {
@@ -197,21 +198,17 @@ describe("history machine", () => {
     expect(loading.effects).toEqual([{ type: "load.start", sessionID: "ses_a", attempt: attempt(loading.state) }])
   })
 
-  test("a prepend keeps paging while the detached view is still near the top", () => {
+  test("a prepend leaves a detached view idle until the reader scrolls again", () => {
     const loading = replay([sync(), SCROLL_TOP_EVENT]).state
     const prepended = transitionTimelineHistory(loading, loaded(loading, "msg_0000"))
 
-    expect(prepended.state).toMatchObject({ status: "idle", probe: "top" })
-    expect(prepended.effects).toEqual([{ type: "probe.schedule", probe: "top", attempt: attempt(prepended.state) }])
+    // Probing `top` from the landing would re-check `scrollTop < prefetchDistance()` against a position the
+    // prepend never moved (folded rows), emptying the transcript in one burst; the next scroll gets the page.
+    expect(prepended.state).toEqual({ status: "idle", target: sessionA, attempt: attempt(prepended.state) })
+    expect(prepended.effects).toEqual([])
 
-    const settled = (load: boolean) =>
-      transitionTimelineHistory(prepended.state, { type: "probe.settled", attempt: attempt(prepended.state), load })
-
-    expect(settled(true).state.status).toBe("loading")
-
-    const rested = settled(false)
-    expect(rested.state).toEqual({ status: "idle", target: sessionA, attempt: attempt(prepended.state) })
-    expect(rested.effects).toEqual([])
+    const next = transitionTimelineHistory(prepended.state, SCROLL_TOP_EVENT)
+    expect(next.state.status).toBe("loading")
   })
 
   test("a following view probes the fill again after a prepend", () => {

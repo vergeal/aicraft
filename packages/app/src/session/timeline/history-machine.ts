@@ -14,7 +14,9 @@ export type HistoryTarget = {
 
 /**
  * A layout check queued for the next frame. `fill`: a following view whose content does not overflow loads more.
- * `top`: a detached view still near the top after a prepend loads more.
+ * `top`: a detached view still near the top loads more. Only `fill` is emitted today: a detached view waits for
+ * its next scroll after a prepend, so a page shorter than the prefetch distance cannot empty the transcript in
+ * one burst. `top` stays available for an explicit detached probe.
  */
 export type HistoryProbe = "fill" | "top"
 
@@ -161,7 +163,13 @@ export function transitionTimelineHistory(
     if (event.oldest === event.previous)
       return changed({ status: "exhausted", target: state.target, attempt, stalled: { oldest: event.oldest } })
 
-    return probe(state.target, attempt, event.following ? "fill" : "top", NO_EFFECTS)
+    // A following view still probes `fill`, because a short page can leave room above the newest row. A detached
+    // view waits for its next scroll: probing `top` from the landing would re-check `scrollTop < prefetchDistance()`
+    // against a position the prepend never moved far enough (folded rows), emptying the whole transcript in one
+    // burst. `enter` leaves a detached view idle for the same reason.
+    if (event.following) return probe(state.target, attempt, "fill", NO_EFFECTS)
+
+    return changed({ status: "idle", target: state.target, attempt })
   }
 
   return changed({ status: "failed", target: state.target, attempt, coolingDown: true }, [

@@ -790,6 +790,8 @@ export const dict = {
 
   "dialog.server.add.passwordPlaceholder": "密码",
   "session.question.progress": "{{current}}/{{total}} 个问题",
+  "session.elicitation.selectPlaceholder": "请选择",
+  "session.elicitation.customOption": "自行输入…",
   "session.header.open.finder": "访达",
   "session.header.open.fileExplorer": "文件资源管理器",
   "session.header.reveal.finder": "在访达中显示",

@@ -20,6 +20,12 @@ type Field = FormInfo["fields"][number]
 
 const decodeMessage = Schema.decodeUnknownOption(Schema.String)
 
+/**
+ * The synthetic choice that opens a free-text reply. No server value reaches the form through it: an answer is read
+ * from the text field instead, and a null control character cannot appear in one.
+ */
+const ownValue = "\u0000own"
+
 const inputTypes = { email: "email", uri: "url", date: "text", "date-time": "text" } as const satisfies Record<
   NonNullable<FormStringField["format"]>,
   string
@@ -54,12 +60,16 @@ export function SessionElicitationDock(props: {
 
   const message = () => Option.getOrUndefined(decodeMessage(props.request.metadata?.message))
 
+  // The extra choice that hands the field over to a text box the person writes themselves.
+  const ownOption = createMemo(() => ({ value: ownValue, label: language.t("session.elicitation.customOption") }))
+
   // Number inputs keep their raw text so a half-typed value such as "-" is not discarded.
   const [values, setValues] = createStore<{
     text: Record<string, string>
     number: Record<string, string>
     flag: Record<string, boolean>
     list: Record<string, string[]>
+    own: Record<string, boolean>
   }>({
     text: Object.fromEntries(
       props.request.fields.flatMap((field) => (field.type === "string" ? [[field.key, field.default ?? ""]] : [])),
@@ -79,6 +89,7 @@ export function SessionElicitationDock(props: {
         field.type === "multiselect" ? [[field.key, [...(field.default ?? [])]]] : [],
       ),
     ),
+    own: {},
   })
 
   const fail = (error: Error) => showToast({ title: language.t("common.requestFailed"), description: error.message })
@@ -210,21 +221,51 @@ export function SessionElicitationDock(props: {
                     />
                   </Match>
                   <Match when={field.type === "string" && field.options?.length ? field : undefined}>
-                    {(select) => (
-                      <>
-                        <Label field={select()} />
-                        <Select
-                          aria-label={select().title ?? select().key}
-                          options={select().options ?? []}
-                          current={select().options?.find((option) => option.value === values.text[select().key])}
-                          value={(option) => option.value}
-                          label={(option) => option.label}
-                          onSelect={(option) => setValues("text", select().key, option?.value ?? "")}
-                          placeholder={language.t("session.elicitation.selectPlaceholder")}
-                          disabled={sending()}
-                        />
-                      </>
-                    )}
+                    {(select) => {
+                      // An option list the server marks as open ends with the choice that writes a reply by hand.
+                      const own = createMemo(() => select().custom === true)
+                      const choices = createMemo(() =>
+                        own() ? [...(select().options ?? []), ownOption()] : (select().options ?? []),
+                      )
+                      const picked = createMemo(() =>
+                        values.own[select().key]
+                          ? ownOption()
+                          : select().options?.find((option) => option.value === values.text[select().key]),
+                      )
+
+                      return (
+                        <>
+                          <Label field={select()} />
+                          <Select
+                            aria-label={select().title ?? select().key}
+                            appearance="base"
+                            options={choices()}
+                            current={picked()}
+                            value={(option) => option.value}
+                            label={(option) => option.label || option.value}
+                            onSelect={(option) => {
+                              const key = select().key
+                              const free = option?.value === ownValue
+
+                              setValues("own", key, free)
+                              setValues("text", key, free ? "" : (option?.value ?? ""))
+                            }}
+                            placeholder={language.t("session.elicitation.selectPlaceholder")}
+                            disabled={sending()}
+                          />
+                          <Show when={values.own[select().key]}>
+                            <TextInput
+                              dir="auto"
+                              aria-label={language.t("ui.question.custom.answerPlaceholder")}
+                              placeholder={language.t("ui.question.custom.answerPlaceholder")}
+                              value={values.text[select().key] ?? ""}
+                              disabled={sending()}
+                              onInput={(event) => setValues("text", select().key, event.currentTarget.value)}
+                            />
+                          </Show>
+                        </>
+                      )
+                    }}
                   </Match>
                   <Match when={field.type === "string" && field}>
                     {(text) => (

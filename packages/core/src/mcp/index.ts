@@ -969,7 +969,7 @@ function toElicitationField(key: string, property: ElicitationProperty, required
         type: "multiselect",
         options:
           "anyOf" in property.items
-            ? property.items.anyOf.map((option) => ({ value: option.const, label: option.title }))
+            ? property.items.anyOf.map((option) => ({ value: option.const, label: option.title ?? option.const }))
             : property.items.enum.map((value) => ({ value, label: value })),
         custom: false,
         minItems: property.minItems,
@@ -979,7 +979,7 @@ function toElicitationField(key: string, property: ElicitationProperty, required
     case "string": {
       const options =
         "oneOf" in property
-          ? property.oneOf.map((option) => ({ value: option.const, label: option.title }))
+          ? property.oneOf.map((option) => ({ value: option.const, label: option.title ?? option.const }))
           : "enum" in property
             ? property.enum.map((value, index) => ({
                 value,
@@ -994,7 +994,8 @@ function toElicitationField(key: string, property: ElicitationProperty, required
         maxLength: "maxLength" in property ? property.maxLength : undefined,
         default: property.default,
         options,
-        custom: options ? false : undefined,
+        // The server still validates the answer against its schema; the enum only fills the options.
+        custom: options ? true : undefined,
       }
     }
   }

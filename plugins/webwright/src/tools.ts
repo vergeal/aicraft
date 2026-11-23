@@ -51,6 +51,22 @@ export const register = Effect.fn("BrowserTools.register")(function* (
           return call(() => runtime.find(tabID, input.text as string))
         case "surfaces":
           return call(() => runtime.surfaces(tabID))
+        case "canvas_text":
+          return call(() =>
+            runtime.canvasText(tabID, {
+              canvasKey: input.canvasKey as string | undefined,
+              mode: input.mode as "auto" | "xterm" | "canvas" | undefined,
+              maxLines: input.maxLines as number | undefined,
+            }),
+          )
+        case "canvas_input":
+          return call(() =>
+            runtime.canvasInput(tabID, {
+              canvasKey: input.canvasKey as string | undefined,
+              text: input.text as string,
+              submit: input.submit as boolean | undefined,
+            }),
+          )
         case "click_at":
           return call(() =>
             runtime.clickAt(tabID, input.x as number, input.y as number, {

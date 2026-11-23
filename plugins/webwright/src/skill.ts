@@ -7,7 +7,13 @@ import { Effect } from "effect"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
-const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
+const manifest = await (async () => {
+  for (const name of ["ocplugin.json", "METAINF"]) {
+    const file = Bun.file(join(import.meta.dir, "..", name))
+    if (await file.exists()) return PluginManifest.decode(await file.json())
+  }
+  throw new Error("This plugin has no ocplugin.json or METAINF manifest next to its server entry.")
+})()
 
 const entry = (manifest.skills ?? []).find((skill) => skill.id === "webwright")!
 

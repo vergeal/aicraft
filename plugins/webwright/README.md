@@ -5,9 +5,9 @@ Playwright browser instead of an extension, so nothing has to be installed into 
 `browser` plugin keeps its own `browser.*` namespace for the desktop browser; this package never claims it.
 
 The bundle ships as one file:
-`~/.distribution/plugins/changhong.aicraft.webwright/<version>/changhong.aicraft.webwright-<version>.exc`. It contains the server entry,
+`~/.distribution/plugins/changhong.webwright/<version>/changhong.webwright-<version>.craf`. It contains the server entry,
 the `webwright` skill, and the Playwright driver under `assets/playwright-core`. Installing unpacks it into
-`~/.aicraft/exc/changhong.aicraft.webwright/`; removing that directory uninstalls it.
+`~/.aicraft/exc/changhong.webwright/`; removing that directory uninstalls it.
 
 ## Browser selection
 
@@ -37,8 +37,8 @@ profile written by the bundled Chromium blocks the installed Chrome from startin
 
 - Setup and inventory: `status`, `tabs.list`, `tabs.open`, `tabs.close`, `tabs.focus`.
 - Navigation: `navigate`, `back`, `forward`, `reload`.
-- Observation: `snapshot`, `find`, `surfaces`, `html`, `console`, `screenshot`, `evaluate`.
-- Input: `click`, `click_at`, `hover`, `drag`, `fill`, `fill_form`, `select`, `check`, `press`, `scroll`, `wait`.
+- Observation: `snapshot`, `find`, `surfaces`, `canvas_text`, `html`, `console`, `screenshot`, `evaluate`.
+- Input: `click`, `click_at`, `hover`, `drag`, `fill`, `fill_form`, `select`, `check`, `press`, `scroll`, `wait`, `canvas_input`.
 
 All page operations take an explicit `tabID`. `snapshot` stamps `e12`-style refs onto DOM nodes as `data-ocref`
 attributes; refs expire on navigation and on the next snapshot. `html` and `evaluate` are the scraping path: page
@@ -59,24 +59,44 @@ Drive them by viewport CSS pixels with `click_at` and `drag`; both send real mou
 `mousedown` / `mousemove` / `mouseup` / `click`. `snapshot` also prints a `surface` line for each one so the caller
 knows to switch coordinate modes instead of hunting for refs that cannot exist.
 
+### Reading canvas characters without vision
+
+A canvas holds pixels, not text: the only copy of a character is the `fillText` / `strokeText` call that painted it,
+and the primary source is the page's own earlier frames. `attach()` therefore installs `canvasTextRecorder` with
+`addInitScript` **before the page's scripts run**, so both painted text and the xterm.js terminal are captured from
+the first frame. Hooking after load can only see later draws.
+
+`canvas_text` returns `{ mode, canvasKey, lines, text, cursor?, viewportY?, truncated }`. `mode` is `xterm` when an
+xterm.js buffer was found (exact rows, scrollback, cursor, cols/rows), `canvas` when the recorded `fillText` stream was
+replayed into lines (y-clustered rows, x-sorted), and `none` when the page has neither. `canvas_input` types into the
+terminal (`term.input`, else `paste` + CR, else real keyboard events). A model without vision can read and drive a
+terminal with these two calls alone.
+
 The source of truth for inputs, descriptions and outputs is `Browser.Operations` in `./src/rpc.ts`.
 
 ## Build and pack
 
 ```sh
 bun run build   # dist/server/main.js + assets/playwright-core + skills/
-bun run pack    # ~/.distribution/plugins/changhong.aicraft.webwright/<version>/
+bun run pack    # ~/.distribution/plugins/changhong.webwright/<version>/
 ```
 
 `build` bundles only the plugin's own code. `effect` and `@opencode/*` stay external so the plugin shares the host's
 module instances, and Playwright is vendored under `assets/` because its driver resolves files relative to its package
 directory — inlining it into the server bundle breaks that lookup. `pack` writes a reproducible tar+gzip: sorted paths,
-zero mtime, sha256 manifest in `METAINF`; packing twice from the same `dist/` yields the same file. It writes to
+zero mtime, sha256 manifest in `ocplugin.json`; packing twice from the same `dist/` yields the same file. It writes to
 `~/.distribution/plugins/<id>/<version>/` so the app's catalog lists the version and its installer finds the bundle; it also
 writes a `manifest.json` there so the catalog never opens the archive. Set `OCPLUGIN_OUT` for a release build.
+
+## Changelog
+
+- `2.4.0` — canvas text without vision: `canvasTextRecorder` (fillText/strokeText ring buffer, xterm.js capture via
+  `addInitScript`), `webwright.canvas_text`, `webwright.canvas_input`, and a `canvas_text` hint on `snapshot` canvas
+  lines. The manifest now ships as `ocplugin.json` (the source tree keeps `METAINF`).
+- `2.3.1` — `tabs.open` accepts only http(s) URLs and reuses the startup blank tab.
 
 ## Disable
 
 ```jsonc
-{ "plugins": ["-changhong.aicraft.webwright"] }
+{ "plugins": ["-changhong.webwright"] }
 ```

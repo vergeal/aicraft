@@ -301,9 +301,13 @@ function readDevToolsPort(file: string) {
 function attach(state: State, page: Page) {
   if (state.tabs.has(page)) return
   state.tabs.set(page, state.next++)
-  // Record surfaces before the page's own scripts run, and re-run now for a page that was already loading.
+  // Record surfaces and canvas text before the page's own scripts run, and re-run now for a page that was already
+  // loading. Text is painted by fillText/strokeText, so an init script is the only way to keep it: hooking after the
+  // fact only sees later frames.
   void page.addInitScript(surfaceRecorder).catch(() => {})
+  void page.addInitScript(canvasTextRecorder).catch(() => {})
   void page.evaluate(surfaceRecorder).catch(() => {})
+  void page.evaluate(canvasTextRecorder).catch(() => {})
   const logs: Log[] = []
   state.logs.set(page, logs)
   page.on("console", (message) => {
@@ -435,6 +439,398 @@ function surfaceRecorder() {
   else document.addEventListener("DOMContentLoaded", start, { once: true })
   addEventListener("scroll", scan, { passive: true })
   addEventListener("resize", scan)
+}
+
+/**
+ * Runs in every document before the page's own scripts. Canvas has no text of its own: a character exists only in the
+ * fillText/strokeText call that painted it, so the only moment it can be kept is before the page draws it. Records live
+ * in a per-canvas ring buffer, split into segments by clearRect and backing-store resizes. The same script keeps a
+ * reference to an xterm.js terminal, whose buffer API is a far more accurate read than the pixel stream.
+ *
+ * Everything is wrapped in try/catch and guarded by flags: a page that breaks one hook must still load, and injecting
+ * twice must not hook twice.
+ */
+export function canvasTextRecorder() {
+  try {
+    const w = window as any
+    const store = (w.__webwright ??= {})
+    const limit = 5_000
+    const all: Record<string, any> = (store.canvas ??= {})
+    const owners: WeakMap<HTMLCanvasElement, string> = (store.canvasKeys ??= new WeakMap())
+    const hooked: WeakSet<object> = (store.canvasContexts ??= new WeakSet())
+    let seq: number = (store.canvasSeq ??= 0)
+
+    const pathOf = (element: Element) => {
+      const parts: string[] = []
+      let current: Element | null = element
+      while (current && current !== document.documentElement) {
+        const parent: Element | null = current.parentElement
+        const index = parent ? Array.from(parent.children).indexOf(current) + 1 : 1
+        parts.unshift(`${current.tagName.toLowerCase()}:nth-child(${index})`)
+        current = parent
+      }
+      return parts.join(">")
+    }
+
+    // The key is the same structural path readSurfaces reports, so a key from `surfaces` selects the same canvas here.
+    const keyFor = (canvas: HTMLCanvasElement) => {
+      const known = owners.get(canvas)
+      if (known && all[known]) return known
+      let key = pathOf(canvas) || `canvas#${(seq += 1)}`
+      if (all[key] && all[key].canvas !== canvas) key = `${key}#${(seq += 1)}`
+      all[key] = { key, canvas, records: [], epoch: 0, clears: 0, truncated: false }
+      owners.set(canvas, key)
+      store.canvasSeq = seq
+      return key
+    }
+
+    const segment = (canvas: HTMLCanvasElement) => {
+      const key = owners.get(canvas)
+      const entry = key ? all[key] : undefined
+      if (!entry) return
+      entry.epoch += 1
+      entry.clears += 1
+      entry.records.length = 0
+      entry.truncated = false
+    }
+
+    const isTerminal = (value: any) => {
+      try {
+        return (
+          !!value &&
+          typeof value === "object" &&
+          value.buffer &&
+          value.buffer.active &&
+          typeof value.buffer.active.getLine === "function"
+        )
+      } catch {
+        return false
+      }
+    }
+
+    const hookContext = (canvas: HTMLCanvasElement, context: any) => {
+      if (hooked.has(context)) return
+      hooked.add(context)
+      const key = keyFor(canvas)
+      const entry = () => (all[key] && all[key].canvas === canvas ? all[key] : undefined)
+      const push = (record: { text: string; x: number; y: number; font: string; fillStyle: string }) => {
+        const current = entry()
+        if (!current) return
+        current.records.push({ ...record, epoch: current.epoch, t: Date.now() })
+        if (current.records.length > limit) {
+          current.records.splice(0, current.records.length - limit)
+          current.truncated = true
+        }
+      }
+      try {
+        const fillText = context.fillText
+        if (typeof fillText === "function")
+          context.fillText = function (text: unknown, x: number, y: number, ...rest: unknown[]) {
+            try {
+              push({
+                text: String(text),
+                x: Number(x) || 0,
+                y: Number(y) || 0,
+                font: String(context.font ?? ""),
+                fillStyle: String(context.fillStyle ?? ""),
+              })
+            } catch {}
+            return fillText.call(this, text, x, y, ...rest)
+          }
+        const strokeText = context.strokeText
+        if (typeof strokeText === "function")
+          context.strokeText = function (text: unknown, x: number, y: number, ...rest: unknown[]) {
+            try {
+              push({
+                text: String(text),
+                x: Number(x) || 0,
+                y: Number(y) || 0,
+                font: String(context.font ?? ""),
+                fillStyle: String(context.strokeStyle ?? ""),
+              })
+            } catch {}
+            return strokeText.call(this, text, x, y, ...rest)
+          }
+        // measureText paints nothing, so it is wrapped only to keep the context's public shape intact.
+        const measureText = context.measureText
+        if (typeof measureText === "function")
+          context.measureText = function (text: unknown, ...rest: unknown[]) {
+            return measureText.call(this, text, ...rest)
+          }
+        const clearRect = context.clearRect
+        if (typeof clearRect === "function")
+          context.clearRect = function (x: number, y: number, width: number, height: number) {
+            try {
+              if (x <= 0 && y <= 0 && width >= canvas.width && height >= canvas.height) segment(canvas)
+            } catch {}
+            return clearRect.call(this, x, y, width, height)
+          }
+      } catch {
+        // A hostile or exotic context keeps working; it just is not recorded.
+      }
+    }
+
+    const hookTerminal = () => {
+      const Terminal = w.Terminal
+      if (typeof Terminal !== "function") return
+      const proto = Terminal.prototype
+      if (!proto || proto.__webwrightHooked) return
+      try {
+        Object.defineProperty(proto, "__webwrightHooked", { value: true, configurable: true })
+      } catch {
+        return
+      }
+      // xterm's module does not expose created instances anywhere, so every public entry point captures `this`.
+      for (const name of ["open", "write", "input", "reset", "focus"]) {
+        const original = proto[name]
+        if (typeof original !== "function" || original.__webwrightWrapped) continue
+        const wrapped: any = function (this: any, ...args: unknown[]) {
+          try {
+            if (isTerminal(this)) store.xterm = this
+          } catch {}
+          return original.apply(this, args)
+        }
+        try {
+          wrapped.__webwrightWrapped = true
+          proto[name] = wrapped
+        } catch {}
+      }
+    }
+
+    const scan = () => {
+      try {
+        if (isTerminal(store.xterm)) return
+        store.xterm = undefined
+        for (const name of ["__xterm__", "xterm", "term", "terminal"]) {
+          try {
+            const value = w[name]
+            if (isTerminal(value)) {
+              store.xterm = value
+              return
+            }
+          } catch {}
+        }
+        // One shallow pass over globals catches a terminal a host app parked under its own name.
+        let seen = 0
+        for (const name of Object.keys(w)) {
+          if ((seen += 1) > 2_000) break
+          let value: any
+          try {
+            value = w[name]
+          } catch {
+            continue
+          }
+          if (isTerminal(value)) {
+            store.xterm = value
+            return
+          }
+        }
+      } catch {}
+    }
+
+    if (!store.canvasTextInstalled) {
+      store.canvasTextInstalled = true
+      try {
+        const proto = HTMLCanvasElement.prototype as any
+        const getContext = proto.getContext
+        if (typeof getContext === "function" && !getContext.__webwrightWrapped) {
+          const wrapped = function (this: HTMLCanvasElement, ...args: any[]) {
+            const context = getContext.apply(this, args)
+            try {
+              if (context && context.canvas instanceof HTMLCanvasElement) hookContext(this, context)
+            } catch {}
+            return context
+          }
+          wrapped.__webwrightWrapped = true
+          proto.getContext = wrapped
+        }
+      } catch {}
+      // Setting canvas.width/height resets the backing store, so the recorded text belongs to an older frame.
+      for (const prop of ["width", "height"]) {
+        try {
+          const descriptor = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, prop)
+          if (!descriptor || typeof descriptor.set !== "function" || descriptor.configurable === false) continue
+          const set = descriptor.set
+          Object.defineProperty(HTMLCanvasElement.prototype, prop, {
+            ...descriptor,
+            set(this: HTMLCanvasElement, value: number) {
+              set.call(this, value)
+              try {
+                segment(this)
+              } catch {}
+            },
+          })
+        } catch {}
+      }
+      // A UMD xterm assigns window.Terminal after this script; the accessor hooks it the moment it appears.
+      try {
+        let terminal = w.Terminal
+        Object.defineProperty(w, "Terminal", {
+          configurable: true,
+          enumerable: true,
+          get() {
+            return terminal
+          },
+          set(next) {
+            terminal = next
+            try {
+              hookTerminal()
+            } catch {}
+          },
+        })
+        hookTerminal()
+      } catch {}
+    }
+
+    // Re-scan on each injection: a terminal created before this run is found now, one created later by a timer.
+    const attempt = () => {
+      try {
+        hookTerminal()
+        scan()
+      } catch {}
+    }
+    attempt()
+    for (const delay of [50, 250, 1_000, 2_500, 5_000, 10_000])
+      setTimeout(() => {
+        attempt()
+      }, delay)
+  } catch {
+    // The recorder must never break page load.
+  }
+}
+
+/** Read the canvas characters of this tab, preferring the xterm buffer over the pixel stream. */
+export function readCanvasText(item: Page, input: { canvasKey?: string; mode: "auto" | "xterm" | "canvas"; maxLines: number }) {
+  return item.evaluate(({ canvasKey, mode, maxLines }) => {
+    const w = window as any
+    const store = w.__webwright ?? {}
+    const none = { mode: "none" as const, lines: [] as string[], text: "", truncated: false }
+    const isTerminal = (value: any) => {
+      try {
+        return (
+          !!value &&
+          typeof value === "object" &&
+          value.buffer &&
+          value.buffer.active &&
+          typeof value.buffer.active.getLine === "function"
+        )
+      } catch {
+        return false
+      }
+    }
+    const find = () => {
+      if (isTerminal(store.xterm)) return store.xterm
+      for (const name of ["__xterm__", "xterm", "term", "terminal"]) {
+        try {
+          const value = w[name]
+          if (isTerminal(value)) return value
+        } catch {}
+      }
+      let seen = 0
+      for (const name of Object.keys(w)) {
+        if ((seen += 1) > 2_000) break
+        let value: any
+        try {
+          value = w[name]
+        } catch {
+          continue
+        }
+        if (isTerminal(value)) return value
+      }
+      return undefined
+    }
+    const fromXterm = (terminal: any) => {
+      const buffer = terminal.buffer.active
+      const length: number = buffer.length
+      const total = Math.max(0, Math.min(length, maxLines))
+      const start = Math.max(0, length - total)
+      const lines: string[] = []
+      for (let index = start; index < length; index += 1) {
+        const line = buffer.getLine(index)
+        lines.push((line ? line.translateToString(true) : "").slice(0, 4_000))
+      }
+      while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
+      return {
+        mode: "xterm" as const,
+        ...(canvasKey === undefined ? {} : { canvasKey }),
+        lines,
+        text: lines.join("\n"),
+        cursor: {
+          x: Number(buffer.cursorX) || 0,
+          y: Number(buffer.cursorY) || 0,
+          cols: Number(terminal.cols) || 0,
+          rows: Number(terminal.rows) || 0,
+        },
+        viewportY: Number(buffer.viewportY) || 0,
+        truncated: length > total || start > 0,
+      }
+    }
+    const fontSize = (font: string) => {
+      const match = /([0-9]+(?:\.[0-9]+)?)px/u.exec(font ?? "")
+      return match ? Number(match[1]) : 12
+    }
+    const fromCanvas = (entry: any) => {
+      const records: any[] = entry.records.filter((record: any) => record.epoch === entry.epoch)
+      // One row per baseline, joined left to right; a gap wider than a character becomes a space.
+      type Row = { y: number; size: number; items: Array<{ x: number; text: string; size: number }> }
+      const rows: Row[] = []
+      for (const record of records) {
+        const size = fontSize(record.font)
+        const row = rows.find((item) => Math.abs(item.y - record.y) <= Math.max(2, Math.min(size, item.size) * 0.5))
+        const bucket: Row = row ?? { y: record.y, size, items: [] }
+        if (!row) rows.push(bucket)
+        bucket.items.push({ x: Number(record.x) || 0, text: String(record.text), size })
+      }
+      rows.sort((a, b) => a.y - b.y)
+      const lines = rows.map((row) => {
+        row.items.sort((a, b) => a.x - b.x)
+        let text = ""
+        let end: number | undefined
+        for (const item of row.items) {
+          if (end !== undefined && item.x - end > item.size * 0.4) text += " "
+          text += item.text
+          end = item.x + item.text.length * item.size * 0.6
+        }
+        return text.slice(0, 4_000)
+      })
+      while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
+      const shown = maxLines > 0 ? lines.slice(Math.max(0, lines.length - maxLines)) : lines
+      return {
+        mode: "canvas" as const,
+        canvasKey: entry.key,
+        lines: shown,
+        text: shown.join("\n"),
+        truncated: lines.length > shown.length || entry.truncated === true,
+      }
+    }
+    const pick = () => {
+      const all: Record<string, any> = store.canvas ?? {}
+      // An explicit key that is not recorded returns none instead of silently reading another canvas.
+      if (canvasKey !== undefined) return all[canvasKey]
+      let best: any
+      let bestScore = 0
+      for (const entry of Object.values(all) as any[]) {
+        const score = entry.records.filter((record: any) => record.epoch === entry.epoch).length
+        if (score > bestScore) {
+          best = entry
+          bestScore = score
+        }
+      }
+      return best
+    }
+    if (mode !== "canvas") {
+      const terminal = find()
+      if (terminal) {
+        try {
+          return fromXterm(terminal)
+        } catch {}
+      }
+      if (mode === "xterm") return none
+    }
+    const entry = pick()
+    if (!entry) return none
+    return fromCanvas(entry)
+  }, input)
 }
 
 /** Read the recorded surfaces, refreshing the live box and canvas backing-store scale. */
@@ -635,6 +1031,107 @@ export function create(options: PluginOptions) {
         // A page that loaded before this plugin attached still needs the recorder; the store makes it idempotent.
         await item.evaluate(surfaceRecorder).catch(() => {})
         return readSurfaces(item)
+      })
+    },
+
+    async canvasText(id: number, input: { canvasKey?: string; mode?: "auto" | "xterm" | "canvas"; maxLines?: number }) {
+      return withPage(id, "webwright.canvas_text", async (item) => {
+        // Idempotent: re-running the recorder catches a terminal created before this call and keeps existing records.
+        await item.evaluate(canvasTextRecorder).catch(() => {})
+        return readCanvasText(item, {
+          ...(input.canvasKey === undefined ? {} : { canvasKey: input.canvasKey }),
+          mode: input.mode ?? "auto",
+          maxLines: Math.max(1, Math.min(input.maxLines ?? 200, 5_000)),
+        })
+      })
+    },
+
+    async canvasInput(id: number, input: { canvasKey?: string; text: string; submit?: boolean }) {
+      return withPage(id, "webwright.canvas_input", async (item) => {
+        await item.evaluate(canvasTextRecorder).catch(() => {})
+        const submit = input.submit !== false
+        const result = await item.evaluate(
+          ({ text, submit }) => {
+            const w = window as any
+            const store = w.__webwright ?? {}
+            const isTerminal = (value: any) => {
+              try {
+                return (
+                  !!value &&
+                  typeof value === "object" &&
+                  value.buffer &&
+                  value.buffer.active &&
+                  typeof value.buffer.active.getLine === "function"
+                )
+              } catch {
+                return false
+              }
+            }
+            const find = () => {
+              if (isTerminal(store.xterm)) return store.xterm
+              for (const name of ["__xterm__", "xterm", "term", "terminal"]) {
+                try {
+                  const value = w[name]
+                  if (isTerminal(value)) return value
+                } catch {}
+              }
+              let seen = 0
+              for (const name of Object.keys(w)) {
+                if ((seen += 1) > 2_000) break
+                let value: any
+                try {
+                  value = w[name]
+                } catch {
+                  continue
+                }
+                if (isTerminal(value)) return value
+              }
+              return undefined
+            }
+            const terminal = find()
+            if (!terminal) return { ok: false, via: "" }
+            const data = submit ? `${text}\r` : text
+            try {
+              // input() is the public path that emits onData, exactly like typing.
+              if (typeof terminal.input === "function") {
+                terminal.input(data, true)
+                return { ok: true, via: "input" }
+              }
+              const core = terminal._core && terminal._core.coreService
+              if (typeof terminal.paste === "function") {
+                if (text) terminal.paste(text)
+                if (submit && core && typeof core.triggerDataEvent === "function") core.triggerDataEvent("\r", true)
+                return { ok: true, via: submit ? "paste+enter" : "paste" }
+              }
+              if (core && typeof core.triggerDataEvent === "function") {
+                core.triggerDataEvent(data, true)
+                return { ok: true, via: "triggerDataEvent" }
+              }
+            } catch {
+              return { ok: false, via: "" }
+            }
+            return { ok: false, via: "" }
+          },
+          { text: input.text, submit },
+        )
+        if (result.ok) return result
+        // No terminal object: type with real key events so the focused control receives them.
+        const box = input.canvasKey
+          ? await item
+              .evaluate(({ canvasKey }) => {
+                const store = (window as any).__webwright
+                const canvas: HTMLCanvasElement | undefined = store?.canvas?.[canvasKey]?.canvas
+                if (!canvas) return null
+                const rect = canvas.getBoundingClientRect()
+                return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
+              }, { canvasKey: input.canvasKey })
+              .catch(() => null)
+          : null
+        if (box) await item.mouse.click(box.x, box.y).catch(() => {})
+        else await item.locator(".xterm").first().click({ timeout: 2_000 }).catch(() => {})
+        await item.keyboard.type(input.text)
+        if (submit) await item.keyboard.press("Enter")
+        return { ok: true, via: "keyboard" }
       })
     },
 
@@ -899,8 +1396,13 @@ function read(item: Page, input: { maxNodes: number; includeHidden: boolean }) {
     for (const element of document.querySelectorAll("canvas,svg,video,iframe,object,embed")) {
       if (!visible(element)) continue
       const rect = element.getBoundingClientRect()
+      const tag = element.tagName.toLowerCase()
+      const hint =
+        tag === "canvas"
+          ? "— no DOM inside, use webwright.canvas_text to read its characters, or use webwright.surfaces and webwright.click_at for coordinates"
+          : "— no DOM inside, use webwright.surfaces and webwright.click_at"
       lines.push(
-        `surface ${element.tagName.toLowerCase()} ${Math.round(rect.width)}x${Math.round(rect.height)} at ${Math.round(rect.x)},${Math.round(rect.y)} — no DOM inside, use webwright.surfaces and webwright.click_at`,
+        `surface ${tag} ${Math.round(rect.width)}x${Math.round(rect.height)} at ${Math.round(rect.x)},${Math.round(rect.y)} ${hint}`,
       )
     }
     return {

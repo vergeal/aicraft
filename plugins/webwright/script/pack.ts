@@ -9,7 +9,7 @@ import { join, posix, resolve } from "node:path"
 // it stays the read path for the installer.
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "METAINF")).json()
+const manifest = await Bun.file(join(dist, "ocplugin.json")).json()
 // Packs land in the local discover directory, under the plugin id and version, one single-file bundle per version.
 // The manifest travels inside the archive, so listing a version opens it; `EXC_OUT` keeps release builds
 // elsewhere.
@@ -20,7 +20,10 @@ const out = process.env.EXC_OUT
 await mkdir(out, { recursive: true })
 
 // A pack made before the output moved to `~/.aicraft/exc` left its archive inside `dist/plugins`; never read it back.
-const paths = (await walk(dist)).filter((path) => path !== "METAINF" && !path.startsWith("plugins/")).sort(compare)
+// The manifest travels as its own entry, so it is excluded from the payload walk.
+const paths = (await walk(dist))
+  .filter((path) => path !== "ocplugin.json" && path !== "METAINF" && !path.startsWith("plugins/"))
+  .sort(compare)
 const files = await Promise.all(
   paths.map(async (path) => ({ path, bytes: new Uint8Array(await readFile(join(dist, path))) })),
 )
@@ -30,7 +33,7 @@ const declared = {
 }
 const entries = [
   ...files,
-  { path: "METAINF", bytes: new TextEncoder().encode(JSON.stringify(declared, null, 2) + "\n") },
+  { path: "ocplugin.json", bytes: new TextEncoder().encode(JSON.stringify(declared, null, 2) + "\n") },
 ].sort((a, b) => compare(a.path, b.path))
 
 const tar = concat([
@@ -38,7 +41,7 @@ const tar = concat([
   zeroBlock(),
   zeroBlock(),
 ])
-const archive = join(out, `${manifest.id}-${manifest.version}.exc`)
+const archive = join(out, `${manifest.id}-${manifest.version}.craf`)
 await rm(archive, { force: true })
 await Bun.write(archive, Bun.gzipSync(tar, { level: 9 }))
 

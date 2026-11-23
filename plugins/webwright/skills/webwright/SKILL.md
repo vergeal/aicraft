@@ -44,6 +44,7 @@ open -na "Google Chrome" --args \
 - 等待加载或文本用 `wait`，不要用固定 sleep。
 - `evaluate` 返回 JSON。整页脚本运行在页面主世界，可能被页面 CSP 阻止；元素级脚本运行在元素上下文。
 - `screenshot` 截取可见视口或整页，返回 base64 data URL。
+- canvas 上的文字（终端、图表标签、白板、日志）用 `canvas_text` 直接读字符流，不要截图；终端再用 `canvas_input` 下发命令。见下面「Canvas 文本」。
 - `html` 返回页面或单个元素的 HTML，用于抓取结构化内容；内容可能很大，优先传 `selector` 缩小范围。
 
 ## 工作流
@@ -63,9 +64,204 @@ await tools.webwright.click({ tabID: tab.id, ref: "e4" })
 2. 结构化数据用 `evaluate` 读取，例如 `document.querySelectorAll(...)` 映射成数组。
 3. 抓到的文本原样引用来源 URL 和抓取时间，不要改写或补全网页里没有的内容。
 
-## Canvas 与其它绘制表面
+## Canvas 文本：先取字符，不要截图
 
-canvas、svg、video、iframe 内部没有可引用的 DOM 节点，元素引用对它们无效。`snapshot` 会把它们标成 `surface canvas 800x600 at 0,0 — no DOM inside`，看到这行就走坐标路线：
+canvas 只有像素，文字在 `fillText` / `strokeText` 被调用时就没了。DOM 里只有一个 `<canvas>`，`snapshot` 只能输出
+`surface canvas 800x600 at 0,0 — no DOM inside, use webwright.canvas_text to read its characters, ...`。
+**凡是有 canvas 且需要读内容，默认先调用 `webwright.canvas_text`，不要截图。** 不支持视觉的模型必须能只靠它读到字符。
+
+### 硬性要求
+
+> **webwright 必须在导航前注入 canvas/xterm 记录器；不支持视觉的模型必须能只靠 `canvas_text` 完成读取，否则视同插件缺陷。**
+
+原因是时序：记录器必须在页面脚本**执行之前**注入。页面加载后再注入只能记录之后的绘制，已经画出来的文字永久丢失。
+插件的 `attach()` 里已经对每个页面做了 `page.addInitScript(canvasTextRecorder)` + `page.evaluate(canvasTextRecorder)`
+（实现见 `src/browser.ts` 的 `canvasTextRecorder`），所以正常用法不需要手工注入；只有自己起页面或在别的环境复现时才需要下面的片段。
+
+### 读取
+
+```js
+const text = await tools.webwright.canvas_text({ tabID })
+// text.mode    : "xterm" | "canvas" | "none"
+// text.text    : 纯字符流，可直接读
+// text.lines   : 按行拆好的数组（从最新输出往回取 maxLines 行）
+// text.cursor  : { x, y, cols, rows }，xterm 专有
+// text.truncated
+```
+
+- `mode: "xterm"`：读的是 xterm.js 的 **buffer API**，最准，包含滚动历史、光标位置、行列数。堡垒机、SSH、k8s 终端都是这条路。
+- `mode: "canvas"`：回放记录到的 `fillText` 调用，按 y 聚类成行、x 排序拼接。用于图表标签、白板文字、自绘日志。
+- `mode: "none"`：页面没有 canvas 文本，也没有终端；这时才考虑 `screenshot` 或 `surfaces`。
+- 传 `canvasKey`（来自 `surfaces`）读取指定画布；不传则选文本最多的那个。
+- `maxLines` 默认 200，从最新一行往回取；终端场景不要一次拉几万行。
+
+### 通用 canvas 注入片段（可直接复制）
+
+```js
+// 必须在页面脚本执行前注入：page.addInitScript(canvasTextRecorder)
+function canvasTextRecorder() {
+  try {
+    const w = window
+    const store = (w.__webwright ??= {})
+    if (store.canvasTextInstalled) return
+    store.canvasTextInstalled = true
+    const limit = 5000
+    const all = (store.canvas ??= {}) // key -> { key, canvas, records: [], epoch }
+    let seq = 0
+    const keyFor = (canvas) => {
+      const key = `canvas#${(seq += 1)}`
+      all[key] ??= { key, canvas, records: [], epoch: 0 }
+      return key
+    }
+    const push = (canvas, record) => {
+      const entry = all[keyFor(canvas)]
+      if (entry.canvas !== canvas) return
+      entry.records.push({ ...record, epoch: entry.epoch, t: Date.now() })
+      if (entry.records.length > limit) entry.records.splice(0, entry.records.length - limit)
+    }
+    const clear = (canvas) => {
+      const entry = all[keyFor(canvas)]
+      entry.epoch += 1
+      entry.records.length = 0
+    }
+    const getContext = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+      const ctx = getContext.call(this, type, attrs)
+      try {
+        if (ctx && ctx.canvas && !ctx.__webwrightText) {
+          ctx.__webwrightText = true
+          const canvas = this
+          const fillText = ctx.fillText
+          ctx.fillText = function (text, x, y, ...rest) {
+            try { push(canvas, { text: String(text), x: +x || 0, y: +y || 0, font: ctx.font, fillStyle: ctx.fillStyle }) } catch {}
+            return fillText.call(this, text, x, y, ...rest)
+          }
+          const strokeText = ctx.strokeText
+          ctx.strokeText = function (text, x, y, ...rest) {
+            try { push(canvas, { text: String(text), x: +x || 0, y: +y || 0, font: ctx.font, fillStyle: ctx.strokeStyle }) } catch {}
+            return strokeText.call(this, text, x, y, ...rest)
+          }
+          const clearRect = ctx.clearRect
+          ctx.clearRect = function (x, y, width, height) {
+            try { if (x <= 0 && y <= 0 && width >= canvas.width && height >= canvas.height) clear(canvas) } catch {}
+            return clearRect.call(this, x, y, width, height)
+          }
+          // measureText 不产生可见文字，包装只是为了保持 context 形状。
+          const measureText = ctx.measureText
+          ctx.measureText = function (text, ...rest) { return measureText.call(this, text, ...rest) }
+        }
+      } catch {}
+      return ctx
+    }
+    // 改 width/height 会重置缓冲，旧记录属于上一帧。
+    for (const prop of ["width", "height"]) {
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, prop)
+      if (!descriptor?.set) continue
+      Object.defineProperty(HTMLCanvasElement.prototype, prop, {
+        ...descriptor,
+        set(value) { descriptor.set.call(this, value); try { clear(this) } catch {} },
+      })
+    }
+  } catch {} // 记录器绝不能阻断页面加载
+}
+```
+
+读取时把每个 canvas 当前 epoch 的记录按 y 聚类（容差约半个字号）、行内按 x 排序拼接，间隔大于半个字符宽补空格：
+
+```js
+const lines = records
+  .filter((r) => r.epoch === entry.epoch)
+  .sort((a, b) => a.y - b.y || a.x - b.x)
+  .reduce((rows, r) => {
+    const row = rows.find((row) => Math.abs(row.y - r.y) <= 6)
+    if (row) row.items.push(r)
+    else rows.push({ y: r.y, items: [r] })
+    return rows
+  }, [])
+  .map((row) => row.items.sort((a, b) => a.x - b.x).map((r) => r.text).join(""))
+```
+
+### xterm.js 专用注入片段（终端首选）
+
+xterm 的字符不只有像素，它还留着 buffer；读 buffer 比回放 canvas 准得多。难点是拿到 `Terminal` 实例：
+
+```js
+// page.addInitScript(xtermRecorder)，必须在 xterm 脚本之前
+function xtermRecorder() {
+  try {
+    const w = window
+    const store = (w.__webwright ??= {})
+    const isTerminal = (value) => {
+      try { return !!value && value.buffer?.active && typeof value.buffer.active.getLine === "function" } catch { return false }
+    }
+    // UMD 版 xterm 把 Terminal 挂到 window；所有公开入口都经过 prototype，用 this 捕获实例。
+    const hookTerminal = () => {
+      const Terminal = w.Terminal
+      if (typeof Terminal !== "function" || Terminal.prototype.__webwrightHooked) return
+      Object.defineProperty(Terminal.prototype, "__webwrightHooked", { value: true, configurable: true })
+      for (const name of ["open", "write", "input", "reset", "focus"]) {
+        const original = Terminal.prototype[name]
+        if (typeof original !== "function" || original.__webwrightWrapped) continue
+        const wrapped = function (...args) {
+          try { if (isTerminal(this)) store.xterm = this } catch {}
+          return original.apply(this, args)
+        }
+        wrapped.__webwrightWrapped = true
+        Terminal.prototype[name] = wrapped
+      }
+    }
+    // UMD 在之后才赋值 window.Terminal，用访问器在赋值瞬间挂 hook。
+    let terminal = w.Terminal
+    Object.defineProperty(w, "Terminal", {
+      configurable: true,
+      get() { return terminal },
+      set(next) { terminal = next; try { hookTerminal() } catch {} },
+    })
+    hookTerminal()
+    // 兜底：宿主可能把实例挂在全局某个名字下，浅扫一层。
+    const scan = () => {
+      if (isTerminal(store.xterm)) return
+      for (const name of ["__xterm__", "xterm", "term", "terminal"]) {
+        try { if (isTerminal(w[name])) return (store.xterm = w[name]) } catch {}
+      }
+      for (const name of Object.keys(w)) {
+        try { if (isTerminal(w[name])) return (store.xterm = w[name]) } catch {}
+      }
+    }
+    for (const delay of [50, 250, 1000, 2500, 5000, 10000]) setTimeout(scan, delay)
+  } catch {}
+}
+
+// 读：逐行 translateToString(true) 拼接
+const buffer = terminal.buffer.active
+const lines = []
+for (let i = 0; i < buffer.length; i += 1) {
+  const line = buffer.getLine(i)
+  lines.push(line ? line.translateToString(true) : "")
+}
+const cursor = { x: buffer.cursorX, y: buffer.cursorY, cols: terminal.cols, rows: terminal.rows, viewportY: buffer.viewportY }
+```
+
+`term.buffer.active` 读不到时（模块化打包、实例不可达）自动回退到 canvas 文本流——`canvas_text` 的 `mode` 会显示实际走了哪条路。
+
+### 终端交互闭环
+
+```js
+const screen = await tools.webwright.canvas_text({ tabID, mode: "xterm" })
+// 读到最后一行提示符，决定下一条命令
+await tools.webwright.canvas_input({ tabID, text: "ls -l /tmp", submit: true })
+const next = await tools.webwright.canvas_text({ tabID, mode: "xterm" })
+```
+
+`canvas_input` 优先用 `term.input()`（等价于用户键入，触发 `onData`），其次 `paste` + 回车，最后退回真实键盘事件。不要用 `press` 逐字符打命令。
+
+### 什么时候仍然要 `screenshot`
+
+只有这些情况：canvas 内容是纯图形（图表形状、地图、白板画布）且没有任何文字记录，或需要校验视觉布局。**能取到文字时一律先取文字**：字符流比截图快、可 grep、不依赖模型视觉。
+
+### 坐标操作
+
+canvas 内部的非文本交互（点按钮、拖拽、缩放）仍然走坐标路线：
 
 1. 调用 `webwright.surfaces({ tabID })`。每个表面的元数据包含：
    - `box`：当前视口坐标 `{ x, y, width, height }`，单位是 CSS 像素。

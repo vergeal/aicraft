@@ -5,7 +5,17 @@ import { join } from "node:path"
 import { BrowserRuntime } from "../src/browser.js"
 import { BrowserTools } from "../src/tools.js"
 
-const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
+// The installed bundle names its manifest `ocplugin.json`; the source tree and older bundles keep `METAINF`. Both
+// carry the same document, so the entry resolves whichever one it finds.
+async function readManifest() {
+  for (const name of ["ocplugin.json", "METAINF"]) {
+    const file = Bun.file(join(import.meta.dir, "..", name))
+    if (await file.exists()) return PluginManifest.decode(await file.json())
+  }
+  throw new Error("This plugin has no ocplugin.json or METAINF manifest next to its server entry.")
+}
+
+const manifest = await readManifest()
 
 export default Plugin.define({
   id: manifest.id,

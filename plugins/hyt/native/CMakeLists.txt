@@ -41,6 +41,7 @@ add_executable(hyt-native-bridge
   src/store.cpp
   src/message.cpp
   src/sdk_host.cpp
+  src/audio_guard.cpp
 )
 # 只用 SQLite 的头文件：macOS 链接了 EC SDK 时，sqlite3 的实现由 SDK 静态库提供。
 # 同时链系统 libsqlite3 会让同一个进程里出现两套 sqlite3，SDK 内部查询会跳到另一版实现并崩溃。
@@ -132,6 +133,7 @@ if(HYT_SDK_FOUND)
       "${HYT_WIN_SDK_LIB}/ecmedia.lib"
       ws2_32
       winhttp
+      ole32
       ${HYT_SQLITE_TARGET}
     )
   else()

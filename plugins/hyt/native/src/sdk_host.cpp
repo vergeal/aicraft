@@ -7,6 +7,7 @@
 #include <cstring>
 #include <thread>
 
+#include "audio_guard.hpp"
 #include "message.hpp"
 #include "util.hpp"
 
@@ -413,6 +414,10 @@ void SdkHost::initialize() {
   SetTraceFlag(12, logPath.c_str());
   SetGeneralCallBackFuction(&gGeneralCallbacks);
   SetMessageCallBackFunction(&gMessageCallbacks);
+
+  // 必须在初始化之前：SDK 一启动就会用 WASAPI 枚举录音设备，安全软件会把它当成
+  // 正在使用麦克风；这里让录音设备对 SDK 不可见，播放设备照常。
+  suppressMicrophoneAccess();
 
   int ret = ECSDK_Initialize();
   {

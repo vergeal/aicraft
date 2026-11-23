@@ -147,6 +147,9 @@ export const Plugin = define({
             projectID: projectFor(input.scope, input.projectID),
             id: input.id,
           }).pipe(Effect.as({ removed: true })),
+        plugins: () => Memory.readPlugins(kv, settings().maxEntries).pipe(Effect.map((groups) => ({ groups }))),
+        removePlugin: (input) =>
+          Memory.removePlugin(kv, input.plugin, input.id).pipe(Effect.as({ removed: true })),
       })
       .pipe(Effect.orDie)
 

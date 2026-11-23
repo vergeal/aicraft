@@ -34,6 +34,39 @@
   gap: var(--settings-space-6);
 }
 
+/* Plugin memories group per plugin, so a user can tell which plugin owns an entry. */
+.memory-plugins {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-space-4);
+}
+
+.memory-plugin-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-space-2);
+}
+
+.memory-plugin-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.memory-plugin-name {
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.memory-plugin-hint {
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 /* The entry text sits inside the row title slot, whose font it inherits. A long entry clamps to two lines and the
    whole text becomes a button; a short one is plain text so the pointer never promises an action that does nothing. */
 .memory-entry-text {

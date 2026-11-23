@@ -17,9 +17,15 @@ const decodeEntry = Schema.decodeUnknownOption(Entry)
 /** Every key lives under one namespace, so a scan prefix is the only thing separating the two scopes. */
 const ROOT = "memory/entry/"
 export const globalPrefix = `${ROOT}global/`
+/** Plugin memories never join the user's scopes: each plugin writes under its own id, and none are injected. */
+export const pluginRoot = `${ROOT}plugin/`
 
 export function projectPrefix(projectID: string) {
   return `${ROOT}project/${encodeURIComponent(projectID)}/`
+}
+
+export function pluginPrefix(pluginID: string) {
+  return `${pluginRoot}${encodeURIComponent(pluginID)}/`
 }
 
 export function prefixFor(scope: Scope, projectID: string) {
@@ -116,16 +122,29 @@ export const save = (kv: KV.Interface, input: {
   readonly text: string
   readonly tags: readonly string[] | undefined
   readonly now: string
-}) =>
+}) => saveAt(kv, prefixFor(input.scope, input.projectID), input)
+
+/** A plugin's own memories live in one prefix per plugin, so two plugins can never read each other's. */
+export const savePlugin = (
+  kv: KV.Interface,
+  pluginID: string,
+  input: { readonly text: string; readonly tags: readonly string[] | undefined; readonly now: string },
+) => saveAt(kv, pluginPrefix(pluginID), input)
+
+const saveAt = (
+  kv: KV.Interface,
+  prefix: string,
+  input: { readonly text: string; readonly tags: readonly string[] | undefined; readonly now: string },
+) =>
   Effect.gen(function* () {
     const text = input.text.trim()
     const tags = normalizeTags(input.tags)
-    const existing = yield* readScope(kv, prefixFor(input.scope, input.projectID), MAX_SCAN)
+    const existing = yield* readScope(kv, prefix, MAX_SCAN)
     const duplicate = existing.find((entry) => entry.text.trim() === text)
     const entry: Entry = duplicate
       ? { ...duplicate, tags: normalizeTags([...duplicate.tags, ...tags]), updatedAt: input.now }
       : { id: newID(), text, tags, createdAt: input.now, updatedAt: input.now }
-    yield* kv.set(keyFor(input.scope, input.projectID, entry.id), entry)
+    yield* kv.set(prefix + entry.id, entry)
     return { entry, duplicate: duplicate !== undefined }
   })
 
@@ -136,9 +155,20 @@ export const update = (kv: KV.Interface, input: {
   readonly text: string
   readonly tags: readonly string[]
   readonly now: string
-}) =>
+}) => updateAt(kv, keyFor(input.scope, input.projectID, input.id), input)
+
+export const updatePlugin = (
+  kv: KV.Interface,
+  pluginID: string,
+  input: { readonly id: string; readonly text: string; readonly tags: readonly string[]; readonly now: string },
+) => updateAt(kv, pluginPrefix(pluginID) + input.id, input)
+
+const updateAt = (
+  kv: KV.Interface,
+  key: string,
+  input: { readonly text: string; readonly tags: readonly string[]; readonly now: string },
+) =>
   Effect.gen(function* () {
-    const key = keyFor(input.scope, input.projectID, input.id)
     const value = yield* kv.get(key)
     const current = value === undefined ? Option.none() : decodeEntry(value)
     if (Option.isNone(current)) return undefined
@@ -154,6 +184,63 @@ export const update = (kv: KV.Interface, input: {
 
 export const remove = (kv: KV.Interface, input: { readonly scope: Scope; readonly projectID: string; readonly id: string }) =>
   kv.remove(keyFor(input.scope, input.projectID, input.id))
+
+export const removePlugin = (kv: KV.Interface, pluginID: string, id: string) =>
+  kv.remove(pluginPrefix(pluginID) + id)
+
+/** One scope's entry, located by id without assuming which scope holds it. */
+export function findPluginEntry(kv: KV.Interface, pluginID: string, id: string) {
+  return Effect.gen(function* () {
+    const key = pluginPrefix(pluginID) + id
+    const value = yield* kv.get(key)
+    if (value === undefined) return undefined
+    const decoded = decodeEntry(value)
+    if (Option.isNone(decoded)) return undefined
+    return { key, entry: decoded.value }
+  })
+}
+
+/**
+ * Every plugin's memories, grouped by plugin id and newest first. The settings page lists them as one section; the
+ * plugins themselves only ever see their own prefix.
+ */
+export const readPlugins = (kv: KV.Interface, max: number) =>
+  Effect.gen(function* () {
+    const groups = new Map<string, Entry[]>()
+    let after: string | undefined
+    let total = 0
+    while (total < max) {
+      const page = yield* kv.scan({
+        prefix: pluginRoot,
+        limit: Math.min(100, max - total),
+        ...(after === undefined ? {} : { after }),
+      })
+      for (const item of page.entries) {
+        const rest = item.key.slice(pluginRoot.length)
+        const slash = rest.indexOf("/")
+        if (slash <= 0) continue
+        const decoded = decodeEntry(item.value)
+        if (Option.isNone(decoded)) continue
+        const plugin = safeDecode(rest.slice(0, slash))
+        groups.set(plugin, [...(groups.get(plugin) ?? []), decoded.value])
+        total += 1
+      }
+      if (page.next === undefined || page.next === after) break
+      after = page.next
+    }
+    return [...groups.entries()]
+      .map(([plugin, entries]) => ({ plugin, entries: sortRecent(entries) }))
+      .sort((a, b) => (a.plugin < b.plugin ? -1 : a.plugin > b.plugin ? 1 : 0))
+  })
+
+/** A hand-written key can carry malformed percent escapes; the raw segment still names a plugin. */
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
 
 const MAX_ENTRY_CHARS = 400
 

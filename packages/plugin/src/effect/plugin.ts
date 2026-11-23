@@ -21,6 +21,7 @@ import type { SessionDomain } from "./session.js"
 import type { ShellDomain } from "./shell.js"
 import type { SkillDomain } from "./skill.js"
 import type { StorageDomain } from "./storage.js"
+import type { MemoryDomain } from "./memory.js"
 import type { ToolDomain } from "./tool.js"
 import type { VcsDomain } from "./vcs.js"
 import type { WebSearchDomain } from "./websearch.js"
@@ -44,6 +45,8 @@ export interface Context {
   /** Messages this plugin published into the app's inbox. */
   readonly inbox: InboxDomain
   readonly integration: IntegrationDomain
+  /** This plugin's own long-term memories. Isolated per plugin, and never injected into the user's sessions. */
+  readonly memory: MemoryDomain
   readonly mcp: MCPDomain
   readonly model: ModelDomain
   /** @deprecated Use `experimental.generate.text`. */

@@ -23,6 +23,7 @@ import { Location } from "../location.js"
 import { LocationServiceMap } from "../location-service-map.js"
 import { Model } from "../model.js"
 import { Mcp } from "../mcp/index.js"
+import { Memory } from "../memory.js"
 import { Session } from "../session.js"
 import { InstructionEntry } from "../session/instruction-entry.js"
 import { PersistentPty } from "../persistent-pty.js"
@@ -545,6 +546,7 @@ export const make = Effect.fn("PluginHost.make")(function* (
         }),
     },
     storage: storage(kv, pluginID),
+    memory: memory(kv, pluginID),
     inbox: PluginInbox.make(kv, pluginID, { scope: options?.scope }),
     shell: {
       hook: (name, callback) => hooks.register("shell", name, callback),
@@ -745,6 +747,46 @@ export function storage(kv: KV.Interface, pluginID: string): Plugin.Context["sto
             return { entries, next: result.next.slice(namespace.length) }
           }),
         ),
+  }
+}
+
+/**
+ * A plugin's own memories, kept in the memory namespace under the plugin's id. The prefix is the whole boundary: one
+ * plugin can name another's id only in the settings RPC, never through this domain.
+ */
+export function memory(kv: KV.Interface, pluginID: string): Plugin.Context["memory"] {
+  const prefix = Memory.pluginPrefix(pluginID)
+  const read = () => Memory.readScope(kv, prefix, Memory.MAX_SCAN)
+  const now = () => new Date().toISOString()
+
+  return {
+    list: () => read().pipe(Effect.map((entries) => Memory.sortRecent(entries))),
+    search: (query, options) =>
+      read().pipe(
+        Effect.map((entries) =>
+          entries.filter((entry) => Memory.matches(entry, query)).slice(0, options?.limit ?? 20),
+        ),
+      ),
+    save: (input) =>
+      input.text.trim().length === 0
+        ? Effect.succeed(undefined)
+        : Memory.savePlugin(kv, pluginID, { text: input.text, tags: input.tags, now: now() }).pipe(
+            Effect.map((result) => result.entry),
+          ),
+    update: (input) =>
+      Memory.findPluginEntry(kv, pluginID, input.id).pipe(
+        Effect.flatMap((located) =>
+          located === undefined
+            ? Effect.succeed(undefined)
+            : Memory.updatePlugin(kv, pluginID, {
+                id: input.id,
+                text: input.text ?? located.entry.text,
+                tags: input.tags ?? located.entry.tags,
+                now: now(),
+              }),
+        ),
+      ),
+    forget: (id) => Memory.removePlugin(kv, pluginID, id).pipe(Effect.as(true)),
   }
 }
 

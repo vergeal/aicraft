@@ -1,5 +1,6 @@
 export * as Plugin from "./plugin.js"
 export type { StorageEntry, StorageScanOptions, StorageScanResult } from "../storage.js"
+export type { MemoryDomain, MemoryEntry } from "./memory.js"
 
 export { Agent } from "@opencode/schema/agent"
 export { Artifact } from "@opencode/schema/artifact"

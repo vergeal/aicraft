@@ -9,6 +9,9 @@ type Scope = Memory.Scope
 
 type Entry = Memory.Entry
 
+/** One plugin's memories, as the server groups them. Plugin memories never join the user's own scopes. */
+type PluginGroup = { plugin: string; entries: readonly Entry[] }
+
 /** Matches the tools' own limits, so the editor cannot build an entry they would reject or truncate. */
 const MAX_TEXT = 2_000
 
@@ -35,6 +38,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   const [global, setGlobal] = createSignal<readonly Entry[]>([])
   const [project, setProject] = createSignal<readonly Entry[]>([])
+  const [pluginGroups, setPluginGroups] = createSignal<readonly PluginGroup[]>([])
   const [manualProject, setManualProject] = createSignal<string | null>(null)
   const [query, setQuery] = createSignal("")
   const [activeTag, setActiveTag] = createSignal<string | null>(null)
@@ -82,16 +86,18 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     setError(false)
 
     try {
-      const result = await client.list({ projectID })
+      const [result, plugins] = await Promise.all([client.list({ projectID }), client.plugins({})])
 
       if (ticket !== generation) return
       setGlobal(result.global)
       setProject(result.project)
+      setPluginGroups(plugins.groups)
     } catch {
       if (ticket !== generation) return
       setError(true)
       setGlobal([])
       setProject([])
+      setPluginGroups([])
     } finally {
       if (ticket === generation) setLoading(false)
     }
@@ -149,10 +155,24 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const globalMatches = createMemo(() => visible(global()))
   const projectMatches = createMemo(() => visible(project()))
 
+  const pluginMatches = createMemo(() =>
+    pluginGroups()
+      .map((group) => ({ plugin: group.plugin, entries: visible(group.entries) }))
+      .filter((group) => group.entries.length > 0),
+  )
+
+  const pluginCount = () => pluginMatches().reduce((sum, group) => sum + group.entries.length, 0)
+
   const searchEmpty = () =>
-    filtering() && !loading() && !error() && globalMatches().length === 0 && projectMatches().length === 0
+    filtering() &&
+    !loading() &&
+    !error() &&
+    globalMatches().length === 0 &&
+    projectMatches().length === 0 &&
+    pluginMatches().length === 0
 
   const sectionVisible = (matches: readonly Entry[]) => !filtering() || loading() || error() || matches.length > 0
+  const pluginsVisible = () => !filtering() || loading() || error() || pluginMatches().length > 0
 
   const clearFilters = () => {
     setQuery("")
@@ -441,11 +461,10 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     const client = rpc()
 
     if (!client) return
-    const summary = entry.text.length > 72 ? `${entry.text.slice(0, 72).trimEnd()}…` : entry.text
 
     const confirmed = await ctx.dialogs.confirm({
       title: ctx.t("delete.title"),
-      description: ctx.t("delete.description", { text: summary }),
+      description: ctx.t("delete.description", { text: summary(entry) }),
       confirm: ctx.t("delete"),
       cancel: ctx.t("cancel"),
       danger: true,
@@ -466,13 +485,40 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     }
   }
 
-  const Row = (props: { scope: Scope; entry: Entry }) => {
+  const removePlugin = async (plugin: string, entry: Entry) => {
+    const client = rpc()
+
+    if (!client) return
+
+    const confirmed = await ctx.dialogs.confirm({
+      title: ctx.t("delete.title"),
+      description: ctx.t("delete.description", { text: summary(entry) }),
+      confirm: ctx.t("delete"),
+      cancel: ctx.t("cancel"),
+      danger: true,
+    })
+
+    if (!confirmed) return
+
+    try {
+      await client.removePlugin({ plugin, id: entry.id })
+      await refresh()
+      ctx.toast.show({ title: ctx.t("deleted"), variant: "success" })
+    } catch (cause) {
+      failure(cause)
+    }
+  }
+
+  const summary = (entry: Entry) =>
+    entry.text.length > 72 ? `${entry.text.slice(0, 72).trimEnd()}…` : entry.text
+
+  const Row = (props: { scope: Scope | "plugin"; plugin?: string; entry: Entry }) => {
     const [expanded, setExpanded] = createSignal(false)
     const long = () => props.entry.text.length > CLAMP_AT
 
     return (
       <ctx.ui.SettingsRow
-        id={`${props.scope}:${props.entry.id}`}
+        id={props.plugin ? `${props.plugin}:${props.entry.id}` : `${props.scope}:${props.entry.id}`}
         title={
           <Show
             when={long()}
@@ -512,20 +558,33 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
           </div>
         }
       >
-        <ctx.ui.Tooltip value={ctx.t("edit")}>
-          <ctx.ui.IconButton
-            icon="edit"
-            size="small"
-            label={ctx.t("edit")}
-            onClick={() => openEditor(props.scope, props.entry)}
-          />
-        </ctx.ui.Tooltip>
+        <Show when={props.scope !== "plugin"}>
+          <ctx.ui.Tooltip value={ctx.t("edit")}>
+            <ctx.ui.IconButton
+              icon="edit"
+              size="small"
+              label={ctx.t("edit")}
+              onClick={() => {
+                if (props.scope === "plugin") return
+                openEditor(props.scope, props.entry)
+              }}
+            />
+          </ctx.ui.Tooltip>
+        </Show>
         <ctx.ui.Tooltip value={ctx.t("delete")}>
           <ctx.ui.IconButton
             icon="outline-trash"
             size="small"
             label={ctx.t("delete")}
-            onClick={() => void remove(props.scope, props.entry)}
+            onClick={() => {
+              if (props.scope === "plugin") {
+                if (props.plugin) void removePlugin(props.plugin, props.entry)
+
+                return
+              }
+
+              void remove(props.scope, props.entry)
+            }}
           />
         </ctx.ui.Tooltip>
       </ctx.ui.SettingsRow>
@@ -734,6 +793,45 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                         hint={ctx.t("empty.project.hint")}
                         action={addButton("project", ctx.t("add.project"))}
                       />
+                    </Show>
+                  </Show>
+                </Show>
+              </section>
+            </Show>
+
+            <Show when={pluginsVisible()}>
+              <section class="settings-section" aria-label={ctx.t("plugin.title")}>
+                <SectionHead title={ctx.t("plugin.title")} count={pluginCount()} />
+                <p class="memory-plugin-hint">{ctx.t("plugin.hint")}</p>
+                <Show when={!loading() || pluginGroups().length > 0} fallback={<Loading />}>
+                  <Show when={!error()} fallback={<ErrorState />}>
+                    <Show
+                      when={pluginMatches().length > 0}
+                      fallback={
+                        <EmptyState
+                          icon="memory"
+                          title={ctx.t("plugin.empty")}
+                          hint={ctx.t("plugin.empty.hint")}
+                        />
+                      }
+                    >
+                      <div class="memory-plugins">
+                        <For each={pluginMatches()}>
+                          {(group) => (
+                            <div class="memory-plugin-group">
+                              <div class="memory-plugin-head">
+                                <span class="memory-plugin-name">{group.plugin}</span>
+                                <span class="settings-section-count">{group.entries.length}</span>
+                              </div>
+                              <div data-component="settings-list">
+                                <For each={group.entries}>
+                                  {(entry) => <Row scope="plugin" plugin={group.plugin} entry={entry} />}
+                                </For>
+                              </div>
+                            </div>
+                          )}
+                        </For>
+                      </div>
                     </Show>
                   </Show>
                 </Show>

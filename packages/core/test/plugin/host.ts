@@ -160,6 +160,13 @@ export function host(overrides: Overrides = {}): Plugin.Context {
       remove: () => Effect.die("unused storage.remove"),
       scan: () => Effect.die("unused storage.scan"),
     },
+    memory: overrides.memory ?? {
+      list: () => Effect.die("unused memory.list"),
+      search: () => Effect.die("unused memory.search"),
+      save: () => Effect.die("unused memory.save"),
+      update: () => Effect.die("unused memory.update"),
+      forget: () => Effect.die("unused memory.forget"),
+    },
     inbox: overrides.inbox ?? {
       publish: () => Effect.die("unused inbox.publish"),
       publishMany: () => Effect.die("unused inbox.publishMany"),

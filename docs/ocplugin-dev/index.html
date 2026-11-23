@@ -1760,6 +1760,7 @@ Content-Type: application/json
         <tr><td><code>ctx.inbox</code></td><td><code>publish</code>、<code>publishMany</code>、<code>list</code>、<code>update</code>、<code>remove</code>、<code>markSeen</code>、<code>onSeen</code></td><td>往应用收件箱投递给用户看的事项，只作用于本插件自己的消息，见 <a href="#s4-18">4.18</a>。</td></tr>
         <tr><td><code>ctx.integration</code></td><td><code>transform</code>、<code>reload</code>、<code>connection</code></td><td>外部集成。</td></tr>
         <tr><td><code>ctx.mcp</code></td><td><code>transform</code>、<code>reload</code></td><td>MCP 服务器。</td></tr>
+        <tr><td><code>ctx.memory</code></td><td><code>list</code>、<code>search</code>、<code>save</code>、<code>update</code>、<code>forget</code></td><td>本插件自己的长期记忆，按插件隔离，见下文「插件记忆」。</td></tr>
         <tr><td><code>ctx.model</code></td><td><code>transform</code>、<code>reload</code></td><td>模型列表与限制。</td></tr>
         <tr><td><code>ctx.permission</code></td><td><code>list</code>、<code>get</code>、<code>reply</code>、<code>assert</code>、<code>hook</code></td><td>权限规则与询问。</td></tr>
         <tr><td><code>ctx.paths</code></td><td><code>data</code>、<code>cache</code>、<code>log</code></td><td>插件专属目录，见下文「插件目录」。</td></tr>
@@ -1777,6 +1778,49 @@ Content-Type: application/json
         <tr><td><code>ctx.websearch</code></td><td><code>transform</code>、<code>reload</code></td><td>联网搜索提供商。</td></tr>
         <tr><td><code>ctx.worktree</code></td><td><code>transform</code>、<code>reload</code></td><td>工作树策略。</td></tr>
       </table>
+
+      <h4>插件记忆（ctx.memory）</h4>
+      <p>
+        插件可以保存跨会话复用的条目：一段正文加最多 8 个标签，带创建与更新时间。它存在服务端，和用户的「记忆」共用一套存储与设置页，
+        但<b>按插件隔离</b>：每个插件只能读写自己 id 下的条目，看不到别的插件的记忆，也碰不到用户的项目记忆和全局记忆。
+      </p>
+      <p>
+        插件记忆<b>不会注入会话上下文</b>。它是插件自己的数据，什么时候读、读到什么由插件决定。用户可以在
+        「设置 → 记忆 → 插件记忆」里看到并删除它们，但不能替插件新增。
+      </p>
+      <table>
+        <tr><th>方法</th><th>参数</th><th>返回</th></tr>
+        <tr><td><code>list()</code></td><td>—</td><td><code>MemoryEntry[]</code>，按更新时间倒序。</td></tr>
+        <tr><td><code>search(query, options?)</code></td><td><code>query</code>；<code>options.limit</code> 默认 20</td><td>正文或标签匹配的条目，按更新时间倒序。</td></tr>
+        <tr><td><code>save({ text, tags? })</code></td><td>正文；标签</td><td>写入后的条目；正文为空时返回 <code>undefined</code>。正文相同的条目合并标签而不是新增一条。</td></tr>
+        <tr><td><code>update({ id, text?, tags? })</code></td><td>条目 id 与要改的字段</td><td>更新后的条目；id 不属于本插件时返回 <code>undefined</code>。</td></tr>
+        <tr><td><code>forget(id)</code></td><td>条目 id</td><td><code>true</code>。</td></tr>
+      </table>
+      <p>
+        <code>tags</code> 里的空串和重复项会被丢弃，最多保留 8 个、每个 30 字。<code>MemoryEntry</code> 的形状是
+        <code>{ id, text, tags, createdAt, updatedAt }</code>，两个时间都是 ISO 字符串。
+      </p>
+      <pre><span class="path">acme-plugin/server/main.ts</span><code>import { Plugin } from "@opencode/plugin"
+
+export default Plugin.define({
+  id: "acme.notes",
+
+  async activate(ctx) {
+    const saved = await ctx.memory.save({ text: "用户偏好 Markdown 笔记", tags: ["偏好"] })
+    if (!saved) return
+
+    // 正文相同的再次保存会合并标签，不新增条目。
+    await ctx.memory.save({ text: "用户偏好 Markdown 笔记", tags: ["笔记"] })
+
+    const hits = await ctx.memory.search("markdown")
+    await ctx.memory.update({ id: saved.id, tags: ["偏好", "笔记"] })
+    await ctx.memory.forget(saved.id)
+  },
+})</code></pre>
+      <p>
+        和 <code>ctx.storage</code> 的分工：任意 JSON、按 key 取用、只给插件自己用的状态放 <code>ctx.storage</code>；
+        需要用户能看见和管理、带标签和时间的「记忆」用 <code>ctx.memory</code>。
+      </p>
 
       <h4>插件目录（ctx.paths）</h4>
       <p>

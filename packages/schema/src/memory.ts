@@ -57,6 +57,22 @@ export const Definition = Rpc.define({
       input: Schema.toStandardSchemaV1(Schema.Struct({ ...ScopeInput, id: Schema.String })),
       output: Schema.toStandardSchemaV1(Schema.Struct({ removed: Schema.Boolean })),
     },
+    /**
+     * Plugin memories, grouped by plugin id. Plugins write them through their own `ctx.memory`; this page is where
+     * the user sees and deletes them, and no plugin can read another's.
+     */
+    plugins: {
+      input: Schema.toStandardSchemaV1(Schema.Struct({})),
+      output: Schema.toStandardSchemaV1(
+        Schema.Struct({
+          groups: Schema.Array(Schema.Struct({ plugin: Schema.String, entries: Schema.Array(Entry) })),
+        }),
+      ),
+    },
+    removePlugin: {
+      input: Schema.toStandardSchemaV1(Schema.Struct({ plugin: Schema.String, id: Schema.String })),
+      output: Schema.toStandardSchemaV1(Schema.Struct({ removed: Schema.Boolean })),
+    },
   },
   events: {},
 })

@@ -517,6 +517,13 @@ export function fromPromise(plugin: Plugin) {
             remove: (key) => run(host.storage.remove(key)),
             scan: (options) => run(host.storage.scan(options)),
           },
+          memory: {
+            list: () => run(host.memory.list()),
+            search: (query, options) => run(host.memory.search(query, options)),
+            save: (input) => run(host.memory.save(input)),
+            update: (input) => run(host.memory.update(input)),
+            forget: (id) => run(host.memory.forget(id)),
+          },
           inbox: {
             publish: (message) => run(host.inbox.publish(message)),
             publishMany: (messages) => run(host.inbox.publishMany(messages)),

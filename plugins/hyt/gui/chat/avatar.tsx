@@ -14,12 +14,6 @@ const SIZE: Record<AvatarSize, number> = {
   member: 28,
 }
 
-/** 单聊头像圆形；群头像是成员拼图，留在圆角方形里，九宫格不会被圆裁掉四角。 */
-function radius(group: boolean, size: number) {
-  if (!group) return "50%"
-  return `${Math.max(3, Math.round(size * 0.12))}px`
-}
-
 /** 拼图小格子的圆角，与虹云通 `Tile` 一致：16%，最小 2px。 */
 function tileRadius(size: number) {
   return Math.max(2, Math.round(size * 0.16))
@@ -75,7 +69,7 @@ export function Avatar(props: {
       style={{
         width: `${size()}px`,
         height: `${size()}px`,
-        "border-radius": radius(props.group === true, size()),
+        "border-radius": "50%",
         "background-color": stack() ? GROUP_HEAD_BG : headColor(name()),
         "font-size": `${faceSize(size())}px`,
       }}

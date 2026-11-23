@@ -25,8 +25,11 @@ export function SessionList(props: {
   draftCount: number
   knowledgeCount: number
   unread: number
+  /** 搜索框默认收起，点标题右侧放大镜展开；主区搜索按钮也会把它打开。 */
+  searchOpen: boolean
   onSelect: (id: string, messageId?: number) => void
   onSearch: (query: string) => void
+  onSearchOpen: (open: boolean) => void
   /** 一键阅读：把所有会话的未读标为已读。 */
   onMarkAllRead: () => void
   onRefresh: () => void
@@ -65,6 +68,16 @@ export function SessionList(props: {
       <div class="hyt-side-brand">
         <span class="hyt-side-name">{text(ctx, "hyt.chat.side.title")}</span>
         <div class="hyt-side-tools">
+          <button
+            type="button"
+            class="hyt-side-tool"
+            aria-label={text(ctx, "hyt.chat.search.label")}
+            title={text(ctx, "hyt.chat.search.label")}
+            aria-expanded={props.searchOpen ? "true" : "false"}
+            onClick={() => props.onSearchOpen(!props.searchOpen)}
+          >
+            <ctx.ui.Icon name="magnifying-glass" size="small" />
+          </button>
           <div class="hyt-side-filter">
             <button
               type="button"
@@ -100,34 +113,46 @@ export function SessionList(props: {
                     </button>
                   )}
                 </For>
+                <div class="hyt-side-filter-sep" />
+                <button
+                  type="button"
+                  class="hyt-side-filter-item"
+                  role="menuitem"
+                  disabled={props.unread === 0}
+                  onClick={() => {
+                    props.onMarkAllRead()
+                    setFilterOpen(false)
+                  }}
+                >
+                  <span class="hyt-side-filter-label">{text(ctx, "hyt.chat.action.readAll")}</span>
+                  <span class="hyt-side-filter-count">{props.unread}</span>
+                </button>
               </div>
             </Show>
           </div>
-          <button
-            type="button"
-            class="hyt-side-tool"
-            aria-label={text(ctx, "hyt.chat.action.readAll")}
-            title={text(ctx, "hyt.chat.action.readAll")}
-            disabled={props.unread === 0}
-            onClick={() => props.onMarkAllRead()}
-          >
-            <ctx.ui.Icon name="check" size="small" />
-          </button>
         </div>
       </div>
 
-      <label class="hyt-chat-search">
-        <span class="hyt-chat-search-icon">
-          <ctx.ui.Icon name="magnifying-glass" size="small" />
-        </span>
-        <input
-          type="search"
-          value={props.query}
-          placeholder={text(ctx, "hyt.chat.search.placeholder")}
-          aria-label={text(ctx, "hyt.chat.search.label")}
-          onInput={(event) => props.onSearch(event.currentTarget.value)}
-        />
-      </label>
+      <Show when={props.searchOpen}>
+        <label class="hyt-chat-search">
+          <span class="hyt-chat-search-icon">
+            <ctx.ui.Icon name="magnifying-glass" size="small" />
+          </span>
+          <input
+            ref={(el) => queueMicrotask(() => el.focus())}
+            type="search"
+            value={props.query}
+            placeholder={text(ctx, "hyt.chat.search.placeholder")}
+            aria-label={text(ctx, "hyt.chat.search.label")}
+            onInput={(event) => props.onSearch(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Escape") return
+              props.onSearch("")
+              props.onSearchOpen(false)
+            }}
+          />
+        </label>
+      </Show>
 
       <div class="hyt-side-scroll">
         <Show

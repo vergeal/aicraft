@@ -229,8 +229,18 @@ export const css = `
   color: var(--hyt-accent-ink);
   font-weight: var(--font-weight-bold);
 }
+.hyt-side-filter-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* 菜单底部的一键已读：用一条极淡的分隔线跟筛选项隔开，避免误点。 */
+.hyt-side-filter-sep {
+  height: 0.5px;
+  margin: 4px 6px;
+  background: var(--hyt-line);
+}
 @media (hover: hover) {
-  .hyt-side-filter-item:hover {
+  .hyt-side-filter-item:hover:not(:disabled) {
     background: var(--hyt-hover);
   }
 }
@@ -243,7 +253,13 @@ export const css = `
   font-variant-numeric: tabular-nums;
 }
 
-/* 搜索：叠在栏上的一层浅色，不用边框。 */
+/* 搜索：叠在栏上的一层浅色，不用边框。默认收起，点「消息」右侧的放大镜才展开。 */
+@keyframes hyt-search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
 .hyt-chat-search {
   position: relative;
   display: flex;
@@ -257,6 +273,7 @@ export const css = `
   background: var(--hyt-surface-raised);
   box-shadow: inset 0 0 0 0.5px transparent;
   color: var(--hyt-text-3);
+  animation: hyt-search-in 140ms var(--ease-out, ease);
   transition:
     background-color var(--duration-fast, 120ms) var(--ease-out, ease),
     box-shadow var(--duration-fast, 120ms) var(--ease-out, ease);
@@ -602,7 +619,7 @@ export const css = `
   color: var(--hyt-text);
 }
 
-/* 头像：单人圆形、群聊圆角方形，尺寸、圆角与底色由组件按飞书与虹云通的规则算好（inline）。 */
+/* 头像：一律圆形（与飞书一致），群拼图也被容器裁成圆，四角格子自然切掉。 */
 .hyt-chat-avatar {
   position: relative;
   display: grid;
@@ -1655,6 +1672,9 @@ export const css = `
 @media (prefers-reduced-motion: reduce) {
   .hyt-chat * {
     transition: none !important;
+  }
+  .hyt-chat-search {
+    animation: none !important;
   }
 }
 `

@@ -62,6 +62,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   const [notice, setNotice] = createSignal<Notice | undefined>()
   const [error, setError] = createSignal<string | undefined>()
   const [query, setQuery] = createSignal("")
+  // 左栏搜索框按飞书做成点开式：图标在「消息」右侧，展开时才占一行高度。
+  const [searchOpen, setSearchOpen] = createSignal(false)
   const [searching, setSearching] = createSignal(false)
   const [loadingMore, setLoadingMore] = createSignal(false)
   let searchTimer: number | undefined
@@ -221,8 +223,10 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 draftCount={currentDraft() === undefined ? 0 : 1}
                 knowledgeCount={snapshot().knowledge.length}
                 unread={snapshot().unread}
+                searchOpen={searchOpen()}
                 onSelect={select}
                 onSearch={search}
+                onSearchOpen={setSearchOpen}
                 onMarkAllRead={() => void run(() => props.client.markAllRead())}
                 onRefresh={() => void run(() => props.client.refresh())}
               />
@@ -243,7 +247,10 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 onFocusDone={() => setFocusId(undefined)}
                 onUseDraft={insertComposer}
                 onRefresh={() => void run(() => props.client.refresh())}
-                onFocusSearch={() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()}
+                onFocusSearch={() => {
+                  setSearchOpen(true)
+                  requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus())
+                }}
                 infoOpen={infoOpen()}
                 onToggleInfo={() => setInfoOpen(!infoOpen())}
                 avatars={avatarMap()}

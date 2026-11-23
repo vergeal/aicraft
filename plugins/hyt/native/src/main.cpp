@@ -337,7 +337,7 @@ Value rpcAuthLogin(const Value& params) {
   if (params.has("envFile")) options.envFile = paramString(params, "envFile");
   if (params.has("sdkConfig")) options.sdkConfig = paramString(params, "sdkConfig");
   if (params.has("pbsBase")) options.pbsBase = paramString(params, "pbsBase");
-  if (params.has("mode")) options.mode = paramInt(params, "mode", 1);
+  if (params.has("mode")) options.mode = paramInt(params, "mode", 2);
   if (params.has("waitMs")) options.waitMs = paramInt(params, "waitMs", 5000);
 
   hyt::LoginResult result = hyt::SdkHost::instance().login(options);

@@ -25,7 +25,10 @@ add_executable(hyt-native-bridge
   src/message.cpp
   src/sdk_host.cpp
 )
-target_link_libraries(hyt-native-bridge PRIVATE SQLite::SQLite3 Threads::Threads)
+# 只用 SQLite 的头文件：macOS 链接了 EC SDK 时，sqlite3 的实现由 SDK 静态库提供。
+# 同时链系统 libsqlite3 会让同一个进程里出现两套 sqlite3，SDK 内部查询会跳到另一版实现并崩溃。
+target_include_directories(hyt-native-bridge PRIVATE ${SQLite3_INCLUDE_DIRS})
+target_link_libraries(hyt-native-bridge PRIVATE Threads::Threads)
 if(NOT MSVC)
   target_compile_options(hyt-native-bridge PRIVATE -Wall -Wextra -Wno-unused-parameter)
 endif()
@@ -103,14 +106,17 @@ if(HYT_SDK_FOUND)
       set(HYT_WIN_SDK_LIB "${HYT_SDK_ROOT}/libSdk")
     endif()
     target_link_directories(hyt-native-bridge PRIVATE "${HYT_WIN_SDK_LIB}")
+    # Windows 的 SDK 是 DLL，sqlite3 不在里面，仍要自己提供。
     target_link_libraries(hyt-native-bridge PRIVATE
       "${HYT_WIN_SDK_LIB}/ECsdk.lib"
       "${HYT_WIN_SDK_LIB}/ecmedia.lib"
       ws2_32
       winhttp
+      SQLite::SQLite3
     )
   else()
     # Linux 版仅提供配置参考：SDK 运行时依赖较多，缺 .so 时请留在 stub 模式。
+    target_link_libraries(hyt-native-bridge PRIVATE SQLite::SQLite3)
     if(EXISTS "${HYT_SDK_LIB}/libECsdk.so")
       target_link_directories(hyt-native-bridge PRIVATE "${HYT_SDK_LIB}")
       target_link_libraries(hyt-native-bridge PRIVATE
@@ -124,6 +130,7 @@ if(HYT_SDK_FOUND)
   endif()
 else()
   message(STATUS "EC SDK 未找到，编译 stub（仅本地历史/会话可用）")
+  target_link_libraries(hyt-native-bridge PRIVATE SQLite::SQLite3)
 endif()
 
 if(NOT WIN32)

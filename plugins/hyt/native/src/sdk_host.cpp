@@ -797,9 +797,46 @@ void SdkHost::fetchGroups() {
 
 std::vector<std::pair<std::string, std::string>> SdkHost::groups() {
   std::lock_guard<std::mutex> lk(groupsMutex_);
+  if (!groupsLoaded_) loadGroupsLocked();
   std::vector<std::pair<std::string, std::string>> out;
   for (const auto& entry : groups_) out.push_back(entry.second);
   return out;
+}
+
+/**
+ * 群名缓存由 SdkHost 自己写、自己读：插件只读本地库时拿不到在线群名，
+ * 而 keepgroup 里通常只有退出群或客户端生成的默认名。
+ */
+void SdkHost::loadGroupsLocked() {
+  groupsLoaded_ = true;
+  std::string text;
+  if (!readFile(joinPath(configDir(), "newhyt-groups.json"), &text)) return;
+  nhjson::Value root;
+  if (!nhjson::Value::parse(text, root)) return;
+  const nhjson::Value* list = root.find("groups");
+  if (list == nullptr || list->type != nhjson::Value::ARR) return;
+  for (const auto& item : list->arr) {
+    const std::string id = item.getString("groupId");
+    if (id.empty()) continue;
+    groups_[id] = {id, item.getString("name")};
+  }
+}
+
+void SdkHost::persistGroups(
+    const std::vector<std::pair<std::string, std::string>>& groups) {
+  nhjson::Value list = nhjson::Value::array();
+  for (const auto& group : groups) {
+    if (group.first.empty()) continue;
+    nhjson::Value item = nhjson::Value::object();
+    item.set("groupId", nhjson::Value::string(group.first));
+    item.set("name", nhjson::Value::string(group.second));
+    list.arr.push_back(item);
+  }
+  nhjson::Value root = nhjson::Value::object();
+  root.set("groups", list);
+  ensureDir(configDir());
+  const std::string path = joinPath(configDir(), "newhyt-groups.json");
+  if (!writeFileAtomic(path, root.dump())) logError("写入群名缓存失败: %s", path.c_str());
 }
 
 bool SdkHost::loggedIn() const {
@@ -1100,6 +1137,9 @@ void SdkHost::handleOwnGroups(
     }
     for (const auto& entry : groups_) merged.push_back(entry.second);
   }
+
+  // 在线群名是唯一能拿到真实群名的来源，落盘后离线也能解析出来。
+  persistGroups(merged);
 
   nhjson::Value list = nhjson::Value::array();
   for (const auto& group : merged) {

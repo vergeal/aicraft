@@ -27,7 +27,7 @@ struct LoginOptions {
   std::string envFile;            // rxSettings ini，可选
   std::string sdkConfig;          // sdk_server_config*.xml，可选
   std::string pbsBase;            // 覆盖 PBS 地址，可选
-  int mode = 1;                   // LoginEx2 mode：1 用户输入，2 自动登录
+  int mode = 2;                   // LoginEx2 mode：1 用户输入(会踢掉别的设备)，2 自动登录(服务器决定踢出逻辑)
   int waitMs = 5000;              // 等待连接状态的时间
 };
 
@@ -107,6 +107,8 @@ class SdkHost {
                           int waitMs);
   void fetchGroups();
   std::vector<std::pair<std::string, std::string>> groups();
+  /** 把在线群列表写进 `Config/newhyt-groups.json`，供插件离线时解析群名。 */
+  void persistGroups(const std::vector<std::pair<std::string, std::string>>& groups);
 
   bool loggedIn() const;
   bool connected() const;
@@ -199,6 +201,10 @@ class SdkHost {
   std::map<unsigned int, std::shared_ptr<MemberWait>> pendingMembers_;
   std::map<unsigned int, std::shared_ptr<DownloadWait>> pendingDownloads_;
   std::map<std::string, std::pair<std::string, std::string>> groups_;
+  /** 群名缓存是否已经从磁盘读过，避免每次 groups() 都开文件。 */
+  bool groupsLoaded_ = false;
+  /** 持着 groupsMutex_ 调用的读盘逻辑。 */
+  void loadGroupsLocked();
 };
 
 }  // namespace hyt

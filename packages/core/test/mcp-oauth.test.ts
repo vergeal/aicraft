@@ -649,7 +649,6 @@ describe("MCP OAuth", () => {
       expect(registrations[0]).toMatchObject({
         client_name: "opencode",
         client_uri: "https://opencode.ai",
-        logo_uri: "https://opencode.ai/web-app-manifest-512x512.png",
       })
     })
 

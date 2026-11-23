@@ -80,7 +80,7 @@ export function getProjectAvatarSource(id?: string, icon?: { color?: string; url
 
   if (icon?.color) return undefined
 
-  if (id && OPENCODE_PROJECT_IDS.has(id)) return "https://opencode.ai/favicon.svg"
+  if (id && OPENCODE_PROJECT_IDS.has(id)) return "/favicon.svg"
 
   return icon?.url
 }

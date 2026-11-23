@@ -5,6 +5,8 @@ type DesktopNotifyAPI = Pick<ElectronAPI, "getWindowFocused" | "showWindow" | "s
 
 const MAX_ACTIVE_NOTIFICATIONS = 40
 
+const APP_ICON = new URL("/favicon-96x96-v3.png", globalThis.location?.href ?? "http://localhost").href
+
 const activeNotifications = new Set<Notification>()
 
 export function createDesktopNotify(api: DesktopNotifyAPI): Platform["notify"] {
@@ -15,7 +17,7 @@ export function createDesktopNotify(api: DesktopNotifyAPI): Platform["notify"] {
 
     const notification = new Notification(title, {
       body: description ?? "",
-      icon: "https://opencode.ai/favicon-96x96-v3.png",
+      icon: APP_ICON,
       silent: true,
     })
 

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>文件传输助手 · 头像图标</title>
+    <style>
+      :root {
+        --fg: #161616;
+        --muted: #5c5c5c;
+        --line: rgb(0 0 0 / 10%);
+        --surface: #ffffff;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #fff;
+        color: var(--fg);
+        font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      .lead { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
+      section {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      section.dark {
+        background: #161616;
+        border-color: rgb(255 255 255 / 14%);
+        color: #f2f2f2;
+        --fg: #f2f2f2;
+        --muted: #c2c2c2;
+        --line: rgb(255 255 255 / 16%);
+        --surface: #242424;
+      }
+      h2 { font-size: 12px; font-weight: 600; margin: 0 0 14px; color: var(--muted); }
+      .row { display: flex; align-items: flex-end; gap: 26px; flex-wrap: wrap; }
+      .cell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .cell span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .s16 { width: 16px; height: 16px; }
+      .s24 { width: 24px; height: 24px; }
+      .s32 { width: 32px; height: 32px; }
+      .s40 { width: 40px; height: 40px; }
+      .s64 { width: 64px; height: 64px; }
+      .s96 { width: 96px; height: 96px; }
+      .rail { width: 280px; margin-top: 20px; display: flex; flex-direction: column; gap: 2px; }
+      .entry {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 54px;
+        padding: 0 10px;
+        border-radius: 10px;
+      }
+      .entry[aria-current="true"] { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+      .entry img { width: 40px; height: 40px; border-radius: 10px; overflow: hidden; }
+      .entry b { display: block; font-size: 14px; font-weight: 600; }
+      .entry p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+      .entry time { margin-left: auto; font-size: 11px; color: var(--muted); }
+      .neighbors { display: flex; gap: 8px; align-items: flex-end; margin-top: 18px; }
+      .neighbors .cell span { font-size: 10px; }
+      .zoom {
+        display: grid;
+        place-items: center;
+        width: 192px;
+        height: 192px;
+        border: 1px dashed var(--line);
+        border-radius: 6px;
+      }
+      .zoom--16 { width: 128px; height: 128px; }
+      .zoom-art {
+        width: 24px;
+        height: 24px;
+        transform: scale(8);
+        transform-origin: center;
+        image-rendering: pixelated;
+      }
+      .zoom--16 .zoom-art { width: 16px; height: 16px; transform: scale(8); }
+    </style>
+  </head>
+  <body>
+    <h1>文件传输助手 · 卡通头像</h1>
+    <p class="lead">绿底 + 白纸 + 深绿上传箭头 + 浅绿折角。与红底气泡小人（虹云通助手）色相拉开，缩到 24px 仍是一个「带箭头的文件」。</p>
+
+    <section>
+      <h2>浅色底</h2>
+      <div class="row">
+        <div class="cell"><img class="s96" src="transfer-helper-icon.svg" alt="" /><span>96</span></div>
+        <div class="cell"><img class="s64" src="transfer-helper-icon.svg" alt="" /><span>64</span></div>
+        <div class="cell"><img class="s40" src="transfer-helper-icon.svg" alt="" /><span>40</span></div>
+        <div class="cell"><img class="s32" src="transfer-helper-icon.svg" alt="" /><span>32</span></div>
+        <div class="cell"><img class="s24" src="transfer-helper-icon.svg" alt="" /><span>24</span></div>
+        <div class="cell"><img class="s16" src="transfer-helper-icon.svg" alt="" /><span>16</span></div>
+      </div>
+      <div class="rail">
+        <div class="entry" aria-current="true">
+          <img src="transfer-helper-icon.svg" alt="" />
+          <div>
+            <b>文件传输助手</b>
+            <p>可以发 文档传输助手</p>
+          </div>
+          <time>16:46</time>
+        </div>
+        <div class="entry">
+          <img src="transfer-helper-icon.svg" alt="" />
+          <div>
+            <b>文件传输助手</b>
+            <p>[图片]</p>
+          </div>
+          <time>昨天</time>
+        </div>
+      </div>
+    </section>
+
+    <section class="dark">
+      <h2>深色底</h2>
+      <div class="row">
+        <div class="cell"><img class="s96" src="transfer-helper-icon.svg" alt="" /><span>96</span></div>
+        <div class="cell"><img class="s64" src="transfer-helper-icon.svg" alt="" /><span>64</span></div>
+        <div class="cell"><img class="s40" src="transfer-helper-icon.svg" alt="" /><span>40</span></div>
+        <div class="cell"><img class="s32" src="transfer-helper-icon.svg" alt="" /><span>32</span></div>
+        <div class="cell"><img class="s24" src="transfer-helper-icon.svg" alt="" /><span>24</span></div>
+        <div class="cell"><img class="s16" src="transfer-helper-icon.svg" alt="" /><span>16</span></div>
+      </div>
+      <div class="rail">
+        <div class="entry" aria-current="true">
+          <img src="transfer-helper-icon.svg" alt="" />
+          <div>
+            <b>文件传输助手</b>
+            <p>可以发 文档传输助手</p>
+          </div>
+          <time>16:46</time>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>24px 实际光栅化（放大 8× 对照）</h2>
+      <div class="row">
+        <div class="cell">
+          <div class="zoom"><img class="zoom-art" src="transfer-helper-icon.svg" alt="" /></div>
+          <span>24 → 192</span>
+        </div>
+        <div class="cell">
+          <div class="zoom zoom--16"><img class="zoom-art" src="transfer-helper-icon.svg" alt="" /></div>
+          <span>16 → 128</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>与相邻身份标并排（24px）</h2>
+      <div class="neighbors">
+        <div class="cell"><img class="s24" src="transfer-helper-icon.svg" alt="" /><span>文件传输</span></div>
+        <div class="cell"><img class="s24" src="icon-cartoon.svg" alt="" /><span>虹云通助手</span></div>
+        <div class="cell"><img class="s24" src="app-icon-cartoon.svg" alt="" /><span>客户端</span></div>
+      </div>
+    </section>
+  </body>
+</html>

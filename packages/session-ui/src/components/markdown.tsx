@@ -17,6 +17,7 @@ import { isServer, render } from "solid-js/web"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Tooltip } from "@opencode/ui/tooltip"
+import { parseSmallMarkdown } from "@opencode/ui/context/marked-base"
 import { canReusePendingBlock, completedProjection } from "./markdown-projection"
 import type { Block, Projection } from "./markdown-stream"
 import {
@@ -34,6 +35,7 @@ import {
   getCachedMarkdown,
   getReadyMarkdown,
   renderCachedMarkdown,
+  sanitizeMarkdown,
   touchCachedMarkdown,
   type MarkdownCacheEntry,
 } from "./markdown-cache"
@@ -1235,8 +1237,20 @@ function pendingBlocks(
     if (current && canReusePendingBlock(current, block)) return current
     const key = markdownBlockKey(owner, cacheKey, index, block.mode)
 
-    if (block.mode !== "code")
-      return { key, mode: block.mode, raw: block.raw, hash: String(block.raw.length), html: fallback(block.src) }
+    if (block.mode !== "code") {
+      // A plain-text stand-in has no paragraph or list structure, so its height differs from the parsed block and the
+      // row changes height the moment the worker answers. Parse the block synchronously when it is small enough: the
+      // row then mounts at its final height and the reader never sees it settle.
+      const parsed = parseSmallMarkdown(block.src)
+
+      return {
+        key,
+        mode: block.mode,
+        raw: block.raw,
+        hash: String(block.raw.length),
+        html: parsed ? sanitizeMarkdown(parsed) : fallback(block.src),
+      }
+    }
 
     const fallbackToken: MarkdownToken = [block.src, ""]
 

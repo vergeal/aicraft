@@ -105,6 +105,7 @@ export type IconName =
   | "magnifying-glass"
   | "magnifying-glass-menu"
   | "mcp"
+  | "memory"
   | "menu"
   | "minus"
   | "models"

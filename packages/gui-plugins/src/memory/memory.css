@@ -1,0 +1,364 @@
+/* Memory settings page. The rows and cards come from the host's SettingsRow and settings-list; this file only adds
+   what a memory needs on top: a readable entry text, tag chips, and the editor's fields. Colours are semantic tokens,
+   so both themes follow the app. */
+
+/* The page is a fixed frame: the header and search stay put, and only the lists scroll inside the body. Without
+   this the whole settings column scrolled, so a long list moved the header away and the scrollbar sat on the window
+   edge where the page read as one endlessly growing sheet. Scoped with `:has`, so every other settings page keeps
+   the host's page scroll. */
+.settings-screen .settings-content > .settings-panel:has(.memory-page),
+.settings-content > .settings-panel:has(.memory-page),
+.settings-panel:has(.memory-page) {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.settings-panel:has(.memory-page) > .settings-tab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* The frame, not the old page, owns the scrollbar lane now. */
+.settings-screen > .settings > .settings-content:has(.memory-page) {
+  scrollbar-gutter: auto;
+}
+
+.memory-page {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: var(--settings-space-6);
+}
+
+/* The entry text sits inside the row title slot, whose font it inherits. A long entry clamps to two lines and the
+   whole text becomes a button; a short one is plain text so the pointer never promises an action that does nothing. */
+.memory-entry-text {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: start;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.memory-entry-text[data-clamped="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+button.memory-entry-text {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button.memory-entry-text:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+/* Tags read as chips rather than "#tag" text: one quiet pill each, and a pressed one becomes the active filter. */
+.memory-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.memory-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.memory-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 8px;
+  margin: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.memory-tag {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  button.memory-tag:hover {
+    background: var(--v2-overlay-simple-overlay-hover);
+    color: var(--v2-text-text-base);
+  }
+}
+
+button.memory-tag:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 1px;
+}
+
+.memory-tag[aria-pressed="true"] {
+  background: var(--v2-background-bg-contrast);
+  color: var(--v2-text-text-contrast);
+}
+
+@media (hover: hover) {
+  .memory-tag[aria-pressed="true"]:hover {
+    background: var(--v2-background-bg-contrast);
+    color: var(--v2-text-text-contrast);
+  }
+}
+
+.memory-entry-time {
+  color: var(--v2-text-text-faint);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+/* The active tag filter, next to the search field. */
+.memory-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 180px;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--v2-background-bg-contrast);
+  color: var(--v2-text-text-contrast);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.memory-filter-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-filter-chip:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+/* The editor: one dialog with two fields, stacked, label above control. */
+.memory-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.memory-editor-scope {
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.memory-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.memory-field-label {
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.memory-field-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.memory-field-hint {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.memory-field-hint[data-invalid="true"] {
+  color: var(--v2-state-fg-danger, var(--v2-text-text-base));
+}
+
+.memory-field-counter {
+  color: var(--v2-text-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.memory-field-counter[data-over="true"] {
+  color: var(--v2-state-fg-danger, var(--v2-text-text-base));
+}
+
+/* A textarea styled like the app's inputs: 0.5px inset hairline, radius 12, the same padding as a field. Vertical
+   resize only, with a maximum height so the dialog never grows past the window. */
+.memory-textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  max-height: 240px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  color: var(--v2-text-text-base);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.memory-textarea::placeholder {
+  color: var(--v2-text-text-faint);
+}
+
+.memory-textarea:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+}
+
+.memory-textarea[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px var(--v2-state-fg-danger, var(--v2-border-border-strong));
+}
+
+/* Tag chips in the editor share the list chip, with a remove button. The field itself looks like an input that grows
+   chips, so the click target is the whole box. */
+.memory-tag-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+  cursor: text;
+}
+
+.memory-tag-field:focus-within {
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+}
+
+.memory-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0 -4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .memory-tag-remove:hover {
+    opacity: 1;
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+.memory-tag-remove:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 1px;
+}
+
+.memory-tag-input {
+  flex: 1 1 96px;
+  min-width: 72px;
+  height: 22px;
+  padding: 0 2px;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--v2-text-text-base);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.memory-tag-input::placeholder {
+  color: var(--v2-text-text-faint);
+}
+
+/* The scope switch on a new memory: two quiet segments, so the user can move the entry between scopes while editing. */
+.memory-scope-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--v2-background-bg-layer-02);
+}
+
+.memory-scope-switch button {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--v2-text-text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.memory-scope-switch button[aria-pressed="true"] {
+  background: var(--v2-background-bg-layer-01);
+  color: var(--v2-text-text-base);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+}
+
+.memory-scope-switch button:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 1px;
+}

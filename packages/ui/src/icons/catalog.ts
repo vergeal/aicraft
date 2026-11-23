@@ -432,6 +432,13 @@ const icons = {
     viewBox: "0 0 24 24",
     body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1Z"/></g>`,
   },
+  // Cross-session memory: a stack of record cards, the front one holding two facts. Drawn on the 24 grid at 2px so
+  // it renders at the same weight as the other 24-grid marks, and its own geometry so it never reads as a brain,
+  // a lightbulb or a document.
+  memory: {
+    viewBox: "0 0 24 24",
+    body: `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h11.5A1.5 1.5 0 0 1 20 6.5V16"/><rect x="4" y="8" width="11.5" height="10.5" rx="2"/><path d="M7.4 12.4h4.7M7.4 15.4h2.8"/></g>`,
+  },
   "file-tree": {
     viewBox: "0 0 16 16",
     body: `<g ${outline16}><path d="M2.5 3V13.5M2.5 6H7.5M2.5 10.5H7.5"/><path d="M10 4.5H13C13.55 4.5 14 4.95 14 5.5V6.5C14 7.05 13.55 7.5 13 7.5H10C9.45 7.5 9 7.05 9 6.5V5.5C9 4.95 9.45 4.5 10 4.5Z"/><path d="M10 9H13C13.55 9 14 9.45 14 10V11C14 11.55 13.55 12 13 12H10C9.45 12 9 11.55 9 11V10C9 9.45 9.45 9 10 9Z"/></g>`,

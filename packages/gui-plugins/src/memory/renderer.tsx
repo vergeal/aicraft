@@ -1,15 +1,28 @@
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
+import { createMemo, createSignal, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
-import { SettingsPage, type Plugin } from "@opencode/plugin/gui"
+import { createKeyed, SettingsPage, Style, type Plugin } from "@opencode/plugin/gui"
 import { Memory } from "@opencode/schema/memory"
 import type definition from "./index"
+import styles from "./memory.css?inline"
 
 type Scope = Memory.Scope
+
 type Entry = Memory.Entry
-type EmptyIcon = "brain" | "outline-brain" | "magnifying-glass" | "warning"
+
+/** Matches the tools' own limits, so the editor cannot build an entry they would reject or truncate. */
+const MAX_TEXT = 2_000
+
+const MAX_TAGS = 8
+
+const MAX_TAG_LENGTH = 30
+/** Below this an entry fits the two clamped lines the row shows without a "show all" action. */
+
+const CLAMP_AT = 96
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
   if (!ctx.desktop) return
+
+  ctx.add(Style, styles)
 
   /** The app's own server carries the plugin and its storage; a remote server has its own memories. */
   const server = () =>
@@ -17,48 +30,60 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       .list()
       .map((id) => ctx.servers.get(id))
       .find((item) => item?.builtin || item?.local)
+
   const rpc = () => server()?.client.rpc(Memory.Definition)
 
   const [global, setGlobal] = createSignal<readonly Entry[]>([])
   const [project, setProject] = createSignal<readonly Entry[]>([])
-  const [selected, setSelected] = createSignal<string | null>(null)
+  const [manualProject, setManualProject] = createSignal<string | null>(null)
   const [query, setQuery] = createSignal("")
+  const [activeTag, setActiveTag] = createSignal<string | null>(null)
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal(false)
 
   const projects = createMemo(() => server()?.data.project.list() ?? [])
-  const currentProject = createMemo(() => projects().find((item) => item.id === selected()))
 
-  /** The routed session's project first, else the project used most recently. */
-  createEffect(() => {
+  /** The routed session's project first, else the project used most recently; a pick wins while it is still listed. */
+  const selected = createMemo(() => {
     const available = projects()
-    if (available.length === 0) return setSelected(null)
+
+    if (available.length === 0) return null
+    const manual = manualProject()
+
+    if (manual !== null && available.some((item) => item.id === manual)) return manual
     const routed = ctx.sessions.current()?.project?.id
-    setSelected((previous) =>
-      previous !== null && available.some((item) => item.id === previous)
-        ? previous
-        : (available.find((item) => item.id === routed)?.id ?? available[0]!.id),
-    )
+
+    return available.find((item) => item.id === routed)?.id ?? available[0]!.id
   })
 
-  createEffect(() => {
+  const currentProject = createMemo(() => projects().find((item) => item.id === selected()))
+
+  createKeyed(() => server()?.id, () => {
     const connected = server()
-    if (connected && connected.connected) void connected.data.project.sync().catch(() => undefined)
+
+    if (connected?.connected) void connected.data.project.sync().catch(() => undefined)
   })
 
   // A settings page can open before the server syncs its projects; `projects()` re-runs the load when it does.
   let generation = 0
+
   const refresh = async () => {
     const client = rpc()
+
     if (!client) {
       setLoading(false)
+
       return
     }
+
+    const projectID = selected()
     const ticket = ++generation
     setLoading(true)
     setError(false)
+
     try {
-      const result = await client.list({ projectID: selected() })
+      const result = await client.list({ projectID })
+
       if (ticket !== generation) return
       setGlobal(result.global)
       setProject(result.project)
@@ -72,47 +97,74 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     }
   }
 
-  createEffect(() => {
-    selected()
-    server()?.id
-    projects()
-    void refresh()
-  })
+  createKeyed(
+    () => {
+      const client = rpc()
+
+      if (!client) return
+
+      return { client, projectID: selected(), projects: projects().length }
+    },
+    () => void refresh(),
+    {
+      equals: (previous, next) =>
+        previous?.client === next?.client &&
+        previous?.projectID === next?.projectID &&
+        previous?.projects === next?.projects,
+    },
+  )
 
   const hasQuery = () => query().trim().length > 0
+  const filtering = () => hasQuery() || activeTag() !== null
 
   const formatDate = (iso: string) => {
     const date = new Date(iso)
+
     if (Number.isNaN(date.getTime())) return ""
+
     return new Intl.DateTimeFormat(ctx.locale.locale(), { year: "numeric", month: "short", day: "numeric" }).format(
       date,
     )
   }
 
-  const describe = (entry: Entry) => {
-    const tags = entry.tags.map((tag) => `#${tag}`).join("  ")
-    const updated = ctx.t("updated", { date: formatDate(entry.updatedAt) })
-    return [tags, updated].filter((part) => part.length > 0).join(" · ")
-  }
+  /** A memory reads by when it changed; an untouched one reads by when it was added. */
+  const stamp = (entry: Entry) =>
+    entry.createdAt === entry.updatedAt
+      ? ctx.t("created", { date: formatDate(entry.createdAt) })
+      : ctx.t("updated", { date: formatDate(entry.updatedAt) })
 
   const visible = (entries: readonly Entry[]) => {
     const needle = query().trim().toLowerCase()
-    if (needle.length === 0) return entries
+    const tag = activeTag()?.toLowerCase() ?? null
+
     return entries.filter(
       (entry) =>
-        entry.text.toLowerCase().includes(needle) || entry.tags.some((tag) => tag.toLowerCase().includes(needle)),
+        (tag === null || entry.tags.some((item) => item.toLowerCase() === tag)) &&
+        (needle.length === 0 ||
+          entry.text.toLowerCase().includes(needle) ||
+          entry.tags.some((item) => item.toLowerCase().includes(needle))),
     )
   }
 
   const globalMatches = createMemo(() => visible(global()))
   const projectMatches = createMemo(() => visible(project()))
+
   const searchEmpty = () =>
-    hasQuery() && !loading() && !error() && globalMatches().length === 0 && projectMatches().length === 0
-  const sectionVisible = (matches: readonly Entry[]) => !hasQuery() || loading() || error() || matches.length > 0
+    filtering() && !loading() && !error() && globalMatches().length === 0 && projectMatches().length === 0
+
+  const sectionVisible = (matches: readonly Entry[]) => !filtering() || loading() || error() || matches.length > 0
+
+  const clearFilters = () => {
+    setQuery("")
+    setActiveTag(null)
+  }
+
+  const toggleTag = (tag: string) => setActiveTag((current) => (current === tag ? null : tag))
 
   const projectName = (item: { name?: string; canonical: string }) => {
     if (item.name) return item.name
     const parts = item.canonical.split(/[\\/]/).filter((part) => part.length > 0)
+
     return parts.at(-1) ?? item.canonical
   }
 
@@ -125,36 +177,132 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   /** The new-or-edit dialog. Signals live in the component so the dialog's owner disposes them when it closes. */
   const Editor = (props: { scope: Scope; entry?: Entry; close: () => void }) => {
+    const [scope, setScope] = createSignal<Scope>(props.scope)
     const [text, setText] = createSignal(props.entry?.text ?? "")
-    const [tags, setTags] = createSignal(props.entry?.tags.join("，") ?? "")
+    const [tags, setTags] = createSignal<string[]>(props.entry ? [...props.entry.tags] : [])
+    const [draft, setDraft] = createSignal("")
+    const [tagError, setTagError] = createSignal<"long" | "max" | null>(null)
     const [busy, setBusy] = createSignal(false)
+    let tagField: HTMLInputElement | undefined
+
+    const overLimit = () => text().length > MAX_TEXT
+    const count = () => `${text().length} / ${MAX_TEXT}`
+    const canSave = () => text().trim().length > 0 && !overLimit() && !busy()
+
+    const canPick = (value: Scope) => value === "global" || selected() !== null
+
+    const tagMessage = () => {
+      const problem = tagError()
+
+      if (problem === "long") return ctx.t("field.tags.error.long")
+
+      if (problem === "max" || tags().length >= MAX_TAGS) return ctx.t("field.tags.error.max")
+
+      return ctx.t("field.tags.limit", { max: MAX_TAGS, length: MAX_TAG_LENGTH })
+    }
 
     const scopeHint = () => {
-      if (props.scope === "global") return ctx.t("editor.scope.global")
+      if (scope() === "global") return ctx.t("editor.scope.global")
       const item = currentProject()
+
       return item ? ctx.t("editor.scope.project", { project: projectName(item) }) : ctx.t("project.hint")
+    }
+
+    /** Adds one tag; false when it cannot be stored, with the reason left on the field. */
+    const addTag = (raw: string) => {
+      const value = raw.trim().replace(/^#/, "").trim()
+
+      if (value.length === 0) return true
+
+      if (value.length > MAX_TAG_LENGTH) {
+        setTagError("long")
+
+        return false
+      }
+
+      const current = tags()
+
+      if (current.some((tag) => tag.toLowerCase() === value.toLowerCase())) {
+        setDraft("")
+        setTagError(null)
+
+        return true
+      }
+
+      if (current.length >= MAX_TAGS) {
+        setTagError("max")
+
+        return false
+      }
+
+      setTags([...current, value])
+      setDraft("")
+      setTagError(null)
+
+      return true
+    }
+
+    const removeTag = (index: number) => setTags((current) => current.filter((_, at) => at !== index))
+
+    const onTagKey = (event: KeyboardEvent & { currentTarget: HTMLInputElement }) => {
+      if (event.isComposing) return
+      const input = event.currentTarget
+
+      if (event.key === "Enter" || event.key === "," || event.key === "，") {
+        event.preventDefault()
+        addTag(input.value)
+
+        return
+      }
+
+      if (event.key === "Backspace" && input.value.length === 0 && tags().length > 0) {
+        event.preventDefault()
+        removeTag(tags().length - 1)
+      }
+    }
+
+    const flushDraft = () => {
+      const value = draft().trim()
+
+      if (value.length === 0) return true
+
+      return addTag(value)
+    }
+
+    const dirty = () => {
+      const base = props.entry
+      const value = text().trim()
+      const pending = draft().trim().length > 0
+
+      if (!base) return value.length > 0 || tags().length > 0 || pending
+
+      return value !== base.text || tags().join("\u0000") !== base.tags.join("\u0000") || pending
     }
 
     const submit = async () => {
       const client = rpc()
       const value = text().trim()
-      if (!client || value.length === 0 || busy()) return
-      const projectID = props.scope === "project" ? selected() : null
-      if (props.scope === "project" && projectID === null) return
+
+      if (!client || busy() || value.length === 0 || value.length > MAX_TEXT) return
+
+      if (!flushDraft()) return
+      const projectID = scope() === "project" ? selected() : null
+
+      if (scope() === "project" && projectID === null) return
       setBusy(true)
+
       try {
-        const list = tags()
-          .split(/[,，]/)
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0)
         if (props.entry) {
-          await client.update({ scope: props.scope, projectID, id: props.entry.id, text: value, tags: list })
+          await client.update({ scope: scope(), projectID, id: props.entry.id, text: value, tags: tags() })
+          props.close()
+          await refresh()
+          ctx.toast.show({ title: ctx.t("saved"), variant: "success" })
         } else {
-          await client.save({ scope: props.scope, projectID, text: value, tags: list })
+          const result = await client.save({ scope: scope(), projectID, text: value, tags: tags() })
+          props.close()
+          await refresh()
+          ctx.toast.show({ title: ctx.t(result.duplicate ? "saved.duplicate" : "saved"), variant: "success" })
         }
-        props.close()
-        await refresh()
-        ctx.toast.show({ title: ctx.t("saved"), variant: "success" })
       } catch (cause) {
         failure(cause)
       } finally {
@@ -162,47 +310,122 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       }
     }
 
+    const cancel = async () => {
+      if (!dirty()) return props.close()
+
+      const confirmed = await ctx.dialogs.confirm({
+        title: ctx.t("discard.title"),
+        description: ctx.t("discard.description"),
+        confirm: ctx.t("discard.confirm"),
+        cancel: ctx.t("cancel"),
+        danger: true,
+      })
+
+      if (confirmed) props.close()
+    }
+
+    const onTextKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault()
+        void submit()
+      }
+    }
+
     return (
       <ctx.ui.Dialog
-        title={props.entry ? ctx.t("edit") : ctx.t(props.scope === "global" ? "new.global" : "new.project")}
+        title={props.entry ? ctx.t("edit") : ctx.t("new")}
+        size="fit"
         footer={
           <>
-            <ctx.ui.Button onClick={props.close}>{ctx.t("cancel")}</ctx.ui.Button>
-            <ctx.ui.Button
-              variant="contrast"
-              busy={busy()}
-              disabled={text().trim().length === 0}
-              onClick={() => void submit()}
-            >
+            <ctx.ui.Button onClick={() => void cancel()}>{ctx.t("cancel")}</ctx.ui.Button>
+            <ctx.ui.Button variant="contrast" busy={busy()} disabled={!canSave()} onClick={() => void submit()}>
               {ctx.t("save")}
             </ctx.ui.Button>
           </>
         }
       >
-        <div class="flex flex-col gap-4">
-          <p class="text-13-regular text-v2-text-text-muted">{scopeHint()}</p>
-          <div class="flex flex-col gap-2">
-            <span class="text-13-medium text-v2-text-text-base">{ctx.t("field.text")}</span>
-            <ctx.ui.TextInput
-              label={ctx.t("field.text")}
-              placeholder={ctx.t("field.text.placeholder")}
-              value={text()}
-              onInput={setText}
-              onSubmit={() => void submit()}
-              size="large"
-              autofocus
-            />
-            <span class="text-13-regular text-v2-text-text-muted">{ctx.t("field.text.hint")}</span>
+        <div class="memory-editor">
+          <Show when={!props.entry} fallback={<p class="memory-editor-scope">{scopeHint()}</p>}>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-13-regular text-v2-text-text-muted">{scopeHint()}</span>
+              <div class="memory-scope-switch">
+                <For each={["global", "project"] as const}>
+                  {(value) => (
+                    <button
+                      type="button"
+                      aria-pressed={scope() === value}
+                      disabled={!canPick(value)}
+                      onClick={() => setScope(value)}
+                    >
+                      {ctx.t(value === "global" ? "scope.global" : "scope.project")}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </div>
+          </Show>
+
+          <div class="memory-field">
+            <label class="memory-field-copy">
+              <span class="memory-field-label">{ctx.t("field.text")}</span>
+              <textarea
+                ref={(element) => {
+                  // The dialog mounts before the field is focusable; focus once it is in the document.
+                  requestAnimationFrame(() => element.focus())
+                }}
+                class="memory-textarea"
+                aria-invalid={overLimit()}
+                placeholder={ctx.t("field.text.placeholder")}
+                value={text()}
+                rows={4}
+                onInput={(event) => setText(event.currentTarget.value)}
+                onKeyDown={onTextKey}
+              />
+            </label>
+            <span class="memory-field-hint">
+              <span>{ctx.t("field.text.hint")}</span>
+              <span class="memory-field-counter" data-over={overLimit()}>
+                {count()}
+              </span>
+            </span>
           </div>
-          <div class="flex flex-col gap-2">
-            <span class="text-13-medium text-v2-text-text-base">{ctx.t("field.tags")}</span>
-            <ctx.ui.TextInput
-              label={ctx.t("field.tags")}
-              placeholder={ctx.t("field.tags.placeholder")}
-              value={tags()}
-              onInput={setTags}
-            />
-            <span class="text-13-regular text-v2-text-text-muted">{ctx.t("field.tags.hint")}</span>
+
+          <div class="memory-field">
+            <span class="memory-field-label">{ctx.t("field.tags")}</span>
+            <div class="memory-tag-field" onClick={() => tagField?.focus()}>
+              <For each={tags()}>
+                {(tag, index) => (
+                  <span class="memory-tag">
+                    {tag}
+                    <button
+                      type="button"
+                      class="memory-tag-remove"
+                      aria-label={ctx.t("tag.remove", { tag })}
+                      onClick={() => removeTag(index())}
+                    >
+                      <ctx.ui.Icon name="close" size="small" />
+                    </button>
+                  </span>
+                )}
+              </For>
+              <Show when={tags().length < MAX_TAGS}>
+                <input
+                  ref={(element) => (tagField = element)}
+                  class="memory-tag-input"
+                  aria-label={ctx.t("field.tags")}
+                  placeholder={ctx.t(!props.entry ? "field.tags.placeholder" : "field.tags.more")}
+                  value={draft()}
+                  onInput={(event) => {
+                    setDraft(event.currentTarget.value)
+                    setTagError(null)
+                  }}
+                  onKeyDown={onTagKey}
+                />
+              </Show>
+            </div>
+            <span class="memory-field-hint" data-invalid={tagError() !== null || tags().length >= MAX_TAGS}>
+              <span>{tagMessage()}</span>
+            </span>
           </div>
         </div>
       </ctx.ui.Dialog>
@@ -216,8 +439,10 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   const remove = async (scope: Scope, entry: Entry) => {
     const client = rpc()
+
     if (!client) return
     const summary = entry.text.length > 72 ? `${entry.text.slice(0, 72).trimEnd()}…` : entry.text
+
     const confirmed = await ctx.dialogs.confirm({
       title: ctx.t("delete.title"),
       description: ctx.t("delete.description", { text: summary }),
@@ -225,7 +450,9 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       cancel: ctx.t("cancel"),
       danger: true,
     })
+
     if (!confirmed) return
+
     try {
       await client.remove({
         scope,
@@ -239,32 +466,73 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     }
   }
 
-  const Row = (props: { scope: Scope; entry: Entry }) => (
-    <ctx.ui.SettingsRow
-      id={`${props.scope}:${props.entry.id}`}
-      title={<span class="line-clamp-3">{props.entry.text}</span>}
-      description={describe(props.entry)}
-    >
-      <ctx.ui.Tooltip value={ctx.t("edit")}>
-        <ctx.ui.IconButton
-          icon="edit"
-          size="small"
-          label={ctx.t("edit")}
-          onClick={() => openEditor(props.scope, props.entry)}
-        />
-      </ctx.ui.Tooltip>
-      <ctx.ui.Tooltip value={ctx.t("delete")}>
-        <ctx.ui.IconButton
-          icon="outline-trash"
-          size="small"
-          label={ctx.t("delete")}
-          onClick={() => void remove(props.scope, props.entry)}
-        />
-      </ctx.ui.Tooltip>
-    </ctx.ui.SettingsRow>
-  )
+  const Row = (props: { scope: Scope; entry: Entry }) => {
+    const [expanded, setExpanded] = createSignal(false)
+    const long = () => props.entry.text.length > CLAMP_AT
 
-  const EmptyState = (props: { icon: EmptyIcon; title: string; hint: string; action?: JSX.Element }) => (
+    return (
+      <ctx.ui.SettingsRow
+        id={`${props.scope}:${props.entry.id}`}
+        title={
+          <Show
+            when={long()}
+            fallback={<span class="memory-entry-text">{props.entry.text}</span>}
+          >
+            <button
+              type="button"
+              class="memory-entry-text"
+              data-clamped={!expanded()}
+              aria-expanded={expanded()}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {props.entry.text}
+            </button>
+          </Show>
+        }
+        description={
+          <div class="memory-entry-meta">
+            <Show when={props.entry.tags.length > 0}>
+              <div class="memory-tags">
+                <For each={props.entry.tags}>
+                  {(tag) => (
+                    <button
+                      type="button"
+                      class="memory-tag"
+                      aria-pressed={activeTag() === tag}
+                      aria-label={ctx.t("tag.filter", { tag })}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+            <span class="memory-entry-time">{stamp(props.entry)}</span>
+          </div>
+        }
+      >
+        <ctx.ui.Tooltip value={ctx.t("edit")}>
+          <ctx.ui.IconButton
+            icon="edit"
+            size="small"
+            label={ctx.t("edit")}
+            onClick={() => openEditor(props.scope, props.entry)}
+          />
+        </ctx.ui.Tooltip>
+        <ctx.ui.Tooltip value={ctx.t("delete")}>
+          <ctx.ui.IconButton
+            icon="outline-trash"
+            size="small"
+            label={ctx.t("delete")}
+            onClick={() => void remove(props.scope, props.entry)}
+          />
+        </ctx.ui.Tooltip>
+      </ctx.ui.SettingsRow>
+    )
+  }
+
+  const EmptyState = (props: { icon: "memory" | "magnifying-glass" | "warning"; title: string; hint: string; action?: JSX.Element }) => (
     <div class="settings-project-empty-card">
       <ctx.ui.Icon name={props.icon} size="large" class="mb-1 !size-6 text-v2-icon-icon-muted" />
       <div class="text-13-medium text-v2-text-text-base">{props.title}</div>
@@ -329,14 +597,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   }) => (
     <Show
       when={props.entries.length > 0}
-      fallback={
-        <EmptyState
-          icon={props.scope === "global" ? "brain" : "outline-brain"}
-          title={props.empty}
-          hint={props.hint}
-          action={props.action}
-        />
-      }
+      fallback={<EmptyState icon="memory" title={props.empty} hint={props.hint} action={props.action} />}
     >
       <div data-component="settings-list">
         <For each={props.entries}>{(entry) => <Row scope={props.scope} entry={entry} />}</For>
@@ -346,7 +607,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   ctx.add(SettingsPage, {
     id: "memory",
-    icon: "brain",
+    icon: "memory",
     get title() {
       return ctx.t("title")
     },
@@ -365,7 +626,13 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
         title={ctx.t("title")}
         description={ctx.t("description")}
         actions={
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-2">
+            <Show when={activeTag() !== null}>
+              <button type="button" class="memory-filter-chip" onClick={() => setActiveTag(null)}>
+                <span>{ctx.t("filter.by", { tag: activeTag() ?? "" })}</span>
+                <ctx.ui.Icon name="close" size="small" />
+              </button>
+            </Show>
             <div class="w-[220px]">
               <ctx.ui.TextInput
                 type="search"
@@ -376,8 +643,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 class="w-full"
               />
             </div>
-            <Show when={hasQuery()}>
-              <ctx.ui.IconButton icon="close" label={ctx.t("search.clear")} onClick={() => setQuery("")} />
+            <Show when={filtering()}>
+              <ctx.ui.IconButton icon="close" label={ctx.t("filter.clear")} onClick={clearFilters} />
             </Show>
           </div>
         }
@@ -386,6 +653,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
           when={server()}
           fallback={<EmptyState icon="warning" title={ctx.t("offline")} hint={ctx.t("offline.hint")} />}
         >
+          {/* Marks this page for its own scroll frame: the header stays put and only the lists scroll. */}
+          <div class="memory-page">
           <Show
             when={!searchEmpty()}
             fallback={
@@ -394,8 +663,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 title={ctx.t("empty.search")}
                 hint={ctx.t("empty.search.hint")}
                 action={
-                  <ctx.ui.Button variant="neutral" icon="close" onClick={() => setQuery("")}>
-                    {ctx.t("search.clear")}
+                  <ctx.ui.Button variant="neutral" icon="close" onClick={clearFilters}>
+                    {ctx.t("filter.clear")}
                   </ctx.ui.Button>
                 }
               />
@@ -407,7 +676,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                   title={ctx.t("global")}
                   count={globalMatches().length}
                   actions={
-                    !loading() && !error() && !hasQuery() && globalMatches().length > 0
+                    !loading() && !error() && !filtering() && globalMatches().length > 0
                       ? addButton("global", ctx.t("add"))
                       : undefined
                   }
@@ -439,12 +708,12 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                         onChange={(value) => {
                           // Drop the previous project's rows before the new list arrives, so they never show under another project.
                           setProject([])
-                          setSelected(value)
+                          setManualProject(value)
                         }}
                         options={projects().map((item) => ({ value: item.id, label: projectName(item) }))}
                         class="max-w-[220px]"
                       />
-                      <Show when={!loading() && !error() && !hasQuery() && projectMatches().length > 0}>
+                      <Show when={!loading() && !error() && !filtering() && projectMatches().length > 0}>
                         {addButton("project", ctx.t("add"))}
                       </Show>
                     </Show>
@@ -453,11 +722,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 <Show
                   when={selected() !== null}
                   fallback={
-                    <EmptyState
-                      icon="outline-brain"
-                      title={ctx.t("project.none")}
-                      hint={ctx.t("project.none.hint")}
-                    />
+                    <EmptyState icon="memory" title={ctx.t("project.none")} hint={ctx.t("project.none.hint")} />
                   }
                 >
                   <Show when={!loading() || project().length > 0} fallback={<Loading />}>
@@ -475,6 +740,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               </section>
             </Show>
           </Show>
+          </div>
         </Show>
       </ctx.ui.SettingsLayout>
     ),

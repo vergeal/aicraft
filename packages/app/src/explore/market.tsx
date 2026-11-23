@@ -182,12 +182,8 @@ export function ExploreMarket(props: {
             {(sectionKey) => (
               <div class="explore-market-groups" data-section={sectionKey}>
                 <For each={props.groups}>
-                  {(group, index) => (
-                    <section
-                      class="explore-market-group"
-                      data-pill={group.pill ? "" : undefined}
-                      style={{ "animation-delay": `${index() * 40}ms` }}
-                    >
+                  {(group) => (
+                    <section class="explore-market-group" data-pill={group.pill ? "" : undefined}>
                       <h2 class="explore-market-group-title">{group.title}</h2>
                       <div class="explore-market-items">
                         <For each={group.entries}>{(entry) => <MarketRow entry={entry} />}</For>

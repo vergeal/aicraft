@@ -158,7 +158,7 @@ export const Plugin = define({
       editor.add(
         Skill.Info.make({
           id: SKILL_ID,
-          name: Skill.Name.make("Memory"),
+          name: Skill.Name.make("记忆"),
           description:
             "用 `memory.*` 工具记住用户的长期习惯、项目约定与重要事实，并按全局或项目隔离保存。用户表达长期偏好、纠正你的做法或要求记住时，先加载本技能再保存。",
           path: AbsolutePath.make("skill://memory/SKILL.md"),

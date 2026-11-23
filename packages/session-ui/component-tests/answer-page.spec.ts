@@ -476,27 +476,26 @@ story("renders the running turn without a settled header", async ({ mount, page 
   expect(offset).toBeLessThanOrEqual(1)
 })
 
-story("mounts the rows near the viewport and reserves the rest", async ({ mount, page }) => {
+story("renders every loaded row at its real height", async ({ mount, page }) => {
   await mount("answer-page--windowed")
   const viewport = page.getByTestId("answer-window")
   const rows = viewport.locator("[data-answer-key]")
-  const text = viewport.locator('[data-slot="user-message-text"]')
 
   // Every row keeps its box, so a DOM-based search still reaches the whole transcript and no offset is a guess.
   await expect.poll(() => rows.count()).toBeGreaterThan(60)
   await expect(viewport.locator('[data-slot="user-message-text"]').last()).toContainText("第 40 个问题")
 
-  // Only the window around the viewport renders its content; the rest only reserves the height it measured at.
-  expect(await text.count()).toBeLessThan((await rows.count()) / 2)
-
+  // A row far from the viewport already holds its content: nothing stands in for it with a guessed height.
   const middle = viewport.locator('[data-answer-key="node:input:msg_user_long_19"]')
 
-  expect(await middle.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(0)
-  expect(await middle.locator('[data-slot="user-message-text"]').count()).toBe(0)
-
-  // Reaching the row mounts its content. Scrolling never changes how many boxes the transcript holds.
-  await middle.evaluate((element) => element.scrollIntoView({ block: "center" }))
   await expect(middle.locator('[data-slot="user-message-text"]')).toContainText("第 20 个问题")
+
+  const height = await middle.evaluate((element) => element.getBoundingClientRect().height)
+
+  // Bringing the row into view does not change its box, so the transcript never shifts under the reader.
+  await middle.evaluate((element) => element.scrollIntoView({ block: "center" }))
+
+  expect(await middle.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(height, 0)
   expect(await rows.count()).toBeGreaterThan(60)
 })
 

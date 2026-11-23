@@ -440,51 +440,8 @@ export function AnswerPage(props: AnswerPageProps) {
       : next
   })
 
-  // Every row keeps its box in the document, so a restore, a position report or a reveal still reads a real offset for
-  // any row. Only the rows near the viewport render their content; the rest reserve the height they last measured at.
-  // A long transcript therefore keeps its true height while the live DOM holds a window of rows instead of all of them.
-  // Heights live in a store so a streamed row that grows every frame only re-renders its own placeholder.
-  const [heights, setHeights] = createStore<Record<string, number>>({})
-  const [near, setNear] = createStore<Record<string, boolean | undefined>>({})
-  const forced = new Set<string>()
-  const [forcedVersion, setForcedVersion] = createSignal(0)
-  const [observer, setObserver] = createSignal<IntersectionObserver>()
-
-  const resize = new ResizeObserver((records) => {
-    for (const record of records) {
-      const element = record.target as HTMLElement
-      const key = element.dataset.answerKey
-
-      if (!key) continue
-      const height = record.borderBoxSize?.[0]?.blockSize ?? element.offsetHeight
-
-      if (height <= 0 || heights[key] === height) continue
-      setHeights(key, height)
-    }
-  })
-
-  onCleanup(() => resize.disconnect())
-
-  createEffect(() => {
-    const root = props.viewport?.()
-
-    if (!root) return
-
-    const next = new IntersectionObserver(
-      (records) => {
-        for (const record of records) {
-          const key = (record.target as HTMLElement).dataset.answerKey
-
-          if (key) setNear(key, record.isIntersecting)
-        }
-      },
-      // A screen of overscan each way mounts a row before it reaches an edge, so scrolling rarely meets a placeholder.
-      { root, rootMargin: "800px 0px" },
-    )
-
-    setObserver(next)
-    onCleanup(() => next.disconnect())
-  })
+  // Every loaded row renders its content. A row that scrolled in therefore never swapped a guessed height for its real
+  // one, so the transcript holds its final height from the first frame and switching sessions cannot shift it.
 
   const lastTurn = () => Math.max(...[...snapshot().turns.keys()])
 
@@ -639,18 +596,16 @@ export function AnswerPage(props: AnswerPageProps) {
       return
     }
 
-    // An unmounted row stands in with its reserved height, and a row far from the viewport is out of reach of the
-    // current offset. Both are resolved the same way: scroll to the row's box, mount it, and place again next frame,
-    // when the real box exists and the offset is exact.
+    // Every row renders its real content, so a row that exists already has its final box. An offset the current height
+    // cannot reach means the transcript is still missing height (a folded row, an older page), so scroll to the row's
+    // box once and place again next frame, when the remaining layout has landed.
     const row = findRow(root, target.key)
     const placed = placement(root, target)
 
-    if (row && (!placed?.reachable || row.childElementCount === 0) && !restoreScrolled) {
+    if (row && !placed?.reachable && !restoreScrolled) {
       const wanted = root.scrollTop + row.getBoundingClientRect().top - root.getBoundingClientRect().top + target.offset
 
       restoreScrolled = true
-      forced.add(target.key)
-      setForcedVersion((version) => version + 1)
 
       const next = Math.min(Math.max(wanted, 0), Math.max(0, root.scrollHeight - root.clientHeight))
 
@@ -808,100 +763,43 @@ export function AnswerPage(props: AnswerPageProps) {
       return value?.kind === "fold" ? snapshot().turns.get(value.turn) : undefined
     })
 
-    const mounted = () => {
-      // Without a viewport this transcript is not a scrolling surface (a story, an embedded excerpt): render all of it.
-      if (props.viewport === undefined) return true
-      forcedVersion()
-
-      if (forced.has(key) || near[key] === true) return true
-
-      // The newest rows stay mounted, so a view opened at the end is exact before the observer has reported anything.
-      return position() >= keys().length - ROW_TAIL
-    }
-
-    // A row that has not been measured yet reserves an estimate built from its kind and its text; the transcript
-    // corrects it as soon as the reader scrolls the row into view and it mounts for real.
-    const reserved = () => {
-      const known = heights[key]
-
-      if (known !== undefined) return known
-      const gap = rowGaps()[position()] ?? 0
-      const value = entry()
-      const payload = value?.kind === "node" ? snapshot().nodes.get(value.key)?.payload : undefined
-
-      if (!payload) return gap + ROW_ESTIMATE.fold
-
-      if (payload.kind === "input") return gap + textEstimate(ROW_ESTIMATE.input, payload.text)
-
-      if (payload.kind === "assistant") return gap + textEstimate(ROW_ESTIMATE.answer, payload.text)
-
-      return gap + ROW_ESTIMATE.row
-    }
-
-    const [row, setRow] = createSignal<HTMLDivElement>()
-
-    // Observe the row's own box so its last height survives the content unmounting, and let the observer decide when
-    // the content comes back. Both run per row because a row is created once and then only mounts or unmounts.
-    createRenderEffect(() => {
-      const element = row()
-
-      if (!element) return
-      const current = observer()
-
-      resize.observe(element)
-      current?.observe(element)
-      onCleanup(() => {
-        resize.unobserve(element)
-        current?.unobserve(element)
-      })
-    })
-
-    // The gap and the placeholder are separate memos: a streamed row that grows re-runs only the row it belongs to.
+    // The gap is the row's own memos so a streamed row that grows re-runs only the row it belongs to. There is no
+    // placeholder height: the row's box is its content, so nothing on this page is an estimate.
     const gap = createMemo(() => `${rowGaps()[position()] ?? 0}px`)
-    const placeholder = createMemo(() => (mounted() ? undefined : reserved()))
 
-    const rowStyle = createMemo<JSX.CSSProperties>(() => {
-      const top = gap()
-      const height = placeholder()
-
-      if (height === undefined) return { "padding-top": top }
-
-      return { "padding-top": top, height: `${height}px`, "box-sizing": "border-box", overflow: "hidden" }
-    })
+    const rowStyle = createMemo<JSX.CSSProperties>(() => ({ "padding-top": gap() }))
 
     return (
-      <div ref={setRow} data-answer-key={key} class="select-text" style={rowStyle()}>
-        <Show when={mounted()}>
-          <Show when={visibleNode()}>
-            {(value) => (
-              <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />
-            )}
-          </Show>
-          <Show when={answerTurn()}>
-            {(value) => <TurnChanges snapshot={snapshot()} turn={value()} onOpenFile={props.onOpenFile} />}
-          </Show>
-          <Show when={turn()}>
-            {(value) => (
-              <FoldRow
-                turn={value()}
-                open={!isFolded(key)}
-                snapshot={snapshot()}
-                view={view()}
-                foldedReplies={props.foldedReplies ?? "final"}
-                now={now()}
-                groupOpen={(key) => openGroups[key]}
-                toggleGroup={(key, next) => setOpenGroups(key, next)}
-                onToggle={() => setFolded(key, !isFolded(key))}
-              />
-            )}
-          </Show>
+      <div data-answer-key={key} class="select-text" style={rowStyle()}>
+        <Show when={visibleNode()}>
+          {(value) => (
+            <NodeRow node={value()} view={view()} live={snapshot().turns.get(value().turn)?.status === "open"} />
+          )}
+        </Show>
+        <Show when={answerTurn()}>
+          {(value) => <TurnChanges snapshot={snapshot()} turn={value()} onOpenFile={props.onOpenFile} />}
+        </Show>
+        <Show when={turn()}>
+          {(value) => (
+            <FoldRow
+              turn={value()}
+              open={!isFolded(key)}
+              snapshot={snapshot()}
+              view={view()}
+              foldedReplies={props.foldedReplies ?? "final"}
+              now={now()}
+              groupOpen={(key) => openGroups[key]}
+              toggleGroup={(key, next) => setOpenGroups(key, next)}
+              onToggle={() => setFolded(key, !isFolded(key))}
+            />
+          )}
         </Show>
       </div>
     )
   }
 
-  // A search hit or a jump to a prompt names a message, not a row, and that row's content may sit outside the mounted
-  // window. Expand what hides it, mount the entry that owns it, and scroll to it once the mounting frame has laid out.
+  // A search hit or a jump to a prompt names a message. The row is already in the document, so expand whatever hides it
+  // and scroll to it once the opening frame has laid out.
   const reveal = (id: string, partID?: string) => {
     const root = props.viewport?.()
 
@@ -923,8 +821,6 @@ export function AnswerPage(props: AnswerPageProps) {
 
     if (group) setOpenGroups(group[0], true)
     setOpenRows(node.key, true)
-    forced.add(entry)
-    setForcedVersion((version) => version + 1)
 
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
@@ -933,11 +829,6 @@ export function AnswerPage(props: AnswerPageProps) {
         )
 
         row?.scrollIntoView?.({ block: "center" })
-        // The scroll leaves the row in view, so the observer keeps it mounted; hold the force until that report lands.
-        setTimeout(() => {
-          forced.delete(entry)
-          setForcedVersion((version) => version + 1)
-        }, 1000)
       }),
     )
 
@@ -1021,19 +912,6 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
   if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
 
   return 4
-}
-
-// How many of the newest rows stay mounted regardless of where the reader is; a view opened at the end must be exact
-// before the observer has reported anything.
-const ROW_TAIL = 8
-
-// Heights for a row whose content has never been mounted. They only need to be close: the row replaces its estimate the
-// first time the reader reaches it, and the transcript's own anchoring keeps the reader's line while that happens.
-const ROW_ESTIMATE = { row: 56, fold: 48, input: 44, answer: 40, lineHeight: 22, charsPerLine: 46 }
-
-/** A rough height for a block of body text at the answer width, capped so one long answer cannot swamp the estimate. */
-function textEstimate(base: number, text: string) {
-  return base + Math.min(2400, Math.ceil(text.length / ROW_ESTIMATE.charsPerLine) * ROW_ESTIMATE.lineHeight)
 }
 
 function isResponse(snapshot: Snapshot, entry: TimelineEntry) {

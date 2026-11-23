@@ -774,7 +774,7 @@ const longSession: SessionMessageInfo[] = Array.from({ length: 40 }, (_, index) 
       [
         reasoning(`第 ${index + 1} 轮：先看边界。`),
         tool(`tool_read_${turn}`, "read", { filePath: "packages/session-ui/src/answer/page.tsx" }, "completed"),
-        { type: "text", text: `第 ${index + 1} 轮结论：窗口只挂载视口附近的行。` },
+        { type: "text", text: `第 ${index + 1} 轮结论：分页与折叠的边界已确认。` },
       ],
       created + 1_000,
       created + 4_000,

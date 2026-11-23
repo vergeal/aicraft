@@ -2,11 +2,11 @@ import { For, Show } from "solid-js"
 import type { HeadMember } from "./contract.js"
 import { GROUP_HEAD_BG, headColor, headLayout, headText } from "./head.js"
 
-/** 头像尺寸档：会话行 40（对齐飞书会话列表）、搜索 36、会话头 32、消息 40、@ 候选 24、成员 28。 */
+/** 头像尺寸档：会话行 36（设计规范的列表密度）、搜索 36、会话头 32、消息 40、@ 候选 24、成员 28。 */
 export type AvatarSize = "session" | "row" | "head" | "bubble" | "mention" | "member"
 
 const SIZE: Record<AvatarSize, number> = {
-  session: 40,
+  session: 36,
   row: 36,
   head: 32,
   bubble: 40,

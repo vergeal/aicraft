@@ -116,9 +116,7 @@ export function toolActivity(tool: Pick<ToolPart, "name" | "state">): ProcessAct
 
   if (tool.name === "grep" || tool.name === "glob" || tool.name === "list" || tool.name.endsWith("_inspect")) return "search"
 
-  if (tool.name === "write") return "write"
-
-  if (tool.name === "edit" || tool.name === "patch" || tool.name === "apply_patch") return "edit"
+  if (["edit", "write", "patch", "apply_patch"].includes(tool.name)) return "edit"
 
   if (["shell", "bash", "execute"].includes(tool.name)) return "commands"
 

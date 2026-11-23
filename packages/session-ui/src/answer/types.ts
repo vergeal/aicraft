@@ -68,7 +68,6 @@ export type ProcessActivity =
   | "thinking"
   | "read"
   | "readImage"
-  | "write"
   | "search"
   | "edit"
   | "commands"

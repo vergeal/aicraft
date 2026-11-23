@@ -102,7 +102,6 @@ const STEP_LIVE = {
   thinking: "ui.answer.step.thinking",
   read: "ui.answer.step.read",
   readImage: "ui.answer.step.readImage",
-  write: "ui.answer.step.write",
   search: "ui.answer.step.search",
   edit: "ui.answer.step.edit",
   commands: "ui.answer.step.commands",
@@ -120,7 +119,6 @@ const STEP_DONE = {
   thinking: "ui.answer.step.done.thinking",
   read: "ui.answer.step.done.read",
   readImage: "ui.answer.step.done.readImage",
-  write: "ui.answer.step.done.write",
   search: "ui.answer.step.done.search",
   edit: "ui.answer.step.done.edit",
   commands: "ui.answer.step.done.commands",
@@ -138,7 +136,6 @@ const ACTIVITY_ICONS: Record<ProcessActivity, IconName> = {
   thinking: "answer-thinking",
   read: "answer-read",
   readImage: "answer-read",
-  write: "answer-edit",
   search: "answer-search",
   edit: "answer-edit",
   commands: "answer-console",
@@ -158,7 +155,6 @@ const TOOL_ACTIONS = {
   search: "ui.answer.tool.search",
   list: "ui.answer.tool.list",
   edit: "ui.answer.tool.edit",
-  write: "ui.answer.tool.write",
   browse: "ui.answer.tool.browse",
   webSearch: "ui.answer.tool.webSearch",
   subagent: "ui.answer.tool.subagent",
@@ -192,9 +188,7 @@ function actionKey(name: string): keyof typeof TOOL_ACTIONS {
 
   if (["list", "ls"].includes(name)) return "list"
 
-  if (["edit", "patch", "apply_patch"].includes(name)) return "edit"
-
-  if (name === "write") return "write"
+  if (["edit", "write", "patch", "apply_patch"].includes(name)) return "edit"
 
   if (name === "webfetch") return "browse"
 

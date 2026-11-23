@@ -34,9 +34,14 @@
 
 .memory-page [data-component="settings-row"] [data-slot="settings-row-description"] {
   flex: 0 1 auto;
-  max-width: 45%;
+  max-width: 260px;
   min-width: 0;
   display: flex;
+}
+
+/* The stamp is row-end meta next to the actions, so it keeps its width and the entry text gives way first. */
+.memory-page [data-component="settings-row"] [data-slot="settings-row-control"] .memory-entry-time {
+  margin-inline-end: var(--settings-space-2);
 }
 
 /* An entry the user expanded keeps its text whole, so the row falls back to the stacked copy it grew from. */
@@ -47,6 +52,18 @@
 
 .memory-page [data-component="settings-row"]:has(.memory-entry-text[data-clamped="false"]) [data-slot="settings-row-description"] {
   max-width: 100%;
+}
+
+.memory-page
+  [data-component="settings-row"]:has(.memory-entry-text[data-clamped="false"])
+  [data-slot="settings-row-control"] {
+  align-self: flex-start;
+}
+
+/* An expanded entry shows every tag, the same way it shows the whole text. */
+.memory-page [data-component="settings-row"]:has(.memory-entry-text[data-clamped="false"]) .memory-tags {
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 /* Plugin memories group per plugin, so a user can tell which plugin owns an entry. */

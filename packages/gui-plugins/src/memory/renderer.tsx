@@ -536,8 +536,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
           </Show>
         }
         description={
-          <div class="memory-entry-meta">
-            <Show when={props.entry.tags.length > 0}>
+          <Show when={props.entry.tags.length > 0}>
+            <div class="memory-entry-meta">
               <div class="memory-tags">
                 <For each={props.entry.tags}>
                   {(tag) => (
@@ -553,11 +553,11 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                   )}
                 </For>
               </div>
-            </Show>
-            <span class="memory-entry-time">{stamp(props.entry)}</span>
-          </div>
+            </div>
+          </Show>
         }
       >
+        <span class="memory-entry-time">{stamp(props.entry)}</span>
         <Show when={props.scope !== "plugin"}>
           <ctx.ui.Tooltip value={ctx.t("edit")}>
             <ctx.ui.IconButton

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenCode .craf 插件开发手册</title>
+    <title>OpenCode .exc 插件开发手册</title>
     <style>
       * {
         box-sizing: border-box;
@@ -376,7 +376,7 @@
               <li><a href="#s2-1">2.1 插件运行时（Python）</a></li>
               <li><a href="#s2-2">2.2 完整目录树</a></li>
               <li><a href="#s2-3">2.3 各文件的作用</a></li>
-              <li><a href="#s2-4">2.4 ocplugin.json</a></li>
+              <li><a href="#s2-4">2.4 METAINF</a></li>
               <li><a href="#s2-5">2.5 package.json（解包后）</a></li>
               <li><a href="#s2-6">2.6 package.json（工程）</a></li>
               <li><a href="#s2-7">2.7 tsconfig.json</a></li>
@@ -384,7 +384,7 @@
               <li><a href="#s2-9">2.9 gui/main.tsx（界面）</a></li>
               <li><a href="#s2-10">2.10 skills/</a></li>
               <li><a href="#s2-11">2.11 script/build.ts</a></li>
-              <li><a href="#s2-12">2.12 create-ocplugin 脚手架</a></li>
+              <li><a href="#s2-12">2.12 create-exc 脚手架</a></li>
             </ol>
           </li>
           <li>
@@ -429,7 +429,7 @@
       </nav>
       <main class="page">
       <header class="masthead">
-        <h1>.craf 插件开发手册</h1>
+        <h1>.exc 插件开发手册</h1>
         <p class="subtitle">从空白目录到可安装的单文件插件</p>
         <p class="meta">
           适用于 OpenCode 2.2.x · 桌面版 · Bun 1.3 以上 &nbsp;|&nbsp; 本文档为纯静态 HTML，无脚本、无外部资源
@@ -441,7 +441,7 @@
       <h2 id="s1">1. 简介与名词</h2>
 
       <p>
-        <b>.craf</b> 是 OpenCode 的单文件插件格式。一个文件里包含服务端入口、可选的界面入口、技能正文和随包数据。
+        <b>.exc</b> 是 OpenCode 的单文件插件格式。一个文件里包含服务端入口、可选的界面入口、技能正文和随包数据。
         用户安装后，它被解包成普通插件目录，由宿主自动发现、加载和热更新。
       </p>
 
@@ -464,11 +464,11 @@
         </tr>
         <tr>
           <td>清单</td>
-          <td><code>ocplugin.json</code>，描述 id、版本、入口、展示信息。</td>
+          <td><code>METAINF</code>，描述 id、版本、入口、展示信息。</td>
         </tr>
         <tr>
           <td>安装目录</td>
-          <td><code>~/.opencode/ocplugins/&lt;id&gt;/</code>，宿主监听此目录，放入即加载。</td>
+          <td><code>~/.opencode/exc/&lt;id&gt;/</code>，宿主监听此目录，放入即加载。</td>
         </tr>
       </table>
 
@@ -477,7 +477,7 @@
       <h3 id="s2-0">2.0 入口标准（Entry Contract）</h3>
 
       <p>
-        入口的文件名与目录名决定了插件能不能被加载。<b><code>ocplugin.json</code> 的 <code>entry</code> 是唯一权威</b>：
+        入口的文件名与目录名决定了插件能不能被加载。<b><code>METAINF</code> 的 <code>entry</code> 是唯一权威</b>：
         每个部件声明成「相对插件根目录、不含扩展名、以 <code>/main</code> 结尾」的路径，宿主再按该部件的扩展名顺序去找文件。
       </p>
 
@@ -513,18 +513,18 @@
         </tr>
         <tr>
           <td>打包产物</td>
-          <td>产物目录结构与源码一致，打包<b>不改写</b> <code>ocplugin.json</code>。允许 <code>dist/server/main</code> 这类前缀，文件本身仍叫 <code>main</code>。</td>
+          <td>产物目录结构与源码一致，打包<b>不改写</b> <code>METAINF</code>。允许 <code>dist/server/main</code> 这类前缀，文件本身仍叫 <code>main</code>。</td>
         </tr>
       </table>
 
-      <pre><span class="path">ocplugin.json</span><code>{
+      <pre><span class="path">METAINF</span><code>{
   "entry": {
     "server": "server/main",
     "gui": "gui/main"
   }
 }</code></pre>
       <pre>my-plugin/
-├── ocplugin.json
+├── METAINF
 ├── package.json
 ├── tsconfig.json
 ├── server/
@@ -559,7 +559,7 @@
         加载路径（<code>packages/core/src/plugin/module.ts</code>）记一条<b>结构化日志</b>，不是拼接字符串：
       </p>
       <pre><span class="path">服务端日志</span><code>msg:      "plugin uses a legacy entry"
-target:   "/Users/…/ocplugins/opencode.webwright"   # 插件目标或 id
+target:   "/Users/…/exc/opencode.webwright"   # 插件目标或 id
 kind:     "server"
 found:    "server/index"                            # 实际命中的旧路径
 expected: "server/main"                             # 应该改成的路径</code></pre>
@@ -594,7 +594,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <h4 id="s2-0-exit">回退什么时候移除</h4>
       <p>回退<b>不会因为「过了下个 minor」就自动消失</b>：只有在<b>四条全部满足</b>后才删——</p>
       <ol>
-        <li><code>packages/plugins/*</code> 的内置插件全部在 <code>ocplugin.json</code> 声明 <code>main</code>，且源码布局符合标准（目录名 = 入口名）。</li>
+        <li><code>packages/plugins/*</code> 的内置插件全部在 <code>METAINF</code> 声明 <code>main</code>，且源码布局符合标准（目录名 = 入口名）。</li>
         <li>本文档不再出现旧路径写法，2.0 里的旧行为描述与迁移对照表已删除。</li>
         <li>至少经过一个 minor 的 deprecation 周期，并在 <code>CHANGELOG.md</code> 记录。</li>
         <li>真实加载路径上不再出现回退警告。</li>
@@ -624,10 +624,10 @@ expected: "server/main"                             # 应该改成的路径</cod
         <tr><th>位置</th><th>server 入口</th></tr>
         <tr><td>源码（包根）</td><td><code>server/main.ts</code></td></tr>
         <tr><td>构建产物</td><td><code>dist/server/main.js</code></td></tr>
-        <tr><td><code>ocplugin.json</code>（两处都用这一份）</td><td><code>"entry": { "server": "server/main" }</code></td></tr>
+        <tr><td><code>METAINF</code>（两处都用这一份）</td><td><code>"entry": { "server": "server/main" }</code></td></tr>
       </table>
       <p>
-        包根与 <code>dist/</code> 共用一份 <code>ocplugin.json</code>：宿主在包根按 <code>.ts</code> 命中源码，
+        包根与 <code>dist/</code> 共用一份 <code>METAINF</code>：宿主在包根按 <code>.ts</code> 命中源码，
         在解包目录按 <code>.js</code> 命中产物，<code>entry</code> 不用改。所以构建输出<b>必须命名成 <code>main.js</code></b>，
         不能沿用旧的 <code>index.js</code>。
       </p>
@@ -641,7 +641,7 @@ expected: "server/main"                             # 应该改成的路径</cod
 })</code></pre>
       <p>
         <code>dist/package.json</code> 的 <code>main</code> / <code>exports</code> 同样指向
-        <code>./server/main.js</code>。打包时把 <code>ocplugin.json</code> 原样拷进 <code>dist/</code>，<b>不改写</b> <code>entry</code>。
+        <code>./server/main.js</code>。打包时把 <code>METAINF</code> 原样拷进 <code>dist/</code>，<b>不改写</b> <code>entry</code>。
       </p>
       <p>
         <code>packages/plugins/webwright</code> 就是这种形态：<code>server/main.ts</code> 构建成
@@ -661,7 +661,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         <b>不写系统 site-packages，不改全局环境</b>。
       </p>
 
-      <pre><span class="path">ocplugin.json</span><code>"runtime": {
+      <pre><span class="path">METAINF</span><code>"runtime": {
   "python": "&gt;=3.10",
   "dependencies": ["pymysql&gt;=1.0", "psycopg2-binary&gt;=2.9"]
 }</code></pre>
@@ -715,7 +715,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p>
         判定条件是 <b><code>D:\</code> 存在且可写</b>（<code>accessSync("D:\\", W_OK)</code>）：只读盘、光驱不会被采用。
         非 Windows 平台不看这个条件，四个目录都在 <code>~/.opencode</code> 下，行为与之前完全相同。
-        <code>~/.opencode/ocplugins</code>、<code>~/.distribution/plugins</code>、<code>secrets/</code>、
+        <code>~/.opencode/exc</code>、<code>~/.distribution/plugins</code>、<code>secrets/</code>、
         <code>secrets.key</code> 的位置也没有变化。
       </p>
       <p><b>换盘之后</b></p>
@@ -896,7 +896,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p>下面是一个同时带服务端工具、技能和界面挂件的完整工程，可直接照此创建：</p>
 
       <pre>echo-plugin/
-├── ocplugin.json              # 【必需】插件清单
+├── METAINF              # 【必需】插件清单
 ├── package.json               # 【必需】工程依赖与脚本
 ├── tsconfig.json              # 【可选】TypeScript 配置
 ├── vite.config.ts             # 【可选】只在有界面时需要
@@ -911,13 +911,13 @@ expected: "server/main"                             # 应该改成的路径</cod
 │   ├── build.ts               # 【必需】构建脚本
 │   └── pack.ts                # 【必需】打包脚本
 └── dist/                      # 构建产物（不提交）
-    ├── ocplugin.json          # 打包时重写为带校验和的版本
+    ├── METAINF          # 打包时重写为带校验和的版本
     ├── package.json           # 解包后解析外部依赖用
     ├── server/main.js         # 服务端入口（entry 仍写 server/main）
     ├── gui/main.cjs           # 界面入口（有界面时）
     └── skills/echo/SKILL.md   # 技能正文</pre>
       <p class="note">
-        产物的目录结构必须与源码一致，且 <code>ocplugin.json</code> 不改写：<code>entry.server</code> 始终是
+        产物的目录结构必须与源码一致，且 <code>METAINF</code> 不改写：<code>entry.server</code> 始终是
         <code>server/main</code>，扩展名由宿主按 <a href="#s2-0">2.0</a> 的顺序补。
       </p>
 
@@ -930,7 +930,7 @@ expected: "server/main"                             # 应该改成的路径</cod
           <th>作用</th>
         </tr>
         <tr>
-          <td><code>ocplugin.json</code></td>
+          <td><code>METAINF</code></td>
           <td>安装器、插件目录</td>
           <td>校验 id/版本/完整性，展示名称与描述。</td>
         </tr>
@@ -957,7 +957,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         <tr>
           <td><code>script/pack.ts</code></td>
           <td>开发者</td>
-          <td>把 <code>dist/</code> 打成 <code>.craf</code>，写入校验和。</td>
+          <td>把 <code>dist/</code> 打成 <code>.exc</code>，写入校验和。</td>
         </tr>
         <tr>
           <td><code>dist/</code></td>
@@ -966,9 +966,9 @@ expected: "server/main"                             # 应该改成的路径</cod
         </tr>
       </table>
 
-      <h3 id="s2-4">2.4 ocplugin.json</h3>
+      <h3 id="s2-4">2.4 METAINF</h3>
 
-      <pre><span class="path">echo-plugin/ocplugin.json</span><code>{
+      <pre><span class="path">echo-plugin/METAINF</span><code>{
   "apiVersion": 1,
   "id": "opencode.echo",
   "version": "0.1.0",
@@ -1147,7 +1147,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         从 npm 安装的包靠它自己的 <code>exports</code> 解析入口，这是过渡回退，见 <a href="#s2-0-exit">2.0 的移除条件</a>。
         注意 <code>externals</code> 的软链读的是<b>被链接模块</b>的 manifest，不是插件自己的。
         本地目录的入口<b>不看</b> <code>main</code> / <code>exports</code>——入口只认
-        <code>ocplugin.json</code> 的 <code>entry</code>。这个文件由 <code>build.ts</code> 生成，不手写。
+        <code>METAINF</code> 的 <code>entry</code>。这个文件由 <code>build.ts</code> 生成，不手写。
       </p>
 
       <pre><span class="path">dist/package.json</span><code>{
@@ -1166,7 +1166,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       </p>
 
       <div class="warn">
-        <b>入口以 <code>ocplugin.json</code> 为准。</b>只把界面写进包内 <code>package.json</code> 的 <code>exports</code>、
+        <b>入口以 <code>METAINF</code> 为准。</b>只把界面写进包内 <code>package.json</code> 的 <code>exports</code>、
         却不在 <code>entry.gui</code> 里声明 <code>gui/main</code>，走本地目录加载时界面不会出现。
       </div>
 
@@ -1321,7 +1321,7 @@ import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 await rm(dist, { recursive: true, force: true })
 await mkdir(join(dist, "server"), { recursive: true })
@@ -1343,9 +1343,9 @@ if (!build.success) {
 
 // 2. 静态文件
 await cp(join(root, "skills"), join(dist, "skills"), { recursive: true }).catch(() =&gt; undefined)
-await cp(join(root, "ocplugin.json"), join(dist, "ocplugin.json"))
+await cp(join(root, "METAINF"), join(dist, "METAINF"))
 
-// 3. 解包后的 package.json：entry 仍以 ocplugin.json 为准，这里只是给依赖解析用
+// 3. 解包后的 package.json：entry 仍以 METAINF 为准，这里只是给依赖解析用
 await writeFile(
   join(dist, "package.json"),
   JSON.stringify(
@@ -1366,16 +1366,16 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
       <div class="note">
         <b>顺序：</b>先跑 <code>bun run script/build.ts</code>（它会清空 <code>dist/</code> 并编服务端），
         再跑 <code>bunx vite build</code> 写 <code>dist/gui/main.cjs</code>。反过来会丢掉界面产物。
-        产物里的 <code>ocplugin.json</code> 不需要改：<code>entry.server</code> 仍是 <code>server/main</code>，扩展名由宿主补。
+        产物里的 <code>METAINF</code> 不需要改：<code>entry.server</code> 仍是 <code>server/main</code>，扩展名由宿主补。
       </div>
 
-      <h3 id="s2-12">2.12 create-ocplugin 脚手架</h3>
+      <h3 id="s2-12">2.12 create-exc 脚手架</h3>
 
       <p>
         不想手写目录与清单时，用仓库内的脚手架生成一个符合 <a href="#s2-0">2.0</a> 的工程骨架。
       </p>
 
-      <pre><span class="path">shell</span><code>bun packages/create-ocplugin/src/cli.ts &lt;directory&gt; [-t server|gui|tui] [-n "显示名"]</code></pre>
+      <pre><span class="path">shell</span><code>bun packages/create-exc/src/cli.ts &lt;directory&gt; [-t server|gui|tui] [-n "显示名"]</code></pre>
 
       <table>
         <tr><th>选项</th><th>说明</th></tr>
@@ -1388,19 +1388,19 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
         <tr><th>模板</th><th>文件</th></tr>
         <tr>
           <td>全部</td>
-          <td><code>ocplugin.json</code>、<code>package.json</code>、<code>tsconfig.json</code>、<code>server/main.ts</code>、<code>README.md</code>、<code>.gitignore</code></td>
+          <td><code>METAINF</code>、<code>package.json</code>、<code>tsconfig.json</code>、<code>server/main.ts</code>、<code>README.md</code>、<code>.gitignore</code></td>
         </tr>
         <tr><td><code>gui</code></td><td>额外 <code>gui/main.tsx</code> + <code>vite.config.ts</code></td></tr>
         <tr><td><code>tui</code></td><td>额外 <code>tui/main.tsx</code></td></tr>
       </table>
 
       <p>
-        生成的 <code>ocplugin.json</code> 直接符合入口标准：<code>server/main</code>，gui / tui 各写
+        生成的 <code>METAINF</code> 直接符合入口标准：<code>server/main</code>，gui / tui 各写
         <code>gui/main</code>、<code>tui/main</code>，<code>externals</code> 含 <code>@opencode/plugin</code>。
         它<b>不生成</b> <code>runtime</code> 字段——需要 Python 就自己加，见 <a href="#s2-1">2.1</a>。
       </p>
       <pre><span class="path">生成后</span><code>packages/plugins/my-plugin/
-├── ocplugin.json      # entry: { server: "server/main" }
+├── METAINF      # entry: { server: "server/main" }
 ├── package.json       # workspace:* / catalog: 依赖
 ├── tsconfig.json
 ├── server/main.ts
@@ -1422,13 +1422,13 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
       <h3 id="s3-1">3.1 包格式</h3>
 
       <p>
-        <code>.craf</code> 是 gzip 压缩的 tar 包。根目录必须有 <code>ocplugin.json</code>，且清单里带
-        <code>files</code> 校验和。宿主<b>只认 <code>.craf</code></b>：发现目录与安装查找都按这个扩展名，
+        <code>.exc</code> 是 gzip 压缩的 tar 包。根目录必须有 <code>METAINF</code>，且清单里带
+        <code>files</code> 校验和。宿主<b>只认 <code>.exc</code></b>：发现目录与安装查找都按这个扩展名，
         没有旧扩展名回退，旧包需要重新打包。
       </p>
 
-      <pre>opencode.echo-0.1.0.craf  (gzip tar)
-├── ocplugin.json     &lt;- 带 files[].sha256
+      <pre>opencode.echo-0.1.0.exc  (gzip tar)
+├── METAINF     &lt;- 带 files[].sha256
 ├── package.json
 ├── server/main.js
 ├── gui/main.cjs
@@ -1443,7 +1443,7 @@ import { join, relative, sep } from "node:path"
 
 const root = join(import.meta.dir, "..")
 const dist = join(root, "dist")
-const manifest = await Bun.file(join(root, "ocplugin.json")).json()
+const manifest = await Bun.file(join(root, "METAINF")).json()
 
 async function walk(directory: string): Promise&lt;string[]&gt; {
   const entries = await readdir(directory, { withFileTypes: true })
@@ -1458,7 +1458,7 @@ async function walk(directory: string): Promise&lt;string[]&gt; {
 
 const paths = (await walk(dist))
   .map((file) =&gt; relative(dist, file).split(sep).join("/"))
-  .filter((path) =&gt; path !== "ocplugin.json")
+  .filter((path) =&gt; path !== "METAINF")
   .sort()
 
 const files: Record&lt;string, Uint8Array&gt; = {}
@@ -1470,14 +1470,14 @@ for (const path of paths) {
   checks.push({ path, sha256: createHash("sha256").update(bytes).digest("hex") })
 }
 
-files["ocplugin.json"] = new TextEncoder().encode(
+files["METAINF"] = new TextEncoder().encode(
   JSON.stringify({ ...manifest, files: checks }, null, 2) + "\n",
 )
 
 const out = join(homedir(), ".distribution", "plugins", manifest.id, manifest.version)
 await mkdir(out, { recursive: true })
 
-const archive = join(out, `${manifest.id}-${manifest.version}.craf`)
+const archive = join(out, `${manifest.id}-${manifest.version}.exc`)
 await Bun.Archive.write(archive, files, { compress: "gzip", level: 9 })
 
 console.log(`packed ${archive}`)</code></pre>
@@ -1498,24 +1498,24 @@ console.log(`packed ${archive}`)</code></pre>
         </tr>
         <tr>
           <td>清单重写</td>
-          <td>包根 <code>ocplugin.json</code> 由打包脚本重写，包含 <code>files[].sha256</code>。</td>
+          <td>包根 <code>METAINF</code> 由打包脚本重写，包含 <code>files[].sha256</code>。</td>
         </tr>
         <tr>
           <td>自引用</td>
-          <td><code>ocplugin.json</code> 不列入 <code>files</code>，避免循环。</td>
+          <td><code>METAINF</code> 不列入 <code>files</code>，避免循环。</td>
         </tr>
         <tr>
           <td>输出位置</td>
-          <td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.craf</code>。</td>
+          <td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.exc</code>。</td>
         </tr>
         <tr>
           <td>单文件</td>
-          <td>每个版本目录只留一个 <code>.craf</code>，清单随包内的 <code>ocplugin.json</code> 分发，不另写侧车文件。</td>
+          <td>每个版本目录只留一个 <code>.exc</code>，清单随包内的 <code>METAINF</code> 分发，不另写侧车文件。</td>
         </tr>
         <tr>
           <td>列举代价</td>
           <td>
-            探索页列出某个版本就要打开包读 <code>ocplugin.json</code>，没有侧车可跳过解压。
+            探索页列出某个版本就要打开包读 <code>METAINF</code>，没有侧车可跳过解压。
             大包（<code>webwright</code> 带 Playwright 驱动）首次列举会稍慢，这是为保持目录干净接受的代价。
           </td>
         </tr>
@@ -1534,7 +1534,7 @@ console.log(`packed ${archive}`)</code></pre>
       <ol class="steps">
         <li>
           <h3>放入待安装目录</h3>
-          <p>把 <code>.craf</code> 放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>。</p>
+          <p>把 <code>.exc</code> 放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>。</p>
         </li>
         <li>
           <h3>在应用中安装</h3>
@@ -1552,7 +1552,7 @@ console.log(`packed ${archive}`)</code></pre>
         <li>
           <h3>解包</h3>
           <p>
-            解包到 <code>~/.opencode/ocplugins/&lt;id&gt;/</code>，并按 <code>externals</code> 把宿主模块软链进插件的
+            解包到 <code>~/.opencode/exc/&lt;id&gt;/</code>，并按 <code>externals</code> 把宿主模块软链进插件的
             <code>node_modules</code>。
           </p>
         </li>
@@ -1707,12 +1707,12 @@ Content-Type: application/json
         </tr>
         <tr>
           <td>单文件</td>
-          <td>把 <code>.craf</code> 发给对方，放进 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code> 后安装。</td>
+          <td>把 <code>.exc</code> 发给对方，放进 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code> 后安装。</td>
           <td>手动试用、离线环境</td>
         </tr>
         <tr>
           <td>目录</td>
-          <td>直接把 <code>dist/</code> 拷到 <code>~/.opencode/ocplugins/&lt;id&gt;/</code>，无需打包。</td>
+          <td>直接把 <code>dist/</code> 拷到 <code>~/.opencode/exc/&lt;id&gt;/</code>，无需打包。</td>
           <td>本地开发</td>
         </tr>
         <tr>
@@ -1729,7 +1729,7 @@ Content-Type: application/json
 
       <div class="warn">
         <b>安全提示：</b>安装器只做 sha256 完整性校验，没有签名与来源验证。不要把来源不明的
-        <code>.craf</code> 放进安装目录——它会在服务进程和桌面窗口里执行任意代码。
+        <code>.exc</code> 放进安装目录——它会在服务进程和桌面窗口里执行任意代码。
       </div>
 
       <h2 id="s4">4. API 参考</h2>
@@ -1872,7 +1872,7 @@ await ctx.secrets.delete("token")</code></pre>
         清单的 <code>configuration</code> 声明一组扁平配置项，宿主据此校验和读写
         <code>&lt;ctx.paths.data&gt;/config.json</code>。
       </p>
-      <pre><span class="path">ocplugin.json</span><code>"configuration": {
+      <pre><span class="path">METAINF</span><code>"configuration": {
   "title": "ACME 设置",
   "properties": {
     "endpoint": { "type": "string", "default": "" },
@@ -2801,7 +2801,7 @@ export const Acme = Rpc.define({
 })</code></pre>
 
       <pre><span class="path">调用</span><code>const client = ctx.rpc(Acme)
-const { hits } = await client.search({ query: "ocplugin" })
+const { hits } = await client.search({ query: "exc" })
 const stop = client.on("indexed", (data) =&gt; { ... })</code></pre>
 
       <h4>提供方</h4>
@@ -3167,7 +3167,7 @@ ctx.add(InboxContent, {
       <h3>5.2 确认界面被加载</h3>
       <ol>
         <li>插件处于启用状态。</li>
-        <li><code>ocplugin.json</code> 的 <code>entry.gui</code> 是 <code>gui/main</code>，产物是 <code>gui/main.cjs</code> 或 <code>gui/main.js</code>。</li>
+        <li><code>METAINF</code> 的 <code>entry.gui</code> 是 <code>gui/main</code>，产物是 <code>gui/main.cjs</code> 或 <code>gui/main.js</code>。</li>
         <li>bundle 是 CommonJS，不含 <code>import</code>/<code>export</code> 语句。</li>
         <li>在桌面端运行；Web 端不加载第三方界面。</li>
       </ol>
@@ -3181,9 +3181,9 @@ ctx.add(InboxContent, {
 
       <h3>5.4 热更新不生效</h3>
       <ol>
-        <li>确认覆盖的是 <code>~/.opencode/ocplugins/&lt;id&gt;/</code>，不是项目里的 <code>dist/</code>。</li>
+        <li>确认覆盖的是 <code>~/.opencode/exc/&lt;id&gt;/</code>，不是项目里的 <code>dist/</code>。</li>
         <li>确认构建产物时间戳已更新。</li>
-        <li>手动触碰目录：<code>touch ~/.opencode/ocplugins/&lt;id&gt;</code>。</li>
+        <li>手动触碰目录：<code>touch ~/.opencode/exc/&lt;id&gt;</code>。</li>
       </ol>
       <p>
         如果插件已经进入加载失败后的退避窗口，改文件不会立刻重试：见
@@ -3201,7 +3201,7 @@ ctx.add(InboxContent, {
         <tr><td>This plugin bundle has a display without a name and description.</td><td><code>display</code> 缺 <code>name</code> 或 <code>description</code>。</td></tr>
         <tr><td>This plugin bundle is incomplete: &lt;path&gt; is missing.</td><td><code>skills[].path</code> 指向的文件不在包里。</td></tr>
         <tr><td>This plugin bundle has an invalid configuration: ...</td><td><code>configuration</code> 用了不支持的类型（嵌套对象、非 string 数组等）。</td></tr>
-        <tr><td>This is not a plugin bundle: ocplugin.json is missing.</td><td>压缩包根目录没有清单。</td></tr>
+        <tr><td>This is not a plugin bundle: METAINF is missing.</td><td>压缩包根目录没有清单。</td></tr>
         <tr>
           <td>This plugin bundle has no <i>kind</i> entry. Expected <i>kind</i>/main (...); tried ...</td>
           <td>
@@ -3215,9 +3215,9 @@ ctx.add(InboxContent, {
         <tr><td>This bundle is damaged: &lt;path&gt; does not match its checksum.</td><td>打包后文件被改动，或校验和生成有误。重新打包。</td></tr>
         <tr><td>This bundle is &lt;id&gt;, not &lt;requested id&gt;.</td><td>清单 id 与安装请求不一致。</td></tr>
         <tr><td>This bundle is version X, not Y.</td><td>清单版本与请求版本不一致。</td></tr>
-        <tr><td>No &lt;id&gt; bundle was found in ...</td><td>没有放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>，或那里的文件不是 <code>.craf</code>。</td></tr>
+        <tr><td>No &lt;id&gt; bundle was found in ...</td><td>没有放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>，或那里的文件不是 <code>.exc</code>。</td></tr>
         <tr><td>This plugin bundle has an invalid runtime: python must be a version constraint and dependencies a list of package specs.</td><td><code>runtime</code> 结构不对：<code>python</code> 必须是版本约束字符串，<code>dependencies</code> 必须是字符串数组。见 <a href="#s2-1">2.1</a>。</td></tr>
-        <tr><td>Plugin entrypoint not found: &lt;target&gt;</td><td>解包目录缺少可用入口。先看 <code>ocplugin.json</code> 的 <code>entry</code>，再确认对应文件按 <a href="#s2-0">2.0</a> 的扩展名顺序确实存在。</td></tr>
+        <tr><td>Plugin entrypoint not found: &lt;target&gt;</td><td>解包目录缺少可用入口。先看 <code>METAINF</code> 的 <code>entry</code>，再确认对应文件按 <a href="#s2-0">2.0</a> 的扩展名顺序确实存在。</td></tr>
         <tr><td>A plugin's ./gui-experimental bundle must default-export a Plugin.define</td><td>界面入口没有默认导出 <code>Plugin.define</code>。</td></tr>
         <tr><td>A plugin's GUI must have a window setup, a main setup, or both</td><td>界面定义里 <code>setup</code> 与 <code>main</code> 都没有。</td></tr>
         <tr><td>&lt;module&gt; is not a module the OpenCode app provides to plugin GUIs</td><td>界面 bundle 引用了白名单外的模块。</td></tr>
@@ -3228,7 +3228,7 @@ ctx.add(InboxContent, {
 
       <table>
         <tr><th>路径</th><th>作用</th></tr>
-        <tr><td><code>~/.opencode/ocplugins/&lt;id&gt;/</code></td><td>已安装插件；自动扫描、监听，放入即加载。</td></tr>
+        <tr><td><code>~/.opencode/exc/&lt;id&gt;/</code></td><td>已安装插件；自动扫描、监听，放入即加载。</td></tr>
         <tr><td><code>~/.opencode/plugin-data/&lt;id&gt;/</code></td><td>插件数据目录（<code>ctx.paths.data</code>），卸载后保留；<code>config.json</code> 也在这里。</td></tr>
         <tr><td><code>~/.opencode/plugin-cache/&lt;id&gt;/</code></td><td>插件缓存目录（<code>ctx.paths.cache</code>），卸载时整个删除。Windows 上默认在 <code>D:\.opencode\plugin-cache\&lt;id&gt;\</code>，见 <a href="#s2-1-dirs">2.1</a>。</td></tr>
         <tr><td><code>~/.opencode/plugin-runtime/&lt;id&gt;/</code></td><td>Python 运行时环境（<a href="#s2-1">2.1</a>），id 里的 <code>/</code> 换成 <code>+</code>；卸载时删除，可按清单重建。Windows 上默认在 <code>D:\.opencode\plugin-runtime\&lt;id&gt;\</code>。</td></tr>
@@ -3236,7 +3236,7 @@ ctx.add(InboxContent, {
         <tr><td><code>~/.opencode/logs/plugin/&lt;id&gt;.log</code></td><td>插件日志（<code>ctx.paths.log</code>），卸载后保留。</td></tr>
         <tr><td><code>~/.opencode/secrets.key</code></td><td>加密凭据的主密钥，首次使用生成，权限 <code>0600</code>。</td></tr>
         <tr><td><code>~/.opencode/secrets/&lt;id&gt;.json</code></td><td>加密后的凭据密文，权限 <code>0600</code>。</td></tr>
-        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：每个版本只有一个 <code>&lt;id&gt;-&lt;version&gt;.craf</code>（清单在包内）；探索页从这里列出可安装版本。</td></tr>
+        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：每个版本只有一个 <code>&lt;id&gt;-&lt;version&gt;.exc</code>（清单在包内）；探索页从这里列出可安装版本。</td></tr>
         <tr><td><code>&lt;project&gt;/.opencode/plugins/</code></td><td>项目级插件目录。</td></tr>
         <tr><td><code>opencode.json</code> 的 <code>plugins</code></td><td>显式声明插件包或本地目录。</td></tr>
         <tr><td><code>~/.config/opencode/opencode.json</code></td><td>全局配置，可写插件 options。</td></tr>
@@ -3309,7 +3309,7 @@ ctx.add(InboxContent, {
       <table>
         <tr><th>项</th><th>现状</th></tr>
         <tr><td>事件补发（<code>after</code> 游标）</td><td><code>SubscribeOptions</code> 只有 <code>types</code> / <code>signal</code> / <code>onActivity</code>，没有游标；durable 事件无法从指定位置续订，ephemeral 事件永远无法补发。</td></tr>
-        <tr><td><code>permissions</code> 声明</td><td><code>ocplugin.json</code> 没有权限字段，安装时也没有逐项授权提示。安装器只校验清单结构，不做权限告知。</td></tr>
+        <tr><td><code>permissions</code> 声明</td><td><code>METAINF</code> 没有权限字段，安装时也没有逐项授权提示。安装器只校验清单结构，不做权限告知。</td></tr>
         <tr><td>声明式配置 → 设置页</td><td>不会根据 <code>configuration</code> 自动渲染设置页；插件仍自己 <code>ctx.add(SettingsPage)</code> 并通过自定义 RPC 调 <code>ctx.config.update</code>。</td></tr>
       </table>
 
@@ -3391,7 +3391,7 @@ ctx.add(InboxContent, {
       </p>
 
       <p class="footer">
-        本文档描述 <code>.craf</code> 格式 <code>apiVersion 1</code>。实现依据：
+        本文档描述 <code>.exc</code> 格式 <code>apiVersion 1</code>。实现依据：
         <code>packages/core/src/plugin/{bundle,local,module}.ts</code>、
         <code>packages/plugin/src/{host,gui/*,promise/*,effect/*}.ts</code>、
         <code>packages/schema/src/{session-event,session-status-event,event-manifest}.ts</code>、

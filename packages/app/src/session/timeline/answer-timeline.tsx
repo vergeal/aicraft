@@ -84,6 +84,13 @@ export function AnswerTimeline(props: {
 
   const following = () => props.follow.following()
 
+  // A following view writes `scrollTop` itself on every growth. The browser's own scroll anchoring would add a second
+  // correction to the same container, and the two together move the rows the reader is watching (a 0.28 layout shift in
+  // the captured session). A detached reader keeps the browser's anchoring: nothing writes their offset then.
+  const applyAnchoring = () => {
+    if (viewport) viewport.style.overflowAnchor = following() ? "none" : "auto"
+  }
+
   // Where the reader left the transcript is a fact about the viewport, not the follow intent. The machine can still
   // read `following` after an upward wheel (a downward one never detaches), so `bottom` taken from it is true for a
   // reader who sits mid-transcript. Saving that true makes the next activation skip the restore and land on the end.
@@ -299,6 +306,13 @@ export function AnswerTimeline(props: {
     })
   })
 
+  // The anchoring follows the follow intent: a landing, a fresh activation and a streamed growth all write the offset,
+  // so all of them run with the browser's anchoring off.
+  createRenderEffect(() => {
+    following()
+    applyAnchoring()
+  })
+
   onCleanup(() => contentObserver?.disconnect())
   onCleanup(() => {
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
@@ -324,6 +338,7 @@ export function AnswerTimeline(props: {
           viewport = element
           setViewportElement(element)
           props.setScrollRef(element)
+          applyAnchoring()
         }}
         thumbContainer={visible()}
         onScroll={(event) => {

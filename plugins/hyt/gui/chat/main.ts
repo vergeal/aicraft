@@ -83,6 +83,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   let markedRead = new Map<string, number>()
   let searchState = { query: "", hits: [] as SearchHit[] }
   let provider: IpcProvider<typeof ChatIpc.spec> | undefined
+  // 搜索命中或「定位」要落在某条旧消息上：这一页以它为最新一条，下一次刷新回落到最新一页。
+  let anchorId: number | undefined
 
   // 头像按「路径 + mtime」缓存：同一张图跨窗口、跨 4 秒轮询只读一次盘。
   const avatarCache = new Map<string, { readonly stamp: number; readonly dataUrl: string }>()
@@ -134,7 +136,12 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       const sessions = Db.readSessions(root, login.account, markedRead)
       const chosen = sessions.find((item) => item.id === selected) ?? sessions[0]
       selected = chosen?.id ?? ""
-      const latest = Db.readMessages(root, login.account, selected, undefined)
+      const latest = Db.readMessages(
+        root,
+        login.account,
+        selected,
+        anchorId === undefined ? undefined : anchorId + 1,
+      )
       if (mergeMessages && messages.length > 0 && latest.messages.length > 0) {
         const oldestLoaded = latest.messages[0]?.id ?? Number.MAX_SAFE_INTEGER
         const kept = messages.filter((message) => message.id < oldestLoaded)
@@ -144,7 +151,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         messages = latest.messages
         hasMore = latest.hasMore
         // 只在整页换掉时重算分界：进入会话后马上会标已读，若让 4 秒轮询也重算，分隔线会在几秒内自己消失。
-        newMessageId = latest.firstUnreadId
+        // 锚定到某条旧消息时没有「新消息」可言。
+        newMessageId = anchorId === undefined ? latest.firstUnreadId : 0
       }
 
       const whitelist = mergedWhitelist(profile)
@@ -217,7 +225,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       messages = []
       hasMore = false
       searchState = { query: "", hits: [] }
+      anchorId = input.messageId !== undefined && input.messageId > 0 ? input.messageId : undefined
       await load(false)
+      anchorId = undefined
       report()
     },
 

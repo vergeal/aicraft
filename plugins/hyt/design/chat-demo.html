@@ -1,0 +1,1858 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>内部通讯 · 设计稿</title>
+<style>
+/* ============================================================================
+   值班台账 · 企业内部通讯
+   纸白底，页眉一道封红，未读用荧光笔划过摘要。
+   日期用仿宋（公文日期），其余系统黑体。全页只让红色出现三次：
+   页眉那道线、@ 提醒、分界说明。
+   ========================================================================= */
+:root {
+  color-scheme: light;
+
+  --paper: #ffffff;
+  --chrome: #f3f5f7;
+  --ink: #1b2430;
+  --muted: #55636f;
+  --line: #e4e8ec;
+  --line-soft: #edf0f3;
+  --seal: #c33a2e;
+  --seal-ink: #b03227;
+  --seal-bg: #fbe9e6;
+  --mark: #ffe873;
+  --bubble: #f2f4f6;
+  --bubble-self: #dfeaf4;
+  --link: #2e5f8a;
+
+  --face-a-bg: #e6f2e8;
+  --face-a-fg: #2f6b3f;
+  --face-b-bg: #eceff2;
+  --face-b-fg: #4d5a66;
+
+  --hover: #ebeef1;
+  --media: #e3e7ea;
+  --media-a: #dde8e0;
+  --tint: #fafbfc;
+  --ink-hover: #2a3542;
+  --disabled: #c8d0d7;
+  --disabled-ink: #ffffff;
+  --online: #3ba55d;
+  --sk-1: #eef1f4;
+  --sk-2: #f7f9fa;
+  --shadow: rgba(27, 36, 48, 0.08);
+  --shadow-lg: rgba(27, 36, 48, 0.1);
+  --focus-ring: rgba(46, 95, 138, 0.16);
+
+  --sans: "MiSans", "HarmonyOS Sans SC", "PingFang SC", system-ui, "Microsoft YaHei", sans-serif;
+  --ledger: "FangSong", "STFangsong", "仿宋", "FangSong_GB2312", serif;
+
+  --r-row: 8px;
+  --r-face: 10px;
+  --r-bubble: 12px;
+  --r-tip: 4px;
+
+  --rail: 296px;
+  --panel: 320px;
+  --chrome-h: 62px;
+}
+
+/* 夜间值班室：不是纯黑，是低亮度的纸灰；红色提亮，荧光笔换成暗金笔迹 */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #1a1e23;
+  --chrome: #0d1013;
+  --ink: #e3e8ed;
+  --muted: #96a2ae;
+  --line: #303740;
+  --line-soft: #262c33;
+  --seal: #d7564a;
+  --seal-ink: #e88a80;
+  --seal-bg: #39221f;
+  --mark: #6b5616;
+  --bubble: #2a3038;
+  --bubble-self: #29384a;
+  --link: #86b6da;
+
+  --face-a-bg: #22342a;
+  --face-a-fg: #93cfa4;
+  --face-b-bg: #2b3138;
+  --face-b-fg: #b6c0c9;
+
+  --hover: #1f252b;
+  --media: #2f363e;
+  --media-a: #26332b;
+  --tint: #1f252b;
+  --ink-hover: #f0f3f6;
+  --disabled: #343a41;
+  --disabled-ink: #7c8792;
+  --online: #4ecb71;
+  --sk-1: #262c33;
+  --sk-2: #303740;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --shadow-lg: rgba(0, 0, 0, 0.5);
+  --focus-ring: rgba(134, 182, 218, 0.25);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  background: var(--chrome);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; }
+textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--seal-ink);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── 骨架 ─────────────────────────────────────────────────────────────── */
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  height: calc(100dvh - 34px);
+  background: var(--paper);
+}
+
+.shell[data-panel="open"] {
+  grid-template-columns: var(--rail) minmax(0, 1fr) var(--panel);
+}
+
+.shell[data-blank="true"] { grid-template-columns: minmax(0, 1fr); }
+
+.shell[data-blank="true"] > .rail,
+.shell[data-blank="true"] > .desk,
+.shell[data-blank="true"] > .panel { display: none; }
+
+/* ── 左栏 ─────────────────────────────────────────────────────────────── */
+.rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--chrome);
+  border-right: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  height: var(--chrome-h);
+  padding: 0 16px 0 20px;
+  border-bottom: 2px solid var(--seal);
+  overflow: hidden;
+}
+
+.brand-text { min-width: 0; }
+
+.brand-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.brand-sub {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-unread {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--seal-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.brand-unread:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.search {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 12px 16px 0;
+}
+
+.search input {
+  width: 100%;
+  height: 38px;
+  padding: 0 52px 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--r-row);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.search input::placeholder { color: var(--muted); }
+
+.search input:focus {
+  border-color: var(--muted);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  outline: none;
+}
+
+.search kbd {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.ledger,
+.hits {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 10px 16px;
+  scrollbar-gutter: stable;
+}
+
+.search-empty {
+  padding: 28px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.search-empty strong { display: block; margin-bottom: 4px; color: var(--ink); font-weight: 500; }
+
+.rail-foot {
+  flex: 0 0 auto;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rail-foot strong { color: var(--ink); font-weight: 500; }
+
+.day {
+  padding: 16px 8px 4px;
+  color: var(--muted);
+  font-family: var(--ledger);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+
+.entry:not([aria-current="true"]):hover { background: var(--hover); }
+
+.entry[aria-current="true"] {
+  background: var(--paper);
+  box-shadow: inset 2px 0 0 var(--seal), inset 0 0 0 1px var(--line);
+}
+
+.face {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-face);
+  background: var(--face-b-bg);
+  color: var(--face-b-fg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.face[data-hue="a"] { background: var(--face-a-bg); color: var(--face-a-fg); }
+
+.face--sm {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.entry-text { min-width: 0; }
+
+.entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.entry-kind {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+}
+
+.entry-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry[data-unread="true"] .entry-name { font-weight: 600; }
+
+.entry-time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-top: 2px;
+  min-height: 20px;
+}
+
+.entry-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 荧光笔只涂文字本身，笔迹不满行盒，短句也不会拖一条到行尾 */
+.hl {
+  padding: 0 1px;
+  background-image: linear-gradient(
+    180deg,
+    transparent 10%,
+    var(--mark) 10%,
+    var(--mark) 90%,
+    transparent 90%
+  );
+  box-decoration-break: clone;
+  color: var(--ink);
+}
+
+.entry[data-unread="true"] .entry-preview { color: var(--ink); }
+
+.draft-mark {
+  margin-right: 5px;
+  color: var(--seal-ink);
+  font-size: 12px;
+}
+
+.badge {
+  flex: 0 0 auto;
+  width: 18px;
+  margin-left: 8px;
+  color: var(--seal-ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge--count {
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 搜索结果 */
+.hit {
+  display: block;
+  width: 100%;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+
+.hit:hover { background: var(--hover); }
+
+.hit-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.hit-name { flex: 1 1 auto; font-size: 13px; font-weight: 500; }
+.hit-time { flex: 0 0 auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.hit-text {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hit mark { padding: 0 2px; background: var(--mark); color: var(--ink); }
+
+.hits-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 8px 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hits-head b { color: var(--ink); font-weight: 500; }
+
+/* ── 中栏 ─────────────────────────────────────────────────────────────── */
+.desk {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--paper);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  height: var(--chrome-h);
+  padding: 0 16px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.head-face {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-face);
+  background: var(--face-a-bg);
+  color: var(--face-a-fg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.head-text { min-width: 0; }
+
+.head-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.head-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.head-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pill {
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.head-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-btn:hover { background: var(--chrome); color: var(--ink); }
+.icon-btn svg { width: 17px; height: 17px; }
+
+.stream-wrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.stream {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 28px;
+  scrollbar-gutter: stable;
+}
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  justify-content: flex-end;
+  padding-bottom: 46px;
+}
+
+.more {
+  align-self: center;
+  margin: 14px 0 4px;
+  padding: 2px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.more:hover { background: var(--chrome); color: var(--ink); }
+
+.stamp {
+  margin: 10px 0 18px;
+  color: var(--muted);
+  font-family: var(--ledger);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.system {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.system b { color: var(--ink); font-weight: 500; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0 16px;
+  color: var(--seal-ink);
+  font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 0 0 28px;
+  height: 1px;
+  background: var(--seal-bg);
+}
+
+.msg {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.msg-face {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-face);
+  background: var(--face-b-bg);
+  color: var(--face-b-fg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.msg-face[data-hue="a"] { background: var(--face-a-bg); color: var(--face-a-fg); }
+
+.msg-body { min-width: 0; }
+
+.msg-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.msg-name { font-size: 13px; font-weight: 500; }
+
+.msg-time {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 连续同人：头像位保留，隐去重复的头像与名字，整块收紧 */
+.msg[data-grouped="true"] { margin-top: -8px; margin-bottom: 8px; }
+.msg[data-grouped="true"] .msg-face,
+.msg[data-grouped="true"] .msg-meta { visibility: hidden; }
+
+.bubble {
+  display: inline-block;
+  max-width: min(780px, 86%);
+  padding: 8px 13px;
+  border-radius: var(--r-bubble);
+  border-top-left-radius: var(--r-tip);
+  background: var(--bubble);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.bubble--block { display: block; }
+.bubble--w { width: min(420px, 100%); }
+.bubble--prose { width: min(560px, 100%); }
+
+.bubble a { color: var(--link); text-underline-offset: 2px; }
+
+.at {
+  padding: 0 4px;
+  border-radius: var(--r-tip);
+  background: var(--seal-bg);
+  color: var(--seal-ink);
+  font-weight: 500;
+}
+
+.msg[data-self="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.msg[data-self="true"] .msg-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.msg[data-self="true"] .bubble {
+  border-top-left-radius: var(--r-bubble);
+  border-top-right-radius: var(--r-tip);
+  background: var(--bubble-self);
+}
+
+.msg[data-self="true"] .msg-meta { align-self: flex-end; }
+
+.message-tools {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.msg:hover .message-tools,
+.msg:focus-within .message-tools { opacity: 1; }
+
+.message-tools button {
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.message-tools button:hover { background: var(--chrome); color: var(--ink); }
+
+.expand {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* 文件卡：气泡里的子块，用一条淡线分隔，不套第二层卡片 */
+.file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+}
+
+.file-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.file-text { min-width: 0; overflow: hidden; }
+
+.file-name {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 图片 */
+.shots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  width: min(320px, 100%);
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: var(--r-row);
+}
+
+.shot {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--media);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.shot[data-hue="a"] { background: var(--media-a); }
+
+/* 语音 / 通话 / 合并转发 */
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 132px;
+  padding: 7px 12px;
+  border-radius: var(--r-bubble);
+  border-top-left-radius: var(--r-tip);
+  background: var(--bubble);
+  font-size: 14px;
+}
+
+.capsule button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.capsule .wave { display: flex; align-items: center; gap: 2px; }
+
+.capsule .wave i {
+  width: 2px;
+  height: 10px;
+  background: var(--muted);
+  border-radius: 1px;
+}
+
+.capsule .wave i:nth-child(2) { height: 15px; }
+.capsule .wave i:nth-child(3) { height: 7px; }
+.capsule .wave i:nth-child(4) { height: 12px; }
+
+.merge-card {
+  display: block;
+  width: min(320px, 100%);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--paper);
+  text-align: start;
+  cursor: pointer;
+}
+
+.merge-card:hover { background: var(--chrome); }
+
+.merge-title { font-size: 13px; font-weight: 500; }
+.merge-text {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unknown {
+  display: inline-block;
+  padding: 8px 13px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-bubble);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.unknown b { color: var(--ink); font-weight: 500; }
+
+/* 回到底部 */
+.jump {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 2px 10px var(--shadow);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.save-note { display: none; }
+
+/* ── 输入区 ───────────────────────────────────────────────────────────── */
+.composer {
+  flex: 0 0 auto;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.ai-draft {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--seal);
+  background: var(--tint);
+}
+
+.ai-draft-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ai-draft-head span { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+.ai-draft-text {
+  margin: 4px 0 8px;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ai-draft-actions { display: flex; gap: 6px; }
+
+.draft-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.draft-btn:hover { border-color: var(--muted); }
+
+.draft-btn[data-primary="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.draft-btn[data-primary="true"]:hover { background: var(--ink-hover); }
+
+.send-note {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.send-note b { color: var(--ink); font-weight: 500; }
+.send-note button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.send-note-extra { margin-left: auto; opacity: 0.85; }
+
+.box {
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--chrome);
+}
+
+.box:focus-within { border-color: var(--muted); background: var(--paper); }
+
+.box textarea {
+  display: block;
+  width: 100%;
+  min-height: 62px;
+  max-height: 148px;
+  padding: 10px 12px 0;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+.box textarea::placeholder { color: var(--muted); }
+
+.box[data-locked="true"] textarea { cursor: not-allowed; }
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px 8px;
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) { background: var(--paper); color: var(--ink); }
+.tool:disabled { opacity: 0.45; cursor: not-allowed; }
+.tool svg { width: 16px; height: 16px; }
+
+.tools-hint {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.send {
+  height: 28px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.send:disabled { background: var(--disabled); color: var(--disabled-ink); cursor: not-allowed; }
+
+/* ── 右侧资料 ─────────────────────────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+}
+
+.panel[hidden] { display: none; }
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: var(--chrome-h);
+  padding: 0 10px 0 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel-head .icon-btn { margin-left: auto; }
+
+.panel-body { flex: 1 1 auto; overflow: auto; padding: 18px 20px 24px; }
+
+.subject {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.subject-name { margin: 0; font-size: 15px; font-weight: 600; }
+.subject-meta { color: var(--muted); font-size: 12px; }
+
+.section {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 20px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.section span { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+.person {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.person-name { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.person-role { color: var(--muted); font-size: 12px; }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--online);
+}
+
+.panel-note {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ── 独立视图：空态 / 加载 / 错误 ─────────────────────────────────────── */
+.blank {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 40px 32px;
+  background: var(--paper);
+}
+
+.blank[hidden] { display: none; }
+
+.blank-brand {
+  position: absolute;
+  top: 22px;
+  left: 32px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 加载态画成外壳骨架，而不是整页一个转圈 */
+.blank--frame {
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  place-items: stretch;
+  padding: 0;
+}
+
+.sk-rail {
+  padding: 22px 20px;
+  border-right: 1px solid var(--line);
+  background: var(--chrome);
+}
+
+.sk-desk { display: flex; flex-direction: column; padding: 22px 28px 40px; }
+
+.sk-desk .inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  margin-top: auto;
+}
+
+.sk-hint {
+  margin: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.blank-inner {
+  width: min(520px, 100%);
+  padding-left: 20px;
+  border-left: 2px solid var(--seal);
+}
+
+.blank-title { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
+.blank-body { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.75; }
+.blank-body code { font-family: inherit; color: var(--ink); }
+
+.blank-actions { display: flex; align-items: center; gap: 10px; }
+
+.button {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button:hover { background: var(--ink-hover); }
+
+.ghost {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ghost:hover { border-color: var(--muted); color: var(--ink); }
+
+details.tech { margin-top: 16px; color: var(--muted); font-size: 12px; }
+details.tech summary { cursor: pointer; }
+details.tech pre {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--chrome);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 骨架 */
+.sk {
+  height: 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--sk-1), var(--sk-2), var(--sk-1));
+  background-size: 200% 100%;
+  animation: sk 1.4s linear infinite;
+}
+.sk.w60 { width: 60%; }
+.sk.w40 { width: 40%; }
+.sk.w80 { width: 80%; }
+.sk.tall { height: 56px; border-radius: var(--r-bubble); }
+
+@keyframes sk { from { background-position: 0 0; } to { background-position: -200% 0; } }
+
+/* ── 演示切换器（不属于产品界面） ─────────────────────────────────────── */
+.demo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 34px;
+  border-top: 1px solid #2c3238;
+  background: #14171a;
+}
+
+.demo button {
+  width: 56px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #c9d2da;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.demo button:hover { color: #f2f4f6; }
+
+.demo button[aria-pressed="true"] { background: #f2f4f6; color: #14171a; }
+
+/* 主题按钮只切换，不参与「当前视图」的高亮 */
+.demo button[data-theme-toggle][aria-pressed="true"] {
+  background: transparent;
+  color: #f2f4f6;
+}
+
+.demo button[data-theme-toggle] { width: 60px; }
+
+.demo-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 6px;
+  background: #333a41;
+}
+
+[hidden] { display: none !important; }
+
+@media (max-width: 1024px) {
+  .shell[data-panel="open"] { grid-template-columns: var(--rail) minmax(0, 1fr); }
+  .panel { position: fixed; top: 0; right: 0; bottom: 0; width: var(--panel); z-index: 30; box-shadow: -10px 0 30px var(--shadow-lg); }
+}
+
+@media (max-width: 760px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .rail { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+@media print {
+  .demo { display: none !important; }
+  .shell { height: auto; }
+  .stream, .ledger, .panel-body { overflow: visible; }
+  .hl, .at, .badge--count, .brand { print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell" data-view="chat" data-panel="closed">
+
+  <!-- ══ 左栏 ══════════════════════════════════════════════════════════ -->
+  <aside class="rail" aria-label="会话台账">
+    <div class="brand">
+      <div class="brand-text">
+        <h1 class="brand-name">内部通讯</h1>
+        <div class="brand-sub">运维中心 · 11月23日 星期一</div>
+      </div>
+      <button class="brand-unread" type="button" title="全部标为已读">12 条未读</button>
+    </div>
+
+    <div class="search">
+      <input type="search" placeholder="搜索会话或消息" aria-label="搜索会话或消息" />
+      <kbd>Ctrl K</kbd>
+    </div>
+
+    <!-- 搜索未命中时的空态 -->
+    <div class="hits" id="hits" hidden>
+      <div class="hits-head"><span>找到 <b>4</b> 条</span><span>Esc 返回会话</span></div>
+
+      <button class="hit" type="button">
+        <span class="hit-head"><span class="hit-name">次申家、张放、唐宇</span><span class="hit-time">11月20日</span></span>
+        <span class="hit-text">张放：处理措施失效，先切<mark>手动</mark>……</span>
+      </button>
+      <button class="hit" type="button">
+        <span class="hit-head"><span class="hit-name">秦和平、邓齐、叶芃</span><span class="hit-time">11月17日</span></span>
+        <span class="hit-text">秦和平：先按<mark>手动</mark>复位，再断总闸</span>
+      </button>
+      <button class="hit" type="button">
+        <span class="hit-head"><span class="hit-name">刘程、唐宇、罗添胜</span><span class="hit-time">11月14日</span></span>
+        <span class="hit-text">刘程：切<mark>手动</mark>以后巡检表要重打</span>
+      </button>
+      <button class="hit" type="button">
+        <span class="hit-head"><span class="hit-name">洪灿、陶丽、张磊</span><span class="hit-time">11月12日</span></span>
+        <span class="hit-text">洪灿：<mark>手动</mark>模式下不要动变频器参数</span>
+      </button>
+
+      <div class="search-empty">
+        <strong>没有更多命中</strong>
+        换个说法试试，比如设备号或日期。
+      </div>
+    </div>
+
+    <!-- 会话列表 -->
+    <div class="ledger" id="ledger">
+      <div class="day">今天</div>
+
+      <button class="entry" type="button" aria-current="true" data-unread="true"
+        aria-label="刘程、唐宇、罗添胜，群聊，2 条未读，13:20">
+        <span class="face" data-hue="a" aria-hidden="true">添胜</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.6" cy="6" r="1.8"/><path d="M13.9 13c0-1.7-1-2.7-2.6-2.9"/></svg>
+            <span class="entry-name">刘程、唐宇、罗添胜</span>
+            <span class="entry-time">13:20</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview"><span class="hl">唐宇：刚和仓库确认过，周三上午能到</span></span>
+            <span class="badge badge--count" aria-hidden="true">2</span>
+          </span>
+        </span>
+      </button>
+
+      <button class="entry" type="button" data-unread="true"
+        aria-label="洪灿、陶丽、张磊，群聊，提到所有人，11:02">
+        <span class="face" aria-hidden="true">洪灿</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.6" cy="6" r="1.8"/><path d="M13.9 13c0-1.7-1-2.7-2.6-2.9"/></svg>
+            <span class="entry-name">洪灿、陶丽、张磊</span>
+            <span class="entry-time">11:02</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview"><span class="hl">洪灿：@所有人 请各位老师把本周巡检记录补齐</span></span>
+            <span class="badge" aria-hidden="true">@</span>
+          </span>
+        </span>
+      </button>
+
+      <button class="entry" type="button"
+        aria-label="游虎、殷紫光、秦朗，群聊，有一条 AI 草稿，09:41">
+        <span class="face" data-hue="a" aria-hidden="true">游虎</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.6" cy="6" r="1.8"/><path d="M13.9 13c0-1.7-1-2.7-2.6-2.9"/></svg>
+            <span class="entry-name">游虎、殷紫光、秦朗</span>
+            <span class="entry-time">09:41</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview"><span class="draft-mark">草稿</span>殷紫光：交接文档我放在共享盘了</span>
+          </span>
+        </span>
+      </button>
+
+      <button class="entry" type="button"
+        aria-label="汪先锋，单聊，08:57">
+        <span class="face" aria-hidden="true">汪先</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="5.5" r="2.6"/><path d="M3.2 13.5c0-2.6 2.1-4.2 4.8-4.2s4.8 1.6 4.8 4.2"/></svg>
+            <span class="entry-name">汪先锋</span>
+            <span class="entry-time">08:57</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview">你撤回了一条消息</span>
+          </span>
+        </span>
+      </button>
+
+      <div class="day">昨天</div>
+
+      <button class="entry" type="button" aria-label="范孝烨，单聊，发来一个文件，18:40">
+        <span class="face" data-hue="a" aria-hidden="true">范孝</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="5.5" r="2.6"/><path d="M3.2 13.5c0-2.6 2.1-4.2 4.8-4.2s4.8 1.6 4.8 4.2"/></svg>
+            <span class="entry-name">范孝烨</span>
+            <span class="entry-time">18:40</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview">发来一个文件：二号线点检表.xlsx</span>
+          </span>
+        </span>
+      </button>
+
+      <button class="entry" type="button" aria-label="次申家、张放、唐宇，群聊，16:12">
+        <span class="face" aria-hidden="true">次申</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.6" cy="6" r="1.8"/><path d="M13.9 13c0-1.7-1-2.7-2.6-2.9"/></svg>
+            <span class="entry-name">次申家、张放、唐宇</span>
+            <span class="entry-time">16:12</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview">张放：处理措施失效，先切手动</span>
+          </span>
+        </span>
+      </button>
+
+      <div class="day">11月17日</div>
+
+      <button class="entry" type="button" aria-label="秦和平、邓齐、叶芃，群聊，10:22">
+        <span class="face" aria-hidden="true">秦和</span>
+        <span class="entry-text">
+          <span class="entry-head">
+            <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.6" cy="6" r="1.8"/><path d="M13.9 13c0-1.7-1-2.7-2.6-2.9"/></svg>
+            <span class="entry-name">秦和平、邓齐、叶芃</span>
+            <span class="entry-time">10:22</span>
+          </span>
+          <span class="entry-line">
+            <span class="entry-preview">秦和平：@汪先锋 把变频器的复位步骤发一下</span>
+            <span class="badge" aria-hidden="true">@</span>
+          </span>
+        </span>
+      </button>
+    </div>
+
+    <div class="rail-foot">
+      只读本机历史 · <strong>2 个会话有草稿</strong>
+    </div>
+  </aside>
+
+  <!-- ══ 中栏 ══════════════════════════════════════════════════════════ -->
+  <section class="desk" aria-label="会话">
+    <header class="head">
+      <span class="head-face" aria-hidden="true">添胜</span>
+      <div class="head-text">
+        <h2 class="head-name">
+          <span>刘程、唐宇、罗添胜</span>
+          <span class="pill">群聊 · 3 人</span>
+        </h2>
+        <div class="head-meta">
+          <span>只读 · 本机历史</span>
+          <span>更新于 13:20</span>
+        </div>
+      </div>
+      <div class="head-actions">
+        <button class="icon-btn" type="button" aria-label="搜索消息">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        </button>
+        <button class="icon-btn" type="button" aria-label="刷新">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/></svg>
+        </button>
+        <button class="icon-btn" type="button" aria-label="会话资料" aria-expanded="false" data-demo="info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8.2v.2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="stream-wrap">
+      <div class="stream" role="log" aria-live="polite" aria-label="消息">
+        <div class="flow">
+        <button class="more" type="button">加载更早的消息</button>
+
+        <div class="stamp">5月22日</div>
+        <p class="system">刘程 邀请你加入群聊</p>
+
+        <div class="msg">
+          <span class="msg-face" data-hue="a" aria-hidden="true">刘程</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">刘程</span><span class="msg-time">09:12</span></div>
+            <div class="bubble bubble--block bubble--w">
+              富乐工厂 3 号线今晚 22:00 起停机检修，值班表我更新了。
+              <div class="file">
+                <span class="file-mark" aria-hidden="true">表</span>
+                <span class="file-text">
+                  <span class="file-name">三号线停机值班表-1123.xlsx</span>
+                  <span class="file-size">42 KB · 在本机</span>
+                </span>
+              </div>
+            </div>
+            <div class="message-tools"><button type="button">复制</button><button type="button">定位</button></div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <span class="msg-face" aria-hidden="true">唐宇</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">唐宇</span><span class="msg-time">09:14</span></div>
+            <div class="bubble"><span class="at">@你</span> 二号线的备件还差 3 个，仓库说周三到。</div>
+          </div>
+        </div>
+
+        <div class="msg" data-grouped="true">
+          <span class="msg-face" aria-hidden="true">唐宇</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">唐宇</span><span class="msg-time">09:15</span></div>
+            <div class="bubble">另外停机前记得把 3 号线的成品先转移，别压在线上。</div>
+          </div>
+        </div>
+
+        <div class="msg" data-self="true">
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">我</span><span class="msg-time">09:18</span></div>
+            <div class="bubble">收到。我先把三号线的巡检跑完，备件到之前用备用件顶上。</div>
+            <div class="message-tools"><button type="button">复制</button></div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <span class="msg-face" data-hue="a" aria-hidden="true">罗添</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">罗添胜</span><span class="msg-time">09:20</span></div>
+            <div class="bubble">好的，我这边登记一下领用。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <span class="msg-face" data-hue="a" aria-hidden="true">罗添</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">罗添胜</span><span class="msg-time">09:22</span></div>
+            <div class="bubble bubble--block bubble--w">
+              现场拍了两张，二号线的柜门锁已经换掉了。
+              <div class="shots">
+                <span class="shot" aria-hidden="true">现场照片 1</span>
+                <span class="shot" data-hue="a" aria-hidden="true">现场照片 2</span>
+              </div>
+            </div>
+            <div class="message-tools"><button type="button">放大</button><button type="button">保存</button></div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <span class="msg-face" aria-hidden="true">唐宇</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">唐宇</span><span class="msg-time">09:26</span></div>
+            <div class="capsule">
+              <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              语音 · 8 秒
+              <button type="button">在虹云通里播放</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="system">唐宇 撤回了一条消息</p>
+
+        <div class="msg">
+          <span class="msg-face" aria-hidden="true">刘程</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">刘程</span><span class="msg-time">09:31</span></div>
+            <button class="merge-card" type="button">
+              <span class="merge-title">聊天记录 · 6 条</span>
+              <span class="merge-text">唐宇：备件清单和到货时间都在里面</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="msg">
+          <span class="msg-face" aria-hidden="true">刘程</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">刘程</span><span class="msg-time">09:33</span></div>
+            <div class="bubble bubble--prose">
+              这次停机的完整方案写在共享盘，从进线柜到出线柜一共 14 个检查点，每个点都有对应的验收标准。我把关键的几条贴一下：进线柜断电确认、母排测温、绝缘电阻测试、柜内清扫、紧固件复紧、二次回路核对、保护定值核对、送电前绝缘复测。<br />
+              剩下的部分太长了，文档里有表格。
+              <button class="expand" type="button">展开全文（约 3800 字）</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider">以下为 2 条新消息</div>
+
+        <div class="msg">
+          <span class="msg-face" aria-hidden="true">唐宇</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">唐宇</span><span class="msg-time">14:32</span></div>
+            <div class="bubble">刚和仓库确认过，周三上午能到，走二号门进来。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <span class="msg-face" data-hue="a" aria-hidden="true">罗添</span>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">罗添胜</span><span class="msg-time">14:36</span></div>
+            <div class="unknown">暂不支持的消息类型 <b>· 红包</b></div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <button class="jump" type="button">2 条新消息 ↓</button>
+    </div>
+
+    <!-- 输入区：桥未就绪时画出来但锁定，桥就绪同布局直接可用 -->
+    <div class="composer">
+      <div class="ai-draft">
+        <div class="ai-draft-head">AI 建议回复 <span>依据本机这 5 条消息</span></div>
+        <p class="ai-draft-text">收到，周三上午到货我安排人接。停机方案我今晚先过一遍，明早把检查点分工发群里。</p>
+        <div class="ai-draft-actions">
+          <button class="draft-btn" type="button" data-primary="true">插入</button>
+          <button class="draft-btn" type="button">换一条</button>
+          <button class="draft-btn" type="button">忽略</button>
+        </div>
+      </div>
+
+      <div class="send-note">
+        <b>虹云通没有运行</b>，启动客户端后就能在这里直接发送。
+        <button type="button">重试连接</button>
+        <span class="send-note-extra">标为已读只改本页，虹云通里仍是未读</span>
+      </div>
+
+      <div class="box" data-locked="true">
+        <textarea rows="2" disabled placeholder="回复 刘程、唐宇、罗添胜"></textarea>
+        <div class="tools">
+          <button class="tool" type="button" disabled aria-label="插入图片">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4 3.5 3 2.5-2 3.5 3"/></svg>
+          </button>
+          <button class="tool" type="button" disabled aria-label="插入文件">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M13.5 6.5 8 12a3.5 3.5 0 0 0 5 5l6-6a2.5 2.5 0 0 0-3.5-3.5l-5.5 5.5"/></svg>
+          </button>
+          <button class="tool" type="button" disabled aria-label="提到某人">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.6 7.2"/></svg>
+          </button>
+          <span class="tools-hint">Enter 发送 · Shift+Enter 换行</span>
+          <button class="send" type="button" disabled>发送</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 右侧资料 ══════════════════════════════════════════════════════ -->
+  <aside class="panel" id="panel" role="dialog" aria-labelledby="panel-title" hidden>
+    <div class="panel-head" id="panel-title">
+      会话资料
+      <button class="icon-btn" type="button" aria-label="关闭会话资料" data-demo="close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="subject">
+        <span class="face" data-hue="a" aria-hidden="true" style="width:44px;height:44px;font-size:14px">添胜</span>
+        <div>
+          <h3 class="subject-name">刘程、唐宇、罗添胜</h3>
+          <div class="subject-meta">群聊 · 3 人 · 本机历史</div>
+        </div>
+      </div>
+
+      <div class="section">群成员 <span>3 人</span></div>
+
+      <div class="person">
+        <span class="face face--sm" data-hue="a" aria-hidden="true">刘程</span>
+        <div>
+          <div class="person-name">刘程 <span class="dot" aria-hidden="true"></span><span class="sr-only">在线</span></div>
+          <div class="person-role">设备科</div>
+        </div>
+      </div>
+      <div class="person">
+        <span class="face face--sm" aria-hidden="true">唐宇</span>
+        <div>
+          <div class="person-name">唐宇</div>
+          <div class="person-role">生产调度</div>
+        </div>
+      </div>
+      <div class="person">
+        <span class="face face--sm" aria-hidden="true">罗添</span>
+        <div>
+          <div class="person-name">罗添胜 <span class="dot" aria-hidden="true"></span><span class="sr-only">在线</span></div>
+          <div class="person-role">仓储</div>
+        </div>
+      </div>
+
+      <div class="section">最近的共享文件 <span>1 个</span></div>
+      <div class="person">
+        <span class="face face--sm" aria-hidden="true">表</span>
+        <div>
+          <div class="person-name">三号线停机值班表-1123.xlsx</div>
+          <div class="person-role">刘程 · 09:12 · 42 KB</div>
+        </div>
+      </div>
+
+      <p class="panel-note">群设置、邀请和改群名在虹云通客户端里完成。这里只显示本机读得到的资料。</p>
+    </div>
+  </aside>
+
+  <!-- ══ 独立视图：空态 / 加载 / 错误 ═════════════════════════════════ -->
+  <div class="blank" id="view-empty" hidden>
+    <div class="blank-brand">内部通讯 · 只读本机历史</div>
+    <div class="blank-inner">
+      <h2 class="blank-title">还没有可以显示的会话</h2>
+      <p class="blank-body">这台机器上没找到虹云通的数据目录。在设置里指定数据目录，或者填上要读取的账号，左边的会话就会出来。</p>
+      <div class="blank-actions">
+        <button class="button" type="button">打开设置</button>
+        <button class="ghost" type="button">重新检测</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="blank blank--frame" id="view-loading" hidden>
+    <div class="sk-rail">
+      <div class="sk" style="height: 14px; width: 55%; margin-bottom: 24px"></div>
+      <div class="sk w80"></div>
+      <div class="sk w60"></div>
+      <div class="sk w80"></div>
+      <div class="sk w40"></div>
+      <div class="sk w80"></div>
+      <div class="sk w60"></div>
+    </div>
+    <div class="sk-desk">
+      <div class="sk" style="height: 34px; width: 260px; margin-bottom: 28px"></div>
+      <p class="sk-hint">正在读取本机历史……</p>
+      <div class="inner">
+        <div class="sk tall w60"></div>
+        <div class="sk w40"></div>
+        <div class="sk tall w60" style="margin-left: auto"></div>
+        <div class="sk tall w40"></div>
+        <div class="sk w60"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blank" id="view-error" hidden>
+    <div class="blank-brand">内部通讯 · 只读本机历史</div>
+    <div class="blank-inner">
+      <h2 class="blank-title">读不到虹云通的本地库</h2>
+      <p class="blank-body">数据目录里的会话索引打不开，通常是虹云通正在写入或文件被占用。已加载的内容不会丢。</p>
+      <div class="blank-actions">
+        <button class="button" type="button">重试</button>
+        <button class="ghost" type="button">打开设置</button>
+      </div>
+      <details class="tech">
+        <summary>技术细节</summary>
+        <pre>SQLITE_BUSY: database is locked
+  at readSessionIndex (bridge/index.ts:142)
+  path: %USERPROFILE%\Documents\CHFile\10089</pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="demo" role="group" aria-label="演示视图">
+  <button type="button" data-view="chat" aria-pressed="true">会话</button>
+  <button type="button" data-view="info" aria-pressed="false">资料</button>
+  <button type="button" data-view="search" aria-pressed="false">搜索</button>
+  <button type="button" data-view="empty" aria-pressed="false">空态</button>
+  <button type="button" data-view="loading" aria-pressed="false">加载</button>
+  <button type="button" data-view="error" aria-pressed="false">错误</button>
+  <span class="demo-sep" aria-hidden="true"></span>
+  <button type="button" data-theme-toggle aria-pressed="false">深色</button>
+</div>
+
+<script>
+  const shell = document.querySelector(".shell");
+  const ledger = document.getElementById("ledger");
+  const hits = document.getElementById("hits");
+  const panel = document.getElementById("panel");
+  const infoButton = document.querySelector('[data-demo="info"]');
+  const buttons = [...document.querySelectorAll(".demo button[data-view]")];
+  const views = {
+    empty: document.getElementById("view-empty"),
+    loading: document.getElementById("view-loading"),
+    error: document.getElementById("view-error"),
+  };
+
+  function setView(view) {
+    shell.dataset.view = view;
+    const blank = views[view] ?? null;
+
+    for (const [name, element] of Object.entries(views)) element.hidden = name !== view;
+
+    const isBlank = blank !== null;
+    shell.dataset.blank = isBlank ? "true" : "false";
+    ledger.hidden = isBlank || view === "search";
+    hits.hidden = view !== "search";
+
+    if (view === "info") {
+      shell.dataset.panel = "open";
+      panel.hidden = false;
+      infoButton.setAttribute("aria-expanded", "true");
+    } else {
+      shell.dataset.panel = "closed";
+      panel.hidden = true;
+      infoButton.setAttribute("aria-expanded", "false");
+    }
+
+    for (const button of buttons) {
+      button.setAttribute("aria-pressed", button.dataset.view === view ? "true" : "false");
+    }
+  }
+
+  for (const button of buttons) button.addEventListener("click", () => setView(button.dataset.view));
+
+  infoButton.addEventListener("click", () => setView("info"));
+  document.querySelector('[data-demo="close"]').addEventListener("click", () => setView("chat"));
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && shell.dataset.panel === "open") setView("chat");
+  });
+
+  document.querySelector('.search input').addEventListener("focus", () => setView("search"));
+  document.querySelector('.search input').addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.target.blur();
+      setView("chat");
+    }
+  });
+
+  const initial = new URLSearchParams(location.search).get("view");
+  if (initial) setView(initial);
+
+  const stream = document.querySelector(".stream");
+  stream.scrollTop = stream.scrollHeight;
+
+  const root = document.documentElement;
+  const themeButton = document.querySelector("[data-theme-toggle]");
+  const scheme = matchMedia("(prefers-color-scheme: dark)");
+
+  function applyTheme(theme) {
+    root.dataset.theme = theme;
+    themeButton.textContent = theme === "dark" ? "浅色" : "深色";
+    themeButton.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  }
+
+  themeButton.addEventListener("click", () => {
+    applyTheme(root.dataset.theme === "dark" ? "light" : "dark");
+  });
+
+  applyTheme(new URLSearchParams(location.search).get("theme") ?? (scheme.matches ? "dark" : "light"));
+</script>
+</body>
+</html>

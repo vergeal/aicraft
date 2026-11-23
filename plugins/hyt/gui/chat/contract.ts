@@ -215,8 +215,8 @@ export const ChatIpc = Ipc.define({
   methods: {
     /** 重新读库：会话列表、当前会话最新一页、未读、草稿。窗口每 4 秒调用一次。 */
     refresh: {},
-    /** 切换当前会话，并载入它最新一页消息。 */
-    selectSession: { input: Schema.Struct({ sessionId: Schema.String }) },
+    /** 切换当前会话，并载入它最新一页消息；给了 `messageId` 就改载那条消息所在的一页。 */
+    selectSession: { input: Schema.Struct({ sessionId: Schema.String, messageId: Schema.optional(Schema.Number) }) },
     /** 载入更早的一页消息。 */
     loadMore: {},
     /** 跨会话搜索消息正文、发送人、文件名。空查询清空结果。 */

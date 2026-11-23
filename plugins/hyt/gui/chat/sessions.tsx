@@ -1,287 +1,279 @@
 import type { Context } from "@opencode/plugin/gui"
-import { For, Show, createMemo, createSignal } from "solid-js"
-import { Avatar } from "./avatar.js"
-import type { ChatStatus, SearchHit, SessionRow } from "./contract.js"
+import { For, Show, createMemo } from "solid-js"
+import type { DraftRow, SearchHit, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { dayBucket, formatClock, formatListTime, modKey, reuseRows } from "./util.js"
-
-type Filter = "all" | "unread" | "at" | "direct" | "groups"
+import { Face } from "./avatar.js"
+import { dayLabel, rowTime } from "./util.js"
 
 /**
- * 左栏：常驻搜索、「会话」标题行、群会话与「私人会话」两段列表。
+ * 左栏：品牌、搜索、会话台账。
  *
- * 分组照设计图：群在上、单聊在下，两段内部各按最近消息时间倒序；筛选与搜索在两段之上生效。
- * 「最近谁找过我」因此要在两段里各看一次——这是设计图选的结构，混排版本已按图替换。
+ * 台账按天分组，未读会话的摘要用荧光笔划过；搜索有查询词时整栏换成命中列表，
+ * 这是设计稿里「台账 / 命中」二选一的真实行为，不是两个页面。
  */
-export function SessionList(props: {
+export function Rail(props: {
   ctx: Context
-  status: ChatStatus
   sessions: readonly SessionRow[]
   selected: string
+  unread: number
   query: string
   hits: readonly SearchHit[]
   searching: boolean
-  avatars: Readonly<Record<string, string>>
-  draftCount: number
-  knowledgeCount: number
-  unread: number
-  onSelect: (id: string, messageId?: number) => void
+  drafts: readonly DraftRow[]
+  avatars: Record<string, string>
+  today: string
+  onSelect: (sessionId: string, messageId?: number) => void
   onSearch: (query: string) => void
-  /** 一键阅读：把所有会话的未读标为已读。 */
   onMarkAllRead: () => void
-  onRefresh: () => void
+  onEscape: () => void
 }) {
-  const ctx = props.ctx
-  const [filter, setFilter] = createSignal<Filter>("all")
   const searching = () => props.query.trim().length > 0
+  const draftSessions = createMemo(() => new Set(props.drafts.map((draft) => draft.sessionId)))
 
-  // 轮询每 4 秒推一批新对象；内容没变就复用旧引用，For 才不会整列重建（闪屏、图片重载都出自这里）。
-  let stable: readonly SessionRow[] = []
+  /** 按天插入日期行：相邻两条会话跨天时才插，不重复写同一个日期。 */
   const rows = createMemo(() => {
-    stable = reuseRows(stable, props.sessions, (row) => row.id)
-    return stable
+    const rows: ({ kind: "day"; label: string } | { kind: "entry"; session: SessionRow })[] = []
+    let current = ""
+    for (const session of props.sessions) {
+      const label = dayLabel(props.ctx, session.lastAt)
+      if (label !== current) {
+        rows.push({ kind: "day", label })
+        current = label
+      }
+      rows.push({ kind: "entry", session })
+    }
+    return rows
   })
 
-  const atCount = () => rows().filter((session) => session.atMe).length
-  const [filterOpen, setFilterOpen] = createSignal(false)
-  const filterOptions = () => [
-    { id: "all" as const, label: text(ctx, "hyt.chat.sessions.filter.all"), count: rows().length },
-    { id: "unread" as const, label: text(ctx, "hyt.chat.sessions.filter.unread"), count: props.unread },
-    { id: "at" as const, label: text(ctx, "hyt.chat.sessions.filter.at"), count: atCount() },
-    { id: "direct" as const, label: text(ctx, "hyt.chat.sessions.direct"), count: rows().filter((session) => !session.group).length },
-    { id: "groups" as const, label: text(ctx, "hyt.chat.sessions.groups"), count: rows().filter((session) => session.group).length },
-  ]
-  const shown = () => {
-    const mode = filter()
-    if (mode === "unread") return rows().filter((session) => session.unread > 0)
-    if (mode === "at") return rows().filter((session) => session.atMe)
-    if (mode === "direct") return rows().filter((session) => !session.group)
-    if (mode === "groups") return rows().filter((session) => session.group)
-    return rows()
-  }
-  const groups = () => shown().filter((session) => session.group)
-  const personals = () => shown().filter((session) => !session.group)
-
-  // 标题行右侧只有一个计数位：桥接没起来时它比未读数更要紧，因为那时发消息不会成功。
-  const countLabel = () => {
-    if (props.status.bridge !== "ready") return text(ctx, "hyt.chat.side.readonly")
-    return props.unread > 0 ? text(ctx, "hyt.chat.sessions.unread", { count: props.unread }) : ""
+  const label = (session: SessionRow) => {
+    const parts = [session.name, session.group ? text(props.ctx, "hyt.chat.sessions.group") : text(props.ctx, "hyt.chat.sessions.direct")]
+    if (session.unread > 0) parts.push(text(props.ctx, "hyt.chat.entry.unread", { count: session.unread }))
+    if (session.atMe) parts.push(text(props.ctx, "hyt.chat.entry.atMe"))
+    if (draftSessions().has(session.id)) parts.push(text(props.ctx, "hyt.chat.entry.draft"))
+    parts.push(rowTime(props.ctx, session.lastAt))
+    return parts.filter((part) => part.length > 0).join("，")
   }
 
   return (
-    <>
-      <div class="hyt-chat-searcher">
-        <label class="hyt-chat-search">
-          <span class="hyt-chat-search-icon">
-            <ctx.ui.Icon name="magnifying-glass" size="small" />
-          </span>
-          <input
-            type="search"
-            value={props.query}
-            placeholder={text(ctx, "hyt.chat.search.placeholder")}
-            aria-label={text(ctx, "hyt.chat.search.label")}
-            onInput={(event) => props.onSearch(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Escape") return
-              props.onSearch("")
-              event.currentTarget.blur()
-            }}
-          />
-          <kbd class="hyt-chat-search-key">{modKey() + text(ctx, "hyt.chat.search.shortcut")}</kbd>
-        </label>
+    <aside class="rail" aria-label={text(props.ctx, "hyt.chat.rail.label")}>
+      <div class="brand">
+        <div class="brand-text">
+          <h1 class="brand-name">{text(props.ctx, "hyt.chat.brand.name")}</h1>
+          <div class="brand-sub">{props.today}</div>
+        </div>
+        <Show when={props.unread > 0}>
+          <button
+            class="brand-unread"
+            type="button"
+            title={text(props.ctx, "hyt.chat.action.readAll")}
+            onClick={() => props.onMarkAllRead()}
+          >
+            {text(props.ctx, "hyt.chat.unread.total", { count: props.unread })}
+          </button>
+        </Show>
       </div>
 
-      <div class="hyt-chat-side-head">
-        <span class="hyt-chat-side-title">{text(ctx, "hyt.chat.sessions.title")}</span>
-        <Show when={countLabel().length > 0}>
-          <span class="hyt-chat-side-count" data-tone={props.status.bridge === "ready" ? "muted" : "warning"}>
-            {countLabel()}
+      <div class="search">
+        <input
+          type="search"
+          placeholder={text(props.ctx, "hyt.chat.search.placeholder")}
+          aria-label={text(props.ctx, "hyt.chat.search.placeholder")}
+          value={props.query}
+          onInput={(event) => props.onSearch(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return
+            event.currentTarget.blur()
+            props.onEscape()
+          }}
+        />
+        <kbd>{text(props.ctx, "hyt.chat.search.shortcut")}</kbd>
+      </div>
+
+      <div class="hits" hidden={!searching()}>
+        <div class="hits-head">
+          <span>
+            {searching() && !props.searching
+              ? text(props.ctx, "hyt.chat.search.result", { count: props.hits.length })
+              : text(props.ctx, "hyt.chat.search.searching")}
           </span>
-        </Show>
-        <div class="hyt-side-filter">
-          <button
-            type="button"
-            class="hyt-chat-icon"
-            aria-label={text(ctx, "hyt.chat.sessions.filter.label")}
-            title={text(ctx, "hyt.chat.sessions.filter.label")}
-            aria-haspopup="menu"
-            aria-expanded={filterOpen() ? "true" : "false"}
-            onClick={() => setFilterOpen(!filterOpen())}
-          >
-            <ctx.ui.Icon name="outline-sliders" size="small" />
-            <Show when={filter() !== "all"}>
-              <span class="hyt-chat-icon-dot" aria-hidden="true" />
-            </Show>
-          </button>
-          <Show when={filterOpen()}>
-            <div class="hyt-side-filter-scrim" onClick={() => setFilterOpen(false)} />
-            <div class="hyt-side-filter-menu" role="menu" aria-label={text(ctx, "hyt.chat.sessions.filter.label")}>
-              <For each={filterOptions()}>
-                {(item) => (
-                  <button
-                    type="button"
-                    class="hyt-side-filter-item"
-                    role="menuitemradio"
-                    aria-checked={filter() === item.id ? "true" : "false"}
-                    onClick={() => {
-                      setFilter(item.id)
-                      setFilterOpen(false)
-                    }}
-                  >
-                    <span class="hyt-side-filter-label">{item.label}</span>
-                    <span class="hyt-side-filter-count">{item.count}</span>
-                  </button>
-                )}
-              </For>
-              <div class="hyt-side-filter-sep" />
-              <button
-                type="button"
-                class="hyt-side-filter-item"
-                role="menuitem"
-                disabled={props.unread === 0}
-                onClick={() => {
-                  props.onMarkAllRead()
-                  setFilterOpen(false)
-                }}
-              >
-                <span class="hyt-side-filter-label">{text(ctx, "hyt.chat.action.readAll")}</span>
-                <span class="hyt-side-filter-count">{props.unread}</span>
+          <span>{text(props.ctx, "hyt.chat.search.esc")}</span>
+        </div>
+
+        <Show when={!props.searching}>
+          <For each={props.hits}>
+            {(hit) => (
+              <button class="hit" type="button" onClick={() => props.onSelect(hit.sessionId, hit.message.id)}>
+                <span class="hit-head">
+                  <span class="hit-name">{hit.sessionName}</span>
+                  <span class="hit-time">{rowTime(props.ctx, hit.message.createdAt)}</span>
+                </span>
+                <span class="hit-text">
+                  <Snippet text={snippetOf(props.ctx, hit)} query={props.query} />
+                </span>
               </button>
+            )}
+          </For>
+
+          <Show when={props.hits.length === 0 && props.query.trim().length > 0}>
+            <div class="search-empty">
+              <strong>{text(props.ctx, "hyt.chat.search.empty")}</strong>
+              {text(props.ctx, "hyt.chat.search.noMore.hint")}
             </div>
           </Show>
-        </div>
+          <Show when={props.hits.length > 0}>
+            <div class="search-empty">
+              <strong>{text(props.ctx, "hyt.chat.search.noMore")}</strong>
+              {text(props.ctx, "hyt.chat.search.noMore.hint")}
+            </div>
+          </Show>
+        </Show>
       </div>
 
-      <div class="hyt-chat-side-list">
+      <div class="ledger" hidden={searching()}>
         <Show
-          when={!searching()}
+          when={props.sessions.length > 0}
           fallback={
-            <div class="hyt-chat-sessions">
-              <Show
-                when={props.hits.length > 0}
-                fallback={<p class="hyt-chat-hint">{props.searching ? text(ctx, "hyt.chat.search.searching") : text(ctx, "hyt.chat.search.empty")}</p>}
-              >
-                <p class="hyt-chat-hint">{text(ctx, "hyt.chat.search.count", { count: props.hits.length })}</p>
-                <For each={props.hits}>{(hit) => <HitRow ctx={ctx} hit={hit} avatars={props.avatars} onSelect={props.onSelect} />}</For>
-              </Show>
+            <div class="search-empty">
+              <strong>{text(props.ctx, "hyt.chat.sessions.empty")}</strong>
             </div>
           }
         >
-          <Show
-            when={shown().length > 0}
-            fallback={
-              <p class="hyt-chat-hint">
-                {filter() === "all" ? text(ctx, "hyt.chat.sessions.empty") : text(ctx, "hyt.chat.sessions.filter.empty")}
-              </p>
+          <For each={rows()}>
+            {(row) =>
+              row.kind === "day" ? (
+                <div class="day">{row.label}</div>
+              ) : (
+                <button
+                  class="entry"
+                  type="button"
+                  aria-current={row.session.id === props.selected ? "true" : undefined}
+                  data-unread={row.session.unread > 0 ? "true" : undefined}
+                  aria-label={label(row.session)}
+                  onClick={() => props.onSelect(row.session.id)}
+                >
+                  <Face
+                    name={row.session.members[0]?.name ?? row.session.name}
+                    src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
+                  />
+                  <span class="entry-text">
+                    <span class="entry-head">
+                      {row.session.group ? <GroupGlyph /> : <DirectGlyph />}
+                      <span class="entry-name">{row.session.name}</span>
+                      <span class="entry-time">{rowTime(props.ctx, row.session.lastAt)}</span>
+                    </span>
+                    <span class="entry-line">
+                      <span class="entry-preview">
+                        <Show when={draftSessions().has(row.session.id)}>
+                          <span class="draft-mark">{text(props.ctx, "hyt.chat.ai.drafts")}</span>
+                        </Show>
+                        <Show when={row.session.unread > 0} fallback={row.session.preview}>
+                          <span class="hl">{row.session.preview}</span>
+                        </Show>
+                      </span>
+                      <Show when={row.session.atMe}>
+                        <span class="badge" aria-hidden="true">
+                          @
+                        </span>
+                      </Show>
+                      <Show when={!row.session.atMe && row.session.unread > 0}>
+                        <span class="badge badge--count" aria-hidden="true">
+                          {row.session.unread > 99 ? "99+" : row.session.unread}
+                        </span>
+                      </Show>
+                    </span>
+                  </span>
+                </button>
+              )
             }
-          >
-            <Show when={groups().length > 0}>
-              <div class="hyt-chat-sessions">
-                <For each={groups()}>
-                  {(session) => <SessionRowView ctx={ctx} session={session} selected={props.selected} avatars={props.avatars} onSelect={props.onSelect} />}
-                </For>
-              </div>
-            </Show>
-            <Show when={personals().length > 0}>
-              <div class="hyt-chat-side-label">{text(ctx, "hyt.chat.sessions.personal")}</div>
-              <div class="hyt-chat-sessions">
-                <For each={personals()}>
-                  {(session) => <SessionRowView ctx={ctx} session={session} selected={props.selected} avatars={props.avatars} onSelect={props.onSelect} />}
-                </For>
-              </div>
-            </Show>
-          </Show>
+          </For>
         </Show>
       </div>
+
+      <div class="rail-foot">
+        {text(props.ctx, "hyt.chat.rail.foot")}
+        <Show when={draftSessions().size > 0}>
+          {" · "}
+          <strong>{text(props.ctx, "hyt.chat.rail.drafts", { count: draftSessions().size })}</strong>
+        </Show>
+      </div>
+    </aside>
+  )
+}
+
+function avatarOf(map: Record<string, string>, path: string | undefined) {
+  if (path === undefined || path.length === 0) return undefined
+  const value = map[path]
+  return value === undefined || value.length === 0 ? undefined : value
+}
+
+/** 命中的一行：正文优先，附件退到文件名，再退到类型说明。 */
+function snippetOf(ctx: Context, hit: SearchHit) {
+  const message = hit.message
+  const body = message.text.trim()
+  if (body.length > 0) return `${message.senderNick}：${body}`
+  if (message.fileName.length > 0) return `${message.senderNick}：${message.fileName}`
+  const labels: Readonly<Record<string, string>> = {
+    image: text(ctx, "hyt.chat.msg.image.short"),
+    voice: text(ctx, "hyt.chat.msg.voice.short"),
+    video: text(ctx, "hyt.chat.msg.video.short"),
+    call: text(ctx, "hyt.chat.msg.call.short"),
+    recall: text(ctx, "hyt.chat.msg.recall"),
+    merge: text(ctx, "hyt.chat.msg.merge"),
+    notice: text(ctx, "hyt.chat.msg.notice"),
+    other: text(ctx, "hyt.chat.msg.unsupported"),
+    file: text(ctx, "hyt.chat.msg.file.short"),
+  }
+  return `${message.senderNick}：${labels[message.kind] ?? ""}`
+}
+
+/** 命中片段里把查询词包进 `<mark>`，大小写不敏感。 */
+function Snippet(props: { text: string; query: string }) {
+  const parts = createMemo(() => {
+    const body = props.text
+    const needle = props.query.trim()
+    if (needle.length === 0) return [{ body, hit: false }]
+    const lower = body.toLowerCase()
+    const target = needle.toLowerCase()
+    const out: { body: string; hit: boolean }[] = []
+    let at = 0
+    for (;;) {
+      const found = lower.indexOf(target, at)
+      if (found < 0) {
+        if (at < body.length) out.push({ body: body.slice(at), hit: false })
+        break
+      }
+      if (found > at) out.push({ body: body.slice(at, found), hit: false })
+      out.push({ body: body.slice(found, found + target.length), hit: true })
+      at = found + target.length
+    }
+    return out
+  })
+
+  return (
+    <>
+      <For each={parts()}>
+        {(part) => (part.hit ? <mark>{part.body}</mark> : part.body)}
+      </For>
     </>
   )
 }
 
-/** 一行会话：头像在左，名字与预览同列，时间与未读另起一列贴右。 */
-function SessionRowView(props: {
-  ctx: Context
-  session: SessionRow
-  selected: string
-  avatars: Readonly<Record<string, string>>
-  onSelect: (id: string) => void
-}) {
-  const ctx = props.ctx
+function GroupGlyph() {
   return (
-    <button
-      type="button"
-      class="hyt-chat-session"
-      data-unread={props.session.unread > 0 ? "true" : "false"}
-      data-group={props.session.group ? "true" : "false"}
-      aria-current={props.session.id === props.selected ? "true" : undefined}
-      onClick={() => props.onSelect(props.session.id)}
-    >
-      <span class="hyt-chat-face" data-status={props.session.online ? "online" : "offline"}>
-        <Avatar
-          name={props.session.name}
-          members={props.session.members}
-          avatars={props.avatars}
-          size="session"
-          group={props.session.group}
-        />
-        <Show when={props.session.online}>
-          <span class="hyt-chat-face-dot" aria-hidden="true" />
-        </Show>
-      </span>
-      <span class="hyt-chat-session-text">
-        <span class="hyt-chat-session-name">{props.session.name}</span>
-        <span class="hyt-chat-session-preview">{props.session.preview}</span>
-      </span>
-      <span class="hyt-chat-session-side">
-        <span class="hyt-chat-session-time">{timeLabel(ctx, props.session.lastAt)}</span>
-        <Show when={props.session.unread > 0}>
-          <span class="hyt-chat-badge">{props.session.unread > 99 ? "99+" : props.session.unread}</span>
-        </Show>
-        <Show when={props.session.unread === 0 && props.session.atMe}>
-          <span class="hyt-chat-badge" data-tone="mention" title={text(ctx, "hyt.chat.sessions.at")}>@</span>
-        </Show>
-      </span>
-    </button>
+    <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+      <circle cx="6" cy="5.5" r="2.3" />
+      <path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5" />
+      <circle cx="11.6" cy="6" r="1.8" />
+      <path d="M13.9 13c0-1.7-1-2.7-2.6-2.9" />
+    </svg>
   )
 }
 
-function HitRow(props: {
-  ctx: Context
-  hit: SearchHit
-  avatars: Readonly<Record<string, string>>
-  onSelect: (id: string, messageId?: number) => void
-}) {
-  const ctx = props.ctx
-  const body = () => props.hit.message.text.replace(/\s+/g, " ").trim() || props.hit.message.fileName
-  const sender = () => props.hit.message.senderNick || props.hit.message.sender
+function DirectGlyph() {
   return (
-    <button type="button" class="hyt-chat-session" onClick={() => props.onSelect(props.hit.sessionId, props.hit.message.id)}>
-      <Avatar
-        name={props.hit.sessionName}
-        members={
-          props.hit.message.senderHead.length > 0
-            ? [{ name: props.hit.sessionName, headPath: props.hit.message.senderHead }]
-            : []
-        }
-        avatars={props.avatars}
-        size="session"
-      />
-      <span class="hyt-chat-session-text">
-        <span class="hyt-chat-session-name">{props.hit.sessionName}</span>
-        <span class="hyt-chat-session-preview">
-          {props.hit.sessionName === sender() ? "" : `${sender()}：`}
-          {body()}
-        </span>
-      </span>
-      <span class="hyt-chat-session-side">
-        <span class="hyt-chat-session-time">{formatClock(ctx.locale.locale(), props.hit.message.createdAt)}</span>
-      </span>
-    </button>
+    <svg class="entry-kind" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+      <circle cx="8" cy="5.5" r="2.6" />
+      <path d="M3.2 13.5c0-2.6 2.1-4.2 4.8-4.2s4.8 1.6 4.8 4.2" />
+    </svg>
   )
-}
-
-function timeLabel(ctx: Context, at: number) {
-  if (at <= 0) return ""
-  const bucket = dayBucket(at)
-  if (bucket === "yesterday") return text(ctx, "hyt.chat.day.yesterday")
-  return formatListTime(ctx.locale.locale(), at)
 }

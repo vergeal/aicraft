@@ -1,277 +1,265 @@
 import type { Context } from "@opencode/plugin/gui"
-import { For, Show, createMemo, createSignal } from "solid-js"
-import type { MemberRow, SendState } from "./contract.js"
+import { For, Show, createMemo, createSignal, onMount } from "solid-js"
+import type { DraftRow, MemberRow, SendState } from "./contract.js"
 import { text } from "./i18n.js"
-import { Avatar } from "./avatar.js"
-import { modKey } from "./util.js"
-
-const EMOJI = ["👍", "😄", "😂", "🙏", "✅", "🎉", "❤️", "😅", "🤝", "👀", "🔧", "⚠️"] as const
 
 /**
- * 输入区：上排工具行（表情、图片、文件、@、@AI），下排输入 + 快捷键提示 + 发送键。
+ * 输入区。
  *
- * 排版照设计图 `hyt-chat.html`：卡片 88 高、圆角 16，工具行 36 在上。发送是 ⌘/Ctrl + Enter，
- * Enter 留给换行——图上的键位提示就写在输入行右侧，说了什么就必须按什么工作。
- * 发送走真实消息通道；图片与文件还没有协议支持，点了直接说明原因。
+ * 桥接就绪时就是一个普通的发送框；未就绪时保持同样的布局但整块锁定，并说明原因，
+ * 不做「隐藏输入框」这种布局跳变。AI 草稿块在输入框上方，插入只改草稿、不直接发送。
  */
 export function Composer(props: {
   ctx: Context
+  sessionName: string
   value: string
-  onInput: (value: string) => void
   send: SendState
+  bridge: "ready" | "missing"
   sending: boolean
   members: readonly MemberRow[]
+  draft: DraftRow | undefined
+  basis: number
+  notice: string | undefined
+  onInput: (value: string) => void
   onSend: (body: string, at: readonly string[]) => void
-  onNotice: (message: string, tone: "muted" | "warning" | "danger") => void
-  notice: { readonly tone: "muted" | "warning" | "danger"; readonly message: string } | undefined
-  onReady: (element: HTMLTextAreaElement) => void
+  onUseDraft: (value: string) => void
+  onIgnoreDraft: () => void
+  onRefresh: () => void
 }) {
-  const ctx = props.ctx
-  const [emojiOpen, setEmojiOpen] = createSignal(false)
-  const [mentioned, setMentioned] = createSignal<readonly MemberRow[]>([])
-  let textarea: HTMLTextAreaElement | undefined
+  let box: HTMLTextAreaElement | undefined
+  const [mentionOpen, setMentionOpen] = createSignal(false)
+  const [mentionQuery, setMentionQuery] = createSignal("")
+  const [active, setActive] = createSignal(0)
+  const mentioned = new Map<string, string>()
 
-  const query = createMemo(() => {
-    const value = props.value
-    const index = value.lastIndexOf("@")
-    if (index < 0) return undefined
-    const tail = value.slice(index + 1)
-    if (/[\s\n]/.test(tail)) return undefined
-    return tail
-  })
+  const locked = () => !props.send.enabled
+  const canSend = () => props.send.enabled && !props.sending && props.value.trim().length > 0
 
   const candidates = createMemo(() => {
-    const needle = query()
-    if (needle === undefined) return []
-    const lower = needle.toLowerCase()
-    return props.members
-      .filter((member) => {
-        if (lower.length === 0) return true
-        return member.name.toLowerCase().includes(lower) || member.account.toLowerCase().includes(lower)
-      })
-      .slice(0, 6)
+    const query = mentionQuery().trim().toLowerCase()
+    const list = props.members.filter((member) => {
+      if (query.length === 0) return true
+      return member.name.toLowerCase().includes(query) || member.account.toLowerCase().includes(query)
+    })
+    return list.slice(0, 8)
   })
 
-  const insert = (value: string) => {
-    props.onInput(value)
-    textarea?.focus()
+  const resize = () => {
+    if (box === undefined) return
+    box.style.height = "auto"
+    box.style.height = `${Math.min(box.scrollHeight, 148)}px`
   }
 
-  const pickEmoji = (emoji: string) => {
-    insert(`${props.value}${emoji}`)
-    setEmojiOpen(false)
+  onMount(resize)
+
+  /** 输入时盯着光标前那个 @：还在同一个词里就继续过滤，遇到空格就收起。 */
+  const syncMention = () => {
+    if (box === undefined) return
+    const caret = box.selectionStart ?? props.value.length
+    const before = props.value.slice(0, caret)
+    const at = before.lastIndexOf("@")
+    if (at < 0) {
+      setMentionOpen(false)
+      return
+    }
+    const word = before.slice(at + 1)
+    if (/[\s，。,.！？!?]/.test(word)) {
+      setMentionOpen(false)
+      return
+    }
+    setMentionQuery(word)
+    setMentionOpen(true)
+    setActive(0)
   }
 
-  const pickMember = (member: MemberRow) => {
-    const value = props.value
-    const index = value.lastIndexOf("@")
-    const head = index < 0 ? value : value.slice(0, index)
-    insert(`${head}@${member.name} `)
-    setMentioned((current) => (current.some((item) => item.account === member.account) ? current : [...current, member]))
-  }
-
-  const accounts = () => {
-    const fromText = props.members
-      .filter((member) => props.value.includes(`@${member.name}`))
-      .map((member) => member.account)
-    return [...new Set([...mentioned().map((item) => item.account), ...fromText])]
+  const insertMention = (member: MemberRow) => {
+    if (box === undefined) return
+    const caret = box.selectionStart ?? props.value.length
+    const before = props.value.slice(0, caret)
+    const at = before.lastIndexOf("@")
+    const head = at >= 0 ? before.slice(0, at) : before
+    const tail = props.value.slice(caret)
+    const next = `${head}@${member.name} ${tail}`
+    mentioned.set(member.name, member.account)
+    props.onInput(next)
+    setMentionOpen(false)
+    queueMicrotask(() => {
+      if (box === undefined) return
+      const position = head.length + member.name.length + 2
+      box.focus()
+      box.setSelectionRange(position, position)
+      resize()
+    })
   }
 
   const submit = () => {
-    if (!props.send.enabled || props.sending) return
-    if (props.value.trim().length === 0) {
-      props.onNotice(text(ctx, "hyt.chat.composer.empty"), "muted")
-      return
-    }
-    props.onSend(props.value, accounts())
+    if (!canSend()) return
+    const body = props.value
+    const at = [...mentioned.entries()]
+      .filter(([name]) => body.includes(`@${name}`))
+      .map(([, account]) => account)
+    mentioned.clear()
+    setMentionOpen(false)
+    props.onSend(body, at)
   }
 
-  // 消息通道只接受文本，图片与文件得先有协议支持；点了就说明，不让用户白选文件。
-  const attach = () => {
-    props.onNotice(text(ctx, "hyt.chat.composer.notWired"), "warning")
+  const reason = () => {
+    const state = props.send
+    if (state.reason === "whitelist-empty") return text(props.ctx, "hyt.chat.composer.disabled.whitelist")
+    if (state.reason === "not-allowed") return text(props.ctx, "hyt.chat.composer.disabled.notAllowed")
+    if (state.reason === "pending") return text(props.ctx, "hyt.chat.composer.disabled.pending")
+    return ""
   }
-
-  const disabledReason = () => (props.send.enabled ? "" : text(ctx, "hyt.chat.composer.disabled.no-session"))
 
   return (
-    <div class="hyt-chat-composer">
-      <div class="hyt-chat-composer-card">
-        <Show when={candidates().length > 0}>
-          <div class="hyt-chat-mentions">
-            <For each={candidates()}>
-              {(member) => (
-                <button type="button" class="hyt-chat-mention-row" onClick={() => pickMember(member)}>
-                  <Avatar name={member.name} members={[]} avatars={{}} size="mention" />
-                  <span class="hyt-chat-mention-name">{member.name}</span>
-                  <span class="hyt-chat-mention-dept">{member.department || member.account}</span>
-                </button>
-              )}
-            </For>
+    <div class="composer">
+      <Show when={props.draft !== undefined}>
+        <div class="ai-draft">
+          <div class="ai-draft-head">
+            {text(props.ctx, "hyt.chat.ai.suggestion")}
+            <span>{text(props.ctx, "hyt.chat.ai.basis", { count: props.basis })}</span>
           </div>
-        </Show>
-
-        <div class="hyt-chat-composer-tools">
-          <button
-            type="button"
-            class="hyt-chat-icon"
-            aria-label={text(ctx, "hyt.chat.composer.emoji")}
-            title={text(ctx, "hyt.chat.composer.emoji")}
-            aria-pressed={emojiOpen() ? "true" : "false"}
-            onClick={() => setEmojiOpen(!emojiOpen())}
-          >
-            <FaceGlyph />
-          </button>
-          <button
-            type="button"
-            class="hyt-chat-icon"
-            aria-label={text(ctx, "hyt.chat.composer.image")}
-            title={text(ctx, "hyt.chat.composer.image")}
-            onClick={attach}
-          >
-            <ctx.ui.Icon name="outline-photo" size="small" />
-          </button>
-          <button
-            type="button"
-            class="hyt-chat-icon"
-            aria-label={text(ctx, "hyt.chat.composer.attach")}
-            title={text(ctx, "hyt.chat.composer.attach")}
-            onClick={attach}
-          >
-            <ctx.ui.Icon name="file-document" size="small" />
-          </button>
-          <button
-            type="button"
-            class="hyt-chat-icon"
-            aria-label={text(ctx, "hyt.chat.composer.mention")}
-            title={text(ctx, "hyt.chat.composer.mention")}
-            onClick={() => insert(`${props.value}@`)}
-          >
-            <AtGlyph />
-          </button>
-          <button
-            type="button"
-            class="hyt-ai-chip"
-            aria-label={text(ctx, "hyt.chat.composer.ai")}
-            title={text(ctx, "hyt.chat.composer.ai")}
-            onClick={() => insert(`${props.value}@AI `)}
-          >
-            <ctx.ui.Icon name="outline-brain" size="small" />
-            @AI
-          </button>
-        </div>
-
-        <div class="hyt-chat-composer-row">
-          <textarea
-            ref={(element) => {
-              textarea = element
-              props.onReady(element)
-            }}
-            rows={1}
-            value={props.value}
-            placeholder={text(ctx, "hyt.chat.composer.placeholder")}
-            aria-label={text(ctx, "hyt.chat.composer.placeholder")}
-            onInput={(event) => {
-              props.onInput(event.currentTarget.value)
-              const element = event.currentTarget
-              element.style.height = "auto"
-              element.style.height = `${Math.min(element.scrollHeight, 140)}px`
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" || event.isComposing) return
-              if (!(event.metaKey || event.ctrlKey)) return
-              event.preventDefault()
-              submit()
-            }}
-          />
-          <span class="hyt-chat-composer-hint">
-            <kbd>{modKey()}</kbd> + <kbd>Enter</kbd> {text(ctx, "hyt.chat.composer.send")}
-          </span>
-          <button
-            type="button"
-            class="hyt-chat-send"
-            aria-label={text(ctx, "hyt.chat.composer.send")}
-            title={sendTitle(ctx, props.send, props.sending)}
-            aria-busy={props.sending ? "true" : undefined}
-            disabled={!props.send.enabled || props.sending || props.value.trim().length === 0}
-            onClick={() => submit()}
-          >
-            <PlaneGlyph />
-          </button>
-        </div>
-
-        <Show when={emojiOpen()}>
-          <div class="hyt-chat-emoji">
-            <For each={EMOJI}>
-              {(emoji) => (
-                <button type="button" class="hyt-chat-icon" aria-label={emoji} onClick={() => pickEmoji(emoji)}>
-                  {emoji}
-                </button>
-              )}
-            </For>
+          <p class="ai-draft-text">{props.draft?.text}</p>
+          <div class="ai-draft-actions">
+            <button class="draft-btn" type="button" data-primary="true" onClick={() => props.onUseDraft(props.draft?.text ?? "")}>
+              {text(props.ctx, "hyt.chat.ai.insert")}
+            </button>
+            <button class="draft-btn" type="button" onClick={() => props.onRefresh()}>
+              {text(props.ctx, "hyt.chat.ai.drafts.refresh")}
+            </button>
+            <button class="draft-btn" type="button" onClick={() => props.onIgnoreDraft()}>
+              {text(props.ctx, "hyt.chat.ai.ignore")}
+            </button>
           </div>
-        </Show>
-      </div>
+        </div>
+      </Show>
+
+      <Show when={props.bridge === "missing"}>
+        <div class="send-note">
+          <b>{text(props.ctx, "hyt.chat.composer.bridge.missing")}</b>
+          {text(props.ctx, "hyt.chat.composer.bridge.hint")}
+          <button type="button" onClick={() => props.onRefresh()}>
+            {text(props.ctx, "hyt.chat.composer.retry")}
+          </button>
+          <span class="send-note-extra">{text(props.ctx, "hyt.chat.composer.markNote")}</span>
+        </div>
+      </Show>
+
+      <Show when={props.bridge === "ready" && reason().length > 0}>
+        <div class="send-note">{reason()}</div>
+      </Show>
 
       <Show when={props.notice !== undefined}>
-        <p class="hyt-chat-composer-note" data-tone={props.notice?.tone}>
-          {props.notice?.message}
-        </p>
+        <div class="send-note">{props.notice}</div>
       </Show>
-      <Show when={disabledReason().length > 0}>
-        <p class="hyt-chat-composer-note" data-tone="warning">
-          {disabledReason()}
-        </p>
-      </Show>
+
+      <div class="box" data-locked={locked() ? "true" : undefined}>
+        <Show when={mentionOpen()}>
+          <div class="mention-pop" role="listbox" aria-label={text(props.ctx, "hyt.chat.ai.members")}>
+            <Show
+              when={candidates().length > 0}
+              fallback={<div class="mention-empty">{text(props.ctx, "hyt.chat.composer.mentionEmpty")}</div>}
+            >
+              <For each={candidates()}>
+                {(member, index) => (
+                  <button
+                    class="mention-item"
+                    type="button"
+                    role="option"
+                    aria-selected={index() === active()}
+                    data-active={index() === active() ? "true" : undefined}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => insertMention(member)}
+                  >
+                    {member.name}
+                    <small>{member.department || member.account}</small>
+                  </button>
+                )}
+              </For>
+            </Show>
+          </div>
+        </Show>
+
+        <textarea
+          ref={box}
+          rows={2}
+          value={props.value}
+          disabled={locked()}
+          placeholder={
+            props.sessionName.length > 0
+              ? text(props.ctx, "hyt.chat.composer.replyPlaceholder", { name: props.sessionName })
+              : text(props.ctx, "hyt.chat.composer.placeholder")
+          }
+          onInput={(event) => {
+            props.onInput(event.currentTarget.value)
+            syncMention()
+            resize()
+          }}
+          onKeyDown={(event) => {
+            if (mentionOpen() && candidates().length > 0) {
+              if (event.key === "ArrowDown") {
+                event.preventDefault()
+                setActive((active() + 1) % candidates().length)
+                return
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault()
+                setActive((active() - 1 + candidates().length) % candidates().length)
+                return
+              }
+              if (event.key === "Enter" && !event.isComposing) {
+                event.preventDefault()
+                insertMention(candidates()[active()]!)
+                return
+              }
+              if (event.key === "Escape") {
+                event.preventDefault()
+                setMentionOpen(false)
+                return
+              }
+            }
+            if (event.key !== "Enter" || event.shiftKey || event.isComposing) return
+            event.preventDefault()
+            submit()
+          }}
+        />
+
+        <div class="tools">
+          <button class="tool" type="button" disabled aria-label={text(props.ctx, "hyt.chat.composer.image")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+              <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+              <circle cx="9" cy="10" r="1.6" />
+              <path d="m5 17 4.5-4 3.5 3 2.5-2 3.5 3" />
+            </svg>
+          </button>
+          <button class="tool" type="button" disabled aria-label={text(props.ctx, "hyt.chat.composer.attach")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+              <path d="M13.5 6.5 8 12a3.5 3.5 0 0 0 5 5l6-6a2.5 2.5 0 0 0-3.5-3.5l-5.5 5.5" />
+            </svg>
+          </button>
+          <button
+            class="tool"
+            type="button"
+            aria-label={text(props.ctx, "hyt.chat.composer.mention")}
+            aria-expanded={mentionOpen() ? "true" : "false"}
+            onClick={() => {
+              setMentionQuery("")
+              setMentionOpen(!mentionOpen())
+              setActive(0)
+              box?.focus()
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.6 7.2" />
+            </svg>
+          </button>
+          <span class="tools-hint">{text(props.ctx, "hyt.chat.composer.hint")}</span>
+          <button class="send" type="button" disabled={!canSend()} onClick={submit}>
+            {props.sending ? text(props.ctx, "hyt.chat.composer.sending") : text(props.ctx, "hyt.chat.composer.send")}
+          </button>
+        </div>
+      </div>
     </div>
-  )
-}
-
-function sendTitle(ctx: Context, send: SendState, sending: boolean) {
-  if (sending) return text(ctx, "hyt.chat.composer.disabled.pending")
-  if (!send.enabled) return text(ctx, "hyt.chat.composer.disabled.no-session")
-  return text(ctx, "hyt.chat.composer.send")
-}
-
-/* 表情与 @ 在宿主图标库里没有对应图形，按设计图的线稿就地画：形状、1.75 描边与图上其余图标一致。 */
-function FaceGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M8.8 14.2a4 4 0 0 0 6.4 0M9.5 9.8v.2M14.5 9.8v.2" />
-    </svg>
-  )
-}
-
-function AtGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.75"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="4" />
-      <path d="M16 8v4.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5" />
-    </svg>
-  )
-}
-
-function PlaneGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.9"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 4 3.5 10.5l6 2.5 2.5 6L20 4Z" />
-      <path d="m9.5 13 4-4" />
-    </svg>
   )
 }

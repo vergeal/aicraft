@@ -49,10 +49,10 @@ export const Plugin = define({
       )
       editor.add(
         Skill.Info.make({
-          id: Skill.ID.make("plugin-creator"),
+          id: Skill.ID.make("creator"),
           name: Skill.Name.make("插件创造"),
           description: CREATOR_DESCRIPTION,
-          path: AbsolutePath.make("skill://plugin-creator/SKILL.md"),
+          path: AbsolutePath.make("skill://creator/SKILL.md"),
           content: CreatorContent,
         }),
       )

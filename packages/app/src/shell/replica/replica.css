@@ -678,8 +678,8 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   visibility: hidden;
 }
 
-/* The folder of the project that holds the open session brightens, and its name steps up to primary while the rest
-   of the tree keeps one quieter step. No fill, no edge bar: the icon alone marks the place. */
+/* The folder of the project that holds the open session turns accent blue, and its name steps up to primary while
+   the rest of the tree keeps one quieter step. No fill, no edge bar: the icon alone marks the place. */
 [data-slot="replica-project-row"] .replica-project-icon {
   color: var(--color-icon-secondary);
   transition: color 120ms ease;
@@ -691,7 +691,7 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 }
 
 [data-slot="replica-project-row"][data-state="active"] .replica-project-icon {
-  color: var(--color-icon-primary);
+  color: var(--v2-icon-icon-accent);
 }
 
 [data-slot="replica-project-row"][data-state="active"] [data-slot="replica-project-name"] {

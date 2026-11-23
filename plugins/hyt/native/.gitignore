@@ -4,5 +4,5 @@ bin/
 *.o
 *.obj
 .DS_Store
-# 公司 SDK 运行库（ECMediaSDK.framework / *.dll）不随仓库分发，构建时从 HYT_SDK_ROOT 复制。
+# 早于 sdk/ 与 prebuilt/ 的本机构建残留；构建输入与发布产物现在随仓库分发。
 sdk-runtime/

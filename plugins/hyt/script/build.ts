@@ -1,8 +1,8 @@
 import { transformSync } from "@babel/core"
 import tsPreset from "@babel/preset-typescript"
 import solidPreset from "babel-preset-solid"
-import { chmod, cp, mkdir, rm, writeFile } from "node:fs/promises"
-import { existsSync, readdirSync } from "node:fs"
+import { chmod, cp, mkdir, readdir, rm, writeFile } from "node:fs/promises"
+import { existsSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
@@ -90,28 +90,12 @@ for (const item of [
   await cp(join(root, item), join(dist, item), { recursive: true }).catch(() => undefined)
 }
 
-// 插件自带原生桥接：不启动虹云通客户端也能收发消息。二进制按平台放进 native/<platform>-<arch>/，
-// macOS 还要带上 ECMediaSDK.framework，并把查找路径改成相对可执行文件。
-const nativeName = process.platform === "win32" ? "hyt-native-bridge.exe" : "hyt-native-bridge"
-const nativeBinary = [
-  join(root, "native", "build", "bin", nativeName),
-  join(root, "native", "build-win", "bin", "Release", nativeName),
-  join(root, "native", "build-win", "Release", nativeName),
-  join(root, "native", "build-win", "bin", nativeName),
-].find((candidate) => existsSync(candidate))
-
-if (nativeBinary === undefined) {
-  console.warn(
-    `native bridge missing: build it first (native/scripts/build-${process.platform === "win32" ? "windows" : "macos"})`,
-  )
-} else {
-  const nativeDir = join(dist, "native", `${process.platform}-${process.arch}`)
-  await mkdir(nativeDir, { recursive: true })
-  await cp(nativeBinary, join(nativeDir, nativeName))
-  await chmod(join(nativeDir, nativeName), 0o755)
-  if (process.platform === "darwin") await shipMacFramework(join(nativeDir, nativeName))
-  if (process.platform === "win32") await shipWindowsRuntime(nativeDir)
-}
+// 插件自带原生桥接：不启动虹云通客户端也能收发消息。二进制与 SDK 运行库都随仓库分发
+// （native/prebuilt 放各平台可执行文件，native/sdk 放构建所需的 SDK 头文件与库），
+// 所以换机器打包只需要仓库本身，不再依赖开发机的 HYT_SDK_ROOT。
+// 目标布局与 src/bridge/native.ts 的查找顺序一致：native/<platform>-<arch>/hyt-native-bridge，
+// macOS 的 ECMediaSDK.framework 放在 native/Frameworks（可执行文件的 ../Frameworks）。
+await shipNative(join(dist, "native"))
 
 // The unpacked bundle is a plugin directory, so its manifest names the plugin id and points at the built entry.
 await writeFile(
@@ -133,13 +117,58 @@ await writeFile(
 console.log(`built ${manifest.id} ${manifest.version} into ${dist}`)
 
 /**
- * macOS 的桥接动态链接 ECMediaSDK.framework，原本的 rpath 指向开发机的 SDK 目录。
- * 把 framework 一起放进产物，并加一条相对可执行文件的查找路径，换机器也能加载。
+ * 把 `native/prebuilt/<platform>-<arch>/` 里的可执行文件逐个搬进产物，并补上运行库。
+ * 一个 `.exc` 因此可以同时带 macOS 与 Windows 的桥接，安装时按运行时平台取用。
+ */
+async function shipNative(target: string) {
+  const prebuilt = join(root, "native", "prebuilt")
+  if (!existsSync(prebuilt)) {
+    console.warn("native bridge missing: build it first (native/scripts/build-macos.sh or build-windows.bat)")
+    return
+  }
+  for (const entry of await readdir(prebuilt, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const directory = join(target, entry.name)
+    const executable = join(directory, nameFor(entry.name))
+    await cp(join(prebuilt, entry.name), directory, { recursive: true })
+
+    // 开发时重新编译过就用地板上的新产物；否则用入库的那份，避免旧的 build 目录把它顶回去。
+    const built = entry.name === `${process.platform}-${process.arch}` ? localBuild(executable) : undefined
+    if (built !== undefined) {
+      await cp(built, executable)
+      await chmod(executable, 0o755)
+    }
+    if (entry.name.startsWith("darwin")) await shipMacFramework(executable)
+    if (entry.name.startsWith("win32")) await shipWindowsRuntime(directory)
+  }
+}
+
+function nameFor(platform: string) {
+  return platform.startsWith("win32") ? "hyt-native-bridge.exe" : "hyt-native-bridge"
+}
+
+/** 本机重新编译出的二进制，且比入库产物新时才返回。 */
+function localBuild(shipped: string) {
+  const name = nameFor(`${process.platform}-${process.arch}`)
+  const built = [
+    join(root, "native", "build", "bin", name),
+    join(root, "native", "build-win", "bin", "Release", name),
+    join(root, "native", "build-win", "Release", name),
+    join(root, "native", "build-win", "bin", name),
+  ].find((candidate) => existsSync(candidate))
+  if (built === undefined) return undefined
+  return statSync(built).mtimeMs > statSync(shipped).mtimeMs ? built : undefined
+}
+
+/**
+ * macOS 的桥接动态链接 ECMediaSDK.framework。把 framework 一起放进产物，
+ * 并加一条相对可执行文件的查找路径，换机器也能加载。
  */
 async function shipMacFramework(executable: string) {
   const sdkRoot = process.env.HYT_SDK_ROOT?.trim() ?? ""
   const source = [
     sdkRoot.length > 0 ? join(sdkRoot, "lib", "mac", "ECMediaSDK.framework") : "",
+    join(root, "native", "sdk", "lib", "mac", "ECMediaSDK.framework"),
     join(root, "native", "sdk-runtime", "ECMediaSDK.framework"),
   ].find((candidate) => candidate.length > 0 && existsSync(candidate))
   if (source === undefined) {
@@ -147,10 +176,12 @@ async function shipMacFramework(executable: string) {
     return
   }
 
-  const target = join(dist, "native", "Frameworks", "ECMediaSDK.framework")
-  await cp(source, target, { recursive: true })
+  await cp(source, join(dist, "native", "Frameworks", "ECMediaSDK.framework"), { recursive: true })
   // native/<platform-arch>/../Frameworks
-  const add = Bun.spawnSync(["install_name_tool", "-add_rpath", "@executable_path/../Frameworks", executable])
+  const rpath = "@executable_path/../Frameworks"
+  // 入库的二进制已经补过这条 rpath，重复添加会多出一条无效记录。
+  if (Bun.spawnSync(["otool", "-l", executable]).stdout.toString().includes(`path ${rpath}`)) return
+  const add = Bun.spawnSync(["install_name_tool", "-add_rpath", rpath, executable])
   if (add.exitCode !== 0) console.warn(`install_name_tool failed: ${add.stderr.toString()}`)
 }
 
@@ -160,6 +191,7 @@ async function shipWindowsRuntime(target: string) {
   const directories = [
     sdkRoot.length > 0 ? join(sdkRoot, "lib", "win") : "",
     sdkRoot.length > 0 ? join(sdkRoot, "libSdk") : "",
+    join(root, "native", "sdk", "lib", "win"),
     join(root, "native", "sdk-runtime", "win"),
   ].filter((directory) => directory.length > 0 && existsSync(directory))
   for (const directory of directories) {

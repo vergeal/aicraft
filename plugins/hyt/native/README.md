@@ -11,6 +11,8 @@
 ```
 native/
   CMakeLists.txt        三平台构建配置
+  sdk/                  构建所需的 EC SDK 头文件与库，随仓库分发
+  prebuilt/             各平台预编译产物，随插件包分发
   src/
     main.cpp            TCP 监听、RPC 路由、bridge.json、单实例锁
     sdk_host.cpp        EC SDK 生命周期、登录、收发、群成员、下载、事件
@@ -26,15 +28,17 @@ native/
 
 ## 构建
 
+SDK 头文件与库已经随仓库放在 `native/sdk/`，克隆后可直接构建，不需要外部 SDK 路径。
+
 ### macOS
 
 ```bash
-export HYT_SDK_ROOT=/path/to/sdk      # 含 include/mac 与 lib/mac
-./scripts/build-macos.sh
-# 产物：build/bin/hyt-native-bridge
+./scripts/build-macos.sh                            # 默认用 native/sdk
+HYT_SDK_ROOT=/path/to/sdk ./scripts/build-macos.sh  # 换 SDK 版本
+# 产物：build/bin/hyt-native-bridge，并复制到 prebuilt/darwin-<arch>/
 ```
 
-`HYT_SDK_ROOT` 不设或库缺失时编译 stub：进程仍能启动并提供本地历史/会话，
+`HYT_SDK_ROOT` 指向的库缺失时编译 stub：进程仍能启动并提供本地历史/会话，
 `auth.login` 与收发方法返回明确的不可用原因，不会崩溃。
 
 macOS 链接 `libECMacSDK.a` 与 `ECMediaSDK.framework`，另需系统自带 SQLite3 与 libcurl。
@@ -42,28 +46,33 @@ macOS 链接 `libECMacSDK.a` 与 `ECMediaSDK.framework`，另需系统自带 SQL
 ### Windows
 
 ```bat
-set HYT_SDK_ROOT=C:\path\to\sdk
-scripts\build-windows.bat
-rem 产物：build-win\bin\hyt-native-bridge.exe
+scripts\build-windows.bat                        rem 默认用 native\sdk
+rem 产物：build-win\Release\hyt-native-bridge.exe，并复制到 prebuilt\win32-x64\
 ```
 
 SDK 目录布局：`include/win/`（头文件）与 `lib/win/`（`ECsdk.lib`、`ecmedia.lib`、`ECsdk.dll`）。
 CMake 也兼容 `libSdk/` 下的库文件。运行时把 `ECsdk.dll`、`ecmedia.dll` 放到可执行文件同目录；
-插件打包时会把 `lib/win`、`libSdk` 或 `native/sdk-runtime/win` 下的 `*.dll` 一并复制。
+插件打包时会把 `native/sdk/lib/win` 下的 `*.dll` 一并复制。
 HTTP 走 WinHTTP，不依赖 libcurl；SQLite3 需自行提供（例如 vcpkg 的 `sqlite3`）。
 
 ### 插件打包布局
 
-`bun run build` 会按当前平台把产物放进插件包，换机器安装后不需要开发机上的 SDK 路径：
+`bun run build` 把入库的预编译产物与 SDK 运行库一起放进插件包，换机器安装后不需要开发机上的 SDK 路径：
 
 ```
-dist/native/darwin-x64/hyt-native-bridge    # 或 win32-x64/hyt-native-bridge.exe
-dist/native/Frameworks/ECMediaSDK.framework # 仅 macOS
+native/prebuilt/darwin-x64/hyt-native-bridge      # 入库的发布产物
+native/prebuilt/win32-x64/hyt-native-bridge.exe   # Windows 上构建一次后入库
+native/sdk/{include,lib}/{mac,win}                # 构建输入，随仓库分发
+dist/native/darwin-x64/hyt-native-bridge
+dist/native/win32-x64/hyt-native-bridge.exe
+dist/native/Frameworks/ECMediaSDK.framework       # 仅 macOS
 ```
 
-macOS 构建后会把 `ECMediaSDK.framework` 复制到 `native/sdk-runtime/`，打包时从这里取；
-`install_name_tool` 会补一条 `@executable_path/../Frameworks`，所以产物只在包内解析依赖。
-`sdk-runtime/` 是本机构建产物，不入库。
+`prebuilt/` 里的二进制让克隆仓库后直接 `bun run build` 就能打出可用插件包，不需要 cmake；
+本机重新编译且比入库产物新时会覆盖它。同一个 `.exc` 同时带上两个平台的产物，安装后按运行时平台取用。
+
+macOS 的二进制带一条 `@executable_path/../Frameworks`，只解析包内 framework；
+Windows 的 DLL 复制到 exe 旁边，由系统优先加载。
 
 ### Linux
 
@@ -109,7 +118,7 @@ node scripts/selftest.mjs --no-spawn     # 连已在运行的实例
 | 平台 | 构建 | 登录/收发 | 本地历史 | 说明 |
 | --- | --- | --- | --- | --- |
 | macOS | 已跑通 | 已实现，待用真实账号验收 | 已验证 | 与 GUI 同账号会互踢，验收时先关 GUI |
-| Windows | CMake 已配好 | 未验证 | 未验证 | 需自备 SQLite3 与 SDK 运行库 |
+| Windows | CMake 已配好 | 未验证 | 未验证 | 需在 Windows 上跑一次构建脚本产出 exe |
 | Linux | 配置参考 | 不可用（stub） | 可用 | 缺 `.so` 时运行时明确报错 |
 
 ## 已知限制

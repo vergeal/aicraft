@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { chmodSync, existsSync, statSync } from "node:fs"
 import { join } from "node:path"
 import type { BridgeClient } from "./client.js"
 import { METHODS, isRecord } from "./protocol.js"
@@ -40,7 +40,23 @@ export function bridgeExecutable(pluginRoot: string, configured = "") {
     join(pluginRoot, "native", "build", "bin", name),
     join(pluginRoot, "native", name),
   ]
-  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!
+  const found = candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!
+  ensureExecutable(found)
+  return found
+}
+
+/**
+ * `.exc` 是 tar 包，安装后的文件不一定带执行位。桥接要能被 spawn 拉起，所以找到后补一次 0755；
+ * Windows 没有执行位，直接跳过；只读安装位置改不动时保持原样，spawn 失败会带出明确原因。
+ */
+function ensureExecutable(file: string) {
+  if (process.platform === "win32") return
+  if (((statSync(file, { throwIfNoEntry: false })?.mode ?? 0) & 0o111) === 0o111) return
+  try {
+    chmodSync(file, 0o755)
+  } catch {
+    // 只读安装位置改不动权限时就保持原样。
+  }
 }
 
 /** 读 `auth.state`：桥接没有登录时也正常返回，只是 loggedIn 为 false。 */

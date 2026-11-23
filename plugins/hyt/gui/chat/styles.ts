@@ -473,7 +473,7 @@ export const css = `
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
-  margin: 0 12px 10px;
+  margin: 0 10px 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -533,7 +533,7 @@ export const css = `
   align-items: center;
   gap: 9px;
   flex: 0 0 auto;
-  height: 58px;
+  height: 52px;
   padding: 0 12px;
   box-shadow: inset 0 0.5px 0 0 var(--hyt-line);
 }
@@ -621,29 +621,10 @@ export const css = `
   height: 100%;
   object-fit: cover;
 }
-/* 群头像：灰底容器里按 1/2/3/4/5+ 的布局摆成员小方块。容器底色由组件设为虹云通的 GROUP_HEAD_BG。 */
-.hyt-chat-avatar[data-stack="true"] {
-  align-items: stretch;
-  justify-items: stretch;
-}
-.hyt-chat-avatar-tile {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  color: var(--hyt-on-accent);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0;
-  line-height: 1;
-  white-space: nowrap;
-  user-select: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-.hyt-chat-avatar-tile img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* 群头像：自绘的双人剪影，约占 62%，底色由组件按群名取色。 */
+.hyt-chat-avatar-group {
+  width: 62%;
+  height: 62%;
 }
 
 /* ============================================================================

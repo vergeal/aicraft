@@ -41,6 +41,8 @@ export function MessageStream(props: {
   onLoadMore: () => void
   /** 从搜索结果进来的目标消息 id：滚到它并短暂高亮。 */
   focusId?: number
+  /** 定位高亮放完（约 1.8s）后通知宿主清掉 focusId，下次搜索同一条才会再高亮。 */
+  onFocusDone?: () => void
   onUseDraft: (body: string) => void
   onRefresh: () => void
   onFocusSearch: () => void
@@ -112,21 +114,36 @@ export function MessageStream(props: {
     if (count > 0 && (!away() || props.messages[count - 1]?.outgoing)) scrollToEnd(false)
   })
 
-  // 从搜索结果进来时滚到命中的那条。目标不在已加载范围就继续往前翻，最多 12 次，避免无限加载。
+  // 从搜索结果进来时跳到命中的那条。目标不在已加载范围就继续往前翻，最多 12 次，避免无限加载。
   let focused = -1
   let focusTries = 0
   createEffect(() => {
     const id = props.focusId
-    if (id === undefined || id === focused) return
+    if (id === undefined) {
+      focused = -1
+      focusTries = 0
+      return
+    }
+    if (id === focused) return
     const rows = props.messages
     if (rows.length === 0 || props.session === undefined || scroller === undefined) return
     const target = scroller.querySelector<HTMLElement>(`[data-message-id="${id}"]`)
     if (target !== null) {
       focused = id
       focusTries = 0
-      target.scrollIntoView({ block: "center", behavior: "smooth" })
-      target.setAttribute("data-focus", "true")
-      window.setTimeout(() => target.removeAttribute("data-focus"), 1800)
+      // 瞬时定位：平滑滚动会被随后的贴底和行重建打断，最后停在半路。
+      const center = () => {
+        if (scroller === undefined) return
+        const box = scroller.getBoundingClientRect()
+        const rect = target.getBoundingClientRect()
+        scroller.scrollTop += rect.top - box.top - (box.height - rect.height) / 2
+      }
+      center()
+      // 目标常在往前翻页之后才出现，那一页落进 DOM 还会把内容推高一次，所以隔两帧再对一次中。
+      requestAnimationFrame(() => requestAnimationFrame(center))
+      // 定位完就离开底部：否则下一次轮询会把用户拉回最新一条。
+      setAway(true)
+      window.setTimeout(() => props.onFocusDone?.(), 1800)
       return
     }
     if (props.hasMore && !props.loadingMore && focusTries < 12) {
@@ -181,6 +198,15 @@ export function MessageStream(props: {
   return (
     <>
       <header class="hyt-chat-head">
+        <Show when={props.session !== undefined}>
+          <Avatar
+            name={props.session!.name}
+            members={props.session!.members}
+            avatars={props.avatars}
+            size="head"
+            group={props.session!.group}
+          />
+        </Show>
         <div class="hyt-chat-head-id">
           <div class="hyt-chat-head-title">
             <span class="hyt-chat-head-name">{props.session?.name ?? text(ctx, "hyt.chat.title")}</span>
@@ -285,6 +311,7 @@ export function MessageStream(props: {
                         message={entry.message}
                         repeat={entry.repeat}
                         first={first()}
+                        focus={props.focusId !== undefined && props.focusId === entry.message.id}
                         role={entry.message.outgoing ? text(ctx, "hyt.chat.msg.self") : department(entry.message.sender)}
                         avatars={props.avatars}
                         onOpenImage={setViewer}
@@ -361,6 +388,8 @@ function MessageItem(props: {
   message: MessageRow
   repeat: number
   first: boolean
+  /** 搜索定位到的那一条：由信号驱动高亮，行重建时不会丢。 */
+  focus: boolean
   role: string
   avatars: Readonly<Record<string, string>>
   onOpenImage: (source: string) => void
@@ -389,6 +418,7 @@ function MessageItem(props: {
         data-first={props.first ? "true" : "false"}
         data-outgoing={message().outgoing ? "true" : "false"}
         data-message-id={String(message().id)}
+        data-focus={props.focus ? "true" : undefined}
       >
         <Avatar
           name={senderName()}

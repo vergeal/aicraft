@@ -227,6 +227,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
                 loadingMore={loadingMore()}
                 onLoadMore={loadMore}
                 focusId={focusId()}
+                onFocusDone={() => setFocusId(undefined)}
                 onUseDraft={insertComposer}
                 onRefresh={() => void run(() => props.client.refresh())}
                 onFocusSearch={() => document.querySelector<HTMLInputElement>(".hyt-chat-search input")?.focus()}

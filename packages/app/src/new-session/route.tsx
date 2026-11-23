@@ -12,6 +12,7 @@ import { isServerIncompatible } from "@/runtime/server/health-machine"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
 import { SessionUIProvider } from "@/shell/routes/session-ui-provider"
 import NewSession from "@/new-session/screen"
+import { isLeaving } from "@/new-session/leave-motion"
 import { ServerSignedOutPanel, ServerUnavailablePanel } from "@/session/server-unavailable-panel"
 import { ErrorPage } from "@/shell/errors/error"
 import { SessionPanelFrame, SessionRouteFrame } from "@/session/session-frame"
@@ -19,14 +20,26 @@ import { SessionPanelFrame, SessionRouteFrame } from "@/session/session-frame"
 export function DraftRoute() {
   const [search] = useSearchParams<{ draftId?: string }>()
   const tabs = useTabs()
+  let shown: DraftTab | undefined
+
+  // A promoted draft leaves the tab store at once and its promotion entry soon after; the exit animation still
+  // needs its page on screen until the route reaches the session, so the last draft is held while it plays.
+  const draft = createMemo(() => {
+    const id = search.draftId
+
+    if (!id) return
+    const next =
+      tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === id) ?? tabs.pendingDraft(id)
+
+    if (next) shown = next
+    else if (!isLeaving()) shown = undefined
+
+    return shown
+  })
 
   return (
-    <Show
-      when={tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)}
-      keyed
-      fallback={tabs.ready() && <Navigate href="/" />}
-    >
-      {(draft) => <DraftPage draft={draft} />}
+    <Show when={draft()} keyed fallback={tabs.ready() && !isLeaving() && <Navigate href="/" />}>
+      {(value) => <DraftPage draft={value} />}
     </Show>
   )
 }

@@ -3,7 +3,7 @@ import { Tooltip } from "@opencode/ui/tooltip"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { useCommand } from "@/shell/commands/command"
-import { Show, createMemo, createSignal, type JSX } from "solid-js"
+import { Show, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js"
 import { getFilename } from "@opencode/util/path"
 import { displayName } from "@opencode/ui/project-avatar"
 import { ProjectFolder } from "@opencode/ui/project-folder"
@@ -26,6 +26,8 @@ import { Persist, persisted } from "@/runtime/persistence/storage"
 import { Persistence } from "@/runtime/persistence/schema"
 import type { NewSessionWorkspaceController } from "./workspace/controller"
 import { NewSessionBranch } from "./workspace/selector"
+import { leavingText, registerLeaveEndpoint } from "./leave-motion"
+import "./leave.css"
 
 const providerTipDismissalDuration = 30 * 24 * 60 * 60 * 1000
 
@@ -51,6 +53,11 @@ export function NewSessionView(props: {
 
   const language = useLanguage()
 
+  let root: HTMLDivElement | undefined
+  let card: HTMLDivElement | undefined
+
+  onMount(() => onCleanup(registerLeaveEndpoint({ root: root!, composer: card! })))
+
   const location = (project?: PromptProject) =>
     props.location.open({
       project,
@@ -62,6 +69,7 @@ export function NewSessionView(props: {
   return (
     <div class="@container relative flex flex-col min-h-0 h-full flex-1">
       <div
+        ref={(el) => (root = el)}
         data-component="new-session"
         class="relative isolate flex-1 min-h-0 overflow-hidden rounded-[var(--shell-panel-radius,10px)] bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)]"
       >
@@ -124,7 +132,20 @@ export function NewSessionView(props: {
             </div>
           </div>
           <div class="mx-auto w-full max-w-session">
-            <div data-slot="new-session-composer" class="relative z-10 -mx-4">
+            <div ref={(el) => (card = el)} data-slot="new-session-composer" class="relative z-10 -mx-4">
+              <Show when={leavingText()}>
+                {(text) => (
+                  <div
+                    data-slot="new-session-leave-bubble"
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-x-4 bottom-full mb-2 flex justify-end"
+                  >
+                    <p class="max-w-[82%] truncate rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-start text-[14px] leading-[var(--line-height-large)] text-v2-text-text-base">
+                      {text()}
+                    </p>
+                  </div>
+                )}
+              </Show>
               <Composer model={props.composer} />
             </div>
           </div>

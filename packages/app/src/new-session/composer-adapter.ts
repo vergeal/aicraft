@@ -16,6 +16,7 @@ import { createWorktree } from "@/workspaces/create"
 import { showToast } from "@/shell/notifications/toast"
 import { SessionRouteKey, SessionStateKey } from "@/runtime/server/scope"
 import { createSessionMessageHandoff } from "@/session/handoff"
+import { beginLeaveMotion } from "./leave-motion"
 import type { DraftMcpControls } from "./mcp"
 import {
   createNewSessionStartState,
@@ -108,6 +109,7 @@ export function createNewSessionComposerAdapter(props: {
       const directory = worktree === "main" ? projectDirectory : worktree
       const sessionID = Session.ID.create()
       const settled = Promise.withResolvers<Started>()
+      const leaving = beginLeaveMotion(message.text)
 
       const accepted = props.start.start(
         {
@@ -125,6 +127,7 @@ export function createNewSessionComposerAdapter(props: {
             props.draftID,
             { server: server.key, sessionId: sessionID },
             { message, selection, view: props.start.view },
+            { leaving },
           )
 
           return async (effect) => {
@@ -224,7 +227,10 @@ export function createNewSessionComposerAdapter(props: {
         },
       )
 
-      if (!accepted) return Promise.resolve(undefined)
+      if (!accepted) {
+        leaving.cancel()
+        return Promise.resolve(undefined)
+      }
 
       return settled.promise
     },

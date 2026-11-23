@@ -33,6 +33,7 @@ import { sessionRouteView } from "./resolution-machine"
 import { createSessionResolution } from "./session-resolution"
 import { SessionScreenView } from "./screen"
 import { PreparingComposer } from "./preparing-composer"
+import "./preparing.css"
 
 export function TargetSessionRouteContent() {
   const params = useParams<{ serverKey: string; id: string }>()
@@ -77,17 +78,19 @@ function PreparingSession(props: { sessionID: string; pending: PendingSession })
         <div data-component="session-preparing" data-scrollable class="min-h-0 flex-1 overflow-y-auto">
           <SessionIdentityHeader sessionID={props.sessionID} />
           <div class="mx-auto w-full min-w-0 px-4 pb-5 md:max-w-session md:px-6">
-            <SessionUserMessage
-              sessionID={props.sessionID}
-              message={props.pending.message}
-              comments={readPromptPresentation(props.pending.message.metadata)?.comments}
-              historicalAgent={props.pending.selection.agent}
-              historicalModel={{
-                id: props.pending.selection.model.modelID,
-                providerID: props.pending.selection.model.providerID,
-                variant: props.pending.selection.variant,
-              }}
-            />
+            <div data-slot="session-preparing-message">
+              <SessionUserMessage
+                sessionID={props.sessionID}
+                message={props.pending.message}
+                comments={readPromptPresentation(props.pending.message.metadata)?.comments}
+                historicalAgent={props.pending.selection.agent}
+                historicalModel={{
+                  id: props.pending.selection.model.modelID,
+                  providerID: props.pending.selection.model.providerID,
+                  variant: props.pending.selection.variant,
+                }}
+              />
+            </div>
             <div
               role="status"
               class="mt-3 flex flex-col gap-1 text-[15px] font-medium leading-[var(--line-height-compact)] text-v2-text-text-muted"

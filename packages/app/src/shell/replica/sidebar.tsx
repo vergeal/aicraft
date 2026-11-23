@@ -108,6 +108,25 @@ const SidebarSessionOrder = Persistence.struct({
   projects: Persistence.array(Schema.String),
 })
 
+/**
+ * The index the pointer is over inside one sortable group, read from the rows' real layout. dnd-kit's `source.index`
+ * only follows the pointer while its collision check fires: a fast drag, or a list update that resets the optimistic
+ * move, leaves it where the drag started and the row drops back in place. The carried row is skipped so its own rect
+ * cannot stand in for the slot it is looking for.
+ */
+function pointerLandingIndex(group: string, sourceKey: string, y: number) {
+  const rows = [...document.querySelectorAll(`[data-sortable-key][data-sortable-group="${group}"]`)]
+    .filter((row) => row.closest('[data-slot="replica-sidebar"]'))
+    .filter((row) => row.getAttribute("data-sortable-key") !== sourceKey)
+
+  const at = rows.findIndex((row) => {
+    const rect = row.getBoundingClientRect()
+    return y < rect.top + rect.height / 2
+  })
+
+  return at === -1 ? rows.length : at
+}
+
 /** The run state at the end of a conversation row: a ring while working, one dot once the result lands. */
 function StatusMark(props: { status: InboxStatus }) {
   const language = useLanguage()
@@ -1375,6 +1394,14 @@ function ConversationNav() {
             // dnd-kit moves the carried row into the destination group before the drop settles, so `source.group`
             // names the group it lands in.
             const group = String(source.group ?? sourceGroup)
+            // `source.index` only follows the pointer while dnd-kit's collision check fires. A fast drag, or a list
+            // update that resets the optimistic move, leaves it at the index the drag started on, which would drop
+            // the row back in place even though it was carried elsewhere. The pointer's side of each row's midline is
+            // what the user saw, so it decides the landing when dnd-kit reports no move.
+            const landing =
+              source.index === source.initialIndex
+                ? pointerLandingIndex(group, String(source.id), event.operation.position.current.y)
+                : source.index
 
             // A conversation dropped into another project's list moves into that folder: the server changes the
             // session's directory and records the switch, so the agent learns its working directory changed.
@@ -1385,9 +1412,9 @@ function ConversationNav() {
               if (!sourceGroup.startsWith(`${RECENT_GROUP}:`) || !entry || !target) return
 
               // Place the arrival where it was dropped so the folder does not reshuffle once the change lands.
-              // `source.index` already counts the carried row at its destination, so it matches the list without it.
+              // `landing` already counts the carried row at its destination, so it matches the list without it.
               const ids = target.entries.map((item) => item.session.id)
-              const at = Math.max(0, Math.min(source.index, ids.length))
+              const at = Math.max(0, Math.min(landing, ids.length))
               const moved = [...ids.slice(0, at), entry.session.id, ...ids.slice(at)]
               const current = recent().map((item) => item.session.id)
               const slots = current.flatMap((id, index) => (ids.includes(id) ? [index] : []))
@@ -1400,7 +1427,7 @@ function ConversationNav() {
               return
             }
 
-            if (source.initialIndex === source.index) return
+            if (source.initialIndex === landing) return
 
             if (group === PROJECT_GROUP) {
               setOrder(
@@ -1408,7 +1435,7 @@ function ConversationNav() {
                 arrayMove(
                   projectGroups().map((item) => item.key),
                   source.initialIndex,
-                  source.index,
+                  landing,
                 ),
               )
 
@@ -1420,7 +1447,7 @@ function ConversationNav() {
                 arrayMove(
                   pinnedEntries().map((entry) => entry.session.id),
                   source.initialIndex,
-                  source.index,
+                  landing,
                 ),
               )
 
@@ -1437,7 +1464,7 @@ function ConversationNav() {
               if (!entries) return
 
               const ids = entries.map((entry) => entry.session.id)
-              const moved = arrayMove(ids, source.initialIndex, source.index)
+              const moved = arrayMove(ids, source.initialIndex, landing)
               const current = recent().map((entry) => entry.session.id)
               const slots = current.flatMap((id, index) => (ids.includes(id) ? [index] : []))
               const next = [...current]
@@ -1454,7 +1481,7 @@ function ConversationNav() {
               arrayMove(
                 recent().map((entry) => entry.session.id),
                 source.initialIndex,
-                source.index,
+                landing,
               ),
             )
           }}

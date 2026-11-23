@@ -1,7 +1,7 @@
 ---
 name: 问题反馈
 description: "当用户想报告 AI Craft 的问题或缺陷时使用。收集标准诊断信息，补充用户的具体复现上下文，并用 GitHub CLI 发布问题。"
-icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#c2701a"/><path d="M7.2 7.8h9.6a2 2 0 0 1 2 2v4.8a2 2 0 0 1-2 2h-4.5L8.5 19v-2.4H7.2a2 2 0 0 1-2-2V9.8a2 2 0 0 1 2-2Z" fill="#fff" opacity=".95"/><path d="M12 10.2v3.1" stroke="#c2701a" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="15.2" r=".95" fill="#c2701a"/></svg>'
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#c2701a"/><g fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8.4" y="9" width="7.2" height="9.2" rx="3.4"/><path d="M12 5.8v3.2M9.2 7.1 8.2 5.8M14.8 7.1l1-1.3M8.4 11.7H5.9M8.4 15.4H5.9M15.6 11.7h2.5M15.6 15.4h2.5M12 9v9.2"/></g></svg>'
 ---
 
 <!--

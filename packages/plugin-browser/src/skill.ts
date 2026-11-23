@@ -14,7 +14,7 @@ export const info = SkillPackage.define({
     description:
       "使用应用内浏览器：打开并阅读页面、点击与填写表单、截图、查看控制台与网络日志，以及分析性能与内存。在第一次调用浏览器工具前加载它。",
     // A globe on its own blue tile: the browser skill's identity.
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2f66d0"/><circle cx="12" cy="12" r="5.3" stroke="#fff" stroke-width="1.6" fill="none"/><path d="M6.9 12h10.2M12 6.9c1.9 1.6 2.85 3.3 2.85 5.1S13.9 15.5 12 17.1c-1.9-1.6-2.85-3.3-2.85-5.1S10.1 8.5 12 6.9Z" stroke="#fff" stroke-width="1.5" fill="none"/></svg>',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2f66d0"/><g fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.3"/><path d="M5.7 12h12.6"/><path d="M12 5.7c1.9 1.7 2.9 3.8 2.9 6.3s-1 4.6-2.9 6.3c-1.9-1.7-2.9-3.8-2.9-6.3s1-4.6 2.9-6.3z"/></g></svg>',
   },
   body: [
     "# 应用内浏览器",

@@ -270,19 +270,6 @@ html[data-replica-window="translucent"] [data-slot="destination-bar"] {
   -webkit-app-region: drag;
 }
 
-/* The bar's shared axis: a hairline through the native traffic lights' centre. Every segment centres its contents on
-   `--titlebar-axis`, so this is the one line they all sit on. */
-[data-slot="replica-titlebar"]::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: var(--titlebar-axis);
-  height: 1px;
-  transform: translateY(-50%);
-  background: color-mix(in oklab, var(--color-text-main) 22%, transparent);
-  pointer-events: none;
-  z-index: 1;
-}
 
 /* The navigation column's head: its width follows the column, its surface is the column's own, so the bar's left half
    and the column below read as one piece of chrome rather than two stacked tints. */

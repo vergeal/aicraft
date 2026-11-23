@@ -115,6 +115,9 @@ export function InstalledSkillCard(props: { skill: SkillInfo; onOpen: () => void
           <strong class="truncate">{props.skill.name}</strong>
           <span class="module-card-meta">
             <span class="module-tag">{language.t("explore.skills.title")}</span>
+            <Show when={isVirtual(props.skill)}>
+              <span class="module-tag">{language.t("explore.skills.group.builtin")}</span>
+            </Show>
             <span dir="ltr">@{props.skill.id}</span>
           </span>
         </span>

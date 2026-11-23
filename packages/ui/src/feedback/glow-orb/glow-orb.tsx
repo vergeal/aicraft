@@ -1,4 +1,5 @@
 import { splitProps, type ComponentProps, type JSX } from "solid-js"
+import { syncSpinPhase } from "../../hooks/spin-phase"
 import "./glow-orb.css"
 
 /**
@@ -20,6 +21,7 @@ export function GlowOrb(
   return (
     <span
       {...rest}
+      ref={syncSpinPhase}
       data-component={local["data-component"] ?? "glow-orb"}
       data-slot="glow-orb"
       classList={{ ...local.classList, [local.class ?? ""]: !!local.class }}

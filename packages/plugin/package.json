@@ -47,7 +47,8 @@
     "@opencode/protocol": "workspace:*",
     "@opencode/schema": "workspace:*",
     "@opencode/util": "workspace:*",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "gray-matter": "4.0.3"
   },
   "peerDependencies": {
     "@opencode/theme": "workspace:*",

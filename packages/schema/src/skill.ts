@@ -31,6 +31,11 @@ export const Info = Schema.Struct({
   autoinvoke: Schema.Boolean.pipe(optional),
   path: AbsolutePath,
   content: Schema.String,
+  /**
+   * The skill's own inline SVG mark, declared as `icon` in its SKILL.md. It is the skill's identity mark, so the
+   * design system's brand-mark exception allows color here even though functional icons stay monochrome.
+   */
+  icon: Schema.String.pipe(optional),
   /** The plugin that contributed this skill; absent for the user's own skills. */
   plugin: Schema.String.pipe(optional),
 }).annotate({ identifier: "Skill.Info" })

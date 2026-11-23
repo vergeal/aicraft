@@ -1,3 +1,9 @@
+---
+name: AI Craft 使用指南
+description: "回答一切关于 AI Craft 自身的问题：工作方式、使用与配置、从 V1 迁移到 V2、故障排查、开发插件或集成、使用 AI Craft SDK、客户端、服务器或 API，以及参与 AI Craft 代码库开发。也适用于 AI Craft 的 agent、命令、技能、工具、权限、MCP 服务器、提供商、模型、主题、快捷键、格式化工具、CLI、TUI、桌面端与 Web 端。"
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#4b57d6"/><path d="M11.9 5.3c.6 3 1.7 4.1 4.7 4.7-3 .6-4.1 1.7-4.7 4.7-.6-3-1.7-4.1-4.7-4.7 3-.6 4.1-1.7 4.7-4.7Z" fill="#fff"/><circle cx="16.9" cy="16.6" r="1.4" fill="#fff" opacity=".8"/></svg>'
+---
+
 # AI Craft 使用指南
 
 把本指南作为处理 AI Craft 自身相关工作的起点。它涵盖配置和定制 AI Craft、用插件扩展它，以及用 AI Craft SDK、客户端和 API 构建集成所需的核心概念。

@@ -1,7 +1,12 @@
+---
+name: 插件创造
+description: "当用户要新建、修改或打包一个 AI Craft 插件（.exc）时使用。覆盖工程骨架、METAINF 清单、服务端与界面入口、随包技能、构建与打包脚本，以及按设计规范生成插件图标。"
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#16785f"/><rect x="6.4" y="6.4" width="5.2" height="5.2" rx="1.4" fill="#fff"/><rect x="12.4" y="12.4" width="5.2" height="5.2" rx="1.4" fill="#fff" opacity=".9"/><rect x="6.4" y="12.4" width="5.2" height="5.2" rx="1.4" fill="#fff" opacity=".55"/></svg>'
+---
+
 <!--
-  内置技能。名称和描述在代码中注册于
-  packages/core/src/plugin/skill.ts。下面的正文成为技能的
-  内容。
+  内置技能包。名称、描述与图标都声明在上面的 frontmatter 里，注册时由 SkillPackage 解析；
+  下面的正文成为技能内容。
 -->
 
 # 创建 AI Craft 插件

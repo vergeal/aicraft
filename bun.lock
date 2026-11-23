@@ -468,6 +468,7 @@
         "@opencode/schema": "workspace:*",
         "@opencode/util": "workspace:*",
         "effect": "catalog:",
+        "gray-matter": "4.0.3",
       },
       "devDependencies": {
         "@opencode/theme": "workspace:*",
@@ -838,7 +839,7 @@
     },
     "plugins/hyt": {
       "name": "@opencode/plugin-hyt",
-      "version": "0.6.0",
+      "version": "0.6.4",
       "dependencies": {
         "@opencode/plugin": "workspace:*",
         "@opencode/schema": "workspace:*",

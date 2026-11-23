@@ -10,6 +10,7 @@ import { Skill } from "../../skill.js"
 const Frontmatter = Schema.Struct({
   name: Schema.String.pipe(Schema.optional),
   description: Schema.String.pipe(Schema.optional),
+  icon: Schema.String.pipe(Schema.optional),
   metadata: Schema.Unknown.pipe(Schema.optional),
   "disable-model-invocation": Schema.Unknown.pipe(Schema.optional),
 })
@@ -48,12 +49,14 @@ export function parse(directory: string, filepath: string, content: string): Par
   const opencodeAutoinvoke = metadataBoolean(frontmatter.metadata, "opencode/autoinvoke")
   const disableModelInvocation = booleanValue(frontmatter["disable-model-invocation"])
   const autoinvoke = opencodeAutoinvoke ?? (disableModelInvocation ? false : undefined)
+  const icon = frontmatter.icon?.trim()
   return {
     _tag: "Parsed",
     skill: {
       id: Skill.ID.make(id),
       name: Skill.Name.make(frontmatter.name ?? id),
       ...(frontmatter.description === undefined ? {} : { description: frontmatter.description }),
+      ...(icon ? { icon } : {}),
       ...(autoinvoke === undefined ? {} : { autoinvoke }),
       path: AbsolutePath.make(filepath),
       content: markdown.content,

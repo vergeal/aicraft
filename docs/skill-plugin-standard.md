@@ -67,6 +67,7 @@
 ---
 name: 代码评审清单
 description: 当用户要求评审改动、或提交前自查时使用。
+icon: '<svg viewBox="0 0 24 24">…</svg>'
 metadata:
   opencode/autoinvoke: true
 ---
@@ -82,8 +83,15 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 | ------------------------------ | ---- | ------- | ---------------------------------------------------------------- |
 | `name`                         | 否   | string  | 显示名。省略时等于 `id`。可以包含中文。                          |
 | `description`                  | 否   | string  | 何时使用该技能。**省略则该技能不会出现在模型的可用技能列表里**。 |
+| `icon`                         | 否   | string  | 技能的内联 SVG 图标，取值规则见下。省略时探索页按标题与说明生成彩色图标。 |
 | `metadata.aicraft/autoinvoke` | 否   | boolean | 是否允许模型自动调用。优先级最高。                               |
 | `disable-model-invocation`     | 否   | boolean | 与上一条同义，兼容其他 agent 的写法。                            |
+
+`icon` 是**内联 SVG 源码字符串**，约定 24×24 视口，与插件 `display.icon` 同一套约束：禁止 `<script>`、`<foreignObject>`、事件属性（`on*`）、外部 `href`/`url(...)` 引用；品牌色可以用固定值。客户端把它当作身份标（品牌 mark），允许彩色，不当作功能图标用。
+
+技能图标是**完整的方形身份标**：探索页把它铺满 40×40 的图标位，而不是缩到 24px 再居中。所以 SVG 要自己画满视口的底色（例如 `<rect width="24" height="24" rx="6" fill="#…"/>`），再在上面画图形；只画一个白色图形会因为没有底色而在浅色主题下看不清。省略 `icon` 时，探索页用技能标题与说明派生一个稳定的彩色底，并叠加默认技能图形；不要在正文里用 emoji 冒充图标。
+
+内置技能走同一条规范：它们的 `SKILL.md`（`packages/core/src/plugin/skill/*.md`、`memory/SKILL.md`）与发布技能包一样在 frontmatter 里声明 `name`、`description` 和 `icon`，注册时由同一个解析器读取，不在注册代码里写死图标。
 
 布尔值接受 `true/false`、`yes/no`、`on/off`、`1/0`（不区分大小写、允许前后空格）。
 
@@ -225,7 +233,7 @@ export default Plugin.define({
     name: "面向用户的名称",
     description: "面向用户的说明，不写包名与内部术语。",
     category: "automation",
-    skills: [{ id: "example", name: "……", description: "……" }],
+    skills: [{ id: "example", name: "……", description: "……", icon: "<svg viewBox=\"0 0 24 24\">…</svg>" }],
     tools: ["example.*"],
   },
   effect: (ctx) =>
@@ -241,6 +249,7 @@ export default Plugin.define({
 
 - `display.name` / `display.description` 是用户看到的文案，必须是面向用户的语言，不要写包名和内部术语。
 - `display.skills` 必须与插件实际通过 `skill.transform` 注册的技能一致；`display.tools` 写工具名前缀或完整名。
+- `display.skills[].icon` 是技能自己的内联 SVG 图标，规则同 `display.icon`；省略时探索页按技能标题与说明生成彩色图标。技能在 `SKILL.md` 里声明 `icon` 时，运行时的 `Skill.Info.icon` 优先于这里。
 - `display.skills` 是插件详情页 Skills 分区的兜底：运行时按 `skill.plugin === plugin.id` 取到的技能优先，插件尚未注册任何技能（例如加载失败）时才回退到清单声明。
 - 只有**产品级**内部插件才声明 `display`。负责系统装配的内置插件（模型、权限、MCP 配置等）保持不声明，避免探索页被内部实现淹没。
 - 没有 `display` 的插件在探索页的「已安装」里不出现，但仍然参与插件加载。
@@ -367,6 +376,7 @@ README.md                # 可选
       "name": "Webwright",
       "description": "用 webwright.* 工具操作专用浏览器……",
       "path": "skills/webwright/SKILL.md",
+      "icon": "<svg viewBox=\"0 0 24 24\">…</svg>",
     },
   ],
   "assets": ["assets/playwright-core"],
@@ -382,7 +392,7 @@ README.md                # 可选
 | `entry`             | 是   | 入口相对路径，至少一个；文件必须存在且位于包内。                                                           |
 | `externals`         | 否   | 由宿主提供的模块，不得打进包内，见 3.5。                                                                   |
 | `display`           | 否   | 展示元数据，字段与 `Plugin.Display` 相同（`name`、`description`、`category`、`icon`、`skills`、`tools`）。 |
-| `skills`            | 否   | 包内技能清单，`path` 必须指向包内 `SKILL.md`。                                                             |
+| `skills`            | 否   | 包内技能清单，`path` 必须指向包内 `SKILL.md`；`icon` 可选，是该技能的内联 SVG 图标。 |
 | `assets`            | 否   | 随包资源目录，仅供插件自身读取。                                                                           |
 | `files`             | 否   | `[{ "path": "...", "sha256": "..." }]` 完整性清单，不含 `METAINF` 自身。                             |
 
@@ -391,6 +401,7 @@ README.md                # 可选
 - **`display` 是展示的唯一事实源。** 入口应从 `METAINF` 派生 `Plugin.define` 的 `display`，不要在代码里再写一份文案或图标，避免安装前后显示不一致。
 - `display.icon` 是**内联 SVG 源码字符串**，约定 24×24 视口。禁止 `<script>`、`<foreignObject>`、事件属性（`on*`）、外部 `href`/`url(...)` 引用；品牌色可以用固定值。客户端把它转成 data URI 用 `<img>` 渲染，不注入 HTML、不执行脚本。
 - `display.skills` 与 `skills` 必须一致；`display` 只是展示，真正的技能注册仍由入口调用 `ctx.skill.transform` 完成（见 2.6 红线）。
+- `skills[].icon` 与技能 `SKILL.md` 的 `icon` 同时存在时，以 `SKILL.md` 为准：运行时读的是技能文件本身，清单只用于安装前的展示。两处都省略时，探索页按技能标题与说明生成彩色图标。
 - 缺少 `display` 的组合包可以安装，但不出现在探索页，只按配置与目录规则加载。
 
 ### 3.5 依赖与宿主模块

@@ -119,10 +119,17 @@ function skillsOf(input: unknown): Plugin.Display["skills"] {
   if (!Array.isArray(input)) return undefined
   const skills = input.flatMap((item) => {
     if (typeof item !== "object" || item === null) return []
-    const skill = item as { id?: unknown; name?: unknown; description?: unknown }
+    const skill = item as { id?: unknown; name?: unknown; description?: unknown; icon?: unknown }
     if (typeof skill.id !== "string" || typeof skill.name !== "string" || typeof skill.description !== "string")
       return []
-    return [{ id: skill.id, name: skill.name, description: skill.description }]
+    return [
+      {
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        ...(typeof skill.icon === "string" && skill.icon.trim() !== "" ? { icon: skill.icon } : {}),
+      },
+    ]
   })
   return skills.length > 0 ? skills : undefined
 }

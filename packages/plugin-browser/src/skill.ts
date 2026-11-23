@@ -1,19 +1,22 @@
 export * as BrowserSkill from "./skill.js"
 
-import { AbsolutePath } from "@opencode/schema/schema"
+import { SkillPackage } from "@opencode/plugin/skill-package"
 import { Skill } from "@opencode/schema/skill"
 import { Browser } from "./rpc.js"
 
 export const id = Skill.ID.make("browser")
 
 /** How to use the browser tools well. Listed only while a desktop browser is attached, like the tools themselves. */
-export const info = Skill.Info.make({
-  id,
-  name: Skill.Name.make("浏览器"),
-  description:
-    "使用应用内浏览器：打开并阅读页面、点击与填写表单、截图、查看控制台与网络日志，以及分析性能与内存。在第一次调用浏览器工具前加载它。",
-  path: AbsolutePath.make("skill://browser/SKILL.md"),
-  content: [
+export const info = SkillPackage.define({
+  id: "browser",
+  frontmatter: {
+    name: "浏览器",
+    description:
+      "使用应用内浏览器：打开并阅读页面、点击与填写表单、截图、查看控制台与网络日志，以及分析性能与内存。在第一次调用浏览器工具前加载它。",
+    // A globe on its own blue tile: the browser skill's identity.
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2f66d0"/><circle cx="12" cy="12" r="5.3" stroke="#fff" stroke-width="1.6" fill="none"/><path d="M6.9 12h10.2M12 6.9c1.9 1.6 2.85 3.3 2.85 5.1S13.9 15.5 12 17.1c-1.9-1.6-2.85-3.3-2.85-5.1S10.1 8.5 12 6.9Z" stroke="#fff" stroke-width="1.5" fill="none"/></svg>',
+  },
+  body: [
     "# 应用内浏览器",
     "",
     '浏览器工具驱动用户 AI Craft 桌面应用里的 Chromium 浏览器。它的标签页显示在应用的 Review 面板中，所以用户能看到你做什么，也能使用同样的标签页。在代码模式中通过 `tools.browser.*` 调用这些工具；`search({ namespace: "browser" })` 会列出它们的确切签名。',

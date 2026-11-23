@@ -1,7 +1,12 @@
+---
+name: 问题反馈
+description: "当用户想报告 AI Craft 的问题或缺陷时使用。收集标准诊断信息，补充用户的具体复现上下文，并用 GitHub CLI 发布问题。"
+icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#c2701a"/><path d="M7.2 7.8h9.6a2 2 0 0 1 2 2v4.8a2 2 0 0 1-2 2h-4.5L8.5 19v-2.4H7.2a2 2 0 0 1-2-2V9.8a2 2 0 0 1 2-2Z" fill="#fff" opacity=".95"/><path d="M12 10.2v3.1" stroke="#c2701a" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="15.2" r=".95" fill="#c2701a"/></svg>'
+---
+
 <!--
-  内置技能。名称和描述在代码中注册于
-  packages/core/src/plugin/skill.ts。下面的正文成为技能的
-  内容。
+  内置技能包。名称、描述与图标都声明在上面的 frontmatter 里，注册时由 SkillPackage 解析；
+  下面的正文成为技能内容，运行时诊断快照会追加到末尾。
 -->
 
 # 报告 AI Craft 问题

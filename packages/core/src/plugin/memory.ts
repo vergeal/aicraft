@@ -1,5 +1,6 @@
 export * as MemoryPlugin from "./memory.js"
 
+import { SkillPackage } from "@opencode/plugin/skill-package"
 import { define } from "@opencode/plugin/effect/plugin"
 import { Memory as MemorySchema } from "@opencode/schema/memory"
 import { Session } from "@opencode/schema/session"
@@ -10,7 +11,6 @@ import { Effect, Schema } from "effect"
 import { Config } from "../config.js"
 import { KV } from "../kv.js"
 import * as Memory from "../memory.js"
-import { AbsolutePath } from "../schema.js"
 import CONTENT from "./memory/SKILL.md" with { type: "text" }
 
 const EntryInfo = Schema.Struct({
@@ -155,16 +155,7 @@ export const Plugin = define({
 
     yield* ctx.skill.transform((editor) => {
       if (editor.get(SKILL_ID)) return
-      editor.add(
-        Skill.Info.make({
-          id: SKILL_ID,
-          name: Skill.Name.make("记忆"),
-          description:
-            "用 `memory.*` 工具记住用户的长期习惯、项目约定与重要事实，并按全局或项目隔离保存。用户表达长期偏好、纠正你的做法或要求记住时，先加载本技能再保存。",
-          path: AbsolutePath.make("skill://memory/SKILL.md"),
-          content: CONTENT,
-        }),
-      )
+      editor.add(SkillPackage.read("memory", CONTENT))
     })
 
     yield* ctx.tool

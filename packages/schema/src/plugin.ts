@@ -87,6 +87,8 @@ export const Display = Schema.Struct({
       id: Schema.String,
       name: Schema.String,
       description: Schema.String,
+      /** The skill's own inline SVG mark, shown in the skill browser instead of the shared skill glyph. */
+      icon: Schema.String.pipe(optional),
     }),
   ).pipe(optional),
   /** Tool name prefixes the plugin registers, such as `chrome.*`. */

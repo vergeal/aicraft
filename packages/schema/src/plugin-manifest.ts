@@ -64,6 +64,8 @@ export const Skill = Schema.Struct({
   name: Schema.String,
   description: Schema.String,
   path: Schema.String,
+  /** The skill's own inline SVG mark, shown instead of the generated colour tile. */
+  icon: Schema.optional(Schema.String),
 }).annotate({ identifier: "PluginManifest.Skill" })
 export type Skill = typeof Skill.Type
 

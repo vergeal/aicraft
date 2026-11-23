@@ -181,7 +181,7 @@ const table = sqliteTable("session", {
 - Test actual implementation, do not duplicate logic into tests
 - Tests cannot run from repo root (guard: `do-not-run-tests-from-root`); run from package directories such as `packages/core`.
 - 不要跑全量测试：改了什么就测什么，从包目录跑单个文件（例如 `packages/core` 下 `bun test test/session-runner.test.ts`）。单条命令超时不超过 30s，尽量控制在 5s 内；超时后重跑检查，不要无限等待。
-- Before writing or changing tests, read the `AGENTS.md` that owns the suite: `packages/app/e2e/AGENTS.md` (Playwright keeper suites in `regression/`), `packages/session-ui` (component tests in `component-tests/`), or `packages/desktop/AGENTS.md` (Electron main-process and IPC tests). There is no test skill under `.aicraft/skills`; only `agent-orchestration` lives there.
+- Before writing or changing tests, read the `AGENTS.md` that owns the suite: `packages/app/e2e/AGENTS.md` (Playwright keeper suites in `regression/`), `packages/session-ui` (component tests in `component-tests/`), or `packages/desktop/AGENTS.md` (Electron main-process and IPC tests). `.aicraft/skills` holds project skills, not test skills.
 
 ## Checks
 

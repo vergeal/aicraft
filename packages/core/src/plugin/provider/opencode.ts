@@ -669,7 +669,7 @@ function normalizeServer(input: unknown) {
       return `${url.origin}${url.pathname.replace(/\/+$/, "")}`
     },
     catch: (cause) =>
-      new Error(`Invalid aicraft server URL: ${cause instanceof Error ? cause.message : String(cause)}`),
+      new Error(`Invalid AI Craft server URL: ${cause instanceof Error ? cause.message : String(cause)}`),
   })
 }
 

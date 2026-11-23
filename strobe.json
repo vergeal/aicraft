@@ -4,8 +4,8 @@
   "apps": {
     "opencode": {
       "exe": {
-        "windows": "%LOCALAPPDATA%/Programs/changhong.aicraft.desktop/aicraft.exe",
-        "macos": "/Applications/aicraft.app/Contents/MacOS/aicraft"
+        "windows": "%LOCALAPPDATA%/Programs/changhong.aicraft.desktop/AI Craft.exe",
+        "macos": "/Applications/AI Craft.app/Contents/MacOS/AI Craft"
       },
       "unset": ["OPENCODE_*", "OTEL_*", "SENTRY_*"],
       "env": {
@@ -26,8 +26,8 @@
     "opencode-beta": {
       "extends": "opencode",
       "exe": {
-        "windows": "%LOCALAPPDATA%/Programs/changhong.aicraft.desktop.beta/aicraft Beta.exe",
-        "macos": "/Applications/aicraft Beta.app/Contents/MacOS/aicraft Beta"
+        "windows": "%LOCALAPPDATA%/Programs/changhong.aicraft.desktop.beta/AI Craft Beta.exe",
+        "macos": "/Applications/AI Craft Beta.app/Contents/MacOS/AI Craft Beta"
       }
     }
   }

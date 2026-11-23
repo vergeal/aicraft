@@ -716,8 +716,8 @@ export const css = `
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 10px;
-  /* 行距只有两档：同一个人连续发言贴紧，换人或隔了 5 分钟以上空出一段。
-     复制行每条都占同一块高度（见 messages.tsx），所以组内、组间的间距都是确定的。 */
+  /* 行距只有两档：同一个人连续发言留一道窄缝，换人或隔了 5 分钟以上空出一段。
+     不用隐藏的 meta 撑间距——grouped 消息根本不渲染 meta，否则气泡会贴死。 */
   margin: 0;
   border-radius: 10px;
   outline: none;
@@ -725,6 +725,10 @@ export const css = `
 
 /* 新的一组：换人，或者距上一条超过 5 分钟。 */
 .hyt-shell .msg:not([data-grouped="true"]) { margin-top: 8px; }
+
+/* 组内：同人连续的文字、文件、图片之间留一道缝，不能贴成一块。
+   组头自带 24px 的 meta，所以组间看起来约 32px，这里 12px 仍紧于换人。 */
+.hyt-shell .msg[data-grouped="true"] { margin-top: 12px; }
 
 /* 消息行本身可以被键盘聚焦（Shift+F10 开菜单），聚焦只给一圈浅环，不抢气泡的颜色。 */
 .hyt-shell .msg:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }

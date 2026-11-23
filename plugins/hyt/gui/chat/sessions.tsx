@@ -2,6 +2,7 @@ import type { Context } from "@opencode/plugin/gui"
 import { For, Show, createMemo } from "solid-js"
 import type { DraftRow, SearchHit, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
+import type { MenuTarget } from "./menu.js"
 import { Face } from "./avatar.js"
 import { dayLabel, rowTime } from "./util.js"
 
@@ -26,6 +27,12 @@ export function Rail(props: {
   onSearch: (query: string) => void
   onMarkAllRead: () => void
   onEscape: () => void
+  /** 点头像：打开资料卡片。 */
+  onProfile: (session: SessionRow, element: HTMLElement) => void
+  /** 右键头像：资料 / 发消息 / 复制账号。 */
+  onPersonMenu: (session: SessionRow, target: MenuTarget) => void
+  /** 右键会话行：已读、复制、资料。 */
+  onMenu: (session: SessionRow, target: MenuTarget) => void
 }) {
   const searching = () => props.query.trim().length > 0
   const draftSessions = createMemo(() => new Set(props.drafts.map((draft) => draft.sessionId)))
@@ -62,14 +69,12 @@ export function Rail(props: {
           <div class="brand-sub">{props.today}</div>
         </div>
         <Show when={props.unread > 0}>
-          <button
-            class="brand-unread"
-            type="button"
-            title={text(props.ctx, "hyt.chat.action.readAll")}
-            onClick={() => props.onMarkAllRead()}
-          >
-            {text(props.ctx, "hyt.chat.unread.total", { count: props.unread })}
-          </button>
+          <div class="brand-tools">
+            <span class="brand-count">{text(props.ctx, "hyt.chat.unread.total", { count: props.unread })}</span>
+            <button class="brand-readall" type="button" onClick={() => props.onMarkAllRead()}>
+              {text(props.ctx, "hyt.chat.readall")}
+            </button>
+          </div>
         </Show>
       </div>
 
@@ -150,11 +155,32 @@ export function Rail(props: {
                   data-unread={row.session.unread > 0 ? "true" : undefined}
                   aria-label={label(row.session)}
                   onClick={() => props.onSelect(row.session.id)}
+                  onContextMenu={(event) => props.onMenu(row.session, event)}
+                  onKeyDown={(event) => {
+                    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+                      event.preventDefault()
+                      props.onMenu(row.session, event.currentTarget)
+                    }
+                  }}
                 >
-                  <Face
-                    name={row.session.members[0]?.name ?? row.session.name}
-                    src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
-                  />
+                  {/* 头像单独响应点击与右键；键盘用户走会话菜单里的「打开资料」。 */}
+                  <span
+                    class="entry-face"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      props.onProfile(row.session, event.currentTarget)
+                    }}
+                    onContextMenu={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      props.onPersonMenu(row.session, event)
+                    }}
+                  >
+                    <Face
+                      name={row.session.members[0]?.name ?? row.session.name}
+                      src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
+                    />
+                  </span>
                   <span class="entry-text">
                     <span class="entry-head">
                       {row.session.group ? <GroupGlyph /> : <DirectGlyph />}

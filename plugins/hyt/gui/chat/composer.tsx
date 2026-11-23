@@ -1,5 +1,5 @@
 import type { Context } from "@opencode/plugin/gui"
-import { For, Show, createMemo, createSignal, onMount } from "solid-js"
+import { For, Show, createEffect, createMemo, createSignal, onMount } from "solid-js"
 import type { DraftRow, MemberRow, SendState } from "./contract.js"
 import { text } from "./i18n.js"
 
@@ -25,6 +25,8 @@ export function Composer(props: {
   onUseDraft: (value: string) => void
   onIgnoreDraft: () => void
   onRefresh: () => void
+  /** 变化时把焦点放进输入框；卡片里点「发消息」用它。 */
+  focus: number
 }) {
   let box: HTMLTextAreaElement | undefined
   const [mentionOpen, setMentionOpen] = createSignal(false)
@@ -51,6 +53,12 @@ export function Composer(props: {
   }
 
   onMount(resize)
+
+  // 卡片里点「发消息」后聚焦输入框；拖动分隔线这类操作不会碰它，所以只看变化。
+  createEffect(() => {
+    if (props.focus === 0) return
+    box?.focus()
+  })
 
   /** 输入时盯着光标前那个 @：还在同一个词里就继续过滤，遇到空格就收起。 */
   const syncMention = () => {

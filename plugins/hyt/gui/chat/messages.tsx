@@ -1,7 +1,8 @@
 import type { Context } from "@opencode/plugin/gui"
-import { For, Show, createEffect, createMemo, createResource, createSignal, onMount } from "solid-js"
+import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import type { MergeItemRow, MessageRow } from "./contract.js"
 import { text } from "./i18n.js"
+import type { MenuTarget } from "./menu.js"
 import { Face } from "./avatar.js"
 import { CLAMP_AT, clockOf, dayLabel, sizeOf } from "./util.js"
 
@@ -9,7 +10,7 @@ type Row =
   | { kind: "day"; key: string; label: string }
   | { kind: "system"; key: string; body: string }
   | { kind: "divider"; key: string; label: string }
-  | { kind: "message"; key: string; message: MessageRow; grouped: boolean; self: boolean }
+  | { kind: "message"; key: string; message: MessageRow; grouped: boolean; self: boolean; tail: boolean }
 
 /**
  * 消息流。
@@ -34,9 +35,17 @@ export function MessageStream(props: {
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
+  /** 右键消息：复制、看发送者资料。 */
+  onMenu: (message: MessageRow, target: MenuTarget) => void
+  /** 点发送者头像：资料卡片。 */
+  onProfile: (message: MessageRow, element: HTMLElement) => void
+  /** 右键发送者头像：资料 / 发消息 / 复制账号。 */
+  onPersonMenu: (message: MessageRow, target: MenuTarget) => void
 }) {
   let stream: HTMLDivElement | undefined
   const [atBottom, setAtBottom] = createSignal(true)
+  /** 正在划词的那条消息：划线时把它的复制行亮出来，不用先悬浮。 */
+  const [selectedRow, setSelectedRow] = createSignal(0)
 
   const scrollToBottom = () => {
     if (stream === undefined) return
@@ -51,6 +60,14 @@ export function MessageStream(props: {
 
   onMount(() => {
     scrollToBottom()
+    const onSelectionChange = () => {
+      const anchor = window.getSelection()?.anchorNode
+      const element = anchor instanceof Element ? anchor : anchor?.parentElement
+      const row = element?.closest<HTMLElement>("[data-mid]")
+      setSelectedRow(row === null || row === undefined ? 0 : Number(row.dataset.mid ?? 0))
+    }
+    document.addEventListener("selectionchange", onSelectionChange)
+    onCleanup(() => document.removeEventListener("selectionchange", onSelectionChange))
   })
 
   // 只认「首尾 id + 条数」：轮询每次都推来新对象，按数组身份会一直重滚。
@@ -112,7 +129,11 @@ export function MessageStream(props: {
         !message.outgoing &&
         previous.sender === message.sender &&
         message.createdAt - previous.createdAt <= 5 * 60_000
-      out.push({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing })
+      if (grouped) {
+        const before = out[out.length - 1]
+        if (before !== undefined && before.kind === "message") before.tail = false
+      }
+      out.push({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing, tail: true })
       previous = message
     }
     return out
@@ -152,11 +173,16 @@ export function MessageStream(props: {
                   message={row.message}
                   grouped={row.grouped}
                   self={row.self}
+                  tail={row.tail}
+                  selected={row.message.id === selectedRow()}
                   avatars={props.avatars}
                   onMedia={props.onMedia}
                   onMerge={props.onMerge}
                   onOpenFile={props.onOpenFile}
                   onOpenImage={props.onOpenImage}
+                  onMenu={props.onMenu}
+                  onProfile={props.onProfile}
+                  onPersonMenu={props.onPersonMenu}
                 />
               )
             }}
@@ -186,11 +212,18 @@ function Message(props: {
   message: MessageRow
   grouped: boolean
   self: boolean
+  /** 同人分组里的最后一条：只有它显示复制行，避免每行都挂一条。 */
+  tail: boolean
+  /** 这条消息里有正在划的词。 */
+  selected: boolean
   avatars: Record<string, string>
   onMedia: (path: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
+  onMenu: (message: MessageRow, target: MenuTarget) => void
+  onProfile: (message: MessageRow, element: HTMLElement) => void
+  onPersonMenu: (message: MessageRow, target: MenuTarget) => void
 }) {
   const [expanded, setExpanded] = createSignal(false)
   const [copied, setCopied] = createSignal(false)
@@ -227,13 +260,42 @@ function Message(props: {
       data-mid={props.message.id}
       data-grouped={props.grouped ? "true" : undefined}
       data-self={props.self ? "true" : undefined}
+      data-selected={props.selected ? "true" : undefined}
+      tabIndex={0}
+      onContextMenu={(event) => props.onMenu(props.message, event)}
+      onKeyDown={(event) => {
+        if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+          event.preventDefault()
+          props.onMenu(props.message, event.currentTarget)
+        }
+      }}
     >
       <Show when={!props.self}>
-        <Face
-          class="msg-face"
-          name={props.message.senderNick || props.message.sender}
-          src={avatarOf(props.avatars, props.message.senderHead)}
-        />
+        {/* 头像单独响应点击与右键；键盘用户先聚焦它，再按 Shift+F10。 */}
+        <button
+          class="msg-face-btn"
+          type="button"
+          aria-label={props.message.senderNick || props.message.sender}
+          onClick={(event) => props.onProfile(props.message, event.currentTarget)}
+          onContextMenu={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            props.onPersonMenu(props.message, event)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+              event.preventDefault()
+              event.stopPropagation()
+              props.onPersonMenu(props.message, event.currentTarget)
+            }
+          }}
+        >
+          <Face
+            class="msg-face"
+            name={props.message.senderNick || props.message.sender}
+            src={avatarOf(props.avatars, props.message.senderHead)}
+          />
+        </button>
       </Show>
       <div class="msg-body">
         <Show when={!props.grouped}>
@@ -365,23 +427,25 @@ function Message(props: {
           </div>
         </Show>
 
-        <div class="message-tools">
-          <Show when={props.message.kind === "image" && props.message.filePath.length > 0}>
-            <button type="button" onClick={() => props.onOpenImage(props.message.filePath)}>
-              {text(props.ctx, "hyt.chat.msg.enlarge")}
-            </button>
-          </Show>
-          <Show when={body().length > 0 || props.message.fileName.length > 0}>
-            <button type="button" onClick={copy}>
-              {copied() ? text(props.ctx, "hyt.chat.msg.copied") : text(props.ctx, "hyt.chat.msg.copy")}
-            </button>
-          </Show>
-          <Show when={props.message.filePath.length > 0}>
-            <button type="button" onClick={() => props.onOpenFile(props.message.filePath)}>
-              {text(props.ctx, "hyt.chat.msg.reveal")}
-            </button>
-          </Show>
-        </div>
+        <Show when={props.tail}>
+          <div class="message-tools">
+            <Show when={props.message.kind === "image" && props.message.filePath.length > 0}>
+              <button type="button" onClick={() => props.onOpenImage(props.message.filePath)}>
+                {text(props.ctx, "hyt.chat.msg.enlarge")}
+              </button>
+            </Show>
+            <Show when={body().length > 0 || props.message.fileName.length > 0}>
+              <button type="button" onClick={copy}>
+                {copied() ? text(props.ctx, "hyt.chat.msg.copied") : text(props.ctx, "hyt.chat.msg.copy")}
+              </button>
+            </Show>
+            <Show when={props.message.filePath.length > 0}>
+              <button type="button" onClick={() => props.onOpenFile(props.message.filePath)}>
+                {text(props.ctx, "hyt.chat.msg.reveal")}
+              </button>
+            </Show>
+          </div>
+        </Show>
       </div>
     </div>
   )

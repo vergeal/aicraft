@@ -6,9 +6,13 @@ import { ChatIpc } from "./contract.js"
 import type { MergeItemRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import { InfoPanel } from "./info.js"
+import { MenuLayer, createMenu } from "./menu.js"
+import type { MenuEntry, MenuTarget } from "./menu.js"
 import { MessageStream } from "./messages.js"
+import { ProfileCard, createProfile } from "./profile.js"
+import type { Person } from "./profile.js"
 import { Rail } from "./sessions.js"
-import { rowTime } from "./util.js"
+import { RAIL_MAX, RAIL_MIN, rowTime, shellBlank } from "./util.js"
 
 const POLL_MS = 4_000
 const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"] as const
@@ -20,7 +24,16 @@ const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四
  * 所有写操作都走 Ipc，主进程改完立刻推送新 state，因此这里不维护数据副本；
  * 只保留真正属于窗口的东西：输入草稿、搜索词、面板开合、正在发送与临时提示。
  */
-export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc.spec> }) {
+export function ChatPage(props: {
+  ctx: Context
+  client: IpcClient<typeof ChatIpc.spec>
+  /** 左栏当前宽度，顶栏分段与分隔线位置都读它。 */
+  listWidth: () => number
+  /** 拖动分隔线时上报新宽度，只改内存。 */
+  onListWidth: (width: number) => void
+  /** 松开分隔线时提交一次，写进存储。 */
+  onListWidthEnd: () => void
+}) {
   const ctx = props.ctx
   const state = () => props.client.state()
 
@@ -46,7 +59,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     return previous
   })
   /** 没有数据、读取失败、或者一条会话都没有时整页走空态，不画空三栏。 */
-  const blank = () => phase() !== "ready" || sessions().length === 0
+  const blank = () => shellBlank(state())
 
   const [query, setQuery] = createSignal("")
   const [searching, setSearching] = createSignal(false)
@@ -57,6 +70,45 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
   const [infoOpen, setInfoOpen] = createSignal(false)
   const [ignoredDraft, setIgnoredDraft] = createSignal("")
   const [draftText, setDraftText] = createSignal("")
+  /** 卡片里点「发消息」后让输入框拿到焦点，值只是变化通知。 */
+  const [composerFocus, setComposerFocus] = createSignal(0)
+
+  /** 左栏与聊天区之间的分隔线：拖动改左栏宽度，松手才写存储。 */
+  const [resizing, setResizing] = createSignal(false)
+  let drag: { pointer: number; x: number; width: number } | undefined
+
+  const clampWidth = (width: number) =>
+    Math.min(Math.max(Math.round(width), RAIL_MIN), Math.min(RAIL_MAX, Math.round(window.innerWidth * 0.5)))
+
+  const beginResize = (event: PointerEvent & { currentTarget: HTMLDivElement }) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    drag = { pointer: event.pointerId, x: event.clientX, width: props.listWidth() }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setResizing(true)
+  }
+
+  const moveResize = (event: PointerEvent & { currentTarget: HTMLDivElement }) => {
+    if (drag === undefined || event.pointerId !== drag.pointer) return
+    props.onListWidth(clampWidth(drag.width + event.clientX - drag.x))
+  }
+
+  const endResize = (event: PointerEvent & { currentTarget: HTMLDivElement }) => {
+    if (drag === undefined || event.pointerId !== drag.pointer) return
+    drag = undefined
+    setResizing(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    props.onListWidthEnd()
+  }
+
+  // 键盘：左右方向键每次 16px，够不到时停在范围边界。
+  const nudgeResize = (event: KeyboardEvent) => {
+    const step = event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0
+    if (step === 0) return
+    event.preventDefault()
+    props.onListWidth(clampWidth(props.listWidth() + step))
+    props.onListWidthEnd()
+  }
 
   /** 每个会话各自的未发送草稿：切走再切回来还在，也不会串到别的会话。 */
   const localDrafts = new Map<string, string>()
@@ -163,6 +215,108 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
     const sessionId = selectedId()
     if (sessionId.length === 0) return
     void props.client.selectSession({ sessionId }).catch(fail)
+  }
+
+  const menu = createMenu()
+  const profile = createProfile()
+
+  const copy = (value: string) => {
+    if (value.length > 0) void ctx.system.copy(value).catch(() => undefined)
+  }
+
+  /** 「查看资料」要贴着触发元素弹出；键盘打开时给的就是那个元素本身。 */
+  const anchorOfTarget = (target: MenuTarget) =>
+    target instanceof HTMLElement ? target : target.currentTarget instanceof HTMLElement ? target.currentTarget : undefined
+
+  const departmentOf = (account: string | undefined) =>
+    account === undefined ? undefined : state()?.members.find((member) => member.account === account)?.department
+
+  /** 会话 → 卡片里的身份。群聊只说「群聊」，本地库拿不到可信人数就不写数字。 */
+  const personOfSession = (session: SessionRow): Person => ({
+    account: session.id,
+    name: session.name,
+    head: session.members[0]?.headPath,
+    online: session.online,
+    department: departmentOf(session.group ? undefined : session.id),
+    group: session.group,
+    sessionId: session.id,
+  })
+
+  /** 消息 → 卡片里的身份；有单聊会话才能「发消息」，否则只给复制账号。 */
+  const personOfMessage = (message: MessageRow): Person => {
+    const direct = sessions().find((session) => !session.group && session.id === message.sender)
+    return {
+      account: message.sender,
+      name: message.senderNick || message.sender,
+      head: message.senderHead,
+      online: direct?.online ?? false,
+      department: departmentOf(message.sender),
+      sessionId: direct?.id,
+    }
+  }
+
+  const openSession = (sessionId: string) => {
+    select(sessionId)
+    setComposerFocus((value) => value + 1)
+  }
+
+  /** 头像菜单：看资料、能发就发消息、复制账号。锚点先接住，菜单回调里 currentTarget 已经没了。 */
+  const personMenu = (person: Person, target: MenuTarget) => {
+    const anchor = anchorOfTarget(target)
+    const sessionId = person.sessionId
+    menu.open(target, [
+      { label: text(ctx, "hyt.chat.menu.avatar.profile"), onSelect: () => anchor && profile.open(anchor, person) },
+      ...(sessionId !== undefined && person.group !== true
+        ? [{ label: text(ctx, "hyt.chat.menu.avatar.message"), onSelect: () => openSession(sessionId) }]
+        : []),
+      { separator: true as const },
+      { label: text(ctx, "hyt.chat.menu.avatar.copy"), onSelect: () => copy(person.account) },
+    ])
+  }
+
+  const sessionMenu = (session: SessionRow, target: MenuTarget) => {
+    const anchor = anchorOfTarget(target)
+    menu.open(target, [
+      ...(session.unread > 0
+        ? [
+            {
+              label: text(ctx, "hyt.chat.menu.session.read"),
+              onSelect: () => void props.client.markRead({ sessionId: session.id }).catch(fail),
+            },
+          ]
+        : []),
+      { label: text(ctx, "hyt.chat.menu.session.copyName"), onSelect: () => copy(session.name) },
+      {
+        label: text(
+          ctx,
+          session.group ? "hyt.chat.menu.session.copyId.group" : "hyt.chat.menu.session.copyId.direct",
+        ),
+        onSelect: () => copy(session.id),
+      },
+      { separator: true as const },
+      {
+        label: text(ctx, "hyt.chat.menu.session.profile"),
+        onSelect: () => anchor && profile.open(anchor, personOfSession(session)),
+      },
+    ])
+  }
+
+  const messageMenu = (message: MessageRow, target: MenuTarget) => {
+    const anchor = anchorOfTarget(target)
+    const selection = window.getSelection()
+    const selected = selection !== null && !selection.isCollapsed ? selection.toString().trim() : ""
+    const body = message.text.trim() || message.fileName
+    const entries: MenuEntry[] = []
+    if (selected.length > 0) entries.push({ label: text(ctx, "hyt.chat.menu.message.copySelection"), onSelect: () => copy(selected) })
+    if (body.length > 0 && body !== selected)
+      entries.push({ label: text(ctx, "hyt.chat.menu.message.copyAll"), onSelect: () => copy(body) })
+    if (entries.length > 0) entries.push({ separator: true })
+    entries.push({ label: text(ctx, "hyt.chat.menu.message.copySender"), onSelect: () => copy(message.sender) })
+    entries.push({
+      label: text(ctx, "hyt.chat.menu.message.profile"),
+      onSelect: () => anchor && profile.open(anchor, personOfMessage(message)),
+    })
+    menu.open(target, entries)
   }
 
   const search = (value: string) => {
@@ -299,6 +453,8 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
       data-theme={ctx.appearance.mode()}
       data-panel={infoOpen() && !blank() ? "open" : "closed"}
       data-blank={blank() ? "true" : "false"}
+      data-resizing={resizing() ? "true" : undefined}
+      style={{ "--rail": `${props.listWidth()}px` }}
     >
       <Show
         when={!blank()}
@@ -326,11 +482,31 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
           onSelect={select}
           onSearch={search}
           onMarkAllRead={() => void props.client.markAllRead().catch(fail)}
+          onProfile={(session, element) => profile.open(element, personOfSession(session))}
+          onPersonMenu={(session, event) => personMenu(personOfSession(session), event)}
+          onMenu={sessionMenu}
           onEscape={() => {
             setQuery("")
             setSearching(false)
             void props.client.search({ query: "" }).catch(() => undefined)
           }}
+        />
+
+        <div
+          class="splitter"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={text(ctx, "hyt.chat.rail.resize")}
+          aria-valuemin={RAIL_MIN}
+          aria-valuemax={RAIL_MAX}
+          aria-valuenow={Math.round(props.listWidth())}
+          data-dragging={resizing() ? "true" : undefined}
+          tabIndex={0}
+          onPointerDown={beginResize}
+          onPointerMove={moveResize}
+          onPointerUp={endResize}
+          onPointerCancel={endResize}
+          onKeyDown={nudgeResize}
         />
 
         <section class="desk" aria-label={text(ctx, "hyt.chat.side.title")}>
@@ -400,6 +576,9 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
             onMerge={onMerge}
             onOpenFile={reveal}
             onOpenImage={openImage}
+            onMenu={messageMenu}
+            onProfile={(message, element) => profile.open(element, personOfMessage(message))}
+            onPersonMenu={(message, event) => personMenu(personOfMessage(message), event)}
           />
 
           <Composer
@@ -421,6 +600,7 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
               if (draft !== undefined) setIgnoredDraft(draft.id)
             }}
             onRefresh={refresh}
+            focus={composerFocus()}
           />
         </section>
 
@@ -435,6 +615,9 @@ export function ChatPage(props: { ctx: Context; client: IpcClient<typeof ChatIpc
           onOpenFile={reveal}
         />
       </Show>
+
+      <MenuLayer ctx={ctx} menu={menu} />
+      <ProfileCard ctx={ctx} profile={profile} onOpenSession={openSession} onCopy={copy} />
     </div>
   )
 

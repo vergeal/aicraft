@@ -69,6 +69,19 @@ export function hueOf(name: string) {
 /** 超长正文折叠阈值：微信/钉钉这一档，超过 400 字就先折六行。 */
 export const CLAMP_AT = 400
 
+/** 左栏的默认宽度，与 `styles.ts` 的 `--rail` 一致。 */
+export const RAIL_DEFAULT = 296
+
+/** 拖动分隔线时左栏的宽度范围：再窄放不下头像与两行摘要，再宽聊天区就挤了。 */
+export const RAIL_MIN = 240
+
+export const RAIL_MAX = 460
+
+/** 整页走空态的条件：还没读到、读取失败，或一条会话都没有。空态下没有左栏，顶栏也不分段。 */
+export function shellBlank(state: { status: { phase: string }; sessions: readonly unknown[] } | undefined) {
+  return state === undefined || state.status.phase !== "ready" || state.sessions.length === 0
+}
+
 export function isMentioned(message: { atMe: boolean }, toMe: boolean) {
   return toMe && message.atMe
 }

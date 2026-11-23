@@ -10,7 +10,7 @@
  */
 export const css = `
 /* ============================================================================
-   值班台账 · 企业内部通讯
+   值班台账 · 虹云通
    纸白底，页眉一道封红，未读用荧光笔划过摘要。
    日期用仿宋（公文日期），其余系统黑体。全页只让红色出现三次：
    页眉那道线、@ 提醒、分界说明。
@@ -50,6 +50,7 @@ export const css = `
   --shadow: rgba(27, 36, 48, 0.08);
   --shadow-lg: rgba(27, 36, 48, 0.1);
   --focus-ring: rgba(46, 95, 138, 0.16);
+  --grip: #c9d1d8;
 
   --sans: "MiSans", "HarmonyOS Sans SC", "PingFang SC", system-ui, "Microsoft YaHei", sans-serif;
   --ledger: "FangSong", "STFangsong", "仿宋", "FangSong_GB2312", serif;
@@ -64,6 +65,7 @@ export const css = `
   --chrome-h: 62px;
 
   display: grid;
+  position: relative;
   grid-template-columns: var(--rail) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
@@ -121,12 +123,30 @@ export const css = `
   --shadow: rgba(0, 0, 0, 0.45);
   --shadow-lg: rgba(0, 0, 0, 0.5);
   --focus-ring: rgba(134, 182, 218, 0.25);
+  --grip: #49525c;
 }
 
 .hyt-shell,
 .hyt-shell *,
 .hyt-shell *::before,
 .hyt-shell *::after { box-sizing: border-box; }
+
+/* 宿主在插件页外层禁选了文字；聊天正文要能划词复制，控件再逐个关回去。 */
+.hyt-shell { user-select: text; }
+
+.hyt-shell button,
+.hyt-shell .face,
+.hyt-shell .msg-face-btn,
+.hyt-shell .msg-meta,
+.hyt-shell .stamp,
+.hyt-shell .day,
+.hyt-shell .badge,
+.hyt-shell .menu,
+.hyt-shell .profile { user-select: none; }
+
+.hyt-shell ::selection { background: color-mix(in srgb, var(--link) 22%, transparent); }
+
+.hyt-shell[data-theme="dark"] ::selection { background: color-mix(in srgb, var(--link) 32%, transparent); }
 
 .hyt-shell button,
 .hyt-shell textarea { font: inherit; color: inherit; }
@@ -151,8 +171,50 @@ export const css = `
   flex-direction: column;
   min-height: 0;
   background: var(--chrome);
-  border-right: 1px solid var(--line);
 }
+
+/* 左栏与聊天区之间的拖动手柄：不画线，只在两栏中间露出一枚胶囊。胶囊按整扇窗垂直居中，
+   所以要减掉顶栏占的高度，而不是按页面本身居中。命中区 8px 比胶囊宽，方便抓住。
+   胶囊三态：平时透明、悬浮或聚焦时变灰、按住拖动时变白并带阴影。 */
+.hyt-shell .splitter {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--rail) - 4px);
+  z-index: 9;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+  -webkit-app-region: no-drag;
+}
+
+.hyt-shell .splitter::after {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(50% - var(--titlebar-height, 48px) / 2);
+  inset-inline-start: calc(50% - 1.5px);
+  width: 3px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--grip);
+  opacity: 0;
+  translate: 0 -50%;
+  transition: opacity 120ms ease-out, background-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.hyt-shell .splitter:hover::after,
+.hyt-shell .splitter:focus-visible::after { opacity: 1; }
+
+.hyt-shell .splitter:focus-visible::after { box-shadow: 0 0 0 2px var(--focus-ring); }
+
+.hyt-shell .splitter[data-dragging="true"]::after {
+  background: #fff;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 8%), 0 1px 4px rgb(0 0 0 / 14%);
+  opacity: 1;
+}
+
+/* 拖动中整页不选中文字、光标保持双向箭头，鼠标移出分隔线也不丢拖拽。 */
+.hyt-shell[data-resizing="true"] { user-select: none; cursor: col-resize; }
 
 .hyt-shell .brand {
   display: flex;
@@ -184,20 +246,33 @@ export const css = `
   white-space: nowrap;
 }
 
-.hyt-shell .brand-unread {
+/* 顶栏右侧：未读总数与一键已读。窄栏时只让副标题让位，控件不换行。 */
+.hyt-shell .brand-tools {
+  display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
-  padding: 2px 0;
-  border: 0;
-  background: none;
+  white-space: nowrap;
+}
+
+.hyt-shell .brand-count {
   color: var(--seal-ink);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+
+.hyt-shell .brand-readall {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 12px;
   cursor: pointer;
 }
 
-.hyt-shell .brand-unread:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hyt-shell .brand-readall:hover { border-color: var(--muted); color: var(--ink); }
 
 .hyt-shell .search {
   position: relative;
@@ -289,6 +364,13 @@ export const css = `
 }
 
 .hyt-shell .entry:not([aria-current="true"]):hover { background: var(--hover); }
+
+/* 头像单独一层：点它看资料，点行里其他位置才是切会话。 */
+.hyt-shell .entry-face {
+  display: block;
+  border-radius: var(--r-face);
+  cursor: pointer;
+}
 
 .hyt-shell .entry[aria-current="true"] {
   background: var(--paper);
@@ -626,6 +708,22 @@ export const css = `
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 10px;
   margin-bottom: 14px;
+  border-radius: 10px;
+  outline: none;
+}
+
+/* 消息行本身可以被键盘聚焦（Shift+F10 开菜单），聚焦只给一圈浅环，不抢气泡的颜色。 */
+.hyt-shell .msg:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
+
+.hyt-shell .msg-face-btn {
+  display: block;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-face);
+  background: none;
+  cursor: pointer;
 }
 
 .hyt-shell .msg-face {
@@ -663,6 +761,7 @@ export const css = `
 /* 连续同人：头像位保留，隐去重复的头像与名字，整块收紧 */
 .hyt-shell .msg[data-grouped="true"] { margin-top: -8px; margin-bottom: 8px; }
 .hyt-shell .msg[data-grouped="true"] .msg-face,
+.hyt-shell .msg[data-grouped="true"] .msg-face-btn,
 .hyt-shell .msg[data-grouped="true"] .msg-meta { visibility: hidden; }
 
 .hyt-shell .bubble {
@@ -709,11 +808,14 @@ export const css = `
 
 .hyt-shell .msg[data-self="true"] .msg-meta { align-self: flex-end; }
 
+/* 复制行贴在气泡正下方：他人左对齐、自己右对齐；平时透明但占住 20px，悬浮时不跳。
+   只有同人分组的最后一条渲染它（见 messages.tsx 的 tail）。 */
 .hyt-shell .message-tools {
   display: flex;
   gap: 4px;
-  justify-content: flex-end;
-  margin-top: 3px;
+  align-items: center;
+  min-height: 20px;
+  margin-top: 2px;
   color: var(--muted);
   font-size: 12px;
   opacity: 0;
@@ -721,7 +823,8 @@ export const css = `
 }
 
 .hyt-shell .msg:hover .message-tools,
-.hyt-shell .msg:focus-within .message-tools { opacity: 1; }
+.hyt-shell .msg:focus-within .message-tools,
+.hyt-shell .msg[data-selected="true"] .message-tools { opacity: 1; }
 
 .hyt-shell .message-tools button {
   padding: 0 4px;
@@ -1342,6 +1445,153 @@ export const css = `
 
 .hyt-shell .attach-error { margin-top: 6px; color: var(--seal-ink); font-size: 12px; }
 
+/* 右键菜单：跟随指针弹出，贴边由 menu.tsx 在渲染后夹进视口。条目 28px，与宿主菜单同规格。 */
+.hyt-shell .menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 176px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px var(--shadow-lg), 0 1px 3px var(--shadow);
+  outline: none;
+}
+
+.hyt-shell .menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.hyt-shell .menu-item[data-active="true"] { background: var(--hover); }
+
+.hyt-shell .menu-rule { height: 1px; margin: 4px 2px; background: var(--line); }
+
+/* 用户卡片：点头像浮出，Esc 或点外部关闭，焦点回到头像。 */
+.hyt-shell .profile {
+  position: fixed;
+  z-index: 60;
+  width: 244px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px var(--shadow-lg), 0 1px 3px var(--shadow);
+  outline: none;
+}
+
+.hyt-shell .profile-who {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hyt-shell .profile-face {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.hyt-shell .profile-id { min-width: 0; }
+
+.hyt-shell .profile-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hyt-shell .profile-state {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.hyt-shell .profile-state::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.hyt-shell .profile-state[data-online="true"] { color: var(--online); }
+.hyt-shell .profile-state[data-online="true"]::before { background: var(--online); }
+
+.hyt-shell .profile-account {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hyt-shell .profile-dept {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hyt-shell .profile-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.hyt-shell .profile-primary {
+  flex: 1 1 auto;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hyt-shell .profile-primary:hover { background: var(--ink-hover); }
+
+.hyt-shell .profile-ghost {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hyt-shell .profile-ghost:hover { border-color: var(--muted); color: var(--ink); }
+
+.hyt-shell .profile-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 @media (max-width: 1024px) {
   .hyt-shell[data-panel="open"] { grid-template-columns: var(--rail) minmax(0, 1fr); }
   .hyt-shell .panel { position: fixed; top: 0; right: 0; bottom: 0; width: var(--panel); z-index: 30; box-shadow: -10px 0 30px var(--shadow-lg); }
@@ -1350,6 +1600,7 @@ export const css = `
 @media (max-width: 760px) {
   .hyt-shell { grid-template-columns: minmax(0, 1fr); }
   .hyt-shell .rail { display: none; }
+  .hyt-shell .splitter { display: none; }
   .hyt-shell .stream { padding: 0 16px; }
   .hyt-shell .composer { padding: 8px 12px 10px; }
 }

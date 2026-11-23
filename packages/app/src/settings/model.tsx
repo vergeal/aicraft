@@ -42,7 +42,8 @@ export function projectSettingsKey(scope: ServerScope, projectID: string | undef
 
 export const monoDefault = "IBM Plex Mono"
 
-export const sansDefault = "Inter"
+// The UI role ships no font file, so it renders in the platform's own face from the first frame.
+export const sansDefault = "system-ui"
 
 export const terminalDefault = "IBM Plex Mono"
 
@@ -54,23 +55,20 @@ const systemMono =
 
 const monoFallback = `"IBM Plex Mono", ${systemMono}`
 
-const sansFallback = '"Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+// The CJK faces are explicit so Windows never falls through to a serif default.
+const sansFallback =
+  'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
 
 const terminalFallback = monoFallback
 
-// macOS reads text best in its own face, so the UI role defaults to the system UI face. The code and terminal roles
-// use the system's monospace face instead: `system-ui` is proportional, so putting it first would break alignment.
-// Chromium does not resolve `ui-monospace`, and SF Mono only exists with developer tools installed, so Menlo is the
-// system face that is always present.
+// The code and terminal roles use the system's monospace face: `system-ui` is proportional, so putting it first would
+// break alignment. Chromium does not resolve `ui-monospace`, and SF Mono only exists with developer tools installed,
+// so Menlo is the system face that is always present.
 const monoMacFallback = `Menlo, "SF Mono", ${monoFallback}`
-
-const sansMacFallback = `system-ui, ${sansFallback}`
 
 const terminalMacFallback = `Menlo, "SF Mono", ${terminalFallback}`
 
 const monoBase = monoFallback
-
-const sansBase = sansFallback
 
 const terminalBase = terminalFallback
 
@@ -113,8 +111,9 @@ export function monoFontFamily(font: string | undefined, macos = isMacOS()) {
   return monoStack(font, base, macos ? base : systemMono)
 }
 
-export function sansFontFamily(font: string | undefined, macos = isMacOS()) {
-  return stack(font, macos ? sansMacFallback : sansBase)
+export function sansFontFamily(font: string | undefined) {
+  if (font?.trim() === "system-ui") return sansFallback
+  return stack(font, sansFallback)
 }
 
 export function terminalFontFamily(font: string | undefined, macos = isMacOS()) {
@@ -123,13 +122,13 @@ export function terminalFontFamily(font: string | undefined, macos = isMacOS()) 
   return monoStack(font, base, macos ? base : systemMono)
 }
 
-/** The family each Appearance row shows when the user has not chosen one; macOS defaults all three to System. */
+/** The family each Appearance row shows when the user has not chosen one; the UI role is System everywhere. */
 export function monoDefaultFor(macos = isMacOS()) {
   return macos ? "system-ui" : monoDefault
 }
 
-export function sansDefaultFor(macos = isMacOS()) {
-  return macos ? "system-ui" : sansDefault
+export function sansDefaultFor() {
+  return sansDefault
 }
 
 export function terminalDefaultFor(macos = isMacOS()) {

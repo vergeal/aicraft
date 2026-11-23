@@ -33,7 +33,7 @@
   [data-slot="attachment-card-title"],
   [data-slot="attachment-card-subtitle"] {
     max-width: 100%;
-    font-family: var(--v2-font-family-sans, "Inter", sans-serif);
+    font-family: var(--v2-font-family-sans, system-ui, sans-serif);
     font-style: normal;
     font-size: 12px;
     /* Inter's descenders need 14px at 11px; a tighter line box clips them where the text truncates. */

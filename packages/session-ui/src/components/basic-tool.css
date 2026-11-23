@@ -372,7 +372,7 @@
 
     [data-component="task-tool-title"] {
       height: 20px;
-      font-family: var(--v2-font-family-sans, "Inter", sans-serif);
+      font-family: var(--v2-font-family-sans, system-ui, sans-serif);
       font-style: normal;
       font-weight: 500;
       font-size: 13px;
@@ -384,7 +384,7 @@
     }
 
     [data-slot="basic-tool-tool-subtitle"] {
-      font-family: var(--v2-font-family-sans, "Inter", sans-serif);
+      font-family: var(--v2-font-family-sans, system-ui, sans-serif);
       font-style: normal;
       font-weight: 400;
       font-size: 13px;

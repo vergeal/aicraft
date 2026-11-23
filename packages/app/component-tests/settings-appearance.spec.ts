@@ -10,12 +10,12 @@ story(
     const root = await mount("app-dialog-settings--appearance")
     const trigger = root.locator('[data-action="settings-ui-font"]')
 
-    await expect(trigger).toHaveText("Inter")
+    await expect(trigger).toHaveText("System")
     await trigger.click()
 
     const panel = page.locator('[data-slot="font-picker-panel"]')
     await expect(panel).toBeVisible()
-    await expect(options(page)).toHaveCount(5)
+    await expect(options(page)).toHaveCount(4)
 
     const search = page.getByRole("combobox", { name: "UI Font", exact: true })
     await expect(search).toBeFocused()
@@ -52,7 +52,7 @@ story("code font lists monospace families first", async ({ mount, page }) => {
   await root.locator('[data-action="settings-code-font"]').click()
 
   const items = options(page)
-  await expect(items).toHaveCount(5)
+  await expect(items).toHaveCount(4)
 
   const list = await items.evaluateAll((elements) =>
     elements.map((element) => ({
@@ -77,7 +77,6 @@ story("offers only the bundled faces and the system stack", async ({ mount, page
 
   await expect(options(page).locator('[data-slot="font-picker-option-name"]')).toHaveText([
     "System",
-    "Inter",
     "IBM Plex Mono",
     "JetBrains Mono",
     "JetBrainsMono Nerd Font Mono",

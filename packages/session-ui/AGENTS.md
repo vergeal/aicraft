@@ -15,7 +15,7 @@
 ## Typography
 
 - Use `--line-height-compact` (`20px`) for `13px` transcript, tool, notice, and truncation text. Use `--line-height-base` (`22px`) for body text.
-- Never copy Figma's generated `leading-none` onto text. Inter descenders clip when a solid `13px` line box meets `overflow: hidden`, `overflow: clip`, or truncation.
+- Never copy Figma's generated `leading-none` onto text. Descenders clip when a solid `13px` line box meets `overflow: hidden`, `overflow: clip`, or truncation.
 - Keep fixed row dimensions explicit; correct inner line metrics do not require transforms, negative margins, or paint-space compensation.
 - `TextShimmer` inherits font metrics, so put typography overrides on its parent.
 - Fonts follow the Fonts section of `packages/app/AGENTS.md`. Fenced code, shell commands and tool output use the code font with the timeline shell metrics; inline code and links in Markdown prose use the UI font; never write a literal family or add font files here.

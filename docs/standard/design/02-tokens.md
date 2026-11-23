@@ -95,7 +95,7 @@
 
 | 令牌 | 值 |
 | --- | --- |
-| `--font-family-sans` | `"Inter", ui-sans-serif, system-ui, -apple-system, ...` |
+| `--font-family-sans` | `ui-sans-serif, system-ui, -apple-system, ...` |
 | `--font-family-mono` | `"IBM Plex Mono", ui-monospace, SFMono-Regular, ...` |
 | `--font-size-xx-small` | 11px |
 | `--font-size-x-small` | 12px |

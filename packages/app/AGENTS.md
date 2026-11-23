@@ -65,7 +65,7 @@ A flash, a blanked area, a dialog that resizes or a reset scroll on first open a
 ## Typography
 
 - Use `--line-height-compact` (`20px`) for `13px` compact UI text and `--line-height-base` (`22px`) for body text.
-- Do not use `leading-none`, `line-height: 1`, or a `13px` line height for normal text. Inter descenders clip inside truncation and overflow containers.
+- Do not use `leading-none`, `line-height: 1`, or a `13px` line height for normal text. Descenders clip inside truncation and overflow containers.
 - Keep control and row heights explicit. Fix font metrics directly rather than using transforms, negative margins, or clip-padding compensation.
 
 ## Fonts
@@ -80,9 +80,9 @@ Users choose three fonts in Settings > Appearance. Every surface uses one of the
 
 - The font pickers offer the app's bundled faces and the system stack; they never enumerate the system's font list, so icon, symbol and legacy bitmap families cannot reach the UI. A family a user selected earlier stays listed so it can still be re-selected or replaced: `bundledFonts` in `src/runtime/platform/fonts.ts` is the source.
 - Inline code and links inside Markdown prose use the UI font; fenced code, shell commands and tool output keep the code font.
-- Never write a literal family (`Inter`, `"IBM Plex Mono"`, `monospace`, `Menlo`, `system-ui`) in production CSS, classes, inline styles, canvas `font` strings or widget options. A literal ignores the user's setting.
-- Never add an `@font-face`, font file, or font package outside `packages/app/src/index.css`. That file is the only place the app ships faces: Inter (variable), IBM Plex Mono Text (weights below 600), Bold (600 and up) and Text Italic, JetBrains Mono Regular (weights below 600) and Bold (600 and up), and JetBrainsMono Nerd Font Mono Regular and Bold. If a design needs a face that is not shipped, add it there and say why in the PR.
-- On macOS every font row defaults to the system stack; on Windows and Linux the UI font defaults to Inter and the code and terminal fonts default to IBM Plex Mono. JetBrains Mono stays bundled as a choice in the picker. `sansDefaultFor()`, `monoDefaultFor()`, `terminalDefaultFor()` and the matching `*FontFamily()` helpers in `src/settings/model.tsx` own that switch; do not test for macOS in a component.
+- Never write a literal family (`"IBM Plex Mono"`, `monospace`, `Menlo`, `system-ui`) in production CSS, classes, inline styles, canvas `font` strings or widget options. A literal ignores the user's setting.
+- Never add an `@font-face`, font file, or font package outside `packages/app/src/index.css`. That file is the only place the app ships faces: IBM Plex Mono Text (weights below 600), Bold (600 and up) and Text Italic, JetBrains Mono Regular (weights below 600) and Bold (600 and up), and JetBrainsMono Nerd Font Mono Regular and Bold. The UI role ships no face; it renders in the system UI font. If a design needs a face that is not shipped, add it there and say why in the PR.
+- Every font row defaults to the system stack on macOS, and the UI font defaults to it everywhere; the code and terminal fonts default to IBM Plex Mono on Windows and Linux. JetBrains Mono stays bundled as a choice in the picker. `sansDefaultFor()`, `monoDefaultFor()`, `terminalDefaultFor()` and the matching `*FontFamily()` helpers in `src/settings/model.tsx` own that switch; do not test for macOS in a component.
 - Show shell commands with the timeline shell metrics: code font, `13px`, weight `400`, `-0.04px` letter spacing. Do not invent another size for the same content.
 - Prefer weight tokens (`font-medium`, `var(--font-weight-medium)`) over literal weights. Mono at `600` or more renders the bold face, so reserve it for real emphasis.
 - Do not read font settings directly. `src/settings/model.tsx` writes them to the CSS variables above, and the plugin host passes the terminal font through `appearance.font`.

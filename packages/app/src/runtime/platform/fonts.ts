@@ -10,7 +10,6 @@ export type FontOption = {
  * symbol and legacy bitmap faces the UI can never use.
  */
 export const bundledFonts = [
-  { family: "Inter", monospace: false },
   { family: "IBM Plex Mono", monospace: true },
   { family: "JetBrains Mono", monospace: true },
   { family: "JetBrainsMono Nerd Font Mono", monospace: true },

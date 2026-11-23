@@ -4,12 +4,13 @@
 
 | 类别 | 令牌 | 字体栈 | 用于 |
 | --- | --- | --- | --- |
-| 界面与正文 | `--font-family-sans` | `Inter` → `ui-sans-serif` → `system-ui` → `-apple-system` → `PingFang SC` → `Microsoft YaHei` | 所有 UI 文字、对话正文 |
+| 界面与正文 | `--font-family-sans` | `ui-sans-serif` → `system-ui` → `-apple-system` → `PingFang SC` → `Microsoft YaHei` | 所有 UI 文字、对话正文 |
 | 等宽 | `--font-family-mono` | `IBM Plex Mono` → `ui-monospace` → `SFMono-Regular` → `Menlo` | 代码、路径、模型名、数字表格 |
 
 规则：
 
 - 只有这两类。**禁止**引入第三类展示字体、书法字体、手写字体。
+- 界面与正文不加载自托管字体：首帧即用系统 UI 字体，避免字体就绪后替换 fallback 导致文本重排。
 - 品牌字标（wordmark）属于品牌资产，不受本文限制，但只能出现在启动页与关于页。
 - 中文回退必须显式声明，不能依赖系统默认（否则 Windows 会落到宋体）。
 - 数字、时间、计数必须加 `font-variant-numeric: tabular-nums`。

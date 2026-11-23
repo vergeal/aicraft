@@ -207,28 +207,26 @@ describe("settings schema", () => {
   })
 })
 
-test("font defaults are Inter and IBM Plex Mono, and System on macOS", () => {
-  expect(sansDefault).toBe("Inter")
+test("font defaults are the system UI face and IBM Plex Mono", () => {
+  expect(sansDefault).toBe("system-ui")
   expect(monoDefault).toBe("IBM Plex Mono")
   expect(terminalDefault).toBe("IBM Plex Mono")
 
-  for (const fallback of [sansDefaultFor, monoDefaultFor, terminalDefaultFor]) {
-    expect(fallback(true)).toBe("system-ui")
-  }
+  expect(sansDefaultFor()).toBe("system-ui")
 
-  expect(sansDefaultFor(false)).toBe("Inter")
-  expect(monoDefaultFor(false)).toBe("IBM Plex Mono")
-  expect(terminalDefaultFor(false)).toBe("IBM Plex Mono")
+  for (const fallback of [monoDefaultFor, terminalDefaultFor]) {
+    expect(fallback(true)).toBe("system-ui")
+    expect(fallback(false)).toBe("IBM Plex Mono")
+  }
 })
 
 test("every font role starts from the system face on macOS", () => {
-  expect(sansFontFamily(undefined, true)).toStartWith("system-ui, ")
+  expect(sansFontFamily(undefined)).toStartWith("ui-sans-serif, ")
   // Code and terminal use the system's monospace face; `system-ui` is proportional and would break alignment.
   expect(monoFontFamily(undefined, true)).toStartWith("Menlo, ")
   expect(terminalFontFamily(undefined, true)).toStartWith("Menlo, ")
   expect(monoFontFamily("system-ui", true)).toStartWith("Menlo, ")
   expect(monoFontFamily("Custom Mono", true)).toStartWith('"Custom Mono", Menlo, ')
-  expect(sansFontFamily(undefined, false)).toStartWith('"Inter", ')
   expect(monoFontFamily(undefined, false)).toStartWith('"IBM Plex Mono", ')
 })
 
@@ -240,10 +238,10 @@ test("System resolves to the system's monospace face for code and terminal, not 
 })
 
 test.each([
-  { name: "sans", family: sansFontFamily, font: undefined, prefix: '"Inter", ' },
-  { name: "sans", family: sansFontFamily, font: "", prefix: '"Inter", ' },
-  { name: "sans", family: sansFontFamily, font: "   ", prefix: '"Inter", ' },
-  { name: "sans", family: sansFontFamily, font: "Custom Sans", prefix: '"Custom Sans", "Inter", ' },
+  { name: "sans", family: sansFontFamily, font: undefined, prefix: "ui-sans-serif, " },
+  { name: "sans", family: sansFontFamily, font: "", prefix: "ui-sans-serif, " },
+  { name: "sans", family: sansFontFamily, font: "   ", prefix: "ui-sans-serif, " },
+  { name: "sans", family: sansFontFamily, font: "Custom Sans", prefix: '"Custom Sans", ui-sans-serif, ' },
   {
     name: "mono",
     family: (font: string | undefined) => monoFontFamily(font, false),

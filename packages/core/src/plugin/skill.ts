@@ -11,14 +11,18 @@ import { Config } from "../config.js"
 import os from "os"
 import opencodeContent from "./skill/opencode.md" with { type: "text" }
 import reportContent from "./skill/report.md" with { type: "text" }
+import creatorContent from "./skill/creator.md" with { type: "text" }
 
 export const OpencodeContent = opencodeContent
 export const ReportContent = reportContent
+export const CreatorContent = creatorContent
 
 export const OpencodeDescription =
   "回答一切关于 AI Craft 自身的问题：工作方式、使用与配置、从 V1 迁移到 V2、故障排查、开发插件或集成、使用 AI Craft SDK、客户端、服务器或 API，以及参与 AI Craft 代码库开发。也适用于 AI Craft 的 agent、命令、技能、工具、权限、MCP 服务器、提供商、模型、主题、快捷键、格式化工具、CLI、TUI、桌面端与 Web 端。"
 const REPORT_DESCRIPTION =
   "当用户想报告 AI Craft 的问题或缺陷时使用。收集标准诊断信息，补充用户的具体复现上下文，并用 GitHub CLI 发布问题。"
+const CREATOR_DESCRIPTION =
+  "当用户要新建、修改或打包一个 AI Craft 插件（.exc）时使用。覆盖工程骨架、METAINF 清单、服务端与界面入口、随包技能、构建与打包脚本，以及按设计规范生成插件图标。"
 
 export const Plugin = define({
   id: "opencode.skill",
@@ -41,6 +45,15 @@ export const Plugin = define({
           description: REPORT_DESCRIPTION,
           path: AbsolutePath.make("skill://report/SKILL.md"),
           content: reportContent,
+        }),
+      )
+      editor.add(
+        Skill.Info.make({
+          id: Skill.ID.make("plugin-creator"),
+          name: Skill.Name.make("插件创造"),
+          description: CREATOR_DESCRIPTION,
+          path: AbsolutePath.make("skill://plugin-creator/SKILL.md"),
+          content: CreatorContent,
         }),
       )
     })

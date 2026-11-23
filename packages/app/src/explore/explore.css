@@ -446,6 +446,18 @@
   height: 20px;
 }
 
+/* A plugin's own manifest icon: an inline SVG with a viewBox and no dimensions, sized by this wrapper. */
+.plugin-glyph {
+  display: block;
+  flex: none;
+}
+
+.plugin-glyph > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .explore-catalog-card-copy {
   display: flex;
   min-width: 0;

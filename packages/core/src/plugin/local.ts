@@ -108,6 +108,7 @@ function displayOf(manifest: Manifest | undefined): Plugin.Display | undefined {
     name: display.name,
     description: display.description,
     ...(typeof display.category === "string" ? { category: display.category } : {}),
+    ...(typeof display.icon === "string" && display.icon.trim() !== "" ? { icon: display.icon } : {}),
     ...(Array.isArray(display.tools) ? { tools: display.tools } : {}),
     ...(skills ? { skills } : {}),
   } as Plugin.Display

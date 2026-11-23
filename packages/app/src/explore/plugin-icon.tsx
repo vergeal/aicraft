@@ -1,4 +1,4 @@
-import { createUniqueId } from "solid-js"
+import { createUniqueId, Show } from "solid-js"
 
 /**
  * The plugins mark: two rounded modules, one cyan-teal and one blue-indigo, snapped together by a
@@ -65,5 +65,26 @@ export function PluginIcon(props: { size?: number | string; class?: string; mono
         opacity={props.monochrome ? ".7" : undefined}
       />
     </svg>
+  )
+}
+
+/**
+ * A plugin's own mark when its manifest declares `display.icon`, otherwise the shared plugin glyph. The manifest
+ * carries an inline SVG string, so the size lives on the wrapper: the SVG it supplies has a viewBox and no dimensions.
+ * A plugin is fully trusted, which is why inserting its SVG as markup needs no extra gate beyond that.
+ */
+export function PluginGlyph(props: { icon?: string; size?: number; class?: string }) {
+  const size = () => props.size ?? 16
+
+  return (
+    <Show when={props.icon} fallback={<PluginIcon size={size()} class={props.class} />}>
+      {(icon) => (
+        <span
+          class={props.class ? `plugin-glyph ${props.class}` : "plugin-glyph"}
+          style={{ width: `${size()}px`, height: `${size()}px` }}
+          innerHTML={icon()}
+        />
+      )}
+    </Show>
   )
 }

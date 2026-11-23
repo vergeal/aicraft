@@ -75,6 +75,12 @@ export const Display = Schema.Struct({
   description: Schema.String,
   /** The shelf the plugin browser groups the entry under. */
   category: Schema.String.pipe(optional),
+  /**
+   * The plugin's own inline SVG mark, shown in the browser instead of the shared plugin glyph. It is the plugin's
+   * identity mark, so the design system's brand-mark exception allows color here even though functional icons stay
+   * monochrome.
+   */
+  icon: Schema.String.pipe(optional),
   /** Skills the plugin registers when it loads. */
   skills: Schema.Array(
     Schema.Struct({

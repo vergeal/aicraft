@@ -1,5 +1,5 @@
 import { Button } from "@opencode/ui/button"
-import { PluginIcon } from "@/explore/plugin-icon"
+import { PluginGlyph } from "@/explore/plugin-icon"
 import type { CatalogPlugin } from "@/explore/catalog"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
@@ -44,6 +44,7 @@ export function PluginInstallDialog(props: {
 
   const submit = async () => {
     if (state.busy) return
+
     if (!target()) return setState("error", language.t("explore.plugins.install.required"))
 
     setState({ busy: true, error: "" })
@@ -147,6 +148,7 @@ function BundleInstallDialog(props: {
   const language = useLanguage()
   const dialog = useDialog()
   const server = useServerSDK()
+
   const [state, setState] = createStore({
     version: props.entry.version ?? props.versions?.[0]?.version ?? "",
     busy: false,
@@ -156,17 +158,16 @@ function BundleInstallDialog(props: {
   const submit = async () => {
     if (state.busy) return
     setState({ busy: true, error: "" })
+
     try {
-      await server.api.experimental.plugin.bundle({
-        id: props.entry.id,
-        ...(state.version ? { version: state.version } : {}),
-      })
+      await server.api.experimental.plugin.bundle({ id: props.entry.id, version: state.version || undefined })
       dialog.close()
       props.onInstalled?.()
       showToast({
         variant: "success",
         title: language.t("explore.plugins.bundle.success", { name: props.entry.name }),
       })
+
       // The interpreter environment lives in the server, so installing is done before it is ready; say that instead of
       // holding the dialog open for a download.
       if (props.entry.runtime)
@@ -180,7 +181,7 @@ function BundleInstallDialog(props: {
       const message = error instanceof Error ? error.message : String(error)
       setState({
         busy: false,
-        error: unsupported(error)
+        error: unsupported(message)
           ? language.t("explore.plugins.unsupported")
           : message || language.t("explore.plugins.bundle.failed"),
       })
@@ -202,7 +203,7 @@ function BundleInstallDialog(props: {
 
         <div class="explore-install-head">
           <span class="explore-install-head-icon">
-            <PluginIcon />
+            <PluginGlyph icon={props.entry.icon} size={24} />
           </span>
           <div class="explore-install-head-text">
             <span class="explore-install-target-name">{props.entry.name}</span>
@@ -278,7 +279,6 @@ function BundleInstallDialog(props: {
 }
 
 /** A server built before this feature answers 404 for the route, which the user fixes by updating it. */
-function unsupported(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
+function unsupported(message: string) {
   return /\b404\b|not found/i.test(message)
 }

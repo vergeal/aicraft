@@ -17,7 +17,7 @@ import { PluginSource } from "@/runtime/plugin/extension-plugins"
 import "@/settings/settings.css"
 import "./explore.css"
 import type { CatalogPlugin } from "./catalog"
-import { PluginIcon } from "./plugin-icon"
+import { PluginGlyph } from "./plugin-icon"
 
 const featureLabels = {
   server: "explore.plugins.feature.server",
@@ -61,7 +61,7 @@ export function InstalledPluginCard(props: { plugin: PluginInfo; onOpen: () => v
     <article class="module-card">
       <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
         <span class="module-card-glyph">
-          <PluginIcon size={16} />
+          <PluginGlyph icon={props.plugin.display?.icon} size={16} />
         </span>
         <span class="module-card-title">
           <strong class="truncate">
@@ -252,7 +252,7 @@ export function CatalogPluginCard(props: { entry: CatalogPlugin; onOpen: () => v
     <article class="module-card">
       <button type="button" class="module-card-head" onClick={() => props.onOpen()}>
         <span class="module-card-glyph">
-          <PluginIcon size={16} />
+          <PluginGlyph icon={props.entry.icon} size={16} />
         </span>
         <span class="module-card-title">
           <strong class="truncate">
@@ -359,13 +359,18 @@ function PluginFailure(props: {
 
   const summary = () => {
     const reason = props.reason
+
     if (reason?.kind === "transform-failed")
       return language.t("explore.plugins.error.reason.transformFailed", { state: reason.state })
+
     if (reason?.kind === "activation-timeout")
       return language.t("explore.plugins.error.reason.activationTimeout", { seconds: reason.seconds })
+
     if (reason?.kind === "load-timeout")
       return language.t("explore.plugins.error.reason.loadTimeout", { seconds: reason.seconds })
+
     if (reason?.kind === "load-failed") return language.t("explore.plugins.error.reason.loadFailed")
+
     // A stack starts with the message; an untranslated server error is a single fixed sentence.
     return (
       props.error
@@ -390,6 +395,7 @@ function PluginFailure(props: {
     if (!platform.exportDebugLogs) return
 
     setState("exportError", "")
+
     try {
       const exported = await platform.exportDebugLogs()
       showToast({ variant: "success", title: language.t("explore.plugins.error.exportLogs.success") })
@@ -459,6 +465,7 @@ function PluginRetry(props: { retry: () => Promise<void> }) {
     if (state.busy) return
 
     setState({ busy: true, error: "" })
+
     try {
       await props.retry()
       setState({ busy: false, error: "" })
@@ -502,6 +509,7 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
     if (state.busy) return
 
     setState({ busy: true, error: "" })
+
     try {
       await props.retry()
       setState({ busy: false, error: "" })
@@ -546,6 +554,7 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
   const submit = async () => {
     if (state.busy || !props.plugin.id) return
     setState({ busy: true, error: "" })
+
     try {
       await server.api.experimental.plugin.uninstall({ id: props.plugin.id })
       dialog.close()
@@ -557,7 +566,7 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
       const message = error instanceof Error ? error.message : String(error)
       setState({
         busy: false,
-        error: unsupportedRoute(error)
+        error: unsupportedRoute(message)
           ? language.t("explore.plugins.unsupported")
           : message || language.t("explore.plugins.uninstall.failed"),
       })
@@ -600,7 +609,6 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
 }
 
 /** A server built before this feature answers 404 for the route, which the user fixes by updating it. */
-function unsupportedRoute(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
+function unsupportedRoute(message: string) {
   return /\b404\b|not found/i.test(message)
 }

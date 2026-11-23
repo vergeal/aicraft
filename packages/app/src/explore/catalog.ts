@@ -22,6 +22,8 @@ export type CatalogPlugin = {
   author: string
   /** One line under the name in the list. */
   description: string
+  /** The plugin's own inline SVG mark, when its manifest declares `display.icon`. */
+  icon?: string
   /** The longer introduction on the detail page; the list's description stands in when absent. */
   details?: string
   /** The npm package a config entry loads the plugin from. */
@@ -101,33 +103,39 @@ export function loadLocalCatalog(server: {
   return server.api.experimental.plugin.local().then((result) => ({
     plugins: result.data.map((entry) => {
       const newest = entry.versions[0]
-      return {
+      const display = entry.display
+
+      const plugin: CatalogPlugin = {
         id: entry.id,
-        name: entry.display?.name ?? entry.id,
-        category: categoryOf(entry.display?.category),
+        name: display?.name ?? entry.id,
+        category: categoryOf(display?.category),
         author: "",
-        description: entry.display?.description ?? "",
+        description: display?.description ?? "",
         package: entry.id,
         repository: "",
-        bundle: { file: newest?.file ?? `${entry.id}.exc`, format: "exc" as const },
-        ...(newest ? { version: newest.version } : {}),
+        bundle: { file: newest?.file ?? `${entry.id}.exc`, format: "exc" },
         versions: entry.versions,
-        ...(entry.display?.tools ? { tools: entry.display.tools } : {}),
-        ...(entry.runtime ? { runtime: entry.runtime } : {}),
-        ...(entry.display?.skills
-          ? {
-              skills: entry.display.skills.map((skill) => ({
-                name: skill.name,
-                description: skill.description,
-              })),
-            }
-          : {}),
-      } satisfies CatalogPlugin
+      }
+
+      if (display?.icon) plugin.icon = display.icon
+
+      if (newest) plugin.version = newest.version
+
+      if (display?.tools) plugin.tools = display.tools
+
+      if (entry.runtime) plugin.runtime = entry.runtime
+
+      if (display?.skills) {
+        plugin.skills = display.skills.map((skill) => ({ name: skill.name, description: skill.description }))
+      }
+
+      return plugin
     }),
     skills: [],
   }))
 }
 
 function categoryOf(input: string | undefined): PluginCategory {
-  return PLUGIN_CATEGORIES.includes(input as PluginCategory) ? (input as PluginCategory) : "automation"
+  // SAFETY: `includes` rejects every string outside the tuple, so the narrowing below only runs for a real category.
+  return PLUGIN_CATEGORIES.some((category) => category === input) ? (input as PluginCategory) : "automation"
 }

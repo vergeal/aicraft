@@ -13,6 +13,34 @@
     var(--v2-elevation-floating);
 }
 
+/* The suggestion panel settles like the composer's other overlays. `scale` is its own property, independent of the
+   `-translate-y-full` placement, so the panel can grow out of the input it hangs above without leaving it. */
+[data-component="composer-suggestions"].composer-overlay-surface {
+  transform-origin: bottom center;
+  animation: composer-suggestions-in 160ms ease-out;
+}
+
+:root[data-motion="reduce"] [data-component="composer-suggestions"].composer-overlay-surface {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="composer-suggestions"].composer-overlay-surface {
+    animation: none;
+  }
+}
+
+@keyframes composer-suggestions-in {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
 /* The design minimum for a menu is 144px. A short option list such as the agent picker would otherwise shrink to
    its label and read as a leftover chip rather than a menu. */
 [data-component="menu-v2-content"].composer-overlay-surface {

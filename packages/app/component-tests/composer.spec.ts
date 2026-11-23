@@ -515,7 +515,7 @@ story("grows suggestions while preserving visible timeline context", async ({ mo
   await boundary.evaluate((element) => {
     element.style.height = "400px"
   })
-  await expect(suggestions).toHaveCSS("max-height", "304px")
+  await expect(suggestions).toHaveCSS("max-height", "308px")
 })
 
 story("keeps the @ menu and its last results open while the next search is pending", async ({ mount }) => {
@@ -551,7 +551,7 @@ story("keeps the @ menu and its last results open while the next search is pendi
 
 story("ignores a detached suggestion boundary", async ({ mount }) => {
   const component = await mount("opencode-composer-flow--detached-command-suggestion-boundary")
-  await expect(component.locator('[data-component="composer-suggestions"]')).toHaveCSS("max-height", "304px")
+  await expect(component.locator('[data-component="composer-suggestions"]')).toHaveCSS("max-height", "308px")
 })
 
 // ThemeProvider writes resolved token values into a <style> block, so toggling data-color-scheme by hand

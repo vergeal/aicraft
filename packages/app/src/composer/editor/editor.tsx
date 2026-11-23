@@ -1382,7 +1382,21 @@ function ComposerEditorPopover(props: {
   const i18n = useI18n()
   const listID = props.id ?? createUniqueId()
   let container: HTMLDivElement | undefined
-  const [store, setStore] = createStore({ maxHeight: COMPOSER_SUGGESTION_MAX_HEIGHT })
+
+  const [store, setStore] = createStore({
+    maxHeight: COMPOSER_SUGGESTION_MAX_HEIGHT,
+    // A height transition interpolates pixels, not `auto`, so the panel tracks its content and stays capped.
+    contentHeight: 0,
+  })
+
+  // The panel's own padding is inside its border box, so the content height alone would clip the last row.
+  const panelHeight = () => Math.min(store.contentHeight + COMPOSER_SUGGESTION_TOP_PADDING * 2, store.maxHeight)
+
+  const activeIndex = createMemo(() => {
+    if (!props.activeID) return -1
+
+    return props.items.findIndex((item) => item.id === props.activeID)
+  })
 
   const resize = (height: number) =>
     setStore(
@@ -1432,140 +1446,166 @@ function ComposerEditorPopover(props: {
       ref={container}
       data-component="composer-suggestions"
       class="composer-overlay-surface absolute inset-x-0 -top-2 z-40 flex -translate-y-full scroll-pb-[18px] flex-col p-1 no-scrollbar"
-      classList={{ "overflow-auto": !props.history, "overflow-hidden": !!props.history }}
-      style={{ "max-height": `${store.maxHeight}px` }}
+      classList={{
+        "overflow-y-auto": !props.history,
+        "overflow-hidden": !!props.history,
+        "transition-[height] duration-[200ms] ease-[cubic-bezier(0.645,0.045,0.355,1)] motion-reduce:transition-none":
+          !props.history,
+      }}
+      style={
+        props.history
+          ? { "max-height": `${store.maxHeight}px` }
+          : { height: store.contentHeight ? `${panelHeight()}px` : undefined, "max-height": `${store.maxHeight}px` }
+      }
       onMouseDown={(event) => event.preventDefault()}
     >
-      <Show when={props.history}>
-        <Show when={props.search}>
-          {(search) => (
-            <div class="flex h-[30px] shrink-0 items-center px-2">
-              <input
-                ref={(element) => requestAnimationFrame(() => element.isConnected && element.focus())}
-                value={search().value}
-                aria-label={search().label}
-                placeholder={search().placeholder}
-                autocomplete="off"
-                spellcheck={false}
-                class="w-full bg-transparent text-[13px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
-                role="combobox"
-                aria-expanded="true"
-                aria-autocomplete="list"
-                aria-controls={listID}
-                aria-activedescendant={props.activeID ? `${listID}-${props.activeID}` : undefined}
-                onInput={(event) => search().onValueChange(event.currentTarget.value)}
-                onKeyDown={(event) => search().onKeyDown(event)}
-                onMouseDown={(event) => event.stopPropagation()}
-              />
+      <div
+        ref={(element) =>
+          createResizeObserver(element, (rect) => setStore("contentHeight", Math.min(rect.height, store.maxHeight)))
+        }
+        class="flex flex-col"
+        classList={{ "shrink-0": !props.history, "min-h-0 flex-1": !!props.history }}
+      >
+        <Show when={props.history}>
+          <Show when={props.search}>
+            {(search) => (
+              <div class="flex h-[30px] shrink-0 items-center px-2">
+                <input
+                  ref={(element) => requestAnimationFrame(() => element.isConnected && element.focus())}
+                  value={search().value}
+                  aria-label={search().label}
+                  placeholder={search().placeholder}
+                  autocomplete="off"
+                  spellcheck={false}
+                  class="w-full bg-transparent text-[13px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
+                  role="combobox"
+                  aria-expanded="true"
+                  aria-autocomplete="list"
+                  aria-controls={listID}
+                  aria-activedescendant={props.activeID ? `${listID}-${props.activeID}` : undefined}
+                  onInput={(event) => search().onValueChange(event.currentTarget.value)}
+                  onKeyDown={(event) => search().onKeyDown(event)}
+                  onMouseDown={(event) => event.stopPropagation()}
+                />
+              </div>
+            )}
+          </Show>
+          <MenuScroll class="min-h-0 flex-1">
+            <div id={listID} role="listbox" aria-label={i18n.t("ui.promptInput.history")} class="flex flex-col">
+              <Show
+                when={props.items.length}
+                fallback={
+                  <div class="flex h-[30px] items-center px-2 text-[13px] leading-5 text-v2-text-text-muted">
+                    {props.emptyLabel}
+                  </div>
+                }
+              >
+                <For each={props.items}>
+                  {(item) => (
+                    <button
+                      id={`${listID}-${item.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={props.activeID === item.id}
+                      tabindex={-1}
+                      data-suggestion-id={item.id}
+                      data-active={props.activeID === item.id ? "" : undefined}
+                      class="palette-menu-row"
+                      data-size="compact"
+                      onPointerMove={(event) => {
+                        if (event.movementX || event.movementY) props.onActiveChange(item)
+                      }}
+                      onClick={() => props.onSelect(item)}
+                    >
+                      <bdi
+                        dir={props.history === "shell" ? "ltr" : "auto"}
+                        class="palette-menu-title flex-1 text-start"
+                        style={{
+                          "font-family": props.history === "shell" ? "var(--font-family-mono)" : undefined,
+                          "font-weight": props.history === "shell" ? 400 : "var(--font-weight-regular)",
+                        }}
+                      >
+                        {item.label || item.description || i18n.t("ui.promptInput.history.contextOnly")}
+                      </bdi>
+                      <Show when={item.description}>
+                        <Icon name="file-document" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+                      </Show>
+                    </button>
+                  )}
+                </For>
+              </Show>
             </div>
-          )}
+          </MenuScroll>
         </Show>
-        <MenuScroll class="min-h-0 flex-1">
-          <div id={listID} role="listbox" aria-label={i18n.t("ui.promptInput.history")} class="flex flex-col">
-            <Show
-              when={props.items.length}
-              fallback={
-                <div class="flex h-[30px] items-center px-2 text-[13px] leading-5 text-v2-text-text-muted">
-                  {props.emptyLabel}
-                </div>
-              }
-            >
+        <Show when={!props.history}>
+          <Show when={props.search}>
+            {(search) => (
+              <div class="flex h-[30px] shrink-0 items-center px-2">
+                <input
+                  ref={(element) => requestAnimationFrame(() => element.focus())}
+                  value={search().value}
+                  aria-label={search().label}
+                  placeholder={search().placeholder}
+                  class="w-full bg-transparent text-[13px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
+                  onInput={(event) => search().onValueChange(event.currentTarget.value)}
+                  onKeyDown={(event) => search().onKeyDown(event)}
+                  onMouseDown={(event) => event.stopPropagation()}
+                />
+              </div>
+            )}
+          </Show>
+          <Show
+            when={props.items.length > 0}
+            fallback={
+              <div class="flex h-[30px] items-center px-2 text-[13px] leading-5 text-v2-text-text-muted">
+                {props.emptyLabel}
+              </div>
+            }
+          >
+            <div class="relative flex flex-col">
+              {/* One indicator slides between rows, so keyboard selection reads as movement rather than a jump. */}
+              <Show when={activeIndex() >= 0}>
+                <div
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-x-0 top-0 h-[30px] rounded-lg bg-v2-overlay-simple-overlay-hover transition-transform duration-150 ease-out motion-reduce:transition-none"
+                  style={{ transform: `translateY(${activeIndex() * COMPOSER_SUGGESTION_ROW_HEIGHT}px)` }}
+                />
+              </Show>
               <For each={props.items}>
                 {(item) => (
                   <button
-                    id={`${listID}-${item.id}`}
                     type="button"
-                    role="option"
-                    aria-selected={props.activeID === item.id}
-                    tabindex={-1}
                     data-suggestion-id={item.id}
                     data-active={props.activeID === item.id ? "" : undefined}
-                    class="palette-menu-row"
-                    data-size="compact"
+                    class="flex h-[30px] w-full shrink-0 items-center gap-2 rounded-lg px-2 text-start text-[13px] leading-5"
                     onPointerMove={(event) => {
                       if (event.movementX || event.movementY) props.onActiveChange(item)
                     }}
                     onClick={() => props.onSelect(item)}
                   >
-                    <bdi
-                      dir={props.history === "shell" ? "ltr" : "auto"}
-                      class="palette-menu-title flex-1 text-start"
-                      style={{
-                        "font-family": props.history === "shell" ? "var(--font-family-mono)" : undefined,
-                        "font-weight": props.history === "shell" ? 400 : "var(--font-weight-regular)",
-                      }}
-                    >
-                      {item.label || item.description || i18n.t("ui.promptInput.history.contextOnly")}
-                    </bdi>
-                    <Show when={item.description}>
-                      <Icon name="file-document" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+                    <div class="flex min-w-0 flex-1 items-center gap-2">
+                      <ComposerSuggestionIcon item={item} />
+                      <bdi dir="auto" class="shrink-0 truncate text-v2-text-text-base">
+                        {item.label}
+                      </bdi>
+                      <Show when={item.description}>
+                        <span class="min-w-0 truncate text-[12px] leading-4 text-v2-text-text-muted">
+                          {item.description}
+                        </span>
+                      </Show>
+                    </div>
+                    <Show when={item.keybind?.length}>
+                      <span class="shrink-0 text-[11px] leading-4 tracking-[0.02em] text-v2-text-text-muted">
+                        {item.keybind?.join("+")}
+                      </span>
                     </Show>
                   </button>
                 )}
               </For>
-            </Show>
-          </div>
-        </MenuScroll>
-      </Show>
-      <Show when={!props.history}>
-        <Show when={props.search}>
-          {(search) => (
-            <div class="flex h-[30px] shrink-0 items-center px-2">
-              <input
-                ref={(element) => requestAnimationFrame(() => element.focus())}
-                value={search().value}
-                aria-label={search().label}
-                placeholder={search().placeholder}
-                class="w-full bg-transparent text-[13px] leading-5 text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
-                onInput={(event) => search().onValueChange(event.currentTarget.value)}
-                onKeyDown={(event) => search().onKeyDown(event)}
-                onMouseDown={(event) => event.stopPropagation()}
-              />
             </div>
-          )}
+          </Show>
         </Show>
-        <Show
-          when={props.items.length > 0}
-          fallback={
-            <div class="flex h-[30px] items-center px-2 text-[13px] leading-5 text-v2-text-text-muted">
-              {props.emptyLabel}
-            </div>
-          }
-        >
-          <For each={props.items}>
-            {(item) => (
-              <button
-                type="button"
-                data-suggestion-id={item.id}
-                data-active={props.activeID === item.id ? "" : undefined}
-                class="flex h-[30px] w-full shrink-0 items-center gap-2 rounded-lg px-2 text-start text-[13px] leading-5"
-                classList={{ "bg-v2-overlay-simple-overlay-hover": props.activeID === item.id }}
-                onPointerMove={(event) => {
-                  if (event.movementX || event.movementY) props.onActiveChange(item)
-                }}
-                onClick={() => props.onSelect(item)}
-              >
-                <div class="flex min-w-0 flex-1 items-center gap-2">
-                  <ComposerSuggestionIcon item={item} />
-                  <bdi dir="auto" class="shrink-0 truncate text-v2-text-text-base">
-                    {item.label}
-                  </bdi>
-                  <Show when={item.description}>
-                    <span class="min-w-0 truncate text-[12px] leading-4 text-v2-text-text-muted">
-                      {item.description}
-                    </span>
-                  </Show>
-                </div>
-                <Show when={item.keybind?.length}>
-                  <span class="shrink-0 text-[11px] leading-4 tracking-[0.02em] text-v2-text-text-muted">
-                    {item.keybind?.join("+")}
-                  </span>
-                </Show>
-              </button>
-            )}
-          </For>
-        </Show>
-      </Show>
+      </div>
     </div>
   )
 }
@@ -1573,8 +1613,9 @@ function ComposerEditorPopover(props: {
 function composerSuggestionMaxHeight(boundaryHeight: number, search: boolean, history = false) {
   const reserve = Math.min(COMPOSER_SUGGESTION_CONTEXT_RESERVE, boundaryHeight / 4)
   const limit = Math.min(COMPOSER_SUGGESTION_MAX_HEIGHT, boundaryHeight - reserve)
-  // History has padding on both edges and shows whole rows below the pinned search control.
-  const chrome = COMPOSER_SUGGESTION_TOP_PADDING * (history ? 2 : 1) + (search ? COMPOSER_SUGGESTION_SEARCH_HEIGHT : 0)
+  // The panel pads its top and bottom edges, and the search field sits above the rows, so a cap that leaves out the
+  // bottom padding cuts the last row short.
+  const chrome = COMPOSER_SUGGESTION_TOP_PADDING * 2 + (search ? COMPOSER_SUGGESTION_SEARCH_HEIGHT : 0)
   const row = COMPOSER_SUGGESTION_ROW_HEIGHT
   const peek = history ? 0 : COMPOSER_SUGGESTION_ROW_PEEK
 

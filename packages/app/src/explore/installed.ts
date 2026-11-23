@@ -26,7 +26,21 @@ export function createExploreInstalled() {
 
   const connected = () => ctx()?.sdk.connection.status() === "connected"
 
-  const directory = () => layout.home.selection().directory ?? ctx()?.data.location.default().directory ?? ""
+  // Explore works on one project. The Home selection names it while it has a directory; a restored selection can
+  // carry only a server, so fall back to the server's last used project instead of the empty default directory,
+  // which would read an empty skill list.
+  const directory = () => {
+    const selected = layout.home.selection().directory
+
+    if (selected) return selected
+
+    const server = ctx()
+    const known = server?.data.location.default().directory
+
+    if (known) return known
+
+    return server?.projects.last()?.worktree ?? server?.projects.used()[0]?.worktree ?? ""
+  }
 
   // The list is only needed on Explore, so opening it fetches once per visit instead of at app start.
   const [pluginList, { refetch }] = createResource(
@@ -50,6 +64,7 @@ export function createExploreInstalled() {
   // Installing a plugin rewrites the config and then installs the package; refresh when either lands.
   createEffect(() => {
     const server = ctx()
+
     if (!server) return
 
     onCleanup(server.sdk.event.on("config.updated", () => void refetch()))

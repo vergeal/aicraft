@@ -1036,15 +1036,6 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   height: var(--titlebar-height);
 }
 
-/* Inside that shared height the tabs centre on the bar's 22px axis, not the 48px geometric centre: the gap the
-   titlebar leaves under its own contents is the same one here, so a label lines up with the traffic lights and the
-   workspace title instead of sitting 2px below them. */
-:root [data-replica] #review-panel [data-slot="session-side-pane"]:first-child [data-component="tabs"]
-  [data-slot="tabs-trigger-wrapper"] {
-  padding-block-end: var(--titlebar-axis-gutter);
-  box-sizing: border-box;
-}
-
 /* Windows keeps its caption buttons in an overlay as tall as this bar, so the panel's own head shares that height:
    its tab strip centres on the same line as the native controls and its trailing actions end flush against the
    natives' hit area instead of running under them. */

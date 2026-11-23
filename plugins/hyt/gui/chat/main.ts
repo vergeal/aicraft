@@ -441,7 +441,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (group) await refreshMembers(input.sessionId, input.retry === true)
       // 与消息行同一口径：有记录就是事实；没记录且早于本次连接，回执补不回来。
       if (record === undefined && !(connectedAt > 0 && input.createdAt >= connectedAt)) {
-        return { available: false, group, total: -1, read: [], unread: [], reason: "offline" }
+        return { available: false, group, read: [], unread: [] }
       }
 
       const people = Db.readPersonNames(root, account)
@@ -457,7 +457,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         const peer = input.sessionId
         const at = readAccounts.get(peer)
         const read = at === undefined ? [] : [person(peer, at)]
-        return { available: true, group: false, total: 1, read, unread: read.length > 0 ? [] : [person(peer, 0)], reason: "" }
+        return { available: true, group: false, read, unread: read.length > 0 ? [] : [person(peer, 0)] }
       }
 
       const members = knownMembers(input.sessionId)
@@ -474,10 +474,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       return {
         available: true,
         group: true,
-        total: members === undefined ? -1 : Math.max(0, members.filter((item) => item.account !== account).length),
         read,
         unread,
-        reason: "",
       }
     },
 

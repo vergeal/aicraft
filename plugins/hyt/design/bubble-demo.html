@@ -51,6 +51,7 @@
     --tint: #fafbfc;
     --shadow: rgba(27, 36, 48, 0.08);
     --shadow-lg: rgba(27, 36, 48, 0.1);
+    --veil: rgba(20, 27, 36, 0.2);
   }
   .stage[data-theme="dark"] {
     color-scheme: dark;
@@ -74,6 +75,7 @@
     --tint: #1f252b;
     --shadow: rgba(0, 0, 0, 0.4);
     --shadow-lg: rgba(0, 0, 0, 0.5);
+    --veil: rgba(4, 6, 8, 0.58);
   }
 
   .stage {
@@ -584,18 +586,20 @@
     align-items: center;
     gap: 5px;
     margin-top: 3px;
-    padding: 0;
+    padding: 2px 0;
     border: 0;
     background: none;
     color: var(--muted);
     font-family: inherit;
-    font-size: 11.5px;
+    font-size: 11px;
     line-height: 16px;
     cursor: pointer;
   }
   .receipt-line:hover { color: var(--link); }
   .receipt-line b { color: var(--link); font-weight: 500; }
-  .receipt-line[disabled] { color: var(--muted); opacity: 0.7; cursor: default; }
+  /* 补不回来的回执仍可点开看说明与重试，只是不抢注意力 */
+  .receipt-line[data-kind="unavailable"] { color: var(--muted); }
+  .receipt-line[data-kind="unavailable"]:hover { color: var(--ink); }
 
   .stage--receipt { min-height: 560px; }
   .veil {
@@ -606,7 +610,7 @@
     justify-content: center;
     gap: 12px;
     padding: 22px;
-    background: color-mix(in srgb, var(--ink) 12%, var(--paper));
+    background: var(--veil);
   }
 
   .receipt {
@@ -616,7 +620,7 @@
     max-height: 100%;
     overflow: hidden;
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: var(--r-bubble);
     background: var(--paper);
     box-shadow: 0 18px 48px -24px var(--shadow-lg);
   }
@@ -624,11 +628,11 @@
   .receipt-head {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
     padding: 12px 14px 9px;
   }
   .receipt-head strong { font-size: 14px; font-weight: 600; }
-  .receipt-head .sum { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .receipt-head .sum { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
   .receipt-head .x {
     margin-left: auto;
     width: 20px;
@@ -649,7 +653,7 @@
     margin: 0 14px 8px;
     padding: 5px 9px;
     border: 1px solid var(--line);
-    border-radius: 7px;
+    border-radius: 6px;
     background: var(--tint);
     color: var(--ink);
     font-family: inherit;
@@ -673,7 +677,7 @@
     align-items: center;
     gap: 9px;
     padding: 5px 8px;
-    border-radius: 7px;
+    border-radius: 6px;
   }
   .people li:hover { background: var(--hover); }
   .pface {
@@ -681,14 +685,14 @@
     place-items: center;
     width: 26px;
     height: 26px;
-    border-radius: 8px;
+    border-radius: var(--r-row);
     background: var(--face-a-bg);
     color: var(--face-a-fg);
     font-size: 10px;
     font-weight: 600;
   }
   .pface[data-off] { background: var(--hover); color: var(--muted); }
-  .pname { overflow: hidden; font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+  .pname { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
   .pside { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 
   .receipt-foot {
@@ -1143,7 +1147,7 @@
       <div class="msg" data-self>
         <div class="body">
           <div class="bubble">回执还没回来的时候不报 0 人</div>
-          <button class="receipt-line" type="button" disabled>已读信息暂不可用</button>
+          <button class="receipt-line" type="button" data-kind="unavailable">已读信息暂不可用</button>
         </div>
       </div>
 
@@ -1179,7 +1183,7 @@
       <div class="msg" data-self>
         <div class="body">
           <div class="bubble">回执还没回来的时候不报 0 人</div>
-          <button class="receipt-line" type="button" disabled>已读信息暂不可用</button>
+          <button class="receipt-line" type="button" data-kind="unavailable">已读信息暂不可用</button>
         </div>
       </div>
 
@@ -1207,19 +1211,19 @@
         </div>
         <input class="receipt-search" placeholder="搜索成员">
         <div class="receipt-body">
-          <p class="pgroup">未读 2</p>
+          <p class="pgroup">未读</p>
           <ul class="people">
             <li><span class="pface" data-off>张晓</span><span class="pname">张晓东</span><span class="pside">未读</span></li>
             <li><span class="pface" data-off>值班</span><span class="pname">值班机器人</span><span class="pside">未读</span></li>
           </ul>
-          <p class="pgroup">已读 3</p>
+          <p class="pgroup">已读</p>
           <ul class="people">
             <li><span class="pface">范婷</span><span class="pname">范婷婷</span><span class="pside">11:32</span></li>
             <li><span class="pface">罗添</span><span class="pname">罗添胜</span><span class="pside">11:31</span></li>
             <li><span class="pface">王海</span><span class="pname">王海涛</span><span class="pside">11:29</span></li>
           </ul>
         </div>
-        <p class="receipt-foot">回执由成员收到消息后上报，晚到的记录会补在列表里。</p>
+        <p class="receipt-foot">回执由成员阅读后上报，晚到的记录会补在列表里。</p>
       </div>
       <p class="receipt-note">弹窗外点一下关闭；Esc 同样关闭。</p>
     </div>
@@ -1231,7 +1235,6 @@
       <div class="receipt" style="width: min(320px, 100%)">
         <div class="receipt-head">
           <strong>已读回执</strong>
-          <span class="sum">单聊 · 对方未读</span>
           <button class="x" type="button">×</button>
         </div>
         <div class="receipt-body">
@@ -1239,7 +1242,7 @@
             <li><span class="pface" data-off>范婷</span><span class="pname">范婷婷</span><span class="pside">未读</span></li>
           </ul>
         </div>
-        <p class="receipt-foot">对方读过就换成「11:32 已读」，不留第二条记录。</p>
+        <p class="receipt-foot">对方读过就换成已读时间。</p>
       </div>
     </div>
   </section>

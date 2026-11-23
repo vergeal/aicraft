@@ -49,6 +49,8 @@ export const css = `
   --sk-2: #f7f9fa;
   --shadow: rgba(27, 36, 48, 0.08);
   --shadow-lg: rgba(27, 36, 48, 0.1);
+  /* 弹窗遮罩：浅色压暗、深色压得更狠；不能用 --ink，它在深色下是浅色文字。 */
+  --veil: rgba(20, 27, 36, 0.2);
   --focus-ring: rgba(46, 95, 138, 0.16);
   --grip: #c9d1d8;
 
@@ -124,6 +126,7 @@ export const css = `
   --sk-2: #303740;
   --shadow: rgba(0, 0, 0, 0.45);
   --shadow-lg: rgba(0, 0, 0, 0.5);
+  --veil: rgba(4, 6, 8, 0.58);
   --focus-ring: rgba(134, 182, 218, 0.25);
   --grip: #49525c;
 }
@@ -825,19 +828,21 @@ export const css = `
   align-items: center;
   gap: 5px;
   margin-top: 3px;
-  padding: 0;
+  padding: 2px 0;
   border: 0;
   background: none;
   color: var(--muted);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 11px;
   line-height: 16px;
   cursor: pointer;
 }
 
 .hyt-shell .receipt-line:hover { color: var(--link); }
 .hyt-shell .receipt-line b { color: var(--link); font-weight: 500; }
-.hyt-shell .receipt-line[disabled] { opacity: 0.7; cursor: default; }
+/* 补不回来的回执仍然可以点开看说明与重试，只是不抢注意力。 */
+.hyt-shell .receipt-line[data-kind="unavailable"] { color: var(--muted); }
+.hyt-shell .receipt-line[data-kind="unavailable"]:hover { color: var(--ink); }
 
 /* 回执弹窗：遮罩只压暗一点，弹窗与整页同一张纸，靠边框和阴影分层。 */
 .hyt-shell .receipt-veil {
@@ -847,7 +852,7 @@ export const css = `
   display: grid;
   place-items: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--ink) 14%, transparent);
+  background: var(--veil);
 }
 
 .hyt-shell .receipt {
@@ -857,7 +862,7 @@ export const css = `
   max-height: min(560px, 100%);
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-bubble);
   background: var(--paper);
   box-shadow: 0 18px 48px -24px var(--shadow-lg);
   outline: none;
@@ -866,7 +871,7 @@ export const css = `
 .hyt-shell .receipt-head {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
   padding: 12px 14px 9px;
 }
 
@@ -874,7 +879,7 @@ export const css = `
 
 .hyt-shell .receipt-head .sum {
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -899,7 +904,7 @@ export const css = `
   margin: 0 14px 8px;
   padding: 5px 9px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--tint);
   color: var(--ink);
   font-family: inherit;
@@ -925,7 +930,7 @@ export const css = `
   align-items: center;
   gap: 9px;
   padding: 5px 8px;
-  border-radius: 7px;
+  border-radius: 6px;
 }
 
 .hyt-shell .people li:hover { background: var(--hover); }
@@ -935,7 +940,7 @@ export const css = `
   place-items: center;
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--r-row);
   background: var(--face-b-bg);
   color: var(--face-b-fg);
   font-size: 10px;
@@ -948,7 +953,7 @@ export const css = `
 
 .hyt-shell .pname {
   overflow: hidden;
-  font-size: 12.5px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -969,7 +974,7 @@ export const css = `
 .hyt-shell .receipt-retry {
   padding: 4px 12px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--paper);
   color: var(--ink);
   font-family: inherit;

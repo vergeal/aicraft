@@ -434,8 +434,8 @@ function Message(props: {
             <button
               class="receipt-line"
               type="button"
-              disabled={!receipt().available}
-              title={receipt().available ? text(props.ctx, "hyt.chat.receipt.title") : text(props.ctx, "hyt.chat.receipt.unavailable.hint")}
+              data-kind={receipt().available ? "read" : "unavailable"}
+              title={text(props.ctx, "hyt.chat.receipt.open")}
               onClick={() => props.onReceipt()}
             >
               <ReceiptLabel ctx={props.ctx} value={receipt()} />
@@ -504,6 +504,8 @@ function ReceiptDialog(props: {
   const [error, setError] = createSignal("")
   const [retrying, setRetrying] = createSignal(false)
   let dialog: HTMLDivElement | undefined
+  /** 打开弹窗的那个回执入口：关闭时把焦点还回去，键盘用户不会掉到页面顶部。 */
+  let opener: Element | null = null
 
   const apply = (next: ReceiptView) => {
     const previous = data()
@@ -512,7 +514,12 @@ function ReceiptDialog(props: {
       return
     }
     const known = new Map([...previous.read, ...previous.unread].map((person) => [person.account, person]))
-    const keep = (list: readonly ReceiptPerson[]) => list.map((person) => known.get(person.account) ?? person)
+    // 同一个人、同一时间才复用旧对象；从「未读」挪到「已读」时必须换成带时间的对象。
+    const keep = (list: readonly ReceiptPerson[]) =>
+      list.map((person) => {
+        const old = known.get(person.account)
+        return old !== undefined && old.at === person.at && old.name === person.name ? old : person
+      })
     setData({ ...next, read: keep(next.read), unread: keep(next.unread) })
   }
 
@@ -540,11 +547,15 @@ function ReceiptDialog(props: {
   })
 
   onMount(() => {
+    opener = document.activeElement
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") props.onClose()
     }
     window.addEventListener("keydown", onKey)
-    onCleanup(() => window.removeEventListener("keydown", onKey))
+    onCleanup(() => {
+      window.removeEventListener("keydown", onKey)
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
+    })
     dialog?.focus()
   })
 
@@ -587,19 +598,22 @@ function ReceiptDialog(props: {
       >
         <div class="receipt-head">
           <strong>{text(props.ctx, "hyt.chat.receipt.title")}</strong>
+          {/* 汇总只在群聊且可用时出现：单聊内容就一个人，不可用时标题已说明。 */}
           <Show when={data()}>
             {(view) => (
-              <span class="sum">
-                <ReceiptLabel
-                  ctx={props.ctx}
-                  value={{
-                    available: view().available,
-                    group: view().group,
-                    read: view().read.length,
-                    unread: view().unread.length,
-                  }}
-                />
-              </span>
+              <Show when={view().available && view().group}>
+                <span class="sum">
+                  <ReceiptLabel
+                    ctx={props.ctx}
+                    value={{
+                      available: view().available,
+                      group: view().group,
+                      read: view().read.length,
+                      unread: view().unread.length,
+                    }}
+                  />
+                </span>
+              </Show>
             )}
           </Show>
           <button class="x" type="button" aria-label={text(props.ctx, "hyt.chat.receipt.close")} onClick={props.onClose}>
@@ -640,11 +654,15 @@ function ReceiptDialog(props: {
 
               <div class="receipt-body">
                 <Show when={view().unread.filter(matches).length > 0}>
-                  <p class="pgroup">{text(props.ctx, "hyt.chat.receipt.group.unread", { count: view().unread.length })}</p>
+                  <Show when={view().group}>
+                    <p class="pgroup">{text(props.ctx, "hyt.chat.receipt.section.unread")}</p>
+                  </Show>
                   {people(view().unread.filter(matches), true)}
                 </Show>
                 <Show when={view().read.filter(matches).length > 0}>
-                  <p class="pgroup">{text(props.ctx, "hyt.chat.receipt.group.read", { count: view().read.length })}</p>
+                  <Show when={view().group}>
+                    <p class="pgroup">{text(props.ctx, "hyt.chat.receipt.section.read")}</p>
+                  </Show>
                   {people(view().read.filter(matches), false)}
                 </Show>
                 <Show when={view().read.filter(matches).length + view().unread.filter(matches).length === 0}>

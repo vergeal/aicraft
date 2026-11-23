@@ -180,14 +180,10 @@ export const ReceiptView = Schema.Struct({
   available: Schema.Boolean,
   /** 群聊。 */
   group: Schema.Boolean,
-  /** 群成员总数（不含自己）；-1 表示还没拿到名单。 */
-  total: Schema.Number,
   /** 已读的人，按时间倒序。 */
   read: Schema.Array(ReceiptPerson),
-  /** 未读的人。 */
+  /** 未读的人；群成员名单还没拿到时为空。 */
   unread: Schema.Array(ReceiptPerson),
-  /** 不可用的原因；可用时为空串。 */
-  reason: Schema.String,
 })
 
 /** 页面阶段：决定窗口显示整页空态还是三栏内容。 */

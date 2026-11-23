@@ -40,13 +40,13 @@ export function make(input: {
   readonly id: string
   /** Test seam. Defaults to `process.platform`. */
   readonly platform?: NodeJS.Platform
-  /** Test seam. `true` uses `D:\.opencode`; defaults to probing `D:\`. */
+  /** Test seam. `true` uses `D:\.aicraft`; defaults to probing `D:\`. */
   readonly drive?: boolean
 }): Paths {
   const platform = input.platform ?? process.platform
   const join = platform === "win32" ? path.win32.join : path.join
-  const root = join(input.home, ".opencode")
-  const buildable = platform === "win32" && (input.drive ?? driveAvailable()) ? "D:\\.opencode" : root
+  const root = join(input.home, ".aicraft")
+  const buildable = platform === "win32" && (input.drive ?? driveAvailable()) ? "D:\\\\.aicraft" : root
   const id = input.id.replaceAll(/[\\/]/g, "+")
   return {
     data: join(root, "plugin-data", id),
@@ -72,7 +72,7 @@ export function legacy(input: {
   const platform = input.platform ?? process.platform
   if (platform !== "win32") return undefined
   if (!(input.drive ?? driveAvailable())) return undefined
-  const root = path.win32.join(input.home, ".opencode")
+  const root = path.win32.join(input.home, ".aicraft")
   const id = input.id.replaceAll(/[\\/]/g, "+")
   return {
     cache: path.win32.join(root, "plugin-cache", id),

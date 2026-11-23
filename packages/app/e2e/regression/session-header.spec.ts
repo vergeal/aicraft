@@ -459,7 +459,7 @@ test.describe("location", () => {
         seed: {
           storage: {
             ...reviewTabs(worktree, "ses_location"),
-            "opencode.global.dat:plugin.file.app": { app: app.id },
+            "aicraft.global.dat:plugin.file.app": { app: app.id },
           },
         },
       })

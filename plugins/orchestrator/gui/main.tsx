@@ -11,7 +11,7 @@ import { Ledger } from "../src/ledger.js"
 import { Board } from "./ipc.js"
 
 /** The server's ledger (`ctx.paths.data`), read here because the board is a window over the same file. */
-const LedgerPath = join(homedir(), ".opencode", "plugin-data", "changhong.orchestrator", "ledger.json")
+const LedgerPath = join(homedir(), ".aicraft", "plugin-data", "changhong.aicraft.orchestrator", "ledger.json")
 
 /** What a missing or unreadable ledger reads as. Nothing is written back, so the file stays the server's. */
 const Empty: Ledger.File = { version: 1, plans: {}, tasks: {}, anomalies: [] }

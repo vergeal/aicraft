@@ -17,7 +17,7 @@ export function draftHref(draftID: string) {
   return `/new-session?draftId=${encodeURIComponent(draftID)}`
 }
 
-// Key of `opencode.window.browser.dat:tabs.panes` entries.
+// Key of `aicraft.window.browser.dat:tabs.panes` entries.
 export function tabKey(sessionID: string, server = SERVER) {
   return `${server}\n${sessionHref(sessionID, server)}`
 }
@@ -104,17 +104,17 @@ function storageEntries(input: SeedInput): [string, string, boolean][] {
   }
 
   const values: Record<string, unknown> = {
-    ...(Object.keys(server).length ? { "opencode.global.dat:server": server } : {}),
-    ...(input.tabs ? { "opencode.window.browser.dat:tabs": input.tabs.map(tabEntry) } : {}),
+    ...(Object.keys(server).length ? { "aicraft.global.dat:server": server } : {}),
+    ...(input.tabs ? { "aicraft.window.browser.dat:tabs": input.tabs.map(tabEntry) } : {}),
     ...(input.panes
       ? {
-          "opencode.window.browser.dat:tabs.panes": Object.fromEntries(
+          "aicraft.window.browser.dat:tabs.panes": Object.fromEntries(
             Object.entries(input.panes).map(([sessionID, pane]) => [tabKey(sessionID), pane]),
           ),
         }
       : {}),
     ...(input.settings ? { "settings.v3": input.settings } : {}),
-    ...(input.locale ? { "opencode.global.dat:language": { locale: input.locale } } : {}),
+    ...(input.locale ? { "aicraft.global.dat:language": { locale: input.locale } } : {}),
     ...(input.theme ? { "opencode-theme-id": input.theme.id, "opencode-color-scheme": input.theme.scheme } : {}),
     ...input.storage,
   }

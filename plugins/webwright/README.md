@@ -5,9 +5,9 @@ Playwright browser instead of an extension, so nothing has to be installed into 
 `browser` plugin keeps its own `browser.*` namespace for the desktop browser; this package never claims it.
 
 The bundle ships as one file:
-`~/.distribution/plugins/changhong.webwright/<version>/changhong.webwright-<version>.exc`. It contains the server entry,
+`~/.distribution/plugins/changhong.aicraft.webwright/<version>/changhong.aicraft.webwright-<version>.exc`. It contains the server entry,
 the `webwright` skill, and the Playwright driver under `assets/playwright-core`. Installing unpacks it into
-`~/.opencode/exc/changhong.webwright/`; removing that directory uninstalls it.
+`~/.aicraft/exc/changhong.aicraft.webwright/`; removing that directory uninstalls it.
 
 ## Browser selection
 
@@ -28,7 +28,7 @@ and every step is a check rather than a fallback:
    `<profile>/DevToolsActivePort`, and attach with `chromium.connectOverCDP`. `status` and `tabs.list` then carry a
    `note` saying the browser was started because none was available. This Chrome is stopped on dispose.
 
-The default profile is `~/.opencode/webwright/chrome-profile`, separate from the old Playwright profile because a
+The default profile is `~/.aicraft/webwright/chrome-profile`, separate from the old Playwright profile because a
 profile written by the bundled Chromium blocks the installed Chrome from starting. Plugin options:
 `{ "cdp": "http://127.0.0.1:9222", "profile": "/path/to/profile", "headless": true }`.
 `webwright.status` reports the browser that actually started, its version, the profile, and any launch error.
@@ -65,7 +65,7 @@ The source of truth for inputs, descriptions and outputs is `Browser.Operations`
 
 ```sh
 bun run build   # dist/server/main.js + assets/playwright-core + skills/
-bun run pack    # ~/.distribution/plugins/changhong.webwright/<version>/
+bun run pack    # ~/.distribution/plugins/changhong.aicraft.webwright/<version>/
 ```
 
 `build` bundles only the plugin's own code. `effect` and `@opencode/*` stay external so the plugin shares the host's
@@ -78,5 +78,5 @@ writes a `manifest.json` there so the catalog never opens the archive. Set `OCPL
 ## Disable
 
 ```jsonc
-{ "plugins": ["-changhong.webwright"] }
+{ "plugins": ["-changhong.aicraft.webwright"] }
 ```

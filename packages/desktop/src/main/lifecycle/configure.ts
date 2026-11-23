@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { mkdirSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs"
 import { enableCompileCache } from "node:module"
 import { homedir, tmpdir } from "node:os"
 import path from "node:path"
@@ -49,6 +49,7 @@ export function configureApplication() {
     app.commandLine.appendSwitch("enable-precise-memory-info")
 
   const testRoot = createTestRoot()
+  if (!testRoot) migrateLegacyData(app.getPath("appData"))
   app.setPath("userData", testRoot ? path.join(testRoot, "desktop") : path.join(app.getPath("appData"), APP_ID))
 
   if (testRoot) {
@@ -66,6 +67,54 @@ export function acquireApplicationLock() {
   app.quit()
 
   return false
+}
+
+const legacyAppIDs: Record<string, string> = {
+  local: "ai.opencode.desktop.dev",
+  dev: "ai.opencode.desktop.dev",
+  beta: "ai.opencode.desktop.beta",
+  prod: "ai.opencode.desktop",
+}
+
+// The product rename moved every data root. Move the previous roots once, before anything reads or
+// recreates them, so an upgrade keeps installed plugins, configuration and session history.
+function migrateLegacyData(appData: string) {
+  const home = homedir()
+  const base = (value: string | undefined, fallback: string) => value || path.join(home, fallback)
+  const roots = [
+    base(process.env.XDG_DATA_HOME, ".local/share"),
+    base(process.env.XDG_CACHE_HOME, ".cache"),
+    base(process.env.XDG_CONFIG_HOME, ".config"),
+    base(process.env.XDG_STATE_HOME, ".local/state"),
+  ]
+  const userData = path.join(appData, APP_ID)
+  const pairs: [string, string][] = [
+    [path.join(home, ".opencode"), path.join(home, ".aicraft")],
+    ...roots.map((root): [string, string] => [path.join(root, "opencode"), path.join(root, "aicraft")]),
+    [path.join(appData, legacyAppIDs[CHANNEL] ?? legacyAppIDs.dev), userData],
+    [path.join(userData, "opencode.settings"), path.join(userData, "aicraft.settings")],
+  ]
+
+  for (const [from, to] of pairs) {
+    if (existsSync(to) || !existsSync(from)) continue
+    try {
+      renameSync(from, to)
+    } catch {}
+  }
+
+  // Session history keeps the database file name it was written under.
+  const dataRoot = path.join(roots[0], "aicraft")
+
+  if (!existsSync(dataRoot)) return
+
+  for (const name of readdirSync(dataRoot)) {
+    if (!/^opencode.*\.db(?:-(?:wal|shm))?$/.test(name)) continue
+    const next = `aicraft${name.slice("opencode".length)}`
+    if (existsSync(path.join(dataRoot, next))) continue
+    try {
+      renameSync(path.join(dataRoot, name), path.join(dataRoot, next))
+    } catch {}
+  }
 }
 
 function createTestRoot() {

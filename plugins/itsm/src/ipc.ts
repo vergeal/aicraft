@@ -81,7 +81,7 @@ const Values = Schema.Record(Schema.String, AnswerValue)
  * window got from `ensure`. Page operations are read-only until `runStep` performs the step the workbench asked for.
  */
 export const ItsmBrowser = Ipc.define({
-  id: "changhong.itsm.browser",
+  id: "changhong.aicraft.itsm.browser",
   methods: {
     /** Creates or reuses the view of an account's partition in the calling window. */
     ensure: {

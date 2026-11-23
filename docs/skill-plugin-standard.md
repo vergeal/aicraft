@@ -1,10 +1,10 @@
 # 技能与插件加载规范
 
-本文件定义 OpenCode 如何发现并加载技能（Skill）与插件（Plugin），以及在本仓库内编写它们时必须遵守的约定。
+本文件定义 aicraft 如何发现并加载技能（Skill）与插件（Plugin），以及在本仓库内编写它们时必须遵守的约定。
 
-- 适用范围：`packages/core`（加载器）、`packages/schema`（数据结构）、`packages/plugin`（入口解析）、`.opencode/**` 与用户全局配置目录下的技能、插件。
+- 适用范围：`packages/core`（加载器）、`packages/schema`（数据结构）、`packages/plugin`（入口解析）、`.aicraft/**` 与用户全局配置目录下的技能、插件。
 - 唯一事实来源是代码，本文件描述的是代码当前的加载契约。行为变更时必须同步修改本文。
-- 术语：**配置目录**指项目里向上查找到的 `.opencode/`，或全局的 `~/.config/opencode/`（macOS 受管环境还可能是系统目录）。
+- 术语：**配置目录**指项目里向上查找到的 `.aicraft/`，或全局的 `~/.config/opencode/`（macOS 受管环境还可能是系统目录）。
 
 ---
 
@@ -14,9 +14,9 @@
 
 | 来源         | 位置                                                            | 加载者                          |
 | ------------ | --------------------------------------------------------------- | ------------------------------- |
-| 项目配置目录 | `<project>/.opencode/skill/`、`<project>/.opencode/skills/`     | `opencode.config.skill`         |
+| 项目配置目录 | `<project>/.aicraft/skill/`、`<project>/.aicraft/skills/`     | `opencode.config.skill`         |
 | 全局配置目录 | `~/.config/opencode/skill/`、`~/.config/opencode/skills/`       | `opencode.config.skill`         |
-| 配置字段     | `opencode.json(c)` 的 `skills`，每项是路径或 `https?://` URL    | `opencode.config.skill`         |
+| 配置字段     | `aicraft.json(c)` 的 `skills`，每项是路径或 `https?://` URL    | `opencode.config.skill`         |
 | Claude 兼容  | `<project>/.claude/skills/`、`~/.claude/skills/`                | `opencode.config.compatibility` |
 | Agents 兼容  | `<project>/.agents/skills/`、`~/.agents/skills/`                | `opencode.config.compatibility` |
 | 内置         | 虚拟路径 `skill://opencode/SKILL.md`、`skill://report/SKILL.md` | `opencode.skill`                |
@@ -25,14 +25,14 @@
 - `skills` 配置项支持两种写法：数组 `["路径或 URL", ...]`，或对象 `{ "paths": [...], "urls": [...] }`。
 - `skills` 配置项支持 `~/` 展开；相对路径相对当前工作目录；`http(s)` 链接会被拉取后当作目录源。
 - 所有来源解析成 `Skill.Info` 后按 `id` 合并，后加载的同名技能覆盖先加载的。
-- `Skill.Info` 带可选的 `plugin` 字段，记录贡献该技能的插件 id（如 `changhong.dbro`、`opencode.skill`）。探索页与设置里的「已安装」技能列表据此把插件带入的技能归到插件自己的详情页，只保留用户自己写的技能与不上探索页的内置技能。
+- `Skill.Info` 带可选的 `plugin` 字段，记录贡献该技能的插件 id（如 `changhong.aicraft.dbro`、`opencode.skill`）。探索页与设置里的「已安装」技能列表据此把插件带入的技能归到插件自己的详情页，只保留用户自己写的技能与不上探索页的内置技能。
 
 ### 1.2 目录形态
 
 推荐形态是一技能一目录：
 
 ```
-.opencode/
+.aicraft/
   skills/
     review-checklist/
       SKILL.md
@@ -82,7 +82,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 | ------------------------------ | ---- | ------- | ---------------------------------------------------------------- |
 | `name`                         | 否   | string  | 显示名。省略时等于 `id`。可以包含中文。                          |
 | `description`                  | 否   | string  | 何时使用该技能。**省略则该技能不会出现在模型的可用技能列表里**。 |
-| `metadata.opencode/autoinvoke` | 否   | boolean | 是否允许模型自动调用。优先级最高。                               |
+| `metadata.aicraft/autoinvoke` | 否   | boolean | 是否允许模型自动调用。优先级最高。                               |
 | `disable-model-invocation`     | 否   | boolean | 与上一条同义，兼容其他 agent 的写法。                            |
 
 布尔值接受 `true/false`、`yes/no`、`on/off`、`1/0`（不区分大小写、允许前后空格）。
@@ -120,10 +120,10 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 
 | 来源         | 位置                                                                 |
 | ------------ | -------------------------------------------------------------------- |
-| 项目配置目录 | `<project>/.opencode/plugin/`、`<project>/.opencode/plugins/`        |
+| 项目配置目录 | `<project>/.aicraft/plugin/`、`<project>/.aicraft/plugins/`        |
 | 全局配置目录 | `~/.config/opencode/plugin/`、`~/.config/opencode/plugins/`          |
-| 已安装组合包 | `~/.opencode/exc/<id>/`（每个子目录是一个插件）                |
-| 配置字段     | `opencode.json(c)` 的 `plugins: (string \| { package, options? })[]` |
+| 已安装组合包 | `~/.aicraft/exc/<id>/`（每个子目录是一个插件）                |
+| 配置字段     | `aicraft.json(c)` 的 `plugins: (string \| { package, options? })[]` |
 
 - `plugin/` 与 `plugins/` 两个目录名都会被扫描，二者等价。
 - 顺序：先自动发现目录内的条目，再应用 `plugins` 配置；因此配置可以用 `-name` 移除自动发现到的插件。
@@ -268,7 +268,7 @@ export default Plugin.define({
 4. 插件加载，执行入口里的 `tool.transform` / `skill.transform` / `mcp.transform`；
 5. `plugin.updated` 与 `skill.updated` 推送，探索页刷新。
 
-`.exc` 是例外：它不写 `plugins`，而是解包到 `~/.opencode/exc/<id>/`，由目录自动发现生效，见 3.7。
+`.exc` 是例外：它不写 `plugins`，而是解包到 `~/.aicraft/exc/<id>/`，由目录自动发现生效，见 3.7。
 
 技能注册必须绑定在插件的 activation scope 上（`ctx.skill.transform` 天然如此），插件卸载或重载时自动移除。插件加载失败时不得留下任何能力注册。
 
@@ -375,7 +375,7 @@ README.md                # 可选
 
 | 字段                | 必填 | 说明                                                                                                       |
 | ------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
-| `apiVersion`        | 是   | 组合包规范版本。未知版本拒绝安装，提示升级 OpenCode。                                                      |
+| `apiVersion`        | 是   | 组合包规范版本。未知版本拒绝安装，提示升级 aicraft。                                                      |
 | `id`                | 是   | 插件 id，必须与入口 `Plugin.define({ id })` 完全一致。点分命名，作为安装目录名与 `-id` 键。                |
 | `version`           | 是   | semver。同 id 安装新版本即覆盖升级。                                                                       |
 | `requires.opencode` | 否   | semver range；不满足时拒绝安装并给出所需版本。                                                             |
@@ -437,11 +437,11 @@ README.md                # 可选
 - 探索页按 `id` 聚合、按版本从新到旧列出；同一个插件的多个版本并存，安装时可选择版本。
 - 列举要打开每个版本的包读 `METAINF`，不再有侧车文件可跳过解压；大包（如 `webwright`）首次列举会稍慢，这是保持版本目录只有一个 `.exc` 的代价。
 - 安装器优先在这里按 `id` + 版本取包，找不到时才回退到桌面、下载目录、当前工作目录。
-- 安装后的插件解包到 `~/.opencode/exc/<id>/`；该目录是插件自动发现根，放入或删除目录即生效，不需要重启。
+- 安装后的插件解包到 `~/.aicraft/exc/<id>/`；该目录是插件自动发现根，放入或删除目录即生效，不需要重启。
 
 ### 3.7 安装与卸载（宿主契约）
 
-安装位置：`~/.opencode/exc/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
+安装位置：`~/.aicraft/exc/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
 
 - **安装 = 解包到插件目录**，不写 `plugins` 配置。
 - **卸载 = 删除目录**；临时禁用可在配置里写 `-opencode.webwright`（见 2.1 顺序规则）。

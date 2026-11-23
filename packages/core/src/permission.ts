@@ -94,7 +94,7 @@ export type Error = BlockedError | CorrectedError
 /** Actions whose resources are file paths. */
 export const pathActions = ["external_directory", "read", "edit"] as const
 
-/** macOS volumes ignore case by default, so `.OPENCODE/x` opens `.opencode/x`; rules for file paths must match it too. */
+/** macOS volumes ignore case by default, so `.AICRAFT/x` opens `.aicraft/x`; rules for file paths must match it too. */
 export function ignoresCase(action: string) {
   return process.platform === "darwin" && pathActions.some((item) => item === action)
 }

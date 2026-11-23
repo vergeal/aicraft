@@ -395,7 +395,7 @@ function describeSources(output: {
     (source) =>
       `- ${source.default ? "* " : "  "}${source.name}（${Dialects.LABEL[source.dialect as Dialects.Dialect] ?? source.dialect}）${source.host}:${source.port}/${source.database ?? "（默认库）"} 用户 ${source.user}｜口令：${source.passwordFrom}`,
   )
-  if (lines.length === 0) lines.push("（没有配置数据源。可以在 opencode.json 的插件 options 或插件设置里配置。）")
+  if (lines.length === 0) lines.push("（没有配置数据源。可以在 aicraft.json 的插件 options 或插件设置里配置。）")
   if (output.errors.length > 0) lines.push("", "配置错误：", ...output.errors.map((error) => `- ${error}`))
   return lines.join("\n")
 }

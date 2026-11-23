@@ -1,6 +1,6 @@
 {
   "apiVersion": 1,
-  "id": "changhong.dbro",
+  "id": "changhong.aicraft.dbro",
   "version": "0.1.1",
   "requires": {
     "opencode": "^2.2.5"

@@ -50,14 +50,16 @@ describe("legacy store import", () => {
     const database = openDatabase(":memory:")
     writeStore(root, "opencode.global.dat", JSON.stringify({ model: "m", layout: { sidebar: 1 } }))
     writeStore(root, "opencode.window.w1.dat", JSON.stringify({ tabs: "[]" }))
+    writeStore(root, "aicraft.global.dat", JSON.stringify({ model: "n" }))
     writeStore(root, "default.dat", JSON.stringify({ "settings.v3": "{}" }))
     writeStore(root, "opencode.settings", JSON.stringify({ keep: true }))
     writeStore(root, "unrelated.txt", "x")
 
     const result = await run(database.db, root)
 
-    expect(result.imported).toBe(4)
+    expect(result.imported).toBe(5)
     expect(rows(database.db)).toEqual([
+      { name: "aicraft.global.dat", key: "model", value: "n" },
       { name: "default.dat", key: "settings.v3", value: "{}" },
       { name: "opencode.global.dat", key: "layout", value: '{"sidebar":1}' },
       { name: "opencode.global.dat", key: "model", value: "m" },

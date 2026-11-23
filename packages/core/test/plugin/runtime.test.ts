@@ -210,14 +210,14 @@ describe("PluginRuntime.prepare", () => {
     const input = { home: root.path, id: "acme.data", runtime: { python: ">=3.9" } }
     expect(await prepare(input)).toEqual({ status: "ready" })
     const directory = PluginRuntime.directory(input)
-    expect(directory).toBe(path.join(root.path, ".opencode", "plugin-runtime", "acme.data"))
+    expect(directory).toBe(path.join(root.path, ".aicraft", "plugin-runtime", "acme.data"))
     expect(existsSync(path.join(directory, "bin", "python")) || existsSync(path.join(directory, "Scripts", "python.exe"))).toBe(
       true,
     )
     expect(existsSync(path.join(directory, "runtime.json"))).toBe(true)
     // A scoped id stays one directory name.
     expect(PluginRuntime.directory({ home: root.path, id: "@acme/data" })).toBe(
-      path.join(root.path, ".opencode", "plugin-runtime", "@acme+data"),
+      path.join(root.path, ".aicraft", "plugin-runtime", "@acme+data"),
     )
   }, 120_000)
 
@@ -417,16 +417,16 @@ describe("PluginRuntime.prepare uv resolution", () => {
     )
     // The asset and its checksum, and no request to the proxy or GitHub.
     expect(requests).toHaveLength(2)
-    const target = path.join(root.path, ".opencode", "bin", process.platform === "win32" ? "uv.exe" : "uv")
+    const target = path.join(root.path, ".aicraft", "bin", process.platform === "win32" ? "uv.exe" : "uv")
     expect(existsSync(target)).toBe(true)
     // The stub answers `--version` but cannot create a venv, so this proves the extracted binary was executed.
     expect(runtime.status).toBe("failed")
     expect(runtime.status === "failed" && runtime.error).toContain("stub uv: venv")
   }, 120_000)
 
-  it("does not download when ~/.opencode/bin/uv already runs", async () => {
+  it("does not download when ~/.aicraft/bin/uv already runs", async () => {
     await using root = await home()
-    const bin = path.join(root.path, ".opencode", "bin")
+    const bin = path.join(root.path, ".aicraft", "bin")
     await mkdir(bin, { recursive: true })
     await stubAt(path.join(bin, process.platform === "win32" ? "uv.exe" : "uv"))
     let downloads = 0
@@ -616,7 +616,7 @@ describe("PluginRuntime.prepare uv resolution", () => {
         },
       },
     })
-    const target = path.join(root.path, ".opencode", "bin", "uv.exe")
+    const target = path.join(root.path, ".aicraft", "bin", "uv.exe")
     expect(existsSync(target)).toBe(true)
     // Byte for byte, because the entry stores a deflated range rather than a path.
     expect(new Uint8Array(await Bun.file(target).arrayBuffer())).toEqual(content)

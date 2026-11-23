@@ -12,7 +12,7 @@ $ARGUMENTS
 - 构建、测试、lint、格式化、类型检查和代码生成配置
 - CI 工作流与 pre-commit / 任务运行器配置
 - 已有的指令文件（`AGENTS.md`、`CLAUDE.md`、`.cursor/rules/`、`.cursorrules`、`.github/copilot-instructions.md`）
-- 仓库本地的 OpenCode 配置，例如 `opencode.json`
+- 仓库本地的 OpenCode 配置，例如 `aicraft.json`
 
 如果读完配置和文档后架构仍不清晰，检查少量有代表性的代码文件，找出真正的入口、包边界和执行流。优先读那些说明系统如何连接起来的文件，而不是随机的叶子文件。
 
@@ -56,7 +56,7 @@ $ARGUMENTS
 - 冗长的教程或详尽的文件树
 - 显而易见语言约定
 - 推测性的说法或任何你无法验证的内容
-- 更适合存放在另一个文件并通过 `opencode.json` 的 `instructions` 引用的内容
+- 更适合存放在另一个文件并通过 `aicraft.json` 的 `instructions` 引用的内容
 
 有疑问时就省略。
 

@@ -27,7 +27,7 @@ function open(page: Page, input: Partial<WorkspaceInput> = {}) {
     project: { icon: { color: "orange", override }, commands: { start: "echo setup" }, sandboxes },
     provider: NO_PROVIDER,
     configEntries: [
-      { type: "document", path: "/home/test/.config/opencode/opencode.jsonc", info: { shell: "/bin/zsh" } },
+      { type: "document", path: "/home/test/.config/opencode/aicraft.jsonc", info: { shell: "/bin/zsh" } },
       { type: "directory", path: "/home/test/.config/opencode" },
     ],
     shells: [
@@ -1182,12 +1182,12 @@ test.describe("worktrees prefetch", () => {
 const lsp: ConfigEntry[] = [
   {
     type: "document",
-    path: "/config/opencode.json",
+    path: "/config/aicraft.json",
     info: { lsp: { typescript: { command: ["typescript-language-server", "--stdio"], extensions: [".ts", ".tsx"] } } },
   },
   {
     type: "document",
-    path: `${directory}/opencode.jsonc`,
+    path: `${directory}/aicraft.jsonc`,
     info: { lsp: { typescript: { disabled: true }, rust: { command: ["rust-analyzer"], extensions: [".rs"] } } },
   },
 ]

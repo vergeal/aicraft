@@ -13,9 +13,9 @@ import { CLI_BINARIES, nodePtyPackage } from "./script/utils"
 const { FileMatcher } = createRequire(import.meta.resolve("electron-builder"))("app-builder-lib/out/fileMatcher")
 
 const channels = [
-  { channel: "dev", appId: "ai.opencode.desktop.dev", feed: "dev" },
-  { channel: "beta", appId: "ai.opencode.desktop.beta", feed: "beta" },
-  { channel: "prod", appId: "ai.opencode.desktop", feed: "latest" },
+  { channel: "dev", appId: "changhong.aicraft.desktop.dev", feed: "dev" },
+  { channel: "beta", appId: "changhong.aicraft.desktop.beta", feed: "beta" },
+  { channel: "prod", appId: "changhong.aicraft.desktop", feed: "latest" },
 ] as const
 
 function load(channel: string, target?: string): Configuration {
@@ -84,7 +84,7 @@ test("legacy Linux launcher stays hidden", async () => {
   const desktop = await Bun.file(path.join(import.meta.dirname, "resources/linux/opencode-desktop.desktop")).text()
   expect(desktop).toContain("Exec=/opt/OpenCode/ai.opencode %U")
   expect(desktop).toContain("Icon=ai.opencode")
-  expect(desktop).toContain("StartupWMClass=ai.opencode.desktop")
+  expect(desktop).toContain("StartupWMClass=changhong.aicraft.desktop")
   expect(desktop).toContain("NoDisplay=true")
 })
 

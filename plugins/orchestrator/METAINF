@@ -1,6 +1,6 @@
 {
   "apiVersion": 1,
-  "id": "changhong.orchestrator",
+  "id": "changhong.aicraft.orchestrator",
   "version": "0.1.3",
   "requires": {
     "opencode": "^2.2.5"

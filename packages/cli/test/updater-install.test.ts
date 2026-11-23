@@ -326,7 +326,7 @@ it.live("Homebrew Core installs check and upgrade the Core formula", () =>
     // An explicitly selected method keeps its own release source.
     expect(yield* test.updater.latest("npm")).toBe("2.3.4")
     expect(test.requests).toEqual([
-      "https://formulae.brew.sh/api/formula/opencode.json",
+      "https://formulae.brew.sh/api/formula/aicraft.json",
       "https://opencode.ai/update/api/local/cli/npm?current=local",
     ])
   }),
@@ -490,7 +490,7 @@ windows("windows links the curl binary before the installer replaces it", () =>
       false,
       "@opencode/cli",
       undefined,
-      (_root, home) => Effect.succeed(path.join(home, ".opencode", "bin", "opencode.exe")),
+      (_root, home) => Effect.succeed(path.join(home, ".aicraft", "bin", "opencode.exe")),
     )
     layout.executable = test.executable
     layout.cache = test.global.cache
@@ -517,7 +517,7 @@ unix("curl method detection resolves symlinked home directories", () =>
         Effect.gen(function* () {
           const fs = yield* FileSystem.FileSystem
           const realHome = path.join(root, "real-home")
-          const bin = path.join(realHome, ".opencode", "bin", "opencode")
+          const bin = path.join(realHome, ".aicraft", "bin", "opencode")
           yield* fs.makeDirectory(path.dirname(bin), { recursive: true })
           yield* fs.symlink(realHome, home)
           return bin

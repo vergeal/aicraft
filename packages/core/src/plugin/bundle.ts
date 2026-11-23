@@ -36,7 +36,7 @@ type Manifest = {
 /**
  * Installs an `.exc` bundle that already exists on this machine, so the app can offer one button instead of
  * explaining the container format. Versions live under the local discover directory, and the chosen one is verified
- * and unpacked into `~/.opencode/exc/<id>/`, where plugin discovery picks it up.
+ * and unpacked into `~/.aicraft/exc/<id>/`, where plugin discovery picks it up.
  */
 export async function install(input: {
   readonly id: string

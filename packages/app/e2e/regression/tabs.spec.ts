@@ -42,7 +42,7 @@ test("recently closed shows ten sessions and searches older closures in close or
       servers: [SERVER],
       tabs: [sessions[0]!.id],
       storage: {
-        "opencode.window.browser.dat:tabs.closed": sessions.slice(1).map((session, index) => ({
+        "aicraft.window.browser.dat:tabs.closed": sessions.slice(1).map((session, index) => ({
           tab: { type: "session", server: SERVER, sessionId: session.id },
           index,
           info: { title: session.title, directory: "C:/OpenCode/ClosedTabs", prompted: true },
@@ -98,7 +98,7 @@ test("recently closed keeps the keyboard-focused session in view when the menu o
       servers: [SERVER],
       tabs: [sessions[0]!.id],
       storage: {
-        "opencode.window.browser.dat:tabs.closed": sessions.slice(1).map((item, index) => ({
+        "aicraft.window.browser.dat:tabs.closed": sessions.slice(1).map((item, index) => ({
           tab: { type: "session", server: SERVER, sessionId: item.id },
           index,
           info: { title: item.title, directory: "C:/OpenCode/ClosedOverflow", prompted: true },
@@ -137,7 +137,7 @@ test("recently closed fills remaining slots in Home order without open or duplic
       servers: [SERVER],
       tabs: [sessions[0]!.id, sessions[2]!.id],
       storage: {
-        "opencode.window.browser.dat:tabs.closed": sessions.slice(10).map((session, index) => ({
+        "aicraft.window.browser.dat:tabs.closed": sessions.slice(10).map((session, index) => ({
           tab: { type: "session", server: SERVER, sessionId: session.id },
           index,
           info: { title: session.title, directory: "C:/OpenCode/OtherTabs", prompted: true },
@@ -267,16 +267,16 @@ test("inactive session attention dots share the close control without marking th
 test("the browser title names the open session and resets after leaving it", async ({ page }) => {
   await mockWorkspace(page, { name: "Tabs", sessions: [a, b] })
   await page.goto(sessionHref(a.id))
-  await expect(page).toHaveTitle(`${a.title} · OpenCode`)
+  await expect(page).toHaveTitle(`${a.title} · aicraft`)
 
   const tabB = page.locator(`[data-titlebar-tab-slot]:has(a[href="${sessionHref(b.id)}"])`)
   await tabB.locator("[data-titlebar-tab-link]").click()
   await expectPath(page, sessionHref(b.id))
-  await expect(page).toHaveTitle(`${b.title} · OpenCode`)
+  await expect(page).toHaveTitle(`${b.title} · aicraft`)
 
   await page.getByRole("button", { name: "Home", exact: true }).click()
   await expectPath(page, "/")
-  await expect(page).toHaveTitle("OpenCode")
+  await expect(page).toHaveTitle("aicraft")
 })
 
 for (const [tabLayout, direction, label] of [
@@ -1674,7 +1674,7 @@ test("opening a session from the inbox keeps the list's scroll position and rows
     seed: {
       settings: { appearance: { tabLayout: "inbox" } },
       tabs: [],
-      storage: { "opencode.global.dat:sidebar.inbox": { workingExpanded: true } },
+      storage: { "aicraft.global.dat:sidebar.inbox": { workingExpanded: true } },
     },
   })
   await page.goto("/")
@@ -1720,7 +1720,7 @@ test("the inbox Archived dialog searches only archived sessions and restores the
     seed: {
       settings: { appearance: { tabLayout: "inbox" } },
       tabs: [],
-      storage: { "opencode.global.dat:sidebar.inbox": { workingExpanded: true } },
+      storage: { "aicraft.global.dat:sidebar.inbox": { workingExpanded: true } },
     },
   })
   await page.goto("/")
@@ -1766,7 +1766,7 @@ test("opening a working session expands its shelf and still allows manual collap
     sessionStatus: { ses_working_selected: { type: "running" } },
     seed: {
       settings: { appearance: { tabLayout: "inbox" } },
-      storage: { "opencode.global.dat:sidebar.inbox": { workingExpanded: false } },
+      storage: { "aicraft.global.dat:sidebar.inbox": { workingExpanded: false } },
     },
   })
 
@@ -1819,7 +1819,7 @@ test("sessions opened from Home and Search get a temporary Current session row w
     seed: {
       settings: { appearance: { tabLayout: "inbox" } },
       tabs: [],
-      storage: { "opencode.global.dat:sidebar.inbox": { workingExpanded: true } },
+      storage: { "aicraft.global.dat:sidebar.inbox": { workingExpanded: true } },
     },
   })
   await page.goto("/")
@@ -2048,7 +2048,7 @@ async function mockGaveUpPermission(page: Page, tabLayout: "horizontal" | "inbox
     },
     seed: {
       settings: { appearance: { tabLayout }, permissions: { autoApprove: true } },
-      storage: { "opencode.global.dat:sidebar.inbox": { workingExpanded: true } },
+      storage: { "aicraft.global.dat:sidebar.inbox": { workingExpanded: true } },
     },
   })
   await page.route(new RegExp(`/api/session/${b.id}/permission/${permissionID}/reply(\\?|$)`), async (route) => {

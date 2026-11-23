@@ -23,7 +23,7 @@ const env = {
   ...process.env,
   HOME: root,
   USERPROFILE: root,
-  OPENCODE_DB: path.join(root, "opencode.db"),
+  OPENCODE_DB: path.join(root, "aicraft.db"),
   OPENCODE_TEST_HOME: root,
   XDG_CACHE_HOME: path.join(root, "cache"),
   XDG_CONFIG_HOME: path.join(root, "config"),

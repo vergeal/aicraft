@@ -1,6 +1,6 @@
 {
   "apiVersion": 1,
-  "id": "changhong.figma",
+  "id": "changhong.aicraft.figma",
   "version": "2.2.5",
   "requires": {
     "opencode": "^2.2.5"

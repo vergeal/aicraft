@@ -13,7 +13,7 @@ it.live("runs a plugin's uninstall callback before its directory is removed", ()
   Effect.gen(function* () {
     const home = path.join(os.tmpdir(), `oc-uninstall-${crypto.randomUUID()}`)
     // The installed bundle directory is also what the config loads, so the uninstall removes the plugin's own files.
-    const directory = path.join(home, ".opencode", "exc", id)
+    const directory = path.join(home, ".aicraft", "exc", id)
     const mark = path.join(home, "uninstall.json")
 
     yield* Effect.promise(() => mkdir(directory, { recursive: true }))

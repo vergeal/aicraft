@@ -21,7 +21,7 @@ const configuration = {
 it.effect("fills declared defaults and drops undeclared keys", () =>
   Effect.gen(function* () {
     const temp = yield* tmpdirScoped()
-    const data = path.join(temp.path, ".opencode", "plugin-data", "test.config")
+    const data = path.join(temp.path, ".aicraft", "plugin-data", "test.config")
     yield* Effect.promise(() => mkdir(data, { recursive: true }))
     yield* Effect.promise(() => writeFile(path.join(data, "config.json"), JSON.stringify({ mode: "rw", unknown: 1 })))
 

@@ -50,7 +50,7 @@ function profilePath(options: PluginOptions) {
   }
   // A separate directory from the old Playwright profile: a profile written by Playwright's bundled Chromium makes
   // the installed Chrome refuse to start while it migrates the data.
-  return join(homedir(), ".opencode", "webwright", "chrome-profile")
+  return join(homedir(), ".aicraft", "webwright", "chrome-profile")
 }
 
 /**

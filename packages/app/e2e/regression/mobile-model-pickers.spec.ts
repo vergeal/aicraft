@@ -357,7 +357,7 @@ async function openPickerSession(page: Page, direction: "ltr" | "rtl", paid: boo
   await page.addInitScript((direction) => {
     localStorage.setItem("opencode-color-scheme", direction === "rtl" ? "dark" : "light")
     localStorage.setItem(
-      "opencode.global.dat:model",
+      "aicraft.global.dat:model",
       JSON.stringify({
         user: ["a", "b", "c"].map((id) => ({ providerID: "opencode", modelID: `mobile-${id}`, visibility: "show" })),
         recent: [],

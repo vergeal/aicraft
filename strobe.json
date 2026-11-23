@@ -4,30 +4,30 @@
   "apps": {
     "opencode": {
       "exe": {
-        "windows": "%LOCALAPPDATA%/Programs/ai.opencode.desktop/OpenCode.exe",
-        "macos": "/Applications/OpenCode.app/Contents/MacOS/OpenCode"
+        "windows": "%LOCALAPPDATA%/Programs/changhong.aicraft.desktop/aicraft.exe",
+        "macos": "/Applications/aicraft.app/Contents/MacOS/aicraft"
       },
       "unset": ["OPENCODE_*", "OTEL_*", "SENTRY_*"],
       "env": {
-        "OPENCODE_DB": "{home}/.local/share/opencode/opencode.db",
-        "OPENCODE_CONFIG_DIR": "{home}/.config/opencode",
+        "OPENCODE_DB": "{home}/.local/share/aicraft/aicraft.db",
+        "OPENCODE_CONFIG_DIR": "{home}/.config/aicraft",
         "HTTP_PROXY": "http://127.0.0.1:9",
         "HTTPS_PROXY": "http://127.0.0.1:9",
         "NO_PROXY": "localhost,127.0.0.1,::1"
       },
-      "dirs": [".local/share/opencode"],
+      "dirs": [".local/share/aicraft"],
       "files": {
-        ".config/opencode/service.json": { "port": "{port}" },
+        ".config/aicraft/service.json": { "port": "{port}" },
         "AppData/Local/@opencodedesktop-updater": "a file, not a folder: the updater cannot stage a download while strobe measures"
       },
-      "guard": [{ "file": "~/.local/state/opencode/service.json", "pid": "pid", "url": "url" }],
+      "guard": [{ "file": "~/.local/state/aicraft/service.json", "pid": "pid", "url": "url" }],
       "protocols": ["opencode"]
     },
     "opencode-beta": {
       "extends": "opencode",
       "exe": {
-        "windows": "%LOCALAPPDATA%/Programs/ai.opencode.desktop.beta/OpenCode Beta.exe",
-        "macos": "/Applications/OpenCode Beta.app/Contents/MacOS/OpenCode Beta"
+        "windows": "%LOCALAPPDATA%/Programs/changhong.aicraft.desktop.beta/aicraft Beta.exe",
+        "macos": "/Applications/aicraft Beta.app/Contents/MacOS/aicraft Beta"
       }
     }
   }

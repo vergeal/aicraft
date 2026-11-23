@@ -25,13 +25,15 @@ import { arrayMove } from "@/runtime/array-move"
 import { useSettingsSurface } from "@/settings/surface"
 import { usePinnedSessions } from "@/session/pins"
 import { sessionLabel } from "@/session/title"
-import { SessionMenuCopyID, useCopySessionID } from "@/session/menu-items"
+import { SessionMenuCopyID, useCopySessionID, useCopyText } from "@/session/menu-items"
 import { SessionSettingsDialog } from "@/session/settings-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
 import { homeProjectDirectories } from "@/shell/layout/helpers"
 import { addProjects } from "@/home/projects/add"
+import { createProjectActions } from "@/home/projects/actions"
+import { fileManagerApp } from "@/home/projects/file-manager"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { showToast } from "@/shell/notifications/toast"
 import { sessionHref } from "@/shell/routes/session"
@@ -64,6 +66,22 @@ const RECENT_GROUP = "replica-sidebar-recent"
 const PINNED_GROUP = "replica-sidebar-pinned"
 
 const PROJECT_GROUP = "replica-sidebar-projects"
+
+/**
+ * One project folder in the workspace tree: the sessions that sit under it, plus the server and directory its
+ * actions run against. A session row reads both from its own entry; a folder spans entries, so they are settled
+ * when the folder is built.
+ */
+type ReplicaProjectGroup = {
+  key: string
+  name: string
+  entries: InboxEntry[]
+  /** Whether any session in the folder is pinned, which is why an emptied folder leaves the tree. */
+  pinned: boolean
+  server: ServerConnection.Key
+  conn: ServerConnection.Any
+  directory: string
+}
 
 /** One container per project: a session's index counts inside its own project, which is what its DOM order shows. */
 const projectSessionGroup = (key: string) => `${RECENT_GROUP}:${key}`
@@ -553,16 +571,27 @@ function SessionRow(props: {
 
 /**
  * One project row: a fold button that is also the project's sortable handle. The folder icon brightens when the
- * project holds the open session, so the tree and the conversation it came from stay connected.
+ * project holds the open session, so the tree and the conversation it came from stay connected. Right-click opens the
+ * actions a conversation row offers its session, so the folder is a way into the project rather than a dead label.
  */
 function ProjectRow(props: {
-  project: Accessor<{ key: string; name: string; entries: InboxEntry[]; pinned: boolean }>
+  project: Accessor<ReplicaProjectGroup>
   index: number
   active: Accessor<boolean>
   folded: Accessor<boolean>
   onToggle: () => void
   dropEdge: Accessor<"start" | "end" | undefined>
+  actions: ReturnType<typeof createProjectActions>
 }) {
+  const language = useLanguage()
+
+  const platform = usePlatform()
+
+  const copyPath = useCopyText({
+    title: language.t("toast.project.copyPath.failed.title"),
+    description: language.t("toast.project.copyPath.failed.description"),
+  })
+
   const sortable = useSortable({
     get id() {
       return `project:${props.project().key}`
@@ -579,35 +608,123 @@ function ProjectRow(props: {
     accept: (source) => source.data?.group === PROJECT_GROUP,
   })
 
+  const nativeMenu = () => !!platform.showContextMenu
+
+  const group = () => props.project()
+
+  /** The folder the project's sessions share: every action here runs against it. */
+  const directory = () => group().directory
+
+  // A folder on another machine has no place here to open, so that row leaves the menu entirely.
+  const canReveal = () => props.actions.canReveal(group().conn)
+
+  const revealLabel = () =>
+    language.t(
+      fileManagerApp(platform.platform === "desktop" ? (platform.os ?? "unknown") : "unknown").actionLabel,
+    )
+
+  // Desktop draws the platform menu; only the web build needs the in-app one.
+  const showNativeMenu = async (position: { x: number; y: number }) => {
+    const show = platform.showContextMenu
+
+    if (!show) return
+
+    const conn = group().conn
+
+    const chosen = await show(
+      [
+        { id: "newSession", label: language.t("command.session.new") },
+        { type: "separator" },
+        {
+          id: "fold",
+          label: language.t(props.folded() ? "replica.project.unfold" : "replica.project.fold"),
+        },
+        { type: "separator" },
+        { id: "copyPath", label: language.t("session.location.copyPath"), icon: "copy" },
+        ...(canReveal() ? [{ id: "reveal", label: revealLabel() }] : []),
+        { type: "separator" },
+        { id: "settings", label: `${language.t("project.settings.menu")}…`, icon: "project" },
+      ],
+      position,
+    )
+
+    if (chosen === "newSession") props.actions.openNewSession(conn, directory())
+    else if (chosen === "fold") props.onToggle()
+    else if (chosen === "copyPath") void copyPath(directory())
+    else if (chosen === "reveal") props.actions.reveal(conn, { worktree: directory() })
+    else if (chosen === "settings") props.actions.edit(conn, { worktree: directory() })
+  }
 
   return (
-    <button
-      type="button"
-      data-replica-control
-      ref={sortable.ref}
-      data-slot="replica-project-row"
-      data-state={props.active() ? "active" : undefined}
-      data-sortable-key={`project:${props.project().key}`}
-      data-sortable-group={PROJECT_GROUP}
-      data-dragging={sortable.isDragging() ? "" : undefined}
-      data-drop-target={props.dropEdge()}
-      aria-expanded={!props.folded()}
-      class={ROW}
-      onClick={props.onToggle}
-    >
-      <Icon
-        name={props.folded() ? "folder" : "folder-open"}
-        class="replica-project-icon size-4 shrink-0"
-      />
-      <span data-slot="replica-project-name" class="min-w-0 flex-1 truncate">
-        {props.project().name}
-      </span>
-      <Icon
-        name="chevron-down"
-        size="small"
-        class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
-      />
-    </button>
+    <Menu.Context modal={false}>
+      <Menu.Context.Trigger
+        as="button"
+        type="button"
+        data-replica-control
+        ref={sortable.ref}
+        data-slot="replica-project-row"
+        data-state={props.active() ? "active" : undefined}
+        data-sortable-key={`project:${props.project().key}`}
+        data-sortable-group={PROJECT_GROUP}
+        data-dragging={sortable.isDragging() ? "" : undefined}
+        data-drop-target={props.dropEdge()}
+        aria-expanded={!props.folded()}
+        class={ROW}
+        onClick={props.onToggle}
+        onContextMenu={(event) => {
+          if (!nativeMenu()) return
+          event.preventDefault()
+          void showNativeMenu({ x: event.clientX, y: event.clientY })
+        }}
+      >
+        <Icon
+          name={props.folded() ? "folder" : "folder-open"}
+          class="replica-project-icon size-4 shrink-0"
+        />
+        <span data-slot="replica-project-name" class="min-w-0 flex-1 truncate">
+          {props.project().name}
+        </span>
+        <Icon
+          name="chevron-down"
+          size="small"
+          class="replica-project-chevron shrink-0 text-[var(--color-icon-secondary)]"
+        />
+      </Menu.Context.Trigger>
+      <Menu.Context.Portal>
+        <Menu.Context.Content>
+          <Menu.Group>
+            <Menu.GroupLabel>{language.t("menu.group.open")}</Menu.GroupLabel>
+            <Menu.Item onSelect={() => props.actions.openNewSession(group().conn, directory())}>
+              {language.t("command.session.new")}
+            </Menu.Item>
+          </Menu.Group>
+          <Menu.Separator />
+          <Menu.Group>
+            <Menu.GroupLabel>{language.t("menu.group.organize")}</Menu.GroupLabel>
+            <Menu.Item onSelect={props.onToggle}>
+              {language.t(props.folded() ? "replica.project.unfold" : "replica.project.fold")}
+            </Menu.Item>
+          </Menu.Group>
+          <Menu.Separator />
+          <Menu.Group>
+            <Menu.GroupLabel>{language.t("menu.group.copyExport")}</Menu.GroupLabel>
+            <Menu.Item onSelect={() => void copyPath(directory())}>{language.t("session.location.copyPath")}</Menu.Item>
+            <Show when={canReveal()}>
+              <Menu.Item onSelect={() => props.actions.reveal(group().conn, { worktree: directory() })}>
+                {revealLabel()}
+              </Menu.Item>
+            </Show>
+          </Menu.Group>
+          <Menu.Separator />
+          <Menu.Group>
+            <Menu.GroupLabel>{language.t("menu.group.settings")}</Menu.GroupLabel>
+            <Menu.Item onSelect={() => props.actions.edit(group().conn, { worktree: directory() })}>
+              {language.t("project.settings.menu")}…
+            </Menu.Item>
+          </Menu.Group>
+        </Menu.Context.Content>
+      </Menu.Context.Portal>
+    </Menu.Context>
   )
 }
 
@@ -620,6 +737,10 @@ function ConversationNav() {
   const pins = usePinnedSessions()
   const dialog = useDialog()
   const pickDirectory = useDirectoryPicker()
+
+  // The folder menu runs the same actions the home project list does, so the sidebar asks that module for them once
+  // and hands the result to every row rather than rebuilding it per row.
+  const projectActions = createProjectActions()
 
   const openSearch = () =>
     void import("@/shell/commands/session-search").then(({ DialogSessionSearch }) =>
@@ -797,21 +918,32 @@ function ConversationNav() {
    * Pinned sessions are lifted into their own section, and a group left empty by that lift is dropped.
    */
   const projectGroups = createMemo(() => {
-    const groups = new Map<string, { key: string; name: string; entries: InboxEntry[] }>()
+    const groups = new Map<string, ReplicaProjectGroup>()
 
     for (const entry of recent()) {
       const project = entry.ctx.projects.forSession(entry.session)
-      const key = project?.id ?? project?.worktree ?? entry.session.location.directory
+      const directory = project?.worktree ?? entry.session.location.directory
+      const key = project?.id ?? directory
       const name = project
         ? displayName(project)
-        : entry.session.location.directory
-            .replace(/[\\/]+$/, "")
-            .split(/[\\/]/)
-            .pop() || key
+        : directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || key
       const group = groups.get(key)
 
-      if (group) group.entries.push(entry)
-      else groups.set(key, { key, name, entries: [entry] })
+      if (group) {
+        group.entries.push(entry)
+
+        continue
+      }
+
+      groups.set(key, {
+        key,
+        name,
+        entries: [entry],
+        pinned: false,
+        server: entry.server,
+        conn: entry.conn,
+        directory,
+      })
     }
 
     const pinned = pinnedIDs()
@@ -829,7 +961,7 @@ function ConversationNav() {
 
         if (entries.length === 0) return []
 
-        return [{ key: group.key, name: group.name, entries, pinned: marked }]
+        return [{ ...group, entries, pinned: marked }]
       })
       .toSorted((a, b) => rank(a.key) - rank(b.key))
   })
@@ -1161,6 +1293,7 @@ function ConversationNav() {
                       folded={() => foldedProjects().has(group().key)}
                       onToggle={() => toggleProject(group().key)}
                       dropEdge={() => slotEdge(`project:${group().key}`)}
+                      actions={projectActions}
                     />
                     {/* The sessions fold open by grid rows, so the column grows instead of the list appearing at once. */}
                     <div class="replica-project-sessions" data-collapsed={foldedProjects().has(group().key)}>

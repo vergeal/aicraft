@@ -33,5 +33,5 @@
 
 ```sh
 bun run build   # 产出 dist
-bun run pack    # 产出 ~/.distribution/plugins/changhong.itsm/<version>/*.exc
+bun run pack    # 产出 ~/.distribution/plugins/changhong.aicraft.itsm/<version>/*.exc
 ```

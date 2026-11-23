@@ -24,7 +24,7 @@ import { SkillIcon } from "./skill-icon"
 const isVirtual = (skill: SkillInfo) => skill.path.startsWith("skill://") || skill.path.startsWith("/builtin/")
 
 /**
- * Rewrites `metadata.opencode/autoinvoke` in a SKILL.md frontmatter block, leaving every other byte of the file
+ * Rewrites `metadata.aicraft/autoinvoke` in a SKILL.md frontmatter block, leaving every other byte of the file
  * intact. The server reads that key before `disable-model-invocation`, so writing it always wins.
  */
 function withAutoinvoke(text: string, enabled: boolean) {
@@ -416,7 +416,7 @@ export function InstallSkillDialog(props: {
 
   const id = () => props.initial?.id ?? fallbackId
   const root = () => trimDirectory(props.directory)
-  const target = () => `${root()}/.opencode/skill/${id()}/SKILL.md`
+  const target = () => `${root()}/.aicraft/skill/${id()}/SKILL.md`
 
   const submit = async () => {
     if (state.busy) return

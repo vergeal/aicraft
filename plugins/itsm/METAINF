@@ -1,6 +1,6 @@
 {
   "apiVersion": 1,
-  "id": "changhong.itsm",
+  "id": "changhong.aicraft.itsm",
   "version": "0.1.4",
   "requires": {
     "opencode": "^2.2.5"

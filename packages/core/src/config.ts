@@ -472,7 +472,7 @@ export const layer = (options?: Options) =>
 
       // The global files update() may write, resolved the same way in both places so a client's `writable` marker
       // cannot drift from the document a patch actually lands in. Only the global directory is eligible: the system
-      // directory (e.g. %ProgramData%\opencode) is not the user's to rewrite.
+      // directory (e.g. %ProgramData%\aicraft) is not the user's to rewrite.
       const writeTarget = Effect.fnUntraced(function* () {
         const directory = initial.global ?? AbsolutePath.make(globalService.config)
         const existing = yield* Effect.filter(
@@ -519,7 +519,7 @@ export const layer = (options?: Options) =>
           // Every global document is writable, so one patch can touch several files: each provider lands in the file
           // that already declares it. Plugins, shell and a provider with no home yet go to the default target.
           const target = yield* writeTarget()
-          const fallback = target.existing.at(-1) ?? path.join(target.directory, "opencode.jsonc")
+          const fallback = target.existing.at(-1) ?? path.join(target.directory, "aicraft.jsonc")
           const files = [...new Set([...target.existing, fallback])]
           const texts = new Map(
             yield* Effect.forEach(files, (file) =>

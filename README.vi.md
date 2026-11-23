@@ -80,7 +80,7 @@ brew install --cask opencode-desktop
 
 #### Thư mục cài đặt
 
-Tập lệnh cài đặt sẽ cài OpenCode vào `$HOME/.opencode/bin`.
+Tập lệnh cài đặt sẽ cài OpenCode vào `$HOME/.aicraft/bin`.
 
 ### Agents (Đại diện)
 

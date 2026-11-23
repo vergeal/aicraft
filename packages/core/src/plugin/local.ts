@@ -14,7 +14,7 @@ import path from "node:path"
 export const root = (home: string) => path.join(home, ".distribution", "plugins")
 
 /** Where installed bundles are unpacked, one directory per plugin id. */
-export const installRoot = (home: string) => path.join(home, ".opencode", "exc")
+export const installRoot = (home: string) => path.join(home, ".aicraft", "exc")
 
 type Manifest = {
   id?: unknown

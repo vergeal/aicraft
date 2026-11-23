@@ -489,24 +489,24 @@ test("updates effective duplicate canonical keybinds", async () => {
   const file = path.join(directory.path, "cli.json")
   await Bun.write(
     file,
-    `{"keybinds":{"session.delete":"first","session.delete":"last","opencode.settings":"off","opencode.settings":"on"}}`,
+    `{"keybinds":{"session.delete":"first","session.delete":"last","aicraft.settings":"off","aicraft.settings":"on"}}`,
   )
 
   const config = await run(
     directory.path,
     Effect.gen(function* () {
       const service = yield* Config.Service
-      expect((yield* service.get()).keybinds).toEqual({ "session.delete": "last", "opencode.settings": "on" })
+      expect((yield* service.get()).keybinds).toEqual({ "session.delete": "last", "aicraft.settings": "on" })
       return yield* service.update((draft) => {
-        draft.keybinds = { ...draft.keybinds, "session.delete": "changed", "opencode.settings": "changed" }
+        draft.keybinds = { ...draft.keybinds, "session.delete": "changed", "aicraft.settings": "changed" }
       })
     }),
   )
 
-  expect(config.keybinds).toEqual({ "session.delete": "changed", "opencode.settings": "changed" })
+  expect(config.keybinds).toEqual({ "session.delete": "changed", "aicraft.settings": "changed" })
   expect(parse(await Bun.file(file).text()).keybinds).toEqual({
     "session.delete": "changed",
-    "opencode.settings": "changed",
+    "aicraft.settings": "changed",
   })
 })
 

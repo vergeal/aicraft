@@ -19,7 +19,7 @@ const out = process.env.EXC_OUT
 
 await mkdir(out, { recursive: true })
 
-// A pack made before the output moved to `~/.opencode/exc` left its archive inside `dist/plugins`; never read it back.
+// A pack made before the output moved to `~/.aicraft/exc` left its archive inside `dist/plugins`; never read it back.
 const paths = (await walk(dist)).filter((path) => path !== "METAINF" && !path.startsWith("plugins/")).sort(compare)
 const files = await Promise.all(
   paths.map(async (path) => ({ path, bytes: new Uint8Array(await readFile(join(dist, path))) })),

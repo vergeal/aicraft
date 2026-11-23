@@ -22,7 +22,7 @@ CLI 和 TUI 的偏好设置与 OpenCode 的服务器和项目配置是分开的�
 
 ### [设置](https://opencode.ai/v2/docs/cli/config)
 
-编辑 `cli.json` 之前，先抓取完整的 [CLI 设置参考](https://opencode.ai/v2/docs/cli/config)。它记录了所有仅限终端的设置、可接受的值和示例，包括主题、输入、会话、标签页、diff、提醒、Mini、快捷键、终端插件和调试。不要把这些设置放进 `opencode.json(c)`。
+编辑 `cli.json` 之前，先抓取完整的 [CLI 设置参考](https://opencode.ai/v2/docs/cli/config)。它记录了所有仅限终端的设置、可接受的值和示例，包括主题、输入、会话、标签页、diff、提醒、Mini、快捷键、终端插件和调试。不要把这些设置放进 `aicraft.json(c)`。
 
 ### [快捷键](https://opencode.ai/v2/docs/cli/keybinds)
 
@@ -40,9 +40,9 @@ OpenCode 的服务器和项目配置使用 JSON 或 JSONC。包含已发布的 s
 }
 ```
 
-全局配置位于 `~/.config/opencode/opencode.json(c)`，对该用户的每个项目生效。项目配置可以放在任何目录，文件名为 `opencode.json(c)` 或 `.opencode/opencode.json(c)`，包括 monorepo 中嵌套的包。
+全局配置位于 `~/.config/opencode/aicraft.json(c)`，对该用户的每个项目生效。项目配置可以放在任何目录，文件名为 `aicraft.json(c)` 或 `.aicraft/aicraft.json(c)`，包括 monorepo 中嵌套的包。
 
-在常规的项目发现过程中，OpenCode 会搜索当前 Location 目录及其所有祖先目录直到文件系统根目录，包括检测到的项目或仓库根目录之上的目录。它按从最远祖先到当前目录的顺序合并直接的 `opencode.json(c)` 文件，然后对 `.opencode/opencode.json(c)` 文件做同样的事。这意味着每个被发现的 `.opencode` 配置都会覆盖每个被发现的直接配置。全局文件系统配置的优先级低于这些被发现的文档。
+在常规的项目发现过程中，OpenCode 会搜索当前 Location 目录及其所有祖先目录直到文件系统根目录，包括检测到的项目或仓库根目录之上的目录。它按从最远祖先到当前目录的顺序合并直接的 `aicraft.json(c)` 文件，然后对 `.aicraft/aicraft.json(c)` 文件做同样的事。这意味着每个被发现的 `.opencode` 配置都会覆盖每个被发现的直接配置。全局文件系统配置的优先级低于这些被发现的文档。
 
 常见的配置字段包括 `model`、`default_agent`、`permissions`、`agents`、`commands`、`plugins`、`providers`、`mcp`、`skills`、`instructions`、`references`、`formatter` 和 `lsp`。
 
@@ -73,7 +73,7 @@ OAuth 凭据存储在 OpenCode 配置之外。当服务器支持 OAuth 时，不
 
 对于任何把 OpenCode 配置、agent、命令、技能、插件、集成或其他行为从 V1 迁移到 V2 的请求，在行动之前阅读完整的[迁移指南](https://opencode.ai/v2/docs/migrate-v1)。在仓库中，其源码是 `services/www/src/docs/content/migrate-v1.mdx`。
 
-V1 配置文件和 `.opencode/` 定义有意保持兼容。唯一有意的破坏性变更是服务器 API 和插件 API。原生 V2 配置使用更符合人体工学的结构，但转换是可选的。当用户请求转换时，检查完整配置，保留行为与无关设置，只应用指南中相关的迁移。对于插件迁移，同时抓取并遵循迁移指南和完整的[插件指南](https://opencode.ai/v2/docs/build/plugins)。如果非 API 的 V1 功能在 V2 中失败，使用 `report` 技能把它作为兼容性缺陷提交。
+V1 配置文件和 `.aicraft/` 定义有意保持兼容。唯一有意的破坏性变更是服务器 API 和插件 API。原生 V2 配置使用更符合人体工学的结构，但转换是可选的。当用户请求转换时，检查完整配置，保留行为与无关设置，只应用指南中相关的迁移。对于插件迁移，同时抓取并遵循迁移指南和完整的[插件指南](https://opencode.ai/v2/docs/build/plugins)。如果非 API 的 V1 功能在 V2 中失败，使用 `report` 技能把它作为兼容性缺陷提交。
 
 ## [插件](https://opencode.ai/v2/docs/build/plugins)
 

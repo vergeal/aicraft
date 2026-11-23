@@ -214,7 +214,7 @@ const standard = <S extends Schema.ConstraintCodec<unknown, unknown>>(schema: S)
  * and run history. It lives on the plugin's own storage, not in a Project, so the workbench needs no Session.
  */
 export const Definition = Rpc.define({
-  id: "changhong.itsm",
+  id: "changhong.aicraft.itsm",
   methods: {
     snapshot: { input: standard(Schema.Struct({})), output: standard(Snapshot) },
     saveAccount: { input: standard(Account), output: standard(Schema.Struct({ account: Account })) },

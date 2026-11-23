@@ -19,7 +19,7 @@ const env = {
   ),
   HOME: root,
   USERPROFILE: root,
-  OPENCODE_DB: path.join(root, "opencode.db"),
+  OPENCODE_DB: path.join(root, "aicraft.db"),
   OPENCODE_DISABLE_MODELS_FETCH: "1",
   XDG_CACHE_HOME: path.join(root, "cache"),
   XDG_CONFIG_HOME: path.join(root, "config"),

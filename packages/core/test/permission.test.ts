@@ -184,7 +184,7 @@ describe("Permission", () => {
   test("matches file rules without case where file systems ignore it by default", () => {
     const rules: Permission.Ruleset = [
       { action: "*", resource: "*", effect: "allow" },
-      { action: "edit", resource: ".opencode/*", effect: "ask" },
+      { action: "edit", resource: ".aicraft/*", effect: "ask" },
       { action: "read", resource: "*.env", effect: "deny" },
       { action: "shell", resource: "git push*", effect: "ask" },
     ]
@@ -195,8 +195,8 @@ describe("Permission", () => {
     expect(Permission.evaluate("shell", "GIT PUSH origin dev", rules).effect).toBe(
       process.platform === "win32" ? "ask" : "allow",
     )
-    expect(Wildcard.match(".OPENCODE/x", ".opencode/*", true)).toBe(true)
-    expect(Wildcard.match(".OPENCODE/x", ".opencode/*")).toBe(process.platform === "win32")
+    expect(Wildcard.match(".OPENCODE/x", ".aicraft/*", true)).toBe(true)
+    expect(Wildcard.match(".OPENCODE/x", ".aicraft/*")).toBe(process.platform === "win32")
   })
 
   it.effect("allows managed output reads without granting external directory access", () =>

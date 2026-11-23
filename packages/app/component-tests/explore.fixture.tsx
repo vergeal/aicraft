@@ -47,14 +47,14 @@ const sample: CatalogPlugin[] = [
 /** A discoverable bundle: it ships as one `.exc` file, so the card shows the bundle instead of a package. */
 export const webwrightCatalog: CatalogPlugin[] = [
   {
-    id: "opencode.webwright",
+    id: "changhong.aicraft.webwright",
     name: "Webwright",
     category: "automation",
-    author: "OpenCode",
+    author: "Changhong",
     description: "让 AI 直接操作浏览器：打开网页、点击、填表、抓取内容。",
-    package: "opencode.webwright",
+    package: "changhong.aicraft.webwright",
     repository: "https://github.com/anomalyco/opencode/tree/dev/plugins/webwright",
-    bundle: { file: "opencode.webwright-2.2.5.exc", format: "exc" },
+    bundle: { file: "changhong.aicraft.webwright-2.3.1.exc", format: "exc" },
     skills: [{ name: "Webwright", description: "用 webwright.* 工具操作专用浏览器。" }],
   },
 ]
@@ -62,8 +62,8 @@ export const webwrightCatalog: CatalogPlugin[] = [
 /** What the server reports once that bundle is unpacked into the plugins directory. */
 export const webwrightInstalled: PluginInfo[] = [
   {
-    id: "opencode.webwright",
-    source: { type: "local", path: "plugins/opencode.webwright" },
+    id: "changhong.aicraft.webwright",
+    source: { type: "local", path: "plugins/webwright" },
     features: { server: true },
     state: { status: "active" },
     display: {

@@ -799,7 +799,7 @@ function resolveDirectory(directory: string) {
 function nextPath(options: Options, data: string) {
   if (options.nextDatabasePath) return options.nextDatabasePath
   if (process.env.OPENCODE_DB === ":memory:") return undefined
-  return path.join(data, "opencode-next.db")
+  return path.join(data, "aicraft-next.db")
 }
 
 function openNextDatabase(sourcePath: string) {
@@ -833,7 +833,7 @@ function importNextDatabase(
     Effect.gen(function* () {
       const source = yield* openNextDatabase(sourcePath)
       if (!isNextDatabase(source)) {
-        yield* Effect.logWarning("Skipped incompatible opencode-next.db", { path: sourcePath })
+        yield* Effect.logWarning("Skipped incompatible aicraft-next.db", { path: sourcePath })
         return
       }
       source.run("BEGIN")
@@ -954,7 +954,7 @@ function selectNextRows<A>(source: SQLiteDatabase, table: "project" | "session",
     .filter(([column, strategy]) => strategy === "required" && !columns.has(column))
     .map(([column]) => column)
   if (missing.length)
-    throw new Error(`Incompatible opencode-next.db: ${table} is missing required columns: ${missing.join(", ")}`)
+    throw new Error(`Incompatible aicraft-next.db: ${table} is missing required columns: ${missing.join(", ")}`)
   const projection = Object.entries(definition).map(([column, strategy]) => {
     if (columns.has(column)) return `"${column}"`
     if (

@@ -451,7 +451,7 @@ describe("ConfigSkillPlugin.Plugin", () => {
           )
           yield* Effect.yieldNow
 
-          yield* configTest.emitChange({ type: "update", path: path.join(tmp.path, "opencode.json") })
+          yield* configTest.emitChange({ type: "update", path: path.join(tmp.path, "aicraft.json") })
           yield* configTest.emitChange({ type: "create", path: path.join(tmp.path, "commands", "review.md") })
           yield* configTest.emitChange({ type: "create", path: path.join(tmp.path, "agents", "reviewer.md") })
           yield* drain

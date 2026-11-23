@@ -10,7 +10,7 @@ export interface Source {
   readonly user: string
   readonly database?: string
   readonly passwordEnv?: string
-  /** Only set when a user accepted putting a plaintext password in opencode.json. */
+  /** Only set when a user accepted putting a plaintext password in aicraft.json. */
   readonly password?: string
 }
 
@@ -26,7 +26,7 @@ export interface Settings {
 }
 
 /**
- * Source entries come from two places: `opencode.json` options (static, committed with the project) and the plugin's
+ * Source entries come from two places: `aicraft.json` options (static, committed with the project) and the plugin's
  * user-level `configuration` (runtime, string[] only). Later entries win by name, so the runtime config can correct a
  * project default without duplicating it.
  *

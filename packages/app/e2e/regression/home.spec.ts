@@ -65,7 +65,7 @@ test("Home lists projects and sessions when stored state hides every server", as
   await mockStressTimeline(page)
   await seed(page, { usedProjects: { local: [fixture.project.id] } })
   // A second seed merges into the server entry the first one wrote.
-  await seed(page, { storage: { "opencode.global.dat:server": { hidden: { [fixture.serverKey]: true } } } })
+  await seed(page, { storage: { "aicraft.global.dat:server": { hidden: { [fixture.serverKey]: true } } } })
   await page.goto("/")
 
   await expect(
@@ -102,7 +102,7 @@ test("the session context menu pins, renames, exports, and deletes a Home sessio
   await expect(rows.first()).toContainText(fixture.expected.sourceTitle)
   await expect
     .poll(() =>
-      page.evaluate(() => JSON.parse(localStorage.getItem("opencode.global.dat:home.pinned-sessions") ?? "{}")),
+      page.evaluate(() => JSON.parse(localStorage.getItem("aicraft.global.dat:home.pinned-sessions") ?? "{}")),
     )
     .toMatchObject({ pinned: [fixture.sourceID] })
 
@@ -271,7 +271,7 @@ test("Home migrates the directories an older build listed to the server's curren
   await page.goto("/")
   await expect(view.rows).toHaveText(["api", "web"])
   await expect
-    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("opencode.global.dat:server") ?? "{}")))
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("aicraft.global.dat:server") ?? "{}")))
     .toMatchObject({ usedProjectIDs: { local: ["proj_api", "proj_web"] }, projects: {} })
 })
 
@@ -349,7 +349,7 @@ test("a server whose saved password changes works with the new password", async 
   // Saved with the password the server accepts until the test changes it.
   await seed(page, {
     storage: {
-      "opencode.global.dat:server": {
+      "aicraft.global.dat:server": {
         list: [{ type: "http", displayName: "Remote", http: { url: REMOTE_SERVER, password: "old-password" } }],
       },
     },

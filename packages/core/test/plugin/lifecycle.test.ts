@@ -52,8 +52,8 @@ it.effect("creates the plugin directories before activate and keeps data after u
 
     expect(existsSync(paths.data)).toBe(true)
     expect(existsSync(paths.cache)).toBe(true)
-    expect(paths.data.endsWith(path.join(".opencode", "plugin-data", target))).toBe(true)
-    expect(paths.log.endsWith(path.join(".opencode", "logs", "plugin", `${target}.log`))).toBe(true)
+    expect(paths.data.endsWith(path.join(".aicraft", "plugin-data", target))).toBe(true)
+    expect(paths.log.endsWith(path.join(".aicraft", "logs", "plugin", `${target}.log`))).toBe(true)
 
     yield* plugins.uninstall(Plugin.ID.make(target))
 

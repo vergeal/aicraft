@@ -78,15 +78,15 @@ describe("Memory", () => {
   it.effect("keeps each plugin's memories in its own prefix", () =>
     Effect.gen(function* () {
       const kv = yield* KV.Service
-      const saved = yield* Memory.savePlugin(kv, "changhong.hyt", { text: "群聊默认回短句", tags: ["风格"], now })
+      const saved = yield* Memory.savePlugin(kv, "changhong.aicraft.hyt", { text: "群聊默认回短句", tags: ["风格"], now })
       yield* Memory.savePlugin(kv, "acme.notes", { text: "笔记用 markdown", tags: [], now: "2026-01-02T00:00:00.000Z" })
 
-      const hyt = yield* Memory.readScope(kv, Memory.pluginPrefix("changhong.hyt"), 10)
+      const hyt = yield* Memory.readScope(kv, Memory.pluginPrefix("changhong.aicraft.hyt"), 10)
       expect(hyt.map((entry) => entry.text)).toEqual(["群聊默认回短句"])
       expect(yield* Memory.findPluginEntry(kv, "acme.notes", saved.entry.id)).toBeUndefined()
 
       const groups = yield* Memory.readPlugins(kv, 10)
-      expect(groups.map((group) => group.plugin)).toEqual(["acme.notes", "changhong.hyt"])
+      expect(groups.map((group) => group.plugin)).toEqual(["acme.notes", "changhong.aicraft.hyt"])
       expect(groups[1]!.entries.map((entry) => entry.text)).toEqual(["群聊默认回短句"])
     }),
   )
@@ -94,8 +94,8 @@ describe("Memory", () => {
   it.effect("updates and removes only the owning plugin's entry", () =>
     Effect.gen(function* () {
       const kv = yield* KV.Service
-      const saved = yield* Memory.savePlugin(kv, "changhong.hyt", { text: "用中文", tags: [], now })
-      const updated = yield* Memory.updatePlugin(kv, "changhong.hyt", {
+      const saved = yield* Memory.savePlugin(kv, "changhong.aicraft.hyt", { text: "用中文", tags: [], now })
+      const updated = yield* Memory.updatePlugin(kv, "changhong.aicraft.hyt", {
         id: saved.entry.id,
         text: "用简体中文",
         tags: ["语言"],
@@ -107,8 +107,8 @@ describe("Memory", () => {
         yield* Memory.updatePlugin(kv, "acme.notes", { id: saved.entry.id, text: "被改", tags: [], now }),
       ).toBeUndefined()
 
-      yield* Memory.removePlugin(kv, "changhong.hyt", saved.entry.id)
-      expect(yield* Memory.readScope(kv, Memory.pluginPrefix("changhong.hyt"), 10)).toHaveLength(0)
+      yield* Memory.removePlugin(kv, "changhong.aicraft.hyt", saved.entry.id)
+      expect(yield* Memory.readScope(kv, Memory.pluginPrefix("changhong.aicraft.hyt"), 10)).toHaveLength(0)
     }),
   )
 

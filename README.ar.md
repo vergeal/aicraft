@@ -80,7 +80,7 @@ brew install --cask opencode-desktop
 
 #### مجلد التثبيت
 
-يثبت سكربت التثبيت OpenCode في `$HOME/.opencode/bin`.
+يثبت سكربت التثبيت OpenCode في `$HOME/.aicraft/bin`.
 
 ### Agents
 

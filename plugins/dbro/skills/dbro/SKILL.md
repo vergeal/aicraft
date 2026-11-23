@@ -41,7 +41,7 @@ biz=dm://user@10.0.0.5:5236/SCHEMA
 mysql://readonly@10.0.0.6:3306/im
 ```
 
-- 项目级静态配置放 `opencode.json` 里插件的 `options.sources`，可以写字符串或对象数组。
+- 项目级静态配置放 `aicraft.json` 里插件的 `options.sources`，可以写字符串或对象数组。
 - 用户级运行配置放插件设置的 `sources`（只支持字符串数组），同名条目覆盖 `options`。
 - `defaultSource` 指定不传 `source` 时用哪个源。
 - 达梦的 `database` 实际是 schema；MySQL 的 `database` 是库名；PostgreSQL 的 `database` 是连接库名，结构查询用它当 schema。

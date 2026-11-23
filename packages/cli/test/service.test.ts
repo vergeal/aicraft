@@ -852,7 +852,7 @@ function serviceEnv(root: string) {
     BUN_RUNTIME_TRANSPILER_CACHE_PATH: transpilerCache,
     HOME: root,
     OPENCODE_CONFIG_DIR: undefined,
-    OPENCODE_DB: path.join(root, "opencode.db"),
+    OPENCODE_DB: path.join(root, "aicraft.db"),
     OPENCODE_TEST_HOME: root,
     XDG_CACHE_HOME: path.join(root, "cache"),
     XDG_CONFIG_HOME: path.join(root, "config"),

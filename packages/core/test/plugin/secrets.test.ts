@@ -17,7 +17,7 @@ it.effect("round-trips a secret without writing plain text", () =>
     yield* secrets.set("token", "hunter2")
     expect(yield* secrets.get("token")).toBe("hunter2")
 
-    const file = path.join(temp.path, ".opencode", "secrets", "test.secrets.json")
+    const file = path.join(temp.path, ".aicraft", "secrets", "test.secrets.json")
     const text = yield* Effect.promise(() => readFile(file, "utf8"))
     expect(text).not.toContain("hunter2")
     expect((yield* Effect.promise(() => stat(file))).mode & 0o777).toBe(0o600)
@@ -35,7 +35,7 @@ it.effect("keeps the key private and stable across reads", () =>
 
     yield* first.set("token", "one")
     expect(yield* second.get("token")).toBe("one")
-    expect((yield* Effect.promise(() => stat(path.join(temp.path, ".opencode", "secrets.key")))).mode & 0o777).toBe(0o600)
+    expect((yield* Effect.promise(() => stat(path.join(temp.path, ".aicraft", "secrets.key")))).mode & 0o777).toBe(0o600)
   }),
 )
 
@@ -46,7 +46,7 @@ it.effect("names the file after the plugin id", () =>
 
     yield* secrets.set("token", "one")
 
-    expect(yield* Effect.promise(() => stat(path.join(temp.path, ".opencode", "secrets", "@scope+plugin.json"))))
+    expect(yield* Effect.promise(() => stat(path.join(temp.path, ".aicraft", "secrets", "@scope+plugin.json"))))
       .toBeDefined()
   }),
 )

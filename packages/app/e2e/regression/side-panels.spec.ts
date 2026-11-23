@@ -45,7 +45,7 @@ test("new tab selection and closing stay in the focused pane", async ({ page }) 
     seed: {
       panes: { ses_panenewtabs: { review: true } },
       storage: {
-        "opencode.global.dat:layout": {
+        "aicraft.global.dat:layout": {
           sessionTabs: {
             [key]: {
               all: ["file://README.md", "file://notes.md"],
@@ -190,7 +190,7 @@ test("tabs in a narrow side strip shrink to keep their close buttons, and a tab'
     seed: {
       panes: { ses_narrowstrip: { review: true, sessionWidth: 640 } },
       storage: {
-        "opencode.global.dat:layout": {
+        "aicraft.global.dat:layout": {
           sessionTabs: { [key]: { all: files.map((file) => `file://${file}`), active: `file://${files[1]}` } },
         },
       },
@@ -261,7 +261,7 @@ test("the new tab view lists recently closed tabs, expands to the rest, and keep
     seed: {
       panes: { ses_recentlyclosed: { review: true } },
       storage: {
-        "opencode.global.dat:layout": {
+        "aicraft.global.dat:layout": {
           sessionTabs: { [key]: { all: ["file://README.md"], active: "file://README.md" } },
           sessionView: { [key]: { scroll: {}, closed } },
         },

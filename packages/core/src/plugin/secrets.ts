@@ -14,10 +14,10 @@ const algorithm = "aes-256-gcm"
 
 type Ciphertext = Record<string, string>
 
-const keyFile = (home: string) => path.join(home, ".opencode", "secrets.key")
+const keyFile = (home: string) => path.join(home, ".aicraft", "secrets.key")
 
 const file = (home: string, id: string) =>
-  path.join(home, ".opencode", "secrets", `${id.replaceAll(/[\\/]/g, "+")}.json`)
+  path.join(home, ".aicraft", "secrets", `${id.replaceAll(/[\\/]/g, "+")}.json`)
 
 /** Creates the user key on first use. Two processes racing for it resolve to whichever key landed first. */
 async function readKey(home: string) {

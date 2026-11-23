@@ -33,7 +33,7 @@ export type CatalogPlugin = {
   integrated?: boolean
   /**
    * A single-file `.exc` bundle. There is no package to fetch and no config entry to write: the host unpacks the
-   * file into `~/.opencode/exc/<id>/`, so the card shows the bundle instead of offering a package install.
+   * file into `~/.aicraft/exc/<id>/`, so the card shows the bundle instead of offering a package install.
    */
   bundle?: { file: string; format: "exc" }
   /** The version shown on the install card. */

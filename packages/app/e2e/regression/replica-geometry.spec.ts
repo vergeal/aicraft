@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { sessionHref, T0 } from "../utils/app"
-import { mockWorkspace } from "../utils/workspace"
+import { mockWorkspace, newSessionLocation } from "../utils/workspace"
 
 test.use({ serviceWorkers: "block" })
 
@@ -227,4 +227,57 @@ test("replica rail switches the navigation column per destination", async ({ pag
   await expect(page).toHaveURL(/\/settings/)
   await expect(page.getByTestId("settings-screen")).toBeVisible()
   await expect(page.locator('[data-ui="navigation-sidebar"]')).toHaveCount(0)
+})
+
+// The workspace tree's folder row answers a right-click the way a conversation row does, so the folder is a way into
+// the project instead of a label that only folds.
+test("replica workspace folder context menu", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 960 })
+  await mockWorkspace(page, {
+    name: "ReplicaFolderMenu",
+    sessions: [
+      { id: "ses_folder_menu_a", title: "对齐文件夹右键" },
+      { id: "ses_folder_menu_b", title: "补全工作区动作" },
+    ],
+    seed: { locale: "zh" },
+  })
+  await page.goto(sessionHref("ses_folder_menu_a"))
+
+  const folder = page.locator('[data-slot="replica-project-row"]')
+  await expect(folder).toBeVisible({ timeout: 15_000 })
+
+  await folder.click({ button: "right" })
+
+  const menu = page.getByRole("menu")
+  await expect(menu.getByRole("menuitem", { name: "新建会话", exact: true })).toBeVisible()
+  await expect(menu.getByRole("menuitem", { name: "折叠会话", exact: true })).toBeVisible()
+  await expect(menu.getByRole("menuitem", { name: "复制路径", exact: true })).toBeVisible()
+  await expect(menu.getByRole("menuitem", { name: "项目设置…", exact: true })).toBeVisible()
+
+  await menu.getByRole("menuitem", { name: "折叠会话", exact: true }).click()
+
+  await expect(folder).toHaveAttribute("aria-expanded", "false")
+  await expect(page.getByRole("menu")).toHaveCount(0)
+})
+
+test("replica workspace folder starts a session in its project", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 960 })
+  await mockWorkspace(page, {
+    name: "ReplicaFolderNewSession",
+    sessions: [{ id: "ses_folder_new_session", title: "从文件夹开新会话" }],
+    seed: { locale: "zh" },
+  })
+  await page.goto(sessionHref("ses_folder_new_session"))
+
+  const folder = page.locator('[data-slot="replica-project-row"]')
+  await expect(folder).toBeVisible({ timeout: 15_000 })
+
+  await folder.click({ button: "right" })
+
+  const menu = page.getByRole("menu")
+  await menu.getByRole("menuitem", { name: "新建会话", exact: true }).click()
+
+  // Home is the new-chat page in this shell, so the draft lands there instead of under a /new-session URL.
+  await expect(page).not.toHaveURL(/\/session\//)
+  await expect(newSessionLocation(page)).toContainText("ReplicaFolderNewSession")
 })

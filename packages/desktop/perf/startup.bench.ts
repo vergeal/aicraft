@@ -65,7 +65,7 @@ export default bench({
       unset: ["OPENCODE_*", "OTEL_*", "SENTRY_*"],
       env: {
         OPENCODE_CONFIG_DIR: "{home}/config",
-        OPENCODE_DB: "{home}/data/opencode.db",
+        OPENCODE_DB: "{home}/data/aicraft.db",
         OPENCODE_TEST_HOME: "{home}/home",
         OPENCODE_TEST_ONBOARDING: "0",
         OPENCODE_DESKTOP_TEST_ROOT: "{home}",
@@ -128,10 +128,10 @@ export default bench({
           for (const dir of ["data", "config", "cache", "state", "desktop", "session", "home"])
             mkdirSync(join(root, dir), { recursive: true })
           writeFileSync(
-            join(root, "desktop", "opencode.settings"),
+            join(root, "desktop", "aicraft.settings"),
             JSON.stringify({ firstLaunchOnboardingComplete: true }),
           )
-          writeFileSync(join(root, "desktop", "opencode.global.dat"), JSON.stringify({ language: '{"locale":"en"}' }))
+          writeFileSync(join(root, "desktop", "aicraft.global.dat"), JSON.stringify({ language: '{"locale":"en"}' }))
           devHome = root
         },
       },
@@ -141,7 +141,7 @@ export default bench({
   // that holds its registration.
   async teardown() {
     if (!devHome) return
-    await Service.stop({ file: join(devHome, "desktop", "opencode", "service-local.json") })
+    await Service.stop({ file: join(devHome, "desktop", "aicraft", "service-local.json") })
     devHome = undefined
   },
 })
@@ -153,10 +153,10 @@ function skipOnboarding(ctx: LaunchContext<unknown>) {
   const name = basename(ctx.exe!, ".exe")
 
   const id = /beta/i.test(name)
-    ? "ai.opencode.desktop.beta"
+    ? "changhong.aicraft.desktop.beta"
     : /dev/i.test(name)
-      ? "ai.opencode.desktop.dev"
-      : "ai.opencode.desktop"
+      ? "changhong.aicraft.desktop.dev"
+      : "changhong.aicraft.desktop"
 
   const file = join(ctx.home!, "AppData", "Roaming", id, "opencode.settings")
   const settings = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {}

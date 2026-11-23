@@ -1295,7 +1295,7 @@ describe("ShellTool", () => {
       return Effect.gen(function* () {
         yield* Effect.promise(() =>
           Bun.write(
-            path.join(tmp.path, "opencode.json"),
+            path.join(tmp.path, "aicraft.json"),
             JSON.stringify({ tool_output: { max_lines: 2, max_bytes: 1_000 } }),
           ),
         )

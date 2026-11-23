@@ -1,8 +1,8 @@
-# changhong.orchestrator
+# changhong.aicraft.orchestrator
 
 把一批任务变成一台自动推进的状态机：记台账、按依赖派发、收回结构化结果、跑机械核对。插件**不做判断**——拆任务、裁决冲突、失败归因、合入都留给 PM（agent）。
 
-需求与行为以 `../../.opencode/plan/orchestrator-plugin-spec.md`（v2.1）为准；实现决策见 `DESIGN.md`。
+需求与行为以 `../../.aicraft/plan/orchestrator-plugin-spec.md`（v2.1）为准；实现决策见 `DESIGN.md`。
 
 ## 装什么
 
@@ -43,5 +43,5 @@ cd plugins/orchestrator
 bun test
 bun run typecheck
 bun run build   # dist/
-bun run pack    # ~/.distribution/plugins/changhong.orchestrator/<version>/
+bun run pack    # ~/.distribution/plugins/changhong.aicraft.orchestrator/<version>/
 ```

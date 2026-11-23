@@ -39,7 +39,7 @@ const PYTHON_MIRROR = "https://mirrors.ustc.edu.cn/github-release/astral-sh/pyth
 const PYPI_INDEX = "https://mirrors.ustc.edu.cn/pypi/simple"
 
 /**
- * Each plugin's interpreter environment lives under the same `~/.opencode` root as installed bundles, one directory
+ * Each plugin's interpreter environment lives under the same `~/.aicraft` root as installed bundles, one directory
  * per id, next to the other per-plugin directories so uninstall removes it with them. Nothing here touches the
  * system's site-packages.
  */
@@ -248,7 +248,7 @@ async function download(input: {
   const arch = input.uv?.arch ?? process.arch
   const asset = uvAsset(platform, arch)
   if (!asset) return { error: `uv publishes no release for ${platform}/${arch}` }
-  const directory = path.join(input.home, ".opencode", "bin")
+  const directory = path.join(input.home, ".aicraft", "bin")
   const target = path.join(directory, asset.executable)
   // A finished binary is the only answer needed, so two plugins preparing at once download once.
   if (await available(target)) return { command: target }

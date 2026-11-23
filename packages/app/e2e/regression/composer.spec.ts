@@ -521,7 +521,7 @@ test("a catalog refresh cannot replace an existing session's model", async ({ pa
     sessions: [{ id: sessionID, agent: "build", model: { id: "alpha", providerID: "opencode", variant: "high" } }],
     provider: () => catalog.current,
     onPrompt: (input) => void prompts.push(input.body),
-    seed: { storage: { "opencode.global.dat:model": { recent: [{ providerID: "opencode", modelID: "beta" }] } } },
+    seed: { storage: { "aicraft.global.dat:model": { recent: [{ providerID: "opencode", modelID: "beta" }] } } },
   })
 
   const control = page.locator('[data-action="composer-model"]')
@@ -590,7 +590,7 @@ test("an existing session's model never shows a fallback while its agent loads",
     name: "AgentPending",
     sessions: [{ id: sessionID, agent: "build", model: { id: "alpha", providerID: "opencode" } }],
     provider: provider({ id: "alpha", name: "Alpha" }, { id: "beta", name: "Beta" }),
-    seed: { storage: { "opencode.global.dat:model": { recent: [{ providerID: "opencode", modelID: "beta" }] } } },
+    seed: { storage: { "aicraft.global.dat:model": { recent: [{ providerID: "opencode", modelID: "beta" }] } } },
   })
   const agents = Promise.withResolvers<void>()
   await page.route(/\/api\/agent(\?|$)/, async (route) => {
@@ -788,7 +788,7 @@ test("a managed composer label follows direct connections, not picker filtering 
     onPrompt: (input) => void prompts.push(input.body),
     seed: {
       storage: {
-        "opencode.global.dat:model": {
+        "aicraft.global.dat:model": {
           user: [
             { providerID: "console-openai", modelID: "gpt", visibility: "show" },
             { providerID: "openai", modelID: "direct-model", visibility: "show" },
@@ -1449,7 +1449,7 @@ test("marks a Console provider with its workspace only when it is also connected
     },
     seed: {
       storage: {
-        "opencode.global.dat:model": {
+        "aicraft.global.dat:model": {
           user: [
             ["opencode", "console-model"],
             ["console-google", "managed-gemini"],

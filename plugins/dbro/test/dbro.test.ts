@@ -8,7 +8,7 @@ import * as Sources from "../src/sources.js"
 
 describe("exc manifest", () => {
   test("reserves the dbro namespace and advertises its skill", () => {
-    expect(manifest.id).toBe("changhong.dbro")
+    expect(manifest.id).toBe("changhong.aicraft.dbro")
     expect(manifest.display.tools).toEqual(["dbro.*"])
     expect((manifest.skills ?? []).map((skill) => skill.id)).toEqual(["dbro"])
     for (const skill of manifest.skills ?? []) expect(existsSync(join(import.meta.dir, "..", skill.path))).toBe(true)

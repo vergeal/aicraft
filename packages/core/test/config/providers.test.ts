@@ -49,7 +49,7 @@ describe("Config.update providers", () => {
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
         const project = path.join(tmp.path, "project")
-        const file = path.join(global, "opencode.jsonc")
+        const file = path.join(global, "aicraft.jsonc")
         return Effect.promise(async () => {
           await fs.mkdir(global, { recursive: true })
           await fs.mkdir(project, { recursive: true })
@@ -104,7 +104,7 @@ describe("Config.update providers", () => {
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
         const project = path.join(tmp.path, "project")
-        const file = path.join(global, "opencode.jsonc")
+        const file = path.join(global, "aicraft.jsonc")
         const original = `{
   // keep my comment
   "shell": "zsh",
@@ -147,7 +147,7 @@ describe("Config.update providers", () => {
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
         const project = path.join(tmp.path, "project")
-        const file = path.join(global, "opencode.jsonc")
+        const file = path.join(global, "aicraft.jsonc")
         return Effect.promise(async () => {
           await fs.mkdir(global, { recursive: true })
           await fs.mkdir(project, { recursive: true })
@@ -200,7 +200,7 @@ describe("Config.update providers", () => {
               const config = yield* Config.Service
 
               yield* config.update!({ providers: { gateway: provider("Gateway", "https://x.example/v1", ["m"]) } })
-              const created = path.join(global, "opencode.jsonc")
+              const created = path.join(global, "aicraft.jsonc")
               expect(readDocument(yield* Effect.promise(() => fs.readFile(created, "utf8"))).providers).toHaveProperty(
                 "gateway",
               )
@@ -224,9 +224,9 @@ describe("Config.update providers", () => {
         return Effect.promise(async () => {
           await fs.mkdir(global, { recursive: true })
           await fs.mkdir(project, { recursive: true })
-          await fs.writeFile(path.join(global, "opencode.json"), JSON.stringify({ shell: "zsh" }))
-          await fs.writeFile(path.join(global, "opencode.jsonc"), JSON.stringify({ shell: "fish" }))
-          await fs.writeFile(path.join(project, "opencode.json"), JSON.stringify({ shell: "bash" }))
+          await fs.writeFile(path.join(global, "aicraft.json"), JSON.stringify({ shell: "zsh" }))
+          await fs.writeFile(path.join(global, "aicraft.jsonc"), JSON.stringify({ shell: "fish" }))
+          await fs.writeFile(path.join(project, "aicraft.json"), JSON.stringify({ shell: "bash" }))
         }).pipe(
           Effect.andThen(
             Effect.gen(function* () {
@@ -236,8 +236,8 @@ describe("Config.update providers", () => {
                 (entry): entry is Document => entry.type === "document" && entry.writable === true,
               )
               expect(writable.map((entry) => entry.path)).toEqual([
-                AbsolutePath.make(path.join(global, "opencode.json")),
-                AbsolutePath.make(path.join(global, "opencode.jsonc")),
+                AbsolutePath.make(path.join(global, "aicraft.json")),
+                AbsolutePath.make(path.join(global, "aicraft.jsonc")),
               ])
             }).pipe(Effect.provide(layer(project, global))),
           ),
@@ -251,8 +251,8 @@ describe("Config.update providers", () => {
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
         const project = path.join(tmp.path, "project")
-        const json = path.join(global, "opencode.json")
-        const jsonc = path.join(global, "opencode.jsonc")
+        const json = path.join(global, "aicraft.json")
+        const jsonc = path.join(global, "aicraft.jsonc")
         const jsoncText = `{
   // untouched
   "disabled_providers": ["hxnewapi"],
@@ -293,7 +293,7 @@ describe("Config.update providers", () => {
       Effect.flatMap((tmp) => {
         const global = path.join(tmp.path, "global")
         const project = path.join(tmp.path, "project")
-        const file = path.join(global, "opencode.json")
+        const file = path.join(global, "aicraft.json")
         return Effect.promise(async () => {
           await fs.mkdir(global, { recursive: true })
           await fs.mkdir(project, { recursive: true })

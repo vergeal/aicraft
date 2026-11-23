@@ -63,7 +63,7 @@ export const SettingsExtensions: Component<{
   }
 
   // Language servers come from the same document the MCP note points at, and they are read-only here: enabling or
-  // disabling one belongs to opencode.json, so this tab reports what is configured instead of editing it.
+  // disabling one belongs to aicraft.json, so this tab reports what is configured instead of editing it.
   const languageServers = createQuery(() => ({
     queryKey: [serverSdk.scope, "settings-extensions-language-servers"],
     enabled: serverSdk.connection.status() === "connected",

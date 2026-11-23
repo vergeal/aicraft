@@ -33,7 +33,7 @@ let backgroundColor: string | undefined
 
 export function windowAppearance(path: Path.Path, paths: DesktopPaths.Resolved) {
   return {
-    title: "OpenCode",
+    title: "aicraft",
     icon: iconPath(path, paths),
     // Every platform keeps the window transparent so the replica chrome draws over the system material: macOS
     // vibrancy, Windows acrylic, and on Linux the compositor's own blur.

@@ -19,7 +19,7 @@ it.live("rejects assigning a library the server has no copy of and lists a synce
     const dir = (yield* tmpdirScoped("opencode-knowledge-api-")).path
     const handler = yield* ServerFetch.make({
       app: { version: "test" },
-      database: { path: path.join(dir, "opencode.db") },
+      database: { path: path.join(dir, "aicraft.db") },
       config: { directory: dir, project: true, claude: false },
       models: { fetch: false },
       fs: { filewatcher: false },

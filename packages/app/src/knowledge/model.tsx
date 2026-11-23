@@ -19,6 +19,7 @@ import { previewPath, transition, type PreviewState } from "./preview-machine"
 import { useKnowledgeLibraries, type KnowledgeFile, type KnowledgeFlag, type KnowledgeLibrary } from "./store"
 import { isKnowledgeLibraryOnServer, removeKnowledgeLibraryFromServer, syncKnowledgeLibrary } from "./sync"
 import { reviewLibrary } from "./summary"
+import "./knowledge.css"
 
 /**
  * The knowledge model: the libraries, the open one, the file selection and the preview. The navigation column and
@@ -323,11 +324,11 @@ export function createKnowledge() {
   }
 
   /** One entry point: the picker accepts folders and files together, several at a time. */
-  const runImport = async () => {
+  const runImport = async (sources?: ReadonlyArray<string>) => {
     const target = library()
 
     if (!target || importing()) return
-    const paths = await pickKnowledgeSources(platform)
+    const paths = sources?.length ? [...sources] : await pickKnowledgeSources(platform)
 
     if (!paths.length) return
 
@@ -505,6 +506,7 @@ export function createKnowledge() {
 }
 
 export type Knowledge = ReturnType<typeof createKnowledge>
+
 /** Only ignored kinds carry a reason label; duplicates explain the document they matched instead. */
 function ignoredReasonKey(reason: KnowledgeDiscardReason) {
   if (reason === "unsupported") return "knowledge.discards.reason.unsupported" as const

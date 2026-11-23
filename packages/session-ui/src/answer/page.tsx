@@ -1790,7 +1790,7 @@ function ErrorRow(props: { text: string }) {
   )
 }
 
-/** A scheduled retry stays one line: the attempt it is on, shimmering while it waits. */
+/** A scheduled retry stays one line: the attempt it is on, shimmering while it waits, with the provider's reason behind a button. */
 function RetryRow(props: { attempt: number; text: string }) {
   const i18n = useI18n()
 
@@ -1805,9 +1805,46 @@ function RetryRow(props: { attempt: number; text: string }) {
       <span class="shrink-0 font-[530]">
         <TextShimmer text={i18n.t("ui.answer.retry", { attempt: props.attempt })} active />
       </span>
-      <span class="min-w-0 truncate" style={{ color: "var(--answer-ink-tertiary)" }}>
-        <bdi dir="auto">{props.text}</bdi>
-      </span>
+      <Show when={props.text}>
+        <button
+          type="button"
+          data-slot="answer-retry-view"
+          class="flex h-[20px] w-fit shrink-0 items-center gap-1 rounded-full border-[0.5px] border-v2-border-border-base px-2 text-[11px] leading-[16px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+          style={{ color: "var(--answer-ink-secondary)", background: "var(--v2-background-bg-base)" }}
+          onClick={(event) => {
+            const next = event.currentTarget.nextElementSibling
+
+            if (next instanceof HTMLDialogElement) next.showModal()
+          }}
+        >
+          {i18n.t("ui.answer.retry.view")}
+        </button>
+        <dialog
+          data-slot="answer-retry-dialog"
+          aria-label={i18n.t("ui.answer.retry.errorDetails")}
+          class="max-h-[70vh] max-w-[min(680px,90vw)] rounded-[12px] border-[0.5px] border-v2-border-border-base p-4 backdrop:bg-black/30"
+          style={{ background: "var(--v2-background-bg-base)", color: "var(--answer-ink)" }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) event.currentTarget.close()
+          }}
+        >
+          <div class="flex flex-col gap-2">
+            <span class="text-[13px] leading-[20px]">{i18n.t("ui.answer.retry.errorDetails")}</span>
+            <pre class="max-h-[50vh] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]">
+              {props.text}
+            </pre>
+            <form method="dialog" class="flex items-center justify-end">
+              <button
+                type="submit"
+                class="text-[12px] leading-[20px] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+                style={{ color: "var(--answer-ink-secondary)" }}
+              >
+                {i18n.t("ui.answer.inspect.close")}
+              </button>
+            </form>
+          </div>
+        </dialog>
+      </Show>
     </div>
   )
 }

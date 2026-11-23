@@ -157,6 +157,8 @@ const source = {
   "ui.answer.failed": "Failed",
   "ui.answer.error.title": "Response failed",
   "ui.answer.retry": "Retrying · attempt {{attempt}}",
+  "ui.answer.retry.view": "View",
+  "ui.answer.retry.errorDetails": "Error details",
   "ui.answer.step.thinking": "Analyzing the request",
   "ui.answer.step.read": "Reading files",
   "ui.answer.step.readImage": "Reading images",

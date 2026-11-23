@@ -222,6 +222,8 @@ export const dict = {
   "ui.answer.failed": "失败",
   "ui.answer.error.title": "回复失败",
   "ui.answer.retry": "正在重试 · 第 {{attempt}} 次",
+  "ui.answer.retry.view": "查看",
+  "ui.answer.retry.errorDetails": "错误详情",
   "ui.answer.step.thinking": "正在分析请求",
   "ui.answer.step.read": "正在读取文件",
   "ui.answer.step.readImage": "正在读取图片",

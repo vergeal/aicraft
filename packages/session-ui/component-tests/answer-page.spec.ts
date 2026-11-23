@@ -743,3 +743,17 @@ story("keeps a turn open when the reader opened a step inside it", async ({ moun
   await expect(header).toHaveAttribute("aria-expanded", "true")
   await expect(window.locator('[data-slot="answer-io-card"]')).toHaveCount(1)
 })
+
+story("keeps the retry reason behind a button on the answer page", async ({ mount }) => {
+  const root = await mount("answer-page--retrying")
+  const row = root.locator('[data-slot="answer-retry"]')
+  const reason = "Rate limit reached for requests"
+
+  await expect(row.locator('[data-slot="answer-retry-view"]')).toBeVisible()
+  await expect(row.getByText(reason)).not.toBeVisible()
+
+  await row.locator('[data-slot="answer-retry-view"]').click()
+  const dialog = root.locator('[data-slot="answer-retry-dialog"]')
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toContainText(reason)
+})

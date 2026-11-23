@@ -196,6 +196,32 @@ export const RunningPhase = {
   ),
 }
 
+// A pending retry keeps the provider's reason behind a button instead of trailing it on the row.
+const retrying: SessionMessageInfo[] = [
+  { id: "msg_user_retry", type: "user", text: "再跑一次。", time: { created: TIME } },
+  {
+    ...assistant("msg_assistant_retry", [{ type: "text", text: "正在重新生成回复。" }], TIME + 1_000),
+    retry: {
+      attempt: 2,
+      at: TIME + 4_000,
+      error: {
+        type: "provider",
+        status: 429,
+        message:
+          'Provider returned error: 429 {"error":{"message":"Rate limit reached for requests on tokens per min (TPM)","type":"tokens"}}',
+      },
+    },
+  },
+]
+
+export const Retrying = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => retrying} />
+    </div>
+  ),
+}
+
 const longDetail: SessionMessageInfo[] = [
   { id: "msg_user_ld", type: "user", text: "跑个很长的命令。", time: { created: TIME } },
   assistant(

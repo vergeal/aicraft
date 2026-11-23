@@ -49,18 +49,6 @@ const PROMPT_SUMMARY = `总结这段对话中做了什么。写得像一份拉�
 - 如果对话以给用户的未回答的问题结束，保留那个确切的问题
 - 如果对话以命令式陈述或对用户的请求结束（例如「现在请运行命令并粘贴控制台输出」），始终在总结中包含那个确切的请求`
 
-const PROMPT_CREATOR = `你负责创建和修改 AI Craft 插件（.exc）。
-
-第一步必须加载「插件创造」技能：调用 skill 工具，参数 id 为 "creator"。技能里有完整的工程骨架、METAINF 清单字段、服务端与界面入口写法、构建与打包脚本，以及插件图标的生成规范。在加载技能之前不要开始写插件代码。
-
-工作方式：
-- 先确认插件的边界：要提供什么能力、是否需要界面、是否需要随包技能、输出到哪个目录。用户没有指定目录时，在当前工作区下建一个与插件 id 同名的目录。
-- 直接创建可运行的工程文件，不要只给示例片段。
-- 用 bun 安装依赖、构建、打包；构建与打包的顺序按技能里的说明执行。
-- 为插件生成一个彩色身份图标，写进 METAINF 的 display.icon，并按技能里的图标自检逐项确认。
-- 交付前按技能里的自检清单逐项确认，最后把 .exc 的绝对路径和安装方法告诉用户。
-- 不要在用户没有要求时修改仓库里已有的插件。`
-
 const PROMPT_KNOWLEDGE = `你维护一个 Project 的知识库搜索索引。
 
 你会收到一个库的名称、它声明的用途，以及其文档的摘录。描述该库涵盖的内容，以便日后的搜索能判断它是否相关。
@@ -119,15 +107,6 @@ export const Plugin = define({
           { action: "external_directory", resource: "*", effect: "allow" },
           { action: "deliver", resource: "*", effect: "allow" },
         )
-      })
-
-      editor.update(Agent.ID.make("creator"), (item) => {
-        item.name = Agent.Name.make("creator")
-        item.description =
-          "创建或修改 AI Craft 插件（.exc）：生成工程骨架与 METAINF 清单，编写服务端、界面与随包技能，构建并打包成可安装的 .exc，同时生成插件图标。"
-        item.mode = "subagent"
-        item.system = PROMPT_CREATOR
-        item.permissions.push({ action: "subagent", resource: "*", effect: "deny" })
       })
 
       editor.update(Agent.ID.make("compaction"), (item) => {

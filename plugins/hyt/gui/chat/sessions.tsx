@@ -3,7 +3,7 @@ import { For, Show, createMemo } from "solid-js"
 import type { DraftRow, SearchHit, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
-import { Face } from "./avatar.js"
+import { Face, GroupFace } from "./avatar.js"
 import { dayLabel, rowTime } from "./util.js"
 
 /**
@@ -184,10 +184,17 @@ export function Rail(props: {
                       props.onPersonMenu(row.session, event)
                     }}
                   >
-                    <Face
-                      name={row.session.members[0]?.name ?? row.session.name}
-                      src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
-                    />
+                    <Show
+                      when={row.session.group}
+                      fallback={
+                        <Face
+                          name={row.session.members[0]?.name ?? row.session.name}
+                          src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
+                        />
+                      }
+                    >
+                      <GroupFace />
+                    </Show>
                   </span>
                   <span class="entry-text">
                     <span class="entry-head">

@@ -412,6 +412,11 @@ export const css = `
 
 .hyt-shell .face[data-hue="a"] { background: var(--face-a-bg); color: var(--face-a-fg); }
 
+/* 群聊默认头像：24px 画布铺满头像框，不随成员变化。 */
+.hyt-shell .face--group { background: transparent; }
+.hyt-shell .face--group svg,
+.hyt-shell .head-face svg { display: block; width: 100%; height: 100%; }
+
 .hyt-shell .face--sm {
   width: 30px;
   height: 30px;

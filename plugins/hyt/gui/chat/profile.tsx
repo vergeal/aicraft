@@ -1,6 +1,6 @@
 import type { Context } from "@opencode/plugin/gui"
 import { Show, createSignal, onCleanup, onMount } from "solid-js"
-import { Face } from "./avatar.js"
+import { Face, GroupFace } from "./avatar.js"
 import { text } from "./i18n.js"
 
 /** 一个人（或一个群）在卡片里能确认的身份，全部来自本地库。 */
@@ -110,7 +110,12 @@ export function ProfileCard(props: {
           }}
         >
           <div class="profile-who">
-            <Face class="face profile-face" name={opened.person.name} src={opened.person.head} />
+            <Show
+              when={opened.person.group === true}
+              fallback={<Face class="face profile-face" name={opened.person.name} src={opened.person.head} />}
+            >
+              <GroupFace class="profile-face" />
+            </Show>
             <div class="profile-id">
               <div class="profile-name">
                 {opened.person.name}

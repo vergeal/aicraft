@@ -1,6 +1,6 @@
 import type { Context, IpcClient } from "@opencode/plugin/gui"
 import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
-import { avatarOf } from "./avatar.js"
+import { GroupMark, avatarOf } from "./avatar.js"
 import { Blank } from "./blank.js"
 import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"
@@ -302,7 +302,7 @@ export function ChatPage(props: {
   const personOfSession = (session: SessionRow): Person => ({
     account: session.id,
     name: session.name,
-    head: headOf(session.members[0]?.headPath),
+    head: session.group ? undefined : headOf(session.members[0]?.headPath),
     online: session.online,
     department: departmentOf(session.group ? undefined : session.id),
     group: session.group,
@@ -626,11 +626,14 @@ export function ChatPage(props: {
           <header class="head">
             <Show when={selected()}>
               <span class="head-face" aria-hidden="true">
-                <Show
-                  when={headSource()}
-                  fallback={(selected()?.members[0]?.name ?? selected()?.name ?? "").slice(0, 2)}
-                >
-                  <img src={headSource()} alt="" onError={() => setHeadBroken(true)} />
+                {/* 群聊没有「脸」，固定用群头像；单聊才取对方的头像。 */}
+                <Show when={selected()?.group !== true} fallback={<GroupMark />}>
+                  <Show
+                    when={headSource()}
+                    fallback={(selected()?.members[0]?.name ?? selected()?.name ?? "").slice(0, 2)}
+                  >
+                    <img src={headSource()} alt="" onError={() => setHeadBroken(true)} />
+                  </Show>
                 </Show>
               </span>
               <div class="head-text">
@@ -763,7 +766,8 @@ export function ChatPage(props: {
 
   function headAvatar() {
     const session = selected()
-    const path = session?.members[0]?.headPath ?? ""
+    if (session === undefined || session.group) return undefined
+    const path = session.members[0]?.headPath ?? ""
     if (path.length === 0) return undefined
     const value = avatarMap()[path]
     return value === undefined || value.length === 0 ? undefined : value

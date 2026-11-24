@@ -27,6 +27,26 @@
   content: "\200B";
 }
 
+/* The attachment strip's edge fades only mark chips that are actually scrolled out of view, so a single attachment
+   never sits under a gradient. The strip reports its overflow as data attributes. */
+[data-slot="composer-attachments-fade-left"],
+[data-slot="composer-attachments-fade-right"] {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+[data-slot="composer-attachments-scroll"][data-overflow-start="true"] ~ [data-slot="composer-attachments-fade-left"],
+[data-slot="composer-attachments-scroll"][data-overflow-end="true"] ~ [data-slot="composer-attachments-fade-right"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="composer-attachments-fade-left"],
+  [data-slot="composer-attachments-fade-right"] {
+    transition: none;
+  }
+}
+
 /* The attachment strip and the draft are two rows of one card: the strip ends flush and the draft starts 6px later,
    so they read as one stack instead of two separately padded blocks. */
 [data-slot="composer-content"]:has(> [data-component="composer-attachments"]) [data-component="composer-editor"],
@@ -202,14 +222,14 @@
   }
 }
 
-/* Matches the 16px session title fade. The top fade only covers the editor's 16px top padding until text scrolls
-   under it. */
+/* Matches the 16px session title fade. Both fades track the scroll, so a resting draft never sits behind a
+   gradient: the top one only opens once text has scrolled under the edge. */
 [data-component="composer-scroll"],
 [data-slot="composer-content"][data-history-preview] {
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    black 16px,
+    black var(--composer-fade-top, 0px),
     black calc(100% - var(--composer-fade-bottom, 0px)),
     transparent
   );

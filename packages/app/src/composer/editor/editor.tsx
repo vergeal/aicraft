@@ -149,12 +149,15 @@ export function ComposerEditor(props: ComposerEditorProps) {
 
   // The bottom fade shrinks with the remaining scroll so the last line ends clear of it.
   const [fadeBottom, setFadeBottom] = createSignal(0)
+  // The top fade only exists once text has scrolled under the edge: a resting draft must not sit behind a gradient.
+  const [fadeTop, setFadeTop] = createSignal(0)
 
   const updateScroll = () => {
     const scroller = historyLayout.height !== undefined ? content : viewport
 
     if (!scroller) return
     setFadeBottom(Math.min(16, Math.max(0, scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop)))
+    setFadeTop(scroller.scrollTop > 1 ? 16 : 0)
   }
 
   onMount(() => {
@@ -323,7 +326,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           data-scrollable
           class="min-h-0"
           classList={{ "flex-1 overflow-y-auto no-scrollbar": historyLayout.height !== undefined }}
-          style={{ "--composer-fade-bottom": `${fadeBottom()}px` }}
+          style={{ "--composer-fade-bottom": `${fadeBottom()}px`, "--composer-fade-top": `${fadeTop()}px` }}
           onScroll={updateScroll}
         >
           <Show when={state.mode === "normal"}>
@@ -883,6 +886,30 @@ function ComposerAttachments(props: {
   const percent = (upload: Upload) => (upload.size === 0 ? 100 : Math.floor((upload.loaded / upload.size) * 100))
   // A quote added with its editor open renders its chip in the same update, so the anchors are reactive.
   const [anchors, setAnchors] = createStore<Record<string, HTMLElement | undefined>>({})
+  // The strip's edge fades only mark content that is actually scrolled out of view; a single attachment or a strip
+  // that fits must not sit under a gradient.
+  const [strip, setStrip] = createStore({ start: false, end: false })
+  let stripViewport!: HTMLDivElement
+
+  const updateStrip = () => {
+    if (!stripViewport) return
+    const offset = Math.abs(stripViewport.scrollLeft)
+    setStrip({
+      start: offset > 1,
+      end: stripViewport.scrollWidth - stripViewport.clientWidth - offset > 1,
+    })
+  }
+
+  createResizeObserver(() => stripViewport, updateStrip)
+  // A new chip changes the strip's scroll width without resizing the viewport, so re-measure after each update.
+  // Attachments keep a fixed 58px frame, so their previews never change that width once mounted.
+  createEffect(() => {
+    props.attachments.length
+    props.comments?.length
+    props.files?.length
+    props.uploads?.length
+    updateStrip()
+  })
 
   // Plain functions, not inline conditionals: the tooltip reads these from event handlers, outside any owner.
   const quoteTitle = (comment: ComposerComment) => (comment.type === "quote" ? quoteTooltip(comment) : undefined)
@@ -909,8 +936,12 @@ function ComposerAttachments(props: {
     >
       <div data-component="composer-attachments" data-slot="composer-attachments" class="relative">
         <div
+          ref={stripViewport}
           data-slot="composer-attachments-scroll"
-          class="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar px-2 pt-3 pb-0"
+          data-overflow-start={strip.start}
+          data-overflow-end={strip.end}
+          onScroll={updateStrip}
+          class="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar ps-5 pe-2 pt-3 pb-0"
         >
           <For each={props.comments ?? []}>
             {(comment) => (
@@ -1007,7 +1038,10 @@ function ComposerAttachments(props: {
                         </AttachmentCard>
                       }
                     >
-                      <Show when={src()} fallback={<div class="w-[58px] h-[46px]" />}>
+                      <Show
+                        when={src()}
+                        fallback={<div class="h-[46px] w-[58px] rounded-[6px] bg-v2-background-bg-layer-02" />}
+                      >
                         {(value) => (
                           <img
                             src={value()}

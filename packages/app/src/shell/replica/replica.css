@@ -132,8 +132,10 @@
   --color-sidebar: rgb(35 35 36 / 95%);
   --color-navigation: rgb(35 35 36 / 92%);
   --color-main: #151517;
-  --color-composer: var(--v2-background-bg-layer-02);
-  --replica-composer-fill: var(--v2-background-bg-layer-02);
+  /* The composer sits on the reference input's fill (#343434): one quiet step above the canvas, and a touch warmer
+     than the design system's layer-02 (#3a3a3a), which read too light beside the conversation. */
+  --color-composer: #343434;
+  --replica-composer-fill: #343434;
   --color-hover: rgb(255 255 255 / 8%);
   /* The selected row steps up to the design system's layer-3 (#353638) instead of a wash: a wash of white over the
      surface never separated the row from its neighbours. */
@@ -978,6 +980,24 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 /* The v6 idle composer is a single 88px card: the editor keeps the full width and the toolbar sits under it. */
 [data-replica] [data-component="composer-editor"] {
   min-height: 0;
+}
+
+/* The reference input card is 100px tall: a 56px draft region over the shared 44px toolbar. The shared composer
+   ships a tighter 10px/4px inset, so the replica restates the draft's own padding rather than resizing the card. */
+[data-replica] [data-component="composer"] [data-component="composer-editor"],
+[data-replica] [data-component="composer"] [data-slot="composer-placeholder"] {
+  padding-top: 16px;
+  padding-bottom: 18px;
+}
+
+/* A card that carries attachments is no longer one row of draft text: the strip owns the top padding, so the draft
+   keeps its 6px lead under it. */
+[data-replica]
+  [data-component="composer"]
+  [data-slot="composer-content"]:has(> [data-component="composer-attachments"])
+  :is([data-component="composer-editor"], [data-slot="composer-placeholder"]) {
+  padding-top: 6px;
+  padding-bottom: 10px;
 }
 
 /* The side panel is part of the conversation surface, not a card floating beside it: it takes the shell's corner

@@ -13,6 +13,17 @@ type Row =
   | { kind: "divider"; key: string; label: string }
   | { kind: "message"; key: string; message: MessageRow; grouped: boolean; self: boolean }
 
+/** 两行渲染出的内容是否相同；相同就让 `<For>` 继续沿用它上一轮的对象。 */
+function sameRow(left: Row, right: Row) {
+  if (left.kind !== right.kind) return false
+  if (left.kind === "message" && right.kind === "message")
+    return left.message === right.message && left.grouped === right.grouped && left.self === right.self
+  if (left.kind === "system" && right.kind === "system") return left.body === right.body
+  if (left.kind === "day" && right.kind === "day") return left.label === right.label
+  if (left.kind === "divider" && right.kind === "divider") return left.label === right.label
+  return false
+}
+
 /**
  * 消息流。
  *
@@ -24,6 +35,8 @@ type Row =
 export function MessageStream(props: {
   ctx: Context
   messages: readonly MessageRow[]
+  /** 单聊对方正在输入；群聊恒为 false。 */
+  typing: boolean
   hasMore: boolean
   newMessageId: number
   loadingMore: boolean
@@ -88,6 +101,11 @@ export function MessageStream(props: {
     if (atBottom()) scrollToBottom()
   })
 
+  // 「正在输入」是流末尾临时长出来的一行：原本贴着底就跟着滚下去，否则会藏在视口下方看不到。
+  createEffect(() => {
+    if (props.typing && atBottom()) scrollToBottom()
+  })
+
   createEffect(() => {
     const id = props.focusId
     if (id === undefined) return
@@ -103,6 +121,19 @@ export function MessageStream(props: {
     props.onFocusDone()
   })
 
+  /**
+   * 行对象按 key 复用。
+   *
+   * `<For>` 按引用做 diff；每轮都新建行对象就等于每轮重建整片消息（图片重新解码、展开态丢失、滚动跳一截）。
+   * 内容没变的行沿用上一轮的对象，只有真正变化的那一行换新的。
+   */
+  const rowCache = new Map<string, Row>()
+  const cachedRow = (row: Row): Row => {
+    const old = rowCache.get(row.key)
+    if (old !== undefined && sameRow(old, row)) return old
+    rowCache.set(row.key, row)
+    return row
+  }
   const rows = createMemo(() => {
     const out: Row[] = []
     let lastDay = ""
@@ -110,23 +141,25 @@ export function MessageStream(props: {
     for (const message of props.messages) {
       const day = dayLabel(props.ctx, message.createdAt)
       if (day !== lastDay) {
-        out.push({ kind: "day", key: `day:${message.createdAt}`, label: day })
+        out.push(cachedRow({ kind: "day", key: `day:${message.createdAt}`, label: day }))
         lastDay = day
         previous = undefined
       }
 
       if (props.newMessageId > 0 && message.id === props.newMessageId) {
         const count = props.messages.filter((item) => item.id >= props.newMessageId).length
-        out.push({
-          kind: "divider",
-          key: `divider:${message.id}`,
-          label: text(props.ctx, "hyt.chat.messages.divider", { count }),
-        })
+        out.push(
+          cachedRow({
+            kind: "divider",
+            key: `divider:${message.id}`,
+            label: text(props.ctx, "hyt.chat.messages.divider", { count }),
+          }),
+        )
         previous = undefined
       }
 
       if (message.kind === "recall" || message.kind === "notice") {
-        out.push({ kind: "system", key: `sys:${message.id}`, body: systemLine(props.ctx, message) })
+        out.push(cachedRow({ kind: "system", key: `sys:${message.id}`, body: systemLine(props.ctx, message) }))
         previous = undefined
         continue
       }
@@ -136,9 +169,14 @@ export function MessageStream(props: {
         !message.outgoing &&
         previous.sender === message.sender &&
         message.createdAt - previous.createdAt <= 5 * 60_000
-      out.push({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing })
+      out.push(
+        cachedRow({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing }),
+      )
       previous = message
     }
+    // 翻页、切会话后，离开这一页的行不再需要缓存。
+    const keys = new Set(out.map((row) => row.key))
+    for (const key of rowCache.keys()) if (!keys.has(key)) rowCache.delete(key)
     return out
   })
 
@@ -190,6 +228,17 @@ export function MessageStream(props: {
                 )
               }}
             </For>
+
+            <Show when={props.typing}>
+              <p class="typing" role="status" aria-live="polite">
+                <span class="typing-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                {text(props.ctx, "hyt.chat.typing")}
+              </p>
+            </Show>
           </div>
         </div>
 

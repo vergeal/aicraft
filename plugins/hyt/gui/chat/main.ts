@@ -59,6 +59,13 @@ const AVATAR_TTL = 6 * 60 * 60_000
 const AVATAR_MISS_TTL = 5 * 60_000
 /** 群成员名单的缓存时长：退群、拉人不会每 4 秒就变，弹窗里点「重试」可以立刻重拉。 */
 const MEMBER_TTL = 5 * 60_000
+/**
+ * 「正在输入」的失效时间。
+ *
+ * `MsgType 12` 是 1 → 0 成对的，但对方直接发消息或关窗口时可能没有那条 0。宁可多显示一个轮询间隔，
+ * 也不要让提示一直挂着。
+ */
+const TYPING_TTL_MS = 12_000
 
 function emptyState(phase: ChatState["status"]["phase"]): ChatState {
   return {
@@ -86,6 +93,7 @@ function emptyState(phase: ChatState["status"]["phase"]): ChatState {
     send: { enabled: false, reason: "" },
     knowledge: [],
     receiptsVersion: 0,
+    typing: { active: false, at: 0 },
   }
 }
 
@@ -106,10 +114,23 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   let markedRead = new Map<string, number>()
   let searchState = { query: "", hits: [] as SearchHit[] }
   let provider: IpcProvider<typeof ChatIpc.spec> | undefined
-  // 搜索命中或「定位」要落在某条旧消息上：这一页以它为最新一条，下一次刷新回落到最新一页。
-  let anchorId: number | undefined
   /** 正在换会话：期间不响应轮询刷新。 */
   let switching = false
+  /** 最近一次切会话请求；快速连点时只让最后一次生效。 */
+  let selectToken = 0
+  /**
+   * 读库串行队列。
+   *
+   * `load` 是「读会话 + 读当前页 + 读成员」的组合，结果写进模块里的 `messages / selected / hasMore`。
+   * 轮询、切会话、发送、翻页都会走它；并发跑就会互相覆盖：慢的那次最后落地，界面被拉回上一个会话，
+   * 或者新消息页被旧页盖掉。所有入口排成一队，一次只跑一个。
+   */
+  let reading: Promise<unknown> = Promise.resolve()
+  const serial = <T>(task: () => Promise<T>): Promise<T> => {
+    const run = reading.then(task, task)
+    reading = run.catch(() => undefined)
+    return run
+  }
 
   // 已读回执：桥接推送的实时流，落一份盘；`connectedAt` 之前发出的消息补不回来，标成不可用。
   const receipts = createReceiptLedger(join(dataDir, "receipts.json"))
@@ -287,7 +308,10 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     return { enabled: true, reason: "" }
   }
 
-  const load = async (mergeMessages: boolean): Promise<ChatState> => {
+  const load = async (
+    mergeMessages: boolean,
+    options: { target?: string; anchor?: number } = {},
+  ): Promise<ChatState> => {
     const root = rootOf()
     try {
       // 插件保存的凭据优先于客户端 login.db：没装客户端时也能确定账号。
@@ -330,25 +354,39 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       }
 
       const sessions = Db.readSessions(root, login.account, markedRead)
-      const chosen = sessions.find((item) => item.id === selected) ?? sessions[0]
-      selected = chosen?.id ?? ""
+      const wanted = options.target ?? selected
+      const chosen = sessions.find((item) => item.id === wanted) ?? sessions[0]
+      // 先算在局部变量里，全部成功后才提交到模块状态。
+      // 否则「读消息失败」时 selected 已经改、messages 还是旧会话的，用户会被悄悄换到另一个会话，
+      // 或者状态自相矛盾：标题是新会话、内容是旧会话。
+      const nextSelected = chosen?.id ?? ""
       const latest = Db.readMessages(
         root,
         login.account,
-        selected,
-        anchorId === undefined ? undefined : anchorId + 1,
+        nextSelected,
+        options.anchor === undefined ? undefined : options.anchor + 1,
       )
-      if (mergeMessages && messages.length > 0 && latest.messages.length > 0) {
-        const oldestLoaded = latest.messages[0]?.id ?? Number.MAX_SAFE_INTEGER
-        const kept = messages.filter((message) => message.id < oldestLoaded)
-        messages = [...kept, ...latest.messages]
-        hasMore = latest.hasMore || kept.length > 0
+      let nextMessages: MessageRow[]
+      let nextHasMore: boolean
+      let nextNewMessageId = newMessageId
+      if (mergeMessages && messages.length > 0) {
+        // 合并模式（轮询、发送）：这一页暂时读不到时保留已有内容，绝不清空。
+        // 客户端正在写库时只读查询可能拿不到行，把「这一次没读到」当成「没有消息」正是空态的由来。
+        if (latest.messages.length > 0) {
+          const oldestLoaded = latest.messages[0]?.id ?? Number.MAX_SAFE_INTEGER
+          const kept = messages.filter((message) => message.id < oldestLoaded)
+          nextMessages = [...kept, ...latest.messages]
+          nextHasMore = latest.hasMore || kept.length > 0
+        } else {
+          nextMessages = messages
+          nextHasMore = hasMore
+        }
       } else {
-        messages = latest.messages
-        hasMore = latest.hasMore
+        nextMessages = latest.messages
+        nextHasMore = latest.hasMore
         // 只在整页换掉时重算分界：进入会话后马上会标已读，若让 4 秒轮询也重算，分隔线会在几秒内自己消失。
         // 锚定到某条旧消息时没有「新消息」可言。
-        newMessageId = anchorId === undefined ? latest.firstUnreadId : 0
+        nextNewMessageId = options.anchor === undefined ? latest.firstUnreadId : 0
       }
 
       const whitelist = mergedWhitelist(profile)
@@ -356,19 +394,33 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (bridge === "ready" && connectedAt === 0) connectedAt = Date.now()
       // 回执摘要同步算；群成员不在缓存里就后台拉一次，拉到后自己推新状态。
       const group = chosen?.group === true
-      messages = messages.map((message) => (message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message))
+      const withReceipts = nextMessages.map((message) =>
+        message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message,
+      )
       if (group && chosen !== undefined && knownMembers(chosen.id) === undefined) void refreshMembers(chosen.id)
       // 在这个界面读了别人的消息，也要上报一次，否则对方永远看不到「已读」。
       // 只报当前会话最新一条，失败的从记录里去掉，下次轮询再试。
-      const lastIncoming = [...messages].reverse().find((message) => !message.outgoing && message.msgId.length > 0)
+      const lastIncoming = [...withReceipts].reverse().find((message) => !message.outgoing && message.msgId.length > 0)
       if (bridge === "ready" && lastIncoming !== undefined && !reported.has(lastIncoming.msgId)) {
         reported.add(lastIncoming.msgId)
         void sender.markRead(lastIncoming.msgId, group).then((result) => {
           if (!result.ok) reported.delete(lastIncoming.msgId)
         })
       }
-      const drafts = readDrafts(dataDir, selected)
+      const drafts = readDrafts(dataDir, nextSelected)
       const unread = sessions.reduce((total, item) => total + item.unread, 0)
+      // 输入状态只在单聊显示：群聊里多个人同时打字，提示只会变成噪音。
+      const presence =
+        chosen === undefined || group ? { active: false, at: 0 } : Db.readTyping(root, login.account, nextSelected)
+      // 对方中途关掉窗口时，库里可能永远等不到那条「停止输入」：超过时限就当已停止。
+      const typing =
+        presence.active && Date.now() - presence.at < TYPING_TTL_MS
+          ? presence
+          : { active: false, at: presence.at }
+      selected = nextSelected
+      messages = withReceipts
+      hasMore = nextHasMore
+      newMessageId = nextNewMessageId
       current = {
         status: {
           phase: "ready",
@@ -383,21 +435,29 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
           whitelist: whitelist.length,
         },
         sessions,
-        selected,
-        messages,
-        hasMore,
-        newMessageId,
+        selected: nextSelected,
+        messages: withReceipts,
+        hasMore: nextHasMore,
+        newMessageId: nextNewMessageId,
         unread,
         search: searchState.query.length === 0 ? { query: "", hits: [] } : searchState,
         drafts,
-        members: Db.readSessionMembers(root, login.account, selected),
-        send: sendState(selected),
+        members: Db.readSessionMembers(root, login.account, nextSelected),
+        send: sendState(nextSelected),
         knowledge: [],
         receiptsVersion,
+        typing,
       }
       return current
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : String(cause)
+      console.warn("[hyt] 读取聊天数据失败：", detail)
+      // 读不到库时没法重算输入状态，但提示也不能一直挂着：到点就熄灭。
+      if (current.typing.active && Date.now() - current.typing.at >= TYPING_TTL_MS)
+        current = { ...current, typing: { active: false, at: current.typing.at } }
+      // 已经有过一份可用数据时，失败不能把它替换成空态：读库被客户端写锁挡一下，界面就会整块闪空。
+      // 保留旧数据，等下一轮轮询自愈；只有从未成功进入过聊天时，才显示错误空态。
+      if (current.status.phase === "ready") return current
       current = {
         ...emptyState("error"),
         status: { ...emptyState("error").status, detail },
@@ -459,83 +519,118 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (switching) return
       // 静默登录曾失败时顺带再试一次：网络或桥接恢复后不该还要用户重新输密码。
       if (warmError.length > 0 && current.status.credential === "saved") retryWarm()
-      await load(true)
-      report()
+      await serial(async () => {
+        // 排队期间用户可能已经开始切会话：这一轮就没有意义了。
+        if (switching) return
+        await load(true)
+        report()
+      })
     },
 
     async selectSession(input) {
+      const token = ++selectToken
       switching = true
       try {
-        selected = input.sessionId
-        hasMore = false
-        searchState = { query: "", hits: [] }
-        anchorId = input.messageId !== undefined && input.messageId > 0 ? input.messageId : undefined
-        // 不先清空消息：清空后若被轮询插进来推一次，消息区会整块变空再长回来，就是那道闪屏。
-        await load(false)
-        anchorId = undefined
-        report()
+        await serial(async () => {
+          // 快速连点：轮到这一项时已经有更新的点击，直接跳过，避免中间闪一版旧目标。
+          if (token !== selectToken) return
+          searchState = { query: "", hits: [] }
+          // 目标会话与锚点都作为参数交给 load：读失败时模块状态一个字段都不改，
+          // 用户仍然停在原会话，而不是「标题变了、内容没变」。
+          await load(false, {
+            target: input.sessionId,
+            anchor: input.messageId !== undefined && input.messageId > 0 ? input.messageId : undefined,
+          })
+          report()
+        })
       } finally {
-        switching = false
+        if (token === selectToken) switching = false
       }
     },
 
     async loadMore() {
-      const account = current.status.account
-      if (account.length === 0 || selected.length === 0 || !hasMore) return
-      const before = messages[0]?.id
-      if (before === undefined) return
-      const page = Db.readMessages(rootOf(), account, selected, before)
-      // 翻上来的旧消息同样要报回执状态：有记录报人数，没记录就报「暂不可用」。
-      const group = isGroup(selected)
-      messages = [
-        ...page.messages.map((message) => (message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message)),
-        ...messages,
-      ]
-      hasMore = page.hasMore
-      current = { ...current, messages, hasMore }
-      report()
+      await serial(async () => {
+        const account = current.status.account
+        if (account.length === 0 || selected.length === 0 || !hasMore) return
+        const before = messages[0]?.id
+        if (before === undefined) return
+        let page: ReturnType<typeof Db.readMessages>
+        try {
+          page = Db.readMessages(rootOf(), account, selected, before)
+        } catch (cause) {
+          // 这一页没读到就保持现状；用户再点一次即可，不能把已加载的消息清掉。
+          console.warn("[hyt] 读取更早消息失败：", cause instanceof Error ? cause.message : String(cause))
+          return
+        }
+        if (page.messages.length === 0) return
+        // 翻上来的旧消息同样要报回执状态：有记录报人数，没记录就报「暂不可用」。
+        const group = isGroup(selected)
+        messages = [
+          ...page.messages.map((message) =>
+            message.outgoing ? { ...message, receipt: receiptOf(message, group) } : message,
+          ),
+          ...messages,
+        ]
+        hasMore = page.hasMore
+        current = { ...current, messages, hasMore }
+        report()
+      })
     },
 
     async search(input) {
-      const query = input.query.trim()
-      const account = current.status.account
-      const names = new Map(current.sessions.map((item) => [item.id, item.name]))
-      const hits =
-        query.length === 0 || account.length === 0
-          ? []
-          : Db.searchMessages(rootOf(), account, query).map((hit) => ({
-              sessionId: hit.sessionId,
-              sessionName: names.get(hit.sessionId) ?? hit.sessionId,
-              message: hit.message,
-            }))
-      searchState = { query, hits }
-      current = { ...current, search: searchState }
-      report()
+      await serial(async () => {
+        const query = input.query.trim()
+        const account = current.status.account
+        const names = new Map(current.sessions.map((item) => [item.id, item.name]))
+        const hits =
+          query.length === 0 || account.length === 0
+            ? []
+            : Db.searchMessages(rootOf(), account, query).map((hit) => ({
+                sessionId: hit.sessionId,
+                sessionName: names.get(hit.sessionId) ?? hit.sessionId,
+                message: hit.message,
+              }))
+        searchState = { query, hits }
+        current = { ...current, search: searchState }
+        report()
+      })
     },
 
     async markRead(input) {
-      // 先落库再改内存：只改内存的话重启后未读会复活，桥写进来的角标也降不下来。
-      Db.markSessionRead(rootOf(), current.status.account, input.sessionId)
-      markedRead.set(input.sessionId, Date.now())
-      current = {
-        ...current,
-        sessions: current.sessions.map((item) => (item.id === input.sessionId ? { ...item, unread: 0 } : item)),
-        unread: current.sessions.reduce((total, item) => total + (item.id === input.sessionId ? 0 : item.unread), 0),
-      }
-      report()
+      await serial(async () => {
+        // 先落库再改内存：只改内存的话重启后未读会复活，桥写进来的角标也降不下来。
+        try {
+          Db.markSessionRead(rootOf(), current.status.account, input.sessionId)
+        } catch (cause) {
+          console.warn("[hyt] 标记已读失败：", cause instanceof Error ? cause.message : String(cause))
+        }
+        markedRead.set(input.sessionId, Date.now())
+        current = {
+          ...current,
+          sessions: current.sessions.map((item) => (item.id === input.sessionId ? { ...item, unread: 0 } : item)),
+          unread: current.sessions.reduce((total, item) => total + (item.id === input.sessionId ? 0 : item.unread), 0),
+        }
+        report()
+      })
     },
 
     async markAllRead() {
-      Db.markAllRead(rootOf(), current.status.account)
-      // 记下标记时刻：之后客户端才写进来的未读仍会显示，只清掉此刻之前的。
-      const now = Date.now()
-      for (const item of current.sessions) markedRead.set(item.id, now)
-      current = {
-        ...current,
-        sessions: current.sessions.map((item) => (item.unread === 0 ? item : { ...item, unread: 0 })),
-        unread: 0,
-      }
-      report()
+      await serial(async () => {
+        try {
+          Db.markAllRead(rootOf(), current.status.account)
+        } catch (cause) {
+          console.warn("[hyt] 一键已读失败：", cause instanceof Error ? cause.message : String(cause))
+        }
+        // 记下标记时刻：之后客户端才写进来的未读仍会显示，只清掉此刻之前的。
+        const now = Date.now()
+        for (const item of current.sessions) markedRead.set(item.id, now)
+        current = {
+          ...current,
+          sessions: current.sessions.map((item) => (item.unread === 0 ? item : { ...item, unread: 0 })),
+          unread: 0,
+        }
+        report()
+      })
     },
 
     async send(input) {
@@ -557,8 +652,11 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         senderNick: current.status.displayName,
         msgId: sent.msgId,
       })
-      await load(false)
-      report()
+      // 合并模式：保留已经加载的历史，只把新页并进来。整页替换会让长会话在发送后重建一次列表。
+      await serial(async () => {
+        await load(true)
+        report()
+      })
       return { ok: true, reason: recorded.recorded ? "" : `已发送，但未写入本地历史：${recorded.error}` }
     },
 
@@ -580,8 +678,10 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
         ...(result.env.length > 0 ? { env: result.env } : {}),
       })
       warmError = ""
-      await load(false)
-      report()
+      await serial(async () => {
+        await load(false)
+        report()
+      })
       return { ok: true, account, message: result.pending ? result.message : "" }
     },
 
@@ -590,8 +690,10 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       // 退出后不再保留插件凭据；客户端 login.db 里的账号仍会被识别，但不主动登录。
       await clearSavedCredentials(dataDir)
       warmError = ""
-      await load(false)
-      report()
+      await serial(async () => {
+        await load(false)
+        report()
+      })
       return result
     },
 
@@ -714,13 +816,20 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       connectedAt = connectedAt > 0 ? connectedAt : Date.now()
       warmError = ""
     })
-    .then(() => load(false))
-    .then(report)
+    .then(() =>
+      serial(async () => {
+        await load(false)
+        report()
+      }),
+    )
     .catch((error: unknown) => {
       warmError = error instanceof Error ? error.message : String(error)
       ctx.log.write("warn", "hyt bridge warm failed", { error: warmError })
       // 失败原因要落到页面上：用户据此判断是密码失效、被踢下线，还是网络不通。
-      void load(false).then(report)
+      void serial(async () => {
+        await load(false)
+        report()
+      })
     })
 
   return provided

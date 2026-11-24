@@ -106,6 +106,8 @@ export const zh: Record<string, string> = {
   "hyt.cost.model.placeholder": "跟随当前模型",
   "hyt.cost.estimate": "成本预估",
   "hyt.cost.estimate.description": "{{runs}} 次/天 × {{batch}} 条 ≈ 每天 {{total}} 条样本。实际消耗取决于模型与样本长度。",
+  "hyt.cost.model.usage": "什么时候会调用模型",
+  "hyt.cost.model.usage.description": "只有开启任一能力（草稿、任务、风格、知识库、自动回复）后，后台批次才会投递到分析会话。默认全部关闭，插件本身不会主动请求模型。",
 
   "hyt.knowledge.builtin": "内置知识库",
   "hyt.knowledge.builtin.description": "随插件发布的运维常识与工具用法。",

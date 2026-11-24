@@ -17,6 +17,13 @@ import { Rail } from "./sessions.js"
 import { RAIL_MAX, RAIL_MIN, rowTime, shellBlank } from "./util.js"
 
 const POLL_MS = 4_000
+/**
+ * 对方正在输入时的轮询间隔。
+ *
+ * 输入状态是几秒钟的瞬时信号，4 秒一轮很容易整段错过（人打完就发了）。对方停止后自动回到 4 秒，
+ * 所以这档加速只发生在真正有人打字的那几秒。
+ */
+const TYPING_POLL_MS = 1_500
 const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"] as const
 
 /**
@@ -78,12 +85,25 @@ export function ChatPage(props: {
   })
   const selectedId = () => state()?.selected ?? ""
   const selected = () => sessions().find((session) => session.id === selectedId())
+  /**
+   * 消息数组按条复用。
+   *
+   * 主进程每次刷新都会推全新的对象；整页换成新引用时，消息流的 `<For>` 会把 40 条气泡全部销毁重建
+   * （图片重载、展开状态丢失、滚动跳一下）——看起来就是每几秒闪一次。
+   * 内容没变的条目沿用上一份对象，只让真正变化的那一条更新。
+   */
   const messages = createMemo((previous?: readonly MessageRow[]) => {
     const next = state()?.messages ?? []
-    if (previous === undefined || previous.length !== next.length) return next
-    for (let index = 0; index < next.length; index += 1)
-      if (messageKey(previous[index]!) !== messageKey(next[index]!)) return next
-    return previous
+    if (previous === undefined) return next
+    const byId = new Map(previous.map((message) => [message.id, message]))
+    let changed = previous.length !== next.length
+    const reused = next.map((message) => {
+      const old = byId.get(message.id)
+      if (old !== undefined && messageKey(old) === messageKey(message)) return old
+      changed = true
+      return message
+    })
+    return changed ? reused : previous
   })
   /** 没有数据、读取失败、或者一条会话都没有时整页走空态，不画空三栏。 */
   const blank = () => shellBlank(state())
@@ -232,12 +252,24 @@ export function ChatPage(props: {
   }
 
   onMount(() => {
+    // 自调度轮询而不是固定 setInterval：间隔要看当前是否有人在输入，且上一轮没回来就不再发请求，
+    // 读库偶尔变慢时不会在窗口侧堆一串排队。
+    let timer: number | undefined
+    const delay = () => (state()?.typing.active === true ? TYPING_POLL_MS : POLL_MS)
+    const schedule = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(tick, delay())
+    }
     const tick = () => {
+      window.clearTimeout(timer)
+      // 窗口不可见时不轮询；切回前台由 visibilitychange 立刻补一轮。
       if (document.visibilityState !== "visible") return
-      void props.client.refresh().catch(() => undefined)
+      void props.client
+        .refresh()
+        .catch(() => undefined)
+        .finally(schedule)
     }
     tick()
-    const timer = window.setInterval(tick, POLL_MS)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
@@ -249,7 +281,7 @@ export function ChatPage(props: {
     window.addEventListener("keydown", onKeyDown)
     document.addEventListener("visibilitychange", tick)
     onCleanup(() => {
-      window.clearInterval(timer)
+      window.clearTimeout(timer)
       window.removeEventListener("keydown", onKeyDown)
       document.removeEventListener("visibilitychange", tick)
       if (searchTimer !== undefined) window.clearTimeout(searchTimer)
@@ -300,8 +332,13 @@ export function ChatPage(props: {
   const menu = createMenu()
   const profile = createProfile()
 
+  /** 复制走宿主的内部通知卡片，和客户端自己的「已复制」提示是同一张。 */
   const copy = (value: string) => {
-    if (value.length > 0) void ctx.system.copy(value).catch(() => undefined)
+    if (value.length === 0) return
+    void ctx.system.copy(value).then(
+      () => ctx.toast.show({ variant: "success", title: text(ctx, "hyt.chat.msg.copied") }),
+      () => ctx.toast.show({ variant: "error", title: text(ctx, "hyt.chat.msg.copyFailed") }),
+    )
   }
 
   /** 「查看资料」要贴着触发元素弹出；键盘打开时给的就是那个元素本身。 */
@@ -712,6 +749,7 @@ export function ChatPage(props: {
           <MessageStream
             ctx={ctx}
             messages={messages()}
+            typing={state()?.typing.active ?? false}
             hasMore={state()?.hasMore ?? false}
             newMessageId={state()?.newMessageId ?? 0}
             loadingMore={loadingMore()}
@@ -809,6 +847,9 @@ function messageKey(message: MessageRow) {
     message.fileName,
     message.fileSize,
     message.filePath,
+    message.receipt === undefined
+      ? ""
+      : `${message.receipt.available ? 1 : 0}:${message.receipt.read}:${message.receipt.unread}`,
   ].join("\u0001")
 }
 

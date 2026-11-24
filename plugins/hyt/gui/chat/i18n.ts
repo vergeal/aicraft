@@ -91,6 +91,7 @@ export const zh: Record<string, string> = {
 
   "hyt.chat.messages.pick": "从左侧选一个会话开始",
   "hyt.chat.messages.empty": "这个会话还没有消息。",
+  "hyt.chat.typing": "对方正在输入中",
   "hyt.chat.messages.loadMore": "载入更早的消息",
   "hyt.chat.messages.loadingMore": "正在载入更早的消息…",
   "hyt.chat.messages.toEnd": "回到最新",
@@ -261,6 +262,7 @@ export const zh: Record<string, string> = {
   "hyt.chat.msg.save": "保存",
   "hyt.chat.msg.play": "在虹云通里播放",
   "hyt.chat.msg.copied": "已复制",
+  "hyt.chat.msg.copyFailed": "复制失败，剪贴板不可用",
   "hyt.chat.msg.expandLong": "展开全文（约 {{count}} 字）",
   "hyt.chat.msg.collapse": "收起",
   "hyt.chat.msg.voice.short": "语音",

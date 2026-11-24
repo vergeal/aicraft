@@ -275,6 +275,11 @@ export const ChatState = Schema.Struct({
   knowledge: Schema.Array(KnowledgeHit),
   /** 回执版本号：收到新回执时自增，窗口据此重新取弹窗名单。 */
   receiptsVersion: Schema.Number,
+  /**
+   * 当前单聊对方是否正在输入。`at` 是那条输入状态到达本机的时间，窗口据此超时隐藏；
+   * 群聊里同名状态会出现多次，不显示，恒为 `active: false`。
+   */
+  typing: Schema.Struct({ active: Schema.Boolean, at: Schema.Number }),
 })
 
 /** 聊天主界面的 Ipc。state 是每个窗口一份的快照，方法改完就推新的。 */

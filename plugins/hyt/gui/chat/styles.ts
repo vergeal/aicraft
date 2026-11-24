@@ -711,6 +711,39 @@ export const css = `
   text-align: center;
 }
 
+/* 「对方正在输入中」：挂在消息流末尾，与对方气泡左缘对齐（32px 头像 + 10px 间距）。
+   它不是一条消息，所以不占气泡位、不画底色，只有小字和三个呼吸点。 */
+.hyt-shell .typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0 42px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.hyt-shell .typing-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.hyt-shell .typing-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: hyt-typing 1.2s ease-in-out infinite;
+}
+
+.hyt-shell .typing-dots i:nth-child(2) { animation-delay: 0.16s; }
+.hyt-shell .typing-dots i:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes hyt-typing {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+
 .hyt-shell .system b { color: var(--ink); font-weight: 500; }
 
 .hyt-shell .divider {

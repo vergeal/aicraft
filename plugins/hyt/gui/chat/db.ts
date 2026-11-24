@@ -63,6 +63,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
       `select Id, MsgType, Msg, Sender, SenderNick, Receiver, CreatedTime, FileName, SessionType, isAt
        from chatmsg where Id in (${aggregates.map(() => "?").join(",")})`,
       aggregates.map((item) => item.lastId),
+      true,
     ).flatMap((row) => {
       const detail = chatRow(row)
       return detail.Id === null ? [] : [{ ...detail, Id: detail.Id }]
@@ -167,6 +168,7 @@ export function readMessages(
        where SessionId = ? and MsgType <> ${PRESENCE_MSGTYPE} and (? is null or Id < ?)
        order by Id desc limit ?`,
       [sessionId, beforeId ?? null, beforeId ?? null, limit + 1],
+      true,
     ).map(chatRow)
     const known = rows.filter((row): row is ChatRow & { Id: number } => row.Id !== null)
     const hasMore = known.length > limit
@@ -179,6 +181,37 @@ export function readMessages(
       .filter((row) => row.ReadStatus === 0 && text(row.Sender) !== account)
       .map((row) => row.Id)
     return { messages: page.reverse(), hasMore, firstUnreadId: unreadIds.length === 0 ? 0 : Math.min(...unreadIds) }
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * 对方是否正在输入。
+ *
+ * `MsgType 12` 是输入状态同步，不是消息：时间线是 0 → 1 → 对方文本 → 0。
+ * 只取这个会话最后一条：`Msg=1` 表示输入中，`Msg=0` 表示已停止；`at` 是它到达本机的时间，
+ * 界面据此做超时失效（对方中途关掉窗口时，库里可能永远等不到那条 0）。
+ */
+export function readTyping(
+  root: string,
+  account: string,
+  sessionId: string,
+): { active: boolean; at: number } {
+  if (sessionId.length === 0) return { active: false, at: 0 }
+  const path = chatDbPath(root, account)
+  if (!existsSync(path)) return { active: false, at: 0 }
+  const db = open(path)
+  try {
+    const row = query(
+      db,
+      `select Msg, CreatedTime from chatmsg
+       where SessionId = ? and MsgType = ${PRESENCE_MSGTYPE}
+       order by Id desc limit 1`,
+      [sessionId],
+    )[0]
+    if (row === undefined) return { active: false, at: 0 }
+    return { active: text(row.Msg) === "1", at: numberOf(row.CreatedTime) ?? 0 }
   } finally {
     db.close()
   }
@@ -311,14 +344,34 @@ export function countSessions(root: string, account: string) {
 }
 
 function open(path: string) {
-  return new DatabaseSync(path, { readOnly: true })
+  const db = new DatabaseSync(path, { readOnly: true })
+  // 客户端随时在写这张库：没有等待策略时，一次 checkpoint 就能让只读查询立刻 SQLITE_BUSY。
+  // 后果是「读不到」被当成「没有」，界面上就是整块消息突然变空。宁可等两秒，也不要空结果。
+  try {
+    db.exec("pragma busy_timeout = 2000")
+  } catch {
+    // 只读连接偶有不接受 pragma 的环境，读失败的语义由 strict 查询兜住。
+  }
+  return db
 }
 
-/** 读一行数据；查询失败返回空表，界面显示空态而不是崩掉。 */
-function query(db: DatabaseSync, sql: string, params: readonly (string | number | null)[]): Row[] {
+/**
+ * 读一行数据。
+ *
+ * 默认把查询失败当成「没有」：群名、通讯录这类附属信息缺失时界面降级即可。
+ * `strict` 用于「空结果会被当成事实」的主查询（会话聚合、当前会话消息）：失败必须抛出，
+ * 让调用方保留上一份数据，而不是推一份空列表把界面清空。
+ */
+function query(
+  db: DatabaseSync,
+  sql: string,
+  params: readonly (string | number | null)[],
+  strict = false,
+): Row[] {
   try {
     return db.prepare(sql).all(...params).flatMap(normalize)
-  } catch {
+  } catch (cause) {
+    if (strict) throw cause
     return []
   }
 }
@@ -334,7 +387,7 @@ function normalize(value: unknown): Row[] {
 }
 
 function readAggregates(db: DatabaseSync) {
-  return query(db, aggregatesSql(), [SESSION_LIMIT]).flatMap((row) => {
+  return query(db, aggregatesSql(), [SESSION_LIMIT], true).flatMap((row) => {
     const sessionId = text(row.sessionId)
     const lastId = numberOf(row.lastId)
     if (sessionId.length === 0 || lastId === null) return []

@@ -3,7 +3,7 @@ import { For, Show, createMemo } from "solid-js"
 import type { DraftRow, SearchHit, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
-import { Face, GroupFace } from "./avatar.js"
+import { Face, GroupFace, avatarOf } from "./avatar.js"
 import { dayLabel, rowTime } from "./util.js"
 
 /**
@@ -257,11 +257,6 @@ export function Rail(props: {
   )
 }
 
-function avatarOf(map: Record<string, string>, path: string | undefined) {
-  if (path === undefined || path.length === 0) return undefined
-  const value = map[path]
-  return value === undefined || value.length === 0 ? undefined : value
-}
 
 /** 命中的一行：正文优先，附件退到文件名，再退到类型说明。 */
 function snippetOf(ctx: Context, hit: SearchHit) {

@@ -490,6 +490,11 @@ export function readPersonNames(root: string, account: string) {
   return new Map([...readPeople(root, account)].map(([key, person]) => [key, person.remark || person.name || key]))
 }
 
+/** 账号 → 头像路径；回执名单、成员列表与消息流共用这一份。 */
+export function readPersonHeads(root: string, account: string) {
+  return new Map([...readPeople(root, account)].map(([key, person]) => [key, person.headPath]))
+}
+
 /**
  * 本地头像文件。`LocalHeadUrl` 有文件就直接用；否则按 `Url` 最后一段首个 `.` 之前的部分去 `HeadFiles` 找。
  * 客户端下载头像时就是用这个文件名，所以远程地址与本地文件能对得上。

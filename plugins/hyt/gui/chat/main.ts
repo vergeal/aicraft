@@ -617,9 +617,11 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       }
 
       const people = Db.readPersonNames(root, account)
+      const heads = Db.readPersonHeads(root, account)
       const person = (who: string, at: number): ReceiptPerson => ({
         account: who,
         name: people.get(who) ?? who,
+        head: heads.get(who) ?? "",
         at,
       })
       const readAccounts = record === undefined ? new Map<string, number>() : new Map(record.read)

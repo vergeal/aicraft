@@ -172,14 +172,20 @@ export function ChatPage(props: {
    * 整屏看起来就是闪一下。这里只增不减：一屏里出现过的头像不会因为换了会话而消失。
    */
   const [avatarMap, setAvatarMap] = createSignal<Record<string, string>>({})
-  let avatarQuery = ""
-  createEffect(() => {
-    const key = avatarKey()
-    if (key.length === 0 || key === avatarQuery) return
-    avatarQuery = key
-    const paths = key.split("\n")
+  /** 已经请求过的头像路径：弹窗按需补人时不会把同一张重复下载。 */
+  const requestedAvatars = new Set<string>()
+  /**
+   * 取一批头像并入共享表。
+   *
+   * 侧栏、会话头、消息、成员列表、回执名单都从这里拿图，主进程只按路径解码一次；
+   * 任何地方都不该自己再发一次头像请求。
+   */
+  const loadAvatars = (paths: readonly string[]) => {
+    const fresh = paths.filter((path) => path.length > 0 && !requestedAvatars.has(path))
+    if (fresh.length === 0) return
+    for (const path of fresh) requestedAvatars.add(path)
     void props.client
-      .avatars({ paths })
+      .avatars({ paths: fresh })
       .then((rows) => {
         if (rows.length === 0) return
         setAvatarMap((previous) => {
@@ -188,7 +194,18 @@ export function ChatPage(props: {
           return next
         })
       })
-      .catch(() => undefined)
+      .catch(() => {
+        // 失败的头像允许下一轮再试，不要永久占住路径。
+        for (const path of fresh) requestedAvatars.delete(path)
+      })
+  }
+
+  let avatarQuery = ""
+  createEffect(() => {
+    const key = avatarKey()
+    if (key.length === 0 || key === avatarQuery) return
+    avatarQuery = key
+    loadAvatars(key.split("\n"))
   })
 
   const fail = (cause: unknown) => {
@@ -706,6 +723,7 @@ export function ChatPage(props: {
             sessionId={selected()?.id ?? ""}
             receiptVersion={state()?.receiptsVersion ?? 0}
             onReceipts={(input) => props.client.receipts(input)}
+            onAvatars={loadAvatars}
             onMedia={onMedia}
             onMerge={onMerge}
             onOpenFile={reveal}

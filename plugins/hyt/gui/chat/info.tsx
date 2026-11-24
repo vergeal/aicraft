@@ -2,7 +2,7 @@ import type { Context } from "@opencode/plugin/gui"
 import { For, Show, createMemo } from "solid-js"
 import type { MemberRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { Face, GroupFace } from "./avatar.js"
+import { Face, GroupFace, avatarOf } from "./avatar.js"
 import { clockOf, sizeOf } from "./util.js"
 
 /**
@@ -140,11 +140,6 @@ export function InfoPanel(props: {
   )
 }
 
-function avatarOf(map: Record<string, string>, path: string | undefined) {
-  if (path === undefined || path.length === 0) return undefined
-  const value = map[path]
-  return value === undefined || value.length === 0 ? undefined : value
-}
 
 function fileMeta(ctx: Context, message: MessageRow) {
   const sender = message.outgoing ? text(ctx, "hyt.chat.msg.self") : message.senderNick

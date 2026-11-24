@@ -189,6 +189,8 @@ export const ReceiptPerson = Schema.Struct({
   account: Schema.String,
   /** 显示名；读不到时退回账号。 */
   name: Schema.String,
+  /** 头像路径或远端地址；与消息、会话同一个来源。 */
+  head: Schema.String,
   /** 已读时间 epoch 毫秒；未读为 0。 */
   at: Schema.Number,
 })

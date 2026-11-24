@@ -4,7 +4,7 @@ import type { AppCardField } from "../../src/chat/message.js"
 import type { MergeItemRow, MessageRow, ReceiptPerson, ReceiptView } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
-import { Face } from "./avatar.js"
+import { Face, avatarOf } from "./avatar.js"
 import { CLAMP_AT, clockOf, dayLabel, sizeOf } from "./util.js"
 
 type Row =
@@ -37,6 +37,8 @@ export function MessageStream(props: {
   /** 回执版本号：收到新回执就变，弹窗据此重新取名单。 */
   receiptVersion: number
   onReceipts: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
+  /** 取头像并入共享表；回执名单按需补人。 */
+  onAvatars: (paths: readonly string[]) => void
   onMedia: (path: string, msgId: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
@@ -213,6 +215,8 @@ export function MessageStream(props: {
             message={message()}
             version={props.receiptVersion}
             onFetch={props.onReceipts}
+            avatars={props.avatars}
+            onAvatars={props.onAvatars}
             onClose={() => setReceiptOf(undefined)}
           />
         )}
@@ -298,7 +302,7 @@ function Message(props: {
             class="msg-face"
             // 应用消息的「头像」就是应用自己的图标；没有图标时退回应用名首字。
             name={props.message.app?.name || props.message.senderNick || props.message.sender}
-            src={props.message.app?.icon || avatarOf(props.avatars, props.message.senderHead)}
+            src={avatarOf(props.avatars, props.message.senderHead)}
           />
         </button>
       </Show>
@@ -535,6 +539,8 @@ function ReceiptDialog(props: {
   /** 回执版本号：变一次就重新取一次名单。 */
   version: number
   onFetch: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
+  avatars: Record<string, string>
+  onAvatars: (paths: readonly string[]) => void
   onClose: () => void
 }) {
   const [data, setData] = createSignal<ReceiptView>()
@@ -546,6 +552,8 @@ function ReceiptDialog(props: {
   let opener: Element | null = null
 
   const apply = (next: ReceiptView) => {
+    // 名单里的头像与消息流、成员列表同一来源，先请求再渲染。
+    props.onAvatars([...next.read, ...next.unread].map((person) => person.head))
     const previous = data()
     if (previous === undefined) {
       setData(next)
@@ -608,7 +616,7 @@ function ReceiptDialog(props: {
       <For each={list}>
         {(person) => (
           <li data-unread={unread ? "true" : undefined}>
-            <Face class="pface" name={person.name} />
+            <Face class="pface" name={person.name} src={avatarOf(props.avatars, person.head)} />
             <span class="pname">{person.name}</span>
             <span class="pside">
               {unread ? text(props.ctx, "hyt.chat.receipt.unreadTag") : clockOf(person.at)}
@@ -793,11 +801,6 @@ function cardFields(fields: readonly AppCardField[], open: boolean) {
   return open ? fields : fields.slice(0, CARD_FIELDS)
 }
 
-function avatarOf(map: Record<string, string>, path: string) {
-  if (path.length === 0) return undefined
-  const value = map[path]
-  return value === undefined || value.length === 0 ? undefined : value
-}
 
 function fileMark(name: string) {
   const extension = name.includes(".") ? name.slice(name.lastIndexOf(".") + 1).toLowerCase() : ""

@@ -14,13 +14,21 @@ export function LoginPage(props: {
   client: IpcClient<typeof ChatIpc.spec>
   /** 数据目录，脚注里给用户一个可对照的位置。 */
   detail: string
+  /** 打开登录页时已知的失败原因（例如后台静默登录被服务端拒绝），直接显示在表单下方。 */
+  initialError?: string
+  /** 已知的账号（来自客户端登录记录），预填进表单，用户只需要补密码。 */
+  defaultUser?: string
+  /** 主界面还有本地历史可看时，允许收起登录页继续只读浏览。 */
+  onCancel?: () => void
   /** 登录成功（或已提交等待连接）后回到聊天页；失败时留在表单上显示原因。 */
   onLoggedIn?: () => void
 }) {
-  const [userName, setUserName] = createSignal("")
+  const [userName, setUserName] = createSignal(props.defaultUser ?? "")
   const [password, setPassword] = createSignal("")
   const [busy, setBusy] = createSignal(false)
-  const [error, setError] = createSignal<string | undefined>()
+  const [error, setError] = createSignal<string | undefined>(
+    props.initialError !== undefined && props.initialError.length > 0 ? props.initialError : undefined,
+  )
 
   const ready = () => userName().trim().length > 0 && password().length > 0 && !busy()
 
@@ -44,7 +52,7 @@ export function LoginPage(props: {
   }
 
   return (
-    <div class="blank">
+    <div class="blank blank--auth">
       <div class="blank-brand">{text(props.ctx, "hyt.chat.login.brand")}</div>
       <div class="blank-inner">
         <h2 class="blank-title">{text(props.ctx, "hyt.chat.login.title")}</h2>
@@ -86,23 +94,32 @@ export function LoginPage(props: {
             />
           </label>
 
+          <Show when={error()}>
+            {(message) => <p class="login-error">{text(props.ctx, "hyt.chat.login.error", { message: message() })}</p>}
+          </Show>
+
           <div class="blank-actions">
             <button class="button" type="submit" disabled={!ready()}>
               {busy() ? text(props.ctx, "hyt.chat.login.busy") : text(props.ctx, "hyt.chat.login.submit")}
             </button>
+            <Show when={props.onCancel !== undefined}>
+              <button class="ghost" type="button" disabled={busy()} onClick={() => props.onCancel?.()}>
+                {text(props.ctx, "hyt.chat.login.cancel")}
+              </button>
+            </Show>
           </div>
         </form>
 
-        <Show when={error()}>
-          {(message) => <p class="login-error">{text(props.ctx, "hyt.chat.login.error", { message: message() })}</p>}
-        </Show>
-
-        <p class="panel-note">{text(props.ctx, "hyt.chat.login.note")}</p>
-        <Show when={props.detail.length > 0}>
-          <p class="panel-note">
-            {text(props.ctx, "hyt.chat.login.detail")}：{props.detail}
-          </p>
-        </Show>
+        {/* 连接方式与数据位置是排查时才需要的细节，收起来，不占登录页的主视觉。 */}
+        <details class="login-meta">
+          <summary>{text(props.ctx, "hyt.chat.login.meta")}</summary>
+          <p>{text(props.ctx, "hyt.chat.login.note")}</p>
+          <Show when={props.detail.length > 0}>
+            <p>
+              {text(props.ctx, "hyt.chat.login.detail")}：<code>{props.detail}</code>
+            </p>
+          </Show>
+        </details>
       </div>
     </div>
   )

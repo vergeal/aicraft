@@ -34,6 +34,8 @@ export function ChatPage(props: {
   onListWidth: (width: number) => void
   /** 松开分隔线时提交一次，写进存储。 */
   onListWidthEnd: () => void
+  /** 是否处于整页视图（登录、空态、错误），外层据此把窗口顶栏换成纸张色。 */
+  onFullPage: (value: boolean) => void
 }) {
   const ctx = props.ctx
   const state = () => props.client.state()
@@ -41,6 +43,22 @@ export function ChatPage(props: {
   const [loggingOut, setLoggingOut] = createSignal(false)
   /** 主动打开的登录页：有 login.db 旧账号时也能改用账号密码重新登录。 */
   const [loginOpen, setLoginOpen] = createSignal(false)
+  /**
+   * 后台静默登录失败（凭据过期、被服务端踢下线、网络不通）时主动打开登录页：
+   * 只读历史仍能看，但用户必须知道现在发不出消息，而不是以为一切正常。
+   * 只弹一次；用户点「返回」后不再打断，等 authError 清空后重新允许提示。
+   */
+  let authPrompted = false
+  createEffect(() => {
+    const error = state()?.status.authError ?? ""
+    if (error.length === 0) {
+      authPrompted = false
+      return
+    }
+    if (authPrompted) return
+    authPrompted = true
+    setLoginOpen(true)
+  })
 
   const phase = () => state()?.status.phase ?? "loading"
   /**
@@ -65,6 +83,11 @@ export function ChatPage(props: {
   })
   /** 没有数据、读取失败、或者一条会话都没有时整页走空态，不画空三栏。 */
   const blank = () => shellBlank(state())
+
+  // 整页视图（含登录页）时把窗口顶栏也换成纸张色；回到聊天页再换回左栏色。
+  createEffect(() => {
+    props.onFullPage(blank() || loginOpen() || phase() === "no-account")
+  })
 
   const [query, setQuery] = createSignal("")
   const [searching, setSearching] = createSignal(false)
@@ -477,16 +500,20 @@ export function ChatPage(props: {
     <div
       class="hyt-shell"
       data-theme={ctx.appearance.mode()}
-      data-panel={infoOpen() && !blank() ? "open" : "closed"}
-      data-blank={blank() ? "true" : "false"}
+      data-panel={infoOpen() && !blank() && !loginOpen() ? "open" : "closed"}
+      data-blank={blank() || loginOpen() ? "true" : "false"}
       data-resizing={resizing() ? "true" : undefined}
       style={{ "--rail": `${props.listWidth()}px` }}
     >
+      {/*
+        登录页要盖住整页：主界面有本地数据时 blank() 为 false，若只在空态分支里判断 loginOpen，
+        栏脚的「登录」按钮点了不会有任何反应。
+      */}
       <Show
-        when={!blank()}
+        when={!blank() && !loginOpen() && phase() !== "no-account"}
         fallback={
           <Show
-            when={phase() === "no-account" || loginOpen()}
+            when={loginOpen() || phase() === "no-account"}
             fallback={
               <Blank
                 ctx={ctx}
@@ -507,6 +534,9 @@ export function ChatPage(props: {
               ctx={ctx}
               client={props.client}
               detail={state()?.status.detail ?? ""}
+              initialError={state()?.status.authError ?? ""}
+              defaultUser={state()?.status.credentialUser ?? ""}
+              onCancel={blank() ? undefined : () => setLoginOpen(false)}
               onLoggedIn={() => setLoginOpen(false)}
             />
           </Show>
@@ -608,6 +638,19 @@ export function ChatPage(props: {
               </button>
             </div>
           </header>
+
+          {/*
+            凭据过期或被服务端踢下线时，本地历史仍能只读浏览，但发送一定失败。
+            主界面也必须把这件事摆出来，否则用户只看到正常的会话列表。
+          */}
+          <Show when={(state()?.status.authError ?? "").length > 0}>
+            <div class="auth-banner" role="status">
+              <span>{text(ctx, "hyt.chat.state.auth.banner", { message: state()?.status.authError ?? "" })}</span>
+              <button class="ghost" type="button" onClick={() => setLoginOpen(true)}>
+                {text(ctx, "hyt.chat.rail.login")}
+              </button>
+            </div>
+          </Show>
 
           <MessageStream
             ctx={ctx}

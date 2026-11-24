@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/solid-query"
 import { createEffect, onCleanup, type Accessor } from "solid-js"
 import { useServerSDK } from "@/runtime/server/client"
-import { customProvidersFrom } from "@/settings/providers/custom/record"
 
 /**
  * The providers this server's own configuration declares, i.e. the custom OpenAI-compatible ones the user added.

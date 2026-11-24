@@ -712,35 +712,6 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   /* A row's hover or width change otherwise invalidates the whole sidebar list; containing layout and style
      keeps the recalculation inside the row. */
   contain: layout style;
-  /* Sweeping the pointer down the column glides the hover fill from row to row instead of blinking it. Pointer
-     hover is a continuous gesture, so it gets a colour transition rather than the sliding block used for keyboard
-     selection. See docs/standard/design/13-motion.md. */
-  transition: background-color 120ms ease-out;
-}
-
-:root[data-motion="reduce"] [data-slot="replica-sidebar"] [data-slot="replica-row"] {
-  transition: none;
-}
-
-/* Project and plugin rows sit in the same column and take the same hover fill, so they glide with it. */
-[data-slot="replica-sidebar"] :is([data-slot="replica-project-row"], [data-slot="replica-installed-row"]) {
-  transition: background-color 120ms ease-out;
-}
-
-:root[data-motion="reduce"]
-  [data-slot="replica-sidebar"]
-  :is([data-slot="replica-project-row"], [data-slot="replica-installed-row"]) {
-  transition: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-slot="replica-sidebar"] [data-slot="replica-row"] {
-    transition: none;
-  }
-
-  [data-slot="replica-sidebar"] :is([data-slot="replica-project-row"], [data-slot="replica-installed-row"]) {
-    transition: none;
-  }
 }
 
 /* An installed plugin reads as a small block: mark, name and description. It keeps its own metrics because the

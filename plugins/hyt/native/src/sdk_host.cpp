@@ -834,14 +834,9 @@ DownloadResult SdkHost::download(const StoredMessage& message,
   }
 
   long long stamp = nowMs();
+  // 库里的 FileUrl 是服务端相对路径，签名与域名由 SDK 自己补；这里再拼一次会得到
+  // 签名不匹配的地址（服务端回 560000，SDK 回 171251）。
   std::string url = message.fileUrl;
-  size_t query = url.find('?');
-  if (query != std::string::npos) url = url.substr(0, query);
-  if (url.find("://") == std::string::npos) {
-    url = fileServerBase(envFile(), envName()) + url;
-  }
-  url += "?timestamp=" + std::to_string(stamp) +
-         "&sign=" + md5Hex(std::to_string(stamp) + "ronglian@2023!123");
 
   std::string targetDir = recvMonthDir(account, stamp);
   ensureDir(targetDir);

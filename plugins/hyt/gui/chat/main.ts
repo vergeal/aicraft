@@ -1,7 +1,7 @@
 import type { IpcImpl, IpcProvider, MainContext } from "@opencode/plugin/gui/main"
 import { Schema } from "effect"
 import { createHash } from "node:crypto"
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
@@ -102,6 +102,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   let provider: IpcProvider<typeof ChatIpc.spec> | undefined
   // 搜索命中或「定位」要落在某条旧消息上：这一页以它为最新一条，下一次刷新回落到最新一页。
   let anchorId: number | undefined
+  /** 正在换会话：期间不响应轮询刷新。 */
+  let switching = false
 
   // 已读回执：桥接推送的实时流，落一份盘；`connectedAt` 之前发出的消息补不回来，标成不可用。
   const receipts = createReceiptLedger(join(dataDir, "receipts.json"))
@@ -406,23 +408,57 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     })
   }
 
+  /**
+   * 静默登录失败后，在轮询里再试一次。
+   *
+   * 账号密码已经存在本地，失败通常来自桥接刚启动、旧实例还没退出、或网络抖动；
+   * 这些都不该让用户重新输密码。真正的凭据失效下一次也仍旧失败，界面上的告警条会一直说明原因。
+   */
+  let warmRetrying = false
+  const retryWarm = () => {
+    if (warmRetrying) return
+    warmRetrying = true
+    void sender
+      .warm()
+      .then(() => {
+        warmError = ""
+        connectedAt = connectedAt > 0 ? connectedAt : Date.now()
+      })
+      .catch((cause: unknown) => {
+        warmError = cause instanceof Error ? cause.message : String(cause)
+      })
+      .finally(() => {
+        warmRetrying = false
+      })
+  }
+
   const impl: IpcImpl<typeof ChatIpc.spec> = {
     state: () => current,
 
     async refresh() {
+      // 切会话的这几百毫秒里，轮询会读到「新会话 + 旧消息」的半成品状态并推给窗口，
+      // 界面先闪一版再被覆盖。切完再刷这一轮就跳过去。
+      if (switching) return
+      // 静默登录曾失败时顺带再试一次：网络或桥接恢复后不该还要用户重新输密码。
+      if (warmError.length > 0 && current.status.credential === "saved") retryWarm()
       await load(true)
       report()
     },
 
     async selectSession(input) {
-      selected = input.sessionId
-      messages = []
-      hasMore = false
-      searchState = { query: "", hits: [] }
-      anchorId = input.messageId !== undefined && input.messageId > 0 ? input.messageId : undefined
-      await load(false)
-      anchorId = undefined
-      report()
+      switching = true
+      try {
+        selected = input.sessionId
+        hasMore = false
+        searchState = { query: "", hits: [] }
+        anchorId = input.messageId !== undefined && input.messageId > 0 ? input.messageId : undefined
+        // 不先清空消息：清空后若被轮询插进来推一次，消息区会整块变空再长回来，就是那道闪屏。
+        await load(false)
+        anchorId = undefined
+        report()
+      } finally {
+        switching = false
+      }
     },
 
     async loadMore() {
@@ -604,8 +640,19 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (bytes !== undefined) return mediaOf(bytes, path)
       const msgId = input.msgId ?? ""
       if (msgId.length === 0) return { dataUrl: "", error: "文件不存在或无法读取" }
-      // 本地没有副本（客户端不在线时收到的图片/文件）：让桥接从服务端补下载，
-      // 成功后把路径记回本地库，下次刷新就是普通图片消息，不用再下第二次。
+      const account = current.status.account
+      // 本地没有副本（客户端不在线时收到的图片/文件）：先用消息里的 FileUrl 直接取一次。
+      // 附件在 LVS 端口的 http 服务上，比 SDK 的 FileServer 配置可靠。
+      const source = Db.readFileSource(root, account, msgId)
+      if (source !== undefined) {
+        const fetched = await fetchFileBytes(signedFileUrl(fileServerBase(root), source.url))
+        if (fetched !== undefined) {
+          const saved = writeRecvFile(root, account, source, fetched)
+          Db.recordMediaPath(root, account, msgId, saved)
+          return mediaOf(fetched, saved)
+        }
+      }
+      // 直连拿不到时再交给原生桥：它走 SDK 的下载接口，能处理签名与断点。
       const downloaded = await sender.download(msgId)
       if (downloaded.path.length === 0) {
         return { dataUrl: "", error: downloaded.error.length > 0 ? downloaded.error : "文件还在下载，稍后重试" }
@@ -613,7 +660,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       if (!insideRoot(downloaded.path, root)) return { dataUrl: "", error: "下载路径不在数据目录内" }
       const fetched = readBytes(downloaded.path)
       if (fetched === undefined) return { dataUrl: "", error: "文件已下载但无法读取" }
-      Db.recordMediaPath(root, current.status.account, msgId, downloaded.path)
+      Db.recordMediaPath(root, account, msgId, downloaded.path)
       return mediaOf(fetched, downloaded.path)
     },
 
@@ -708,6 +755,103 @@ function readText(path: string) {
   } catch {
     return undefined
   }
+}
+
+/**
+ * 附件服务地址。
+ *
+ * 客户端自己下载附件走的是 `<domain>:<lvs_port>` 的 **http** 服务（见客户端日志里
+ * `http://chim.changhong.com:13142/...png?timestamp=...&sign=...`）；SDK 的 FileServer
+ * 配置指向 8090 且用 https，部分网络下握手直接失败（`171251`）。这里按客户端的方式取。
+ */
+const FILE_SIGN_SECRET = "ronglian@2023!123"
+const FILE_SERVER_TTL = 10 * 60_000
+let fileServerCache: { readonly root: string; readonly at: number; readonly base: string } | undefined
+
+function fileServerBase(root: string) {
+  const hit = fileServerCache
+  if (hit !== undefined && hit.root === root && Date.now() - hit.at < FILE_SERVER_TTL) return hit.base
+  const config = join(root, "Config")
+  const names = readDirNames(config).filter((name) => /^rxSettings.*\.ini$/i.test(name))
+  const preferred = names.includes("rxSettings_wai.ini") ? "rxSettings_wai.ini" : names[0]
+  const ini = preferred === undefined ? undefined : readText(join(config, preferred))
+  const domain = iniValue(ini, "sdk_server", "domain") || "chim.changhong.com"
+  const port = iniValue(ini, "sdk_server", "lvs_port") || "13142"
+  const base = `http://${domain}:${port}`
+  fileServerCache = { root, at: Date.now(), base }
+  return base
+}
+
+/** 附件地址要带时间戳与 md5 签名，服务端才认。 */
+function signedFileUrl(base: string, fileUrl: string) {
+  const stamp = Date.now()
+  const sign = createHash("md5").update(`${stamp}${FILE_SIGN_SECRET}`).digest("hex")
+  const absolute = /^https?:\/\//i.test(fileUrl) ? fileUrl : `${base}${fileUrl}`
+  const clean = absolute.split("?")[0] ?? absolute
+  return `${clean}?timestamp=${stamp}&sign=${sign}`
+}
+
+async function fetchFileBytes(url: string) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+    if (!response.ok) return undefined
+    const bytes = Buffer.from(await response.arrayBuffer())
+    if (bytes.length === 0 || bytes.length > MAX_MEDIA_BYTES) return undefined
+    return bytes
+  } catch {
+    return undefined
+  }
+}
+
+/** 落盘位置与客户端一致：`RecvFiles/<消息月份>/`，重名加序号。 */
+function writeRecvFile(root: string, account: string, source: Db.FileSource, bytes: Buffer) {
+  const month = monthKeyOf(source.createdAt > 0 ? source.createdAt : Date.now())
+  const dir = join(root, account, "RecvFiles", month)
+  mkdirSync(dir, { recursive: true })
+  const fromUrl = (source.url.split("?")[0] ?? "").split("/").pop() ?? ""
+  const name = source.fileName.length > 0 ? source.fileName : fromUrl
+  const base = name.length > 0 ? name : `download-${Date.now()}`
+  let target = join(dir, base)
+  for (let index = 1; existsSync(target) && index < 200; index += 1) {
+    const dot = base.lastIndexOf(".")
+    const stem = dot > 0 ? base.slice(0, dot) : base
+    const extension = dot > 0 ? base.slice(dot) : ""
+    target = join(dir, `${stem} (${index})${extension}`)
+  }
+  writeFileSync(target, bytes)
+  return target
+}
+
+function monthKeyOf(epochMs: number) {
+  const date = new Date(epochMs)
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}`
+}
+
+function readDirNames(dir: string): readonly string[] {
+  try {
+    return readdirSync(dir)
+  } catch {
+    return []
+  }
+}
+
+/** 极简 ini 读取：只取某个段下的单行键值，够读 `[sdk_server]` 就行。 */
+function iniValue(text: string | undefined, section: string, key: string) {
+  if (text === undefined) return ""
+  let inside = false
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      inside = trimmed.slice(1, -1).trim().toLowerCase() === section.toLowerCase()
+      continue
+    }
+    if (!inside) continue
+    const split = trimmed.indexOf("=")
+    if (split <= 0) continue
+    if (trimmed.slice(0, split).trim().toLowerCase() !== key.toLowerCase()) continue
+    return trimmed.slice(split + 1).trim()
+  }
+  return ""
 }
 
 /** 本地文件 → data URL。扩展名决定 MIME，未知类型交给浏览器嗅探。 */

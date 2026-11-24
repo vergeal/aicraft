@@ -1,5 +1,5 @@
 import type { Context, IpcClient } from "@opencode/plugin/gui"
-import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
 import { avatarOf } from "./avatar.js"
 import { Blank } from "./blank.js"
 import { Composer } from "./composer.js"
@@ -45,10 +45,12 @@ export function ChatPage(props: {
   /** 主动打开的登录页：有 login.db 旧账号时也能改用账号密码重新登录。 */
   const [loginOpen, setLoginOpen] = createSignal(false)
   /**
-   * 后台静默登录失败（凭据过期、被服务端踢下线、网络不通）时主动打开登录页：
-   * 只读历史仍能看，但用户必须知道现在发不出消息，而不是以为一切正常。
-   * 只弹一次；用户点「返回」后不再打断，等 authError 清空后重新允许提示。
+   * 只有服务端拒绝这组账号密码时才自动打开登录页。
+   *
+   * 桥接刚启动、旧实例还没退出、网络抖动、被同事在本机客户端顶下线，都与密码无关：
+   * 本地的凭据仍然有效，后台会自己重登，不该每次都拿登录页打断用户。
    */
+  const passwordRejected = (message: string) => /连接失败（code=2|密码|账号或密码/.test(message)
   let authPrompted = false
   createEffect(() => {
     const error = state()?.status.authError ?? ""
@@ -57,6 +59,7 @@ export function ChatPage(props: {
       return
     }
     if (authPrompted) return
+    if (!passwordRejected(error)) return
     authPrompted = true
     setLoginOpen(true)
   })
@@ -160,20 +163,31 @@ export function ChatPage(props: {
     return [...paths].slice(0, 200).sort().join("\n")
   }
 
-  const [avatars] = createResource(avatarKey, async (key) => {
-    const paths = key.length === 0 ? [] : key.split("\n")
-    if (paths.length === 0) return {} as Record<string, string>
-    const rows = await props.client.avatars({ paths }).catch(() => [])
-    return Object.fromEntries(
-      rows.flatMap((row) => (row.dataUrl.length > 0 ? [[row.path, row.dataUrl] as const] : [])),
-    ) as Record<string, string>
+  /**
+   * 头像累积表。
+   *
+   * 切会话时需要的头像集合会变；若每次都拿新结果整体替换，已显示的头像会先退回文字再变回图片，
+   * 整屏看起来就是闪一下。这里只增不减：一屏里出现过的头像不会因为换了会话而消失。
+   */
+  const [avatarMap, setAvatarMap] = createSignal<Record<string, string>>({})
+  let avatarQuery = ""
+  createEffect(() => {
+    const key = avatarKey()
+    if (key.length === 0 || key === avatarQuery) return
+    avatarQuery = key
+    const paths = key.split("\n")
+    void props.client
+      .avatars({ paths })
+      .then((rows) => {
+        if (rows.length === 0) return
+        setAvatarMap((previous) => {
+          const next = { ...previous }
+          for (const row of rows) if (row.dataUrl.length > 0) next[row.path] = row.dataUrl
+          return next
+        })
+      })
+      .catch(() => undefined)
   })
-
-  // 不要直接读 resource 的值：重新取头像时会挂起，切会话时整页会被移出约 80ms。
-  const avatarMap = () => {
-    const status = avatars.state
-    return status === "ready" || status === "refreshing" ? (avatars.latest ?? {}) : {}
-  }
 
   const fail = (cause: unknown) => {
     setNotice(cause instanceof Error ? cause.message : String(cause))

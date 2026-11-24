@@ -616,6 +616,42 @@ export function appendOwnMessage(
   }
 }
 
+/** 服务端下载一条消息附件需要的最小信息：文件地址、文件名、消息时间。 */
+export interface FileSource {
+  readonly url: string
+  readonly fileName: string
+  readonly createdAt: number
+}
+
+/**
+ * 按 msgId 取附件的远端地址。
+ *
+ * 客户端在线时会自己下载并写 `FileFullPath`；不在线时这一列是空的，
+ * 界面只能拿着 `FileUrl` 去服务端要一次。
+ */
+export function readFileSource(root: string, account: string, msgId: string): FileSource | undefined {
+  const file = chatDbPath(root, account)
+  if (!existsSync(file) || msgId.length === 0) return undefined
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(file)
+    const row = db.prepare("select FileUrl, FileName, CreatedTime from chatmsg where MsgId = ? limit 1").get(msgId)
+    if (row === undefined) return undefined
+    const url = text((row as Row).FileUrl)
+    if (url.length === 0) return undefined
+    const created = Number.parseInt(text((row as Row).CreatedTime), 10)
+    return {
+      url,
+      fileName: text((row as Row).FileName),
+      createdAt: Number.isFinite(created) ? created : 0,
+    }
+  } catch {
+    return undefined
+  } finally {
+    db?.close()
+  }
+}
+
 /**
  * 把补下载回来的文件路径记回本地库。
  *

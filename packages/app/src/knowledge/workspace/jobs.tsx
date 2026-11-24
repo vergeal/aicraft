@@ -2,7 +2,7 @@ import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
 import { createEffect, createMemo, For, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { FileGlyph, FileStatus, PageHead, trapModalTab, View } from "./bits"
+import { FileGlyph, FileStatus, trapModalTab, View } from "./bits"
 import { useWorkspace } from "./context"
 import {
   fileName,
@@ -45,9 +45,7 @@ export function JobsView() {
   const ws = useWorkspace()
   const language = useLanguage()
 
-  const active = createMemo(() =>
-    ws.documents().filter((entry) => ACTIVE_STATUSES.includes(fileStatus(entry.file))),
-  )
+  const active = createMemo(() => ws.documents().filter((entry) => ACTIVE_STATUSES.includes(fileStatus(entry.file))))
 
   const failed = createMemo(() => ws.documents().filter((entry) => fileStatus(entry.file) === "failed"))
   const done = createMemo(() => ws.documents().filter((entry) => fileStatus(entry.file) === "ready"))
@@ -92,40 +90,36 @@ export function JobsView() {
     <View name="jobs">
       <div class="kb-scroll" data-scrollable>
         <div class="kb-page">
-          <PageHead
-            back={{ label: language.t("knowledge.workspace.title"), onClick: () => ws.ui.go("libraries") }}
-            title={language.t("knowledge.workspace.jobs.title")}
-            description={language.t("knowledge.workspace.jobs.description")}
-            actions={
-              <button
-                class="kb-btn"
-                type="button"
-                disabled={failed().length === 0}
-                onClick={() => void retryAll()}
-              >
-                <Icon name="refresh" class="ico" />
-                <span>{language.t("knowledge.workspace.jobs.retryAll")}</span>
+          <button class="kb-back" type="button" onClick={() => ws.ui.go("libraries")}>
+            <Icon name="outline-arrow-left" class="ico ico-sm" />
+            {language.t("knowledge.workspace.title")}
+          </button>
+
+          <header class="kb-head">
+            <div>
+              <h1>{language.t("knowledge.workspace.jobs.title")}</h1>
+              <p>{language.t("knowledge.workspace.jobs.description")}</p>
+            </div>
+            <div class="kb-tools">
+              <button class="kb-neutral" type="button" disabled={failed().length === 0} onClick={() => void retryAll()}>
+                <Icon name="refresh" class="ico ico-sm" />
+                {language.t("knowledge.workspace.jobs.retryAll")}
               </button>
-            }
-            meta={
-              <>
-                <span>{language.t("knowledge.workspace.jobs.summary.running", { count: active().length })}</span>
-                <span class="kb-sep" aria-hidden="true" />
-                <span>{language.t("knowledge.workspace.jobs.summary.failed", { count: failed().length })}</span>
-                <span class="kb-sep" aria-hidden="true" />
-                <span>{language.t("knowledge.workspace.jobs.summary.done", { count: done().length })}</span>
-                <span class="kb-sep" aria-hidden="true" />
-                <span>{language.t("knowledge.workspace.jobs.summary.local")}</span>
-              </>
-            }
-          />
+            </div>
+          </header>
+
+          <p class="kb-meta">
+            <span>{language.t("knowledge.workspace.jobs.summary.running", { count: active().length })}</span>
+            <span>{language.t("knowledge.workspace.jobs.summary.failed", { count: failed().length })}</span>
+            <span>{language.t("knowledge.workspace.jobs.summary.done", { count: done().length })}</span>
+            <span>{language.t("knowledge.workspace.jobs.summary.local")}</span>
+          </p>
 
           <div class="kb-toolbar">
             <div class="kb-segments" role="tablist" aria-label={language.t("knowledge.workspace.jobs.tabs")}>
               <For each={tabs()}>
                 {(tab) => (
                   <button
-                    class="kb-segment"
                     type="button"
                     role="tab"
                     aria-selected={ws.ui.store.jobTab === tab.id}
@@ -151,7 +145,7 @@ export function JobsView() {
               </div>
             }
           >
-            <div class="kb-rows" role="list">
+            <div class="kb-item-rows" role="list">
               <For each={rows()}>
                 {(entry) => {
                   const status = () => fileStatus(entry.file)
@@ -167,12 +161,12 @@ export function JobsView() {
                         if (event.key === "Enter") ws.ui.openDrawer(entry.library.id, entry.file.path)
                       }}
                     >
-                      <span class="kb-row-glyph">
+                      <span class="kb-item-glyph">
                         <FileGlyph />
                       </span>
-                      <span class="kb-row-body">
-                        <span class="kb-row-title">{fileName(entry.file)}</span>
-                        <span class="kb-row-sub">
+                      <span class="kb-item-body">
+                        <span class="kb-item-title">{fileName(entry.file)}</span>
+                        <span class="kb-item-sub">
                           <Show
                             when={status() === "failed"}
                             fallback={
@@ -205,10 +199,10 @@ export function JobsView() {
                       <span class="kb-job-action">
                         <Show
                           when={status() === "failed"}
-                          fallback={<span class="kb-row-time">{formatWhen(fileUpdatedAt(entry.file), language)}</span>}
+                          fallback={<span class="kb-time">{formatWhen(fileUpdatedAt(entry.file), language)}</span>}
                         >
                           <button
-                            class="kb-btn kb-btn-sm"
+                            class="kb-row-link"
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation()
@@ -353,8 +347,7 @@ export function JobDrawer() {
                 <div>
                   <div class="name">{fileName(current().file)}</div>
                   <div class="lib">
-                    {current().library.name} · {fileFolder(current().file) || "—"} ·{" "}
-                    {formatBytes(current().file.size)}
+                    {current().library.name} · {fileFolder(current().file) || "—"} · {formatBytes(current().file.size)}
                   </div>
                 </div>
               </div>
@@ -385,9 +378,7 @@ export function JobDrawer() {
                           </Show>
                         </span>
                         <span class="stage-copy">
-                          <strong>
-                            {language.t(`knowledge.workspace.jobs.drawer.stage.${stage.key}` as const)}
-                          </strong>
+                          <strong>{language.t(`knowledge.workspace.jobs.drawer.stage.${stage.key}` as const)}</strong>
                           <Show when={stage.detail}>
                             <span class={stage.state === "failed" ? "reason" : ""}>{stage.detail}</span>
                           </Show>

@@ -2,20 +2,33 @@ import { Icon } from "@opencode/ui/icon"
 import { Loader } from "@opencode/ui/loader"
 import { Markdown } from "@opencode/session-ui/markdown"
 import { MarkdownProvider } from "@opencode/session-ui/context/markdown"
-import { Show } from "solid-js"
+import { createEffect, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { FileStatus, PageHead, View } from "./bits"
+import { trapModalTab } from "./bits"
 import { useWorkspace } from "./context"
-import { fileName, fileChunks, fileType, fileUpdatedAt, formatWhen, typeLabelKey } from "./format"
+import {
+  fileName,
+  fileChunks,
+  fileFolder,
+  fileType,
+  formatBytes,
+  formatWhen,
+  fileUpdatedAt,
+  statusLabelKey,
+  fileStatus,
+  typeLabelKey,
+} from "./format"
 import type { MenuItem } from "./state"
 
 /**
- * One document reads as a single centred column, the same measure as an answer:
- * the processing detail belongs to the processing centre, not beside the text.
+ * One document reads in a drawer over the list it came from: the library keeps its place, and
+ * closing the drawer returns to exactly what was open before.
  */
 export function DocView() {
   const ws = useWorkspace()
   const language = useLanguage()
+  let panel!: HTMLElement
+  let opener: HTMLElement | undefined
 
   const library = () => {
     const id = ws.ui.store.libraryID
@@ -29,6 +42,20 @@ export function DocView() {
 
     return path ? lib?.files.find((entry) => entry.path === path) : undefined
   }
+
+  createEffect(() => {
+    if (ws.ui.store.docPath) {
+      opener = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+      queueMicrotask(() => panel?.focus())
+
+      return
+    }
+
+    opener?.focus()
+    opener = undefined
+  })
+
+  const close = () => ws.ui.closeDoc()
 
   const retry = async () => {
     const lib = library()
@@ -74,9 +101,7 @@ export function DocView() {
         onSelect: () => ws.ui.openDialog({ type: "move", libraryID: lib.id, paths: [entry.path] }),
       },
       {
-        label: language.t(
-          entry.favorite ? "knowledge.workspace.menu.unfavorite" : "knowledge.workspace.menu.favorite",
-        ),
+        label: language.t(entry.favorite ? "knowledge.workspace.menu.unfavorite" : "knowledge.workspace.menu.favorite"),
         icon: "pin",
         onSelect: () => {
           ws.knowledge.libraries.setFileFavorite(lib.id, entry.path, !entry.favorite)
@@ -105,53 +130,44 @@ export function DocView() {
   }
 
   return (
-    <Show when={file()} fallback={<div class="kb-scroll" />}>
+    <Show when={file()}>
       {(entry) => (
-        <View name="doc">
-          <div class="kb-scroll" data-scrollable>
-            <div class="kb-page kb-doc-page">
-              <PageHead
-                back={{ label: library()?.name ?? language.t("knowledge.workspace.title"), onClick: () => ws.ui.closeDoc() }}
-                title={fileName(entry())}
-                actions={
-                  <>
-                    <button class="kb-btn" type="button" onClick={() => void download()}>
-                      <Icon name="outline-square-arrow" class="ico" />
-                      <span>{language.t("knowledge.workspace.doc.download")}</span>
-                    </button>
-                    <button
-                      class="kb-icon"
-                      type="button"
-                      aria-label={language.t("knowledge.workspace.doc.reprocess")}
-                      onClick={() => void retry()}
-                    >
-                      <Icon name="refresh" class="ico" />
-                    </button>
-                    <button
-                      class="kb-icon"
-                      type="button"
-                      aria-label={language.t("knowledge.workspace.doc.more")}
-                      onClick={more}
-                    >
-                      <Icon name="outline-dots" class="ico" />
-                    </button>
-                  </>
-                }
-                meta={
-                  <>
-                    <FileStatus file={entry()} />
-                    <span class="kb-sep" aria-hidden="true" />
-                    <span>{language.t(typeLabelKey(fileType(entry())))}</span>
-                    <span class="kb-sep" aria-hidden="true" />
-                    <span>
-                      {language.t("knowledge.workspace.doc.updated", {
-                        time: formatWhen(fileUpdatedAt(entry()), language),
-                      })}
-                    </span>
-                  </>
-                }
-              />
+        <>
+          <div class="kb-scrim" data-open="" onClick={close} />
+          <aside
+            class="kb-drawer"
+            data-open=""
+            role="dialog"
+            aria-modal="true"
+            aria-label={fileName(entry())}
+            tabindex="-1"
+            ref={panel}
+            onKeyDown={(event) => trapModalTab(event, panel)}
+          >
+            <header class="kb-drawer-head">
+              <div class="kb-drawer-title">
+                <h2>{fileName(entry())}</h2>
+                <p>
+                  {library()?.name}
+                  {` › ${fileFolder(entry()) || language.t("knowledge.workspace.dialog.root")}，`}
+                  {language.t(typeLabelKey(fileType(entry())))}
+                  {`，${formatBytes(entry().size)}，`}
+                  {language.plural("knowledge.workspace.chunks", fileChunks(entry()), {
+                    count: fileChunks(entry()),
+                  })}
+                </p>
+              </div>
+              <button
+                class="kb-icon-btn"
+                type="button"
+                aria-label={language.t("knowledge.workspace.dialog.close")}
+                onClick={close}
+              >
+                <Icon name="close" class="ico" />
+              </button>
+            </header>
 
+            <div class="kb-drawer-body" data-scrollable>
               <Show
                 when={ws.knowledge.preview().status !== "loading"}
                 fallback={
@@ -176,26 +192,54 @@ export function DocView() {
                   </p>
                 </Show>
               </Show>
-
-              <p class="kb-foot">
-                <span>
-                  {language.t("knowledge.workspace.doc.foot", {
-                    path: entry().path,
-                    chunks: fileChunks(entry()),
-                  })}
-                </span>
-                <span class="kb-spacer" />
-                <button
-                  class="kb-btn kb-btn-sm kb-btn-ghost"
-                  type="button"
-                  onClick={() => void ws.data.reveal(entry().path, entry().source)}
-                >
-                  {language.t("knowledge.workspace.doc.reveal")}
-                </button>
-              </p>
             </div>
-          </div>
-        </View>
+
+            <footer class="kb-drawer-foot">
+              <span class="kb-foot-note">
+                {language.t(statusLabelKey(fileStatus(entry())))}
+                {`，`}
+                {language.t("knowledge.workspace.doc.updated", {
+                  time: formatWhen(fileUpdatedAt(entry()), language),
+                })}
+              </span>
+              <button
+                class="kb-icon-btn"
+                type="button"
+                aria-pressed={Boolean(entry().favorite) ? "true" : "false"}
+                aria-label={language.t(
+                  entry().favorite ? "knowledge.workspace.menu.unfavorite" : "knowledge.workspace.menu.favorite",
+                )}
+                onClick={() => {
+                  const lib = library()
+
+                  if (!lib) return
+                  ws.knowledge.libraries.setFileFavorite(lib.id, entry().path, !entry().favorite)
+                }}
+              >
+                <Icon name="pin" class="ico ico-sm" />
+              </button>
+              <button
+                class="kb-icon-btn"
+                type="button"
+                aria-label={language.t("knowledge.workspace.doc.reprocess")}
+                onClick={() => void retry()}
+              >
+                <Icon name="refresh" class="ico ico-sm" />
+              </button>
+              <button class="kb-neutral" type="button" onClick={() => void download()}>
+                {language.t("knowledge.workspace.doc.download")}
+              </button>
+              <button
+                class="kb-icon-btn"
+                type="button"
+                aria-label={language.t("knowledge.workspace.doc.more")}
+                onClick={more}
+              >
+                <Icon name="outline-dots" class="ico" />
+              </button>
+            </footer>
+          </aside>
+        </>
       )}
     </Show>
   )

@@ -1,7 +1,7 @@
 import { Icon } from "@opencode/ui/icon"
 import { createMemo, For, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { PageHead, View } from "./bits"
+import { View } from "./bits"
 import { useWorkspace } from "./context"
 import type { MenuItem } from "./state"
 
@@ -80,17 +80,23 @@ export function AgentsView() {
     <View name="agents">
       <div class="kb-scroll" data-scrollable>
         <div class="kb-page">
-          <PageHead
-            back={{ label: language.t("knowledge.workspace.title"), onClick: () => ws.ui.go("libraries") }}
-            title={language.t("knowledge.workspace.agents.title")}
-            description={language.t("knowledge.workspace.agents.description")}
-            actions={
-              <button class="kb-btn kb-btn-primary" type="button" onClick={addMenu}>
-                <Icon name="plus" class="ico" />
-                <span>{language.t("knowledge.workspace.agents.add")}</span>
+          <button class="kb-back" type="button" onClick={() => ws.ui.go("libraries")}>
+            <Icon name="outline-arrow-left" class="ico ico-sm" />
+            {language.t("knowledge.workspace.title")}
+          </button>
+
+          <header class="kb-head">
+            <div>
+              <h1>{language.t("knowledge.workspace.agents.title")}</h1>
+              <p>{language.t("knowledge.workspace.agents.description")}</p>
+            </div>
+            <div class="kb-tools">
+              <button class="kb-primary" type="button" onClick={addMenu}>
+                <Icon name="plus" class="ico ico-sm" />
+                {language.t("knowledge.workspace.agents.add")}
               </button>
-            }
-          />
+            </div>
+          </header>
 
           <Show
             when={libraries().length > 0}
@@ -133,7 +139,7 @@ export function AgentsView() {
                 </span>
                 <span class="kb-spacer" />
                 <Show when={selected() && ws.data.isLinked(selected()!.id)}>
-                  <button class="kb-btn kb-btn-sm kb-btn-danger" type="button" onClick={() => void unlink(selected()!.id)}>
+                  <button class="kb-row-link" type="button" data-danger onClick={() => void unlink(selected()!.id)}>
                     {language.t("knowledge.workspace.agents.removeLibrary")}
                   </button>
                 </Show>
@@ -148,21 +154,21 @@ export function AgentsView() {
                     </span>
                     <h2>{language.t("knowledge.workspace.agents.empty.title")}</h2>
                     <p>{language.t("knowledge.workspace.agents.empty.hint")}</p>
-                    <button class="kb-btn kb-btn-primary" type="button" onClick={() => void link(selected()!.id)}>
+                    <button class="kb-primary" type="button" onClick={() => void link(selected()!.id)}>
                       {language.t("knowledge.workspace.agents.empty.action")}
                     </button>
                   </div>
                 }
               >
-                <div class="kb-rows">
+                <div class="kb-item-rows">
                   <For each={linked()}>
                     {(agent) => (
-                      <div class="kb-row">
+                      <div class="kb-item">
                         <span class="kb-avatar">{agent.name.slice(0, 1).toLocaleUpperCase()}</span>
-                        <span class="kb-row-body">
-                          <span class="kb-row-title">{agent.name}</span>
+                        <span class="kb-item-body">
+                          <span class="kb-item-title">{agent.name}</span>
                           <Show when={agent.description}>
-                            {(description) => <span class="kb-row-sub">{description()}</span>}
+                            {(description) => <span class="kb-item-sub">{description()}</span>}
                           </Show>
                         </span>
                         <span class="kb-badge">{language.t("knowledge.workspace.agents.readonly")}</span>

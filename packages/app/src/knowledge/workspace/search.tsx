@@ -1,7 +1,7 @@
 import { Icon } from "@opencode/ui/icon"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { PageHead, View } from "./bits"
+import { View } from "./bits"
 import { useWorkspace } from "./context"
 import { transition, visibleHits, type SearchState } from "./search-machine"
 
@@ -108,20 +108,26 @@ export function SearchView() {
     <View name="search">
       <div class="kb-scroll" data-scrollable>
         <div class="kb-page">
-          <PageHead
-            back={{ label: language.t("knowledge.workspace.title"), onClick: () => ws.ui.go("libraries") }}
-            title={language.t("knowledge.workspace.search.title")}
-            description={language.t("knowledge.workspace.search.description")}
-            actions={
-              <button class="kb-btn" type="button" onClick={() => ws.ui.go("jobs")}>
-                <Icon name="outline-list-changelog" class="ico" />
-                <span>{language.t("knowledge.workspace.search.jobs")}</span>
-              </button>
-            }
-          />
+          <button class="kb-back" type="button" onClick={() => ws.ui.go("libraries")}>
+            <Icon name="outline-arrow-left" class="ico ico-sm" />
+            {language.t("knowledge.workspace.title")}
+          </button>
 
-          <div class="kb-search">
-            <Icon name="magnifying-glass" class="ico" />
+          <header class="kb-head">
+            <div>
+              <h1>{language.t("knowledge.workspace.search.title")}</h1>
+              <p>{language.t("knowledge.workspace.search.description")}</p>
+            </div>
+            <div class="kb-tools">
+              <button class="kb-neutral" type="button" onClick={() => ws.ui.go("jobs")}>
+                <Icon name="outline-list-changelog" class="ico ico-sm" />
+                {language.t("knowledge.workspace.search.jobs")}
+              </button>
+            </div>
+          </header>
+
+          <label class="kb-search" data-wide>
+            <Icon name="magnifying-glass" class="ico ico-sm" />
             <input
               ref={input}
               type="search"
@@ -136,7 +142,7 @@ export function SearchView() {
             />
             <Show when={ws.ui.store.searchQuery}>
               <button
-                class="kb-icon kb-icon-sm"
+                class="kb-icon-btn"
                 type="button"
                 aria-label={language.t("knowledge.workspace.search.clear")}
                 onClick={clear}
@@ -144,9 +150,9 @@ export function SearchView() {
                 <Icon name="close" class="ico ico-sm" />
               </button>
             </Show>
-          </div>
+          </label>
 
-          <div class="kb-search-meta">
+          <div class="kb-meta">
             <Show
               when={ws.ui.store.searchQuery.trim()}
               fallback={<span>{language.t("knowledge.workspace.search.idle")}</span>}
@@ -177,18 +183,14 @@ export function SearchView() {
                 )}
               </For>
               <Show when={selectedLibraries().size > 0}>
-                <button
-                  class="kb-btn kb-btn-sm kb-btn-ghost"
-                  type="button"
-                  onClick={() => ws.ui.setStore("searchLibraries", [])}
-                >
+                <button class="kb-neutral" type="button" onClick={() => ws.ui.setStore("searchLibraries", [])}>
                   {language.t("knowledge.workspace.search.facet.clear")}
                 </button>
               </Show>
             </div>
           </Show>
 
-          <div class="kb-results" role="list">
+          <div class="kb-search-results" data-static role="list">
             <Show
               when={state().status !== "idle"}
               fallback={
@@ -224,7 +226,7 @@ export function SearchView() {
                       </span>
                       <h2>{language.t("knowledge.workspace.search.failed.title")}</h2>
                       <p>{failureMessage()}</p>
-                      <button class="kb-btn" type="button" onClick={() => void run(ws.ui.store.searchQuery)}>
+                      <button class="kb-neutral" type="button" onClick={() => void run(ws.ui.store.searchQuery)}>
                         {language.t("knowledge.workspace.search.retry")}
                       </button>
                     </div>
@@ -243,7 +245,7 @@ export function SearchView() {
                           })}
                         </h2>
                         <p>{language.t("knowledge.workspace.search.none.hint")}</p>
-                        <button class="kb-btn" type="button" onClick={clear}>
+                        <button class="kb-neutral" type="button" onClick={clear}>
                           {language.t("knowledge.workspace.search.facet.clear")}
                         </button>
                       </div>
@@ -251,19 +253,24 @@ export function SearchView() {
                   >
                     <For each={scoped()}>
                       {(hit) => (
-                        <button class="kb-result" type="button" role="listitem" onClick={() => void openHit(hit)}>
-                          <span class="kb-result-head">
-                            <Icon name="file-document" class="ico" />
-                            <span class="kb-result-name">{hit.name}</span>
-                            <span class="kb-result-lib">{hit.libraryName}</span>
-                            <span class="kb-result-part">
-                              {language.t("knowledge.workspace.search.part", { ordinal: hit.ordinal + 1 })}
+                        <button
+                          class="kb-search-hit"
+                          data-rich
+                          type="button"
+                          role="listitem"
+                          onClick={() => void openHit(hit)}
+                        >
+                          <Icon name="file-document" class="ico ico-sm" />
+                          <span class="kb-search-hit-copy">
+                            <span class="kb-search-hit-name">{hit.name}</span>
+                            <span class="kb-search-hit-excerpt">
+                              <Highlight text={hit.text} query={ws.ui.store.searchQuery} />
                             </span>
                           </span>
-                          <p class="kb-result-text">
-                            <Highlight text={hit.text} query={ws.ui.store.searchQuery} />
-                          </p>
-                          <span class="kb-result-foot">{hit.path}</span>
+                          <em>
+                            {hit.libraryName}
+                            {` › ${language.t("knowledge.workspace.search.part", { ordinal: hit.ordinal + 1 })}`}
+                          </em>
                         </button>
                       )}
                     </For>
@@ -308,7 +315,11 @@ function Highlight(props: { text: string; query: string }) {
 
   return (
     <For each={pieces()}>
-      {(piece) => <Show when={piece.match} fallback={<>{piece.text}</>}><mark>{piece.text}</mark></Show>}
+      {(piece) => (
+        <Show when={piece.match} fallback={<>{piece.text}</>}>
+          <mark>{piece.text}</mark>
+        </Show>
+      )}
     </For>
   )
 }

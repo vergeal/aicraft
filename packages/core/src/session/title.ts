@@ -1,6 +1,5 @@
 export * as SessionTitle from "./title.js"
 
-import { isDeepStrictEqual } from "node:util"
 import { LLMClient, LLMEvent, Message, SystemPart } from "@opencode/ai/effect"
 import type { Agent } from "@opencode/schema/agent"
 import { Context, DateTime, Effect, Layer, Option, Stream } from "effect"
@@ -22,6 +21,10 @@ const MAX_CONTEXT_LENGTH = 8_000
 const MAX_FIRST_MESSAGE_LENGTH = 2_000
 // A title is cosmetic: never let one stalled request hold up the conversation.
 const ATTEMPT_TIMEOUT = "8 seconds"
+// The first attempt races the Session's own model calls and the location's model catalog, so a transient failure
+// would otherwise leave the Session untitled until the next prompt. A title is background work; retry it, bounded.
+const GENERATE_ATTEMPTS = 3
+const GENERATE_RETRY_DELAY = ["2 seconds", "5 seconds"] as const
 const titleChanged = Symbol("Session title changed")
 
 export interface Interface {
@@ -68,7 +71,7 @@ export const layer = Layer.effect(
       readonly model: SessionRunnerModel.Resolved
     }) {
       const chunks: string[] = []
-      let failed = false
+      let failure: { readonly message: string; readonly reason: { readonly _tag: string }; readonly status?: number } | undefined
       let usage: SessionUsage.Recorded | undefined
       const recordUsage = Effect.suspend(() =>
         usage
@@ -86,7 +89,8 @@ export const layer = Layer.effect(
         system: input.agent.system ? [SystemPart.make(input.agent.system)] : [],
         messages: [Message.user(input.text)],
       })
-      if (prepared.event.result !== undefined) return { timedOut: false, title: prepared.event.result }
+      if (prepared.event.result !== undefined)
+        return { timedOut: false, title: prepared.event.result, failure: undefined }
       const outcome = yield* llm.stream(prepared.request, prepared.options).pipe(
         Stream.runForEach((event) => {
           if (LLMEvent.is.textDelta(event)) chunks.push(event.text)
@@ -96,17 +100,17 @@ export const layer = Layer.effect(
           }
           return Effect.void
         }),
-        Effect.catchTag("AI.Error", () =>
+        Effect.catchTag("AI.Error", (error) =>
           Effect.sync(() => {
-            failed = true
+            failure = error
           }),
         ),
         Effect.timeoutOption(ATTEMPT_TIMEOUT),
         Effect.onInterrupt(() => recordUsage.pipe(Effect.asVoid)),
       )
       yield* recordUsage
-      if (Option.isNone(outcome)) return { timedOut: true, title: undefined }
-      if (failed) return { timedOut: false, title: undefined }
+      if (Option.isNone(outcome)) return { timedOut: true, title: undefined, failure: undefined }
+      if (failure) return { timedOut: false, title: undefined, failure }
       return {
         timedOut: false,
         title: chunks
@@ -114,6 +118,7 @@ export const layer = Layer.effect(
           .split("\n")
           .map((line) => line.trim())
           .find((line) => line.length > 0),
+        failure: undefined,
       }
     })
 
@@ -145,17 +150,35 @@ export const layer = Layer.effect(
             Effect.orElseSucceed(() => messagePrompt(firstUser.text)),
           )
         : messagePrompt(firstUser.text)
-      const selection = yield* context.selectTitle(session)
-      if (!selection) return
-      // A stalled request is abandoned after 8 seconds and retried with the Session's own model, even when the
-      // preferred model already is that model. Other failures keep the usual fallback to a different model.
-      const retry = selection.primary ?? selection.selected
-      const first = yield* attempt({ session, agent: selection.agent, text, model: selection.selected })
-      const title =
-        first.title ??
-        (first.timedOut || !isDeepStrictEqual(selection.selected.ref, retry.ref)
-          ? (yield* attempt({ session, agent: selection.agent, text, model: retry })).title
-          : undefined)
+      // A title is background work, so a missing selection or a failed request retries instead of leaving the
+      // Session untitled until the next prompt. The retry budget covers the window in which a fresh location is
+      // still filling its agent and model catalog and the moment in which the provider queues the request behind
+      // the Session's own calls.
+      const title = yield* Effect.gen(function* () {
+        for (let round = 0; round < GENERATE_ATTEMPTS; round++) {
+          const selection = yield* context.selectTitle(session)
+          if (selection) {
+            const model = round === 0 ? selection.selected : (selection.primary ?? selection.selected)
+            const result = yield* attempt({ session, agent: selection.agent, text, model })
+            if (result.title) return result.title
+            yield* Effect.logWarning("session title attempt failed", {
+              sessionID,
+              attempt: round + 1,
+              providerID: model.ref.providerID,
+              modelID: model.ref.id,
+              timedOut: result.timedOut,
+              reason: result.failure?.reason._tag,
+              status: result.failure?.status,
+              message: result.failure?.message,
+            })
+          } else {
+            yield* Effect.logWarning("session title model unavailable", { sessionID, attempt: round + 1 })
+          }
+          const delay = GENERATE_RETRY_DELAY[round]
+          if (delay) yield* Effect.sleep(delay)
+        }
+        return undefined
+      })
       if (!title) return
       const next = withForkSuffix(session, title)
       const expectedSequence = (yield* Bus.latestSequence(db, sessionID)) + 1

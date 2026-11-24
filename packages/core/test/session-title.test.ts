@@ -36,6 +36,7 @@ import { Provider } from "@opencode/core/provider"
 import { AbsolutePath } from "@opencode/core/schema"
 import { Money } from "@opencode/schema/money"
 import { Deferred, Effect, Fiber, Layer, Stream } from "effect"
+import { TestClock } from "effect/testing"
 import { testEffect } from "./lib/effect"
 
 let requests: LLMRequest[] = []
@@ -171,6 +172,15 @@ const prompt = (sessionID: Session.ID, text: string) =>
     })
   })
 
+// Retried attempts sleep between rounds, so advance the test clock while the generation runs.
+const generateTitle = (sessionID: Session.ID) =>
+  Effect.gen(function* () {
+    const title = yield* SessionTitle.Service
+    const fiber = yield* title.generate(sessionID).pipe(Effect.forkScoped)
+    yield* Effect.forEach(Array.from({ length: 20 }), () => TestClock.adjust("1 second"), { discard: true })
+    yield* Fiber.join(fiber)
+  })
+
 const small = Model.Info.make({
   ...Model.Info.default(Provider.ID.make("test"), Model.ID.make("title-small")),
   family: Model.Family.make("gpt-luna"),
@@ -213,8 +223,7 @@ it.effect("generates a title from the sole user message and renames the session"
     yield* prompt(sessionID, "Help me debug the failing build")
 
     const store = yield* SessionStore.Service
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(requests).toHaveLength(1)
     expect(requests[0]?.headers).toEqual({
@@ -258,8 +267,7 @@ it.effect("runs title hooks instead of context hooks", () =>
       }),
     )
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(contexts).toBe(0)
     expect(requests).toHaveLength(1)
@@ -284,8 +292,7 @@ it.effect("uses a hook-provided title without a model request", () =>
       }),
     )
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(requests).toHaveLength(0)
     const store = yield* SessionStore.Service
@@ -301,8 +308,7 @@ it.effect("uses a small model from the primary provider", () =>
     yield* insertSession(sessionID)
     yield* prompt(sessionID, "Use a small model for this title")
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(requests.map((request) => String(request.model.id))).toEqual(["title-small"])
     expect(selections[1]?.variant).toBe(Model.VariantID.make("none"))
@@ -338,8 +344,7 @@ it.effect("falls back to the primary model when the small model fails", () =>
       }),
     )
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(requests.map((request) => String(request.model.id))).toEqual(["title-small", "title-model"])
     expect(attempted.map((model) => String(model.variant))).toEqual(["low", "high"])
@@ -372,8 +377,7 @@ const titleAttempts = (sessionID: Session.ID, text: string, variant?: string) =>
         attempted.push(event.model)
       }),
     )
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
     const store = yield* SessionStore.Service
     return { attempted: attempted.map((model) => String(model.variant)), title: (yield* store.get(sessionID))?.title }
   })
@@ -446,8 +450,7 @@ it.effect("generates from the first user message after later messages exist", ()
     yield* prompt(sessionID, "Second message")
 
     const store = yield* SessionStore.Service
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(requests).toHaveLength(1)
     expect(JSON.stringify(requests[0]?.messages)).toContain("First message")
@@ -464,8 +467,7 @@ it.effect("retries a legacy persisted fallback title", () =>
     yield* insertSession(sessionID, "New session - 2026-07-30T18:45:03.662Z", created)
     yield* prompt(sessionID, "Retry the legacy title")
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const store = yield* SessionStore.Service
     expect(requests).toHaveLength(1)
@@ -499,8 +501,7 @@ it.effect("generates a title for an explicitly requested child session", () =>
       .pipe(Effect.orDie)
     yield* prompt(sessionID, "Do this subtask")
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
     const store = yield* SessionStore.Service
     expect(requests).toHaveLength(1)
     expect((yield* store.get(sessionID))?.title).toBe("Generated Title")
@@ -514,8 +515,7 @@ it.effect("does not generate when the title agent is removed", () =>
     yield* prompt(sessionID, "Help me debug the failing build")
 
     const store = yield* SessionStore.Service
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     expect(requests).toHaveLength(0)
     const untouched = yield* store.get(sessionID)
@@ -554,8 +554,7 @@ it.effect("regenerates an existing title using the title agent", () =>
     })
     yield* prompt(sessionID, "Switch to fixing OAuth token refresh")
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const store = yield* SessionStore.Service
     expect(requests).toHaveLength(1)
@@ -592,8 +591,7 @@ it.effect("keeps the fork suffix when a forked session regenerates its title", (
       .pipe(Effect.orDie)
     yield* prompt(sessionID, "Investigate the login failure")
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const store = yield* SessionStore.Service
     expect((yield* store.get(sessionID))?.title).toBe("Generated Title (fork #1)")
@@ -608,8 +606,7 @@ it.effect("bounds regeneration context while preserving the original request and
     yield* prompt(sessionID, `ORIGINAL_GOAL ${"a".repeat(3_000)} OMITTED_ORIGINAL_END`)
     yield* prompt(sessionID, `OMITTED_OLD_CONTEXT ${"b".repeat(9_000)} RECENT_GOAL`)
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const content = requests[0]?.messages[0]?.content[0]
     expect(content?.type).toBe("text")
@@ -630,27 +627,24 @@ it.effect("preserves the existing title when regeneration fails", () =>
     yield* prompt(sessionID, "Fail to regenerate this title")
     titleStream = () => Stream.fail(providerRejected({ message: "Provider unavailable" }))
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const store = yield* SessionStore.Service
-    expect(requests).toHaveLength(1)
+    expect(requests).toHaveLength(3)
     expect((yield* store.get(sessionID))?.title).toBe("Original title")
   }),
 )
 
-it.effect("retries after a failed title request", () =>
+it.effect("retries a failed title request in the background", () =>
   Effect.gen(function* () {
     yield* enableTitleAgent
     const sessionID = Session.ID.make("ses_title_retry")
     yield* insertSession(sessionID)
     yield* prompt(sessionID, "Retry this title")
-    const title = yield* SessionTitle.Service
-    titleStream = () => Stream.fail(providerRejected({ message: "Provider unavailable" }))
+    titleStream = () =>
+      requests.length === 1 ? Stream.fail(providerRejected({ message: "Provider unavailable" })) : successfulTitle()
 
-    yield* title.generate(sessionID)
-    titleStream = successfulTitle
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const store = yield* SessionStore.Service
     expect(requests).toHaveLength(2)
@@ -671,11 +665,10 @@ it.effect("does not rename after a failed title stream", () =>
         }),
       )
 
-    const title = yield* SessionTitle.Service
-    yield* title.generate(sessionID)
+    yield* generateTitle(sessionID)
 
     const store = yield* SessionStore.Service
-    expect(requests).toHaveLength(1)
+    expect(requests).toHaveLength(3)
     expect((yield* store.get(sessionID))?.title).toBeUndefined()
   }),
 )

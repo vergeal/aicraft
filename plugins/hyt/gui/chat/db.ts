@@ -2,7 +2,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
 import { noticeNames, resolveGroupNames } from "../../src/chat/groups.js"
-import { kindOf, toMessage } from "../../src/chat/message.js"
+import { kindOf, parseAppCard, toMessage } from "../../src/chat/message.js"
 import type { ChatRow } from "../../src/chat/message.js"
 import type { MessageRow, SessionRow } from "./contract.js"
 
@@ -503,13 +503,17 @@ function chatRow(row: Row): ChatRow {
 
 function messageRow(row: ChatRow, account: string, people: Map<string, PersonEntry>): MessageRow {
   const message = toMessage(row)
+  const person = people.get(message.sender)
+  const app = message.kind === "app" ? parseAppCard(row.UserData, message.text) : undefined
   return {
     id: message.id,
     msgId: message.msgId,
     kind: message.kind,
     text: message.text,
     sender: message.sender,
-    senderNick: message.senderNick,
+    // 库里 SenderNick 常常是账号或很久以前的昵称，与头像（按账号取的通讯录头像）对不上；
+    // 通讯录里有名字就以它为准，库里的字段只作回退。
+    senderNick: person === undefined ? message.senderNick : person.remark || person.name || message.senderNick,
     senderHead: people.get(message.sender)?.headPath ?? "",
     outgoing: account.length > 0 && message.sender === account,
     createdAt: message.createdAt,
@@ -518,6 +522,7 @@ function messageRow(row: ChatRow, account: string, people: Map<string, PersonEnt
     fileName: message.fileName,
     fileSize: numberOf(row.FileSize) ?? 0,
     filePath: message.fileFullPath,
+    ...(app === undefined ? {} : { app }),
   }
 }
 
@@ -535,6 +540,7 @@ function previewOf(row: ChatRow) {
     call: "[通话]",
     notice: "[系统通知]",
     merge: "[合并转发]",
+    app: "[应用消息]",
     other: "[消息]",
   }
   return label[kind] ?? ""
@@ -600,6 +606,29 @@ export function appendOwnMessage(
     return { recorded: true, error: "" }
   } catch (cause) {
     return { recorded: false, error: cause instanceof Error ? cause.message : String(cause) }
+  } finally {
+    db?.close()
+  }
+}
+
+/**
+ * 把补下载回来的文件路径记回本地库。
+ *
+ * 客户端在线时自己会写；插件补下载的图片只有这里能写，写完下次打开会话就是普通图片消息。
+ * 只填空值，不覆盖客户端已经写好的路径。
+ */
+export function recordMediaPath(root: string, account: string, msgId: string, path: string) {
+  const file = chatDbPath(root, account)
+  if (!existsSync(file) || msgId.length === 0 || path.length === 0) return
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(file)
+    db.exec("pragma busy_timeout = 3000")
+    db.prepare(
+      "update chatmsg set FileFullPath = ? where MsgId = ? and (FileFullPath is null or FileFullPath = '')",
+    ).run(path, msgId)
+  } catch {
+    // 写不进库不影响这一次显示：界面已经拿到 data URL，下次刷新会再试。
   } finally {
     db?.close()
   }

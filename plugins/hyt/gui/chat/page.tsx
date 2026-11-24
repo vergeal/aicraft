@@ -416,15 +416,28 @@ export function ChatPage(props: {
   }
 
   const mediaCache = new Map<string, Promise<string>>()
-  const onMedia = (path: string) => {
-    if (path.length === 0) return Promise.resolve("")
-    const cached = mediaCache.get(path)
+  // 本地没有副本时主进程会按 msgId 补下载，所以缓存键必须带上消息 id：
+  // 同一条消息补下载完成后 path 会变，那时应重新读一次，而不是复用失败的缓存。
+  const onMedia = (path: string, msgId: string) => {
+    if (path.length === 0 && msgId.length === 0) return Promise.resolve("")
+    const key = `${msgId}\u0000${path}`
+    const cached = mediaCache.get(key)
     if (cached !== undefined) return cached
     const request = props.client
-      .media({ path })
-      .then((result) => (result.error.length > 0 ? "" : result.dataUrl))
-      .catch(() => "")
-    mediaCache.set(path, request)
+      .media({ path, msgId })
+      .then((result) => {
+        // 失败（未登录、下载还没回来）不留在缓存里：登录成功或下次进入会话时要能重试。
+        if (result.error.length > 0) {
+          mediaCache.delete(key)
+          return ""
+        }
+        return result.dataUrl
+      })
+      .catch(() => {
+        mediaCache.delete(key)
+        return ""
+      })
+    mediaCache.set(key, request)
     return request
   }
 

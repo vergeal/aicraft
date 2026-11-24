@@ -546,14 +546,23 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     },
 
     async media(input) {
+      const root = rootOf()
       const path = input.path
-      if (!insideRoot(path, rootOf())) return { dataUrl: "", error: "路径不在数据目录内" }
-      const bytes = readBytes(path)
-      if (bytes === undefined) return { dataUrl: "", error: "文件不存在或无法读取" }
-      if (bytes.byteLength > MAX_MEDIA_BYTES) return { dataUrl: "", error: "图片超过 24 MB" }
-      const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase()
-      const mime = MIME[extension] ?? "application/octet-stream"
-      return { dataUrl: `data:${mime};base64,${bytes.toString("base64")}`, error: "" }
+      const bytes = path.length > 0 && insideRoot(path, root) ? readBytes(path) : undefined
+      if (bytes !== undefined) return mediaOf(bytes, path)
+      const msgId = input.msgId ?? ""
+      if (msgId.length === 0) return { dataUrl: "", error: "文件不存在或无法读取" }
+      // 本地没有副本（客户端不在线时收到的图片/文件）：让桥接从服务端补下载，
+      // 成功后把路径记回本地库，下次刷新就是普通图片消息，不用再下第二次。
+      const downloaded = await sender.download(msgId)
+      if (downloaded.path.length === 0) {
+        return { dataUrl: "", error: downloaded.error.length > 0 ? downloaded.error : "文件还在下载，稍后重试" }
+      }
+      if (!insideRoot(downloaded.path, root)) return { dataUrl: "", error: "下载路径不在数据目录内" }
+      const fetched = readBytes(downloaded.path)
+      if (fetched === undefined) return { dataUrl: "", error: "文件已下载但无法读取" }
+      Db.recordMediaPath(root, current.status.account, msgId, downloaded.path)
+      return mediaOf(fetched, downloaded.path)
     },
 
     async avatars(input) {
@@ -642,6 +651,14 @@ function readText(path: string) {
   } catch {
     return undefined
   }
+}
+
+/** 本地文件 → data URL。扩展名决定 MIME，未知类型交给浏览器嗅探。 */
+function mediaOf(bytes: Uint8Array, path: string) {
+  if (bytes.byteLength > MAX_MEDIA_BYTES) return { dataUrl: "", error: "图片超过 24 MB" }
+  const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase()
+  const mime = MIME[extension] ?? "application/octet-stream"
+  return { dataUrl: `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`, error: "" }
 }
 
 function readBytes(path: string) {

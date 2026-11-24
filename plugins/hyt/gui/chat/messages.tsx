@@ -1,5 +1,6 @@
 import type { Context } from "@opencode/plugin/gui"
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import type { AppCardField } from "../../src/chat/message.js"
 import type { MergeItemRow, MessageRow, ReceiptPerson, ReceiptView } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
@@ -36,7 +37,7 @@ export function MessageStream(props: {
   /** 回执版本号：收到新回执就变，弹窗据此重新取名单。 */
   receiptVersion: number
   onReceipts: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
-  onMedia: (path: string) => Promise<string>
+  onMedia: (path: string, msgId: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
@@ -227,7 +228,7 @@ function Message(props: {
   grouped: boolean
   self: boolean
   avatars: Record<string, string>
-  onMedia: (path: string) => Promise<string>
+  onMedia: (path: string, msgId: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
@@ -238,6 +239,8 @@ function Message(props: {
   onReceipt: () => void
 }) {
   const [expanded, setExpanded] = createSignal(false)
+  /** 应用卡片字段较多（告警常带十几项）：默认只列前几条，其余展开看。 */
+  const [cardOpen, setCardOpen] = createSignal(false)
   const [merge, setMerge] = createSignal<{ items: readonly MergeItemRow[]; error: string } | undefined>()
   const [merging, setMerging] = createSignal(false)
 
@@ -293,8 +296,9 @@ function Message(props: {
         >
           <Face
             class="msg-face"
-            name={props.message.senderNick || props.message.sender}
-            src={avatarOf(props.avatars, props.message.senderHead)}
+            // 应用消息的「头像」就是应用自己的图标；没有图标时退回应用名首字。
+            name={props.message.app?.name || props.message.senderNick || props.message.sender}
+            src={props.message.app?.icon || avatarOf(props.avatars, props.message.senderHead)}
           />
         </button>
       </Show>
@@ -337,6 +341,7 @@ function Message(props: {
               <Shot
                 ctx={props.ctx}
                 path={props.message.filePath}
+                msgId={props.message.msgId}
                 onMedia={props.onMedia}
                 onOpen={props.onOpenImage}
               />
@@ -359,6 +364,39 @@ function Message(props: {
               </span>
             </div>
           </div>
+        </Show>
+
+        <Show when={props.message.app}>
+          {(app) => (
+            <div class="app-card">
+              <div class="app-card-head">
+                <span class="app-card-name">{app().name || props.message.senderNick}</span>
+                <span class="app-card-tag">{text(props.ctx, "hyt.chat.msg.app.tag")}</span>
+              </div>
+              <Show when={app().title.length > 0}>
+                <p class="app-card-title">{app().title}</p>
+              </Show>
+              <Show when={app().fields.length > 0}>
+                <dl class="app-card-fields">
+                  <For each={cardFields(app().fields, cardOpen())}>
+                    {(field) => (
+                      <div class="app-card-field">
+                        <dt>{field.key}</dt>
+                        <dd>{field.value}</dd>
+                      </div>
+                    )}
+                  </For>
+                </dl>
+                <Show when={app().fields.length > CARD_FIELDS}>
+                  <button class="app-card-more" type="button" onClick={() => setCardOpen(!cardOpen())}>
+                    {cardOpen()
+                      ? text(props.ctx, "hyt.chat.msg.app.less")
+                      : text(props.ctx, "hyt.chat.msg.app.more", { count: app().fields.length - CARD_FIELDS })}
+                  </button>
+                </Show>
+              </Show>
+            </div>
+          )}
         </Show>
 
         <Show when={props.message.kind === "voice" || props.message.kind === "video" || props.message.kind === "call"}>
@@ -718,10 +756,13 @@ function escapeRegExp(value: string) {
 function Shot(props: {
   ctx: Context
   path: string
-  onMedia: (path: string) => Promise<string>
+  /** 本地没有文件时主进程按它向服务端补下载。 */
+  msgId: string
+  onMedia: (path: string, msgId: string) => Promise<string>
   onOpen: (path: string) => void
 }) {
-  const [src] = createResource(() => props.path, props.onMedia)
+  // 键里带上消息 id：补下载完成后 path 会变，那时应当再读一次。
+  const [src] = createResource(() => `${props.msgId}\u0000${props.path}`, () => props.onMedia(props.path, props.msgId))
   /** 读到了地址但解码失败：一样退回色块，不要浏览器默认的破图图标。 */
   const [broken, setBroken] = createSignal(false)
   createEffect(() => {
@@ -743,6 +784,13 @@ function Shot(props: {
       </Show>
     </button>
   )
+}
+
+/** 应用卡片折叠时最多显示的字段数。 */
+const CARD_FIELDS = 4
+
+function cardFields(fields: readonly AppCardField[], open: boolean) {
+  return open ? fields : fields.slice(0, CARD_FIELDS)
 }
 
 function avatarOf(map: Record<string, string>, path: string) {

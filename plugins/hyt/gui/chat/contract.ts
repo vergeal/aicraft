@@ -23,6 +23,7 @@ export const MessageKind = Schema.Literals([
   "call",
   "notice",
   "merge",
+  "app",
   "other",
 ])
 
@@ -78,6 +79,19 @@ export const MessageRow = Schema.Struct({
   fileSize: Schema.Number,
   /** 本地绝对路径：图片读取、合并转发解码、打开文件都用它。 */
   filePath: Schema.String,
+  /** 应用消息的卡片：图标、应用名、标题与字段列表；普通消息没有这个字段。 */
+  app: Schema.optional(
+    Schema.Struct({
+      /** 应用图标地址（远端 URL），加载失败时头像退回应用名首字。 */
+      icon: Schema.String,
+      /** 应用名，例如「观测服务」。 */
+      name: Schema.String,
+      /** 卡片标题。 */
+      title: Schema.String,
+      /** 卡片字段，按服务端给定顺序。 */
+      fields: Schema.Array(Schema.Struct({ key: Schema.String, value: Schema.String })),
+    }),
+  ),
   /**
    * 自己发出的消息的已读回执摘要；别人发来的消息没有这个字段。
    * `unread` 为 -1 表示还没拿到群成员名单，此时界面只报「N 人已读」。
@@ -303,9 +317,12 @@ export const ChatIpc = Ipc.define({
       }),
       output: ReceiptView,
     },
-    /** 读一张图片，返回 data URL，供窗口内联显示。 */
+    /**
+     * 读一张图片，返回 data URL，供窗口内联显示。
+     * 本地没有副本时带上 `msgId`，主进程会让服务端补下载一次再读。
+     */
     media: {
-      input: Schema.Struct({ path: Schema.String }),
+      input: Schema.Struct({ path: Schema.String, msgId: Schema.optional(Schema.String) }),
       output: Schema.Struct({ dataUrl: Schema.String, error: Schema.String }),
     },
     /** 批量读头像，最多 200 张；按路径与 mtime 在主进程缓存。 */

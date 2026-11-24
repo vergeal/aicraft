@@ -1,8 +1,8 @@
 import { connectBridge } from "../../src/bridge/client.js"
 import { ensureLogin, sendTextEnsuringLogin } from "../../src/bridge/native.js"
 import type { BridgeCredentials } from "../../src/bridge/native.js"
-import { METHODS, isRecord, parseMarkRead, parseMembers, readEndpoint } from "../../src/bridge/protocol.js"
-import type { MarkReadResult, MembersResult } from "../../src/bridge/protocol.js"
+import { METHODS, isRecord, parseDownload, parseMarkRead, parseMembers, readEndpoint } from "../../src/bridge/protocol.js"
+import type { DownloadResult, MarkReadResult, MembersResult } from "../../src/bridge/protocol.js"
 import { createSupervisor } from "../../src/bridge/supervisor.js"
 import type { BridgeSupervisor } from "../../src/bridge/supervisor.js"
 
@@ -49,6 +49,11 @@ export interface MessageSender {
   members(groupId: string): Promise<MembersResult>
   /** 把「我已经读过这条」上报给服务端。 */
   markRead(msgId: string, group: boolean): Promise<MarkReadResult>
+  /**
+   * 按消息 id 让服务端把文件下载到本地收件目录。
+   * 客户端离线时收到的图片/文件没有本地副本，打开时靠它补下载。
+   */
+  download(msgId: string): Promise<DownloadResult>
   /** 用账号密码登录消息通道；成功后桥接会打开该账号的本地库。 */
   login(userName: string, password: string): Promise<LoginOutcome>
   /** 退出登录：断开消息通道，但保留本地库与历史。 */
@@ -136,6 +141,16 @@ export function createSender(options: SenderOptions): MessageSender {
         return parseMarkRead(await client.request(METHODS.markRead, { msgId, group }), msgId)
       } catch (cause) {
         return { ok: false, msgId, error: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async download(msgId) {
+      try {
+        const client = await channel()
+        // 服务端下载回调通常几百毫秒内回来；等不到就标成 pending，界面下次刷新会带上本地路径。
+        return parseDownload(await client.request(METHODS.download, { msgId, waitMs: 8_000 }), msgId)
+      } catch (cause) {
+        return { ok: false, pending: false, msgId, path: "", error: cause instanceof Error ? cause.message : String(cause) }
       }
     },
 

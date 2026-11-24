@@ -1132,6 +1132,80 @@ export const css = `
 
 .hyt-shell .merge-card:hover { background: var(--chrome); }
 
+/* ── 应用消息卡片 
+   外部系统（观测服务等）推送的告警/通知：纸色留白 + 细边框，
+   字段按登记单排成「标签 | 值」两列，长文本自然换行，不用气泡形状。 */
+.hyt-shell .app-card {
+  width: min(520px, 100%);
+  padding: 14px 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--tint);
+}
+
+.hyt-shell .app-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hyt-shell .app-card-name { color: var(--muted); font-size: 12px; }
+
+.hyt-shell .app-card-tag {
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.hyt-shell .app-card-title {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.hyt-shell .app-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.hyt-shell .app-card-field {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.hyt-shell .app-card-field dt { color: var(--muted); font-size: 12px; }
+
+.hyt-shell .app-card-field dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.hyt-shell .app-card-more {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hyt-shell .app-card-more:hover { text-decoration: underline; }
+
 .hyt-shell .merge-title { font-size: 13px; font-weight: 500; }
 .hyt-shell .merge-text {
   margin-top: 3px;

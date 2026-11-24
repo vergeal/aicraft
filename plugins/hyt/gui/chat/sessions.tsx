@@ -269,6 +269,7 @@ function snippetOf(ctx: Context, hit: SearchHit) {
     call: text(ctx, "hyt.chat.msg.call.short"),
     recall: text(ctx, "hyt.chat.msg.recall"),
     merge: text(ctx, "hyt.chat.msg.merge"),
+    app: text(ctx, "hyt.chat.msg.app.short"),
     notice: text(ctx, "hyt.chat.msg.notice"),
     other: text(ctx, "hyt.chat.msg.unsupported"),
     file: text(ctx, "hyt.chat.msg.file.short"),

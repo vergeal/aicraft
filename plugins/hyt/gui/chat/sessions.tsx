@@ -33,6 +33,14 @@ export function Rail(props: {
   onPersonMenu: (session: SessionRow, target: MenuTarget) => void
   /** 右键会话行：已读、复制、资料。 */
   onMenu: (session: SessionRow, target: MenuTarget) => void
+  /** 当前凭据来源；决定栏脚显示登录还是退出登录。 */
+  credential: "saved" | "client" | "missing"
+  /** 退出登录进行中，按钮不可重复点。 */
+  loggingOut: boolean
+  /** 打开登录页，用账号密码登录。 */
+  onLogin: () => void
+  /** 退出登录：断开消息通道并删掉插件保存的凭据。 */
+  onLogout: () => void
 }) {
   const searching = () => props.query.trim().length > 0
   const draftSessions = createMemo(() => new Set(props.drafts.map((draft) => draft.sessionId)))
@@ -220,6 +228,22 @@ export function Rail(props: {
         <Show when={draftSessions().size > 0}>
           {" · "}
           <strong>{text(props.ctx, "hyt.chat.rail.drafts", { count: draftSessions().size })}</strong>
+        </Show>
+        <Show
+          when={props.credential === "saved"}
+          fallback={
+            <>
+              {" · "}
+              <button type="button" onClick={() => props.onLogin()}>
+                {text(props.ctx, "hyt.chat.rail.login")}
+              </button>
+            </>
+          }
+        >
+          {" · "}
+          <button type="button" disabled={props.loggingOut} onClick={() => props.onLogout()}>
+            {text(props.ctx, "hyt.chat.rail.logout")}
+          </button>
         </Show>
       </div>
     </aside>

@@ -1,7 +1,9 @@
 import { chmodSync, existsSync, statSync } from "node:fs"
 import { join } from "node:path"
 import type { BridgeClient } from "./client.js"
+import { sendMessage } from "./client.js"
 import { METHODS, isRecord } from "./protocol.js"
+import type { SendParams, SendResult } from "./protocol.js"
 
 /**
  * 插件自带的原生桥接：有了它就不必先启动虹云通客户端。
@@ -73,9 +75,12 @@ export async function readLoginState(client: BridgeClient): Promise<LoginState> 
   }
 }
 
-/** 已登录就不重复登录；否则把本地库里的凭据交给桥接。失败时抛出带原因的错误。 */
+/** 已登录且连接正常才复用；否则把插件保存的凭据交给桥接登录。失败时抛出带原因的错误。 */
 export async function ensureLogin(client: BridgeClient, credentials: BridgeCredentials) {
-  if ((await readLoginState(client)).loggedIn) return
+  const state = await readLoginState(client)
+  if (state.loggedIn && state.connected) return
+  // 已登录但连接断开时，SdkHost::login 会直接复用旧会话，所以先登出再重新登录。
+  if (state.loggedIn) await client.request(METHODS.logout).catch(() => undefined)
   const result = await client
     .request(
       METHODS.login,
@@ -87,8 +92,36 @@ export async function ensureLogin(client: BridgeClient, credentials: BridgeCrede
       if ((await readLoginState(client)).loggedIn) return { ok: true }
       throw new Error(`登录消息通道失败：${cause instanceof Error ? cause.message : String(cause)}`)
     })
-  if (!isRecord(result) || result.ok !== true) {
+  if (!isRecord(result) || (result.ok !== true && result.pending !== true)) {
     const message = isRecord(result) && typeof result.message === "string" ? result.message : "桥接没有确认登录成功"
     throw new Error(`登录消息通道失败：${message}`)
   }
+}
+
+/** 认证状态失效的一类错误：掉线、被踢、未授权、会话过期；重登一次通常能恢复。 */
+const AUTH_ERROR = /未登录|未连接|鉴权|认证|授权|登录失效|401|403|token|expired/i
+
+/** 强制重登：先清掉桥接里的旧会话，再交给 ensureLogin，避免复用一个已断开的连接。 */
+async function relogin(client: BridgeClient, credentials: BridgeCredentials) {
+  await client.request(METHODS.logout).catch(() => undefined)
+  await ensureLogin(client, credentials)
+}
+
+/**
+ * 发送文本；失败于认证类原因时用保存的凭据静默重登，并重试一次。
+ * 其余错误（会话不在白名单、内容为空、SDK 拒绝等）原样返回，不做无意义的重试。
+ */
+export async function sendTextEnsuringLogin(
+  client: BridgeClient,
+  credentials: BridgeCredentials,
+  params: SendParams,
+): Promise<SendResult> {
+  const first = await sendMessage(client, params)
+  if (first.ok || !AUTH_ERROR.test(first.error)) return first
+  try {
+    await relogin(client, credentials)
+  } catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : String(cause) }
+  }
+  return sendMessage(client, params)
 }

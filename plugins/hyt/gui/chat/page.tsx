@@ -6,6 +6,7 @@ import { ChatIpc } from "./contract.js"
 import type { MergeItemRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import { InfoPanel } from "./info.js"
+import { LoginPage } from "./login.js"
 import { MenuLayer, createMenu } from "./menu.js"
 import type { MenuEntry, MenuTarget } from "./menu.js"
 import { MessageStream } from "./messages.js"
@@ -36,6 +37,10 @@ export function ChatPage(props: {
 }) {
   const ctx = props.ctx
   const state = () => props.client.state()
+  /** 退出登录进行中：按钮置灰，避免重复断连。 */
+  const [loggingOut, setLoggingOut] = createSignal(false)
+  /** 主动打开的登录页：有 login.db 旧账号时也能改用账号密码重新登录。 */
+  const [loginOpen, setLoginOpen] = createSignal(false)
 
   const phase = () => state()?.status.phase ?? "loading"
   /**
@@ -151,6 +156,21 @@ export function ChatPage(props: {
 
   const refresh = () => {
     void props.client.refresh().catch(fail)
+  }
+
+  const logout = async () => {
+    if (loggingOut()) return
+    setLoggingOut(true)
+    try {
+      const result = await props.client.logout()
+      if (!result.ok)
+        setNotice(text(ctx, "hyt.chat.rail.logout.failed", { message: result.error || "未知原因" }))
+    } catch (cause) {
+      setNotice(text(ctx, "hyt.chat.rail.logout.failed", { message: cause instanceof Error ? cause.message : String(cause) }))
+    } finally {
+      setLoggingOut(false)
+      void props.client.refresh().catch(() => undefined)
+    }
   }
 
   onMount(() => {
@@ -465,13 +485,31 @@ export function ChatPage(props: {
       <Show
         when={!blank()}
         fallback={
-          <Blank
-            ctx={ctx}
-            phase={phase()}
-            detail={state()?.status.detail ?? ""}
-            onRetry={refresh}
-            onSettings={() => ctx.layout.settings()}
-          />
+          <Show
+            when={phase() === "no-account" || loginOpen()}
+            fallback={
+              <Blank
+                ctx={ctx}
+                phase={phase()}
+                detail={state()?.status.detail ?? ""}
+                authError={state()?.status.authError ?? ""}
+                credential={state()?.status.credential ?? "missing"}
+                onRetry={refresh}
+                onSettings={() => ctx.layout.settings()}
+                onLogin={() => setLoginOpen(true)}
+                onLogout={
+                  state()?.status.credential === "saved" ? () => void logout() : undefined
+                }
+              />
+            }
+          >
+            <LoginPage
+              ctx={ctx}
+              client={props.client}
+              detail={state()?.status.detail ?? ""}
+              onLoggedIn={() => setLoginOpen(false)}
+            />
+          </Show>
         }
       >
         <Rail
@@ -488,6 +526,10 @@ export function ChatPage(props: {
           onSelect={select}
           onSearch={search}
           onMarkAllRead={() => void props.client.markAllRead().catch(fail)}
+          credential={state()?.status.credential ?? "missing"}
+          loggingOut={loggingOut()}
+          onLogin={() => setLoginOpen(true)}
+          onLogout={() => void logout()}
           onProfile={(session, element) => profile.open(element, personOfSession(session))}
           onPersonMenu={(session, event) => personMenu(personOfSession(session), event)}
           onMenu={sessionMenu}

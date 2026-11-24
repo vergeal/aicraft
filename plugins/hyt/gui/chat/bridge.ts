@@ -1,7 +1,7 @@
 import { connectBridge } from "../../src/bridge/client.js"
-import { ensureLogin } from "../../src/bridge/native.js"
+import { ensureLogin, sendTextEnsuringLogin } from "../../src/bridge/native.js"
 import type { BridgeCredentials } from "../../src/bridge/native.js"
-import { METHODS, parseMarkRead, parseMembers, parseSendResult, readEndpoint } from "../../src/bridge/protocol.js"
+import { METHODS, isRecord, parseMarkRead, parseMembers, readEndpoint } from "../../src/bridge/protocol.js"
 import type { MarkReadResult, MembersResult } from "../../src/bridge/protocol.js"
 import { createSupervisor } from "../../src/bridge/supervisor.js"
 import type { BridgeSupervisor } from "../../src/bridge/supervisor.js"
@@ -14,6 +14,20 @@ import type { BridgeSupervisor } from "../../src/bridge/supervisor.js"
  */
 
 export type SendOutcome = { ok: true; msgId?: string } | { ok: false; reason: string }
+
+export interface LoginOutcome {
+  readonly ok: boolean
+  /** 账号密码已被服务端接受，但连接回调没在等待时间内到达；凭据仍应保存。 */
+  readonly pending: boolean
+  readonly account: string
+  /** 登录后 `auth.state` 报告的公司 id；拿不到时为空串。 */
+  readonly comId: string
+  /** `prod` 或 `test`；拿不到时为空串。 */
+  readonly env: string
+  readonly message: string
+}
+
+const LOGIN_TIMEOUT_MS = 45_000
 
 export interface SenderOptions {
   /** 当前的 CHFile 根目录；用户改设置后跟随变化。 */
@@ -35,6 +49,10 @@ export interface MessageSender {
   members(groupId: string): Promise<MembersResult>
   /** 把「我已经读过这条」上报给服务端。 */
   markRead(msgId: string, group: boolean): Promise<MarkReadResult>
+  /** 用账号密码登录消息通道；成功后桥接会打开该账号的本地库。 */
+  login(userName: string, password: string): Promise<LoginOutcome>
+  /** 退出登录：断开消息通道，但保留本地库与历史。 */
+  logout(): Promise<{ ok: boolean; error: string }>
   /** 后台预热：拉起桥接并登录，失败只记录状态，不抛给界面。 */
   warm(): Promise<void>
   /** 当前是否已有可用的连接；只读发现文件探测，不主动拉起进程。 */
@@ -67,7 +85,7 @@ export function createSender(options: SenderOptions): MessageSender {
 
   const channel = async () => {
     const credentials = options.credentials()
-    if (credentials === undefined) throw new Error("没有找到虹云通的登录凭据：先打开虹云通客户端登录一次。")
+    if (credentials === undefined) throw new Error("还没有登录：先在虹云通助手里输入账号密码登录。")
     const client = await supervisor().client()
     await ensureLogin(client, credentials)
     return client
@@ -91,8 +109,13 @@ export function createSender(options: SenderOptions): MessageSender {
     async send(sessionId, text) {
       try {
         const client = await channel()
-        const result = parseSendResult(await client.request(METHODS.sendMessage, { sessionId, text }))
-        return result.ok ? { ok: true, msgId: result.msgId } : { ok: false, reason: "消息通道没有确认已发出" }
+        const credentials = options.credentials()
+        if (credentials === undefined) throw new Error("还没有登录：先在虹云通助手里输入账号密码登录。")
+        // 通道掉线或登录失效时 sendTextEnsuringLogin 会用保存的凭据静默重登一次再重试。
+        const result = await sendTextEnsuringLogin(client, credentials, { sessionId, text })
+        return result.ok
+          ? { ok: true, ...(result.msgId === undefined ? {} : { msgId: result.msgId }) }
+          : { ok: false, reason: result.error.length > 0 ? result.error : "消息通道没有确认已发出" }
       } catch (cause) {
         return { ok: false, reason: cause instanceof Error ? cause.message : String(cause) }
       }
@@ -113,6 +136,54 @@ export function createSender(options: SenderOptions): MessageSender {
         return parseMarkRead(await client.request(METHODS.markRead, { msgId, group }), msgId)
       } catch (cause) {
         return { ok: false, msgId, error: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async login(userName, password) {
+      const name = userName.trim()
+      const rejected = (message: string) => ({ ok: false, pending: false, account: "", comId: "", env: "", message })
+      if (name.length === 0) return rejected("请输入账号。")
+      if (password.length === 0) return rejected("请输入密码。")
+      try {
+        const client = await supervisor().client()
+        // 桥接里已有会话时必须先登出：原生 SdkHost::login 在已登录时直接返回旧会话，
+        // 不重新做 PBS 认证，否则用户输入的新密码根本不会生效（旧账号已失效时会一直登录不上）。
+        const current = await client.request(METHODS.state).catch(() => undefined)
+        if (isRecord(current) && current.loggedIn === true) {
+          await client.request(METHODS.logout).catch(() => undefined)
+        }
+        // 与 ensureLogin 同一套语义：mode=1 是用户输入密码登录，waitMs 内等一次连接状态回调。
+        const value = await client.request(
+          METHODS.login,
+          { userName: name, password, mode: 1, waitMs: 15_000 },
+          LOGIN_TIMEOUT_MS,
+        )
+        if (!isRecord(value)) return rejected("bridge 没有返回登录结果。")
+        const ok = value.ok === true
+        const pending = value.pending === true
+        // 公司 id 与环境下发给桥接时可选；登录成功或已提交时补读一次，供设置页显示与后续登录复用。
+        const state = ok || pending ? await client.request(METHODS.state).catch(() => undefined) : undefined
+        return {
+          ok,
+          pending,
+          account: typeof value.account === "string" ? value.account : "",
+          comId: isRecord(state) && typeof state.comId === "string" ? state.comId : "",
+          env: isRecord(state) && typeof state.env === "string" ? state.env : "",
+          message: typeof value.message === "string" ? value.message : "",
+        }
+      } catch (cause) {
+        return rejected(cause instanceof Error ? cause.message : String(cause))
+      }
+    },
+
+    async logout() {
+      try {
+        const client = await supervisor().client()
+        const value = await client.request(METHODS.logout)
+        if (!isRecord(value)) return { ok: false, error: "bridge 没有返回退出结果。" }
+        return { ok: value.ok === true, error: typeof value.error === "string" ? value.error : "" }
+      } catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : String(cause) }
       }
     },
 

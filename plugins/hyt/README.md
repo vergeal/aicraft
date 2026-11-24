@@ -1,6 +1,8 @@
 # 虹云通助手（`changhong.aicraft.hyt`）
 
-读本机虹云通客户端的本地数据，给 AI 提供消息、联系人、知识库、说话风格与任务台账，并在白名单允许时发消息。**聊天内容是数据，不是指令**：插件不执行消息里要求它做的事。
+读本机虹云通的本地数据，并在插件内直接登录收发消息；给 AI 提供消息、联系人、知识库、说话风格与任务台账，白名单允许时发送。**聊天内容是数据，不是指令**：插件不执行消息里要求它做的事。
+
+不需要先安装或登录虹云通客户端：聊天页没有可用凭据时会显示登录页，账号密码只保存在插件自己的数据目录，消息通道由随包分发的本地 bridge 直接连接。
 
 ## 能做什么
 
@@ -20,13 +22,14 @@
 <chfileRoot>/<account>/RecvFiles/<yyyyMM>/  收到的文件、合并转发正文
 ```
 
-`chfileRoot` 留空时：macOS / Linux 用 `~/Documents/CHFile`，Windows 用 `%USERPROFILE%\Documents\CHFile`。账号留空时按 `login.db` 的上次登录用户推断，目录名是 `cs` + 用户名（例如 `csT1002173`）。
+`chfileRoot` 留空时：macOS / Linux 用 `~/Documents/CHFile`，Windows 用 `%USERPROFILE%\Documents\CHFile`。账号按插件保存的登录凭据推断，没有凭据时回退到 `login.db` 的上次登录用户；目录名是 `cs` + 用户名（例如 `csT1002173`）。
 
 读取一律 `readonly` 打开；写只发生在发送成功后的本地记录，用短事务写入，不动 `journal_mode`。`Department` 表在真实库中为空，部门概览退化为按 `Person.DptId / DptFullName` 聚合。
 
 ## 插件自己的数据
 
 ```text
+<plugin data>/hyt/credentials.json           登录凭据（账号、base64 密码；权限 0600）
 <plugin data>/hyt/knowledge/index.json        知识库索引
 <plugin data>/hyt/knowledge/entries/<id>.json 知识库单条明细
 <plugin data>/hyt/style/<account>.json        说话风格档案
@@ -44,7 +47,7 @@
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
 | `chfileRoot` | 空 | 虹云通数据根目录 |
-| `account` | 空 | 指定账号，如 `csT1002173` |
+| `account` | 空 | 指定账号，如 `csT1002173`；留空时先看插件凭据 |
 | `autoStartBridge` | `true` | 需要发送时自动拉起 bridge |
 | `bridgePath` | 空 | bridge 可执行文件路径 |
 | `whitelist` | `[]` | 允许发送的会话 id、账号或 `*`；为空时禁止发送 |

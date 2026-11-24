@@ -21,8 +21,8 @@ export const zh: Record<string, string> = {
   "hyt.section.privacy": "数据与隐私",
 
   "hyt.account.identity": "当前账号",
-  "hyt.account.identity.unbound": "还没有识别到虹云通账号",
-  "hyt.account.identity.description": "从本地 login.db 读取，账号目录用于消息、通讯录与风格档案。",
+  "hyt.account.identity.unbound": "还没有登录虹云通",
+  "hyt.account.identity.description": "优先用插件里保存的登录凭据，没有时回退到本地 login.db；账号目录用于消息、通讯录与风格档案。",
   "hyt.account.pick": "切换账号",
   "hyt.account.none": "未登录",
   "hyt.account.department": "部门：{{name}}",
@@ -42,7 +42,7 @@ export const zh: Record<string, string> = {
   "hyt.account.bridge.path.description": "留空时只连接已经运行的实例。",
   "hyt.account.bridge.path.placeholder": "/path/to/bridge",
   "hyt.account.root": "数据根目录",
-  "hyt.account.root.description": "含 login.db 与各账号目录，留空按平台默认位置推断。",
+  "hyt.account.root.description": "含 login.db 与各账号目录，留空按平台默认位置推断。没有登录过客户端也可以指定。",
   "hyt.account.root.placeholder": "留空使用默认位置",
 
   "hyt.role.title": "你的角色",
@@ -135,7 +135,7 @@ export const zh: Record<string, string> = {
   "hyt.privacy.dataDir.description": "档案、知识库与风格样本都保存在这里。",
   "hyt.privacy.open": "打开目录",
   "hyt.privacy.password": "关于密码",
-  "hyt.privacy.password.description": "虹云通客户端把密码以 base64 明文存在 login.db；助手只在需要连接时读取，不写日志、不复制到别处。",
+  "hyt.privacy.password.description": "登录时输入的密码以 base64 存在插件数据目录的 credentials.json（权限 0600），与客户端 login.db 同等强度；也可回退使用客户端里保存的密码。助手只在需要连接时读取，不写日志、不复制到别处。",
   "hyt.privacy.clear": "清空学习数据",
   "hyt.privacy.clear.description": "删除已积累的知识条目与风格档案，保留账号与行为设置。",
   "hyt.privacy.clear.confirm": "这会删除知识库与风格档案，且无法撤销。",

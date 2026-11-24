@@ -9,6 +9,7 @@ import { parseReceipt } from "../../src/chat/receipts.js"
 import { bridgeExecutable } from "../../src/bridge/native.js"
 import { EVENTS } from "../../src/bridge/protocol.js"
 import type { BridgeMember } from "../../src/bridge/protocol.js"
+import { clearSavedCredentials, readSavedCredentialsSync, saveSavedCredentials } from "../../src/credentials.js"
 import * as Bridge from "./bridge.js"
 import * as Data from "../shared/data.js"
 import { ChatIpc } from "./contract.js"
@@ -54,6 +55,9 @@ function emptyState(phase: ChatState["status"]["phase"]): ChatState {
       account: "",
       displayName: "",
       bridge: "missing",
+      credential: "missing",
+      credentialUser: "",
+      authError: "",
       autopilot: false,
       whitelist: 0,
     },
@@ -96,6 +100,8 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   const receipts = createReceiptLedger(join(dataDir, "receipts.json"))
   let connectedAt = 0
   let receiptsVersion = 0
+  /** 最近一次后台静默登录的失败原因；成功时清空，显示在整页空态里。 */
+  let warmError = ""
   // 群成员按会话缓存：未读要用成员总数，而 SDK 拉一次要等回调，不能每次 4 秒轮询都拉。
   const memberCache = new Map<string, { readonly at: number; readonly ok: boolean; readonly members: readonly BridgeMember[] }>()
   // 已经上报过已读的消息：轮询不能反复上报同一条。
@@ -167,6 +173,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     root: () => Data.resolveChfileRoot(settings.value.chfileRoot),
     executable: () => bridgeExecutable(pluginRoot, settings.value.bridgePath),
     credentials: () => {
+      // 插件保存的凭据优先：不依赖虹云通客户端是否装过、登录过。
+      const saved = readSavedCredentialsSync(dataDir)
+      if (saved !== undefined) return { userName: saved.userName, password: saved.password }
       const root = Data.resolveChfileRoot(settings.value.chfileRoot)
       const account = current.status.account || (Data.readLastUser(root) ?? "")
       return Data.readCredential(root, account)
@@ -209,20 +218,41 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
   const load = async (mergeMessages: boolean): Promise<ChatState> => {
     const root = rootOf()
     try {
+      // 插件保存的凭据优先于客户端 login.db：没装客户端时也能确定账号。
+      const saved = readSavedCredentialsSync(dataDir)
       const logins = Data.readLogins(root)
       const lastUser = Data.readLastUser(root)
-      const profile = await Data.readProfile(dataDir, "")
-      const login = Data.pickLogin(logins, profile.account, lastUser)
+      const profile = await Data.readProfile(dataDir, saved?.account ?? "")
+      const login =
+        saved === undefined
+          ? Data.pickLogin(logins, profile.account, lastUser)
+          : {
+              userName: saved.userName,
+              account: saved.account,
+              displayName: saved.displayName,
+              compId: saved.comId,
+              autoLogin: true,
+            }
+      const credential: ChatState["status"]["credential"] =
+        saved !== undefined ? "saved" : login === undefined ? "missing" : "client"
       if (login === undefined) {
         const state = emptyState("no-account")
-        current = { ...state, status: { ...state.status, detail: root } }
+        current = { ...state, status: { ...state.status, detail: root, credential, authError: warmError } }
         return current
       }
       if (!Db.hasChatData(root, login.account)) {
         const state = emptyState("no-data")
         current = {
           ...state,
-          status: { ...state.status, account: login.account, displayName: login.displayName, detail: join(root, login.account) },
+          status: {
+            ...state.status,
+            account: login.account,
+            displayName: login.displayName,
+            detail: join(root, login.account),
+            credential,
+            credentialUser: login.userName,
+            authError: warmError,
+          },
         }
         return current
       }
@@ -274,6 +304,9 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
           account: login.account,
           displayName: login.displayName,
           bridge,
+          credential,
+          credentialUser: login.userName,
+          authError: warmError,
           autopilot: profile.capabilities.autopilot.enabled,
           whitelist: whitelist.length,
         },
@@ -423,6 +456,39 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       return { ok: true, reason: recorded.recorded ? "" : `已发送，但未写入本地历史：${recorded.error}` }
     },
 
+    async login(input) {
+      const userName = input.userName.trim()
+      const result = await sender.login(userName, input.password)
+      // pending：PBS 已接受账号密码，只是连接回调慢于等待时间；凭据同样要保存，发送时再登录一次即可。
+      if (!result.ok && !result.pending)
+        return { ok: false, account: result.account, message: result.message || "登录没有成功。" }
+      // 账号目录与客户端一致（cs 前缀）；PBS 返回的 account 有时不带前缀。
+      const account = Data.accountOf(result.account.length > 0 ? result.account : userName)
+      const known = Data.readLogins(rootOf()).find((item) => item.account === account)
+      await saveSavedCredentials(dataDir, {
+        userName,
+        password: input.password,
+        account,
+        displayName: known?.displayName ?? account,
+        ...(result.comId.length > 0 ? { comId: result.comId } : {}),
+        ...(result.env.length > 0 ? { env: result.env } : {}),
+      })
+      warmError = ""
+      await load(false)
+      report()
+      return { ok: true, account, message: result.pending ? result.message : "" }
+    },
+
+    async logout() {
+      const result = await sender.logout()
+      // 退出后不再保留插件凭据；客户端 login.db 里的账号仍会被识别，但不主动登录。
+      await clearSavedCredentials(dataDir)
+      warmError = ""
+      await load(false)
+      report()
+      return result
+    },
+
     async merge(input) {
       const path = input.path
       const root = rootOf()
@@ -513,13 +579,15 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     .warm()
     .then(() => {
       connectedAt = connectedAt > 0 ? connectedAt : Date.now()
+      warmError = ""
     })
     .then(() => load(false))
     .then(report)
     .catch((error: unknown) => {
-      ctx.log.write("warn", "hyt bridge warm failed", {
-        error: error instanceof Error ? error.message : String(error),
-      })
+      warmError = error instanceof Error ? error.message : String(error)
+      ctx.log.write("warn", "hyt bridge warm failed", { error: warmError })
+      // 失败原因要落到页面上：用户据此判断是密码失效、被踢下线，还是网络不通。
+      void load(false).then(report)
     })
 
   return provided

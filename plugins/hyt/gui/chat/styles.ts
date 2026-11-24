@@ -346,6 +346,20 @@ export const css = `
 
 .hyt-shell .rail-foot strong { color: var(--ink); font-weight: 500; }
 
+.hyt-shell .rail-foot button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hyt-shell .rail-foot button:hover { color: var(--ink); }
+.hyt-shell .rail-foot button:disabled { opacity: 0.45; cursor: not-allowed; }
+
 .hyt-shell .day {
   padding: 16px 8px 4px;
   color: var(--muted);
@@ -1436,6 +1450,49 @@ export const css = `
 .hyt-shell .blank-body code { font-family: inherit; color: var(--ink); }
 
 .hyt-shell .blank-actions { display: flex; align-items: center; gap: 10px; }
+
+/* 登录表单沿用空态的内边距与左竖线，只是把正文换成两个字段 */
+.hyt-shell .login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.hyt-shell .login-field { display: flex; flex-direction: column; gap: 6px; }
+
+.hyt-shell .login-label { color: var(--muted); font-size: 12px; }
+
+.hyt-shell .login-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.hyt-shell .login-input::placeholder { color: var(--muted); }
+
+.hyt-shell .login-input:focus {
+  border-color: var(--muted);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  outline: none;
+}
+
+.hyt-shell .login-input:disabled { background: var(--chrome); cursor: not-allowed; }
+
+.hyt-shell .button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.hyt-shell .login-error {
+  margin: 0 0 16px;
+  color: var(--seal-ink);
+  font-size: 13px;
+  line-height: 1.7;
+}
 
 .hyt-shell .button {
   height: 34px;

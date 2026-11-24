@@ -201,6 +201,12 @@ export const ChatStatus = Schema.Struct({
   displayName: Schema.String,
   /** 是否发现运行中的 bridge（Config/bridge.json）。 */
   bridge: Schema.Literals(["ready", "missing"]),
+  /** 登录凭据来源：插件里保存的、客户端 login.db 里的，或没有。 */
+  credential: Schema.Literals(["saved", "client", "missing"]),
+  /** 凭据对应的登录名；没有凭据时为空串。 */
+  credentialUser: Schema.String,
+  /** 最近一次静默登录失败的原因；空串表示没有失败。 */
+  authError: Schema.String,
   /** AI 托管是否开启（profile.capabilities.autopilot.enabled）。 */
   autopilot: Schema.Boolean,
   /** 合并后的发送白名单条目数。 */
@@ -271,6 +277,15 @@ export const ChatIpc = Ipc.define({
     send: {
       input: Schema.Struct({ sessionId: Schema.String, text: Schema.String, at: Schema.Array(Schema.String) }),
       output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
+    },
+    /** 用账号密码登录消息通道，成功后把凭据存进插件数据目录。 */
+    login: {
+      input: Schema.Struct({ userName: Schema.String, password: Schema.String }),
+      output: Schema.Struct({ ok: Schema.Boolean, account: Schema.String, message: Schema.String }),
+    },
+    /** 退出消息通道并删掉插件保存的凭据；本地库与历史保留。 */
+    logout: {
+      output: Schema.Struct({ ok: Schema.Boolean, error: Schema.String }),
     },
     /** 解开一条合并转发。 */
     merge: {

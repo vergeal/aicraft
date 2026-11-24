@@ -51,11 +51,17 @@ export function SelectionIndicator(props: {
     const rowBox = row.getBoundingClientRect()
     const hostBox = host.getBoundingClientRect()
 
+    // These boxes are measured as rendered, but a popover scaling in transforms the whole subtree while the layer's
+    // `translate3d` and size are layout values. Divide the scale out so the block matches the row through the opening
+    // animation. The container's own scroll is added back because the layer scrolls with its content.
+    const scaleX = host.offsetWidth ? hostBox.width / host.offsetWidth : 1
+    const scaleY = host.offsetHeight ? hostBox.height / host.offsetHeight : 1
+
     setBounds({
-      x: rowBox.left - hostBox.left - host.clientLeft,
-      y: rowBox.top - hostBox.top - host.clientTop,
-      width: rowBox.width,
-      height: rowBox.height,
+      x: (rowBox.left - hostBox.left) / scaleX - host.clientLeft + host.scrollLeft,
+      y: (rowBox.top - hostBox.top) / scaleY - host.clientTop + host.scrollTop,
+      width: rowBox.width / scaleX,
+      height: rowBox.height / scaleY,
     })
   }
 

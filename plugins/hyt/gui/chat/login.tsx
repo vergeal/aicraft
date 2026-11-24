@@ -1,4 +1,4 @@
-import type { Context, IpcClient } from "@opencode/plugin/gui"
+import type { Context, IpcClient } from "@aicraft/plugin/gui"
 import { Show, createSignal } from "solid-js"
 import { ChatIpc } from "./contract.js"
 import { text } from "./i18n.js"

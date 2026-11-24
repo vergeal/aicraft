@@ -211,7 +211,7 @@ export function readSessionMembers(
   try {
     const rows = query(
       address,
-      `select Account, Name, Remark, DptFullName, LocalHeadUrl, OnLineState from Person
+      `select Account, Name, Remark, DptFullName, LocalHeadUrl, Url, OnLineState from Person
        where Account in (${order.map(() => "?").join(", ")})`,
       order,
     )
@@ -226,7 +226,7 @@ export function readSessionMembers(
               account: id,
               name: text(row.Remark) || text(row.Name) || id,
               department: text(row.DptFullName),
-              headPath: text(row.LocalHeadUrl),
+              headPath: localHeadFile(root, text(row.LocalHeadUrl), text(row.Url)),
               online: numberOf(row.OnLineState) === 1,
             } satisfies PersonView,
           ] as const,
@@ -443,9 +443,14 @@ function localHeadFile(root: string, local: string, url: string) {
   if (local.length > 0 && existsSync(local)) return local
   const base = url.split("?")[0]?.split("/").pop() ?? ""
   const key = base.split(".")[0] ?? ""
-  if (key.length === 0) return ""
-  const path = join(root, "HeadFiles", key)
-  return existsSync(path) ? path : ""
+  if (key.length > 0) {
+    const path = join(root, "HeadFiles", key)
+    if (existsSync(path)) return path
+  }
+  // 本地还没缓存过这张头像：把远端地址交出去，主进程会下载一次并缓存，
+  // 界面看到的始终是 data URL。客户端里显示得出头像的人，这里也应当显示得出。
+  if (url.startsWith("http://") || url.startsWith("https://")) return url
+  return ""
 }
 
 /**

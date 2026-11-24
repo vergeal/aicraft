@@ -1,5 +1,6 @@
 import type { Context, IpcClient } from "@opencode/plugin/gui"
 import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import { avatarOf } from "./avatar.js"
 import { Blank } from "./blank.js"
 import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"
@@ -152,9 +153,10 @@ export function ChatPage(props: {
     const current = state()
     if (current === undefined) return ""
     const paths = new Set<string>()
+    // 当前会话的头像先入队：名额有限，正在看的消息与成员不该被左栏的会话头像挤掉。
+    for (const message of current.messages) if (message.senderHead.length > 0) paths.add(message.senderHead)
     for (const session of current.sessions)
       for (const member of session.members) if (member.headPath.length > 0) paths.add(member.headPath)
-    for (const message of current.messages) if (message.senderHead.length > 0) paths.add(message.senderHead)
     return [...paths].slice(0, 200).sort().join("\n")
   }
 
@@ -276,11 +278,17 @@ export function ChatPage(props: {
   const departmentOf = (account: string | undefined) =>
     account === undefined ? undefined : state()?.members.find((member) => member.account === account)?.department
 
+  /** 头像路径 → 已解码的 data URL：卡片里不能直接拿路径当 img src。 */
+  const headOf = (path: string | undefined) => {
+    if (path === undefined || path.length === 0) return undefined
+    return avatarOf(avatarMap(), path)
+  }
+
   /** 会话 → 卡片里的身份。群聊只说「群聊」，本地库拿不到可信人数就不写数字。 */
   const personOfSession = (session: SessionRow): Person => ({
     account: session.id,
     name: session.name,
-    head: session.members[0]?.headPath,
+    head: headOf(session.members[0]?.headPath),
     online: session.online,
     department: departmentOf(session.group ? undefined : session.id),
     group: session.group,
@@ -293,7 +301,7 @@ export function ChatPage(props: {
     return {
       account: message.sender,
       name: message.senderNick || message.sender,
-      head: message.senderHead,
+      head: headOf(message.senderHead),
       online: direct?.online ?? false,
       department: departmentOf(message.sender),
       sessionId: direct?.id,
@@ -696,6 +704,7 @@ export function ChatPage(props: {
             bridge={state()?.status.bridge ?? "missing"}
             sending={sending()}
             members={state()?.members ?? []}
+            avatars={avatarMap()}
             draft={currentDraft()}
             basis={messages().length}
             notice={notice()}

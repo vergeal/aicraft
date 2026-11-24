@@ -1,5 +1,6 @@
 import type { Context } from "@opencode/plugin/gui"
 import { For, Show, createEffect, createMemo, createSignal, onMount } from "solid-js"
+import { Face, avatarOf } from "./avatar.js"
 import type { DraftRow, MemberRow, SendState } from "./contract.js"
 import { text } from "./i18n.js"
 
@@ -17,6 +18,8 @@ export function Composer(props: {
   bridge: "ready" | "missing"
   sending: boolean
   members: readonly MemberRow[]
+  /** @ 选人的头像：与消息、成员列表共用同一份已解码图片。 */
+  avatars: Record<string, string>
   draft: DraftRow | undefined
   basis: number
   notice: string | undefined
@@ -179,6 +182,7 @@ export function Composer(props: {
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => insertMention(member)}
                   >
+                    <Face small name={member.name} src={avatarOf(props.avatars, member.headPath)} />
                     {member.name}
                     <small>{member.department || member.account}</small>
                   </button>

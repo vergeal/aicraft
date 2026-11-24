@@ -1,6 +1,7 @@
 import type { IpcImpl, IpcProvider, MainContext } from "@opencode/plugin/gui/main"
 import { Schema } from "effect"
-import { readFileSync, statSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
@@ -44,6 +45,12 @@ const MIME: Readonly<Record<string, string>> = {
 }
 
 const MAX_MEDIA_BYTES = 24 * 1024 * 1024
+/** 头像很小；超过这个大小的一定不是头像，直接放弃。 */
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024
+/** 远端头像在内存里保留 6 小时；磁盘缓存长期有效，跨重启不重复下载。 */
+const AVATAR_TTL = 6 * 60 * 60_000
+/** 下载失败的头像记 5 分钟，避免每轮轮询都去请求一个拿不到的地址。 */
+const AVATAR_MISS_TTL = 5 * 60_000
 /** 群成员名单的缓存时长：退群、拉人不会每 4 秒就变，弹窗里点「重试」可以立刻重拉。 */
 const MEMBER_TTL = 5 * 60_000
 
@@ -109,6 +116,51 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
 
   // 头像按「路径 + mtime」缓存：同一张图跨窗口、跨 4 秒轮询只读一次盘。
   const avatarCache = new Map<string, { readonly stamp: number; readonly dataUrl: string }>()
+  /** 下载失败的地址 + 失败时间：短时间内不再请求。 */
+  const avatarMisses = new Map<string, number>()
+  /**
+   * 每轮最多发起的网络请求数。
+   *
+   * 通讯录里同时有上百张只有远端地址的头像，一次全发会把界面卡在等待上；
+   * 落到磁盘缓存后下一轮就不再请求，几轮之内自然补齐。
+   */
+  const AVATAR_FETCH_BUDGET = 12
+  /** 远端头像落盘缓存目录：插件自己的数据目录，不写客户端的 HeadFiles。 */
+  const avatarDir = join(dataDir, "avatars")
+
+  const avatarFromRemote = async (url: string, budget: { left: number }) => {
+    const hit = avatarCache.get(url)
+    if (hit !== undefined && Date.now() - hit.stamp < AVATAR_TTL) return hit.dataUrl
+    const missedAt = avatarMisses.get(url)
+    if (missedAt !== undefined && Date.now() - missedAt < AVATAR_MISS_TTL) return ""
+
+    // 磁盘上已经有就直接读，不占网络预算。
+    const file = join(avatarDir, createHash("sha1").update(url).digest("hex"))
+    const cachedBytes = readBytes(file)
+    if (cachedBytes !== undefined) return rememberAvatar(url, cachedBytes)
+
+    if (budget.left <= 0) return ""
+    budget.left -= 1
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(5_000) })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const bytes = Buffer.from(await response.arrayBuffer())
+      if (bytes.length === 0 || bytes.length > MAX_AVATAR_BYTES) throw new Error("头像大小异常")
+      mkdirSync(avatarDir, { recursive: true })
+      writeFileSync(file, bytes)
+      return rememberAvatar(url, bytes)
+    } catch {
+      avatarMisses.set(url, Date.now())
+      return ""
+    }
+  }
+
+  const rememberAvatar = (url: string, bytes: Buffer) => {
+    const dataUrl = avatarDataUrl(bytes)
+    avatarCache.set(url, { stamp: Date.now(), dataUrl })
+    avatarMisses.delete(url)
+    return dataUrl
+  }
 
   const report = () => provider?.changed()
 
@@ -567,17 +619,22 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
 
     async avatars(input) {
       const root = rootOf()
-      return input.paths.slice(0, 200).map((path): AvatarEntry => {
-        if (path.length === 0 || !insideRoot(path, root)) return { path, dataUrl: "" }
-        const stamp = mtimeOf(path)
-        if (stamp === undefined) return { path, dataUrl: "" }
-        const cached = avatarCache.get(path)
-        if (cached !== undefined && cached.stamp === stamp) return { path, dataUrl: cached.dataUrl }
-        const bytes = readBytes(path)
-        const dataUrl = bytes === undefined ? "" : `data:${avatarMime(bytes)};base64,${bytes.toString("base64")}`
-        avatarCache.set(path, { stamp, dataUrl })
-        return { path, dataUrl }
-      })
+      const budget = { left: AVATAR_FETCH_BUDGET }
+      return Promise.all(
+        input.paths.slice(0, 200).map(async (path): Promise<AvatarEntry> => {
+          // 通讯录里大多数头像本地没有缓存，`headPath` 会是远端地址；下载一次后长期复用。
+          if (isRemote(path)) return { path, dataUrl: await avatarFromRemote(path, budget) }
+          if (path.length === 0 || !insideRoot(path, root)) return { path, dataUrl: "" }
+          const stamp = mtimeOf(path)
+          if (stamp === undefined) return { path, dataUrl: "" }
+          const cached = avatarCache.get(path)
+          if (cached !== undefined && cached.stamp === stamp) return { path, dataUrl: cached.dataUrl }
+          const bytes = readBytes(path)
+          const dataUrl = bytes === undefined ? "" : avatarDataUrl(bytes)
+          avatarCache.set(path, { stamp, dataUrl })
+          return { path, dataUrl }
+        }),
+      )
     },
   }
 
@@ -678,6 +735,14 @@ function mtimeOf(path: string) {
 }
 
 /** 头像文件没有扩展名，格式也不统一（实测 PNG 与 JPEG 混存），按文件头判断。 */
+function isRemote(path: string) {
+  return path.startsWith("http://") || path.startsWith("https://")
+}
+
+function avatarDataUrl(bytes: Buffer) {
+  return `data:${avatarMime(bytes)};base64,${bytes.toString("base64")}`
+}
+
 function avatarMime(bytes: Buffer) {
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg"
   if (bytes.length >= 4 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif"

@@ -1781,7 +1781,7 @@ export const css = `
 
 .hyt-shell .mention-item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   width: 100%;
   padding: 6px 8px;

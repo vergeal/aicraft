@@ -1,6 +1,13 @@
 import { Show, createEffect, createSignal } from "solid-js"
 import { hueOf, initialsOf } from "./util.js"
 
+/** 头像路径 → 主进程解码好的 data URL；还没取到就返回 undefined，头像退回首字。 */
+export function avatarOf(map: Record<string, string>, path: string | undefined) {
+  if (path === undefined || path.length === 0) return undefined
+  const value = map[path]
+  return value === undefined || value.length === 0 ? undefined : value
+}
+
 /**
  * 头像：有本地图片就铺图，没有就用名字里的两个字。
  * 底色只由名字散列决定（`data-hue`），与设计稿的两种底色对应。

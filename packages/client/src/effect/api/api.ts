@@ -315,6 +315,7 @@ export type SessionCreateInput = {
   readonly location?: Location.PublicRef | undefined
   readonly metadata?: Session.Metadata | undefined
   readonly permissions?: Permission.Ruleset | undefined
+  readonly prompt?: Session.Prompt | undefined
 }
 export type SessionCreateOutput = Session.Info
 export type SessionCreateOperation<E = never> = (input?: SessionCreateInput) => Effect.Effect<SessionCreateOutput, E>
@@ -794,6 +795,7 @@ export type ExperimentalSessionLogOutput =
             readonly model?: Model.Ref | undefined
             readonly metadata?: Session.Metadata | undefined
             readonly permissions?: Permission.Ruleset | undefined
+            readonly prompt?: Session.Prompt | undefined
             readonly version: string
           }
         }

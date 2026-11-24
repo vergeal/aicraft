@@ -893,6 +893,7 @@ const layer = Layer.effectDiscard(
             model: event.data.model,
             metadata: event.data.metadata,
             permission: event.data.permissions,
+            prompt: event.data.prompt,
             version: event.data.version,
             time_created: event.created,
             time_updated: event.created,

@@ -172,6 +172,7 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
           location: Location.PublicRef.pipe(Schema.optional),
           metadata: Session.Metadata.pipe(Schema.optional),
           permissions: Permission.Ruleset.pipe(Schema.optional),
+          prompt: SessionEvent.Prompt.pipe(Schema.optional),
         }),
         success: Schema.Struct({ data: PublicSessionInfo }),
         error: SessionNotFoundError,

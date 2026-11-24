@@ -48,11 +48,12 @@ const call = (registry: Tool.Interface, input: unknown) =>
 
 const setup = () =>
   Effect.gen(function* () {
-    const creates: Array<{ title?: string; parentID?: Session.ID; metadata?: unknown }> = []
+    const creates: Array<{ title?: string; parentID?: Session.ID; metadata?: unknown; prompt?: string }> = []
 
     yield* registerToolPlugin(SessionCreateTool.Plugin, {
       event: { subscribe: () => Stream.empty },
       session: {
+        get: () => Effect.succeed(session(parentID, "Parent session")),
         create: (input) =>
           Effect.sync(() => {
             creates.push(input ?? {})
@@ -87,6 +88,9 @@ describe("SessionCreateTool", () => {
         metadata: { createdBy: { sessionID: parentID } },
       })
       expect(creates[0]).not.toHaveProperty("subagent")
+      expect(creates[0]?.prompt).toContain("不是子代理")
+      expect(creates[0]?.prompt).toContain(parentID)
+      expect(creates[0]?.prompt).toContain("Parent session")
     }),
   )
 })

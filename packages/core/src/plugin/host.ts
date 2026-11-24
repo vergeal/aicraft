@@ -627,6 +627,7 @@ export const make = Effect.fn("PluginHost.make")(function* (
           model: input?.model,
           metadata: input?.metadata,
           permissions: input?.permissions,
+          prompt: input?.prompt,
           ...(input?.parentID === undefined
             ? {
                 location:

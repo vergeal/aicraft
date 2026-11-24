@@ -2543,6 +2543,7 @@ export type SessionCreated = {
     model?: ModelRef
     metadata?: SessionMetadata
     permissions?: PermissionRuleset
+    prompt?: SessionPrompt
     version: string
   }
 }
@@ -3619,6 +3620,7 @@ export type SessionCreateInput = {
     | ReadonlyArray<{ readonly action: string; readonly resource: string; readonly effect: "allow" | "deny" | "ask" }>
     | null
     | undefined
+  readonly prompt?: string | null | undefined
 }
 
 export type SessionCreateOutput = { data: SessionInfo }["data"]

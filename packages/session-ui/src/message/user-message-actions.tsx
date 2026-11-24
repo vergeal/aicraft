@@ -16,8 +16,9 @@ import {
 } from "./action-machine"
 
 /**
- * The user message's action row. Revert, fork, then the sent time sit on one always-visible line under the bubble,
- * so hovering never adds or removes a line. Copy stays in the leading menu, which never changes the row's width.
+ * The user message's action row. Rewind, then the sent time sit on one always-visible line under the bubble,
+ * so hovering never adds or removes a line. Fork moved to the reply's footer; copy stays in the leading menu,
+ * which never changes the row's width.
  */
 export function UserMessageActions(props: {
   /** Omitted while the host has no session yet: its actions stay disabled instead of leaving the row. */
@@ -31,6 +32,8 @@ export function UserMessageActions(props: {
   text?: string
   /** A voice message also offers the full prompt the session received. */
   fullText?: string
+  /** Omitted, this row offers fork too; the session timeline moves fork to the reply's footer instead. */
+  fork?: boolean
 }) {
   const i18n = useI18n()
   const [state, setState] = createSignal(createMessageActionState())
@@ -130,12 +133,14 @@ export function UserMessageActions(props: {
             disabled={actionView().disabled.revert}
             onRequest={() => request("revert")}
           />
-          <ActionButton
-            icon="fork"
-            label={i18n.t("ui.message.forkMessage")}
-            disabled={actionView().disabled.fork}
-            onRequest={() => request("fork")}
-          />
+          <Show when={props.fork !== false}>
+            <ActionButton
+              icon="fork"
+              label={i18n.t("ui.message.forkMessage")}
+              disabled={actionView().disabled.fork}
+              onRequest={() => request("fork")}
+            />
+          </Show>
         </Show>
       </Show>
       {/* The sent time is the reader's, not the host's: it stays whether or not this message offers actions. */}

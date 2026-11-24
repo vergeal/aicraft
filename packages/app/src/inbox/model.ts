@@ -462,16 +462,21 @@ export function createInbox() {
     return records
   })
 
-  const items = createMemo<InboxItem[]>(() => {
+  const items = createMemo<InboxItem[]>((previous) => {
     const live = [...sessionItems(), ...scheduleItems(), ...knowledgeItems(), ...pluginItems()]
     const liveKeys = new Set(live.map((item) => item.key))
     const answered = Object.values(resolved).filter((item) => !liveKeys.has(item.key))
+    // A refresh that says the same thing keeps the row object it already had. The list keys its cards by these
+    // objects, so a session update that rebuilt every row would unmount a card and close a menu opened inside it.
+    const before = new Map(previous?.map((item) => [item.key, item]))
 
     return [...live, ...answered]
       .map((item) => {
         const record = resolved[item.key]
+        const next = record ? { ...item, status: "done" as const, resolution: record.resolution } : item
+        const kept = before.get(next.key)
 
-        return record ? { ...item, status: "done" as const, resolution: record.resolution } : item
+        return kept && JSON.stringify(kept) === JSON.stringify(next) ? kept : next
       })
       .toSorted((a, b) => b.createdAt - a.createdAt)
   })

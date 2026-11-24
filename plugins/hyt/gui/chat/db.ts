@@ -2,7 +2,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
 import { noticeNames, resolveGroupNames } from "../../src/chat/groups.js"
-import { kindOf, parseAppCard, toMessage } from "../../src/chat/message.js"
+import { PRESENCE_MSGTYPE, kindOf, parseAppCard, toMessage } from "../../src/chat/message.js"
 import type { ChatRow } from "../../src/chat/message.js"
 import type { MessageRow, SessionRow } from "./contract.js"
 
@@ -164,7 +164,7 @@ export function readMessages(
     const rows = query(
       db,
       `select ${COLUMNS} from chatmsg
-       where SessionId = ? and (? is null or Id < ?)
+       where SessionId = ? and MsgType <> ${PRESENCE_MSGTYPE} and (? is null or Id < ?)
        order by Id desc limit ?`,
       [sessionId, beforeId ?? null, beforeId ?? null, limit + 1],
     ).map(chatRow)
@@ -201,7 +201,8 @@ export function searchMessages(
     return query(
       db,
       `select ${COLUMNS} from chatmsg
-       where (Msg like ? escape '\\' or SenderNick like ? escape '\\' or FileName like ? escape '\\')
+       where MsgType <> ${PRESENCE_MSGTYPE}
+         and (Msg like ? escape '\\' or SenderNick like ? escape '\\' or FileName like ? escape '\\')
        order by Id desc limit ?`,
       [pattern, pattern, pattern, limit],
     ).flatMap((raw) => {
@@ -239,7 +240,7 @@ export function readSessionMembers(
     order = query(
       chat,
       `select Sender, max(CreatedTime) as last from chatmsg
-       where SessionId = ? and Sender is not null and Sender <> ''
+       where SessionId = ? and MsgType <> ${PRESENCE_MSGTYPE} and Sender is not null and Sender <> ''
        group by Sender order by last desc limit ?`,
       [sessionId, limit],
     ).flatMap((row) => {
@@ -352,7 +353,7 @@ function readAggregates(db: DatabaseSync) {
 function aggregatesSql() {
   return `select SessionId as sessionId, max(Id) as lastId, count(*) as total,
                  max(isAt) as atMe, max(cast(CreatedTime as integer)) as lastAt
-          from chatmsg group by SessionId order by lastAt desc limit ?`
+          from chatmsg where MsgType <> ${PRESENCE_MSGTYPE} group by SessionId order by lastAt desc limit ?`
 }
 
 function readGroupNames(db: DatabaseSync) {
@@ -378,7 +379,7 @@ function readGroupMembers(db: DatabaseSync) {
     db,
     `select SessionId as sessionId, Sender as sender, SenderNick as nick, count(*) as total
      from chatmsg
-     where SessionType = 1 and Sender is not null and Sender <> ''
+     where SessionType = 1 and MsgType <> ${PRESENCE_MSGTYPE} and Sender is not null and Sender <> ''
        and SenderNick is not null and SenderNick <> ''
      group by SessionId, Sender, SenderNick
      order by SessionId, total desc, min(Id)`,
@@ -436,7 +437,7 @@ function readUnread(db: DatabaseSync, account: string) {
   const rows = query(
     db,
     `select SessionId, count(*) as total from chatmsg
-     where ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
+     where MsgType <> ${PRESENCE_MSGTYPE} and ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
      group by SessionId`,
     [account, account],
   )
@@ -523,7 +524,7 @@ function readGroupAvatarMembers(db: DatabaseSync, account: string, people: Map<s
     db,
     `select SessionId as sessionId, Sender as sender, max(nullif(SenderNick, '')) as nick
      from chatmsg
-     where SessionType = 1 and Sender like 'cs%' and Sender <> ?
+     where SessionType = 1 and MsgType <> ${PRESENCE_MSGTYPE} and Sender like 'cs%' and Sender <> ?
      group by SessionId, Sender order by min(Id)`,
     [account],
   )) {

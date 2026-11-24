@@ -64,6 +64,16 @@ export interface ChatMessage {
   readonly groupId: string
 }
 
+/**
+ * 输入状态同步，不是消息。
+ *
+ * 对方开始/停止输入时，客户端会在 chatmsg 里插一条 `MsgType = 12`：`Msg` 为 `1`（正在输入）
+ * 或 `0`（停止输入），`UserData` 是 `{"deviceType":…,"netType":…}`。它没有正文，
+ * 只用于驱动「对方正在输入」提示，所有读取层都要把它排除，否则会话预览和消息流里会出现
+ * `0`、`1` 这样的孤立数字。`sc/chat/store.ts` 与 `gui/chat/db.ts` 的 SQL 都按这个值过滤。
+ */
+export const PRESENCE_MSGTYPE = 12
+
 /** 客户端 MsgType 的含义；未列出的按 other 处理，不丢消息。 */
 export const KIND_BY_TYPE: Readonly<Record<number, MessageKind>> = {
   1: "text",

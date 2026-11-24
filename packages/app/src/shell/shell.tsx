@@ -145,9 +145,16 @@ function ReplicaLayer(props: ParentProps) {
 
   // Settings arrives as one lazy route chunk. Warm it once the shell has settled, so a menu or a keybind opens it
   // without the chunk's first download, while startup keeps the network and the main thread to itself.
+  // The home welcome and `/new-session` share one more lazy chunk. Warm that one just after the first frame: the window
+  // bar paints before the route resolves, so without it the first new conversation shows the coloured bar and then
+  // waits for the download, while every later one opens immediately.
   onMount(() => {
-    const timer = setTimeout(preloadSettings, 1500)
-    onCleanup(() => clearTimeout(timer))
+    const draft = setTimeout(() => void import("@/new-session/route"), 200)
+    const settings = setTimeout(preloadSettings, 1500)
+    onCleanup(() => {
+      clearTimeout(draft)
+      clearTimeout(settings)
+    })
   })
 
   const sidebarWidth = () => preferences.appearance.sidebarWidth()

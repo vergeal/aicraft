@@ -48,7 +48,10 @@ export function SessionTitleHeader(props: ParentProps) {
     <>
       {/* The bottom inset reserves room for the fade without covering rows stuck below the bar. */}
       <div data-session-title class="pointer-events-none sticky top-0 z-30 w-full pb-4">
-        <div class="pointer-events-auto flex items-center border-b border-v2-border-border-muted bg-v2-background-bg-base pe-3 ps-2.5">
+        <div
+          class="pointer-events-auto flex items-center border-b border-v2-border-border-muted pe-3 ps-2.5"
+          style={{ background: "rgb(20, 20, 20)" }}
+        >
           <CollapsedSidebarToggleSpace />
           <div class="min-w-0 flex-1">{props.children}</div>
         </div>
@@ -56,7 +59,8 @@ export function SessionTitleHeader(props: ParentProps) {
       {/* Stuck timeline headers stack above this fade, so it only fades content scrolling under the bar. */}
       <div
         aria-hidden="true"
-        class="session-header-fade pointer-events-none sticky z-[5] -mt-4 h-4 w-full bg-[linear-gradient(to_bottom,var(--v2-background-bg-base),transparent)]"
+        class="session-header-fade pointer-events-none sticky z-[5] -mt-4 h-4 w-full"
+        style={{ background: "linear-gradient(to bottom, rgb(20, 20, 20), transparent)" }}
       />
     </>
   )

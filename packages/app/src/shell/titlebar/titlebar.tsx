@@ -169,10 +169,11 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
       data-slot="titlebar-v2"
       hidden={hideVerticalTitlebar()}
       classList={{
-        "shrink-0 relative flex flex-row h-9 bg-v2-background-bg-deep overflow-visible": true,
+        "shrink-0 relative flex flex-row h-9 overflow-visible": true,
         "order-last": bottom(),
       }}
       style={{
+        background: "rgb(20, 20, 20)",
         height:
           platform.platform === "web"
             ? bottom()

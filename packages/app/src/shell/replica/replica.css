@@ -125,17 +125,17 @@
    navigation column lifts one quiet step above it (#1a1a1a). Both are pure neutral greys: the previous
    cool-blue canvas beside a blue-violet sidebar made the split read as two different materials. */
 [data-color-scheme="dark"] [data-replica] {
-  --color-titlebar: rgb(21 21 23 / 86%);
-  --color-rail: rgb(21 21 23 / 86%);
-  /* The navigation column takes the design system's surface (#232324) over the canvas (#151517): one step of
+  --color-titlebar: rgb(20 20 20 / 86%);
+  --color-rail: rgb(20 20 20 / 86%);
+  /* The navigation column takes the design system's surface (#232324) over the canvas (#141414): one step of
      lightness, the same step the reference draws between the two halves of the window. */
   --color-sidebar: rgb(35 35 36 / 95%);
   --color-navigation: rgb(35 35 36 / 92%);
-  --color-main: #151517;
-  /* The composer sits on the reference input's fill (#343434): one quiet step above the canvas, and a touch warmer
-     than the design system's layer-02 (#3a3a3a), which read too light beside the conversation. */
-  --color-composer: #343434;
-  --replica-composer-fill: #343434;
+  --color-main: #141414;
+  /* The composer sits one step above the canvas: a neutral #323232 fill reads as the same surface family as the
+     #141414 canvas, without the warmer cast of the design system's layer-02. */
+  --color-composer: #323232;
+  --replica-composer-fill: #323232;
   --color-hover: rgb(255 255 255 / 8%);
   /* The selected row steps up to the design system's layer-3 (#353638) instead of a wash: a wash of white over the
      surface never separated the row from its neighbours. */
@@ -197,8 +197,8 @@ html[data-replica-window="translucent"] [data-replica] {
 
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
   /* 暗色玻璃要兜住亮壁纸，否则浅色文字压在透出来的亮背景上；rail 与导航列保持同一片材质，只差一档明度。 */
-  --color-titlebar: rgb(21 21 23 / 90%);
-  --color-rail: rgb(21 21 23 / 90%);
+  --color-titlebar: rgb(20 20 20 / 90%);
+  --color-rail: rgb(20 20 20 / 90%);
   --color-navigation: rgb(35 35 36 / 95%);
   --color-sidebar: rgb(35 35 36 / 95%);
   /* The glass group above redeclares these as ink washes for the light theme; without this pair a dark window
@@ -1119,8 +1119,8 @@ html[data-replica-window="translucent"][data-os="windows"]
   }
 
   html[data-replica-window="translucent"][data-color-scheme="dark"] [data-replica] {
-    --color-titlebar: rgb(21 21 23);
-    --color-rail: rgb(21 21 23);
+    --color-titlebar: rgb(20 20 20);
+    --color-rail: rgb(20 20 20);
     --color-sidebar: rgb(35 35 36);
     --color-navigation: rgb(35 35 36);
     /* Dark mode clears the frame so the shell can carry the navigation surface; an opaque window paints it. */
@@ -1136,7 +1136,7 @@ html[data-replica-window="translucent"][data-os="windows"]
 
   html[data-replica-window="translucent"][data-color-scheme="dark"]:has([data-replica]),
   html[data-replica-window="translucent"][data-color-scheme="dark"] #root:has([data-replica]) {
-    background-color: rgb(21 21 23) !important;
+    background-color: rgb(20 20 20) !important;
   }
 
   /* Translucent mode clears these elements so the frame tint shows through once. With solid tints each paints its
@@ -1214,7 +1214,7 @@ html[data-replica-window="translucent"] [data-slot="replica-main"] {
 /* The workspace canvas sits a step below the navigation surface: the design system's near-black rather than the
    chrome tint. Only the main column is retinted; dialogs and menus portal outside it. */
 html[data-replica-window="translucent"][data-color-scheme="dark"] [data-slot="replica-main"] {
-  --v2-background-bg-base: rgb(21 21 23);
+  --v2-background-bg-base: rgb(20 20 20);
 }
 
 /* Painted explicitly as well: the dark shell normally forces these panels transparent so they inherit the canvas,
@@ -1227,7 +1227,7 @@ html[data-replica-window="translucent"][data-color-scheme="dark"]
     [data-slot="page-panel"],
     [data-testid="settings-screen"]
   ) {
-  background-color: rgb(21 21 23);
+  background-color: rgb(20 20 20);
 }
 
 /* A new chat keeps the panel transparent: the welcome is drawn over the canvas wash behind the mark, and an opaque

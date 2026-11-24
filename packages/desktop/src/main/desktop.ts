@@ -10,12 +10,18 @@ import { DesktopLogging } from "./native/logging"
 import { mainDiagnostics } from "./native/diagnostics"
 import { BackgroundService } from "./service/background-service"
 import { DesktopCli } from "./service/desktop-cli"
+import { installBundledDistribution } from "./distribution"
 import { marks } from "./lifecycle/marks"
 
 // Everything above has been loaded and evaluated by now; the layers start below.
 marks.bundle = Date.now()
 
 const runIpc = Effect.fn("Desktop.runIpc")(function* () {
+  // The Explore catalog and the skill loader read the user's ~/.distribution, so the bundled copy
+  // must land before the first IPC reply. The copy itself starts while the first window loads.
+  yield* Effect.tryPromise({ try: installBundledDistribution, catch: (error) => error }).pipe(
+    Effect.catch((error) => Effect.logWarning("failed to install bundled plugins and skills", { error })),
+  )
   const lifecycle = yield* ApplicationLifecycle.Service
   const plugins = yield* Plugins.Service
   marks.layers = Date.now()

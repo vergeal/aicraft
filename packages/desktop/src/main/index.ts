@@ -4,6 +4,7 @@ import { app } from "electron"
 import { acquireApplicationLock, configureApplication } from "./lifecycle/configure"
 import { startSidecarProbe } from "./service/sidecar-probe"
 import { registerStorageSnapshotHandler } from "./storage/snapshot"
+import { installBundledDistribution } from "./distribution"
 import { createEarlyWindow, earlyWindowClosed } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
 import { registerRendererScheme } from "./windows/scheme"
@@ -21,6 +22,9 @@ if (acquireApplicationLock()) {
   void app.whenReady().then(async () => {
     marks.ready = Date.now()
     registerStorageSnapshotHandler()
+    // The discover catalog reads ~/.distribution. Start the copy while the first window loads; the
+    // IPC layer waits for it before answering the renderer.
+    void installBundledDistribution().catch(() => undefined)
     createEarlyWindow()
     marks.window = Date.now()
     startSidecarProbe()

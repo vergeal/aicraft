@@ -2,7 +2,9 @@
 
 Each directory is a separately installable AI Craft plugin. Plugins are currently installed from Git URLs, not npm. The URL can omit a branch name to use the repository's default branch.
 
-These packages are not bundled with AI Craft or loaded automatically. Do not add them to Core's dependencies, its built-in plugin registry, or the repository's `.aicraft/plugins/` directory.
+These packages are not loaded automatically from a checkout. Do not add them to Core's dependencies, its built-in plugin registry, or the repository's `.aicraft/plugins/` directory.
+
+Production desktop builds do bundle them: `packages/desktop/script/distribution.ts` builds each `.exc` and copies it, together with every directory under `skills/`, into the app's resources. On first launch the desktop copies that tree into the user's `~/.distribution/`, where Explore lists it, and never overwrites a file that already exists.
 
 | Plugin                       | Directory                 | Form         |
 | ---------------------------- | ------------------------- | ------------ |

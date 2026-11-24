@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import { copyFile, readdir, stat } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -81,6 +82,7 @@ const getBase = (appId: string): Configuration => {
     files: [
       "out/**/*",
       "resources/**/*",
+      "!resources/distribution{,/**/*}",
       "!resources/opencode-cli*",
       // Keep only the target platform's node-pty prebuild when cross-packaging with --cpu=*.
       ...CLI_BINARIES.filter((item) => item.os !== target.os || item.cpu !== target.cpu).map(
@@ -107,6 +109,11 @@ const getBase = (appId: string): Configuration => {
         to: "",
         filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"],
       },
+      // Copied into the user's ~/.distribution on launch; kept out of app.asar so the copy starts
+      // without parsing the whole archive header. Only the prod channel prepares this directory.
+      ...(existsSync(path.join(packageDir, "resources", "distribution"))
+        ? [{ from: "resources/distribution", to: "distribution" }]
+        : []),
     ],
     afterPack: async (context) => {
       const arch = Arch[context.arch]
@@ -255,8 +262,8 @@ export function getConfig() {
       return {
         ...base,
         appId,
-        productName: "AI Craft",
-        protocols: { name: "AI Craft", schemes: ["opencode"] },
+        productName: "aicraft",
+        protocols: { name: "aicraft", schemes: ["opencode"] },
         // An Icon Composer package compiles to Assets.car, which macOS 26 and later draw the app icon from
         // (Dock, Finder, system dialogs and the system icon styles). Older macOS keeps using the ICNS.
         mac: { ...base.mac, icon: "resources/icons/icon.icon" },

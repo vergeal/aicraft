@@ -11,7 +11,8 @@ bun dev
 
 ## Build
 
-`bun run build` prepares `resources/` (icons, metainfo and the bundled CLI) and builds the app into `out/`.
+`bun run build` prepares `resources/` (icons, metainfo, the bundled CLI, and on the `prod` channel the official
+`plugins/` and `skills/` under `resources/distribution`) and builds the app into `out/`.
 `bun run pack` then packages it, unsigned, into `dist/desktop/` at the repository root: a `.app` tarball on macOS,
 the unpacked app on Windows, and AppImage/deb/rpm on Linux. The release workflow signs and notarizes afterwards.
 

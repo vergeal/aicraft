@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { $ } from "bun"
-import { exists } from "node:fs/promises"
+import { exists, rm } from "node:fs/promises"
 import path from "node:path"
 import { copyBuiltCliToResources, downloadCliToResources, getCurrentCli, resolveChannel } from "./utils"
 import { verifyBundles } from "./verify-bundles"
@@ -19,6 +19,10 @@ process.chdir(dir)
 await $`bun ./script/copy-icons.ts ${channel}`
 
 await $`bun ./script/copy-metainfo.ts ${channel}`
+
+// Only a production install ships the official plugins and skills; other channels stay lean.
+if (channel === "prod") await $`bun ./script/distribution.ts`
+else await rm("resources/distribution", { recursive: true, force: true })
 
 const built = await exists(path.join(cli, getCurrentCli().package.replace("@opencode/", "")))
 

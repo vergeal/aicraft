@@ -11,7 +11,7 @@ export const VERSION = app.isPackaged ? app.getVersion() : (process.env.OPENCODE
 const appNames: Record<string, string> = {
   dev: "AI Craft Dev",
   beta: "AI Craft Beta",
-  prod: "AI Craft",
+  prod: "aicraft",
 }
 
 const appIDs: Record<string, string> = {

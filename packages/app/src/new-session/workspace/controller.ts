@@ -12,7 +12,6 @@ import {
   isWorkspaceDirectory,
   isWorkspaceSelection,
   workspaceDefaultSelection,
-  workspaceSelectionDestination,
   workspaceSelectionDirectories,
 } from "@/workspaces/paths"
 
@@ -153,10 +152,7 @@ export function createNewSessionWorkspaceController(input: {
 
     if (!project) return "main"
 
-    return workspaceDefaultSelection(
-      settings.workspaces.defaultDestination(),
-      settings.workspaces.lastUsed(serverSDK.scope, project.id),
-    )
+    return workspaceDefaultSelection(settings.workspaces.defaultDestination())
   })
 
   const value = createMemo(() =>
@@ -203,19 +199,15 @@ export function createNewSessionWorkspaceController(input: {
     }),
   )
 
-  const remember = (worktree = value()) => {
-    const project = currentProject()
-
-    if (!project) return
+  const remember = () => {
+    if (!currentProject()) return
     tabs.initializeDraftWorktrees(ServerConnection.key(serverSDK.server), sdk().directory, fallback())
-    const local = workspaceSelectionDestination(worktree, project.worktree) === "main"
-    settings.workspaces.setLastUsed(serverSDK.scope, project.id, local ? "local" : "workspace")
   }
 
   const select = (worktree: string) => {
     input.setSelectedBranch(undefined)
     input.setSelectedWorktree(worktree)
-    remember(worktree)
+    remember()
   }
 
   // The remembered worktree may have been removed since it was selected. Cycling to a directory the

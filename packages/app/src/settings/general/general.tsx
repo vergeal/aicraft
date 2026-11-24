@@ -38,7 +38,6 @@ const WorkspaceDestinationSetting: Component = () => {
   const settings = useSettings()
 
   const options = createMemo((): { value: WorkspaceDefaultDestination; label: string }[] => [
-    { value: "last-used", label: language.t("settings.workspaces.default.lastUsed") },
     { value: "local", label: language.t("settings.workspaces.default.local") },
     { value: "new", label: language.t("settings.workspaces.default.new") },
   ])

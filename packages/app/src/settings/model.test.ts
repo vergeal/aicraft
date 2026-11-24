@@ -54,6 +54,7 @@ describe("settings schema", () => {
       },
       appearance: { showProjectName: true },
       sessionSummary: { projectExpanded: false, serverExpanded: true },
+      workspaces: { defaultDestination: "last-used", lastUsed: { retired: "workspace" } },
     })
 
     expect(settings.general.showSearch).toBe(true)
@@ -61,6 +62,8 @@ describe("settings schema", () => {
     expect(settings.general).not.toHaveProperty("experimentalBrowser")
     expect(settings.general).not.toHaveProperty("showProjectIcon")
     expect(settings.appearance).not.toHaveProperty("showProjectName")
+    // The retired remembered destination falls back to local, and its history is dropped.
+    expect(settings.workspaces).toEqual({ defaultDestination: "local" })
 
     const copied = (value: typeof settings) => ({
       sessionSummary: value.sessionSummary,
@@ -119,7 +122,7 @@ describe("settings schema", () => {
       },
       keybinds: {},
       permissions: { autoApprove: false, autoApproveProjects: {} },
-      workspaces: { defaultDestination: "last-used", lastUsed: {} },
+      workspaces: { defaultDestination: "local" },
       notifications: { agent: false, permissions: true, questions: true, errors: false },
       sounds: {
         agentEnabled: true,
@@ -172,7 +175,7 @@ describe("settings schema", () => {
       reduceMotion: "system",
     })
     expect(settings.permissions).toEqual({ autoApprove: true, autoApproveProjects: { on: true, off: false } })
-    expect(settings.workspaces).toEqual({ defaultDestination: "new", lastUsed: { good: "workspace" } })
+    expect(settings.workspaces).toEqual({ defaultDestination: "new" })
     expect(settings.keybinds).toEqual({ good: "ctrl+k" })
     expect(settings.notifications).toEqual({ agent: false, permissions: true, questions: true, errors: true })
     expect(settings.sounds).toMatchObject({ agent: "custom", agentEnabled: false, permissions: "staplebops-02" })

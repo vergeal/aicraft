@@ -1,5 +1,5 @@
 import { containsDirectory, sameDirectory } from "@opencode/util/path"
-import type { WorkspaceDefaultDestination, WorkspaceLastUsed } from "@/settings/model"
+import type { WorkspaceDefaultDestination } from "@/settings/model"
 import type { SessionInfo, WorktreeDirectory } from "@opencode/client/promise"
 
 type WorkspaceProject = {
@@ -115,13 +115,6 @@ export function workspaceSelectionDestination(selection: string, projectWorktree
   return selection === "main" || sameDirectory(selection, projectWorktree) ? "main" : "create"
 }
 
-export function workspaceDefaultSelection(
-  setting: WorkspaceDefaultDestination,
-  lastUsed: WorkspaceLastUsed | undefined,
-) {
-  if (setting === "local") return "main"
-
-  if (setting === "new") return "create"
-
-  return lastUsed === "workspace" ? "create" : "main"
+export function workspaceDefaultSelection(setting: WorkspaceDefaultDestination) {
+  return setting === "new" ? "create" : "main"
 }

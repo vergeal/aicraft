@@ -13,8 +13,6 @@ export type Settings = typeof settingsSchema.Type
 
 export type WorkspaceDefaultDestination = Settings["workspaces"]["defaultDestination"]
 
-export type WorkspaceLastUsed = Settings["workspaces"]["lastUsed"][string]
-
 export type FollowUpBehavior = Settings["general"]["followUpBehavior"]
 
 export type TranscriptViewMode = Settings["general"]["transcriptView"]
@@ -213,10 +211,7 @@ const permissionsSchema = Persistence.struct({
 })
 
 const workspacesSchema = Persistence.struct({
-  defaultDestination: Schema.Literals(["last-used", "local", "new"]),
-  lastUsed: Persistence.record(
-    Schema.Literals(["local", "workspace"]).pipe(Schema.catchDecoding(() => Effect.succeed(Option.none()))),
-  ),
+  defaultDestination: Schema.Literals(["local", "new"]),
 })
 
 const notificationsSchema = Persistence.struct({
@@ -386,7 +381,7 @@ export const defaultSettings: Settings = {
   appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: "horizontal", reduceMotion: "system" },
   keybinds: {},
   permissions: { autoApprove: false, autoApproveProjects: {} },
-  workspaces: { defaultDestination: "last-used", lastUsed: {} },
+  workspaces: { defaultDestination: "local" },
   notifications: { agent: false, permissions: true, questions: true, errors: false },
   sounds: {
     agentEnabled: true,
@@ -612,16 +607,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
             ...defaultSettings.workspaces,
             ...current,
             defaultDestination: value,
-          }))
-        },
-        lastUsed(scope: ServerScope, projectID: string) {
-          return store.workspaces?.lastUsed?.[ScopedKey.from(scope, projectID)]
-        },
-        setLastUsed(scope: ServerScope, projectID: string, value: WorkspaceLastUsed) {
-          setStore("workspaces", (current) => ({
-            ...defaultSettings.workspaces,
-            ...current,
-            lastUsed: { ...current?.lastUsed, [ScopedKey.from(scope, projectID)]: value },
           }))
         },
       },

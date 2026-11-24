@@ -175,7 +175,7 @@ export function NewSessionLocationCard(props: { picker: NewSessionLocationPicker
         value: directory,
         directory,
       })),
-    ].filter((entry) => matches(workspaceTitle(project, entry.value), entry.directory))
+    ].filter((entry) => matches(workspaceTitle(entry.value), entry.directory))
   })
 
   const entries = () => {
@@ -239,8 +239,9 @@ export function NewSessionLocationCard(props: { picker: NewSessionLocationPicker
     onCleanup(() => cancelAnimationFrame(frame))
   })
 
-  function workspaceTitle(project: PromptProject, value: string) {
-    if (value === "main") return displayName(project)
+  function workspaceTitle(value: string) {
+    // The local row is the current checkout, named by place rather than by the project above it.
+    if (value === "main") return language.t("session.new.workspace.triggerLocal")
 
     if (value === "create") return language.t("workspace.new")
 
@@ -471,22 +472,15 @@ export function NewSessionLocationCard(props: { picker: NewSessionLocationPicker
                             </Match>
                             <Match when={entry.type === "workspace" && store.drilled && entry}>
                               {(item) => (
-                                <Show
-                                  when={item().value === "main"}
-                                  fallback={
-                                    <WorkspaceRow
-                                      title={workspaceTitle(store.drilled!, item().value)}
-                                      value={item().value}
-                                      description={
-                                        item().value === "create"
-                                          ? language.t("session.new.workspace.new.tooltip")
-                                          : item().directory
-                                      }
-                                    />
+                                <WorkspaceRow
+                                  title={workspaceTitle(item().value)}
+                                  value={item().value}
+                                  description={
+                                    item().value === "create"
+                                      ? language.t("session.new.workspace.new.tooltip")
+                                      : item().directory
                                   }
-                                >
-                                  <ProjectRow project={store.drilled!} path={item().directory} />
-                                </Show>
+                                />
                               )}
                             </Match>
                           </Switch>

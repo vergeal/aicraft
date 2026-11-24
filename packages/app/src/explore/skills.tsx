@@ -3,8 +3,6 @@ import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
 import { Switch } from "@opencode/ui/switch"
-import { TextInput } from "@opencode/ui/text-input"
-import { Textarea } from "@opencode/ui/textarea"
 import { MarkdownProvider } from "@opencode/session-ui/context/markdown"
 import { Markdown } from "@opencode/session-ui/markdown"
 import { getDirectory, getFilename } from "@opencode/util/path"
@@ -324,7 +322,6 @@ export function CatalogSkillDetail(props: { entry: CatalogSkill }) {
     void dialog.show(() => (
       <InstallSkillDialog
         directory={installed.directory()}
-        existing={installed.skills().map((skill) => skill.id)}
         initial={{
           id: props.entry.id,
           name: props.entry.title,
@@ -353,53 +350,43 @@ export function CatalogSkillDetail(props: { entry: CatalogSkill }) {
   )
 }
 
+/**
+ * Installing a catalog skill is a review, not an edit: the sheet shows the SKILL.md the row will write, and the only
+ * action is the confirmation that writes it. The explore page never lets a visitor change a catalog entry.
+ */
 export function InstallSkillDialog(props: {
   directory: string
-  existing: readonly string[]
-  /** A catalog entry fills the form, so installing it is a review rather than a retype. */
-  initial?: { id: string; name: string; description: string; instructions: string }
+  initial: { id: string; name: string; description: string; instructions: string }
   onInstalled: (id: string) => void
 }) {
   const language = useLanguage()
   const dialog = useDialog()
   const serverSdk = useServerSDK()
 
-  // The user never names a folder: a fresh id keeps the skill directory machine-readable.
-  const fallbackId = `skill-${Date.now().toString(36)}`
+  const [state, setState] = createStore({ busy: false, error: "" })
 
-  const [state, setState] = createStore({
-    name: props.initial?.name ?? "",
-    description: props.initial?.description ?? "",
-    instructions: props.initial?.instructions ?? "",
-    busy: false,
-    error: "",
-  })
-
-  const id = () => props.initial?.id ?? fallbackId
   const root = () => trimDirectory(props.directory)
-  const target = () => `${root()}/.aicraft/skill/${id()}/SKILL.md`
+  const target = () => `${root()}/.aicraft/skill/${props.initial.id}/SKILL.md`
 
   const submit = async () => {
     if (state.busy) return
-    const name = state.name.trim()
-    const description = state.description.trim()
-
-    if (props.existing.includes(id())) return setState("error", language.t("explore.skills.install.exists"))
-
-    if (!name) return setState("error", language.t("explore.skills.install.requiredName"))
-
-    if (!description) return setState("error", language.t("explore.skills.install.requiredDescription"))
 
     setState({ busy: true, error: "" })
 
     try {
       await serverSdk.api.experimental.file.write({
         path: target(),
-        payload: new TextEncoder().encode(composeSkill({ name, description, instructions: state.instructions })),
+        payload: new TextEncoder().encode(
+          composeSkill({
+            name: props.initial.name,
+            description: props.initial.description,
+            instructions: props.initial.instructions,
+          }),
+        ),
         location: { directory: props.directory },
       })
       dialog.close()
-      props.onInstalled(id())
+      props.onInstalled(props.initial.id)
     } catch (error) {
       setState({ busy: false, error: error instanceof Error ? error.message : String(error) })
     }
@@ -417,44 +404,18 @@ export function InstallSkillDialog(props: {
       <DialogBody flush class="explore-skill-body">
         <div class="explore-skill-scroll">
           <div data-component="document-surface" class="explore-skill-paper">
-            <div class="explore-skill-page">
-              <TextInput
-                autofocus
-                surface="invisible"
-                class="explore-skill-name"
-                value={state.name}
-                placeholder={language.t("explore.skills.install.name.placeholder")}
-                aria-label={language.t("explore.skills.install.name")}
-                autocomplete="off"
-                spellcheck={false}
-                onInput={(event) => setState("name", event.currentTarget.value)}
-              />
-
-              <Textarea
-                class="explore-skill-summary"
-                rows={1}
-                autoResize
-                autoResizeMax={96}
-                value={state.description}
-                placeholder={language.t("explore.skills.install.summary.placeholder")}
-                aria-label={language.t("explore.skills.install.summary")}
-                onInput={(event) => setState("description", event.currentTarget.value)}
-              />
+            <article class="explore-skill-page">
+              <h1 class="explore-skill-preview-name">{props.initial.name}</h1>
+              <p class="explore-skill-preview-summary">{props.initial.description}</p>
 
               <div class="explore-skill-divider" role="presentation" />
 
-              <Textarea
-                class="explore-skill-markdown"
-                rows={16}
-                autoResize
-                autoResizeMax={760}
-                value={state.instructions}
-                placeholder={language.t("explore.skills.install.body.placeholder")}
-                aria-label={language.t("explore.skills.install.body")}
-                spellcheck={false}
-                onInput={(event) => setState("instructions", event.currentTarget.value)}
-              />
-            </div>
+              <div class="explore-skill-preview-body" data-slot="artifact-markdown-content">
+                <MarkdownProvider>
+                  <Markdown text={props.initial.instructions} cacheKey={props.initial.id} />
+                </MarkdownProvider>
+              </div>
+            </article>
           </div>
 
           <div class="explore-skill-foot">

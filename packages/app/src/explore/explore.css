@@ -597,7 +597,7 @@
   margin-top: 20px;
 }
 
-/* New skill: the form is one sheet of paper, so the body reads like a document instead of a stack of fields. */
+/* Install review: one sheet of paper shows the catalog skill, so the dialog reads as the document it becomes. */
 .explore-skill-body {
   min-height: 0;
 }
@@ -611,10 +611,13 @@
   overflow-y: auto;
 }
 
+/* The sheet grows with the skill it holds. Without this the flex item shrinks to the scrollport and the body text
+   spills past the sheet's border, while the sheet stays the height of the visible area. */
 .explore-skill-paper {
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
+  flex: 0 0 auto;
   padding: 56px clamp(28px, 9%, 72px) 48px;
 }
 
@@ -627,81 +630,31 @@
   gap: 14px;
 }
 
-/* The name is the report title, so it drops the field chrome and takes the page's heading size. */
-.explore-skill-page [data-component="text-input-v2"].explore-skill-name {
-  width: 100%;
-  height: auto;
-  min-height: 40px;
-  padding: 0;
-  border-radius: 0;
-  outline: none;
-  box-shadow: none;
-}
-
-/* The title has no field surface at all, so even the invisible field's hover wash would read as a box. */
-@media (hover: hover) {
-  [data-component="text-input-v2"][data-surface="invisible"].explore-skill-name:where(:hover) {
-    background: transparent;
-  }
-}
-
-[data-component="text-input-v2"].explore-skill-name [data-slot="text-input-v2-input"] {
-  height: 40px;
-  padding: 0;
+/* The skill's title and standfirst, read only: the catalog entry owns this copy, so the sheet never turns into a form. */
+.explore-skill-preview-name {
+  margin: 0;
   font-size: var(--font-size-x-large);
   font-weight: var(--font-weight-medium);
   line-height: var(--line-height-large);
   letter-spacing: -0.02em;
+  color: var(--v2-text-text-base);
 }
 
-/* The summary is the report's standfirst: muted, one or two lines, no field surface. */
-.explore-skill-page [data-component="textarea-v2"].explore-skill-summary {
-  width: 100%;
-  min-height: 0;
-  padding: 0;
-  border-radius: 0;
-  outline: none;
-  box-shadow: none;
-  background: transparent;
-}
-
-[data-component="textarea-v2"].explore-skill-summary [data-slot="textarea-v2-textarea"] {
-  min-height: 0;
-  padding: 0;
+.explore-skill-preview-summary {
+  margin: 0;
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   color: var(--v2-text-text-muted);
-  resize: none;
+}
+
+.explore-skill-preview-body {
+  min-width: 0;
 }
 
 .explore-skill-divider {
   height: 1px;
   margin-block: 6px 4px;
   background: var(--v2-border-border-muted);
-}
-
-/* The body is the page itself: plain Markdown on the sheet, no field border or raised input surface. */
-.explore-skill-page [data-component="textarea-v2"].explore-skill-markdown {
-  width: 100%;
-  min-height: 0;
-  padding: 0;
-  border-radius: 0;
-  outline: none;
-  box-shadow: none;
-  background: transparent;
-}
-
-[data-component="textarea-v2"].explore-skill-markdown [data-slot="textarea-v2-textarea"] {
-  min-height: 360px;
-  padding: 0;
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-x-large);
-  letter-spacing: normal;
-  resize: none;
-}
-
-[data-component="textarea-v2"].explore-skill-markdown [data-slot="textarea-v2-textarea"]::placeholder {
-  white-space: pre-wrap;
 }
 
 .explore-skill-foot {

@@ -1,10 +1,10 @@
 import "@pierre/trees/web-components"
 import { FileTree, type FileTreeDirectoryHandle, type FileTreeItemHandle } from "@pierre/trees"
-import { getIcon } from "@opencode/ui/icons/catalog"
 import { createMemo, createSignal, onCleanup, onMount } from "solid-js"
 import type { ChangeKind } from "@opencode/plugin/gui/review"
 import { createKeyed, usePlugin, type FileNode, type MountedSession, type SessionScreen } from "@opencode/plugin/gui"
 import { startFileDrag } from "./drag"
+import { FILE_TREE_ICONS } from "./material-icons"
 import { OpenInAppContextMenuV2, useOpenInApp } from "./open-in-app"
 import { resolveOpenInAppPath } from "./path"
 import {
@@ -58,6 +58,20 @@ const TREE_UNSAFE_CSS = `
   [data-type="item"][aria-expanded="true"] [data-item-section="icon"] > svg:first-child {
     transform: translateY(var(--trees-icon-nudge)) rotate(90deg);
   }
+  /* Folders show a folder mark instead of a bare chevron, closed or open with the row. The two marks come from
+     Material Icon Theme (MIT), masked so their colour follows the theme's icon token like every other row. */
+  [data-item-type="folder"] > [data-item-section="icon"] > [data-icon-name="file-tree-icon-chevron"] { display: none; }
+  [data-item-type="folder"] > [data-item-section="icon"]::before {
+    content: ""; width: 16px; height: 16px; flex: none;
+    background-color: var(--v2-icon-icon-muted);
+    -webkit-mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='m6.922 3.768-.644-.536A1 1 0 0 0 5.638 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H7.562a1 1 0 0 1-.64-.232'/></svg>") center / 16px 16px no-repeat;
+    mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='m6.922 3.768-.644-.536A1 1 0 0 0 5.638 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H7.562a1 1 0 0 1-.64-.232'/></svg>") center / 16px 16px no-repeat;
+    transform: translateY(var(--trees-icon-nudge));
+  }
+  [data-item-type="folder"][aria-expanded="true"] > [data-item-section="icon"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M14.483 6H4.721a1 1 0 0 0-.949.684L2 12V5h12a1 1 0 0 0-1-1H7.562a1 1 0 0 1-.64-.232l-.644-.536A1 1 0 0 0 5.638 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h11l2.403-5.606A1 1 0 0 0 14.483 6'/></svg>");
+    mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M14.483 6H4.721a1 1 0 0 0-.949.684L2 12V5h12a1 1 0 0 0-1-1H7.562a1 1 0 0 1-.64-.232l-.644-.536A1 1 0 0 0 5.638 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h11l2.403-5.606A1 1 0 0 0 14.483 6'/></svg>");
+  }
   :host(:dir(rtl)) [data-type="item"][aria-expanded="false"] [data-item-section="icon"] > svg:first-child {
     transform: translateY(var(--trees-icon-nudge)) rotate(180deg);
   }
@@ -80,6 +94,8 @@ const TREE_UNSAFE_CSS = `
   [data-item-section="decoration"]:empty { display: none !important; }
   /* A folder holding changes keeps its lane, so the row still ends in the sticky end, but shows no dot. */
   [data-item-contains-git-change="true"]:not([data-item-git-status]) > [data-item-section="git"] > * { visibility: hidden; }
+  /* File-type marks keep the colours Material Icon Theme bakes into their fills; this only reaches the ones drawn
+     in currentColor, such as the folder mask and the plain file icon. */
   [data-type="item"]:not([data-item-selected="true"]) > [data-item-section="icon"] > * { color: var(--v2-icon-icon-muted) !important; }
   [data-item-git-status]:not([data-item-git-status="ignored"]) > [data-item-section="content"] { color: inherit; }
   [data-item-section="content"] { flex: 1 0 auto; max-width: none; overflow: visible; white-space: nowrap; }
@@ -308,13 +324,7 @@ export default function PierreFileTree(props: {
             )
           }
         : "default",
-      icons: {
-        set: "complete",
-        spriteSheet: `<svg data-icon-sprite aria-hidden="true" width="0" height="0" xmlns="http://www.w3.org/2000/svg"><symbol id="outline-chevron-right" viewBox="${getIcon("outline-chevron-right").viewBox}" fill="none">${getIcon("outline-chevron-right").body}</symbol></svg>`,
-        remap: {
-          "file-tree-icon-chevron": { name: "outline-chevron-right", width: 16, height: 16, viewBox: "0 0 16 16" },
-        },
-      },
+      icons: FILE_TREE_ICONS,
       itemHeight: FILE_TREE_ROW_HEIGHT,
       middleTruncate: false,
       stickyFolders: false,

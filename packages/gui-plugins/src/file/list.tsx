@@ -1,9 +1,10 @@
-import { createFileTreeIconResolver, getBuiltInSpriteSheet } from "@pierre/trees"
+import { createFileTreeIconResolver } from "@pierre/trees"
 import { createMemo, createSignal, For, Show } from "solid-js"
 import { createVirtualizer, defaultRangeExtractor } from "@tanstack/solid-virtual"
 import { getDirectory, getFilename } from "@opencode/util/path"
 import type { ChangeKind } from "@opencode/plugin/gui/review"
 import { createKeyed, usePlugin, type MountedSession, type SessionScreen } from "@opencode/plugin/gui"
+import { FILE_TREE_ICONS } from "./material-icons"
 import { OpenInAppContextMenuV2, useOpenInApp } from "./open-in-app"
 import { resolveOpenInAppPath } from "./path"
 import { FILE_TREE_ROW_HEIGHT, kindChange, normalizeFileTreeV2Path } from "./tree-model"
@@ -73,8 +74,8 @@ export default function SessionFileList(props: {
   const normalized = createMemo(() => props.files.map(normalizeFileTreeV2Path))
   const [root, setRoot] = createSignal<HTMLDivElement>()
   const [focused, setFocused] = createSignal<string>()
-  const iconResolver = createFileTreeIconResolver("complete")
-  const spriteSheet = getBuiltInSpriteSheet("complete") ?? ""
+  const iconResolver = createFileTreeIconResolver(FILE_TREE_ICONS)
+  const spriteSheet = FILE_TREE_ICONS.spriteSheet
 
   const virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
     get count() {
@@ -189,11 +190,10 @@ export default function SessionFileList(props: {
                     >
                       <svg
                         aria-hidden="true"
-                        viewBox="0 0 16 16"
+                        viewBox={icon().viewBox ?? "0 0 16 16"}
                         width="16"
                         height="16"
                         data-icon-name={icon().remappedFrom ?? icon().name}
-                        data-icon-token={icon().token}
                         class="size-4 shrink-0"
                       >
                         <use href={`#${icon().name}`} />

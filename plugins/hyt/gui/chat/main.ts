@@ -62,10 +62,12 @@ const MEMBER_TTL = 5 * 60_000
 /**
  * 「正在输入」的失效时间。
  *
- * `MsgType 12` 是 1 → 0 成对的，但对方直接发消息或关窗口时可能没有那条 0。宁可多显示一个轮询间隔，
- * 也不要让提示一直挂着。
+ * `MsgType 12` 是 1 → 0 成对的，但对方直接发消息或关窗口时可能没有那条 0；
+ * 而对方持续打字时也不会重复发 1——真实样本里 1 → 0 可以隔 22 秒。
+ * 所以超时要盖住「一直在打字」的情况，太长又会让残留过久：取 20 秒，
+ * 并且对方发来新消息时立刻让位（见 load 里的 answered）。
  */
-const TYPING_TTL_MS = 12_000
+const TYPING_TTL_MS = 20_000
 
 function emptyState(phase: ChatState["status"]["phase"]): ChatState {
   return {
@@ -412,9 +414,13 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       // 输入状态只在单聊显示：群聊里多个人同时打字，提示只会变成噪音。
       const presence =
         chosen === undefined || group ? { active: false, at: 0 } : Db.readTyping(root, login.account, nextSelected)
+      // 对方已经发来比这条输入状态更新的消息：提示立即让位，不必等超时（那条 0 可能根本没来）。
+      const newest = withReceipts[withReceipts.length - 1]
+      const answered =
+        presence.at > 0 && newest !== undefined && !newest.outgoing && newest.createdAt >= presence.at
       // 对方中途关掉窗口时，库里可能永远等不到那条「停止输入」：超过时限就当已停止。
       const typing =
-        presence.active && Date.now() - presence.at < TYPING_TTL_MS
+        presence.active && !answered && Date.now() - presence.at < TYPING_TTL_MS
           ? presence
           : { active: false, at: presence.at }
       selected = nextSelected

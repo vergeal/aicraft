@@ -38,3 +38,4 @@ tsconfig.tsbuildinfo
 /artifacts/
 /.restart/
 /.workplan-screenshots/
+.bun-cache/

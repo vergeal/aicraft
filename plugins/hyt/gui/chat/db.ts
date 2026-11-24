@@ -75,20 +75,23 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
     })
     const unread = readUnread(db, account)
     const people = readPeople(root, account)
+    const appIdentities = readAppIdentities(db)
     const groupMembers = readGroupAvatarMembers(db, account, people)
     return aggregates.flatMap((item) => {
       const detail = byId.get(item.lastId)
       if (detail === undefined) return []
       const group = detail.SessionType === 1 || item.sessionId.startsWith("g")
       const person = people.get(item.sessionId)
+      const app = appIdentities.get(item.sessionId)
       const nick = detail.Sender === account ? "" : text(detail.SenderNick)
       const name = group
         ? (groups.get(item.sessionId) ?? "群聊")
         : (person?.remark || person?.name || nick || item.sessionId)
-      // 群头像按虹云通的规则拼成员；单聊只有对方一个人。
+      // 应用账号没有通讯录头像，用应用消息里的图标；群聊为空，界面用固定群头像。
+      const avatar = group ? "" : (app?.icon || person?.headPath || "")
       const members = group
         ? (groupMembers.get(item.sessionId) ?? [])
-        : [{ name: name.length > 0 ? name : item.sessionId, headPath: person?.headPath ?? "" }]
+        : [{ name: name.length > 0 ? name : item.sessionId, headPath: avatar }]
       return [
         {
           id: item.sessionId,
@@ -99,6 +102,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
           atMe: item.atMe === 1,
           group,
           online: group ? false : (person?.online ?? false),
+          avatar,
           members,
         },
       ]
@@ -106,6 +110,43 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
   } finally {
     db.close()
   }
+}
+
+/**
+ * 应用会话的身份（图标与名字）。
+ *
+ * 观测服务这类账号不在通讯录里：它的头像与名字只存在于发出的应用消息 `UserData` 中。
+ * 会话列表、成员列表、资料卡都从这里取同一份，避免一处显示应用图标、另一处只剩名称首字。
+ */
+function appIdentityOf(userData: Cell, msg: Cell) {
+  const card = parseAppCard(text(userData), text(msg))
+  return { icon: card.icon, name: card.name }
+}
+
+function readAppIdentity(db: DatabaseSync, sessionId: string) {
+  const row = query(
+    db,
+    "select UserData, Msg from chatmsg where SessionId = ? and MsgType in (17, 150) order by Id desc limit 1",
+    [sessionId],
+  )[0]
+  return row === undefined ? { icon: "", name: "" } : appIdentityOf(row.UserData, row.Msg)
+}
+
+function readAppIdentities(db: DatabaseSync) {
+  const map = new Map<string, { readonly icon: string; readonly name: string }>()
+  for (const row of query(
+    db,
+    `select SessionId as sessionId, UserData as userData, Msg as msg from chatmsg
+     where Id in (select max(Id) from chatmsg where MsgType in (17, 150) group by SessionId)`,
+    [],
+  )) {
+    const sessionId = text(row.sessionId)
+    if (sessionId.length === 0) continue
+    const identity = appIdentityOf(row.userData, row.msg)
+    if (identity.icon.length === 0 && identity.name.length === 0) continue
+    map.set(sessionId, identity)
+  }
+  return map
 }
 
 /** 一页消息，旧→新；`hasMore` 表示这一页之前还有更早的。 */
@@ -130,7 +171,9 @@ export function readMessages(
     const known = rows.filter((row): row is ChatRow & { Id: number } => row.Id !== null)
     const hasMore = known.length > limit
     const people = readPeople(root, account)
-    const page = (hasMore ? known.slice(0, limit) : known).map((row) => messageRow(row, account, people))
+    // 应用会话里发送者不在通讯录，头像统一用应用图标，与列表、资料卡保持一致。
+    const identity = readAppIdentity(db, sessionId)
+    const page = (hasMore ? known.slice(0, limit) : known).map((row) => messageRow(row, account, people, identity.icon))
     // 「以下为新消息」的分界：这一页里最早的未读消息。自己发的不算（撤回的消息 ReadStatus 也是 0）。
     const unreadIds = known
       .filter((row) => row.ReadStatus === 0 && text(row.Sender) !== account)
@@ -191,6 +234,7 @@ export function readSessionMembers(
 
   const chat = open(chatPath)
   let order: string[] = []
+  let app = { icon: "", name: "" }
   try {
     order = query(
       chat,
@@ -202,6 +246,7 @@ export function readSessionMembers(
       const id = text(row.Sender)
       return id.length === 0 || id === account ? [] : [id]
     })
+    app = readAppIdentity(chat, sessionId)
   } finally {
     chat.close()
   }
@@ -233,8 +278,18 @@ export function readSessionMembers(
         ]
       }),
     )
-    // 保持「最近发言在前」的顺序；通讯录里查不到的人仍占一行，用账号当名字。
-    return order.map((id) => known.get(id) ?? { account: id, name: id, department: "", headPath: "", online: false })
+    // 保持「最近发言在前」的顺序；通讯录里查不到的人仍占一行：
+    // 应用账号用应用消息里的名字与图标，其它人退回账号本身。
+    return order.map(
+      (id) =>
+        known.get(id) ?? {
+          account: id,
+          name: app.name.length > 0 ? app.name : id,
+          department: "",
+          headPath: app.icon,
+          online: false,
+        },
+    )
   } finally {
     address.close()
   }
@@ -506,7 +561,7 @@ function chatRow(row: Row): ChatRow {
   }
 }
 
-function messageRow(row: ChatRow, account: string, people: Map<string, PersonEntry>): MessageRow {
+function messageRow(row: ChatRow, account: string, people: Map<string, PersonEntry>, fallbackHead = ""): MessageRow {
   const message = toMessage(row)
   const person = people.get(message.sender)
   const app = message.kind === "app" ? parseAppCard(row.UserData, message.text) : undefined
@@ -519,7 +574,7 @@ function messageRow(row: ChatRow, account: string, people: Map<string, PersonEnt
     // 库里 SenderNick 常常是账号或很久以前的昵称，与头像（按账号取的通讯录头像）对不上；
     // 通讯录里有名字就以它为准，库里的字段只作回退。
     senderNick: person === undefined ? message.senderNick : person.remark || person.name || message.senderNick,
-    senderHead: people.get(message.sender)?.headPath ?? "",
+    senderHead: people.get(message.sender)?.headPath || app?.icon || fallbackHead,
     outgoing: account.length > 0 && message.sender === account,
     createdAt: message.createdAt,
     atMe: message.isAt,

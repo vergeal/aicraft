@@ -158,8 +158,10 @@ export function ChatPage(props: {
     const paths = new Set<string>()
     // 当前会话的头像先入队：名额有限，正在看的消息与成员不该被左栏的会话头像挤掉。
     for (const message of current.messages) if (message.senderHead.length > 0) paths.add(message.senderHead)
-    for (const session of current.sessions)
+    for (const session of current.sessions) {
+      if (session.avatar.length > 0) paths.add(session.avatar)
       for (const member of session.members) if (member.headPath.length > 0) paths.add(member.headPath)
+    }
     return [...paths].slice(0, 200).sort().join("\n")
   }
 
@@ -302,7 +304,7 @@ export function ChatPage(props: {
   const personOfSession = (session: SessionRow): Person => ({
     account: session.id,
     name: session.name,
-    head: session.group ? undefined : headOf(session.members[0]?.headPath),
+    head: headOf(session.avatar),
     online: session.online,
     department: departmentOf(session.group ? undefined : session.id),
     group: session.group,
@@ -767,7 +769,7 @@ export function ChatPage(props: {
   function headAvatar() {
     const session = selected()
     if (session === undefined || session.group) return undefined
-    const path = session.members[0]?.headPath ?? ""
+    const path = session.avatar
     if (path.length === 0) return undefined
     const value = avatarMap()[path]
     return value === undefined || value.length === 0 ? undefined : value

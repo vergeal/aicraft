@@ -45,6 +45,11 @@ export const SessionRow = Schema.Struct({
   group: Schema.Boolean,
   /** 对方的在线快照（本地库 `OnLineState = 1`）；群聊恒为 false。 */
   online: Schema.Boolean,
+  /**
+   * 会话级头像。应用账号（观测服务等）不在通讯录里，头像只在它发的应用消息里；
+   * 单聊取对方头像；群聊为空，界面统一用固定群头像。
+   */
+  avatar: Schema.String,
   /** 头像成员：单聊就是对方，群聊是会话内出现过的成员（最多 9 个），窗口按虹云通的拼图规则渲染。 */
   members: Schema.Array(HeadMember),
 })

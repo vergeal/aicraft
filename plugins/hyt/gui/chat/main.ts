@@ -1,7 +1,7 @@
 import type { IpcImpl, IpcProvider, MainContext } from "@opencode/plugin/gui/main"
 import { Schema } from "effect"
 import { createHash } from "node:crypto"
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
@@ -47,6 +47,12 @@ const MIME: Readonly<Record<string, string>> = {
 const MAX_MEDIA_BYTES = 24 * 1024 * 1024
 /** 头像很小；超过这个大小的一定不是头像，直接放弃。 */
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024
+/**
+ * 头像与附件服务前面的网关会拦截没有 UA 的请求（返回 200 + 「您的访问存在异常」的 HTML）。
+ * 带上浏览器 UA，下载到的才是图片本身。
+ */
+const DOWNLOAD_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 /** 远端头像在内存里保留 6 小时；磁盘缓存长期有效，跨重启不重复下载。 */
 const AVATAR_TTL = 6 * 60 * 60_000
 /** 下载失败的头像记 5 分钟，避免每轮轮询都去请求一个拿不到的地址。 */
@@ -139,15 +145,26 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     // 磁盘上已经有就直接读，不占网络预算。
     const file = join(avatarDir, createHash("sha1").update(url).digest("hex"))
     const cachedBytes = readBytes(file)
-    if (cachedBytes !== undefined) return rememberAvatar(url, cachedBytes)
+    if (cachedBytes !== undefined) {
+      const cached = rememberAvatar(url, cachedBytes)
+      if (cached.length > 0) return cached
+      // 以前可能把网关拦下的 HTML 当成头像存了下来，读到就删掉重下。
+      rmSync(file, { force: true })
+    }
 
     if (budget.left <= 0) return ""
     budget.left -= 1
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(5_000) })
+      const response = await fetch(url, {
+        headers: { "User-Agent": DOWNLOAD_UA, Accept: "image/*,*/*;q=0.8" },
+        signal: AbortSignal.timeout(5_000),
+      })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const bytes = Buffer.from(await response.arrayBuffer())
       if (bytes.length === 0 || bytes.length > MAX_AVATAR_BYTES) throw new Error("头像大小异常")
+      const dataUrl = avatarDataUrl(bytes)
+      // 网关会把拦截页以 200 + HTML 返回；不是图片就不落盘、不再重试。
+      if (dataUrl.length === 0) throw new Error("不是图片")
       mkdirSync(avatarDir, { recursive: true })
       writeFileSync(file, bytes)
       return rememberAvatar(url, bytes)
@@ -159,6 +176,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
 
   const rememberAvatar = (url: string, bytes: Buffer) => {
     const dataUrl = avatarDataUrl(bytes)
+    if (dataUrl.length === 0) return ""
     avatarCache.set(url, { stamp: Date.now(), dataUrl })
     avatarMisses.delete(url)
     return dataUrl
@@ -793,7 +811,10 @@ function signedFileUrl(base: string, fileUrl: string) {
 
 async function fetchFileBytes(url: string) {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+    const response = await fetch(url, {
+      headers: { "User-Agent": DOWNLOAD_UA },
+      signal: AbortSignal.timeout(20_000),
+    })
     if (!response.ok) return undefined
     const bytes = Buffer.from(await response.arrayBuffer())
     if (bytes.length === 0 || bytes.length > MAX_MEDIA_BYTES) return undefined
@@ -884,7 +905,8 @@ function isRemote(path: string) {
 }
 
 function avatarDataUrl(bytes: Buffer) {
-  return `data:${avatarMime(bytes)};base64,${bytes.toString("base64")}`
+  const mime = avatarMime(bytes)
+  return mime.length === 0 ? "" : `data:${mime};base64,${bytes.toString("base64")}`
 }
 
 function avatarMime(bytes: Buffer) {
@@ -892,5 +914,7 @@ function avatarMime(bytes: Buffer) {
   if (bytes.length >= 4 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif"
   if (bytes.length >= 12 && bytes.subarray(0, 4).toString() === "RIFF" && bytes.subarray(8, 12).toString() === "WEBP")
     return "image/webp"
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png"
+  if (bytes.subarray(0, 5).toString().startsWith("<")) return ""
   return "image/png"
 }

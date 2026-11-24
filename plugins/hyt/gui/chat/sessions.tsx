@@ -189,7 +189,7 @@ export function Rail(props: {
                       fallback={
                         <Face
                           name={row.session.members[0]?.name ?? row.session.name}
-                          src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
+                          src={avatarOf(props.avatars, row.session.avatar)}
                         />
                       }
                     >

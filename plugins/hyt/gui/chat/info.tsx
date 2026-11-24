@@ -68,7 +68,7 @@ export function InfoPanel(props: {
               fallback={
                 <Face
                   name={members()[0]?.name ?? props.session!.name}
-                  src={avatarOf(props.avatars, members()[0]?.headPath)}
+                  src={avatarOf(props.avatars, props.session!.avatar)}
                   size={44}
                 />
               }

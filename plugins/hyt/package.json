@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@opencode/plugin-hyt",
-  "version": "0.6.17",
+  "version": "0.6.18",
   "description": "虹云通 AI 运维助手：读本地消息库、收发消息、积累知识库、学习说话风格并收集任务",
   "type": "module",
   "license": "MIT",

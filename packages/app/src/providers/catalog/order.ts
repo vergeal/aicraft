@@ -12,3 +12,12 @@ export const visibleProviders = ["openai", "deepseek"]
 export function showsProvider(id: string) {
   return visibleProviders.includes(id)
 }
+
+/**
+ * Whether a row belongs in a list of providers to connect. `showsProvider` alone is not enough: a custom
+ * OpenAI-compatible provider the user declared in their own configuration is the only route to a model this
+ * allowlist cannot carry, so hiding it leaves that model unreachable from every picker.
+ */
+export function offersProvider(id: string, customIDs: ReadonlySet<string>) {
+  return showsProvider(id) || customIDs.has(id)
+}

@@ -1,43 +1,79 @@
-import { DialogBody, DialogHeader, DialogTitle, Dialog } from "@aicraft/ui/dialog"
-import { Badge } from "@aicraft/ui/badge"
+import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
+import { Button } from "@aicraft/ui/button"
 import { Icon } from "@aicraft/ui/icon"
-import { MenuScroll } from "@aicraft/ui/menu-scroll"
+import { Loader } from "@aicraft/ui/loader"
+import { SelectionIndicator } from "@aicraft/ui/selection-indicator"
 import { ProviderModelIcon } from "@/providers/models/provider-group"
-import { Tooltip } from "@aicraft/ui/tooltip"
 import { useDialog } from "@aicraft/ui/context/dialog"
-import { createMemo, onCleanup, onMount, type Component, For, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, type Component } from "solid-js"
 import { useLocal, type ModelSelection } from "@/providers/models/selection"
-import { isFreeModel } from "@/providers/models/models"
+import { offersProvider, visibleProviders } from "@/providers/catalog/order"
+import { useCustomProviders } from "@/providers/catalog/custom"
 import { useIntegrations } from "@/providers/catalog/integrations"
+import { useSettingsDialog } from "@/settings/command"
 import { decode64 } from "@/runtime/persistence/base64"
 import { useLanguage } from "@/runtime/i18n/language"
-import { ModelTooltip } from "./tooltip"
+import "@/providers/models/unpaid.css"
 
 type ModelState = ModelSelection
 
-const featuredProviders = ["opencode-go", "opencode", "openai", "anthropic", "google", "github-copilot"]
-
-const displayModelName = (name: string) => name.replace(/\s+(?:\(free\)|free)$/i, "")
-
+/**
+ * The picker for a workspace that has no model yet, so its only job is the next step: connect an account.
+ *
+ * Two claims the previous layout made are false for this client, and both are gone. It headed a block "free models
+ * provided by AI Craft" over a list that can never fill it: a free model here requires `provider.id === "opencode"`
+ * with a zero input cost (`models.tsx` `isFreeModel`), and this build ships no such tier, so the section was its own
+ * heading above nothing. It then listed providers from a grid hardcoded beside it — `opencode`, `opencode-go`,
+ * Anthropic, Google, Copilot, but not DeepSeek — under a line promising "70+ more providers". The allowlist in
+ * `catalog/order.ts` is the single source for what this client offers, and its test asserts exactly that, so the rows
+ * now come from it in its order, and a provider that cannot be a row is reached as a custom provider instead.
+ *
+ * Copy follows design 16 §4: name the next step, never a number or a tier the product cannot back.
+ */
 export const DialogSelectModelUnpaid: Component<{ model?: ModelState }> = (props) => {
   const local = useLocal()
   const model = props.model ?? local.model
   const dialog = useDialog()
   const directory = () => decode64(local.slug())
   const integrations = useIntegrations(directory)
+  const custom = useCustomProviders(directory)
   const language = useLanguage()
-  const modelKey = (item: ReturnType<ModelState["list"]>[number]) => `${item.provider.id}:${item.id}`
+  // Creating a custom provider belongs to Settings, which owns the form, the credential store and the ids already
+  // taken; the sheet links there instead of carrying a second copy of that plumbing.
+  const openSettings = useSettingsDialog("providers")
 
-  const currentKey = createMemo(() => {
-    const c = model.current()
+  // Built-ins in the allowlist's own order, then every provider the configuration declares as custom, by name.
+  const providers = createMemo(() => {
+    const customIDs = new Set(custom.list().map((item) => item.id))
 
-    return c ? `${c.provider.id}:${c.id}` : undefined
+    const rank = (id: string) => {
+      const index = visibleProviders.indexOf(id)
+
+      return index < 0 ? Number.MAX_SAFE_INTEGER : index
+    }
+
+    return integrations
+      .list()
+      .filter((provider) => offersProvider(provider.id, customIDs))
+      .toSorted((a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name))
   })
 
-  const providerName = (provider: { id: string; name: string }) =>
-    provider.id === "opencode" ? language.t("provider.connect.aicraft.name") : provider.name
+  // Design 11 §7 shows nothing at all under 150ms, so a catalog that resolves in one frame never flashes an
+  // indicator. `pending` is that first band; `loading` is the reserved box the indicator sits in.
+  const [late, setLate] = createSignal(false)
 
-  const freeModels = createMemo(() => model.list().filter(isFreeModel))
+  createEffect(() => {
+    if (integrations.ready()) return
+    const timer = setTimeout(() => setLate(true), 150)
+
+    onCleanup(() => clearTimeout(timer))
+  })
+
+  const view = createMemo<"pending" | "loading" | "providers" | "none">(() => {
+    if (!integrations.ready()) return late() ? "loading" : "pending"
+
+    return providers().length > 0 ? "providers" : "none"
+  })
 
   const openProviders = (provider?: string) => {
     void import("@/providers/connect/dialog").then((x) => {
@@ -49,131 +85,126 @@ export const DialogSelectModelUnpaid: Component<{ model?: ModelState }> = (props
     })
   }
 
-  const selectModel = (item: ReturnType<ModelState["list"]>[number]) => {
-    model.set({ modelID: item.id, providerID: item.provider.id }, { recent: true })
+  const addProvider = () => {
     dialog.close()
+    openSettings()
   }
 
-  // Focus starts on the dialog itself, outside the list, so listen at the
-  // document level while the dialog is mounted instead of on the list container.
-  let listEl: HTMLDivElement | undefined
+  // Design 13 §10 and checklist H: one sliding block marks the row the keys are on, and the rows themselves stay
+  // transparent. These rows carry no stored selection, so the block follows focus, which is what the arrow keys move.
+  const [active, setActive] = createSignal<string>()
+
+  // Design 17 §2 gives ↑ ↓ to lists. The rows are ordinary buttons, so Tab and Enter already work; focus starts on
+  // the sheet itself, which is why the listener sits on the document while this dialog is mounted. The container is a
+  // signal so the sliding block starts measuring the moment the list exists, not one frame earlier.
+  const [listEl, setListEl] = createSignal<HTMLDivElement>()
+
   onMount(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
+    const move = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
 
-      if (!listEl) return
-      const buttons = Array.from(listEl.querySelectorAll<HTMLButtonElement>("button"))
+      if (view() !== "providers") return
 
-      if (buttons.length === 0) return
-      const index = buttons.findIndex((button) => button === document.activeElement)
+      const rows = Array.from(
+        listEl()?.querySelectorAll<HTMLButtonElement>("[data-slot='provider-row'], [data-slot='provider-add']") ?? [],
+      )
 
-      const next =
-        index < 0 ? (e.key === "ArrowDown" ? 0 : buttons.length - 1) : index + (e.key === "ArrowDown" ? 1 : -1)
+      if (rows.length === 0) return
+      const index = rows.findIndex((row) => row === document.activeElement)
 
-      buttons[(next + buttons.length) % buttons.length]?.focus()
-      e.preventDefault()
+      const step = event.key === "ArrowDown" ? 1 : -1
+      const next = index < 0 ? (step > 0 ? 0 : rows.length - 1) : index + step
+
+      rows[(next + rows.length) % rows.length]?.focus()
+      event.preventDefault()
     }
 
-    document.addEventListener("keydown", handleKeyDown)
-    onCleanup(() => document.removeEventListener("keydown", handleKeyDown))
+    document.addEventListener("keydown", move)
+    onCleanup(() => document.removeEventListener("keydown", move))
   })
+
+  const groupLabelID = "model-picker-accounts-label"
 
   return (
     <Dialog size="normal" fit>
-      <DialogHeader closeLabel={language.t("common.close")}>
-        <DialogTitle>{language.t("dialog.model.select.title")}</DialogTitle>
+      <DialogHeader>
+        <DialogTitleGroup
+          title={language.t("dialog.model.select.title")}
+          description={language.t("dialog.model.unpaid.description")}
+        />
       </DialogHeader>
-      <DialogBody flush class="min-h-0 flex-none">
-        <MenuScroll viewportClass="px-4 pb-4">
-          <div ref={listEl} class="flex min-h-0 flex-col">
-            <div data-section="free-models" class="flex w-full flex-col gap-0.5 pt-1">
-              <div class="flex h-5 items-center px-2 text-[12px] font-medium leading-5 text-v2-text-text-muted">
-                {language.t("dialog.model.unpaid.freeModels.title")}
-              </div>
-              <For each={freeModels()}>
-                {(item) => (
-                  <Tooltip
-                    class="w-full"
-                    placement="right-start"
-                    gutter={6}
-                    openDelay={0}
-                    contentStyle={{ "font-family": "var(--v2-font-family-sans)" }}
-                    value={
-                      <ModelTooltip
-                        model={{ ...item, name: displayModelName(item.name) }}
-                        latest={item.latest}
-                        free={isFreeModel(item)}
-                        v2
-                      />
-                    }
+      <DialogBody class="model-picker-empty">
+        <Show when={view() !== "none"}>
+          <section data-slot="provider-group" aria-labelledby={groupLabelID}>
+            <div data-slot="provider-group-label" id={groupLabelID}>
+              {language.t("dialog.provider.accounts.add")}
+            </div>
+            <div
+              data-slot="provider-list"
+              ref={setListEl}
+              onFocusOut={(event) => {
+                // The block marks the row the keys are on, so it leaves when the keys do. A window blur reports no
+                // Node, which also means focus left the list.
+                const next = event.relatedTarget
+
+                if (!(next instanceof Node) || !event.currentTarget.contains(next)) setActive(undefined)
+              }}
+            >
+              <SelectionIndicator container={() => listEl()} selector="[data-active]" attribute="data-active" />
+              <For each={providers()}>
+                {(provider) => (
+                  <button
+                    type="button"
+                    data-slot="provider-row"
+                    data-active={active() === `provider:${provider.id}` ? "" : undefined}
+                    onFocus={() => setActive(`provider:${provider.id}`)}
+                    onClick={() => openProviders(provider.id)}
                   >
-                    <button
-                      type="button"
-                      class="flex h-9 w-full scroll-my-4 flex-row items-center gap-2 rounded-lg px-2 text-left text-[13px] font-medium leading-[var(--line-height-compact)] text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
-                      onClick={() => selectModel(item)}
-                    >
-                      <span class="min-w-0 truncate">{displayModelName(item.name)}</span>
-                      <Badge class="shrink-0">{language.t("model.tag.free")}</Badge>
-                      <Show when={item.latest}>
-                        <Badge class="shrink-0">{language.t("model.tag.latest")}</Badge>
-                      </Show>
-                      <Show when={currentKey() === modelKey(item)}>
-                        <Icon name="check" class="ms-auto size-4 shrink-0 text-v2-icon-icon-base" />
-                      </Show>
-                    </button>
-                  </Tooltip>
+                    <ProviderModelIcon provider={{ id: provider.id, name: provider.name }} class="shrink-0" />
+                    <span data-slot="provider-row-name">{provider.name}</span>
+                    <Icon name="chevron-right" data-slot="provider-row-arrow" aria-hidden="true" />
+                  </button>
                 )}
               </For>
+              {/*
+                The indicator stands in for the rows that have not arrived, so it sits where they will, above the
+                action row: a spinner after the last row reads as one more item in the list rather than as its
+                placeholder.
+              */}
+              <Show when={view() === "loading"}>
+                <div data-slot="provider-row-placeholder">
+                  <Loader width={16} height={16} />
+                </div>
+              </Show>
+              {/*
+                Design 01 §3.2: this client reaches any other model through a custom provider, so the sheet offers
+                that route rather than the false promise the removed "70+ providers" line made.
+              */}
+              <button
+                type="button"
+                data-slot="provider-add"
+                data-active={active() === "add" ? "" : undefined}
+                onFocus={() => setActive("add")}
+                onClick={addProvider}
+              >
+                <Icon name="plus" data-slot="provider-add-icon" aria-hidden="true" />
+                <span data-slot="provider-add-name">{language.t("settings.providers.custom.add")}</span>
+              </button>
             </div>
+          </section>
+        </Show>
 
-            <div class="mt-2 flex w-full flex-col rounded-xl border-[0.5px] border-v2-border-border-muted bg-v2-background-bg-layer-02 p-2">
-              <div class="flex h-5 items-center px-2 text-[12px] font-medium leading-5 text-v2-text-text-muted">
-                {language.t("dialog.model.unpaid.addMore.title")}
-              </div>
-              <div class="mt-1 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                <For
-                  each={integrations
-                    .list()
-                    .filter((provider) => featuredProviders.includes(provider.id))
-                    .sort((a, b) => featuredProviders.indexOf(a.id) - featuredProviders.indexOf(b.id))}
-                >
-                  {(provider) => (
-                    <button
-                      type="button"
-                      data-provider-id={provider.id}
-                      class="flex min-h-9 w-full scroll-my-4 flex-row items-center gap-2 rounded-lg border-[0.5px] border-v2-border-border-muted bg-v2-background-bg-base px-3 py-2 text-left text-[13px] font-medium leading-[var(--line-height-compact)] text-v2-text-text-base hover:bg-v2-background-bg-layer-01 focus-visible:bg-v2-background-bg-layer-01 focus-visible:outline-none"
-                      onClick={() => openProviders(provider.id)}
-                    >
-                      <ProviderModelIcon
-                        provider={{ id: provider.id, name: providerName(provider) }}
-                        class="shrink-0 text-v2-icon-icon-base"
-                      />
-                      <span class="flex min-w-0 flex-col">
-                        <span class="truncate">{providerName(provider)}</span>
-                        <Show when={provider.id === "opencode" || provider.id === "opencode-go"}>
-                          <span class="truncate text-[12px] font-normal leading-4 text-v2-text-text-muted">
-                            {language.t(
-                              provider.id === "opencode"
-                                ? "dialog.provider.aicraft.tagline"
-                                : "dialog.provider.aicraftGo.tagline",
-                            )}
-                          </span>
-                        </Show>
-                      </span>
-                    </button>
-                  )}
-                </For>
-                <button
-                  type="button"
-                  class="col-span-full flex h-8 w-full scroll-my-4 items-center justify-start rounded-lg px-2 text-left text-[13px] font-normal leading-[var(--line-height-compact)] text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
-                  onClick={() => openProviders()}
-                >
-                  {language.t("dialog.model.unpaid.viewMoreProviders")}
-                </button>
-              </div>
-            </div>
+        {/* Design 11 §6 and 09 §16: a mark, one line of what happened, why, and the single action that leaves it. */}
+        <Show when={view() === "none"}>
+          <div data-slot="model-picker-none">
+            <Icon name="plus" data-slot="model-picker-none-icon" aria-hidden="true" />
+            <div data-slot="model-picker-none-title">{language.t("dialog.model.unpaid.empty.title")}</div>
+            <div data-slot="model-picker-none-description">{language.t("dialog.model.unpaid.empty.description")}</div>
+            <Button variant="contrast" onClick={addProvider}>
+              {language.t("settings.providers.custom.add")}
+            </Button>
           </div>
-        </MenuScroll>
+        </Show>
       </DialogBody>
     </Dialog>
   )

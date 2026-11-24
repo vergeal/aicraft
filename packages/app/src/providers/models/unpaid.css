@@ -1,0 +1,198 @@
+/*
+ * The connect-an-account sheet. The column, corners, material, scrim and the 24px body inset all come from
+ * `ui/overlays/dialog/dialog.css`, and the title and description metrics from its `dialog-title-group` slots, so this
+ * file only lays out what the body holds. Repeating a dialog rule here would win over the base layer and drift.
+ *
+ * Nothing here draws a box inside a box. The previous layout wrapped the provider buttons in a bordered card inside
+ * the dialog's own card, which design 01 原则 2 and 09 §12 both forbid, and it set row height, radius and type in
+ * utility classes (`h-9`, `rounded-xl`, `text-[13px]`) that sit outside the token ladder. A group is now a small
+ * label and plain rows on the same surface; only a row takes a background, and only under the pointer or keyboard.
+ */
+.model-picker-empty {
+  /* 01 §3.1: a labelled group is separated by 24, not by a rule or a card. 09 §19.5 keeps margin off the parts. */
+  gap: 24px;
+}
+
+.model-picker-empty [data-slot="provider-group"] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 01 §3.1: the group carries a 12/500 quiet label, and lines up with the row content it names. */
+.model-picker-empty [data-slot="provider-group-label"] {
+  padding-inline: 12px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+}
+
+/*
+ * The rows are positioned by one sliding block, shared with every palette in the app
+ * (`shell/commands/dialog.css` and `ui/components/selection-indicator.css`): the list is its positioning context and
+ * no row paints a selection background of its own (design 13 §10, checklist H).
+ */
+.model-picker-empty [data-slot="provider-list"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Same recipe as the command palette: the pressed fill and its hairline travel with the keys. */
+.model-picker-empty [data-slot="provider-list"] [data-slot="selection-indicator"] {
+  border-radius: 8px;
+  background: var(--v2-overlay-simple-overlay-pressed);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-strong);
+}
+
+/*
+ * Rows are 09 §14 result rows: 44 high, 12 of horizontal inset, 8 radius, one line that truncates, hover on the flat
+ * 4% overlay. There is no hover transition: the pointer sweeps this list, and checklist H wants it to switch at
+ * once. 13px text keeps the compact 20px line so descenders are never clipped.
+ */
+.model-picker-empty [data-slot="provider-row"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v2-text-text-base);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+  text-align: start;
+  cursor: pointer;
+}
+
+/* Rows never paint their own selection: the sliding block does, so the eye can follow it (design 13 §10). */
+@media (hover: hover) {
+  .model-picker-empty [data-slot="provider-row"]:hover:not([data-active]),
+  .model-picker-empty [data-slot="provider-add"]:hover:not([data-active]) {
+    background: var(--v2-overlay-simple-overlay-hover);
+  }
+}
+
+/* The block is the focus signal, and it follows focus here; this ring is only the safety net for a frame where it has
+   not landed yet, so keyboard focus is never invisible (design 17 §1). */
+.model-picker-empty [data-slot="provider-row"]:focus-visible:not([data-active]),
+.model-picker-empty [data-slot="provider-add"]:focus-visible:not([data-active]) {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+.model-picker-empty [data-slot="provider-row-name"] {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The arrow is the only cue that a row leads somewhere; it is decoration, so it is hidden from assistive tech. */
+.model-picker-empty [data-slot="provider-row-arrow"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--v2-icon-icon-muted);
+}
+
+/*
+ * The custom-provider route is one action, not another account: quieter text and no provider logo, so it reads as
+ * the secondary exit from the group while keeping the row's box, height and radius.
+ */
+.model-picker-empty [data-slot="provider-add"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v2-text-text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-compact);
+  text-align: start;
+  cursor: pointer;
+}
+
+/* The action row lifts its text on hover; its background is the shared whisper above, and the sliding block owns the
+   row the keys are on, so it paints no state of its own. */
+@media (hover: hover) {
+  .model-picker-empty [data-slot="provider-add"]:hover {
+    color: var(--v2-text-text-base);
+  }
+}
+
+.model-picker-empty [data-slot="provider-add-icon"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--v2-icon-icon-muted);
+}
+
+.model-picker-empty [data-slot="provider-add-name"] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * 11 §7 reserves the space the catalog will land in, so the sheet does not jump as it fills: the box is one row tall
+ * and the 16px indicator sits centered in it. Under 150ms the group renders nothing at all inside this box.
+ */
+.model-picker-empty [data-slot="provider-row-placeholder"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  color: var(--v2-icon-icon-muted);
+}
+
+/* 11 §6: an empty state is at least 240 high, centered, with 40 of air and one action; 09 §16 fixes its order. */
+.model-picker-empty [data-slot="model-picker-none"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 240px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.model-picker-empty [data-slot="model-picker-none-icon"] {
+  width: 24px;
+  height: 24px;
+  color: var(--v2-icon-icon-muted);
+}
+
+.model-picker-empty [data-slot="model-picker-none-title"] {
+  color: var(--v2-text-text-base);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+.model-picker-empty [data-slot="model-picker-none-description"] {
+  max-width: 320px;
+  color: var(--v2-text-text-muted);
+  font-size: 14px;
+  line-height: var(--line-height-base);
+  text-wrap-style: pretty;
+}
+
+.model-picker-empty [data-slot="model-picker-none"] > button {
+  margin-top: 8px;
+}

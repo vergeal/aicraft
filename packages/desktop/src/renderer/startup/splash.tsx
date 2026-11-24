@@ -66,7 +66,7 @@ export function LoadingSplash(props: {
         aria-hidden="true"
         class="h-dvh w-screen bg-v2-background-bg-base"
         style={{
-          // Match the default session's titlebar, panel insets, and wordmark position.
+          // Match the default session's titlebar and panel insets, so the app underneath does not move when this lifts.
           "padding-block-start": `calc(${titlebarHeight()} + ${props.platform.os === "windows" ? 1 : 8}px)`,
           "padding-block-end": "8px",
           "padding-inline": "32px",
@@ -75,11 +75,15 @@ export function LoadingSplash(props: {
           if (event.animationName === "first-launch-logo-in") props.onDrawEnd()
         }}
       >
-        <div class="relative size-full">
-          <div class="absolute inset-x-0 top-[25.375%]">
-            <div class="mx-auto w-full max-w-[720px]" data-slot="first-launch-logo">
-              <BrandMark class="mx-auto w-[160px]" />
-            </div>
+        {/*
+          Centered in the content area rather than parked at a fraction of the window height. The old
+          `top-[25.375%]` followed the wordmark line of a 1280x800 window, and the sheet now opens maximized: on a
+          tall display that put the mark well above the middle, which reads as a layout bug rather than a design
+          choice, and a waiting mark has nothing to align with yet.
+        */}
+        <div class="flex size-full items-center justify-center">
+          <div class="w-full max-w-[720px]" data-slot="first-launch-logo">
+            <BrandMark class="mx-auto w-[160px]" />
           </div>
         </div>
       </div>

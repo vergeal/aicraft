@@ -32,7 +32,10 @@ export async function resolveAicraftPty(target: Target): Promise<AicraftPtyAsset
     throw new Error("AICRAFT_PTY_BIN can only be embedded in a build for the current platform and architecture")
   const source = local
     ? path.resolve(local)
-    : pty.resolve(`${name}/bin/${target.platform === "win32" ? "aicraft-pty.exe" : "aicraft-pty"}`)
+    // The published platform package ships `bin/opencode-pty[.exe]`; its `exports` map declares that exact path. The
+    // fork's own `@aicraft/pty` (packages/process-daemon/npm) will ship `aicraft-pty`, so switching that dependency
+    // must change this name too, and an unmatched name fails here loudly instead of embedding the wrong file.
+    : pty.resolve(`${name}/bin/${target.platform === "win32" ? "opencode-pty.exe" : "opencode-pty"}`)
   const manifest: unknown = local
     ? { version: "local" }
     : JSON.parse(await readFile(pty.resolve(`${name}/package.json`), "utf8"))

@@ -12,6 +12,7 @@ import { Menu } from "@opencode/ui/menu"
 import { createKeyed, usePlugin, type LineRange, type MountedSession, type SessionScreen } from "@opencode/plugin/gui"
 import { artifactKind } from "@opencode/util/artifact"
 import ArtifactView from "./artifact-view"
+import { ArtifactToolbar } from "./artifact-toolbar"
 import { useShared } from "./context"
 import { fileTabPath } from "./path"
 
@@ -506,12 +507,28 @@ export function SessionFileView(props: { session: MountedSession; screen: Sessio
     </div>
   )
 
+  // The code view is a file panel too: it carries the same toolbar and actions menu as an artifact preview.
+  const textView = () => (
+    <div data-slot="artifact-view" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <ArtifactToolbar
+        session={props.session}
+        screen={props.screen}
+        path={path() ?? ""}
+        text={contents()}
+        mode="source"
+        meta={[]}
+        html={false}
+      />
+      {codeView()}
+    </div>
+  )
+
   return (
-    <div class="relative h-full min-h-0 flex flex-col" classList={{ "mt-3": !artifact() }}>
+    <div class="relative h-full min-h-0 flex flex-col">
       <Switch>
         <Match when={current()?.loaded ? current()?.content : undefined}>
           {(value) => (
-            <Show when={artifact()} fallback={codeView()}>
+            <Show when={artifact()} fallback={textView()}>
               <ArtifactView
                 session={props.session}
                 screen={props.screen}

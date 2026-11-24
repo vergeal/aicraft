@@ -40,37 +40,15 @@ export function projectSettingsKey(scope: ServerScope, projectID: string | undef
   return projectID ? ScopedKey.from(scope, projectID) : undefined
 }
 
-export const monoDefault = "IBM Plex Mono"
-
 // The UI role ships no font file, so it renders in the platform's own face from the first frame.
 export const sansDefault = "system-ui"
 
-export const terminalDefault = "IBM Plex Mono"
+const uiFamily =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
 
-// The system's monospace face, without a bundled family in front: `system-ui` is proportional, so a code or terminal
-// role that resolves System needs this stack instead. Windows falls through to Consolas, Linux to Liberation Mono or
-// Courier New.
-const systemMono =
-  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+const codeFamily = '"JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
 
-const monoFallback = `"IBM Plex Mono", ${systemMono}`
-
-// The CJK faces are explicit so Windows never falls through to a serif default.
-const sansFallback =
-  'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
-
-const terminalFallback = monoFallback
-
-// The code and terminal roles use the system's monospace face: `system-ui` is proportional, so putting it first would
-// break alignment. Chromium does not resolve `ui-monospace`, and SF Mono only exists with developer tools installed,
-// so Menlo is the system face that is always present.
-const monoMacFallback = `Menlo, "SF Mono", ${monoFallback}`
-
-const terminalMacFallback = `Menlo, "SF Mono", ${terminalFallback}`
-
-const monoBase = monoFallback
-
-const terminalBase = terminalFallback
+const terminalFamily = '"SFMono-Regular", "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace'
 
 function input(font: string | undefined) {
   return font ?? ""
@@ -85,7 +63,7 @@ function family(font: string) {
 function stack(font: string | undefined, base: string) {
   const value = font?.trim() ?? ""
 
-  if (!value) return base
+  if (!value || value === "system-ui") return base
 
   return `${family(value)}, ${base}`
 }
@@ -94,49 +72,33 @@ export function monoInput(font: string | undefined) {
   return input(font)
 }
 
-/** The picker's System row stores the `system-ui` keyword; for a monospace role that means the system's mono face. */
-function monoStack(font: string | undefined, base: string, system: string) {
-  if (font?.trim() === "system-ui") return system
-
-  return stack(font, base)
-}
-
 export function sansInput(font: string | undefined) {
   return input(font)
 }
 
-export function monoFontFamily(font: string | undefined, macos = isMacOS()) {
-  const base = macos ? monoMacFallback : monoBase
-
-  return monoStack(font, base, macos ? base : systemMono)
+export function monoFontFamily(font: string | undefined) {
+  return stack(font, codeFamily)
 }
 
 export function sansFontFamily(font: string | undefined) {
-  if (font?.trim() === "system-ui") return sansFallback
-  return stack(font, sansFallback)
+  return stack(font, uiFamily)
 }
 
-export function terminalFontFamily(font: string | undefined, macos = isMacOS()) {
-  const base = macos ? terminalMacFallback : terminalBase
-
-  return monoStack(font, base, macos ? base : systemMono)
+export function terminalFontFamily(font: string | undefined) {
+  return stack(font, terminalFamily)
 }
 
-/** The family each Appearance row shows when the user has not chosen one; the UI role is System everywhere. */
-export function monoDefaultFor(macos = isMacOS()) {
-  return macos ? "system-ui" : monoDefault
+/** The family each Appearance row shows when the user has not chosen one; every role is System. */
+export function monoDefaultFor() {
+  return sansDefault
 }
 
 export function sansDefaultFor() {
   return sansDefault
 }
 
-export function terminalDefaultFor(macos = isMacOS()) {
-  return macos ? "system-ui" : terminalDefault
-}
-
-function isMacOS() {
-  return typeof navigator !== "undefined" && /(Mac|iPod|iPhone|iPad)/.test(navigator.platform)
+export function terminalDefaultFor() {
+  return sansDefault
 }
 
 export function terminalInput(font: string | undefined) {

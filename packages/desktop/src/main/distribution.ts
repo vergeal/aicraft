@@ -1,4 +1,4 @@
-import { cp, stat } from "node:fs/promises"
+import { access, cp, stat, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import path from "node:path"
 import { app } from "electron"
@@ -24,10 +24,17 @@ async function install() {
   const target = path.join(process.env.OPENCODE_TEST_HOME ?? homedir(), ".distribution")
   const marker = path.join(target, `.bundled-${app.getVersion()}`)
 
-  if (await Bun.file(marker).exists()) return
+  if (await exists(marker)) return
 
   await cp(source, target, { recursive: true, force: false, errorOnExist: false })
-  await Bun.write(marker, "")
+  await writeFile(marker, "")
+}
+
+function exists(target: string) {
+  return access(target).then(
+    () => true,
+    () => false,
+  )
 }
 
 async function isDirectory(target: string) {

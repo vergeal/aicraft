@@ -234,11 +234,16 @@ function createStartupDriver(input: {
       )
 
     // A route that fails to preload loads again when it renders.
-    if (effect.type === "preload-route")
+    // The draft page is what the first "new session" opens, and the development server compiles its module graph on
+    // the first request. Start that compile during boot, not when the user clicks and the window bar has already
+    // repainted. It runs beside the route being restored and does not gate the reveal.
+    if (effect.type === "preload-route") {
+      void preloadRoute("/new-session")
       return void preloadRoute(effect.url).then(
         () => dispatch({ type: "route.preloaded" }),
         () => dispatch({ type: "route.preloaded" }),
       )
+    }
 
     if (effect.type === "notify-theme-ready") return void input.api.themeReady().catch(() => undefined)
 

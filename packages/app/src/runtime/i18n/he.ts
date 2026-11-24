@@ -327,7 +327,6 @@ export const dict = {
   "home.sessions.group.today": "היום",
   "home.sessions.group.yesterday": "אתמול",
   "home.sessions.group.older": "ישנות יותר",
-  "home.providerTip": "התחבר ל-75+ ספקים כדי להשתמש במודלים אחרים, כולל Claude, GPT, Gemini וכו'",
   "session.tab.session": "הפעלה",
   "session.tab.unknown": "הפעלה לא ידועה",
   "session.panel.reviewAndFiles": "סקירה וקבצים",

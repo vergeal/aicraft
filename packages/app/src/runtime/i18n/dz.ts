@@ -333,7 +333,6 @@ export const dict = {
   "home.sessions.group.today": "ད་རེས",
   "home.sessions.group.yesterday": "ཁ༌ཙ",
   "home.sessions.group.older": "རྒས་ཤོས།",
-  "home.providerTip": "Claude, GPT, Gemini, ལ་སོགས་པ་ཚུ་རྩིས་ཏེ་ དཔེ་ཚད་གཞན་ལག་ལེན་འཐབ་ནི་ལུ་ ༧༥+ བྱིན་མི་ལུ་མཐུད།",
   "session.tab.session": "ལཱ་ཡུན།",
   "session.tab.unknown": "མ་ཤེས་པའི་ལཱ་ཡུན།",
   "session.panel.reviewAndFiles": "བསྐྱར་ཞིབ་དང་ཡིག་སྣོད།",

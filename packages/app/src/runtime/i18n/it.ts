@@ -477,7 +477,6 @@ export const dict = {
   "home.sessions.group.today": "Oggi",
   "home.sessions.group.yesterday": "Ieri",
   "home.sessions.group.older": "Meno recenti",
-  "home.providerTip": "Connettiti a oltre 75 provider per utilizzare altri modelli, inclusi Claude, GPT, Gemini, ecc.",
   "session.tab.session": "Sessione",
   "session.tab.unknown": "Sessione sconosciuta",
   "session.panel.reviewAndFiles": "Revisione e file",

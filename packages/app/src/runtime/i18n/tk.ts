@@ -319,7 +319,6 @@ export const dict = {
   "home.sessions.group.today": "Bu gün",
   "home.sessions.group.yesterday": "Düýn",
   "home.sessions.group.older": "Köne",
-  "home.providerTip": "Claude, GPT, Gemini we ş.m. ýaly beýleki modelleri ulanmak üçin 75+ üpjün edijä birikdiriň.",
   "session.tab.session": "Sessiýa",
   "session.tab.unknown": "Näbelli sessiýa",
   "session.panel.reviewAndFiles": "Gözden geçiriň we faýllary",

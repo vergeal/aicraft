@@ -155,6 +155,7 @@ export const dict = {
   "dialog.provider.search.placeholder": "Search providers",
   "dialog.provider.empty": "No providers found",
   "dialog.provider.group.popular": "Popular",
+  "dialog.provider.group.custom": "Custom",
   "dialog.provider.group.services": "Services",
   "dialog.provider.environmentOnly": "Environment only",
   "dialog.provider.signInRequired": "Sign in required →",
@@ -189,6 +190,12 @@ export const dict = {
   "dialog.model.favorite": "Favorite",
   "dialog.model.unfavorite": "Unfavorite",
 
+  "dialog.model.unpaid.description": "Connect an account to choose a model.",
+  "dialog.model.unpaid.empty.title": "No providers to connect",
+  "dialog.model.unpaid.empty.description": "This client ships no connectable provider. Add a custom one in settings.",
+  // Deprecated: this picker no longer offers a free tier the client does not ship, nor a count of providers it does
+  // not carry (design 19 §7). No new code may use these; they stay only because the other locale files are typed
+  // against this dictionary and would gain unknown keys if the source dropped them. Delete at the next minor.
   "dialog.model.unpaid.freeModels.title": "Free models provided by AI Craft",
   "dialog.model.unpaid.addMore.title": "Add more models from popular providers",
   "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
@@ -627,7 +634,7 @@ export const dict = {
   "home.sessions.group.today": "Today",
   "home.sessions.group.yesterday": "Yesterday",
   "home.sessions.group.older": "Older",
-  "home.providerTip": "Connect to 75+ providers to use other models, including Claude, GPT, Gemini, etc",
+  "home.providerTip": "Connect a provider to use more models",
   "home.workspaceTip": "Start next session in a new workspace to keep changes isolated",
 
   "session.tab.session": "Session",

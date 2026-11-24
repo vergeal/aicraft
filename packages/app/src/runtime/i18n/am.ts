@@ -316,7 +316,6 @@ export const dict = {
   "home.sessions.group.today": "ዛሬ",
   "home.sessions.group.yesterday": "ትላንት",
   "home.sessions.group.older": "የቆየ",
-  "home.providerTip": "Claude፣ GPT፣ Gemini፣ ወዘተ] ጨምሮ ሌሎች ሞዴሎችን ለመጠቀም ከ75+ አቅራቢዎች ጋር ይገናኙ",
   "session.tab.session": "ክፍለ ጊዜ",
   "session.tab.unknown": "ያልታወቀ ክፍለ ጊዜ",
   "session.panel.reviewAndFiles": "ግምገማ እና ፋይሎች",

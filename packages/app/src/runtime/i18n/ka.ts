@@ -319,8 +319,6 @@ export const dict = {
   "home.sessions.group.today": "დღეს",
   "home.sessions.group.yesterday": "გუშინ",
   "home.sessions.group.older": "ძველი",
-  "home.providerTip":
-    "დაკავშირება 75+ პროვაიდერთან სხვა მოდელების გამოსაყენებლად, მათ შორის, Claude, GPT, Gemini და ა.შ.",
   "session.tab.session": "სესია",
   "session.tab.unknown": "უცნობი სესია",
   "session.panel.reviewAndFiles": "მიმოხილვა და ფაილები",

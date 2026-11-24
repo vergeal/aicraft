@@ -327,8 +327,6 @@ export const dict = {
   "home.sessions.group.today": "Hari ini",
   "home.sessions.group.yesterday": "Semalam",
   "home.sessions.group.older": "Lama",
-  "home.providerTip":
-    "Sambung ke lebih 75 penyedia untuk menggunakan model lain, termasuk Claude, GPT, Gemini dan lain-lain",
   "session.tab.session": "Sesi",
   "session.tab.unknown": "Sesi Tidak Diketahui",
   "session.panel.reviewAndFiles": "Semak dan fail",

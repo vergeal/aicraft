@@ -319,8 +319,6 @@ export const dict = {
   "home.sessions.group.today": "Имруз",
   "home.sessions.group.yesterday": "Дируз",
   "home.sessions.group.older": "калонсолтар",
-  "home.providerTip":
-    "Барои истифодаи моделҳои дигар, аз ҷумла Claude, GPT, Gemini ва ғайра ба 75+ провайдерҳо пайваст шавед",
   "session.tab.session": "Сессия",
   "session.tab.unknown": "Сеанси номаълум",
   "session.panel.reviewAndFiles": "Барраси ва файлҳо",

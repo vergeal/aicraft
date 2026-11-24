@@ -332,8 +332,6 @@ export const dict = {
   "home.sessions.group.today": "Šiandien",
   "home.sessions.group.yesterday": "vakar",
   "home.sessions.group.older": "Vyresni",
-  "home.providerTip":
-    "Prisijunkite prie 75 ir daugiau tiekėjų, kad galėtumėte naudoti kitus modelius, įskaitant Claude, GPT, Gemini ir kt.",
   "session.tab.session": "Seansas",
   "session.tab.unknown": "Nežinomas seansas",
   "session.panel.reviewAndFiles": "Apžvalga ir failai",

@@ -319,8 +319,6 @@ export const dict = {
   "home.sessions.group.today": "Í dag",
   "home.sessions.group.yesterday": "Í gjár",
   "home.sessions.group.older": "Eldri",
-  "home.providerTip":
-    "Set teg í samband við 75+ veitarar fyri at brúka onnur modell, eitt nú Claude, GPT, Gemini, osfr.",
   "session.tab.session": "Seta",
   "session.tab.unknown": "Ókend seta",
   "session.panel.reviewAndFiles": "Ummæli og skráir",

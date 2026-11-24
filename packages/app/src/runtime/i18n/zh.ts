@@ -206,6 +206,7 @@ export const dict = {
   "dialog.provider.empty": "未找到提供商",
   "dialog.provider.connected": "已连接",
   "dialog.provider.group.popular": "热门",
+  "dialog.provider.group.custom": "自定义",
   "dialog.provider.group.services": "服务",
   "dialog.provider.environmentOnly": "仅环境变量",
   "dialog.provider.signInRequired": "需要登录 →",
@@ -229,6 +230,10 @@ export const dict = {
   "dialog.model.empty": "未找到模型",
   "dialog.model.manage": "管理模型",
   "dialog.model.manage.description": "自定义模型选择器中显示的模型。",
+  "dialog.model.unpaid.description": "连接账户后即可选择模型。",
+  "dialog.model.unpaid.empty.title": "没有可连接的提供商",
+  "dialog.model.unpaid.empty.description": "此客户端没有内置提供商，可在设置中添加自定义提供商。",
+  // Deprecated, see en.ts: the picker no longer promises a free tier or a provider count.
   "dialog.model.unpaid.freeModels.title": "AI Craft 提供的免费模型",
   "dialog.model.unpaid.addMore.title": "从热门提供商添加更多模型",
   "dialog.model.unpaid.viewMoreProviders": "查看另外 70 多个提供商",
@@ -430,7 +435,7 @@ export const dict = {
   "home.sessions.group.today": "今天",
   "home.sessions.group.yesterday": "昨天",
   "home.sessions.group.older": "更早",
-  "home.providerTip": "连接 75 个以上的提供商，使用包括 Claude、GPT、Gemini 在内的更多模型",
+  "home.providerTip": "连接提供商以使用更多模型",
 
   "session.tab.session": "会话",
   "session.tab.unknown": "未知会话",

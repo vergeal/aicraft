@@ -344,8 +344,6 @@ export const dict = {
   "home.sessions.group.today": "Dnes",
   "home.sessions.group.yesterday": "Včera",
   "home.sessions.group.older": "Staršie",
-  "home.providerTip":
-    "Pripojte sa k viac ako 75 poskytovateľom a používajte ďalšie modely, vrátane Claude, GPT, Gemini a ďalších",
   "session.tab.session": "Relácia",
   "session.tab.unknown": "Neznáma relácia",
   "session.panel.reviewAndFiles": "Revízia a súbory",

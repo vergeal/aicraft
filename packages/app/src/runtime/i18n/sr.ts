@@ -333,8 +333,6 @@ export const dict = {
   "home.sessions.group.today": "Данас",
   "home.sessions.group.yesterday": "јуче",
   "home.sessions.group.older": "старији",
-  "home.providerTip":
-    "Повежите се са 75+ провајдера да бисте користили друге моделе, укључујући Claude, GPT, Gemini итд",
   "session.tab.session": "Сесија",
   "session.tab.unknown": "Непозната сесија",
   "session.panel.reviewAndFiles": "Преглед и датотеке",

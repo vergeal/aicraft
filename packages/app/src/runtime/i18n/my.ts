@@ -330,8 +330,6 @@ export const dict = {
   "home.sessions.group.today": "ယနေ့",
   "home.sessions.group.yesterday": "မနေ့က",
   "home.sessions.group.older": "အသက်ကြီးသည်။",
-  "home.providerTip":
-    "Claude၊ GPT၊ Gemini စသည်တို့အပါအဝင် အခြားမော်ဒယ်များကို အသုံးပြုရန် 75+ ဝန်ဆောင်မှုပေးသူများထံ ချိတ်ဆက်ပါ။",
   "session.tab.session": "အပိုင်း",
   "session.tab.unknown": "အမည်မသိ ဆက်ရှင်",
   "session.panel.reviewAndFiles": "ပြန်လည်သုံးသပ်ခြင်းနှင့် ဖိုင်များ",

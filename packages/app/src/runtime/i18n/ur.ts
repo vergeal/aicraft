@@ -334,7 +334,6 @@ export const dict = {
   "home.sessions.group.today": "آج",
   "home.sessions.group.yesterday": "کل",
   "home.sessions.group.older": "پرانا",
-  "home.providerTip": "Claude، GPT، Gemini، وغیرہ سمیت دیگر ماڈلز استعمال کرنے کے لیے 75+ فراہم کنندگان سے جڑیں",
   "session.tab.session": "سیشن",
   "session.tab.unknown": "نامعلوم سیشن",
   "session.panel.reviewAndFiles": "جائزہ اور فائلیں۔",

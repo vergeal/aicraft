@@ -324,7 +324,6 @@ export const dict = {
   "home.sessions.group.today": "आज",
   "home.sessions.group.yesterday": "हिजो",
   "home.sessions.group.older": "पुरानो",
-  "home.providerTip": "Claude, GPT, Gemini, आदि सहित अन्य मोडेलहरू प्रयोग गर्न ७५+ प्रदायकहरूसँग जडान गर्नुहोस्",
   "session.tab.session": "सत्र",
   "session.tab.unknown": "अज्ञात सत्र",
   "session.panel.reviewAndFiles": "समीक्षा र फाइलहरू",

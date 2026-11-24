@@ -323,8 +323,6 @@ export const dict = {
   "home.sessions.group.today": "Σήμερα",
   "home.sessions.group.yesterday": "Χθες",
   "home.sessions.group.older": "Παλαιότερο",
-  "home.providerTip":
-    "Συνδεθείτε σε 75+ παρόχους για να χρησιμοποιήσετε άλλα μοντέλα, συμπεριλαμβανομένων των Claude, GPT, Gemini, κ.λπ.",
   "session.tab.session": "Συνεδρία",
   "session.tab.unknown": "Άγνωστη συνεδρία",
   "session.panel.reviewAndFiles": "Επισκόπηση και αρχεία",

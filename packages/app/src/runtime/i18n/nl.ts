@@ -527,8 +527,6 @@ export const dict = {
   "home.sessions.group.today": "Vandaag",
   "home.sessions.group.yesterday": "Gisteren",
   "home.sessions.group.older": "Ouder",
-  "home.providerTip":
-    "Maak verbinding met meer dan 75 providers om andere modellen te gebruiken, waaronder Claude, GPT, Gemini, enz.",
   "session.tab.session": "Sessie",
   "session.tab.unknown": "Onbekende sessie",
   "session.panel.reviewAndFiles": "Beoordeling en bestanden",

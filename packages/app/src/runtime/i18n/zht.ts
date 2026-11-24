@@ -355,7 +355,7 @@ export const dict = {
   "home.sessions.group.today": "今天",
   "home.sessions.group.yesterday": "昨天",
   "home.sessions.group.older": "更早",
-  "home.providerTip": "連線 75 個以上的提供者，使用 Claude、GPT、Gemini 等其他模型",
+  "home.providerTip": "連線提供者以使用更多模型",
 
   "session.tab.session": "工作階段",
   "session.tab.unknown": "未知的工作階段",

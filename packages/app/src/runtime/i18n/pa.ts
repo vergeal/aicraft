@@ -332,8 +332,6 @@ export const dict = {
   "home.sessions.group.today": "آج",
   "home.sessions.group.yesterday": "کل",
   "home.sessions.group.older": "پرانا",
-  "home.providerTip":
-    "دوجے ماڈل استعمال کرن لئی 75+ فراہم کرن آلیاں نال جڑو، جنہاں چ Claude، GPT، Gemini، وغیرہ شامل نیں",
   "session.tab.session": "سیشن",
   "session.tab.unknown": "نامعلوم سیشن",
   "session.panel.reviewAndFiles": "جائزہ تے فائلاں",

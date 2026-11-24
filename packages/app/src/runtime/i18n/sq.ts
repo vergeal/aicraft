@@ -321,7 +321,6 @@ export const dict = {
   "home.sessions.group.today": "Sot",
   "home.sessions.group.yesterday": "Dje",
   "home.sessions.group.older": "Më të vjetër",
-  "home.providerTip": "Lidhu me 75+ ofrues për të përdorur modele të tjera, duke përfshirë Claude, GPT, Gemini, etj.",
   "session.tab.session": "Sesioni",
   "session.tab.unknown": "Sesion i panjohur",
   "session.panel.reviewAndFiles": "Rishikimi dhe dosjet",

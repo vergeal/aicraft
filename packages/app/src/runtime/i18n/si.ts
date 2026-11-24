@@ -322,7 +322,6 @@ export const dict = {
   "home.sessions.group.today": "අද",
   "home.sessions.group.yesterday": "ඊයේ",
   "home.sessions.group.older": "වැඩිහිටි",
-  "home.providerTip": "Claude, GPT, Gemini, ආදිය ඇතුළුව අනෙකුත් මාදිලි භාවිතා කිරීමට 75+ සපයන්නන් වෙත සම්බන්ධ වන්න",
   "session.tab.session": "සැසිය",
   "session.tab.unknown": "නොදන්නා සැසිය",
   "session.panel.reviewAndFiles": "සමාලෝචනය සහ ගොනු",

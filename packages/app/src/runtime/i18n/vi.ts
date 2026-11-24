@@ -336,7 +336,6 @@ export const dict = {
   "home.sessions.group.today": "Hôm nay",
   "home.sessions.group.yesterday": "Hôm qua",
   "home.sessions.group.older": "Cũ hơn",
-  "home.providerTip": "Kết nối với hơn 75 nhà cung cấp để sử dụng các mô hình khác, bao gồm Claude, GPT, Gemini, v.v.",
   "session.tab.session": "Phiên",
   "session.tab.unknown": "Phiên không xác định",
   "session.panel.reviewAndFiles": "Xem lại và tệp",

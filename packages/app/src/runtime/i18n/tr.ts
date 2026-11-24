@@ -364,7 +364,6 @@ export const dict = {
   "home.sessions.group.today": "Bugün",
   "home.sessions.group.yesterday": "Dün",
   "home.sessions.group.older": "Daha eski",
-  "home.providerTip": "Claude, GPT, Gemini ve diğer modelleri kullanmak için 75'ten fazla sağlayıcıya bağlanın",
 
   "session.tab.session": "Oturum",
   "session.tab.unknown": "Bilinmeyen Oturum",

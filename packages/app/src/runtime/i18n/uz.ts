@@ -320,8 +320,6 @@ export const dict = {
   "home.sessions.group.today": "Bugun",
   "home.sessions.group.yesterday": "Kecha",
   "home.sessions.group.older": "Kattaroq",
-  "home.providerTip":
-    "Claude, GPT, Gemini va boshqalar kabi boshqa modellardan foydalanish uchun 75 dan ortiq provayderlarga ulaning.",
   "session.tab.session": "Sessiya",
   "session.tab.unknown": "Noma'lum sessiya",
   "session.panel.reviewAndFiles": "Ko'rib chiqish va fayllar",

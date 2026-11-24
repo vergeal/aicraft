@@ -320,8 +320,6 @@ export const dict = {
   "home.sessions.group.today": "Այսօր",
   "home.sessions.group.yesterday": "Երեկ",
   "home.sessions.group.older": "Հին",
-  "home.providerTip":
-    "Միացեք 75+ մատակարարների՝ այլ մոդելներ օգտագործելու համար, այդ թվում՝ Claude, GPT, Gemini և այլն",
   "session.tab.session": "Նիստ",
   "session.tab.unknown": "Անհայտ նիստ",
   "session.panel.reviewAndFiles": "Վերանայել և ֆայլեր",

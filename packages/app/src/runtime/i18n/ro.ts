@@ -319,8 +319,6 @@ export const dict = {
   "home.sessions.group.today": "Astăzi",
   "home.sessions.group.yesterday": "Ieri",
   "home.sessions.group.older": "Mai vechi",
-  "home.providerTip":
-    "Conectează-te la peste 75 de furnizori pentru a folosi alte modele, inclusiv Claude, GPT, Gemini etc.",
   "session.tab.session": "Sesiune",
   "session.tab.unknown": "Sesiune necunoscută",
   "session.panel.reviewAndFiles": "Revizuire și fișiere",

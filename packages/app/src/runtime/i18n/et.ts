@@ -318,7 +318,6 @@ export const dict = {
   "home.sessions.group.today": "Täna",
   "home.sessions.group.yesterday": "eile",
   "home.sessions.group.older": "Vanemad",
-  "home.providerTip": "Ühendage 75+ teenusepakkujaga, et kasutada muid mudeleid, sealhulgas Claude, GPT, Gemini jne",
   "session.tab.session": "Seanss",
   "session.tab.unknown": "Tundmatu seanss",
   "session.panel.reviewAndFiles": "Ülevaatus ja failid",

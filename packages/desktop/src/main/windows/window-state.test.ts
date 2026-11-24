@@ -26,10 +26,10 @@ describe("window state", () => {
       displayBounds: { x: 1920, y: 0, width: 2560, height: 1440 },
     }
 
-    expect(resolveWindowState(saved, defaults, displays)).toEqual(saved)
+    expect(resolveWindowState(saved, defaults, displays)).toEqual({ ...saved, isMaximized: true })
 
     const negative = { x: -50, y: -1000, width: 1280, height: 800, displayBounds: upper }
-    expect(resolveWindowState(negative, defaults, displays)).toEqual(negative)
+    expect(resolveWindowState(negative, defaults, displays)).toEqual({ ...negative, isMaximized: true })
   })
 
   test.each([
@@ -65,7 +65,13 @@ describe("window state", () => {
       displayBounds: { x: 4480, y: 0, width: 1920, height: 1080 },
     }
 
-    expect(resolveWindowState(saved, defaults, displays)).toEqual({ ...defaults, x: 0, y: 0, displayBounds: primary })
+    expect(resolveWindowState(saved, defaults, displays)).toEqual({
+      ...defaults,
+      x: 0,
+      y: 0,
+      displayBounds: primary,
+      isMaximized: true,
+    })
 
     expect(resolveWindowState({ ...saved, isMaximized: true }, defaults, displays)).toEqual({
       ...defaults,
@@ -76,10 +82,19 @@ describe("window state", () => {
     })
   })
 
-  test("uses defaults without a position when nothing usable was saved", () => {
-    expect(resolveWindowState(undefined, defaults, displays)).toEqual(defaults)
-    expect(resolveWindowState({ width: 0, height: -1 }, defaults, displays)).toEqual(defaults)
-    expect(resolveWindowState({}, defaults, displays)).toEqual(defaults)
+  test("opens maximized whatever the saved size was, and leaves a saved fullscreen mode alone", () => {
+    expect(resolveWindowState(undefined, defaults, displays)).toEqual({ ...defaults, isMaximized: true })
+    expect(resolveWindowState({ width: 0, height: -1 }, defaults, displays)).toEqual({
+      ...defaults,
+      isMaximized: true,
+    })
+    expect(resolveWindowState({}, defaults, displays)).toEqual({ ...defaults, isMaximized: true })
+
+    const restored = { x: 200, y: 100, width: 1000, height: 700, isMaximized: false }
+    expect(resolveWindowState(restored, defaults, displays)).toEqual({ ...restored, isMaximized: true })
+
+    const fullscreen = { x: 200, y: 100, width: 1000, height: 700, isFullScreen: true }
+    expect(resolveWindowState(fullscreen, defaults, displays)).toEqual(fullscreen)
   })
 
   test("keeps a maximized flag even without bounds", () => {
@@ -93,7 +108,7 @@ describe("window state", () => {
       file,
       '{"width":1280,"height":800,"x":0,"y":0,"displayBounds":{"x":0,"y":0,"width":3440,"height":1440},"isMaximized":false,"isFullScreen":false}',
     )
-    expect(resolveWindowState(readWindowState(file), defaults, displays)).toEqual({
+    expect(readWindowState(file)).toEqual({
       width: 1280,
       height: 800,
       x: 0,

@@ -36,10 +36,25 @@ const StateFile = Schema.fromJsonString(
   }),
 )
 
-// Bounds are only trusted when they still fit on one of the current displays; otherwise the window
-// falls back to the default size on the primary display. A saved maximized or fullscreen state is
-// kept in every fallback so manage() can restore it.
+// Every launch opens maximized on every channel, so a saved window size never decides how the client
+// opens. `maximize` is not fullscreen: macOS keeps the traffic lights and stops at the Dock, Windows
+// matches the maximize button. The saved bounds still earn their keep for one thing only: Electron
+// maximizes onto the display under the window's normal bounds, so a multi-monitor profile still opens
+// on the screen it was last on. A saved fullscreen mode is a state the user chose, so it wins.
 export function resolveWindowState(
+  saved: Partial<WindowState> | undefined,
+  defaults: { width: number; height: number },
+  displays: Displays,
+): WindowState {
+  const placement = placeWindowState(saved, defaults, displays)
+
+  return placement.isFullScreen ? placement : { ...placement, isMaximized: true }
+}
+
+// Bounds are only trusted when they still fit on one of the current displays; otherwise the window
+// falls back to the default size on the primary display. The flags are kept in every fallback so
+// `manageWindowState` restores the same mode on the same screen.
+function placeWindowState(
   saved: Partial<WindowState> | undefined,
   defaults: { width: number; height: number },
   displays: Displays,

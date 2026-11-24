@@ -28,12 +28,10 @@ import { Menu } from "@opencode/ui/menu"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { SelectionIndicator } from "@opencode/ui/selection-indicator"
 import { Tooltip } from "@opencode/ui/tooltip"
-import { AttachmentCard } from "@opencode/session-ui/attachment-card"
 import { ProgressCircle } from "@opencode/ui/progress-circle"
 import type { Upload } from "../attachments/uploads"
 import { CommentCard, commentCardTarget, quoteTooltip } from "@opencode/session-ui/comment-card"
 import { typeLabel } from "@opencode/session-ui/message-file"
-import { getFilename } from "@opencode/util/path"
 import { Skill } from "@opencode/schema/skill"
 import type {
   ComposerAgentPart,
@@ -901,8 +899,18 @@ function ComposerAttachments(props: {
   }
 
   createResizeObserver(() => stripViewport, updateStrip)
+  // A lone attachment reads as a preview; every extra one steps the frame down, so four still sit in a single row.
+  // Pictures, context files and uploads share this count, so a file chip is never smaller than the picture beside it.
+  const frame = createMemo(() => {
+    const count = props.attachments.length + (props.files?.length ?? 0) + (props.uploads?.length ?? 0)
+
+    if (count <= 1) return "single"
+    if (count === 2) return "pair"
+    if (count === 3) return "triple"
+    return "many"
+  })
   // A new chip changes the strip's scroll width without resizing the viewport, so re-measure after each update.
-  // Attachments keep a fixed 58px frame, so their previews never change that width once mounted.
+  // Attachment frames keep a fixed size per count, so their previews never change that width once mounted.
   createEffect(() => {
     props.attachments.length
     props.comments?.length
@@ -914,6 +922,14 @@ function ComposerAttachments(props: {
   // Plain functions, not inline conditionals: the tooltip reads these from event handlers, outside any owner.
   const quoteTitle = (comment: ComposerComment) => (comment.type === "quote" ? quoteTooltip(comment) : undefined)
   const quoteHint = (comment: ComposerComment) => comment.type === "quote" && props.editingQuote !== comment.key
+
+  // A context file chip has room for its type only, so a line selection moves into the tooltip beside the path.
+  const fileTitle = (file: Extract<ComposerComment, { type: "file" }>) => {
+    if (!file.selection) return file.path
+    const { startLine, endLine } = file.selection
+
+    return `${file.path}:${startLine === endLine ? startLine : `${startLine}-${endLine}`}`
+  }
 
   const commentActive = (comment: ComposerComment) =>
     comment.key === props.activeCommentID || comment.key === props.editingQuote
@@ -988,20 +1004,15 @@ function ComposerAttachments(props: {
           <For each={props.files ?? []}>
             {(file) => (
               <div class="relative group shrink-0" data-slot="composer-context-file">
-                <Tooltip value={file.path} placement="top" contentClass="break-all">
-                  <AttachmentCard title={file.name ?? getFilename(file.path)} surface="base">
-                    <FileIcon node={{ path: file.path, type: "file" }} />
-                    <span>
-                      {typeLabel(file.name ?? file.path, "text/plain", i18n.t("ui.common.file"))}
-                      <Show when={file.selection}>
-                        {(selection) =>
-                          selection().startLine === selection().endLine
-                            ? `:${selection().startLine}`
-                            : `:${selection().startLine}-${selection().endLine}`
-                        }
-                      </Show>
-                    </span>
-                  </AttachmentCard>
+                <Tooltip value={fileTitle(file)} placement="top" contentClass="break-all">
+                  <div data-slot="composer-attachment-frame" data-frame={frame()}>
+                    <div data-slot="composer-attachment-file">
+                      <FileIcon node={{ path: file.path, type: "file" }} />
+                      <span data-slot="composer-attachment-file-label">
+                        {typeLabel(file.name ?? file.path, "text/plain", i18n.t("ui.common.file"))}
+                      </span>
+                    </div>
+                  </div>
                 </Tooltip>
                 <button
                   type="button"
@@ -1024,7 +1035,11 @@ function ComposerAttachments(props: {
               const missing = () => url.state === "errored" || (url.state === "ready" && !url())
 
               return (
-                <div class="relative group shrink-0">
+                <div
+                  data-slot="composer-attachment-frame"
+                  data-frame={frame()}
+                  class="relative group shrink-0"
+                >
                   <Tooltip
                     value={attachment.type === "path" ? attachment.path : attachment.filename}
                     placement="top"
@@ -1033,25 +1048,33 @@ function ComposerAttachments(props: {
                     <Show
                       when={image && !missing()}
                       fallback={
-                        <AttachmentCard title={attachment.filename}>
-                          {typeLabel(attachment.filename, attachment.mime, i18n.t("ui.common.file"))}
-                        </AttachmentCard>
+                        <div data-slot="composer-attachment-file">
+                          <FileIcon
+                            node={{ path: attachment.type === "path" ? attachment.path : attachment.filename, type: "file" }}
+                          />
+                          <span data-slot="composer-attachment-file-label">
+                            {typeLabel(attachment.filename, attachment.mime, i18n.t("ui.common.file"))}
+                          </span>
+                        </div>
                       }
                     >
                       <Show
                         when={src()}
-                        fallback={<div class="h-[46px] w-[58px] rounded-[6px] bg-v2-background-bg-layer-02" />}
+                        fallback={<div data-slot="composer-attachment-placeholder" class="bg-v2-background-bg-layer-02" />}
                       >
                         {(value) => (
                           <img
+                            data-slot="composer-attachment-image"
                             src={value()}
                             alt={attachment.filename}
-                            class="w-[58px] h-[46px] rounded-[6px] object-cover"
                             onClick={(event) => props.onAttachmentClick?.(attachment, event.currentTarget)}
                           />
                         )}
                       </Show>
-                      <div class="absolute inset-0 rounded-[6px] shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)] pointer-events-none" />
+                      <div
+                        data-slot="composer-attachment-outline"
+                        class="absolute inset-0 shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)] pointer-events-none"
+                      />
                     </Show>
                   </Tooltip>
                   <button
@@ -1070,12 +1093,12 @@ function ComposerAttachments(props: {
             {(upload) => (
               <div class="relative group shrink-0" data-slot="composer-upload">
                 <Tooltip value={upload.filename} placement="top" contentClass="break-all">
-                  <AttachmentCard title={upload.filename}>
-                    <span class="inline-flex items-center gap-1">
+                  <div data-slot="composer-attachment-frame" data-frame={frame()}>
+                    <div data-slot="composer-attachment-file">
                       <ProgressCircle percentage={percent(upload)} />
-                      {i18n.t("ui.promptInput.uploading", { percent: percent(upload) })}
-                    </span>
-                  </AttachmentCard>
+                      <span data-slot="composer-attachment-file-label">{percent(upload)}%</span>
+                    </div>
+                  </div>
                 </Tooltip>
                 <button
                   type="button"

@@ -1,8 +1,9 @@
 import { Predicate } from "effect"
-import { createEffect, createMemo, createSignal, on, onCleanup, type Accessor } from "solid-js"
+import { batch, createEffect, createMemo, createSignal, on, onCleanup, type Accessor } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { useFilteredList } from "@opencode/ui/hooks"
 import { abort } from "@opencode/util/abort"
+import { getFilename } from "@opencode/util/path"
 import { createComposerAttachments, type ComposerAttachmentConfig } from "../attachments/attachments"
 import type { Upload } from "../attachments/uploads"
 import { resolveBlobUrl } from "@/runtime/persistence/drafts"
@@ -129,6 +130,57 @@ export function createComposerEditor(input: {
   const resetCycle = () => setCycle({ index: -1, entry: undefined, cursor: undefined })
 
   createEffect(on([() => draft.state, () => state.mode], resetCycle, { defer: true }))
+
+  // A file that carries no comment belongs in the draft as a link instead of a chip above it, so a file the user
+  // attaches becomes `@name` at the caret: it reads like a mention, removes as one token, and the strip keeps pictures.
+  createEffect(() => {
+    const files = draft.state.context.items.filter(
+      (item): item is Extract<ComposerComment, { type: "file" }> => item.type === "file" && !item.comment?.trim(),
+    )
+
+    const paths = draft.state.prompt.filter(
+      (part): part is Extract<ComposerPersistedState["prompt"][number], { type: "path" }> => part.type === "path",
+    )
+
+    if (!files.length && !paths.length) return
+
+    // Insert at the caret rather than let a mention adopt the `@` the user may still be typing.
+    const caret = () => draft.state.cursor ?? promptLength(draft.state.prompt)
+
+    batch(() => {
+      paths.forEach((part) => {
+        draft.removeAttachment(part.id)
+        draft.addMention(
+          {
+            type: "file",
+            path: part.path,
+            content: `@${part.filename}`,
+            start: 0,
+            end: 0,
+            mime: part.mime,
+            filename: part.filename,
+          },
+          { start: caret(), end: caret() },
+        )
+      })
+
+      files.forEach((item) => {
+        draft.removeContext(item.key)
+        draft.addMention(
+          {
+            type: "file",
+            path: item.path,
+            content: `@${getFilename(item.path)}`,
+            start: 0,
+            end: 0,
+            selection: item.selection,
+            description: item.description,
+          },
+          { start: caret(), end: caret() },
+        )
+      })
+    })
+  })
 
   function addPart(part: ComposerPersistedState["prompt"][number]) {
     if (isAttachment(part)) return false

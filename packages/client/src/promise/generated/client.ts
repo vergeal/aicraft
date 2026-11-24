@@ -1637,6 +1637,7 @@ export function make(options: ClientOptions) {
               location: input?.["location"],
               metadata: input?.["metadata"],
               permissions: input?.["permissions"],
+              prompt: input?.["prompt"],
             },
             successStatus: 200,
             declaredStatuses: [400, 401, 404],

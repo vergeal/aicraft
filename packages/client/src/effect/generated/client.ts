@@ -587,6 +587,7 @@ const EndpointSessionCreate = (raw: RawClient["server.session"]) => (input?: Ses
         location: input?.["location"],
         metadata: input?.["metadata"],
         permissions: input?.["permissions"],
+        prompt: input?.["prompt"],
       },
     }).pipe(
       Effect.mapError(mapClientError),

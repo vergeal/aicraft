@@ -91,6 +91,8 @@ type CreateBaseInput = {
   model?: Model.Ref
   metadata?: SessionSchema.Metadata
   permissions?: Permission.Ruleset
+  /** Session-level instructions added to every request's system prompt. */
+  prompt?: string
   /** Marks the new session as a child agent spawned by the `subagent` tool. */
   subagent?: boolean
 }
@@ -326,6 +328,7 @@ const layer = Layer.effect(
               // location, so host policies that read them treat the family uniformly.
               metadata: input.metadata ?? parent?.metadata,
               permissions: input.permissions ?? parent?.permissions,
+              prompt: input.prompt,
               model: input.model ?? parent?.model,
             },
             { location },

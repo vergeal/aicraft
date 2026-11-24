@@ -60,6 +60,24 @@ export const Plugin = {
                   ),
                 )
 
+              const parent = yield* ctx.session
+                .get({ sessionID: context.sessionID })
+                .pipe(Effect.orElseSucceed(() => undefined))
+
+              // The new session starts with no history, so it needs to know where it came from and why it exists.
+              // This is its own system prompt, not a message: it stays in context for every request.
+              const purpose = (input.prompt ?? input.title)?.replaceAll(/\s+/g, " ").trim().slice(0, 240)
+              const instructions = [
+                "你是由另一个会话通过 create 工具创建的独立会话，不是子代理（subagent）。",
+                "你可以像任何会话一样接收用户和其他会话的消息，并保留自己的完整历史。",
+                `创建你的会话是「${parent?.title?.trim() || context.sessionID}」（${context.sessionID}）。`,
+                input.title ? `创建时给你的标题是「${input.title}」。` : undefined,
+                purpose ? `创建者说明的用途是：${purpose}` : "创建者没有说明具体用途。",
+                "创建者看不到你的执行过程；它只会用 deliver 把后续消息发给你，并在需要时主动询问结果。",
+              ]
+                .filter((line): line is string => line !== undefined)
+                .join("\n")
+
               const created = yield* ctx.session
                 .create({
                   // The parent is display lineage, not subagent ownership: the new session appears in the session list
@@ -67,6 +85,7 @@ export const Plugin = {
                   parentID: context.sessionID,
                   title: input.title,
                   metadata: { createdBy: { sessionID: context.sessionID } },
+                  prompt: instructions,
                 })
                 .pipe(Effect.mapError((error) => new ToolFailure({ message: "Failed to create a session", error })))
 

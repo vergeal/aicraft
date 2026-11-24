@@ -1,7 +1,7 @@
 import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, onMount, untrack, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
-import { mediaHashFromUri, type PromptAttachment, type SessionMessageInfo } from "@opencode/client/promise"
+import { mediaHashFromUri, type PromptAgentAttachment, type PromptAttachment, type PromptSkillAttachment, type SessionMessageInfo } from "@opencode/client/promise"
 import { DiffChanges } from "@opencode/ui/diff-changes"
 import { FileIcon } from "@opencode/ui/file-icon"
 import { getDirectory, getFilename } from "@opencode/util/path"
@@ -11,6 +11,7 @@ import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { Spinner } from "@opencode/ui/spinner"
 import { useI18n, type UiI18nOrdinaryKey } from "@opencode/ui/context/i18n"
 import { hasMarkdownSyntax, Markdown } from "../components/markdown"
+import { HighlightedText } from "../components/highlighted-text"
 import { writeClipboard } from "../components/markdown-clipboard"
 import { UserMessageActions } from "../message/user-message-actions"
 import type { SessionUserActions } from "../actions"
@@ -1507,6 +1508,10 @@ const INPUT_FOLD = { over: 12, show: 8 }
 
 const NO_ATTACHMENTS: readonly PromptAttachment[] = []
 
+const NO_AGENTS: readonly PromptAgentAttachment[] = []
+
+const NO_SKILLS: readonly PromptSkillAttachment[] = []
+
 /**
  * The prompt bubble. A long prompt folds to its first lines and keeps the rest behind a Read more toggle.
  *
@@ -1517,6 +1522,8 @@ const NO_ATTACHMENTS: readonly PromptAttachment[] = []
 function InputBubble(props: {
   text: string
   attachments?: readonly PromptAttachment[]
+  agents?: readonly PromptAgentAttachment[]
+  skills?: readonly PromptSkillAttachment[]
   cacheKey: string
   messageID: string
   createdAt: number
@@ -1534,6 +1541,10 @@ function InputBubble(props: {
   const attachments = () => props.attachments ?? NO_ATTACHMENTS
   const pictures = () => attachments().filter((file) => file.mime.startsWith("image/"))
   const links = () => attachments().filter((file) => !file.mime.startsWith("image/") && file.mention === undefined)
+  // A file the writer already named in the text keeps its mention there and gets no second link.
+  const inlineFiles = () => attachments().filter((file) => !!file.mention)
+  const agents = () => props.agents ?? NO_AGENTS
+  const skills = () => props.skills ?? NO_SKILLS
   const hasText = () => props.text.trim().length > 0 || links().length > 0
 
   let content: HTMLDivElement | undefined
@@ -1573,7 +1584,17 @@ function InputBubble(props: {
           >
             <div ref={content}>
               <Show when={props.text.length > 0}>
-                <Show when={hasMarkdownSyntax(props.text)} fallback={<>{props.text}</>}>
+                <Show
+                  when={hasMarkdownSyntax(props.text)}
+                  fallback={
+                    <HighlightedText
+                      text={props.text}
+                      files={inlineFiles()}
+                      agents={agents()}
+                      skills={skills()}
+                    />
+                  }
+                >
                   <Markdown text={props.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
                 </Show>
               </Show>
@@ -1686,6 +1707,8 @@ function Payload(props: {
         <InputBubble
           text={props.payload.text}
           attachments={props.payload.files}
+          agents={props.payload.agents}
+          skills={props.payload.skills}
           cacheKey={props.cacheKey}
           messageID={props.messageID}
           createdAt={props.payload.created}

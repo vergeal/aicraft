@@ -40,6 +40,39 @@
   margin-bottom: 0;
 }
 
+/* A mention keeps the accent the composer gave it. A session reference reads as a link on the prompt's own text
+   rather than a chip, since the bubble already carries a surface of its own. */
+.answer-scope [data-slot="user-message-text"] {
+  [data-highlight="file"],
+  [data-highlight="agent"],
+  [data-highlight="skill"] {
+    color: var(--v2-text-text-accent);
+    font-weight: 400;
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  [data-slot="user-message-mention-prefix"] {
+    color: var(--v2-text-text-accent);
+  }
+
+  .markdown-session-link {
+    padding: 0;
+    text-align: start;
+    background: none;
+    box-shadow: none;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, currentColor 40%, transparent);
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: inherit;
+      text-decoration-color: currentColor;
+    }
+  }
+}
+
 /* A prompt bubble wraps the code it holds: the bubble clips its own box, so the shared sideways scroll
    would hide everything past one long line instead of revealing it on scroll. */
 .answer-scope [data-slot="user-message-text"] .answer-input-markdown {

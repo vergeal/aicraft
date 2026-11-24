@@ -411,7 +411,14 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
       drafts.push(current)
       push(
         current,
-        { kind: "input", text: message.text, files: message.files, created: message.time.created },
+        {
+          kind: "input",
+          text: message.text,
+          files: message.files,
+          agents: message.agents,
+          skills: message.skills,
+          created: message.time.created,
+        },
         `input:${message.id}`,
         message.id,
         "exchange",

@@ -18,10 +18,8 @@ import { useData } from "../context"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { useI18n } from "@opencode/ui/context/i18n"
 import { hasMarkdownSyntax, Markdown } from "../components/markdown"
-import { linkSegments } from "../components/link-segments"
 import { LinkedText } from "../components/linked-text"
-import { sessionReferenceText, setupSessionLinks } from "../components/markdown-session-links"
-import { useMarkdown } from "../context/markdown"
+import { HighlightedText } from "../components/highlighted-text"
 import { useSources } from "../context/sources"
 import { SourcesChip } from "../sources/sources-chip"
 import type { TurnSources } from "../sources/sources"
@@ -43,9 +41,7 @@ import { Card } from "@opencode/ui/card"
 import { springStyle } from "@opencode/ui/motion/solid"
 import { userRunSpring, type UserRun } from "../timeline/user-runs"
 import type {
-  PromptAgentAttachment,
   PromptAttachment,
-  PromptSkillAttachment,
   SessionMessageAssistant,
   SessionMessageAssistantReasoning,
   SessionMessageCompaction,
@@ -550,7 +546,7 @@ export function CurrentUserMessageDisplay(props: {
                 <Show
                   when={hasMarkdownSyntax(props.text)}
                   fallback={
-                    <CurrentHighlightedText
+                    <HighlightedText
                       text={props.text}
                       files={inlineFiles()}
                       agents={agents()}
@@ -571,7 +567,7 @@ export function CurrentUserMessageDisplay(props: {
                 <Show
                   when={hasMarkdownSyntax(props.text)}
                   fallback={
-                    <CurrentHighlightedText
+                    <HighlightedText
                       text={props.text}
                       files={inlineFiles()}
                       agents={agents()}
@@ -710,89 +706,6 @@ function scrollParent(element: HTMLElement) {
   }
 
   return document.scrollingElement
-}
-
-function CurrentHighlightedText(props: {
-  text: string
-  files: PromptAttachment[]
-  agents: PromptAgentAttachment[]
-  skills: PromptSkillAttachment[]
-}) {
-  const segments = createMemo(() => {
-    const references = [
-      ...props.files.flatMap((file) =>
-        file.mention ? [{ start: file.mention.start, end: file.mention.end, type: "file" as const }] : [],
-      ),
-      ...props.agents.flatMap((agent) =>
-        agent.mention ? [{ start: agent.mention.start, end: agent.mention.end, type: "agent" as const }] : [],
-      ),
-      ...props.skills.flatMap((skill) =>
-        skill.mention ? [{ start: skill.mention.start, end: skill.mention.end, type: "skill" as const }] : [],
-      ),
-    ].sort((a, b) => a.start - b.start)
-
-    const result: HighlightSegment[] = []
-
-    // Plain text between references may contain URLs, which become links.
-    const pushText = (text: string) =>
-      result.push(
-        ...linkSegments(text).map(
-          (segment): HighlightSegment => ({
-            text: segment.text,
-            type: segment.href ? "link" : undefined,
-          }),
-        ),
-      )
-
-    let last = 0
-    references.forEach((reference) => {
-      if (reference.start < last) return
-
-      if (reference.start > last) pushText(props.text.slice(last, reference.start))
-      result.push({ text: props.text.slice(reference.start, reference.end), type: reference.type })
-      last = reference.end
-    })
-
-    if (last < props.text.length) pushText(props.text.slice(last))
-
-    return result
-  })
-
-  return (
-    <For each={segments()}>
-      {(segment) => (
-        <Show
-          when={segment.type === "link"}
-          fallback={
-            <span data-highlight={segment.type}>
-              <Show
-                when={segment.type && segment.text.startsWith("@")}
-                fallback={<SessionReferenceText text={segment.text} />}
-              >
-                <span data-slot="user-message-mention-prefix">@</span>
-                {segment.text.slice(1)}
-              </Show>
-            </span>
-          }
-        >
-          <a data-slot="user-message-link" href={segment.text} target="_blank" rel="noopener noreferrer">
-            {segment.text}
-          </a>
-        </Show>
-      )}
-    </For>
-  )
-}
-
-type HighlightSegment = { text: string; type?: "file" | "agent" | "skill" | "link" }
-
-function SessionReferenceText(props: { text: string }) {
-  const markdown = useMarkdown()
-  const root = document.createElement("span")
-  createEffect(() => root.replaceChildren(sessionReferenceText(props.text, (id) => markdown?.sessionTitle?.(id))))
-  onCleanup(setupSessionLinks(root, () => markdown?.openSession))
-
-  return root
 }
 
 /** A compaction the server admitted but has not started, drawn as the divider a started one opens with. */

@@ -9,6 +9,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { usePluginHost } from "@/runtime/plugin/host"
 import { mainSurfaceEntries, mainSurfacePath } from "@/runtime/plugin/main-surface"
 import { useSettingsDialog } from "@/settings/command"
+import { preloadSettings } from "@/settings/preload"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
 import { createSessionInbox } from "@/shell/titlebar/inbox-model"
@@ -165,6 +166,8 @@ export function ReplicaPrimaryFooter() {
         data-slot="replica-account"
         aria-label={language.t("replica.rail.settings")}
         class="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-row)] px-1.5 text-start transition-colors hover:bg-[var(--color-hover)] focus-visible:bg-[var(--color-hover)] focus-visible:outline-none"
+        onPointerEnter={(event) => event.pointerType !== "touch" && preloadSettings()}
+        onFocus={preloadSettings}
         onClick={openSettings}
       >
         <img

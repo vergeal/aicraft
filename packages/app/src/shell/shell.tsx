@@ -1,9 +1,10 @@
-import { createEffect, createSignal, lazy, onCleanup, Show, Suspense, type ParentProps } from "solid-js"
+import { createEffect, createSignal, lazy, onCleanup, onMount, Show, Suspense, type ParentProps } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { ToastRegion } from "@/shell/notifications/toast"
 import { UploadToastHost } from "@/composer/attachments/uploads"
 import { useSettings } from "@/settings/model"
+import { preloadSettings } from "@/settings/preload"
 import { PluginServerCover } from "@/runtime/plugin/server-shell"
 import { PluginSlot } from "@/runtime/plugin/render"
 import { COMMAND_SEARCH_ID, useCommand } from "@/shell/commands/command"
@@ -140,6 +141,13 @@ function ReplicaLayer(props: ParentProps) {
   onCleanup(() => {
     if (!mac()) return
     void platform.setTrafficLightsPosition?.({ x: 14, y: 14 })
+  })
+
+  // Settings arrives as one lazy route chunk. Warm it once the shell has settled, so a menu or a keybind opens it
+  // without the chunk's first download, while startup keeps the network and the main thread to itself.
+  onMount(() => {
+    const timer = setTimeout(preloadSettings, 1500)
+    onCleanup(() => clearTimeout(timer))
   })
 
   const sidebarWidth = () => preferences.appearance.sidebarWidth()

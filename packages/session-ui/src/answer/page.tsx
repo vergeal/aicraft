@@ -1,7 +1,7 @@
 import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, onMount, untrack, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
-import { mediaHashFromUri, type SessionMessageInfo } from "@opencode/client/promise"
+import { mediaHashFromUri, type PromptAttachment, type SessionMessageInfo } from "@opencode/client/promise"
 import { DiffChanges } from "@opencode/ui/diff-changes"
 import { FileIcon } from "@opencode/ui/file-icon"
 import { getDirectory, getFilename } from "@opencode/util/path"
@@ -1505,8 +1505,22 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
 // least 5 lines, so a prompt just past the limit never folds away a line or two.
 const INPUT_FOLD = { over: 12, show: 8 }
 
-/** The prompt bubble. A long prompt folds to its first lines and keeps the rest behind a Read more toggle. */
-function InputBubble(props: { text: string; cacheKey: string; messageID: string; createdAt: number }) {
+const NO_ATTACHMENTS: readonly PromptAttachment[] = []
+
+/**
+ * The prompt bubble. A long prompt folds to its first lines and keeps the rest behind a Read more toggle.
+ *
+ * Pictures the prompt carried sit above the bubble as thumbnails. Any other file is a reference the writer pasted,
+ * so it reads as a link at the end of the prompt text instead of a second block; a file the writer already named in
+ * the text keeps its mention there and gets no second link.
+ */
+function InputBubble(props: {
+  text: string
+  attachments?: readonly PromptAttachment[]
+  cacheKey: string
+  messageID: string
+  createdAt: number
+}) {
   const i18n = useI18n()
   const messageActions = useContext(MessageActionsContext)
   const rows = useContext(RowDisclosureContext)
@@ -1516,6 +1530,11 @@ function InputBubble(props: { text: string; cacheKey: string; messageID: string;
   const [lines, setLines] = createSignal(props.text.trimEnd().split("\n").length)
   const long = () => lines() > INPUT_FOLD.over
   const folded = () => long() && !expanded()
+
+  const attachments = () => props.attachments ?? NO_ATTACHMENTS
+  const pictures = () => attachments().filter((file) => file.mime.startsWith("image/"))
+  const links = () => attachments().filter((file) => !file.mime.startsWith("image/") && file.mention === undefined)
+  const hasText = () => props.text.trim().length > 0 || links().length > 0
 
   let content: HTMLDivElement | undefined
 
@@ -1535,35 +1554,49 @@ function InputBubble(props: { text: string; cacheKey: string; messageID: string;
 
   return (
     <div data-slot="user-message-body" class="flex w-fit max-w-[min(82%,64ch)] flex-col items-end ms-auto">
-      <div
-        dir="auto"
-        data-slot="user-message-text"
-        class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+8px)] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
-        style={{ color: "var(--answer-ink)" }}
-      >
-        <div
-          data-slot="user-message-fold"
-          data-folded={folded() ? "" : undefined}
-          style={{ "max-height": folded() ? `${INPUT_FOLD.show}lh` : undefined }}
-        >
-          <div ref={content}>
-            <Show when={hasMarkdownSyntax(props.text)} fallback={<>{props.text}</>}>
-              <Markdown text={props.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
-            </Show>
-          </div>
+      <Show when={pictures().length > 0}>
+        <div data-slot="user-message-attachments">
+          <For each={pictures()}>{(file) => <PromptPicture file={file} />}</For>
         </div>
-        <Show when={long()}>
-          <button
-            type="button"
-            data-slot="user-message-fold-toggle"
-            aria-expanded={expanded()}
-            onClick={() => rows?.toggle(props.cacheKey, !expanded())}
+      </Show>
+      <Show when={hasText()}>
+        <div
+          dir="auto"
+          data-slot="user-message-text"
+          class="inline-block max-w-full overflow-hidden whitespace-pre-wrap rounded-[14px] bg-v2-background-bg-layer-02 px-3 py-2 text-[length:var(--content-font-size,14px)] leading-[calc(var(--content-font-size,14px)+8px)] [overflow-wrap:anywhere] [unicode-bidi:plaintext]"
+          style={{ color: "var(--answer-ink)" }}
+        >
+          <div
+            data-slot="user-message-fold"
+            data-folded={folded() ? "" : undefined}
+            style={{ "max-height": folded() ? `${INPUT_FOLD.show}lh` : undefined }}
           >
-            <span>{i18n.t(expanded() ? "ui.message.showLess" : "ui.message.readMore")}</span>
-            <Icon name="chevron-down" size="small" />
-          </button>
-        </Show>
-      </div>
+            <div ref={content}>
+              <Show when={props.text.length > 0}>
+                <Show when={hasMarkdownSyntax(props.text)} fallback={<>{props.text}</>}>
+                  <Markdown text={props.text} cacheKey={`${props.cacheKey}:input`} class="answer-input-markdown" />
+                </Show>
+              </Show>
+              <Show when={links().length > 0}>
+                <div data-slot="user-message-files">
+                  <For each={links()}>{(file) => <PromptFileLink file={file} />}</For>
+                </div>
+              </Show>
+            </div>
+          </div>
+          <Show when={long()}>
+            <button
+              type="button"
+              data-slot="user-message-fold-toggle"
+              aria-expanded={expanded()}
+              onClick={() => rows?.toggle(props.cacheKey, !expanded())}
+            >
+              <span>{i18n.t(expanded() ? "ui.message.showLess" : "ui.message.readMore")}</span>
+              <Icon name="chevron-down" size="small" />
+            </button>
+          </Show>
+        </div>
+      </Show>
       <UserMessageActions
         sessionID={messageActions.sessionID}
         messageID={props.messageID}
@@ -1573,6 +1606,69 @@ function InputBubble(props: { text: string; cacheKey: string; messageID: string;
       />
     </div>
   )
+}
+
+/** One picture the prompt carried: a thumbnail above the bubble that opens full size when clicked. */
+function PromptPicture(props: { file: PromptAttachment }) {
+  const i18n = useI18n()
+  const preview = createImagePreview()
+  const image = useImageUrl(() => ({ uri: attachmentUri(props.file), mime: props.file.mime }))
+  const name = () => props.file.name ?? i18n.t("ui.message.attachment.alt")
+  let root!: HTMLDivElement
+
+  createEffect(() => {
+    if (image.url()) preview(root)
+  })
+
+  return (
+    <div
+      ref={root}
+      data-slot="user-message-attachment"
+      data-state={image.broken() ? "broken" : image.url() ? "ready" : "loading"}
+      class="relative h-[46px] w-[58px] shrink-0 overflow-hidden rounded-[6px] border-[0.5px] border-v2-border-border-base"
+      style={{ background: "var(--v2-background-bg-layer-02)" }}
+    >
+      <Show when={image.broken() ? undefined : image.url()}>
+        {(src) => (
+          <img
+            data-slot="user-message-attachment-image"
+            src={src()}
+            alt={name()}
+            class="size-full cursor-zoom-in object-cover"
+            onError={() => image.setBroken(true)}
+          />
+        )}
+      </Show>
+    </div>
+  )
+}
+
+/** A file the prompt carried reads as a link in its text; clicking it opens the attachment. */
+function PromptFileLink(props: { file: PromptAttachment }) {
+  const i18n = useI18n()
+  const messageActions = useContext(MessageActionsContext)
+  const name = () => props.file.name || i18n.t("ui.message.attachment.alt")
+
+  return (
+    <button
+      type="button"
+      data-slot="user-message-file-link"
+      title={props.file.description || name()}
+      onClick={() => messageActions.actions?.openAttachment?.(props.file)}
+    >
+      <FileIcon node={{ path: name(), type: "file" }} />
+      <span>{name()}</span>
+    </button>
+  )
+}
+
+/** The URI a prompt attachment's bytes live at: its source URI, a stored `media:` ref, or an inline data URL. */
+function attachmentUri(file: PromptAttachment) {
+  if (file.source.type === "uri") return file.source.uri
+
+  if ("uri" in file) return file.uri
+
+  return `data:${file.mime};base64,${file.data}`
 }
 
 function Payload(props: {
@@ -1589,6 +1685,7 @@ function Payload(props: {
       return (
         <InputBubble
           text={props.payload.text}
+          attachments={props.payload.files}
           cacheKey={props.cacheKey}
           messageID={props.messageID}
           createdAt={props.payload.created}
@@ -2359,25 +2456,71 @@ function ToolRow(props: {
 }
 
 /**
- * One image a tool returned, shown under its open row. A server-local path is read through the markdown image
- * loader; data, http(s) and blob sources are already renderable. Content the client stripped of its stored payload
- * falls back to the file the tool read. Only the open row mounts it, so collapsed history loads no pixels.
+ * One image a tool returned, shown under its open row. Only the open row mounts it, so collapsed history loads no
+ * pixels.
  */
 function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallbackPath?: string }) {
   const i18n = useI18n()
-  const markdown = useMarkdown()
-  const data = useContext(DataContext)
   const preview = createImagePreview()
-  const [url, setUrl] = createSignal<string>()
-  const [broken, setBroken] = createSignal(false)
+  const image = useImageUrl(() => ({ uri: props.image.uri, mime: props.image.mime, fallbackPath: props.fallbackPath }))
   let root!: HTMLDivElement
-  let objectUrl: string | undefined
 
   const name = () => props.image.name ?? i18n.t("ui.message.attachment.alt")
   const kind = () => i18n.t("ui.fileMedia.kind.image")
 
   createEffect(() => {
-    const uri = props.image.uri
+    if (image.url()) preview(root)
+  })
+
+  return (
+    <div
+      ref={root}
+      data-slot="answer-tool-image"
+      class="w-fit max-w-full overflow-hidden rounded-[12px] border-[0.5px] border-v2-border-border-muted"
+      style={{ background: "var(--answer-surface)" }}
+    >
+      <Show
+        when={image.broken() ? undefined : image.url()}
+        fallback={
+          <div
+            data-slot="answer-tool-image-state"
+            class="flex h-[180px] w-[320px] items-center justify-center text-[11px] leading-[19px]"
+            style={{ color: "var(--answer-ink-tertiary)" }}
+          >
+            {image.broken()
+              ? i18n.t("ui.fileMedia.state.unavailable", { kind: kind() })
+              : i18n.t("ui.fileMedia.state.loading", { kind: kind() })}
+          </div>
+        }
+      >
+        {(src) => (
+          <img
+            data-slot="answer-tool-image-thumb"
+            src={src()}
+            alt={name()}
+            class="block max-h-[360px] w-auto max-w-full cursor-zoom-in object-contain"
+            onError={() => image.setBroken(true)}
+          />
+        )}
+      </Show>
+    </div>
+  )
+}
+
+/**
+ * Resolves an image source to something an `<img>` can show. A server-local path is read through the markdown image
+ * loader; data, http(s) and blob sources are already renderable. Content the client stripped of its stored payload
+ * falls back to the file the caller names. `media:` refs read their bytes from the server.
+ */
+function useImageUrl(source: () => { uri: string; mime: string; fallbackPath?: string }) {
+  const markdown = useMarkdown()
+  const data = useContext(DataContext)
+  const [url, setUrl] = createSignal<string>()
+  const [broken, setBroken] = createSignal(false)
+  let objectUrl: string | undefined
+
+  createEffect(() => {
+    const current = source()
     const controller = new AbortController()
     onCleanup(() => controller.abort())
     setBroken(false)
@@ -2387,10 +2530,10 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallba
       objectUrl = undefined
     }
 
-    // With `experimental.media_blob`, a stored tool image arrives as a `media:<hash>` ref whose bytes live on the
-    // server, not at a local path or in a data URL.
-    if (mediaHashFromUri(uri)) {
-      const cached = data?.peekMedia?.(uri, props.image.mime)
+    // With `experimental.media_blob`, a stored image arrives as a `media:<hash>` ref whose bytes live on the server,
+    // not at a local path or in a data URL.
+    if (mediaHashFromUri(current.uri)) {
+      const cached = data?.peekMedia?.(current.uri, current.mime)
 
       if (cached) {
         setUrl(cached)
@@ -2405,7 +2548,7 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallba
       }
 
       setUrl(undefined)
-      void data.readMedia(uri, props.image.mime, controller.signal).then(
+      void data.readMedia(current.uri, current.mime, controller.signal).then(
         (loaded) => {
           if (controller.signal.aborted) return
 
@@ -2422,21 +2565,21 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallba
 
     // The client drops stored image payloads from message content, leaving only `data:<mime>;base64,` behind. The
     // tool's own input still names the file it read, so draw that file instead of the emptied URL.
-    const stripped = /^data:[^,]*;base64,$/i.test(uri)
-    const source = stripped ? props.fallbackPath : uri
+    const stripped = /^data:[^,]*;base64,$/i.test(current.uri)
+    const resolved = stripped ? current.fallbackPath : current.uri
 
-    if (!source) {
+    if (!resolved) {
       setBroken(true)
 
       return
     }
 
     // A read result points at its file with a `file:` URL, which the host's local image loader refuses as a scheme.
-    const path = localImagePath(source)
+    const path = localImagePath(resolved)
 
     if (!path || !markdown?.readImage) {
-      if (/^(data|blob|https?):/i.test(source)) {
-        setUrl(source)
+      if (/^(data|blob|https?):/i.test(resolved)) {
+        setUrl(resolved)
 
         return
       }
@@ -2470,43 +2613,7 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallba
     if (objectUrl) URL.revokeObjectURL(objectUrl)
   })
 
-  createEffect(() => {
-    if (url()) preview(root)
-  })
-
-  return (
-    <div
-      ref={root}
-      data-slot="answer-tool-image"
-      class="w-fit max-w-full overflow-hidden rounded-[12px] border-[0.5px] border-v2-border-border-muted"
-      style={{ background: "var(--answer-surface)" }}
-    >
-      <Show
-        when={broken() ? undefined : url()}
-        fallback={
-          <div
-            data-slot="answer-tool-image-state"
-            class="flex h-[180px] w-[320px] items-center justify-center text-[11px] leading-[19px]"
-            style={{ color: "var(--answer-ink-tertiary)" }}
-          >
-            {broken()
-              ? i18n.t("ui.fileMedia.state.unavailable", { kind: kind() })
-              : i18n.t("ui.fileMedia.state.loading", { kind: kind() })}
-          </div>
-        }
-      >
-        {(src) => (
-          <img
-            data-slot="answer-tool-image-thumb"
-            src={src()}
-            alt={name()}
-            class="block max-h-[360px] w-auto max-w-full cursor-zoom-in object-contain"
-            onError={() => setBroken(true)}
-          />
-        )}
-      </Show>
-    </div>
-  )
+  return { url, broken, setBroken }
 }
 
 

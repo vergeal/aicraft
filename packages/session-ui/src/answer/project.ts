@@ -1,4 +1,4 @@
-import type { SessionMessageInfo } from "@opencode/client/promise"
+import type { PromptAttachment, SessionMessageInfo } from "@opencode/client/promise"
 import { Option, Schema } from "effect"
 import { changedFileDiff } from "../components/apply-patch-file"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
@@ -115,7 +115,9 @@ function reusePayload(previous: NodePayload | undefined, next: NodePayload): Nod
   // over to the other, and an unchecked field read would be a lie.
   switch (next.kind) {
     case "input":
-      return previous.kind === "input" && previous.text === next.text ? previous : next
+      return previous.kind === "input" && previous.text === next.text && sameFiles(previous.files, next.files)
+        ? previous
+        : next
     case "assistant":
     case "reasoning":
       return (previous.kind === "assistant" || previous.kind === "reasoning") &&
@@ -145,6 +147,31 @@ function reusePayload(previous: NodePayload | undefined, next: NodePayload): Nod
         ? previous
         : next
   }
+}
+
+/**
+ * A prompt's attachments are re-decoded on every refresh, so comparing them by value keeps the prompt row (and the
+ * pictures it mounted) from remounting. Bytes are not compared: the source file a prompt carries never changes.
+ */
+function sameFiles(
+  previous: readonly PromptAttachment[] | undefined,
+  next: readonly PromptAttachment[] | undefined,
+) {
+  if (previous === next) return true
+
+  if (!previous || !next || previous.length !== next.length) return false
+
+  return previous.every((file, index) => {
+    const other = next[index]!
+
+    return file.mime === other.mime && file.name === other.name && sameFileSource(file.source, other.source)
+  })
+}
+
+function sameFileSource(previous: PromptAttachment["source"], next: PromptAttachment["source"]) {
+  if (previous.type === "uri") return next.type === "uri" && previous.uri === next.uri
+
+  return next.type === "inline"
 }
 
 /**
@@ -384,7 +411,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
       drafts.push(current)
       push(
         current,
-        { kind: "input", text: message.text, created: message.time.created },
+        { kind: "input", text: message.text, files: message.files, created: message.time.created },
         `input:${message.id}`,
         message.id,
         "exchange",

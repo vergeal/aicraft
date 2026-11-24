@@ -1,4 +1,4 @@
-import type { SessionMessageAssistant } from "@opencode/client/promise"
+import type { PromptAttachment, SessionMessageAssistant } from "@opencode/client/promise"
 
 /** Where a node stands in the group tree, outermost first. Ported from the DSH conversation model. */
 export type GroupTree = "exchange" | "input" | "turn" | "process"
@@ -26,7 +26,8 @@ export type ToolContent = Extract<SessionMessageAssistant["content"][number], { 
 
 /** What one row renders. Rendering dispatches on the payload's kind, never on a raw message type. */
 export type NodePayload =
-  | { readonly kind: "input"; readonly text: string; readonly created: number }
+  /** `files` is what the prompt carried besides its text: pictures to show, other files to link. */
+  | { readonly kind: "input"; readonly text: string; readonly files?: readonly PromptAttachment[]; readonly created: number }
   | { readonly kind: "assistant"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "reasoning"; readonly text: string; readonly streaming: boolean }
   | { readonly kind: "tool"; readonly tool: ToolContent }

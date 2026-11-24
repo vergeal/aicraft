@@ -136,11 +136,6 @@
     &[data-default] {
       color: var(--v2-text-text-faint);
     }
-
-    [data-slot="icon-svg"] {
-      color: var(--v2-icon-icon-muted);
-      translate: 0 0.5px;
-    }
   }
 
   [data-slot="model-dialog-hints"] {
@@ -160,33 +155,6 @@
       align-items: center;
       gap: 5px;
     }
-  }
-}
-
-[data-component="menu-v2-content"][data-slot="model-dialog-flyout"] {
-  position: fixed;
-  /* One width for every model, matching the 180px its placement assumes. */
-  width: 180px;
-  max-height: 400px;
-  padding: 0;
-  border-radius: 12px;
-  background: var(--v2-material-surface-strong);
-  backdrop-filter: var(--v2-material-blur-thick);
-  box-shadow:
-    var(--v2-elevation-floating),
-    inset 0 0 0 0.5px var(--v2-border-border-muted);
-  animation: none;
-
-  > [data-component="menu-scroll"] > [data-scrollable] {
-    padding: 2px;
-  }
-
-  /* The model stats that close the flyout. */
-  [data-slot="menu-scroll-content"] > :last-child {
-    font-size: 11px;
-    line-height: 16px;
-    cursor: default;
-    user-select: none;
   }
 }
 

@@ -276,7 +276,7 @@ export function createTimelineController(input: { session: TimelineSessionSource
     const session = data.session.get(id)
 
     if (!session) return false
-    const sessions = data.session.list().filter((item) => !item.parentID && !item.time?.archived)
+    const sessions = data.session.list().filter((item) => !item.subagent && !item.time?.archived)
     const index = sessions.findIndex((item) => item.id === id)
     const next = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
     const removed = sessionTreeIDs(data.session.list(), id)

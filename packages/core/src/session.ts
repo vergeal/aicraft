@@ -91,6 +91,8 @@ type CreateBaseInput = {
   model?: Model.Ref
   metadata?: SessionSchema.Metadata
   permissions?: Permission.Ruleset
+  /** Marks the new session as a child agent spawned by the `subagent` tool. */
+  subagent?: boolean
 }
 type CreateInput = CreateBaseInput &
   ({ location: Location.Ref; parentID?: never } | { parentID: SessionSchema.ID; location?: never })
@@ -313,6 +315,7 @@ const layer = Layer.effect(
               version: app.version,
               projectID: project.id,
               parentID: input.parentID,
+              subagent: input.subagent,
               location,
               subpath: RelativePath.make(path.relative(project.directory, location.directory).replaceAll("\\", "/")),
               title: input.title,

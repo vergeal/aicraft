@@ -62,6 +62,8 @@ import m59 from "./migration/20261104090306_project_prompt.js"
 import m60 from "./migration/20261104092314_session_prompt.js"
 import m61 from "./migration/20261106034142_knowledge.js"
 import m62 from "./migration/20261123124837_gifted_skreet.js"
+import m63 from "./migration/20261124064714_session_subagent.js"
+import m64 from "./migration/20261124093000_session_subagent_creator_reset.js"
 
 export const migrations = [
   m00,
@@ -127,4 +129,6 @@ export const migrations = [
   m60,
   m61,
   m62,
+  m63,
+  m64,
 ] satisfies DatabaseMigration.Migration[]

@@ -483,8 +483,8 @@ test("unread state honours the old local list until its viewed state is carried 
   expect(unread(second.state)).toEqual(["unread-here", "new"])
   await advance(5_000)
   expect(lists).toEqual([
-    { limit: 200, order: "desc", parentID: null },
-    { limit: 200, order: "desc", parentID: null, cursor: "second" },
+    { limit: 200, order: "desc", subagent: false },
+    { limit: 200, order: "desc", subagent: false, cursor: "second" },
   ])
   expect(views).toEqual([
     { sessionID: "read-here", idle: 5 },

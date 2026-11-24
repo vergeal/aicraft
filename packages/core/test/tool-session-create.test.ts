@@ -72,7 +72,7 @@ const setup = () =>
   })
 
 describe("SessionCreateTool", () => {
-  it.effect("creates the session as a child of the calling session", () =>
+  it.effect("creates a child session that is not a subagent", () =>
     Effect.gen(function* () {
       const { registry, creates } = yield* setup()
 
@@ -86,6 +86,7 @@ describe("SessionCreateTool", () => {
         parentID,
         metadata: { createdBy: { sessionID: parentID } },
       })
+      expect(creates[0]).not.toHaveProperty("subagent")
     }),
   )
 })

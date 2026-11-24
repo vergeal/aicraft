@@ -84,7 +84,7 @@ export class VoiceTools {
     })
 
     if (call.name === "list_sessions") {
-      const sessions = await api.session.list({ limit: args.limit ?? 15, parentID: null, archived: false }, options)
+      const sessions = await api.session.list({ limit: args.limit ?? 15, subagent: false, archived: false }, options)
 
       return sessions.data.map(row)
     }
@@ -94,11 +94,11 @@ export class VoiceTools {
       const search = new SessionSearch(args.query)
       const query = args.query
 
-      // Subagents stay searchable, but a separate top-level search keeps a page of matching subagents from
-      // crowding out root sessions, and only root matches decide whether to retry with the longest word.
+      // Subagents stay searchable, but a separate non-subagent search keeps a page of matching subagents from
+      // crowding out visible sessions, and only non-subagent matches decide whether to retry with the longest word.
       const lookup = async (text: string) => {
         const [roots, all] = await Promise.all([
-          api.session.list({ search: text, limit: 20, parentID: null, archived: false }, options),
+          api.session.list({ search: text, limit: 20, subagent: false, archived: false }, options),
           api.session.list({ search: text, limit: 20, archived: false }, options),
         ])
 
@@ -115,16 +115,16 @@ export class VoiceTools {
       }
 
       const [recent, found] = await Promise.all([
-        api.session.list({ limit: 100, parentID: null, archived: false }, options),
+        api.session.list({ limit: 100, subagent: false, archived: false }, options),
         remote(),
       ])
 
       const seen = new Set<string>()
       const tabs = new Set(this.screen.tabs())
 
-      // Best match first; among equal matches, top-level sessions with an open tab, then the most recent.
+      // Best match first; among equal matches, sessions that are not subagents with an open tab, then the most recent.
       const rank = (session: SessionInfo) =>
-        (search.score(session) ?? 0) * 4 + (session.parentID ? 0 : 2) + (tabs.has(session.id) ? 1 : 0)
+        (search.score(session) ?? 0) * 4 + (session.subagent ? 0 : 2) + (tabs.has(session.id) ? 1 : 0)
 
       return [...recent.data.filter((session) => search.score(session) !== undefined), ...found]
         .filter((session) => !seen.has(session.id) && !!seen.add(session.id))

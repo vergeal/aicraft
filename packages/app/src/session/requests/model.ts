@@ -126,10 +126,12 @@ export function createSessionRequestModel() {
     return !!permissionRequest() || !!questionRequest() || !!elicitationRequest() || !!websearch.request()
   })
 
+  // Only a top-level session owns the titlebar's background list; an internal child agent reports under its parent.
+  // A session made with `create` has a parent for lineage only, so it keeps its own list.
   const primary = () => {
     const id = params.id
 
-    return !!id && !data.session.get(id)?.parentID
+    return !!id && !data.session.get(id)?.subagent
   }
 
   const running = createSessionBackground({

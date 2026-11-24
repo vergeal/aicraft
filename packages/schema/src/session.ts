@@ -35,6 +35,8 @@ export interface Info extends Schema.Schema.Type<typeof Info> {}
 export const Info = Schema.Struct({
   id: ID,
   parentID: ID.pipe(optional),
+  /** Spawned by the `subagent` tool as a child agent. Ordinary child sessions leave this absent. */
+  subagent: Schema.Boolean.pipe(optional),
   fork: Schema.Struct({
     sessionID: ID,
     boundary: ForkBoundary,
@@ -118,6 +120,18 @@ const ListFilterFields = {
     .annotate({
       description:
         "Filter by archive state. Use true to return only archived sessions or false to exclude them. Omit to include both.",
+    })
+    .pipe(Schema.optional),
+  subagent: Schema.Literals(["true", "false"])
+    .pipe(
+      Schema.decodeTo(Schema.Boolean, {
+        decode: SchemaGetter.transform((value) => value === "true"),
+        encode: SchemaGetter.transform((value): "true" | "false" => (value ? "true" : "false")),
+      }),
+    )
+    .annotate({
+      description:
+        "Filter by child-agent state. Use true to return only sessions spawned by the subagent tool, or false to exclude them. Omit to include both.",
     })
     .pipe(Schema.optional),
 }

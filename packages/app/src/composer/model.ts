@@ -231,7 +231,7 @@ export function createComposerModel(
     known: createKnownServerSessions(() => server.ctx),
     projects: server.ctx.projects.list,
     load: async (search, signal) => {
-      const page = await serverSDK.api.session.list({ parentID: null, search, archived: false, limit: 50 }, { signal })
+      const page = await serverSDK.api.session.list({ subagent: false, search, archived: false, limit: 50 }, { signal })
       page.data.forEach(data.session.remember)
 
       return page

@@ -110,6 +110,7 @@ const layer = Layer.effect(
             {
               sessionID,
               parentID: input.data.info.parentID,
+              subagent: input.data.info.subagent,
               slug: Slug.create(),
               version: app.version,
               projectID: project.id,

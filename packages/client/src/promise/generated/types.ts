@@ -2497,6 +2497,7 @@ export type ModelInfo = {
 export type SessionInfo = {
   id: SessionID
   parentID?: SessionID
+  subagent?: boolean
   fork?: { sessionID: SessionID; boundary: SessionForkBoundary }
   projectID: ProjectID
   agent?: AgentID
@@ -2535,6 +2536,7 @@ export type SessionCreated = {
     location: LocationRef
     subpath?: RelativePath
     parentID?: SessionID
+    subagent?: boolean
     slug: string
     title?: string
     agent?: AgentID
@@ -3596,6 +3598,7 @@ export type SessionListInput = {
   readonly search?: string | undefined
   readonly parentID?: string | null | undefined
   readonly archived?: boolean | undefined
+  readonly subagent?: boolean | undefined
   readonly directory?: string | undefined
   readonly project?: string | undefined
   readonly subpath?: string | undefined
@@ -4086,6 +4089,7 @@ export type ExperimentalSessionImportInput = {
   readonly info: {
     readonly id: string
     readonly parentID?: string
+    readonly subagent?: boolean
     readonly fork?: {
       readonly sessionID: string
       readonly boundary:

@@ -131,11 +131,11 @@ export function Spotlight() {
         server: key,
         archived,
         known: archived
-          ? () => ctx.data.session.list().filter((session) => !session.parentID)
+          ? () => ctx.data.session.list().filter((session) => !session.subagent)
           : createKnownServerSessions(() => ctx),
         projects: ctx.projects.list,
         load: (search, signal) =>
-          ctx.sdk.api.session.list({ parentID: null, search, archived, limit: 50 }, { signal }),
+          ctx.sdk.api.session.list({ subagent: false, search, archived, limit: 50 }, { signal }),
         get: (sessionID, signal) => ctx.sdk.api.session.get({ sessionID }, { signal }),
         untitled: () => language.t("command.session.new"),
         category: () => language.t("spotlight.group.sessions"),

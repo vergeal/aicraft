@@ -20,6 +20,7 @@ const ListInputBase = {
   limit: PositiveInt.pipe(Schema.optional),
   order: Schema.Literals(["asc", "desc"]).pipe(Schema.optional),
   parentID: Schema.NullOr(Session.ID).pipe(Schema.optional),
+  subagent: Schema.Boolean.pipe(Schema.optional),
   archived: Schema.Boolean.pipe(Schema.optional),
   anchor: Session.ListAnchor.pipe(Schema.optional),
 }
@@ -180,6 +181,12 @@ const layer = Layer.effect(
         if (input.parentID !== undefined)
           conditions.push(
             input.parentID === null ? isNull(SessionTable.parent_id) : eq(SessionTable.parent_id, input.parentID),
+          )
+        if (input.subagent !== undefined)
+          conditions.push(
+            input.subagent
+              ? eq(SessionTable.subagent, true)
+              : or(eq(SessionTable.subagent, false), isNull(SessionTable.subagent))!,
           )
         if (input.archived !== undefined)
           conditions.push(input.archived ? isNotNull(SessionTable.time_archived) : isNull(SessionTable.time_archived))

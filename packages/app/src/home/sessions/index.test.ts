@@ -41,7 +41,7 @@ const ids = (sessions: SessionInfo[]) => sessions.map((item) => item.id)
 describe("Home session index", () => {
   test("follows cursors across pages and bounds the result per directory", async () => {
     const all = history("/repo", HOME_V2_SESSION_PAGE_LIMIT + 1)
-    const calls: Array<{ cursor?: string; parentID: null }> = []
+    const calls: Array<{ cursor?: string; subagent: false }> = []
 
     const result = await loadHomeSessionIndex(async (input) => {
       calls.push(input)
@@ -52,7 +52,7 @@ describe("Home session index", () => {
     })
 
     expect(calls.map((call) => call.cursor)).toEqual([undefined, "next"])
-    expect(calls.every((call) => call.parentID === null)).toBe(true)
+    expect(calls.every((call) => call.subagent === false)).toBe(true)
     // Newest rows in server order, plus the recent window beyond the limit.
     expect(ids(result)).toEqual(ids(all.slice(0, HOME_SESSION_INDEX_LIMIT + SESSION_RECENT_LIMIT)))
   })

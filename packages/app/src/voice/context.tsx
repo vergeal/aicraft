@@ -91,7 +91,7 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
               // Subagent sessions open inside their root session's tab, which the titlebar finds from the route.
               const tab =
                 findSessionTab(tabs.store, effect.server, next.id) ??
-                (next.parentID ? undefined : tabs.addSessionTab({ server: effect.server, sessionId: next.id }))
+                (next.subagent ? undefined : tabs.addSessionTab({ server: effect.server, sessionId: next.id }))
 
               if (tab) tabs.remember(tab)
               navigate(href)

@@ -47,14 +47,11 @@ export function openNotificationSession(tabs: NotificationTabs, server: ServerCo
 // Only direct children: a grandchild reports to its own parent, so waiting on it could mean no sound at all. Running
 // shells don't count, or a session with a dev server running would never play one.
 function hasRunningChild(data: Data, sessionID: string) {
-  return data.session
-    .family(sessionID)
-    .some(
-      (child) =>
-        child !== sessionID &&
-        data.session.get(child)?.parentID === sessionID &&
-        data.session.status(child) === "running",
-    )
+  return data.session.family(sessionID).some((child) => {
+    if (child === sessionID) return false
+    const session = data.session.get(child)
+    return session?.parentID === sessionID && session.subagent === true && data.session.status(child) === "running"
+  })
 }
 
 // The list Desktop kept before unread state moved to the server. Until its viewed state reaches the server, unread
@@ -182,7 +179,7 @@ export function createServerNotificationState(input: {
       const page = await input.sdk.api.session.list({
         limit: LEGACY_MIGRATION_PAGE,
         order: "desc",
-        parentID: null,
+        subagent: false,
         cursor,
       })
 
@@ -248,11 +245,16 @@ export function createServerNotificationState(input: {
       .list()
       .filter(
         (session) =>
-          !session.parentID && session.time.archived === undefined && session.location.directory === directory,
+          !session.subagent && session.time.archived === undefined && session.location.directory === directory,
       )
 
+  // An internal child agent's completion belongs to the session that owns it. A session made with `create` records
+  // the creating session as its parent for lineage only, so it keeps its own unread state and notice.
+  const noticeRoot = (sessionID: string) =>
+    input.data.session.get(sessionID)?.subagent ? input.data.session.root(sessionID) : sessionID
+
   const view = (sessionID: string) => {
-    const root = input.data.session.root(sessionID)
+    const root = noticeRoot(sessionID)
     const session = input.data.session.get(root)
     const idle = session?.time.idle
 
@@ -281,7 +283,7 @@ export function createServerNotificationState(input: {
 
       if (!session) return
 
-      if (session.parentID) return
+      if (session.subagent) return
 
       const hasOpenTab = sessionIDHasOpenTab(tabs.store, input.key, sessionID)
 
@@ -303,7 +305,7 @@ export function createServerNotificationState(input: {
     void lookup(sessionID).then((session) => {
       if (disposed.value) return
 
-      if (session?.parentID) return
+      if (session?.subagent) return
 
       const hasOpenTab = sessionIDHasOpenTab(tabs.store, input.key, sessionID)
 
@@ -330,7 +332,7 @@ export function createServerNotificationState(input: {
 
     const target = sessionIDHasOpenTab(tabs.store, input.key, sessionID)
       ? sessionID
-      : input.data.session.root(sessionID)
+      : noticeRoot(sessionID)
 
     if (!sessionIDHasOpenTab(tabs.store, input.key, target)) return
 
@@ -407,7 +409,7 @@ export function createServerNotificationState(input: {
        * session that isn't loaded, such as a row from the fetched home index.
        */
       unread(sessionID: string, snapshot?: SessionInfo) {
-        return unread(input.data.session.get(input.data.session.root(sessionID)) ?? snapshot)
+        return unread(input.data.session.get(noticeRoot(sessionID)) ?? snapshot)
       },
       /** Reports the session's latest idle transition to the server as viewed. */
       markViewed: view,

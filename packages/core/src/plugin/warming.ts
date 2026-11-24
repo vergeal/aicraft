@@ -114,7 +114,9 @@ export const Plugin = define({
     const hook = (event: SessionHooks["context"]) =>
       Effect.gen(function* () {
         const session = yield* ctx.session.get({ sessionID: event.sessionID }).pipe(Effect.orDie)
-        if (session.parentID) return
+        // Only internal child agents skip warming. A session made with `create` carries a parent for lineage but
+        // takes messages like any other session, so it keeps its context warm too.
+        if (session.subagent) return
 
         const active = sessions.get(event.sessionID)
         const settings = yield* loadSettings(event)

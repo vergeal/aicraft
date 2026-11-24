@@ -334,7 +334,7 @@ function taskSession(
   if (!parentID) return undefined
 
   return (sessions ?? [])
-    .filter((session) => session.parentID === parentID && !session.time?.archived)
+    .filter((session) => session.parentID === parentID && session.subagent === true && !session.time?.archived)
     .filter((session) => (description ? session.title?.startsWith(description) : true))
     .sort((a, b) => (b.time.created ?? 0) - (a.time.created ?? 0))[0]?.id
 }

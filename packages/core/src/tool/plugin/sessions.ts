@@ -56,6 +56,7 @@ export const Output = Schema.Struct({
       title: Schema.optional(Schema.String),
       agent: Schema.optional(Schema.String),
       parentID: Schema.optional(SessionSchema.ID),
+      subagent: Schema.optional(Schema.Boolean),
       status: Schema.Literals(["running", "idle"]),
       /** Outcome of the last completed run; absent until one finishes. */
       outcome: Schema.optional(Schema.Literals(["succeeded", "failed", "interrupted"])),
@@ -167,6 +168,7 @@ export const Plugin = {
                   title: session.title,
                   agent: session.agent,
                   parentID: session.parentID,
+                  subagent: session.subagent,
                   status: SessionSchema.sessionStatus(session.time),
                   outcome: session.outcome,
                   queue: queues[index] ?? 0,

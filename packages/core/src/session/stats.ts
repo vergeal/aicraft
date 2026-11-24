@@ -27,7 +27,7 @@ type Tokens = Types.DeepMutable<TokenUsage.Info>
 
 type MessageRow = {
   sessionID: string
-  parentID: string | null
+  subagent: number | null
   type: "user" | "assistant"
   timeCreated: number
   providerID: string | null
@@ -123,7 +123,7 @@ export const get = Effect.fn("SessionStats.get")(function* (input: Input = {}) {
           sql`
           SELECT
             message.session_id AS sessionID,
-            session.parent_id AS parentID,
+            session.subagent AS subagent,
             message.type AS type,
             message.time_created AS timeCreated,
             json_extract(message.data, '$.model.providerID') AS providerID,
@@ -149,10 +149,10 @@ export const get = Effect.fn("SessionStats.get")(function* (input: Input = {}) {
           Effect.tap((rows) =>
             Effect.sync(() => {
               rows.forEach((row) => {
-                if (row.parentID === null) sessions.add(row.sessionID)
-                else subagents.add(row.sessionID)
+                if (row.subagent) subagents.add(row.sessionID)
+                else sessions.add(row.sessionID)
                 if (row.type === "user") {
-                  if (row.parentID === null) totals.prompts++
+                  if (!row.subagent) totals.prompts++
                   return
                 }
 

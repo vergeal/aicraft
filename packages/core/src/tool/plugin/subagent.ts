@@ -163,9 +163,9 @@ export const Plugin = {
                             new ToolFailure({ message: `Subagent session not found: ${input.sessionID}`, error }),
                         ),
                       )
-              if (existing !== undefined && existing.parentID !== context.sessionID)
+              if (existing !== undefined && (existing.parentID !== context.sessionID || !existing.subagent))
                 return yield* new ToolFailure({
-                  message: `Session ${existing.id} is not a child of the current session`,
+                  message: `Session ${existing.id} is not a subagent of the current session`,
                 })
               const override = input.model === undefined ? undefined : yield* resolveModel(input.model)
               // Continuing with a different agent switches the child, mirroring create semantics
@@ -189,6 +189,7 @@ export const Plugin = {
                 (yield* sessions
                   .create({
                     parentID: context.sessionID,
+                    subagent: true,
                     title: input.description,
                     agent: agent.id,
                     model,

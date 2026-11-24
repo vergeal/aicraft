@@ -154,7 +154,7 @@ export function createCommandPaletteModel(props: { filesOnly?: () => boolean; on
     known: createKnownServerSessions(() => serverCtx),
     projects: serverCtx.projects.list,
     load: (search, signal) =>
-      serverSDK.api.session.list({ parentID: null, search, archived: false, limit: 50 }, { signal }),
+      serverSDK.api.session.list({ subagent: false, search, archived: false, limit: 50 }, { signal }),
     get: (sessionID, signal) => serverSDK.api.session.get({ sessionID }, { signal }),
     untitled: () => language.t("command.session.new"),
     category: () => language.t("command.category.session"),
@@ -377,7 +377,7 @@ export function createKnownServerSessions(context: Accessor<ServerCtx | undefine
     const merged = new Map([...cached, ...server.data.session.list()].map((session) => [session.id, session] as const))
 
     return server.data.session.apply(
-      [...merged.values()].filter((session) => !session.parentID && !session.time.archived),
+      [...merged.values()].filter((session) => !session.subagent && !session.time.archived),
     )
   }
 }

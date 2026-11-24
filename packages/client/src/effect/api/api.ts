@@ -291,6 +291,7 @@ export type SessionListInput = {
   readonly search?: string | undefined
   readonly parentID?: Session.ID | null | undefined
   readonly archived?: boolean | undefined
+  readonly subagent?: boolean | undefined
   readonly directory?: AbsolutePath | undefined
   readonly project?: Project.ID | undefined
   readonly subpath?: RelativePath | undefined
@@ -786,6 +787,7 @@ export type ExperimentalSessionLogOutput =
             readonly location: { readonly directory: AbsolutePath; readonly workspaceID?: Workspace.ID | undefined }
             readonly subpath?: RelativePath | undefined
             readonly parentID?: Session.ID | undefined
+            readonly subagent?: boolean | undefined
             readonly slug: string
             readonly title?: string | undefined
             readonly agent?: Agent.ID | undefined

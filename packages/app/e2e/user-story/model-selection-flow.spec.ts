@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
 import { project, provider, sessionHref } from "../utils/app"
-import { mockOpenCodeServer } from "../utils/mock-server"
+import { mockAicraftServer } from "../utils/mock-server"
 import { expectAppVisible } from "../utils/waits"
 import { openSession } from "../utils/workspace"
 
-const directory = "C:/OpenCode/NewProject"
+const directory = "C:/AI Craft/NewProject"
 
 test("creates a session in a new project and selects its model", async ({ page }) => {
   // An empty draft must remain usable when the file viewer is unavailable.
@@ -14,7 +14,7 @@ test("creates a session in a new project and selects its model", async ({ page }
   const created = project({ id: "proj_model_selection_flow", directory, name: "NewProject" })
   // The server knows no project until the user adds this one.
   const projects: unknown[] = []
-  await mockOpenCodeServer(page, {
+  await mockAicraftServer(page, {
     directory,
     project: created,
     projects: () => projects,
@@ -26,7 +26,7 @@ test("creates a session in a new project and selects its model", async ({ page }
       all: [
         {
           id: "opencode",
-          name: "OpenCode",
+          name: "AI Craft",
           models: {
             "free-model": {
               id: "free-model",
@@ -38,7 +38,7 @@ test("creates a session in a new project and selects its model", async ({ page }
         },
         {
           id: "opencode-go",
-          name: "OpenCode Go",
+          name: "AI Craft Go",
           models: {
             "go-model-1": {
               id: "go-model-1",
@@ -55,7 +55,7 @@ test("creates a session in a new project and selects its model", async ({ page }
     sessions: [],
     pageMessages: () => ({ items: [] }),
     // Listings are requested by absolute path and returned relative to the stable Location.
-    fileList: (path) => (path === "C:/OpenCode" ? [{ path: "./", type: "directory", ignored: false }] : []),
+    fileList: (path) => (path === "C:/AI Craft" ? [{ path: "./", type: "directory", ignored: false }] : []),
   })
   await page.addInitScript(() => {
     localStorage.setItem(
@@ -81,7 +81,7 @@ test("creates a session in a new project and selects its model", async ({ page }
   const listing = page.waitForRequest((request) => {
     const url = new URL(request.url())
 
-    return url.pathname === "/api/fs/list" && url.searchParams.get("path") === "C:/OpenCode"
+    return url.pathname === "/api/fs/list" && url.searchParams.get("path") === "C:/AI Craft"
   })
 
   await picker.getByRole("button", { name: "Parent", exact: true }).click()
@@ -90,7 +90,7 @@ test("creates a session in a new project and selects its model", async ({ page }
   await expect(directoryItem).toBeVisible()
   await directoryItem.click()
   await expect(directoryItem).toHaveAttribute("aria-selected", "true")
-  await expect(picker.getByText("C:\\OpenCode\\NewProject", { exact: true })).toBeVisible()
+  await expect(picker.getByText("C:\\AI Craft\\NewProject", { exact: true })).toBeVisible()
   const selectFolder = picker.getByRole("button", { name: "Select folder", exact: true })
   await expect(selectFolder).toBeEnabled()
   await selectFolder.click()
@@ -160,24 +160,24 @@ test("restores each existing session's model and variant when switching tabs", a
     await expect(slider).toHaveAttribute("aria-valuetext", label)
     await page.keyboard.press("Escape")
   }
-  await expect(modelControl).toHaveText("OpenCode / Model A")
+  await expect(modelControl).toHaveText("AI Craft / Model A")
   await expectVariant("balanced")
   await chooseVariant("high")
 
   await page.locator(`[data-titlebar-tab-link][href="${hrefB}"]`).click()
   await expect(page).toHaveURL(hrefB)
-  await expect(modelControl).toHaveText("OpenCode / Model B")
+  await expect(modelControl).toHaveText("AI Craft / Model B")
   await expectVariant("balanced")
   await chooseVariant("high")
 
   // A new draft starts from the current session's non-default model and chosen variant.
   await page.getByRole("button", { name: "New session", exact: true }).click()
   await expect(page).toHaveURL(/\/new-session\?draftId=/)
-  await expect(modelControl).toHaveText("OpenCode / Model B")
+  await expect(modelControl).toHaveText("AI Craft / Model B")
   await expectVariant("high")
 
   await page.locator(`[data-titlebar-tab-link][href="${hrefA}"]`).click()
   await expect(page).toHaveURL(hrefA)
-  await expect(modelControl).toHaveText("OpenCode / Model A")
+  await expect(modelControl).toHaveText("AI Craft / Model A")
   await expectVariant("high")
 })

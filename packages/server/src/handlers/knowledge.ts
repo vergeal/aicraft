@@ -1,5 +1,5 @@
-import { Knowledge } from "@opencode/core/knowledge"
-import { InvalidRequestError } from "@opencode/protocol/errors"
+import { Knowledge } from "@aicraft/core/knowledge"
+import { InvalidRequestError } from "@aicraft/protocol/errors"
 import { HttpApiBuilder } from "effect/http-api"
 import { Effect } from "effect"
 import { Api } from "../api"

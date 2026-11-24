@@ -65,7 +65,7 @@ schema / util / theme       叶子，无内部依赖
 
 硬约束：
 
-- `session-ui` 不得 import `@opencode/core`、`@opencode/sdk`、`@opencode/server`，有 `import-boundaries.test.ts` 守护。
+- `session-ui` 不得 import `@aicraft/core`、`@aicraft/sdk`、`@aicraft/server`，有 `import-boundaries.test.ts` 守护。
 - `client` 可以依赖 Schema 和 Protocol，**不能**依赖 Core 或 Server。
 - `sdk` 组合 Client、Core、Server。
 - 运行时依赖方向：Schema → Core 与 Protocol → Server。

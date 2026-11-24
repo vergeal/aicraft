@@ -1,9 +1,9 @@
 import path from "path"
 import { describe, expect, test } from "bun:test"
-import type { ConfigDiscovery } from "@opencode/core/config/discovery"
-import { ConfigWatch } from "@opencode/core/config/watch"
-import { AbsolutePath } from "@opencode/core/schema"
-import { FSUtil } from "@opencode/util/fs-util"
+import type { ConfigDiscovery } from "@aicraft/core/config/discovery"
+import { ConfigWatch } from "@aicraft/core/config/watch"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { FSUtil } from "@aicraft/util/fs-util"
 
 const project = path.resolve("watch-plan-project")
 const root = AbsolutePath.make(path.join(project, ".aicraft"))
@@ -20,7 +20,7 @@ describe("ConfigWatch.plan", () => {
     expect(Array.from(missing.values())).toEqual([
       { path: project, type: "entries", names: [".agents", ".aicraft", ".claude", "aicraft.json", "aicraft.jsonc"] },
     ])
-    const system = AbsolutePath.make(path.join(project, "system-opencode"))
+    const system = AbsolutePath.make(path.join(project, "system-aicraft"))
     const present = ConfigWatch.plan({
       ...sources,
       system: { path: system, present: true },
@@ -32,7 +32,7 @@ describe("ConfigWatch.plan", () => {
       {
         path: project,
         type: "entries",
-        names: [".agents", ".aicraft", ".claude", "aicraft.json", "aicraft.jsonc", "system-opencode"],
+        names: [".agents", ".aicraft", ".claude", "aicraft.json", "aicraft.jsonc", "system-aicraft"],
       },
     ])
   })

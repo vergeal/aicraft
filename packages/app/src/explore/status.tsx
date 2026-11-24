@@ -1,4 +1,4 @@
-import { Icon, type IconProps } from "@opencode/ui/icon"
+import { Icon, type IconProps } from "@aicraft/ui/icon"
 import type { JSX } from "solid-js"
 
 /** A quiet empty or error state shared by the catalog pages. */

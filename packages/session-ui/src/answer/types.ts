@@ -3,7 +3,7 @@ import type {
   PromptAttachment,
   PromptSkillAttachment,
   SessionMessageAssistant,
-} from "@opencode/client/promise"
+} from "@aicraft/client/promise"
 
 /** Where a node stands in the group tree, outermost first. Ported from the DSH conversation model. */
 export type GroupTree = "exchange" | "input" | "turn" | "process"

@@ -1,7 +1,7 @@
-import { useI18n } from "@opencode/ui/context/i18n"
-import { abort } from "@opencode/util/abort"
-import { checksum } from "@opencode/util/encode"
-import { getFilename, parsePathLineSuffix } from "@opencode/util/path"
+import { useI18n } from "@aicraft/ui/context/i18n"
+import { abort } from "@aicraft/util/abort"
+import { checksum } from "@aicraft/util/encode"
+import { getFilename, parsePathLineSuffix } from "@aicraft/util/path"
 import {
   type ComponentProps,
   createEffect,
@@ -14,10 +14,10 @@ import {
   splitProps,
 } from "solid-js"
 import { isServer, render } from "solid-js/web"
-import { Icon } from "@opencode/ui/icon"
-import { IconButton } from "@opencode/ui/icon-button"
-import { Tooltip } from "@opencode/ui/tooltip"
-import { parseSmallMarkdown } from "@opencode/ui/context/marked-base"
+import { Icon } from "@aicraft/ui/icon"
+import { IconButton } from "@aicraft/ui/icon-button"
+import { Tooltip } from "@aicraft/ui/tooltip"
+import { parseSmallMarkdown } from "@aicraft/ui/context/marked-base"
 import { canReusePendingBlock, completedProjection } from "./markdown-projection"
 import type { Block, Projection } from "./markdown-stream"
 import {

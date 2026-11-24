@@ -1,6 +1,6 @@
 export * as WebSearchTinyFish from "./tinyfish.js"
 
-import { define } from "@opencode/plugin/effect/plugin"
+import { define } from "@aicraft/plugin/effect/plugin"
 import { Duration, Effect, Option, Schema, Scope } from "effect"
 import { HttpClient, HttpClientRequest } from "effect/http"
 import { App } from "../../app.js"
@@ -48,7 +48,7 @@ const InitializedNotification = Schema.Struct({
 })
 
 export const Plugin = define<HttpClient.HttpClient | Scope.Scope>({
-  id: "opencode.websearch.tinyfish",
+  id: "aicraft.websearch.tinyfish",
   effect: Effect.fn("WebSearchTinyFish.Plugin")(function* (ctx) {
     const http = yield* HttpClient.HttpClient
     yield* WebSearchProvider.register(ctx, {

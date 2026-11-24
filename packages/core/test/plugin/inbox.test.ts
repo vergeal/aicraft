@@ -1,6 +1,6 @@
 import { expect } from "bun:test"
-import { KV } from "@opencode/core/kv"
-import { PluginInbox } from "@opencode/core/plugin/inbox"
+import { KV } from "@aicraft/core/kv"
+import { PluginInbox } from "@aicraft/core/plugin/inbox"
 import { Effect } from "effect"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"

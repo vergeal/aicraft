@@ -11,7 +11,7 @@ import {
 
 const openai = { id: "openai" }
 
-const opencode = { id: "opencode" }
+const aicraft = { id: "opencode" }
 
 const consoleGoogle = { id: "console-google" }
 
@@ -26,7 +26,7 @@ const disconnectConsole: ProviderDisconnectEvent = {
   type: "disconnect.requested",
   providerIDs: ["opencode", "console-google"],
   integrationID: "opencode",
-  providerName: "OpenCode",
+  providerName: "AI Craft",
 }
 
 function replay(events: ProviderDisconnectEvent[]) {
@@ -68,9 +68,9 @@ test("a failed request restores every Console provider with one toast", () => {
     { type: "disconnect.failed", attempt: 1, reason: { kind: "request", error } },
   ])
 
-  expect(connectedProviders(result.state, [opencode, consoleGoogle])).toEqual([opencode, consoleGoogle])
+  expect(connectedProviders(result.state, [aicraft, consoleGoogle])).toEqual([aicraft, consoleGoogle])
   expect(result.effects.filter((effect) => effect.type === "toast.failed")).toEqual([
-    { type: "toast.failed", providerName: "OpenCode", reason: { kind: "request", error } },
+    { type: "toast.failed", providerName: "AI Craft", reason: { kind: "request", error } },
   ])
 })
 
@@ -121,7 +121,7 @@ test("reconnecting the Console clears its providers only", () => {
     { type: "provider.reconnected", providerID: "opencode" },
   ])
 
-  expect(connectedProviders(result.state, [opencode, consoleGoogle, openai])).toEqual([opencode, consoleGoogle])
+  expect(connectedProviders(result.state, [aicraft, consoleGoogle, openai])).toEqual([aicraft, consoleGoogle])
   expect(providerRow(result.state, "openai")).toMatchObject({ status: "removing", attempt: 2 })
 })
 

@@ -1,7 +1,7 @@
 import { createMemo, createSignal, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
-import { createKeyed, SearchProvider, SettingsPage, Style, type Plugin } from "@opencode/plugin/gui"
-import { Memory } from "@opencode/schema/memory"
+import { createKeyed, SearchProvider, SettingsPage, Style, type Plugin } from "@aicraft/plugin/gui"
+import { Memory } from "@aicraft/schema/memory"
 import type definition from "./index"
 import styles from "./memory.css?inline"
 

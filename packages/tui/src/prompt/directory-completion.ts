@@ -1,11 +1,11 @@
-import type { KeymapCommand } from "@opencode/plugin/tui/context"
-import type { OpenCodeClient } from "@opencode/client"
+import type { KeymapCommand } from "@aicraft/plugin/tui/context"
+import type { AicraftClient } from "@aicraft/client"
 import { measureEditText, type WidthMethod } from "@opentui/core"
 import path from "path"
 import { parseSlashHead } from "./parse"
 
 export async function directoryAutocomplete(
-  file: Pick<OpenCodeClient["file"], "list">,
+  file: Pick<AicraftClient["file"], "list">,
   location: { directory: string },
   query: string,
   home: string,

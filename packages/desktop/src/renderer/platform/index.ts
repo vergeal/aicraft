@@ -1,4 +1,4 @@
-import type { Platform } from "@opencode/app/desktop"
+import type { Platform } from "@aicraft/app/desktop"
 import type { ElectronAPI } from "../api-types"
 import type { DiagnosticsMainSnapshot } from "../../shared/diagnostics"
 import { setPinchZoomEnabled, setZoomLevel, webviewZoom, zoomLevel } from "../window/zoom"

@@ -1,47 +1,47 @@
 import { describe, expect } from "bun:test"
-import { FileSystem } from "@opencode/core/filesystem"
+import { FileSystem } from "@aicraft/core/filesystem"
 import { Clock, DateTime, Effect, Fiber, Latch, Layer, LayerMap, Queue, Schema, Sink, Stream } from "effect"
 import { ChildProcessSpawner } from "effect/process"
 import { ExitCode, makeHandle, ProcessId } from "effect/process/ChildProcessSpawner"
 import { TestClock } from "effect/testing"
 import { eq } from "drizzle-orm"
-import { Agent } from "@opencode/core/agent"
-import { Database } from "@opencode/core/database/database"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { Environment } from "@opencode/core/environment/index"
-import { FileAccess } from "@opencode/core/file-access"
-import { Image } from "@opencode/core/image"
-import { Instance } from "@opencode/core/instance/service"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { makeGlobalNode } from "@opencode/util/effect/app-node"
-import { Bus } from "@opencode/core/bus"
-import { Location } from "@opencode/core/location"
-import { Permission } from "@opencode/core/permission"
-import { PermissionSaved } from "@opencode/core/permission/saved"
-import { Project } from "@opencode/core/project"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Schedule } from "@opencode/core/schedule"
-import { ScheduleTable } from "@opencode/core/schedule/sql"
-import { Session } from "@opencode/core/session"
-import { SessionMessage } from "@opencode/core/session/message"
-import { SessionProjector } from "@opencode/core/session/projector"
-import { SessionExecution } from "@opencode/core/session/execution"
-import { SessionInbox } from "@opencode/core/session/inbox"
-import { SessionInboxTable, SessionTable } from "@opencode/core/session/sql"
-import { SessionStore } from "@opencode/core/session/store"
-import { ShellSelect } from "@opencode/core/shell/select"
-import { Tool } from "@opencode/core/tool"
-import { McpTool } from "@opencode/core/tool/mcp"
-import { LocationServiceMap } from "@opencode/core/location-service-map"
-import type { LocationServices } from "@opencode/core/location-services"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { Snapshot } from "@opencode/core/snapshot"
-import { Skill } from "@opencode/core/skill"
-import { Config } from "@opencode/core/config"
-import { Document, Info } from "@opencode/schema/config"
-import { ConfigExperimental } from "@opencode/schema/config/experimental"
+import { Agent } from "@aicraft/core/agent"
+import { Database } from "@aicraft/core/database/database"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { Environment } from "@aicraft/core/environment/index"
+import { FileAccess } from "@aicraft/core/file-access"
+import { Image } from "@aicraft/core/image"
+import { Instance } from "@aicraft/core/instance/service"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { makeGlobalNode } from "@aicraft/util/effect/app-node"
+import { Bus } from "@aicraft/core/bus"
+import { Location } from "@aicraft/core/location"
+import { Permission } from "@aicraft/core/permission"
+import { PermissionSaved } from "@aicraft/core/permission/saved"
+import { Project } from "@aicraft/core/project"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Schedule } from "@aicraft/core/schedule"
+import { ScheduleTable } from "@aicraft/core/schedule/sql"
+import { Session } from "@aicraft/core/session"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { SessionProjector } from "@aicraft/core/session/projector"
+import { SessionExecution } from "@aicraft/core/session/execution"
+import { SessionInbox } from "@aicraft/core/session/inbox"
+import { SessionInboxTable, SessionTable } from "@aicraft/core/session/sql"
+import { SessionStore } from "@aicraft/core/session/store"
+import { ShellSelect } from "@aicraft/core/shell/select"
+import { Tool } from "@aicraft/core/tool"
+import { McpTool } from "@aicraft/core/tool/mcp"
+import { LocationServiceMap } from "@aicraft/core/location-service-map"
+import type { LocationServices } from "@aicraft/core/location-services"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { Snapshot } from "@aicraft/core/snapshot"
+import { Skill } from "@aicraft/core/skill"
+import { Config } from "@aicraft/core/config"
+import { Document, Info } from "@aicraft/schema/config"
+import { ConfigExperimental } from "@aicraft/schema/config/experimental"
 import { location } from "./fixture/location"
 import { testEffect } from "./lib/effect"
 import { imagePassthrough } from "./lib/image"
@@ -1461,8 +1461,8 @@ describe("Schedule", () => {
         expect(yield* bad("return await tools.slack.dangerous_edit({})")).toMatchObject({
           reason: "Tool slack.dangerous_edit cannot be used inside a schedule check",
         })
-        expect(yield* bad("return await tools.opencode.schedule_create({})")).toMatchObject({
-          reason: "Tool opencode.schedule_create cannot be used inside a schedule check",
+        expect(yield* bad("return await tools.aicraft.schedule_create({})")).toMatchObject({
+          reason: "Tool aicraft.schedule_create cannot be used inside a schedule check",
         })
 
         agentRules = [{ action: "execute", resource: "*", effect: "deny" }]
@@ -1521,7 +1521,7 @@ describe("Schedule", () => {
         yield* Effect.repeat(Effect.yieldNow, { times: 5 })
 
         // Insert directly into SQLite (bypassing primary.create so primary's in-memory doorbell is never opened)
-        // to simulate a short-lived `opencode serve` / `--standalone` writing a schedule and exiting.
+        // to simulate a short-lived `aicraft serve` / `--standalone` writing a schedule and exiting.
         const now = yield* Clock.currentTimeMillis
         const externalID = Schedule.ID.create()
         yield* db

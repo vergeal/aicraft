@@ -88,11 +88,11 @@ export const importLegacyStores = Effect.fn("DesktopStorage.importLegacyStores")
   return { imported: rows.length, removed: candidates.map((file) => file.name) }
 })
 
-// Store files written before the rename keep the `opencode.` prefix, so both spellings are imported.
+// Store files written before the rename keep the `aicraft.` prefix, so both spellings are imported.
 function isStoreFile(name: string) {
-  return name === "default.dat" || /^(?:opencode|aicraft)\..+\.dat$/.test(name)
+  return name === "default.dat" || /^(?:aicraft|aicraft)\..+\.dat$/.test(name)
 }
 
 function isDraft(name: string) {
-  return name.startsWith("opencode.draft.") || name.startsWith("aicraft.draft.")
+  return name.startsWith("aicraft.draft.") || name.startsWith("aicraft.draft.")
 }

@@ -1,6 +1,6 @@
-import { useDialog } from "@opencode/ui/context/dialog"
-import { useI18n } from "@opencode/ui/context/i18n"
-import { ImagePreview } from "@opencode/ui/image-preview"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { useI18n } from "@aicraft/ui/context/i18n"
+import { ImagePreview } from "@aicraft/ui/image-preview"
 
 export function createImagePreview() {
   const dialog = useDialog()

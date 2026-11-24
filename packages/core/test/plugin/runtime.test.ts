@@ -5,11 +5,11 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { deflateRawSync } from "node:zlib"
 import { Effect } from "effect"
-import { PluginRuntime } from "@opencode/core/plugin/runtime"
+import { PluginRuntime } from "@aicraft/core/plugin/runtime"
 
 /** An isolated `home`, so every test's environment directory is its own. */
 async function home() {
-  const root = await realpath(await mkdtemp(path.join(tmpdir(), "opencode-plugin-runtime-")))
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), "aicraft-plugin-runtime-")))
   return { path: root, [Symbol.asyncDispose]: () => rm(root, { recursive: true, force: true }) }
 }
 
@@ -33,7 +33,7 @@ async function wheel(directory: string) {
   )
   await writeFile(
     path.join(dist, "WHEEL"),
-    "Wheel-Version: 1.0\nGenerator: opencode-test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+    "Wheel-Version: 1.0\nGenerator: aicraft-test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
   )
   await writeFile(
     path.join(dist, "RECORD"),
@@ -341,12 +341,12 @@ describe("PluginRuntime.prepare", () => {
 })
 
 describe("PluginRuntime.prepare uv resolution", () => {
-  it("uses OPENCODE_UV_PATH without downloading", async () => {
+  it("uses AICRAFT_UV_PATH without downloading", async () => {
     await using root = await home()
     const explicit = await stubAt(path.join(root.path, "uv"))
-    const previous = process.env.OPENCODE_UV_PATH
+    const previous = process.env.AICRAFT_UV_PATH
     let downloads = 0
-    process.env.OPENCODE_UV_PATH = explicit
+    process.env.AICRAFT_UV_PATH = explicit
     try {
       const runtime = await prepare({
         home: root.path,
@@ -365,8 +365,8 @@ describe("PluginRuntime.prepare uv resolution", () => {
       expect(runtime.status).toBe("failed")
       expect(runtime.status === "failed" && runtime.error).toContain("stub uv: venv")
     } finally {
-      if (previous === undefined) delete process.env.OPENCODE_UV_PATH
-      else process.env.OPENCODE_UV_PATH = previous
+      if (previous === undefined) delete process.env.AICRAFT_UV_PATH
+      else process.env.AICRAFT_UV_PATH = previous
     }
   }, 120_000)
 
@@ -492,11 +492,11 @@ describe("PluginRuntime.prepare uv resolution", () => {
     expect(error).toContain("github.com")
   }, 120_000)
 
-  it("downloads from OPENCODE_UV_MIRROR when it is set", async () => {
+  it("downloads from AICRAFT_UV_MIRROR when it is set", async () => {
     await using root = await home()
     const requests: string[] = []
-    const previous = process.env.OPENCODE_UV_MIRROR
-    process.env.OPENCODE_UV_MIRROR = "https://mirror.example"
+    const previous = process.env.AICRAFT_UV_MIRROR
+    process.env.AICRAFT_UV_MIRROR = "https://mirror.example"
     try {
       await prepare({
         home: root.path,
@@ -514,8 +514,8 @@ describe("PluginRuntime.prepare uv resolution", () => {
         `https://mirror.example/github-release/astral-sh/uv/${UV_TEST_VERSION}/uv-`,
       )
     } finally {
-      if (previous === undefined) delete process.env.OPENCODE_UV_MIRROR
-      else process.env.OPENCODE_UV_MIRROR = previous
+      if (previous === undefined) delete process.env.AICRAFT_UV_MIRROR
+      else process.env.AICRAFT_UV_MIRROR = previous
     }
   }, 120_000)
 
@@ -554,8 +554,8 @@ describe("PluginRuntime.prepare uv resolution", () => {
   it("hands the mirrors to uv", async () => {
     await using root = await home()
     const explicit = await stubAt(path.join(root.path, "uv"))
-    const previous = process.env.OPENCODE_UV_PATH
-    process.env.OPENCODE_UV_PATH = explicit
+    const previous = process.env.AICRAFT_UV_PATH
+    process.env.AICRAFT_UV_PATH = explicit
     try {
       // The stub prints its environment, which is the only place the child process can prove what it received.
       const runtime = await prepare({
@@ -569,16 +569,16 @@ describe("PluginRuntime.prepare uv resolution", () => {
       // Both index names, because an older uv on PATH reads the one 0.13 renamed.
       expect(error.split("https://mirrors.ustc.edu.cn/pypi/simple")).toHaveLength(3)
     } finally {
-      if (previous === undefined) delete process.env.OPENCODE_UV_PATH
-      else process.env.OPENCODE_UV_PATH = previous
+      if (previous === undefined) delete process.env.AICRAFT_UV_PATH
+      else process.env.AICRAFT_UV_PATH = previous
     }
   }, 120_000)
 
   it("hands the index to the fallback pip", async () => {
     await using root = await home()
-    const previous = process.env.OPENCODE_PYPI_INDEX
+    const previous = process.env.AICRAFT_PYPI_INDEX
     // A `file:` index keeps pip off the network while still printing the index it was told to use.
-    process.env.OPENCODE_PYPI_INDEX = "file:///nonexistent-opencode-index"
+    process.env.AICRAFT_PYPI_INDEX = "file:///nonexistent-aicraft-index"
     try {
       const runtime = await prepare({
         home: root.path,
@@ -592,10 +592,10 @@ describe("PluginRuntime.prepare uv resolution", () => {
         },
       })
       expect(runtime.status).toBe("failed")
-      expect(runtime.status === "failed" && runtime.error).toContain("file:///nonexistent-opencode-index")
+      expect(runtime.status === "failed" && runtime.error).toContain("file:///nonexistent-aicraft-index")
     } finally {
-      if (previous === undefined) delete process.env.OPENCODE_PYPI_INDEX
-      else process.env.OPENCODE_PYPI_INDEX = previous
+      if (previous === undefined) delete process.env.AICRAFT_PYPI_INDEX
+      else process.env.AICRAFT_PYPI_INDEX = previous
     }
   }, 180_000)
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/plugin-hyt",
+  "name": "@aicraft/plugin-hyt",
   "version": "0.6.7",
   "description": "虹云通 AI 运维助手：读本地消息库、收发消息、积累知识库、学习说话风格并收集任务",
   "type": "module",
@@ -21,8 +21,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode/plugin": "workspace:*",
-    "@opencode/schema": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/schema": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

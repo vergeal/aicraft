@@ -1,4 +1,4 @@
-import { createSnapshotCache, diagnostics } from "@opencode/diagnostics"
+import { createSnapshotCache, diagnostics } from "@aicraft/diagnostics"
 
 // Wires an app-owned state slice into the dump's `state` section. The read function is injected because
 // the stores live outside the diagnostics package; this file only captures, trims, redacts and diffs,

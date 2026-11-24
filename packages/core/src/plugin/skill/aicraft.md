@@ -25,7 +25,7 @@ V2 只以 <https://opencode.ai/v2/docs/> 文档作为真相来源。不要使用
 
 关于终端界面、命令行调用、`run`、`mini`、终端 provider 或其他 CLI 行为的问题，抓取 [CLI 指南](https://opencode.ai/v2/docs/cli) 以及该小节链接的相关页面。
 
-CLI 和 TUI 的偏好设置与 AI Craft 的服务器和项目配置是分开的。它们位于全局 `~/.config/aicraft/cli.json`，或在设置了 `XDG_CONFIG_HOME` 时位于 `$XDG_CONFIG_HOME/aicraft/cli.json`。没有项目本地的 CLI 配置。设置 `OPENCODE_CLI_CONFIG_CONTENT` 可以把内联 JSON 合并到全局设置之上。大多数偏好也可以在 TUI 中按 `Ctrl+P` 并选择 **Open settings** 来更改。
+CLI 和 TUI 的偏好设置与 AI Craft 的服务器和项目配置是分开的。它们位于全局 `~/.config/aicraft/cli.json`，或在设置了 `XDG_CONFIG_HOME` 时位于 `$XDG_CONFIG_HOME/aicraft/cli.json`。没有项目本地的 CLI 配置。设置 `AICRAFT_CLI_CONFIG_CONTENT` 可以把内联 JSON 合并到全局设置之上。大多数偏好也可以在 TUI 中按 `Ctrl+P` 并选择 **Open settings** 来更改。
 
 ### [设置](https://opencode.ai/v2/docs/cli/config)
 
@@ -66,11 +66,11 @@ AI Craft 的服务器和项目配置使用 JSON 或 JSONC。包含已发布的 s
 在 `mcp.servers` 下配置 MCP 服务器。优先使用 CLI，因为它会保留无关配置。当用户要求为自己设置服务而不局限于当前项目时，使用 `--global`；当他们明确想要项目本地配置时，则省略它。
 
 ```sh
-opencode mcp add <name> --global --url <remote-url>
-opencode mcp list
+aicraft mcp add <name> --global --url <remote-url>
+aicraft mcp list
 ```
 
-远程服务器默认使用 OAuth。如果 `mcp list` 报告某个服务器需要认证，告诉用户运行 `/mcps`、选择该服务器并登录。不要通过 shell 工具运行 `opencode mcp auth`：它会启动一个交互流程，其授权链接可能被隐藏在后台进程输出中。改用面向用户的 MCP 界面。
+远程服务器默认使用 OAuth。如果 `mcp list` 报告某个服务器需要认证，告诉用户运行 `/mcps`、选择该服务器并登录。不要通过 shell 工具运行 `aicraft mcp auth`：它会启动一个交互流程，其授权链接可能被隐藏在后台进程输出中。改用面向用户的 MCP 界面。
 
 在连接状态确认已连接之前，把该服务器报告为已配置但等待登录。
 
@@ -93,13 +93,13 @@ AI Craft 使用客户端-服务器架构。TUI 等界面连接到一个后台 AI
 AI Craft 通常会自动发现或启动共享的后台服务。只有它卡住或不健康时才重启，不要为了应用配置改动而重启：
 
 ```sh
-opencode service restart
+aicraft service restart
 ```
 
 重启后检查其状态：
 
 ```sh
-opencode service status
+aicraft service status
 ```
 
 ## [API](https://opencode.ai/v2/docs/api)
@@ -111,14 +111,14 @@ AI Craft 从服务器暴露一个 HTTP API。该 API 由运行中的服务器在
 用 HTTP 方法和路径调用端点：
 
 ```sh
-opencode api get /api/info
+aicraft api get /api/info
 ```
 
 用 `--data` 或 `-d` 传递请求体，用 `--header` 或 `-H` 传递额外的头部：
 
 ```sh
-opencode api post /api/example --data '{"key":"value"}'
-opencode api get /api/example --header 'X-Example:value'
+aicraft api post /api/example --data '{"key":"value"}'
+aicraft api get /api/example --header 'X-Example:value'
 ```
 
 请求体默认使用 `Content-Type: application/json`。当 AI Craft 连接到显式服务器而不是其托管的后台服务时，使用相同的已配置服务器和认证上下文，而不是另外构造一个未认证的请求。
@@ -129,7 +129,7 @@ opencode api get /api/example --header 'X-Example:value'
 
 关于通过网络把应用连接到 AI Craft 的问题，在回答之前抓取完整的[客户端指南](https://opencode.ai/v2/docs/build/client)。
 
-`@opencode/client` 是 AI Craft HTTP API 的生成式 TypeScript 客户端。它的方法和类型来自与 API 参考相同的契约。默认入口暴露基于 Promise 的资源客户端和用于流式端点的异步可迭代对象。`@opencode/client/effect` 入口暴露带类型的 Effect、Stream 和解码后的 AI Craft schema 值。它的 `Service` API 可以从 Node 应用发现、启动、停止本地后台服务并与之认证。
+`@aicraft/client` 是 AI Craft HTTP API 的生成式 TypeScript 客户端。它的方法和类型来自与 API 参考相同的契约。默认入口暴露基于 Promise 的资源客户端和用于流式端点的异步可迭代对象。`@aicraft/client/effect` 入口暴露带类型的 Effect、Stream 和解码后的 AI Craft schema 值。它的 `Service` API 可以从 Node 应用发现、启动、停止本地后台服务并与之认证。
 
 ## [SDK](https://opencode.ai/v2/docs/build/sdk)
 
@@ -141,10 +141,10 @@ Effect 应用请使用 [Effect SDK 指南](https://opencode.ai/v2/docs/build/sdk
 
 AI Craft 运行一个客户端和一个后台服务器。先确定问题属于客户端、共享服务器还是某个项目。
 
-- 用 `opencode service status` 检查服务，并用 `opencode api get /api/info` 验证 API。
-- 与 `opencode --standalone` 对比，后者用私有服务器运行 TUI，可用来隔离共享服务的问题。
+- 用 `aicraft service status` 检查服务，并用 `aicraft api get /api/info` 验证 API。
+- 与 `aicraft --standalone` 对比，后者用私有服务器运行 TUI，可用来隔离共享服务的问题。
 - 检查 `~/.local/share/aicraft/log/aicraft.log`。用 `role=cli` 过滤客户端启动，用 `role=server` 过滤会话、provider、插件、权限和工具。
-- 正常日志不足时，用 `OPENCODE_LOG_LEVEL=DEBUG` 运行一次复现。
+- 正常日志不足时，用 `AICRAFT_LOG_LEVEL=DEBUG` 运行一次复现。
 - 诊断问题时不要删除或编辑数据库、服务注册或服务配置。用外部工具检查持久数据之前先备份。
 - 在分享诊断信息之前，涂掉 API key、授权头、提示词、文件内容和其他敏感数据。
 

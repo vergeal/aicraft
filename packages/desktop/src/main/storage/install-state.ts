@@ -1,6 +1,6 @@
 export function hasExistingAppState(entries: Array<{ name: string; directory: boolean }>) {
   return entries.some((entry) => {
-    if (entry.name === "aicraft.settings" || entry.name === "opencode.settings") return true
+    if (entry.name === "aicraft.settings" || entry.name === "aicraft.settings") return true
 
     if (entry.name.endsWith(".dat")) return true
 

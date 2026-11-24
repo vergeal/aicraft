@@ -1,9 +1,9 @@
 import { Effect } from "effect"
 import { ChildProcess } from "effect/process"
-import { isRecord } from "@opencode/util/record"
-import { FSUtil } from "@opencode/util/fs-util"
-import { Npm } from "@opencode/util/npm"
-import { AppProcess } from "@opencode/util/process"
+import { isRecord } from "@aicraft/util/record"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { Npm } from "@aicraft/util/npm"
+import { AppProcess } from "@aicraft/util/process"
 import { which } from "../util/which.js"
 
 export interface Info {

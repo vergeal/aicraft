@@ -1,4 +1,4 @@
-# OpenCode Changelog
+# AI Craft Changelog
 
 The changelog Worker renders the root `CHANGELOG.md` at `https://opencode.ai/changelog`.
 

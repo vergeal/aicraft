@@ -1,8 +1,8 @@
-export * as OpenCode from "./client.js"
+export * as Aicraft from "./client.js"
 
 import { SharedEvents } from "../shared-events.js"
 import { withTraceparent, type TraceContext } from "../trace.js"
-import { OpenCode } from "./generated/index.js"
+import { Aicraft } from "./generated/index.js"
 import type { ClientOptions as GeneratedClientOptions } from "./generated/client.js"
 import { makeRpc } from "./rpc.js"
 
@@ -15,7 +15,7 @@ export interface ClientOptions extends GeneratedClientOptions {
 
 export function make(options: ClientOptions) {
   const { trace, ...rest } = options
-  const raw = OpenCode.make(
+  const raw = Aicraft.make(
     trace === undefined ? rest : { ...rest, fetch: withTraceparent(rest.fetch ?? globalThis.fetch, trace) },
   )
   const events = SharedEvents.make((signal, onActivity) => raw.event.subscribe(undefined, { signal, onActivity }))

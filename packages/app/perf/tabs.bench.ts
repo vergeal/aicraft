@@ -1,14 +1,14 @@
 // Switching between two open session tabs of 200 long markdown exchanges each (headings, tables, task lists and four
 // highlighted code fences per answer), loaded in full, at 1440×900.
 //
-// Set OPENCODE_PERF_SESSION to a session export (`opencode export <id>`) to add two cases on your own session.
+// Set AICRAFT_PERF_SESSION to a session export (`aicraft export <id>`) to add two cases on your own session.
 import { readFileSync } from "node:fs"
-import type { SessionMessageInfo } from "@opencode/client/promise"
+import type { SessionMessageInfo } from "@aicraft/client/promise"
 import type { Page } from "@playwright/test"
 import { bench, web, type Case } from "@hona/strobe"
 import { pageMessagesFrom, sessionHref } from "../e2e/utils/app"
 import { expected, messages } from "../e2e/utils/markdown-sessions"
-import { mockOpenCodeServer, type MockSession } from "../e2e/utils/mock-server"
+import { mockAicraftServer, type MockSession } from "../e2e/utils/mock-server"
 import { fixture, installTimelineSettings } from "../e2e/utils/session-fixture"
 import { reviewDiffs } from "./fixtures/diffs"
 import { openReview, review } from "./fixtures/review"
@@ -29,9 +29,9 @@ type SessionExport = {
   messages: SessionMessageInfo[]
 }
 
-const exportFile = process.env.OPENCODE_PERF_SESSION
+const exportFile = process.env.AICRAFT_PERF_SESSION
 
-// SAFETY: `opencode export` writes this shape; a file that is not an export fails the first block's load.
+// SAFETY: `aicraft export` writes this shape; a file that is not an export fails the first block's load.
 const exported = exportFile ? (JSON.parse(readFileSync(exportFile, "utf8")) as SessionExport) : undefined
 
 // The destination was rendered before and is cached: switching back and forth. A cached transcript is not fetched
@@ -97,14 +97,14 @@ const cases = {
 export default bench({
   targets: {
     web: web({
-      expect: { title: "OpenCode" },
+      expect: { title: "AI Craft" },
       viewport: { width: 1440, height: 900 },
       async prepare({ case: name, playwright, mock, url }) {
         const server = new URL(url).origin
         const page = cached(playwright.page, mock)
 
         if (exported && name.endsWith("your session")) return mockExport(page, server, exported)
-        await mockOpenCodeServer(page, {
+        await mockAicraftServer(page, {
           server,
           sessions: fixture.sessions,
           provider: name.includes("model catalog") ? catalog(1_200) : fixture.provider,
@@ -186,7 +186,7 @@ async function mockExport(page: Page, server: string, session: NonNullable<typeo
       message.type === "assistant" && message.content.some((part) => part.type === "text" && part.text.trim()),
   )
 
-  await mockOpenCodeServer(page, {
+  await mockAicraftServer(page, {
     server,
     directory,
     project: {

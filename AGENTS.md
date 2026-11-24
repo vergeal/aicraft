@@ -4,7 +4,7 @@
 
 ## 项目形态
 
-- 这是 OpenCode 的二次开发仓库（`vergeal/opencode`），上游是 `anomalyco/opencode`。产品主线是 **Electron 桌面客户端**（`packages/desktop` + `packages/app`），不是 TUI。
+- 这是 AI Craft 的二次开发仓库（`vergeal/aicraft`），上游是 `anomalyco/opencode`。产品主线是 **Electron 桌面客户端**（`packages/desktop` + `packages/app`），不是 TUI。
 - 默认启动客户端：仓库根目录 `bun run dev:desktop`。只改客户端时不要动 TUI、CLI 交互或上游发布流程。
 - 上游 `dev` 只作为同步来源；本地 `dev` 已落后，不要以它为基线。开发基线是 `origin/master`，客户端功能分支从最新 `master` 切出（当前主线分支 `timeline-scroll`）。
 - 不向上游提 PR；提交在自己的 fork 上完成。diff 与 rebase 都以 `origin/master` 为准，不要使用 `origin/dev`。
@@ -84,9 +84,9 @@ const { a, b } = obj
 ### Imports
 
 - Never alias imports. Do not use `import { foo as bar } from "..."` or renamed imports like `resolve as pathResolve`.
-- Never use type-position `import("...")` references such as `Schema.declare<import("@opencode/plugin/effect/plugin").Plugin["effect"]>`. Only when two imports genuinely collide on a name and no other option exists, an aliased type import (`import type { Plugin as PluginDefinition } from "..."`) is permitted as a last resort — still strongly preferred not to.
+- Never use type-position `import("...")` references such as `Schema.declare<import("@aicraft/plugin/effect/plugin").Plugin["effect"]>`. Only when two imports genuinely collide on a name and no other option exists, an aliased type import (`import type { Plugin as PluginDefinition } from "..."`) is permitted as a last resort — still strongly preferred not to.
 - Never use star imports. Do not use `import * as Foo from "..."` or `import type * as Foo from "..."`.
-- If a namespace-style value is needed, import the module's own exported namespace by name, for example `import { Project } from "@opencode/core/project"`, then reference `Project.ID`.
+- If a namespace-style value is needed, import the module's own exported namespace by name, for example `import { Project } from "@aicraft/core/project"`, then reference `Project.ID`.
 - Prefer dynamic imports for heavy modules that are only needed in selected code paths, especially in startup-sensitive entrypoints. Destructure dynamic import bindings near the top of the narrowest scope that needs them so they read like normal imports. Avoid inline chains such as `await import("./module").then((mod) => mod.value())` or `(await import("./module")).value()`. Keep branch-specific imports inside the branch that needs them to preserve lazy loading.
 
 ### Variables

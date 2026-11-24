@@ -11,8 +11,8 @@
   },
   "externals": [
     "effect",
-    "@opencode/plugin",
-    "@opencode/schema"
+    "@aicraft/plugin",
+    "@aicraft/schema"
   ],
   "display": {
     "name": "虹云通助手",

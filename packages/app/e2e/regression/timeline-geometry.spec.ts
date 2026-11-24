@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
-import { timelinePresets } from "@opencode/session-ui/timeline/detail"
+import { timelinePresets } from "@aicraft/session-ui/timeline/detail"
 import { createTwoFilesPatch } from "diff"
 import { seed, sessionHref } from "../utils/app"
 import { fixture, mockStressTimeline } from "../utils/session-fixture"
@@ -31,11 +31,11 @@ const expanded = { editToolPartsExpanded: true, shellToolPartsExpanded: true, sh
 
 const contextTools = [
   { id: "ctx_0100_read", tool: "read", input: { path: "src/recent-a.ts", offset: 0, limit: 120 } },
-  { id: "ctx_0101_glob", tool: "glob", input: { path: "C:/OpenCode/TimelineStability", pattern: "**/*.ts" } },
+  { id: "ctx_0101_glob", tool: "glob", input: { path: "C:/AI Craft/TimelineStability", pattern: "**/*.ts" } },
   {
     id: "ctx_0102_grep",
     tool: "grep",
-    input: { path: "C:/OpenCode/TimelineStability", pattern: "Explored", include: "*.ts" },
+    input: { path: "C:/AI Craft/TimelineStability", pattern: "Explored", include: "*.ts" },
   },
   { id: "ctx_0103_list", tool: "list", input: { path: "src" } },
 ]
@@ -1037,7 +1037,7 @@ test("opens a session where the reader left it", async ({ page }) => {
   const viewport = page.locator('[data-slot="session-timeline-scroll"] .scroll-view__viewport')
   const readSaved = () =>
     page.evaluate(() => {
-      const prefix = "opencode.timeline.position:"
+      const prefix = "aicraft.timeline.position:"
       const stored = Object.keys(localStorage).find((key) => key.startsWith(prefix))
       const raw = stored ? localStorage.getItem(stored) : null
 

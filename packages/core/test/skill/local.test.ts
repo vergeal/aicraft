@@ -11,7 +11,7 @@ afterEach(async () => {
 })
 
 async function home() {
-  const directory = await mkdtemp(path.join(tmpdir(), "opencode-skill-local-"))
+  const directory = await mkdtemp(path.join(tmpdir(), "aicraft-skill-local-"))
   created.push(directory)
   return directory
 }

@@ -1,7 +1,7 @@
 import { createSignal, For, Show } from "solid-js"
-import { usePlugin } from "@opencode/plugin/gui"
-import type { IpcClient } from "@opencode/plugin/gui/main"
-import { uuid } from "@opencode/util/uuid"
+import { usePlugin } from "@aicraft/plugin/gui"
+import type { IpcClient } from "@aicraft/plugin/gui/main"
+import { uuid } from "@aicraft/util/uuid"
 import type {
   Account,
   AnswerValue,

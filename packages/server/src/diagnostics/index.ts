@@ -1,4 +1,4 @@
-import { SlowQuery } from "@opencode/core/database/slow-query"
+import { SlowQuery } from "@aicraft/core/database/slow-query"
 import { traceSegments } from "./segments"
 import { spanSnapshot } from "./spans"
 

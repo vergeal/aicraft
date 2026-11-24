@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
-import { Browser } from "@opencode/plugin-browser/rpc"
-import type { IpcClient } from "@opencode/plugin/gui"
+import { Browser } from "@aicraft/plugin-browser/rpc"
+import type { IpcClient } from "@aicraft/plugin/gui"
 import { openBinding } from "./connection"
 import type { BrowserPane, PaneEvent } from "./ipc"
 

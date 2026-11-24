@@ -6,10 +6,10 @@ import {
   LLMClient,
   isContextOverflowFailure,
   type ToolCall,
-} from "@opencode/ai/effect"
-import type { Agent } from "@opencode/schema/agent"
+} from "@aicraft/ai/effect"
+import type { Agent } from "@aicraft/schema/agent"
 import { Cause, Clock, Data, Effect, Exit, Fiber, Option, Stream } from "effect"
-import { SessionError } from "@opencode/schema/session-error"
+import { SessionError } from "@aicraft/schema/session-error"
 import { Bus } from "../../bus.js"
 import { Permission } from "../../permission.js"
 import { Snapshot } from "../../snapshot.js"
@@ -187,7 +187,7 @@ export const make = Effect.gen(function* () {
         const llmError = llmFailure && !recorded.providerFailed ? toSessionError(llmFailure) : undefined
         const tokens = recorded.finish?.usage
         yield* Effect.annotateCurrentSpan({
-          ...(firstOutputAt === undefined ? {} : { "opencode.llm.first_output_ms": firstOutputAt - started }),
+          ...(firstOutputAt === undefined ? {} : { "aicraft.llm.first_output_ms": firstOutputAt - started }),
           ...(recorded.finish === undefined ? {} : { "gen_ai.response.finish_reasons": [recorded.finish.finish] }),
           ...(tokens?.inputTokens === undefined ? {} : { "gen_ai.usage.input_tokens": tokens.inputTokens }),
           ...(tokens?.outputTokens === undefined ? {} : { "gen_ai.usage.output_tokens": tokens.outputTokens }),

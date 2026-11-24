@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { Browser } from "@opencode/plugin-browser/rpc"
-import { SessionNotFoundError } from "@opencode/protocol/errors"
+import { Browser } from "@aicraft/plugin-browser/rpc"
+import { SessionNotFoundError } from "@aicraft/protocol/errors"
 import {
   attachmentFailure,
   createPaneState,

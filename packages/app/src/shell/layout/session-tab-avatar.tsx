@@ -1,5 +1,5 @@
 import type { LocalProject } from "@/shell/state/layout"
-import { ProjectFolder } from "@opencode/ui/project-folder"
+import { ProjectFolder } from "@aicraft/ui/project-folder"
 
 // The project mark never changes while a session works: callers show `ActivityRing` at the row's trailing edge, as
 // session tabs do.

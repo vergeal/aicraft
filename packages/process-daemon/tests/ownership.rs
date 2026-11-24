@@ -9,11 +9,11 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base64::Engine;
-use opencode_pty::daemon::Registration;
-use opencode_pty::protocol::{
+use aicraft_pty::daemon::Registration;
+use aicraft_pty::protocol::{
     AttachmentRole, Envelope, Request, Response, read_frame, write_frame,
 };
-use opencode_pty::service::TerminalInfo;
+use aicraft_pty::service::TerminalInfo;
 
 struct Daemon {
     child: Child,
@@ -25,11 +25,11 @@ struct Daemon {
 impl Daemon {
     fn start() -> Self {
         let root = std::env::temp_dir().join(format!(
-            "opencode-pty-ownership-{:032x}",
+            "aicraft-pty-ownership-{:032x}",
             rand::random::<u128>()
         ));
         let directory = root.join("test");
-        let mut child = Command::new(env!("CARGO_BIN_EXE_opencode-pty"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_aicraft-pty"))
             .args(["daemon", "--name", "test", "--runtime-dir"])
             .arg(&root)
             .stdin(Stdio::null())
@@ -226,7 +226,7 @@ fn owner_loss_stops_terminals_despite_blocked_clients() {
 
 #[test]
 fn subscription_delivers_final_exit_frame_before_closing() {
-    use opencode_pty::protocol::{SubscriptionEvent, read_subscription_event};
+    use aicraft_pty::protocol::{SubscriptionEvent, read_subscription_event};
 
     let mut daemon = Daemon::start();
     let (owner, response) = daemon.own(None);
@@ -312,7 +312,7 @@ fn shutdown_ends_an_idle_subscription() {
 
 #[test]
 fn rename_is_advertised_and_served() {
-    use opencode_pty::protocol::{SubscriptionEvent, read_subscription_event};
+    use aicraft_pty::protocol::{SubscriptionEvent, read_subscription_event};
 
     let mut daemon = Daemon::start();
     assert_eq!(daemon.registration.features, ["rename", "pipe"]);
@@ -562,7 +562,7 @@ fn stop_signals_stop_terminals_and_clean_up() {
                 value.id == probe.id
                     && !matches!(
                         value.lifecycle,
-                        opencode_pty::service::TerminalLifecycle::Running
+                        aicraft_pty::service::TerminalLifecycle::Running
                     )
             });
             if exited {
@@ -581,8 +581,8 @@ fn stop_signals_stop_terminals_and_clean_up() {
 
 #[test]
 fn pipe_processes_survive_handoff_and_stay_out_of_default_lists() {
-    use opencode_pty::protocol::{SubscriptionEvent, read_subscription_event};
-    use opencode_pty::service::ProcessMode;
+    use aicraft_pty::protocol::{SubscriptionEvent, read_subscription_event};
+    use aicraft_pty::service::ProcessMode;
 
     let mut daemon = Daemon::start();
     let (owner, response) = daemon.own(None);
@@ -669,7 +669,7 @@ fn pipe_processes_survive_handoff_and_stay_out_of_default_lists() {
 
 #[test]
 fn pipe_processes_do_not_inherit_the_daemons_blocked_signals() {
-    use opencode_pty::service::{ProcessMode, TerminalLifecycle};
+    use aicraft_pty::service::{ProcessMode, TerminalLifecycle};
 
     let mut daemon = Daemon::start();
     let (_owner, response) = daemon.own(None);

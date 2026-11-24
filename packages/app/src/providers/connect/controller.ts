@@ -1,4 +1,4 @@
-import type { FormAnswer } from "@opencode/client/promise"
+import type { FormAnswer } from "@aicraft/client/promise"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useServerSDK } from "@/runtime/server/client"
@@ -15,7 +15,7 @@ import {
   type ProviderConnectMethod,
 } from "./machine"
 
-// The OpenCode Console account is the `opencode` integration. OpenCode Go is its own integration
+// The AI Craft Console account is the `opencode` integration. AI Craft Go is its own integration
 // and connects with its own methods, the same as the TUI.
 export const CONSOLE_INTEGRATION = "opencode"
 
@@ -190,7 +190,7 @@ export function createProviderConnectionController(options: {
         if (!isConsole || platform.platform !== "desktop")
           return dispatch({ type: "oauth.started", attempt: effect.attempt, authorization: response.data })
         const url = new URL(response.data.url)
-        url.searchParams.set("client_id", "opencode-desktop")
+        url.searchParams.set("client_id", "aicraft-desktop")
         // Lets the Console return link focus the window that started the sign-in.
         url.searchParams.set("return_window", platform.windowID)
         dispatch({ type: "oauth.started", attempt: effect.attempt, authorization: { ...response.data, url: url.href } })

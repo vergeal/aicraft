@@ -1,36 +1,36 @@
 import { describe, expect } from "bun:test"
-import { ai } from "@opencode/ai/effect"
-import { LLMClient, RequestExecutor } from "@opencode/ai/route"
-import { Document, Event, Info } from "@opencode/schema/config"
-import { ConfigPolicy } from "@opencode/schema/config/policy"
-import { Money } from "@opencode/schema/money"
+import { ai } from "@aicraft/ai/effect"
+import { LLMClient, RequestExecutor } from "@aicraft/ai/route"
+import { Document, Event, Info } from "@aicraft/schema/config"
+import { ConfigPolicy } from "@aicraft/schema/config/policy"
+import { Money } from "@aicraft/schema/money"
 import { Effect, Fiber, Layer, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
-import { Agent } from "@opencode/core/agent"
-import { App } from "@opencode/core/app"
-import { Bus } from "@opencode/core/bus"
-import { Config } from "@opencode/core/config"
-import { ConfigIntegration } from "@opencode/core/config/integration"
-import { ConfigMcpPlugin } from "@opencode/core/config/plugin/mcp"
-import { ConfigPolicyPlugin } from "@opencode/core/config/plugin/policy"
-import { ConfigProviderPlugin } from "@opencode/core/config/plugin/provider"
-import { ConfigWebSearchPlugin } from "@opencode/core/config/plugin/websearch"
-import { ConsoleAccess } from "@opencode/core/console-access"
-import { Credential } from "@opencode/core/credential"
-import { Integration } from "@opencode/core/integration"
-import { Mcp } from "@opencode/core/mcp/index"
-import { Model } from "@opencode/core/model"
-import { ModelResolver } from "@opencode/core/model-resolver"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { PluginHost } from "@opencode/core/plugin/host"
-import { OpenAIPlugin } from "@opencode/core/plugin/provider/openai"
-import { OpencodePlugin } from "@opencode/core/plugin/provider/opencode"
-import { Provider } from "@opencode/core/provider"
-import { Session } from "@opencode/core/session"
-import { SessionMessage } from "@opencode/core/session/message"
-import { WebSearch } from "@opencode/core/websearch"
+import { Agent } from "@aicraft/core/agent"
+import { App } from "@aicraft/core/app"
+import { Bus } from "@aicraft/core/bus"
+import { Config } from "@aicraft/core/config"
+import { ConfigIntegration } from "@aicraft/core/config/integration"
+import { ConfigMcpPlugin } from "@aicraft/core/config/plugin/mcp"
+import { ConfigPolicyPlugin } from "@aicraft/core/config/plugin/policy"
+import { ConfigProviderPlugin } from "@aicraft/core/config/plugin/provider"
+import { ConfigWebSearchPlugin } from "@aicraft/core/config/plugin/websearch"
+import { ConsoleAccess } from "@aicraft/core/console-access"
+import { Credential } from "@aicraft/core/credential"
+import { Integration } from "@aicraft/core/integration"
+import { Mcp } from "@aicraft/core/mcp/index"
+import { Model } from "@aicraft/core/model"
+import { ModelResolver } from "@aicraft/core/model-resolver"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { PluginHost } from "@aicraft/core/plugin/host"
+import { OpenAIPlugin } from "@aicraft/core/plugin/provider/openai"
+import { AicraftPlugin } from "@aicraft/core/plugin/provider/aicraft"
+import { Provider } from "@aicraft/core/provider"
+import { Session } from "@aicraft/core/session"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { WebSearch } from "@aicraft/core/websearch"
 import { withEnv } from "../fixture/env"
 import { drain } from "../lib/clock"
 import { eventually } from "../lib/eventually"
@@ -43,7 +43,7 @@ const it = testEffect(PluginTestLayer)
 const addPlugin = Effect.fn(function* () {
   const plugin = yield* Plugin.Service
   const host = yield* PluginHost.make(plugin, "test")
-  yield* OpencodePlugin.effect(host)
+  yield* AicraftPlugin.effect(host)
 })
 
 // The Console's config merges as an integration document; its policies are what organization policy the member gets.
@@ -55,7 +55,7 @@ const consoleDocument = (config: Config.Interface) =>
         entries.find((entry): entry is ConfigIntegration.Document => entry instanceof ConfigIntegration.Document),
       ),
     )
-const consoleSearch = { id: WebSearch.ID.make("opencode"), name: "OpenCode Web Search" }
+const consoleSearch = { id: WebSearch.ID.make("opencode"), name: "AI Craft Web Search" }
 const consolePolicies = (config: Config.Interface) =>
   consoleDocument(config).pipe(Effect.map((document) => document?.info.policies ?? []))
 
@@ -182,7 +182,7 @@ const cost = (input: number, output = 0) => [
   },
 ]
 
-describe("OpencodePlugin", () => {
+describe("AicraftPlugin", () => {
   it.effect("registers account and service account methods", () =>
     Effect.gen(function* () {
       yield* addPlugin()
@@ -191,7 +191,7 @@ describe("OpencodePlugin", () => {
         {
           id: Integration.MethodID.make("device"),
           type: "oauth",
-          label: "OpenCode Console account",
+          label: "AI Craft Console account",
           form: [
             { key: "server", type: "string", format: "uri", hidden: true, default: "https://opencode.ai/console" },
           ],
@@ -313,7 +313,7 @@ describe("OpencodePlugin", () => {
             if (orgID === "org-missing") {
               expect(status).toMatchObject({
                 status: "failed",
-                message: "OpenCode organization not found: org-missing",
+                message: "AI Craft organization not found: org-missing",
               })
               expect(yield* credentials.list(integrationID)).toEqual([])
               expect(config).toEqual([])
@@ -403,7 +403,7 @@ describe("OpencodePlugin", () => {
                 }),
               ).toEqual(stored.value)
               expect(requests).toEqual(["/auth/device/token", "/api/v2/config"])
-              // The refresh and the config fetch both say which OpenCode is asking.
+              // The refresh and the config fetch both say which AI Craft is asking.
               expect(agents).toEqual(["opencode/beta/1.2.3/test", "opencode/beta/1.2.3/test"])
             }).pipe(Effect.provideService(App.Metadata, App.make({ name: "test", version: "1.2.3", channel: "beta" }))),
           ({ server }) => Effect.promise(() => server.stop(true)),
@@ -411,7 +411,7 @@ describe("OpencodePlugin", () => {
     )
   }
 
-  it.effect("rejects non-HTTP OpenCode servers", () =>
+  it.effect("rejects non-HTTP AI Craft servers", () =>
     Effect.gen(function* () {
       yield* addPlugin()
       const integrations = yield* Integration.Service
@@ -423,11 +423,11 @@ describe("OpencodePlugin", () => {
         })
         .pipe(Effect.flip)
       expect(error).toBeInstanceOf(Integration.AuthorizationError)
-      expect(String(error.cause)).toContain("Invalid OpenCode server URL: expected HTTP(S)")
+      expect(String(error.cause)).toContain("Invalid AI Craft server URL: expected HTTP(S)")
     }),
   )
 
-  it.effect("rejects non-string OpenCode servers", () =>
+  it.effect("rejects non-string AI Craft servers", () =>
     Effect.gen(function* () {
       yield* addPlugin()
       const integrations = yield* Integration.Service
@@ -443,7 +443,7 @@ describe("OpencodePlugin", () => {
     }),
   )
 
-  it.live("loads native V2 providers and models from the connected OpenCode server", () =>
+  it.live("loads native V2 providers and models from the connected AI Craft server", () =>
     Effect.acquireUseRelease(
       Effect.sync(() => {
         const authorization: Array<string | null> = []
@@ -521,11 +521,11 @@ describe("OpencodePlugin", () => {
           const integrations = yield* Integration.Service
           yield* providers.transform((editor) => {
             editor.update(Provider.ID.openai, (provider) => {
-              provider.package = "@opencode/ai/providers/openai"
+              provider.package = "@aicraft/ai/providers/openai"
               provider.integrationID = Integration.ID.make("openai")
             })
             editor.models.update(Provider.ID.openai, Model.ID.make("api-model"), (model) => {
-              model.package = "@opencode/ai/providers/openai"
+              model.package = "@aicraft/ai/providers/openai"
               model.settings = { baseURL: "https://upstream.example/v1" }
               model.variants = [
                 {
@@ -557,7 +557,7 @@ describe("OpencodePlugin", () => {
             canonical: "openai",
             name: "Remote",
             integrationID: "opencode",
-            package: "@opencode/ai/providers/openai-compatible",
+            package: "@aicraft/ai/providers/openai-compatible",
             settings: { baseURL: `${server.url.origin}/v1`, custom: "value" },
             headers: { "x-org-id": "org" },
           })
@@ -574,7 +574,7 @@ describe("OpencodePlugin", () => {
             capabilities: { tools: true, input: ["text", "image"], output: ["text"] },
             cost: [{ input: 1, output: 2, cache: { read: 0.1, write: 0 } }],
             limit: { context: 1000, output: 100 },
-            package: "@opencode/ai/providers/openai-compatible",
+            package: "@aicraft/ai/providers/openai-compatible",
             settings: { baseURL: `${server.url.origin}/v1`, custom: "value", temperature: 0.5 },
             headers: { "x-org-id": "org" },
           })
@@ -585,7 +585,7 @@ describe("OpencodePlugin", () => {
             provider: "openai",
           })
           const override = required(yield* models.get(Provider.ID.make("remote"), Model.ID.make("override")))
-          expect(override.package).toBe("@opencode/ai/providers/anthropic")
+          expect(override.package).toBe("@aicraft/ai/providers/anthropic")
           expect(override.settings?.baseURL).toBe(`${server.url.origin}/anthropic`)
           expect(model.variants).toEqual([
             {
@@ -702,16 +702,16 @@ describe("OpencodePlugin", () => {
             },
           ])
           const gpt = required(yield* models.get(Provider.ID.make("remote"), Model.ID.make("gpt")))
-          expect(gpt.package).toBe("@opencode/ai/providers/openai")
+          expect(gpt.package).toBe("@aicraft/ai/providers/openai")
           expect(gpt.variants).toEqual(reasoner.variants)
           const claude = required(yield* models.get(Provider.ID.make("remote"), Model.ID.make("claude-sonnet-4-5")))
-          expect(claude.package).toBe("@opencode/ai/providers/anthropic")
+          expect(claude.package).toBe("@aicraft/ai/providers/anthropic")
           expect(claude.variants).toEqual([
             { id: Model.VariantID.make("high"), settings: { thinking: { type: "enabled", budgetTokens: 16_000 } } },
             { id: Model.VariantID.make("max"), settings: { thinking: { type: "enabled", budgetTokens: 31_999 } } },
           ])
           const gemini = required(yield* models.get(Provider.ID.make("remote"), Model.ID.make("gemini-3.1-pro")))
-          expect(gemini.package).toBe("@opencode/ai/providers/google")
+          expect(gemini.package).toBe("@aicraft/ai/providers/google")
           expect(gemini.variants).toEqual([
             {
               id: Model.VariantID.make("low"),
@@ -723,7 +723,7 @@ describe("OpencodePlugin", () => {
             },
           ])
           const magistral = required(yield* models.get(Provider.ID.make("remote"), Model.ID.make("magistral-medium")))
-          expect(magistral.package).toBe("@opencode/ai/providers/mistral")
+          expect(magistral.package).toBe("@aicraft/ai/providers/mistral")
           expect(magistral.variants).toEqual([
             { id: Model.VariantID.make("low"), settings: { reasoningEffort: "low" } },
             { id: Model.VariantID.make("high"), settings: { reasoningEffort: "high" } },
@@ -1000,7 +1000,7 @@ describe("OpencodePlugin", () => {
         }
         const server = Bun.serve({
           port: 0,
-          fetch: () => Response.json({ providers: { opencode: {} }, policies: state.policies }),
+          fetch: () => Response.json({ providers: { aicraft: {} }, policies: state.policies }),
         })
         return { server, state }
       }),
@@ -1033,7 +1033,7 @@ describe("OpencodePlugin", () => {
             yield* TestClock.adjust("1 minute")
             yield* drain
             expect(yield* consolePolicies(config)).toEqual([sudo])
-            expect(yield* providers.get(Provider.ID.opencode)).toBeDefined()
+            expect(yield* providers.get(Provider.ID.aicraft)).toBeDefined()
           }
 
           state.policies = [env, { action: "tool.use", resource: "shell:*", effect: "future-effect" }]
@@ -1045,7 +1045,7 @@ describe("OpencodePlugin", () => {
           yield* TestClock.adjust("1 minute")
           yield* drain
           expect(yield* consolePolicies(config)).toEqual([])
-          expect(yield* providers.get(Provider.ID.opencode)).toBeDefined()
+          expect(yield* providers.get(Provider.ID.aicraft)).toBeDefined()
 
           state.policies = [{ action: "future.use", effect: { next: true } }, env]
           yield* TestClock.adjust("1 minute")
@@ -1188,7 +1188,7 @@ describe("OpencodePlugin", () => {
               TestClock.adjust("1 second").pipe(Effect.andThen(rejected(Provider.ID.make("remote")))),
             ),
           ).toEqual(Array.from({ length: 20 }, () => explained))
-          expect(yield* rejected(Provider.ID.opencode)).toEqual(explained)
+          expect(yield* rejected(Provider.ID.aicraft)).toEqual(explained)
           expect(yield* rejected(Provider.ID.anthropic)).toEqual(denied)
           expect(state.requests).toBe(2)
         }),
@@ -1320,7 +1320,7 @@ describe("OpencodePlugin", () => {
 
           expect((yield* integrations.get(Integration.ID.make("opencode")))?.connections[0]?.status).toEqual({
             status: "needs_auth",
-            message: "Reconnect OpenCode Console to continue",
+            message: "Reconnect AI Craft Console to continue",
           })
           expect((yield* credentials.get(credential.id))?.value).toMatchObject({ refresh: "revoked" })
         }),
@@ -1363,7 +1363,7 @@ describe("OpencodePlugin", () => {
           yield* addPlugin().pipe(inProcess(server))
           yield* drain
 
-          expect(yield* status()).toEqual({ status: "needs_auth", message: "Reconnect OpenCode Console to continue" })
+          expect(yield* status()).toEqual({ status: "needs_auth", message: "Reconnect AI Craft Console to continue" })
           expect((yield* credentials.get(credential.id))?.value).toMatchObject({ access: "revoked" })
 
           state.revoked = false
@@ -1376,7 +1376,7 @@ describe("OpencodePlugin", () => {
     ),
   )
 
-  it.live("loads and executes hosted web search from the connected OpenCode server", () =>
+  it.live("loads and executes hosted web search from the connected AI Craft server", () =>
     Effect.acquireUseRelease(
       Effect.sync(() => {
         const requests: Array<{
@@ -1417,7 +1417,7 @@ describe("OpencodePlugin", () => {
                 results: [
                   {
                     url: "https://github.com/anomalyco/opencode",
-                    title: "OpenCode",
+                    title: "AI Craft",
                     content: "Open source AI coding agent.",
                     time: { published: 1_700_000_000_000 },
                   },
@@ -1450,7 +1450,7 @@ describe("OpencodePlugin", () => {
           yield* addPlugin()
           expect(yield* websearch.providers()).toContainEqual({
             id: WebSearch.ID.make("opencode"),
-            name: "OpenCode Web Search",
+            name: "AI Craft Web Search",
           })
           expect(yield* websearch.providers()).toContainEqual(consoleSearch)
           expect(yield* websearch.query({ query: "effect web search", providerID: consoleSearch.id })).toEqual(
@@ -1459,7 +1459,7 @@ describe("OpencodePlugin", () => {
               results: [
                 {
                   url: "https://github.com/anomalyco/opencode",
-                  title: "OpenCode",
+                  title: "AI Craft",
                   content: "Open source AI coding agent.",
                   time: { published: 1_700_000_000_000 },
                 },
@@ -1833,14 +1833,14 @@ describe("OpencodePlugin", () => {
         const catalog = yield* Provider.Service
         const models = yield* Model.Service
         yield* catalog.transform((catalog) => {
-          catalog.update(Provider.ID.opencode, () => {})
-          catalog.models.update(Provider.ID.opencode, Model.ID.make("paid"), (draft) => {
+          catalog.update(Provider.ID.aicraft, () => {})
+          catalog.models.update(Provider.ID.aicraft, Model.ID.make("paid"), (draft) => {
             draft.cost = cost(1)
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.get(Provider.ID.opencode)).settings?.apiKey).toBe("public")
-        expect(required(yield* models.get(Provider.ID.opencode, Model.ID.make("paid"))).enabled).toBe(false)
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).settings?.apiKey).toBe("public")
+        expect(required(yield* models.get(Provider.ID.aicraft, Model.ID.make("paid"))).enabled).toBe(false)
       }),
     ),
   )
@@ -1851,16 +1851,16 @@ describe("OpencodePlugin", () => {
         const catalog = yield* Provider.Service
         const models = yield* Model.Service
         yield* catalog.transform((catalog) => {
-          catalog.update(Provider.ID.opencode, () => {})
-          catalog.models.update(Provider.ID.opencode, Model.ID.make("free"), (draft) => {
+          catalog.update(Provider.ID.aicraft, () => {})
+          catalog.models.update(Provider.ID.aicraft, Model.ID.make("free"), (draft) => {
             draft.cost = cost(0)
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.get(Provider.ID.opencode)).settings?.apiKey).toBe("public")
-        expect(required(yield* catalog.get(Provider.ID.opencode)).activation).toBe("enabled")
-        expect((yield* catalog.available()).map((provider) => provider.id)).toContain(Provider.ID.opencode)
-        expect(required(yield* models.get(Provider.ID.opencode, Model.ID.make("free"))).enabled).toBe(true)
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).settings?.apiKey).toBe("public")
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).activation).toBe("enabled")
+        expect((yield* catalog.available()).map((provider) => provider.id)).toContain(Provider.ID.aicraft)
+        expect(required(yield* models.get(Provider.ID.aicraft, Model.ID.make("free"))).enabled).toBe(true)
       }),
     ),
   )
@@ -1871,14 +1871,14 @@ describe("OpencodePlugin", () => {
         const catalog = yield* Provider.Service
         const models = yield* Model.Service
         yield* catalog.transform((catalog) => {
-          catalog.update(Provider.ID.opencode, () => {})
-          catalog.models.update(Provider.ID.opencode, Model.ID.make("output-only"), (draft) => {
+          catalog.update(Provider.ID.aicraft, () => {})
+          catalog.models.update(Provider.ID.aicraft, Model.ID.make("output-only"), (draft) => {
             draft.cost = cost(0, 1)
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.get(Provider.ID.opencode)).settings?.apiKey).toBe("public")
-        expect(required(yield* models.get(Provider.ID.opencode, Model.ID.make("output-only"))).enabled).toBe(true)
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).settings?.apiKey).toBe("public")
+        expect(required(yield* models.get(Provider.ID.aicraft, Model.ID.make("output-only"))).enabled).toBe(true)
       }),
     ),
   )
@@ -1896,14 +1896,14 @@ describe("OpencodePlugin", () => {
           }),
         )
         yield* catalog.transform((catalog) => {
-          catalog.update(Provider.ID.opencode, () => {})
-          catalog.models.update(Provider.ID.opencode, Model.ID.make("paid"), (draft) => {
+          catalog.update(Provider.ID.aicraft, () => {})
+          catalog.models.update(Provider.ID.aicraft, Model.ID.make("paid"), (draft) => {
             draft.cost = cost(1)
           })
         })
         yield* addPlugin().pipe(Effect.provideService(HttpClient.HttpClient, noRemoteConfig))
-        expect(required(yield* catalog.get(Provider.ID.opencode)).settings?.apiKey).toBeUndefined()
-        expect(required(yield* models.get(Provider.ID.opencode, Model.ID.make("paid"))).enabled).toBe(true)
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).settings?.apiKey).toBeUndefined()
+        expect(required(yield* models.get(Provider.ID.aicraft, Model.ID.make("paid"))).enabled).toBe(true)
       }),
     ),
   )
@@ -1921,16 +1921,16 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* catalog.transform((catalog) => {
-          catalog.update(Provider.ID.opencode, () => {})
-          catalog.models.update(Provider.ID.opencode, Model.ID.make("paid"), (draft) => {
+          catalog.update(Provider.ID.aicraft, () => {})
+          catalog.models.update(Provider.ID.aicraft, Model.ID.make("paid"), (draft) => {
             draft.cost = cost(1)
           })
         })
         // An env credential has no server metadata, so the plugin would ask the
         // default Console for remote config; answer 404 (no remote config) locally.
         yield* addPlugin().pipe(Effect.provideService(HttpClient.HttpClient, noRemoteConfig))
-        expect(required(yield* catalog.get(Provider.ID.opencode)).settings?.apiKey).toBeUndefined()
-        expect(required(yield* models.get(Provider.ID.opencode, Model.ID.make("paid"))).enabled).toBe(true)
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).settings?.apiKey).toBeUndefined()
+        expect(required(yield* models.get(Provider.ID.aicraft, Model.ID.make("paid"))).enabled).toBe(true)
       }),
     ),
   )
@@ -1941,23 +1941,23 @@ describe("OpencodePlugin", () => {
         const catalog = yield* Provider.Service
         const models = yield* Model.Service
         yield* catalog.transform((catalog) => {
-          catalog.update(Provider.ID.opencode, (draft) => {
+          catalog.update(Provider.ID.aicraft, (draft) => {
             draft.package = Provider.aisdk("test-provider")
             draft.settings = { apiKey: "configured" }
             draft.activation = "enabled"
           })
-          catalog.models.update(Provider.ID.opencode, Model.ID.make("paid"), (draft) => {
+          catalog.models.update(Provider.ID.aicraft, Model.ID.make("paid"), (draft) => {
             draft.cost = cost(1)
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.get(Provider.ID.opencode)).settings?.apiKey).toBe("configured")
-        expect(required(yield* models.get(Provider.ID.opencode, Model.ID.make("paid"))).enabled).toBe(true)
+        expect(required(yield* catalog.get(Provider.ID.aicraft)).settings?.apiKey).toBe("configured")
+        expect(required(yield* models.get(Provider.ID.aicraft, Model.ID.make("paid"))).enabled).toBe(true)
       }),
     ),
   )
 
-  it.effect("ignores non-opencode providers and models", () =>
+  it.effect("ignores non-aicraft providers and models", () =>
     withEnv({ OPENCODE_API_KEY: undefined }, () =>
       Effect.gen(function* () {
         const catalog = yield* Provider.Service
@@ -1976,7 +1976,7 @@ describe("OpencodePlugin", () => {
   )
 })
 
-describe("OpencodePlugin prompt refresh", () => {
+describe("AicraftPlugin prompt refresh", () => {
   const it = testEffect(makePluginTestLayer(undefined, undefined, recordingMcp.layer))
 
   it.effect("applies a rotated MCP header and a new policy before the prompt hook returns", () =>
@@ -2015,7 +2015,7 @@ describe("OpencodePlugin prompt refresh", () => {
             value: Credential.Key.make({ type: "key", key: "secret", metadata: { server: server.url.origin } }),
           })
           const host = yield* PluginHost.make(yield* Plugin.Service, "test")
-          yield* OpencodePlugin.effect(host).pipe(
+          yield* AicraftPlugin.effect(host).pipe(
             inProcess(server),
             Effect.provideService(ConsoleAccess.Options, { poll: false }),
           )
@@ -2037,7 +2037,7 @@ describe("OpencodePlugin prompt refresh", () => {
   )
 })
 
-describe("OpencodePlugin with a Console config", () => {
+describe("AicraftPlugin with a Console config", () => {
   const $schema = "https://opencode.ai/config.json"
   const deny: ConfigPolicy.Info = { action: "tool.use", resource: "shell:*", effect: "deny" }
 
@@ -2063,7 +2063,7 @@ describe("OpencodePlugin with a Console config", () => {
             }),
           })
           const host = yield* PluginHost.make(yield* Plugin.Service, "test")
-          yield* OpencodePlugin.effect(host).pipe(inProcess(server))
+          yield* AicraftPlugin.effect(host).pipe(inProcess(server))
           yield* ConfigPolicyPlugin.Plugin.effect(host)
 
           const document = required(yield* consoleDocument(config))
@@ -2232,7 +2232,7 @@ describe("OpencodePlugin with a Console config", () => {
             value: Credential.Key.make({ type: "key", key: "secret", metadata: { server: server.url.origin } }),
           })
           const host = yield* PluginHost.make(yield* Plugin.Service, "test")
-          yield* OpencodePlugin.effect(host)
+          yield* AicraftPlugin.effect(host)
           yield* ConfigProviderPlugin.Plugin.effect(host)
 
           const provider = required(yield* providers.get(Provider.ID.make("remote")))
@@ -2282,8 +2282,8 @@ describe("OpencodePlugin with a Console config", () => {
             value: Credential.Key.make({ type: "key", key: "secret", metadata: { server: server.url.origin } }),
           })
           const host = yield* PluginHost.make(yield* Plugin.Service, "test")
-          // Registered in production order: the OpenCode and OpenAI provider plugins, then config in `post`.
-          yield* OpencodePlugin.effect(host).pipe(inProcess(server))
+          // Registered in production order: the AI Craft and OpenAI provider plugins, then config in `post`.
+          yield* AicraftPlugin.effect(host).pipe(inProcess(server))
           yield* OpenAIPlugin.effect(host)
           yield* ConfigProviderPlugin.Plugin.effect(host)
 
@@ -2317,9 +2317,9 @@ describe("OpencodePlugin with a Console config", () => {
           const websearch = yield* WebSearch.Service
           const config = yield* Config.Test
           const bus = yield* Bus.Service
-          const opencode = { id: WebSearch.ID.make("opencode"), name: "OpenCode Web Search" }
+          const aicraft = { id: WebSearch.ID.make("opencode"), name: "AI Craft Web Search" }
           // Config.testLayer does not announce integration changes the way config reloads do.
-          const announced = (expected: typeof opencode | undefined) =>
+          const announced = (expected: typeof aicraft | undefined) =>
             bus
               .publish(Event.Updated, {})
               .pipe(Effect.andThen(eventually(websearch.default(), (value) => value?.id === expected?.id)))
@@ -2331,18 +2331,18 @@ describe("OpencodePlugin with a Console config", () => {
             value: Credential.Key.make({ type: "key", key: "secret", metadata: { server: server.url.origin } }),
           })
           const host = yield* PluginHost.make(yield* Plugin.Service, "test")
-          yield* OpencodePlugin.effect(host).pipe(inProcess(server))
+          yield* AicraftPlugin.effect(host).pipe(inProcess(server))
           yield* ConfigWebSearchPlugin.Plugin.effect(host)
           // A workspace without hosted search, or a member its policy denies, would get only failed searches.
-          expect(yield* websearch.providers()).not.toContainEqual(opencode)
+          expect(yield* websearch.providers()).not.toContainEqual(aicraft)
           expect(yield* websearch.default()).toBeUndefined()
 
           state.selected = true
           yield* TestClock.adjust("1 minute")
           yield* drain
-          expect(yield* announced(opencode)).toEqual(opencode)
-          expect(yield* websearch.providers()).toContainEqual(opencode)
-          expect((yield* websearch.query({ query: "console" })).providerID).toBe(opencode.id)
+          expect(yield* announced(aicraft)).toEqual(aicraft)
+          expect(yield* websearch.providers()).toContainEqual(aicraft)
+          expect((yield* websearch.query({ query: "console" })).providerID).toBe(aicraft.id)
 
           yield* config.setEntries([
             new Document({
@@ -2430,7 +2430,7 @@ for (const key of [undefined, "secret"]) {
   testEffect(Layer.empty).effect(
     `disabled free models with ${key ? "an API key" : "a Console login after startup"}`,
     () =>
-      withEnv({ OPENCODE_DISABLE_FREE_MODELS: "true", OPENCODE_API_KEY: key }, () =>
+      withEnv({ AICRAFT_DISABLE_FREE_MODELS: "true", OPENCODE_API_KEY: key }, () =>
         Effect.gen(function* () {
           const catalog = yield* Provider.Service
           const models = yield* Model.Service
@@ -2443,11 +2443,11 @@ for (const key of [undefined, "secret"]) {
             }),
           )
           yield* catalog.transform((editor) => {
-            editor.update(Provider.ID.opencode, () => {})
-            editor.models.update(Provider.ID.opencode, Model.ID.make("free"), (model) => {
+            editor.update(Provider.ID.aicraft, () => {})
+            editor.models.update(Provider.ID.aicraft, Model.ID.make("free"), (model) => {
               model.cost = cost(0)
             })
-            editor.models.update(Provider.ID.opencode, Model.ID.make("paid"), (model) => {
+            editor.models.update(Provider.ID.aicraft, Model.ID.make("paid"), (model) => {
               model.cost = cost(1)
             })
           })
@@ -2469,13 +2469,13 @@ for (const key of [undefined, "secret"]) {
             })
           }
           const available = yield* eventually(models.available(), (models) =>
-            models.some((model) => model.providerID === Provider.ID.opencode),
+            models.some((model) => model.providerID === Provider.ID.aicraft),
           )
-          expect((yield* catalog.available()).map((provider) => provider.id)).toContain(Provider.ID.opencode)
+          expect((yield* catalog.available()).map((provider) => provider.id)).toContain(Provider.ID.aicraft)
           expect(available.map((model) => model.id)).toEqual([Model.ID.make("paid")])
           expect(yield* models.all()).toEqual(available)
           expect((yield* models.default())?.id).toBe(Model.ID.make("paid"))
-          expect(yield* models.get(Provider.ID.opencode, Model.ID.make("free"))).toBeUndefined()
+          expect(yield* models.get(Provider.ID.aicraft, Model.ID.make("free"))).toBeUndefined()
         }).pipe(Effect.provide(PluginTestLayer)),
       ),
   )

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/plugin-orchestrator",
+  "name": "@aicraft/plugin-orchestrator",
   "version": "0.1.3",
   "description": "Deterministic task orchestration: a ledger, dependency dispatch, result collection and mechanical verification",
   "type": "module",
@@ -21,8 +21,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode/plugin": "workspace:*",
-    "@opencode/schema": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/schema": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

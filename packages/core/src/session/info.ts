@@ -1,11 +1,11 @@
 import { DateTime, Schema } from "effect"
-import { Model } from "@opencode/schema/model"
-import { Provider } from "@opencode/schema/provider"
+import { Model } from "@aicraft/schema/model"
+import { Provider } from "@aicraft/schema/provider"
 import { AbsolutePath, RelativePath } from "../schema.js"
 import { SessionSchema } from "./schema.js"
 import type { SessionTable } from "./sql.js"
-import { PersistedRevert } from "@opencode/schema/session-revert"
-import { Money } from "@opencode/schema/money"
+import { PersistedRevert } from "@aicraft/schema/session-revert"
+import { Money } from "@aicraft/schema/money"
 
 const decodeRevert = Schema.decodeUnknownSync(PersistedRevert)
 

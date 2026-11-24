@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { page } from "@opencode/core/tool/plugin/transcript"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { page } from "@aicraft/core/tool/plugin/transcript"
 
 const row = (id: string) => ({ id: SessionMessage.ID.make(id) })
 

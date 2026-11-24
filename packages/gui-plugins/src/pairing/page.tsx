@@ -1,10 +1,10 @@
-import { Button } from "@opencode/ui/button"
-import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { Loader } from "@opencode/ui/loader"
+import { Button } from "@aicraft/ui/button"
+import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
+import { Loader } from "@aicraft/ui/loader"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query"
 import { createMemo, createSignal, onCleanup, Show, type Accessor } from "solid-js"
-import { renderSVG } from "@opencode/util/qr"
-import { usePlugin, type Live, type IpcClient } from "@opencode/plugin/gui"
+import { renderSVG } from "@aicraft/util/qr"
+import { usePlugin, type Live, type IpcClient } from "@aicraft/plugin/gui"
 import type { Pairing } from "./contract"
 import type definition from "./index"
 import { remoteAddress } from "./remote"
@@ -218,7 +218,7 @@ function DialogPairing(props: {
   const system = ctx.system
 
   // The service attaches the tunnel in the background after it starts, so ask until the server advertises it, for
-  // about three minutes, as `opencode pair --remote` waits.
+  // about three minutes, as `aicraft pair --remote` waits.
   const tunnel = useQuery(() => ({
     queryKey: [ctx.id, "tunnel"],
     queryFn: (input) => props.tunnel(input.signal),
@@ -292,7 +292,7 @@ function DialogPairing(props: {
     </Button>
   )
 
-  // The QR code carries the remote address as `opencode pair --remote` prints it, {"code","urls"} JSON, which the
+  // The QR code carries the remote address as `aicraft pair --remote` prints it, {"code","urls"} JSON, which the
   // app's scanner reads.
   const qr = createMemo(() => {
     if (!code.isSuccess || !tunnel.isSuccess) return

@@ -2,24 +2,24 @@ import fs from "fs/promises"
 import path from "path"
 import { describe, expect, test } from "bun:test"
 import { Deferred, Effect, Fiber, Layer, Schema, Stream } from "effect"
-import { Config } from "@opencode/core/config"
-import { Directory, Document, type Entry, Info } from "@opencode/schema/config"
-import { ConfigSkillPlugin } from "@opencode/core/config/plugin/skill"
-import { ConfigCompatibilityPlugin } from "@opencode/core/config/plugin/compatibility"
-import { SkillFile } from "@opencode/core/config/plugin/skill-file"
-import { SkillScan } from "@opencode/core/config/plugin/skill-scan"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { Watcher } from "@opencode/core/filesystem/watcher"
-import { Bus } from "@opencode/core/bus"
-import { Credential } from "@opencode/core/credential"
-import { FSUtil } from "@opencode/util/fs-util"
-import { Global } from "@opencode/util/global"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Location } from "@opencode/core/location"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Skill } from "@opencode/core/skill"
-import { SkillDiscovery } from "@opencode/core/skill/discovery"
-import { WellKnown } from "@opencode/core/wellknown"
+import { Config } from "@aicraft/core/config"
+import { Directory, Document, type Entry, Info } from "@aicraft/schema/config"
+import { ConfigSkillPlugin } from "@aicraft/core/config/plugin/skill"
+import { ConfigCompatibilityPlugin } from "@aicraft/core/config/plugin/compatibility"
+import { SkillFile } from "@aicraft/core/config/plugin/skill-file"
+import { SkillScan } from "@aicraft/core/config/plugin/skill-scan"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { Watcher } from "@aicraft/core/filesystem/watcher"
+import { Bus } from "@aicraft/core/bus"
+import { Credential } from "@aicraft/core/credential"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { Global } from "@aicraft/util/global"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Location } from "@aicraft/core/location"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Skill } from "@aicraft/core/skill"
+import { SkillDiscovery } from "@aicraft/core/skill/discovery"
+import { WellKnown } from "@aicraft/core/wellknown"
 import { emptyCredentialNode, emptyWellknownNode } from "../fixture/config-nodes"
 import { advance, drain } from "../lib/clock"
 import { tmpdir } from "../fixture/tmpdir"
@@ -184,14 +184,14 @@ describe("ConfigSkillPlugin.Plugin", () => {
         Effect.gen(function* () {
           const claude = path.join(tmp.path, "claude")
           const agents = path.join(tmp.path, "agents")
-          const opencode = path.join(tmp.path, "opencode")
+          const aicraft = path.join(tmp.path, "opencode")
           const home = path.join(tmp.path, "home")
           const directory = path.join(tmp.path, "project")
           const expected = [
             path.join(claude, "skills"),
             path.join(agents, "skills"),
-            path.join(opencode, "skill"),
-            path.join(opencode, "skills"),
+            path.join(aicraft, "skill"),
+            path.join(aicraft, "skills"),
             path.join(home, "shared"),
             path.join(directory, "relative"),
           ]
@@ -199,7 +199,7 @@ describe("ConfigSkillPlugin.Plugin", () => {
 
           yield* startEntries(
             [
-              new Directory({ type: "directory", path: AbsolutePath.make(opencode) }),
+              new Directory({ type: "directory", path: AbsolutePath.make(aicraft) }),
               new Document({ type: "document", info: decode({ skills: ["~/shared", "./relative"] }) }),
             ],
             directory,

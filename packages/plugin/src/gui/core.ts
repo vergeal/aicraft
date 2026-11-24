@@ -1,4 +1,4 @@
-import type { OpenCodeClient } from "@opencode/client/promise"
+import type { AicraftClient } from "@aicraft/client/promise"
 import type { Schema } from "effect"
 
 /**
@@ -332,7 +332,7 @@ export interface BaseContext {
    *
    * @example
    * ```ts
-   * // "plugins": [{ "package": "opencode-acme", "options": { "team": "core" } }]
+   * // "plugins": [{ "package": "aicraft-acme", "options": { "team": "core" } }]
    * const team = ctx.options.team
    * ```
    */
@@ -347,7 +347,7 @@ export interface BaseContext {
    * const result = await ctx.client.rpc(Acme).search({ query })
    * ```
    */
-  readonly client: OpenCodeClient
+  readonly client: AicraftClient
   /**
    * The plugin's id, as its `Plugin.define` declares it.
    *

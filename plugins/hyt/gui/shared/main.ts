@@ -1,5 +1,5 @@
-import type { IpcProvider } from "@opencode/plugin/gui"
-import type { MainContext } from "@opencode/plugin/gui/main"
+import type { IpcProvider } from "@aicraft/plugin/gui"
+import type { MainContext } from "@aicraft/plugin/gui/main"
 import { Schema } from "effect"
 import { mergeProfile } from "../../src/profile/merge.js"
 import type { ProfilePatch } from "../../src/profile/merge.js"

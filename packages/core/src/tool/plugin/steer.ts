@@ -1,9 +1,9 @@
 export * as SteerTool from "./steer.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { getFilename } from "@opencode/util/path"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { getFilename } from "@aicraft/util/path"
 import { Clock, Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
@@ -56,7 +56,7 @@ export const interruptFirst = <E>(input: {
     : Effect.succeed({ interrupted: false })
 
 export const Plugin = {
-  id: "opencode.tool.steer",
+  id: "aicraft.tool.steer",
   effect: Effect.fn("SteerTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
 

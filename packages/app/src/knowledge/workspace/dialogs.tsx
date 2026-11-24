@@ -1,4 +1,4 @@
-import { Icon } from "@opencode/ui/icon"
+import { Icon } from "@aicraft/ui/icon"
 import { createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"

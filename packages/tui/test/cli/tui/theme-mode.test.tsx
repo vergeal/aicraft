@@ -3,9 +3,9 @@ import { testRender } from "@opentui/solid"
 import { expect, test } from "bun:test"
 import { RGBA } from "@opentui/core"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
-import { getOpenCodeTheme } from "../../../src/theme"
-import opencodeSource from "../../../src/theme/assets/opencode.json" with { type: "json" }
-import type { ThemeV1Json } from "@opencode/theme/tui/v1"
+import { getAicraftTheme } from "../../../src/theme"
+import aicraftSource from "../../../src/theme/assets/aicraft.json" with { type: "json" }
+import type { ThemeV1Json } from "@aicraft/theme/tui/v1"
 import { ConfigProvider } from "../../../src/config"
 import { ThemeContextProvider, ThemeProvider, type ThemeError, useTheme, useThemes } from "../../../src/context/theme"
 
@@ -18,19 +18,19 @@ async function wait(fn: () => boolean) {
 }
 
 test("uses an available mode while retaining the pinned preference", async () => {
-  const opencodeV1 = opencodeSource as ThemeV1Json
-  const lightOnly = structuredClone(opencodeV1)
+  const aicraftV1 = aicraftSource as ThemeV1Json
+  const lightOnly = structuredClone(aicraftV1)
   lightOnly.theme.background = "#eeeeee"
   lightOnly.theme.text = "#111111"
-  const dual = structuredClone(opencodeV1)
+  const dual = structuredClone(aicraftV1)
   dual.theme.background = { light: "#eeeeee", dark: "#111111" }
   dual.theme.text = { light: "#111111", dark: "#eeeeee" }
-  const darkOnly = structuredClone(opencodeV1)
+  const darkOnly = structuredClone(aicraftV1)
   darkOnly.theme.background = "#111111"
   darkOnly.theme.text = "#eeeeee"
   const native = {
-    base: { ...getOpenCodeTheme().base, text: { ...getOpenCodeTheme().base.text, base: "#abcdef" } },
-    dark: { hue: getOpenCodeTheme().dark.hue },
+    base: { ...getAicraftTheme().base, text: { ...getAicraftTheme().base.text, base: "#abcdef" } },
+    dark: { hue: getAicraftTheme().dark.hue },
   } as const
   let themes: ReturnType<typeof useThemes> | undefined
 
@@ -89,11 +89,11 @@ test.each([
   [
     "token reference",
     {
-      base: { ...getOpenCodeTheme().base, text: { ...getOpenCodeTheme().base.text, base: "$missing" } },
-      light: getOpenCodeTheme().light,
+      base: { ...getAicraftTheme().base, text: { ...getAicraftTheme().base.text, base: "$missing" } },
+      light: getAicraftTheme().light,
     },
   ],
-] as const)("falls back to OpenCode when configured V2 theme %s is invalid", async (_label, source) => {
+] as const)("falls back to AI Craft when configured V2 theme %s is invalid", async (_label, source) => {
   let themes: ReturnType<typeof useThemes> | undefined
   let failure: ThemeError | undefined
   let unsubscribe: (() => void) | undefined

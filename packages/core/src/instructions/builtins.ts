@@ -1,8 +1,8 @@
 export * as InstructionBuiltIns from "./builtins.js"
 
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Context, DateTime, Effect, Layer, Schema } from "effect"
-import { Global } from "@opencode/util/global"
+import { Global } from "@aicraft/util/global"
 import { Location } from "../location.js"
 import { Instructions } from "./index.js"
 
@@ -10,7 +10,7 @@ export interface Interface {
   readonly load: () => Effect.Effect<Instructions.List>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/InstructionBuiltIns") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/InstructionBuiltIns") {}
 
 const languageInstruction =
   "面向用户的内容默认使用中文：回答、标签、按钮、空状态、错误信息以及你编写的任何界面文案。代码、标识符、文件路径和命令名保持原样。只有当用户使用其他语言或明确要求时才换用那种语言。"

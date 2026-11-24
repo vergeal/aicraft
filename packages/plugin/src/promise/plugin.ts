@@ -1,7 +1,7 @@
-import type { OpenCodeClient } from "@opencode/client"
-import type { CredentialApi, ExperimentalGenerateApi, PluginApi } from "@opencode/client/promise/api"
-import type { Display } from "@opencode/schema/plugin"
-import type { Location } from "@opencode/schema/location"
+import type { AicraftClient } from "@aicraft/client"
+import type { CredentialApi, ExperimentalGenerateApi, PluginApi } from "@aicraft/client/promise/api"
+import type { Display } from "@aicraft/schema/plugin"
+import type { Location } from "@aicraft/schema/location"
 import type { PluginOptions } from "../options.js"
 import type { App } from "../app.js"
 import type { AgentDomain } from "./agent.js"
@@ -37,7 +37,7 @@ export interface Context {
   readonly credential: Pick<CredentialApi, "activate">
   readonly event: EventDomain
   readonly experimental: {
-    readonly terminal: Pick<OpenCodeClient["experimental"]["persistentPty"], "read">
+    readonly terminal: Pick<AicraftClient["experimental"]["persistentPty"], "read">
     /** Stateless generation with a model and a prompt: no session, history or tools. */
     readonly generate: ExperimentalGenerateApi
     readonly artifact: ExperimentalArtifactDomain

@@ -21,15 +21,15 @@ export default {
   configure: "Configuration file",
   copyConfigPath: "Copy configuration file path",
   configFileMissing: "No configuration file found",
-  "setup.mcp": "Add a server with OpenCode",
+  "setup.mcp": "Add a server with AI Craft",
   "setup.mcp.prompt":
-    "Help me add an MCP server to my global OpenCode config. Ask me which service I want to connect, then set it up and check that it connects.",
-  "setup.plugins": "Add a plugin with OpenCode",
+    "Help me add an MCP server to my global AI Craft config. Ask me which service I want to connect, then set it up and check that it connects.",
+  "setup.plugins": "Add a plugin with AI Craft",
   "setup.plugins.prompt":
-    "Help me add a plugin to my global OpenCode config. Ask me what I want it to do, suggest a plugin, then add it.",
-  "setup.skills": "New skill with OpenCode",
+    "Help me add a plugin to my global AI Craft config. Ask me what I want it to do, suggest a plugin, then add it.",
+  "setup.skills": "New skill with AI Craft",
   "setup.skills.prompt":
-    "Help me write a new OpenCode skill in my global config. Ask me what it should teach you, then write its SKILL.md.",
+    "Help me write a new AI Craft skill in my global config. Ask me what it should teach you, then write its SKILL.md.",
   loadingChanges: "Loading changes…",
   noChanges: "No changes",
   basedOn: "Based on {{branch}}",
@@ -46,7 +46,7 @@ export default {
   "mcp.error.actionLabel": "Details for {{name}}",
   "mcp.signIn.open": "Sign in to {{name}}",
   "mcp.signIn.description":
-    "Your browser opens so you can sign in to {{name}}. If it can't reach the machine running OpenCode, paste the URL it was redirected to below.",
+    "Your browser opens so you can sign in to {{name}}. If it can't reach the machine running AI Craft, paste the URL it was redirected to below.",
   "mcp.signIn.waiting": "Waiting for authorization…",
   "mcp.signIn.failed": "Authorization failed: {{error}}",
   "mcp.signIn.expired": "Authorization expired",

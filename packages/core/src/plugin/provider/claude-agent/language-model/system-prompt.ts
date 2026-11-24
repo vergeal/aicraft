@@ -11,12 +11,12 @@ const primary = {
   preset: "claude_code",
   // Agent changes must take effect when a process resumes the same native session.
   snapshot: false,
-  append: "<runtime_info>你通过 Claude Code harness 运行在 OpenCode 中。只在被问到时提及这一点。</runtime_info>",
+  append: "<runtime_info>你通过 Claude Code harness 运行在 AI Craft 中。只在被问到时提及这一点。</runtime_info>",
 } satisfies Options["systemPrompt"]
 
 export function make(role?: string, instructions?: string) {
   const blocks = [primary.append]
-  if (role) blocks.push("# Agent 角色（来自 OpenCode）\n" + role)
+  if (role) blocks.push("# Agent 角色（来自 AI Craft）\n" + role)
   if (instructions) blocks.push(instructions)
   return { ...primary, append: blocks.join("\n\n") }
 }

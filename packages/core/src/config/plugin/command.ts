@@ -1,9 +1,9 @@
 export * as ConfigCommandPlugin from "./command.js"
 
-import { define } from "@opencode/plugin/effect/plugin"
-import type { Entry } from "@opencode/schema/config"
-import { ConfigCommand } from "@opencode/schema/config/command"
-import { AppProcess } from "@opencode/util/process"
+import { define } from "@aicraft/plugin/effect/plugin"
+import type { Entry } from "@aicraft/schema/config"
+import { ConfigCommand } from "@aicraft/schema/config/command"
+import { AppProcess } from "@aicraft/util/process"
 import path from "path"
 import { Effect, Option, Schema } from "effect"
 import { ChildProcess } from "effect/process"
@@ -13,14 +13,14 @@ import { Location } from "../../location.js"
 import { Session } from "../../session.js"
 import { SubagentJob } from "../../session/subagent-job.js"
 import { ShellSelect } from "../../shell/select.js"
-import { FSUtil } from "@opencode/util/fs-util"
+import { FSUtil } from "@aicraft/util/fs-util"
 import { ConfigMarkdown } from "../markdown.js"
 import { ConfigEntryObserver } from "./entry-observer.js"
 
 const decodeCommand = Schema.decodeUnknownOption(ConfigCommand.Info)
 
 export const Plugin = define({
-  id: "opencode.config.command",
+  id: "aicraft.config.command",
   effect: Effect.fn(function* (ctx) {
     const config = yield* Config.Service
     const fs = yield* FSUtil.Service

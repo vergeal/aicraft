@@ -1,7 +1,7 @@
-import { Tool } from "@opencode/schema/tool"
-import type { Rpc } from "@opencode/schema/rpc"
-import type { OpenCodeEvent } from "@opencode/client"
-import type { RpcCallOptions, RpcEventPayload, SelectedEvent, SubscribeOptions } from "@opencode/client/promise/api"
+import { Tool } from "@aicraft/schema/tool"
+import type { Rpc } from "@aicraft/schema/rpc"
+import type { AicraftEvent } from "@aicraft/client"
+import type { RpcCallOptions, RpcEventPayload, SelectedEvent, SubscribeOptions } from "@aicraft/client/promise/api"
 import { Effect, Schema, SchemaAST, Stream } from "effect"
 import type { Scope } from "effect"
 import { HttpApiEndpoint, HttpApiSchema } from "effect/http-api"
@@ -218,10 +218,10 @@ function compileEndpoint(endpoint: HttpApiEndpoint.Top) {
 export function fromPromise(plugin: Plugin) {
   // Every lifecycle hook receives the same Promise context, so build it once per run.
   const makeContext = Effect.fn("Plugin.Promise.context")(function* (host: Context) {
-        const [{ ClientApi }, { OpenCodeEvent }] = yield* Effect.promise(() =>
-          Promise.all([import("@opencode/protocol/client"), import("@opencode/protocol/groups/event")]),
+        const [{ ClientApi }, { AicraftEvent }] = yield* Effect.promise(() =>
+          Promise.all([import("@aicraft/protocol/client"), import("@aicraft/protocol/groups/event")]),
         )
-        const encodeOpenCodeEvent = Schema.encodeUnknownEffect(OpenCodeEvent)
+        const encodeAicraftEvent = Schema.encodeUnknownEffect(AicraftEvent)
         const AgentEndpoints = ClientApi.groups["server.agent"].endpoints
         const CommandEndpoints = ClientApi.groups["server.command"].endpoints
         const CredentialEndpoints = ClientApi.groups["server.credential"].endpoints
@@ -339,13 +339,13 @@ export function fromPromise(plugin: Plugin) {
             activate: adaptApiMethod(CredentialEndpoints["credential.activate"], host.credential.activate),
           },
           event: {
-            subscribe: <Type extends Exclude<OpenCodeEvent["type"], "server.connected">>(
+            subscribe: <Type extends Exclude<AicraftEvent["type"], "server.connected">>(
               options?: SubscribeOptions<Type>,
             ) =>
               streams(
                 host.event.subscribe({ types: options?.types }).pipe(
-                  Stream.mapEffect((event) => encodeOpenCodeEvent(event)),
-                  Stream.map((event) => event as SelectedEvent<OpenCodeEvent, Type>),
+                  Stream.mapEffect((event) => encodeAicraftEvent(event)),
+                  Stream.map((event) => event as SelectedEvent<AicraftEvent, Type>),
                 ),
                 options,
               ),

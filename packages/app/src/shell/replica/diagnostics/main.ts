@@ -1,4 +1,4 @@
-import { diagnostics } from "@opencode/diagnostics"
+import { diagnostics } from "@aicraft/diagnostics"
 import type { Platform } from "@/runtime/platform/platform"
 
 // The main process captures its own half of a dump: IPC round trips, window and display changes, process

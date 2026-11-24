@@ -1,12 +1,12 @@
 export * as Generate from "./generate.js"
 
-import { ai, AIError, DecisionClient, ImageClient, LLMClient, Media } from "@opencode/ai/effect"
-import type { DecisionRequest, DecisionResult, ImageRequest, ImageResult } from "@opencode/schema/generate"
-import { Money } from "@opencode/schema/money"
-import { SessionID } from "@opencode/schema/session-id"
+import { ai, AIError, DecisionClient, ImageClient, LLMClient, Media } from "@aicraft/ai/effect"
+import type { DecisionRequest, DecisionResult, ImageRequest, ImageResult } from "@aicraft/schema/generate"
+import { Money } from "@aicraft/schema/money"
+import { SessionID } from "@aicraft/schema/session-id"
 import { Context, Effect, Layer, Schema } from "effect"
-import { RequestExecutor } from "@opencode/ai/route"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { RequestExecutor } from "@aicraft/ai/route"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { llmClient, requestExecutor } from "./effect/app-node-platform.js"
 import { Integration } from "./integration.js"
 import { ModelResolver } from "./model-resolver.js"
@@ -78,7 +78,7 @@ export interface Interface {
   readonly decisions: (input: DecisionRequest) => Effect.Effect<DecisionResult, Error>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Generate") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/Generate") {}
 
 // Image and decision clients are built here, on the shared request executor, so only Generate depends on them.
 export const layer = Layer.effect(
@@ -122,7 +122,7 @@ export const layer = Layer.effect(
             model: resolved.model,
             prompt: input.prompt,
             // Gateways require session attribution even for a stateless call; no Session is stored.
-            headers: { "x-opencode-session": SessionID.create() },
+            headers: { "x-aicraft-session": SessionID.create() },
           }),
         )
         .pipe(
@@ -256,7 +256,7 @@ function resolutionError(ref: Model.Ref, type: string, error: ModelResolver.Erro
       providerID: ref.providerID,
       modelID: ref.id,
       capability: type,
-      message: `${ref.providerID}/${ref.id} has no ${type} API opencode can call (package ${error.package})`,
+      message: `${ref.providerID}/${ref.id} has no ${type} API aicraft can call (package ${error.package})`,
     })
   return new InvalidRequestError({ message: error.message, field: "model" })
 }

@@ -1,7 +1,7 @@
 import type { SessionUpdate } from "@agentclientprotocol/sdk"
-import type { OpenCodeEvent } from "@opencode/client/effect"
-import type { SessionError } from "@opencode/schema/session-error"
-import { SessionMessage } from "@opencode/schema/session-message"
+import type { AicraftEvent } from "@aicraft/client/effect"
+import type { SessionError } from "@aicraft/schema/session-error"
+import { SessionMessage } from "@aicraft/schema/session-message"
 
 const MarkerMeta = "opencode/compaction"
 
@@ -25,7 +25,7 @@ type Compaction =
 export type Tracked = ReadonlyMap<string, Started>
 
 type LifecycleEvent = Extract<
-  OpenCodeEvent,
+  AicraftEvent,
   { readonly type: "session.compaction.started" | "session.compaction.ended" | "session.compaction.failed" }
 >
 type OpeningEvent = Extract<

@@ -1,13 +1,13 @@
 import { expect } from "bun:test"
 import { NodeHttpServer } from "@effect/platform-node"
-import { Location } from "@opencode/core/location"
-import { AbsolutePath } from "@opencode/core/schema"
-import { LocationLifecycle } from "@opencode/core/location-lifecycle"
-import { LocationServiceMap } from "@opencode/core/location-service-map"
-import { Mcp } from "@opencode/core/mcp/index"
-import { Session } from "@opencode/core/session"
-import { Tool } from "@opencode/core/tool"
-import { McpTool } from "@opencode/core/tool/mcp"
+import { Location } from "@aicraft/core/location"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { LocationLifecycle } from "@aicraft/core/location-lifecycle"
+import { LocationServiceMap } from "@aicraft/core/location-service-map"
+import { Mcp } from "@aicraft/core/mcp/index"
+import { Session } from "@aicraft/core/session"
+import { Tool } from "@aicraft/core/tool"
+import { McpTool } from "@aicraft/core/tool/mcp"
 import { Context, Effect, Exit, Layer, MutableHashMap, Option, Schedule, Scope } from "effect"
 import { HttpRouter, HttpServer } from "effect/http"
 import { createServer } from "node:http"
@@ -23,7 +23,7 @@ declare const WebSocket: {
   new (url: string | URL, options?: Bun.WebSocketOptions): globalThis.WebSocket
 }
 
-const authorization = `Basic ${btoa("opencode:secret")}`
+const authorization = `Basic ${btoa("aicraft:secret")}`
 
 const serve = Effect.fnUntraced(function* () {
   const directory = (yield* tmpdirScoped("opencode-client-mcp-")).path
@@ -91,7 +91,7 @@ const connectClient = (url: URL, headers?: Record<string, string>) =>
             tools: [{ name: "open_terminal", description: "Open a terminal", inputSchema: { type: "object" } }],
           })
         if (message.method === "tools/call") {
-          sessions.push(message.params._meta?.["ai.opencode/sessionID"])
+          sessions.push(message.params._meta?.["ai.aicraft/sessionID"])
           return reply(message.id, { content: [{ type: "text", text: "opened" }] })
         }
         if (message.id !== undefined && message.method) reply(message.id, {})
@@ -245,7 +245,7 @@ it.live(
       }
       const token = (name: string) =>
         Effect.promise(async () => {
-          const response = await requestToken(name, { authorization, "x-opencode-ticket": "1" })
+          const response = await requestToken(name, { authorization, "x-aicraft-ticket": "1" })
           expect(response.status).toBe(200)
           return ((await response.json()) as { data: { ticket: string } }).data.ticket
         })

@@ -1,55 +1,55 @@
 import { NodeFileSystem } from "@effect/platform-node"
-import { compile, emitEffectImported, emitEffectShape, emitPromise, write } from "@opencode/httpapi-codegen"
+import { compile, emitEffectImported, emitEffectShape, emitPromise, write } from "@aicraft/httpapi-codegen"
 import {
   ClientApi,
   clientNamespace,
   effectOmitEndpoints,
   groupNames,
   promiseOmitEndpoints,
-} from "@opencode/protocol/client"
-import { Agent } from "@opencode/schema/agent"
-import { Artifact } from "@opencode/schema/artifact"
-import { Command } from "@opencode/schema/command"
-import { Config } from "@opencode/schema/config"
-import { Credential } from "@opencode/schema/credential"
-import { Event } from "@opencode/schema/event"
-import { EventLog } from "@opencode/schema/event-log"
-import { FileDiff } from "@opencode/schema/file-diff"
-import { FileSystem } from "@opencode/schema/filesystem"
-import { Form } from "@opencode/schema/form"
-import { Generate } from "@opencode/schema/generate"
-import { Instruction } from "@opencode/schema/instruction"
-import { InstructionEntry } from "@opencode/schema/instruction-entry"
-import { Integration } from "@opencode/schema/integration"
-import { Job } from "@opencode/schema/job"
-import { Location } from "@opencode/schema/location"
-import { Mcp } from "@opencode/schema/mcp"
-import { Model } from "@opencode/schema/model"
-import { Money } from "@opencode/schema/money"
-import { Permission } from "@opencode/schema/permission"
-import { PermissionSaved } from "@opencode/schema/permission-saved"
-import { Plugin } from "@opencode/schema/plugin"
-import { Project } from "@opencode/schema/project"
-import { Worktree } from "@opencode/schema/worktree"
-import { AgentAttachment, FileAttachment, Prompt, PromptMention } from "@opencode/schema/prompt"
-import { PromptInput } from "@opencode/schema/prompt-input"
-import { Provider } from "@opencode/schema/provider"
-import { Pty } from "@opencode/schema/pty"
-import { PtyTicket } from "@opencode/schema/pty-ticket"
-import { Question } from "@opencode/schema/question"
-import { Reference } from "@opencode/schema/reference"
-import { AbsolutePath, RelativePath } from "@opencode/schema/schema"
-import { Schedule } from "@opencode/schema/schedule"
-import { Session } from "@opencode/schema/session"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { SessionInbox } from "@opencode/schema/session-inbox"
-import { Shell } from "@opencode/schema/shell"
-import { Skill } from "@opencode/schema/skill"
-import { Snapshot } from "@opencode/schema/snapshot"
-import { UsageLimits } from "@opencode/schema/usage-limits"
-import { Vcs } from "@opencode/schema/vcs"
-import { WebSearch } from "@opencode/schema/websearch"
-import { Workspace } from "@opencode/schema/workspace"
+} from "@aicraft/protocol/client"
+import { Agent } from "@aicraft/schema/agent"
+import { Artifact } from "@aicraft/schema/artifact"
+import { Command } from "@aicraft/schema/command"
+import { Config } from "@aicraft/schema/config"
+import { Credential } from "@aicraft/schema/credential"
+import { Event } from "@aicraft/schema/event"
+import { EventLog } from "@aicraft/schema/event-log"
+import { FileDiff } from "@aicraft/schema/file-diff"
+import { FileSystem } from "@aicraft/schema/filesystem"
+import { Form } from "@aicraft/schema/form"
+import { Generate } from "@aicraft/schema/generate"
+import { Instruction } from "@aicraft/schema/instruction"
+import { InstructionEntry } from "@aicraft/schema/instruction-entry"
+import { Integration } from "@aicraft/schema/integration"
+import { Job } from "@aicraft/schema/job"
+import { Location } from "@aicraft/schema/location"
+import { Mcp } from "@aicraft/schema/mcp"
+import { Model } from "@aicraft/schema/model"
+import { Money } from "@aicraft/schema/money"
+import { Permission } from "@aicraft/schema/permission"
+import { PermissionSaved } from "@aicraft/schema/permission-saved"
+import { Plugin } from "@aicraft/schema/plugin"
+import { Project } from "@aicraft/schema/project"
+import { Worktree } from "@aicraft/schema/worktree"
+import { AgentAttachment, FileAttachment, Prompt, PromptMention } from "@aicraft/schema/prompt"
+import { PromptInput } from "@aicraft/schema/prompt-input"
+import { Provider } from "@aicraft/schema/provider"
+import { Pty } from "@aicraft/schema/pty"
+import { PtyTicket } from "@aicraft/schema/pty-ticket"
+import { Question } from "@aicraft/schema/question"
+import { Reference } from "@aicraft/schema/reference"
+import { AbsolutePath, RelativePath } from "@aicraft/schema/schema"
+import { Schedule } from "@aicraft/schema/schedule"
+import { Session } from "@aicraft/schema/session"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { SessionInbox } from "@aicraft/schema/session-inbox"
+import { Shell } from "@aicraft/schema/shell"
+import { Skill } from "@aicraft/schema/skill"
+import { Snapshot } from "@aicraft/schema/snapshot"
+import { UsageLimits } from "@aicraft/schema/usage-limits"
+import { Vcs } from "@aicraft/schema/vcs"
+import { WebSearch } from "@aicraft/schema/websearch"
+import { Workspace } from "@aicraft/schema/workspace"
 import { Effect, Schema } from "effect"
 import { fileURLToPath } from "url"
 
@@ -66,54 +66,54 @@ const effectContract = compile(ClientApi, {
   aliases: true,
 })
 const effectTypeReferences = [
-  ...namespaceTypes("Agent", "@opencode/schema/agent", Agent),
-  ...namespaceTypes("Artifact", "@opencode/schema/artifact", Artifact),
-  ...namespaceTypes("Command", "@opencode/schema/command", Command),
-  ...namespaceTypes("Config", "@opencode/schema/config", Config),
-  ...namespaceTypes("Credential", "@opencode/schema/credential", Credential),
-  ...namespaceTypes("Event", "@opencode/schema/event", Event),
-  ...namespaceTypes("EventLog", "@opencode/schema/event-log", EventLog),
-  ...namespaceTypes("FileDiff", "@opencode/schema/file-diff", FileDiff),
-  ...namespaceTypes("FileSystem", "@opencode/schema/filesystem", FileSystem),
-  ...namespaceTypes("Form", "@opencode/schema/form", Form),
-  ...namespaceTypes("Generate", "@opencode/schema/generate", Generate),
-  ...namespaceTypes("Instruction", "@opencode/schema/instruction", Instruction),
-  ...namespaceTypes("InstructionEntry", "@opencode/schema/instruction-entry", InstructionEntry),
-  ...namespaceTypes("Integration", "@opencode/schema/integration", Integration),
-  ...namespaceTypes("Job", "@opencode/schema/job", Job),
-  typeReference("Location.PublicRef", "@opencode/schema/location", Location.PublicRef),
-  typeReference("Location.PublicInfo", "@opencode/schema/location", Location.PublicInfo),
-  ...namespaceTypes("Mcp", "@opencode/schema/mcp", Mcp),
-  ...namespaceTypes("Model", "@opencode/schema/model", Model),
-  ...namespaceTypes("Money", "@opencode/schema/money", Money),
-  ...namespaceTypes("Permission", "@opencode/schema/permission", Permission),
-  ...namespaceTypes("PermissionSaved", "@opencode/schema/permission-saved", PermissionSaved),
-  ...namespaceTypes("Plugin", "@opencode/schema/plugin", Plugin),
-  ...namespaceTypes("Project", "@opencode/schema/project", Project),
-  ...namespaceTypes("Worktree", "@opencode/schema/worktree", Worktree),
-  ...namespaceTypes("PromptInput", "@opencode/schema/prompt-input", PromptInput),
-  ...namespaceTypes("Provider", "@opencode/schema/provider", Provider),
-  ...namespaceTypes("Pty", "@opencode/schema/pty", Pty),
-  ...namespaceTypes("PtyTicket", "@opencode/schema/pty-ticket", PtyTicket),
-  ...namespaceTypes("Question", "@opencode/schema/question", Question),
-  ...namespaceTypes("Reference", "@opencode/schema/reference", Reference),
-  ...namespaceTypes("Schedule", "@opencode/schema/schedule", Schedule),
-  ...namespaceTypes("Session", "@opencode/schema/session", Session),
-  ...namespaceTypes("SessionMessage", "@opencode/schema/session-message", SessionMessage),
-  ...namespaceTypes("SessionInbox", "@opencode/schema/session-inbox", SessionInbox),
-  ...namespaceTypes("Shell", "@opencode/schema/shell", Shell),
-  ...namespaceTypes("Skill", "@opencode/schema/skill", Skill),
-  ...namespaceTypes("Snapshot", "@opencode/schema/snapshot", Snapshot),
-  ...namespaceTypes("UsageLimits", "@opencode/schema/usage-limits", UsageLimits),
-  ...namespaceTypes("Vcs", "@opencode/schema/vcs", Vcs),
-  ...namespaceTypes("WebSearch", "@opencode/schema/websearch", WebSearch),
-  ...namespaceTypes("Workspace", "@opencode/schema/workspace", Workspace),
-  typeReference("Prompt", "@opencode/schema/prompt", Prompt),
-  typeReference("PromptMention", "@opencode/schema/prompt", PromptMention),
-  typeReference("FileAttachment", "@opencode/schema/prompt", FileAttachment),
-  typeReference("AgentAttachment", "@opencode/schema/prompt", AgentAttachment),
-  typeReference("AbsolutePath", "@opencode/schema/schema", AbsolutePath),
-  typeReference("RelativePath", "@opencode/schema/schema", RelativePath),
+  ...namespaceTypes("Agent", "@aicraft/schema/agent", Agent),
+  ...namespaceTypes("Artifact", "@aicraft/schema/artifact", Artifact),
+  ...namespaceTypes("Command", "@aicraft/schema/command", Command),
+  ...namespaceTypes("Config", "@aicraft/schema/config", Config),
+  ...namespaceTypes("Credential", "@aicraft/schema/credential", Credential),
+  ...namespaceTypes("Event", "@aicraft/schema/event", Event),
+  ...namespaceTypes("EventLog", "@aicraft/schema/event-log", EventLog),
+  ...namespaceTypes("FileDiff", "@aicraft/schema/file-diff", FileDiff),
+  ...namespaceTypes("FileSystem", "@aicraft/schema/filesystem", FileSystem),
+  ...namespaceTypes("Form", "@aicraft/schema/form", Form),
+  ...namespaceTypes("Generate", "@aicraft/schema/generate", Generate),
+  ...namespaceTypes("Instruction", "@aicraft/schema/instruction", Instruction),
+  ...namespaceTypes("InstructionEntry", "@aicraft/schema/instruction-entry", InstructionEntry),
+  ...namespaceTypes("Integration", "@aicraft/schema/integration", Integration),
+  ...namespaceTypes("Job", "@aicraft/schema/job", Job),
+  typeReference("Location.PublicRef", "@aicraft/schema/location", Location.PublicRef),
+  typeReference("Location.PublicInfo", "@aicraft/schema/location", Location.PublicInfo),
+  ...namespaceTypes("Mcp", "@aicraft/schema/mcp", Mcp),
+  ...namespaceTypes("Model", "@aicraft/schema/model", Model),
+  ...namespaceTypes("Money", "@aicraft/schema/money", Money),
+  ...namespaceTypes("Permission", "@aicraft/schema/permission", Permission),
+  ...namespaceTypes("PermissionSaved", "@aicraft/schema/permission-saved", PermissionSaved),
+  ...namespaceTypes("Plugin", "@aicraft/schema/plugin", Plugin),
+  ...namespaceTypes("Project", "@aicraft/schema/project", Project),
+  ...namespaceTypes("Worktree", "@aicraft/schema/worktree", Worktree),
+  ...namespaceTypes("PromptInput", "@aicraft/schema/prompt-input", PromptInput),
+  ...namespaceTypes("Provider", "@aicraft/schema/provider", Provider),
+  ...namespaceTypes("Pty", "@aicraft/schema/pty", Pty),
+  ...namespaceTypes("PtyTicket", "@aicraft/schema/pty-ticket", PtyTicket),
+  ...namespaceTypes("Question", "@aicraft/schema/question", Question),
+  ...namespaceTypes("Reference", "@aicraft/schema/reference", Reference),
+  ...namespaceTypes("Schedule", "@aicraft/schema/schedule", Schedule),
+  ...namespaceTypes("Session", "@aicraft/schema/session", Session),
+  ...namespaceTypes("SessionMessage", "@aicraft/schema/session-message", SessionMessage),
+  ...namespaceTypes("SessionInbox", "@aicraft/schema/session-inbox", SessionInbox),
+  ...namespaceTypes("Shell", "@aicraft/schema/shell", Shell),
+  ...namespaceTypes("Skill", "@aicraft/schema/skill", Skill),
+  ...namespaceTypes("Snapshot", "@aicraft/schema/snapshot", Snapshot),
+  ...namespaceTypes("UsageLimits", "@aicraft/schema/usage-limits", UsageLimits),
+  ...namespaceTypes("Vcs", "@aicraft/schema/vcs", Vcs),
+  ...namespaceTypes("WebSearch", "@aicraft/schema/websearch", WebSearch),
+  ...namespaceTypes("Workspace", "@aicraft/schema/workspace", Workspace),
+  typeReference("Prompt", "@aicraft/schema/prompt", Prompt),
+  typeReference("PromptMention", "@aicraft/schema/prompt", PromptMention),
+  typeReference("FileAttachment", "@aicraft/schema/prompt", FileAttachment),
+  typeReference("AgentAttachment", "@aicraft/schema/prompt", AgentAttachment),
+  typeReference("AbsolutePath", "@aicraft/schema/schema", AbsolutePath),
+  typeReference("RelativePath", "@aicraft/schema/schema", RelativePath),
 ]
 
 await Effect.runPromise(
@@ -138,8 +138,8 @@ await Effect.runPromise(
           typeReferences: effectTypeReferences,
           outputTypes: {
             "event.subscribe": {
-              name: "OpenCodeEvent",
-              import: 'import type { OpenCodeEvent } from "@opencode/protocol/groups/event"',
+              name: "AicraftEvent",
+              import: 'import type { AicraftEvent } from "@aicraft/protocol/groups/event"',
             },
           },
         }),

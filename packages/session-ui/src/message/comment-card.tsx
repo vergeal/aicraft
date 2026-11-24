@@ -1,9 +1,9 @@
 import { createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
-import { FileIcon } from "@opencode/ui/file-icon"
-import { Icon } from "@opencode/ui/icon"
-import { useI18n } from "@opencode/ui/context/i18n"
-import { getFilenameTruncated } from "@opencode/util/path"
-import { Tooltip } from "@opencode/ui/tooltip"
+import { FileIcon } from "@aicraft/ui/file-icon"
+import { Icon } from "@aicraft/ui/icon"
+import { useI18n } from "@aicraft/ui/context/i18n"
+import { getFilenameTruncated } from "@aicraft/util/path"
+import { Tooltip } from "@aicraft/ui/tooltip"
 import { AttachmentCard } from "./attachment-card"
 
 /**

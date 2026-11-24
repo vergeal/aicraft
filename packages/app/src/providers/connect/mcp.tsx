@@ -5,8 +5,8 @@ import { useData } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
 import { usePlatform } from "@/runtime/platform/platform"
 import { showToast } from "@/shell/notifications/toast"
-import { useDialog } from "@opencode/ui/context/dialog"
-import { uuid } from "@opencode/util/uuid"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { uuid } from "@aicraft/util/uuid"
 import { DialogMcpSignIn } from "./mcp-sign-in"
 
 export type McpControls = {

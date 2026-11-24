@@ -1,3 +1,15 @@
+/* The queue rows are one list on the composer's own surface: a hairline separates each row from the row above, and the
+   first row keeps no rule of its own, so a short queue does not open with a line hanging under the card's edge. */
+[data-slot="session-queue-list"] > div + div [data-component="session-queue-row"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 6px;
+  top: 0;
+  height: 1px;
+  background: var(--v2-border-border-muted);
+  pointer-events: none;
+}
+
 /* The list scrolls under a fade that would cut a ring drawn outside a control, so rings sit inside each control and
    focus scrolls a row clear of the 8px and 12px fades. */
 [data-slot="session-queue-list"] {

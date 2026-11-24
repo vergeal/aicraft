@@ -1,4 +1,4 @@
-import type { PluginInfo } from "@opencode/client"
+import type { PluginInfo } from "@aicraft/client"
 import { createSignal, Show } from "solid-js"
 import { render } from "solid-js/web"
 import type { CatalogPlugin } from "../src/explore/catalog"
@@ -15,7 +15,7 @@ const sample: CatalogPlugin[] = [
     author: "example",
     description: "Adds alpha behaviour",
     details: "The full alpha introduction.",
-    package: "opencode-plugin-alpha",
+    package: "aicraft-plugin-alpha",
     repository: "https://github.com/example/alpha-plugin",
   },
   {
@@ -24,7 +24,7 @@ const sample: CatalogPlugin[] = [
     category: "productivity",
     author: "example",
     description: "Adds beta behaviour",
-    package: "opencode-plugin-beta",
+    package: "aicraft-plugin-beta",
     repository: "https://github.com/example/beta-plugin",
     mcpServers: [{ name: "beta-mcp" }],
     skills: [{ name: "Beta Skill", description: "Does beta work" }],
@@ -35,7 +35,7 @@ const sample: CatalogPlugin[] = [
     category: "automation",
     author: "example",
     description: "Adds gamma behaviour",
-    package: "opencode-plugin-gamma",
+    package: "aicraft-plugin-gamma",
     repository: "https://github.com/example/gamma-plugin",
   },
 ]
@@ -75,8 +75,8 @@ export const webwrightInstalled: PluginInfo[] = [
 /** A plugin that failed to load, with the long error and the reference core records. */
 export const failedInstalled: PluginInfo[] = [
   {
-    id: "opencode.broken",
-    source: { type: "local", path: "plugins/opencode.broken" },
+    id: "aicraft.broken",
+    source: { type: "local", path: "plugins/aicraft.broken" },
     features: { server: true },
     state: {
       status: "failed",

@@ -1,6 +1,6 @@
-import { containsDirectory, sameDirectory } from "@opencode/util/path"
+import { containsDirectory, sameDirectory } from "@aicraft/util/path"
 import type { WorkspaceDefaultDestination } from "@/settings/model"
-import type { SessionInfo, WorktreeDirectory } from "@opencode/client/promise"
+import type { SessionInfo, WorktreeDirectory } from "@aicraft/client/promise"
 
 type WorkspaceProject = {
   worktree: string

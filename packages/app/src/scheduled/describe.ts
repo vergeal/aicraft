@@ -1,4 +1,4 @@
-import type { ScheduleInfo } from "@opencode/client/promise"
+import type { ScheduleInfo } from "@aicraft/client/promise"
 import type { useLanguage } from "@/runtime/i18n/language"
 
 type Language = ReturnType<typeof useLanguage>

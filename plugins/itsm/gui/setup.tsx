@@ -1,6 +1,6 @@
 import { createEffect, createSignal, Show } from "solid-js"
-import { Command, MainSurface, Plugin, SettingsPage, Style } from "@opencode/plugin/gui"
-import { uuid } from "@opencode/util/uuid"
+import { Command, MainSurface, Plugin, SettingsPage, Style } from "@aicraft/plugin/gui"
+import { uuid } from "@aicraft/util/uuid"
 import { ItsmContract } from "../src/contract.js"
 import type { Account, AnswerValue, Run, ServiceCatalog, Settings, Snapshot, Template } from "../src/contract.js"
 import { ItsmBrowser } from "../src/ipc.js"

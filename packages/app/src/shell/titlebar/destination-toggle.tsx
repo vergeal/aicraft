@@ -1,8 +1,8 @@
 import { For, Show, createSignal } from "solid-js"
-import { Icon } from "@opencode/ui/icon"
-import type { IconName } from "@opencode/ui/icons/catalog"
-import { Keybind } from "@opencode/ui/keybind"
-import { Tooltip } from "@opencode/ui/tooltip"
+import { Icon } from "@aicraft/ui/icon"
+import type { IconName } from "@aicraft/ui/icons/catalog"
+import { Keybind } from "@aicraft/ui/keybind"
+import { Tooltip } from "@aicraft/ui/tooltip"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 

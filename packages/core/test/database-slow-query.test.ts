@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { Effect } from "effect"
-import { formatSql, measure, snapshot, trim, type Entry } from "@opencode/core/database/slow-query"
+import { formatSql, measure, snapshot, trim, type Entry } from "@aicraft/core/database/slow-query"
 
 const entry = (overrides: Partial<Entry> = {}): Entry => ({
   sql: "SELECT 1",

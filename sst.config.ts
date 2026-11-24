@@ -19,8 +19,8 @@ export default $config({
                 profile: process.env.GITHUB_ACTIONS
                   ? undefined
                   : input.stage === "production"
-                    ? "opencode-production"
-                    : "opencode-dev",
+                    ? "aicraft-production"
+                    : "aicraft-dev",
               },
               stripe: {
                 version: "0.0.28",

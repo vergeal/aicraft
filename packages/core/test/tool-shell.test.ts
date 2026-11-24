@@ -4,40 +4,40 @@ import os from "os"
 import path from "path"
 import { describe, expect } from "bun:test"
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer, Queue, Scope, Stream } from "effect"
-import { Money } from "@opencode/schema/money"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { makeGlobalNode, makeLocationNode } from "@opencode/util/effect/app-node"
-import { filesystem } from "@opencode/util/effect/app-node-platform"
-import { Database } from "@opencode/core/database/database"
-import { Bus } from "@opencode/core/bus"
-import { Config } from "@opencode/core/config"
-import { Environment } from "@opencode/core/environment/index"
-import { FSUtil } from "@opencode/util/fs-util"
-import { Global } from "@opencode/util/global"
-import { Location } from "@opencode/core/location"
-import { FileAccess } from "@opencode/core/file-access"
-import { LocationServiceMap } from "@opencode/core/location-service-map"
-import { Model } from "@opencode/core/model"
-import { Provider } from "@opencode/core/provider"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Agent } from "@opencode/core/agent"
-import { Job } from "@opencode/core/job"
-import { Session } from "@opencode/core/session"
-import { SessionEvent } from "@opencode/core/session/event"
-import { SessionExecution } from "@opencode/core/session/execution"
-import { SessionMessage } from "@opencode/core/session/message"
-import { SessionStore } from "@opencode/core/session/store"
-import { Permission } from "@opencode/core/permission"
-import { PermissionSaved } from "@opencode/core/permission/saved"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginSupervisor } from "@opencode/core/plugin/supervisor"
-import { Shell } from "@opencode/core/shell"
-import { ShellSelect } from "@opencode/core/shell/select"
-import { ID } from "@opencode/schema/shell"
-import { ShellTool } from "@opencode/core/tool/plugin/shell"
-import { ToolOutput } from "@opencode/core/tool-output"
-import { Tool } from "@opencode/core/tool"
+import { Money } from "@aicraft/schema/money"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { makeGlobalNode, makeLocationNode } from "@aicraft/util/effect/app-node"
+import { filesystem } from "@aicraft/util/effect/app-node-platform"
+import { Database } from "@aicraft/core/database/database"
+import { Bus } from "@aicraft/core/bus"
+import { Config } from "@aicraft/core/config"
+import { Environment } from "@aicraft/core/environment/index"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { Global } from "@aicraft/util/global"
+import { Location } from "@aicraft/core/location"
+import { FileAccess } from "@aicraft/core/file-access"
+import { LocationServiceMap } from "@aicraft/core/location-service-map"
+import { Model } from "@aicraft/core/model"
+import { Provider } from "@aicraft/core/provider"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Agent } from "@aicraft/core/agent"
+import { Job } from "@aicraft/core/job"
+import { Session } from "@aicraft/core/session"
+import { SessionEvent } from "@aicraft/core/session/event"
+import { SessionExecution } from "@aicraft/core/session/execution"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { SessionStore } from "@aicraft/core/session/store"
+import { Permission } from "@aicraft/core/permission"
+import { PermissionSaved } from "@aicraft/core/permission/saved"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginSupervisor } from "@aicraft/core/plugin/supervisor"
+import { Shell } from "@aicraft/core/shell"
+import { ShellSelect } from "@aicraft/core/shell/select"
+import { ID } from "@aicraft/schema/shell"
+import { ShellTool } from "@aicraft/core/tool/plugin/shell"
+import { ToolOutput } from "@aicraft/core/tool-output"
+import { Tool } from "@aicraft/core/tool"
 import { tmpdir, tmpdirScoped, withTempDir } from "./fixture/tmpdir"
 import { tempGlobalLayer } from "./fixture/global"
 import { offlineModels } from "./fixture/models"
@@ -883,11 +883,11 @@ describe("ShellTool", () => {
             const sessions = yield* Session.Service
             yield* sessions.environment({
               sessionID,
-              variables: { OPENCODE_SESSION_ENV_TEST: "from-session" },
+              variables: { AICRAFT_SESSION_ENV_TEST: "from-session" },
             })
             const command = isWindows
-              ? "[Console]::Out.Write($env:OPENCODE_SESSION_ENV_TEST)"
-              : 'printf %s "$OPENCODE_SESSION_ENV_TEST"'
+              ? "[Console]::Out.Write($env:AICRAFT_SESSION_ENV_TEST)"
+              : 'printf %s "$AICRAFT_SESSION_ENV_TEST"'
 
             const settled = yield* executeTool(registry, call({ command }))
 
@@ -909,15 +909,15 @@ describe("ShellTool", () => {
             const sessions = yield* Session.Service
             yield* sessions.environment({
               sessionID,
-              variables: { AGENT: "0", OPENCODE: "0", AI_AGENT: "", OPENCODE_SESSION_ID: "stale" },
+              variables: { AGENT: "0", AICRAFT: "0", AI_AGENT: "", AICRAFT_SESSION_ID: "stale" },
             })
             const command = isWindows
-              ? '[Console]::Out.Write("$env:AGENT|$env:OPENCODE|$env:AI_AGENT|$env:OPENCODE_SESSION_ID")'
-              : 'printf %s "$AGENT|$OPENCODE|$AI_AGENT|$OPENCODE_SESSION_ID"'
+              ? '[Console]::Out.Write("$env:AGENT|$env:AICRAFT|$env:AI_AGENT|$env:AICRAFT_SESSION_ID")'
+              : 'printf %s "$AGENT|$AICRAFT|$AI_AGENT|$AICRAFT_SESSION_ID"'
             const settled = yield* executeTool(registry, call({ command }))
 
             expect(settled.status).toBe("completed")
-            expect(settled.content?.[0]).toEqual({ type: "text", text: `1|1|opencode|${sessionID}` })
+            expect(settled.content?.[0]).toEqual({ type: "text", text: `1|1|aicraft|${sessionID}` })
           }),
         )
       }),

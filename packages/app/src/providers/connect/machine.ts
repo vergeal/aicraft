@@ -5,7 +5,7 @@ import type {
   IntegrationInfo,
   IntegrationMethod,
   IntegrationOauthConnectOutput,
-} from "@opencode/client/promise"
+} from "@aicraft/client/promise"
 
 export type ProviderConnectMethod = Exclude<IntegrationMethod, { type: "env" }>
 
@@ -399,7 +399,7 @@ function started(
   if (event.type !== "oauth.started" || method.type !== "oauth") return unchanged(state)
   const authorization = event.authorization
 
-  // Same as `opencode auth login`: hand the user straight to the browser instead of asking them to click a link.
+  // Same as `aicraft auth login`: hand the user straight to the browser instead of asking them to click a link.
   const open: ProviderConnectEffect = {
     type: "open.browser",
     attemptID: authorization.attemptID,

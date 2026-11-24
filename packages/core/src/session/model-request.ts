@@ -16,8 +16,8 @@ import {
   ToolMessage,
   type ToolResultPart,
   UserMessage,
-} from "@opencode/ai/effect"
-import type { StreamOptions } from "@opencode/ai/route"
+} from "@aicraft/ai/effect"
+import type { StreamOptions } from "@aicraft/ai/route"
 import type {
   SessionCompaction,
   SessionContext,
@@ -25,13 +25,13 @@ import type {
   SessionRequest,
   SessionRequestKind,
   SessionTitle,
-} from "@opencode/plugin/effect/session"
-import type { Agent } from "@opencode/schema/agent"
-import type { Model } from "@opencode/schema/model"
-import type { Content } from "@opencode/schema/tool"
+} from "@aicraft/plugin/effect/session"
+import type { Agent } from "@aicraft/schema/agent"
+import type { Model } from "@aicraft/schema/model"
+import type { Content } from "@aicraft/schema/tool"
 import { Cause, Context, Effect, Layer, Option, Result, Schema, Stream } from "effect"
 import { HttpClientRequest, HttpClientResponse } from "effect/http"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { App } from "../app.js"
 import { Instructions } from "../instructions/index.js"
 import { Permission } from "../permission.js"
@@ -333,7 +333,7 @@ export interface Interface {
   readonly title: (input: Input) => Effect.Effect<Prepared<SessionTitle>>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/SessionModelRequest") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/SessionModelRequest") {}
 
 export const layer = Layer.effect(
   Service,
@@ -393,14 +393,14 @@ export const layer = Layer.effect(
       const base = ai.request({
         model: model.model,
         headers: {
-          "x-opencode-session-id": session.id,
-          ...(session.parentID ? { "x-opencode-parent-session-id": session.parentID } : {}),
+          "x-aicraft-session-id": session.id,
+          ...(session.parentID ? { "x-aicraft-parent-session-id": session.parentID } : {}),
           "x-session-affinity": affinity,
           "X-Session-Id": affinity,
           ...(session.parentID ? { "x-parent-session-id": session.parentID } : {}),
           "User-Agent": App.useragent(app),
-          "x-opencode-project": session.projectID,
-          "x-opencode-session": affinity,
+          "x-aicraft-project": session.projectID,
+          "x-aicraft-session": affinity,
           "x-opencode-client": app.name,
         },
         // TODO: Persist cache lineage so nested forks reuse the root session's cache key.

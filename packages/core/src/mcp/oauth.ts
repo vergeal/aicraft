@@ -20,14 +20,14 @@ import { Cause, Deferred, Effect } from "effect"
 import { FetchHttpClient } from "effect/http"
 import type { ServerResponse } from "node:http"
 import type { AddressInfo } from "node:net"
-import { ConfigMCP } from "@opencode/schema/config/mcp"
+import { ConfigMCP } from "@aicraft/schema/config/mcp"
 import { Credential } from "../credential.js"
 import { OauthCallbackPage } from "../oauth/page.js"
 import type { Integration } from "../integration.js"
 import { ErrorSummary } from "../util/error-summary.js"
 
 /** Client ID Metadata Document: servers that support CIMD accept this URL as the client_id without registration. */
-export const CLIENT_METADATA_URL = "https://opencode.ai/oauth/opencode/client.json"
+export const CLIENT_METADATA_URL = "https://opencode.ai/oauth/aicraft/client.json"
 
 // Refresh tokens rotate, so concurrent refreshes of the same token share one request or the second gets invalid_grant.
 const refreshes = new Map<string, ReturnType<FetchLike>>()

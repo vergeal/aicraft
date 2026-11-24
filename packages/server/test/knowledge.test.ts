@@ -1,14 +1,14 @@
 import path from "node:path"
 import { expect } from "bun:test"
-import { OpenCode } from "@opencode/client"
+import { Aicraft } from "@aicraft/client"
 import { Effect } from "effect"
 import { tmpdirScoped } from "../../core/test/fixture/tmpdir"
 import { it } from "../../core/test/lib/effect"
 import { ServerFetch } from "../src/fetch"
 
 const client = (handler: (request: Request) => Promise<Response>) =>
-  OpenCode.make({
-    baseUrl: "http://opencode.local",
+  Aicraft.make({
+    baseUrl: "http://aicraft.local",
     fetch: Object.assign((input: string | URL | Request, init?: RequestInit) => handler(new Request(input, init)), {
       preconnect: fetch.preconnect,
     }),
@@ -16,7 +16,7 @@ const client = (handler: (request: Request) => Promise<Response>) =>
 
 it.live("rejects assigning a library the server has no copy of and lists a synced library once assigned", () =>
   Effect.gen(function* () {
-    const dir = (yield* tmpdirScoped("opencode-knowledge-api-")).path
+    const dir = (yield* tmpdirScoped("aicraft-knowledge-api-")).path
     const handler = yield* ServerFetch.make({
       app: { version: "test" },
       database: { path: path.join(dir, "aicraft.db") },
@@ -26,7 +26,7 @@ it.live("rejects assigning a library the server has no copy of and lists a synce
     })
     const api = client(handler)
     const route = (method: string, path: string) =>
-      handler(new Request(`http://opencode.local${path}`, { method }))
+      handler(new Request(`http://aicraft.local${path}`, { method }))
 
     yield* Effect.promise(async () => {
       // A Session creates the Project that knowledge assignments hang off.

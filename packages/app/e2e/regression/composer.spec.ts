@@ -89,7 +89,7 @@ test("mention a session by title, send its stable token, and open its own tab", 
 })
 
 test("a bare @ lists sessions, and a multi-word title matches while file search is slow", async ({ page }) => {
-  const target = "ses_0123456789opencodeconsolex"
+  const target = "ses_0123456789aicraftconsolex"
   const prompts: Parameters<NonNullable<MockServerConfig["onPrompt"]>>[0]["body"][] = []
 
   const view = await openSession(page, {
@@ -98,13 +98,13 @@ test("a bare @ lists sessions, and a multi-word title matches while file search 
     sessions: [
       { id: "ses_mention_search_source", title: "Review the plan" },
       { id: "ses_0123456789homesessionabcde", title: "HOME" },
-      { id: target, title: "OPENCODE CONSOLE" },
+      { id: target, title: "AICRAFT CONSOLE" },
       { id: "ses_0123456789backhomeabcdefgh", title: "Back home", created: T0 + 2 },
       {
         id: "ses_0123456789otherprojecthome",
         title: "HOME elsewhere",
         projectID: "proj_other",
-        directory: "C:/OpenCode/Other",
+        directory: "C:/AI Craft/Other",
         created: T0 + 3,
       },
     ],
@@ -118,7 +118,7 @@ test("a bare @ lists sessions, and a multi-word title matches while file search 
   // A bare @ offers only this project's sessions.
   await view.editor.pressSequentially("Compare with @")
   await expect(suggestions.getByRole("button", { name: /HOME/ })).toBeVisible()
-  await expect(suggestions.getByRole("button", { name: /OPENCODE CONSOLE/ })).toBeVisible()
+  await expect(suggestions.getByRole("button", { name: /AICRAFT CONSOLE/ })).toBeVisible()
   await expect(suggestions.getByRole("button", { name: /HOME elsewhere/ })).toHaveCount(0)
 
   // Typed matches rank this project first, then the exact title, a title start and a later word, ahead of recency.
@@ -137,9 +137,9 @@ test("a bare @ lists sessions, and a multi-word title matches while file search 
   await files.arrived
   await view.editor.pressSequentially(" con")
   await expect(suggestions.getByRole("button", { name: /HOME/ })).toHaveCount(0)
-  await expect(suggestions.locator("[data-suggestion-id][data-active]")).toContainText("OPENCODE CONSOLE")
+  await expect(suggestions.locator("[data-suggestion-id][data-active]")).toContainText("AICRAFT CONSOLE")
   await view.editor.press("Enter")
-  await expect(view.editor.locator('[data-mention="session"]')).toHaveText("@OPENCODE CONSOLE")
+  await expect(view.editor.locator('[data-mention="session"]')).toHaveText("@AICRAFT CONSOLE")
   files.release()
 
   // Prose after a completed mention neither reopens the popover nor lets it take Enter.
@@ -177,7 +177,7 @@ test("the free usage limit opens the Go dialog once, leaves a readable notice, a
       all: [
         {
           id: "opencode",
-          name: "OpenCode",
+          name: "AI Craft",
           models: {
             "big-pickle": {
               id: "big-pickle",
@@ -192,7 +192,7 @@ test("the free usage limit opens the Go dialog once, leaves a readable notice, a
               {
                 id: "opencode-go",
                 integrationID: "opencode-go",
-                name: "OpenCode Go",
+                name: "AI Craft Go",
                 models: {
                   "glm-5-go": {
                     id: "glm-5-go",
@@ -211,15 +211,15 @@ test("the free usage limit opens the Go dialog once, leaves a readable notice, a
     integrations: () => [
       {
         id: "opencode",
-        name: "OpenCode Console",
-        methods: [{ id: "device", type: "oauth", label: "OpenCode Console account" }],
+        name: "AI Craft Console",
+        methods: [{ id: "device", type: "oauth", label: "AI Craft Console account" }],
         connections: state.authorized
           ? [{ type: "credential", id: "cred_console", label: "Anomaly", method: "oauth" }]
           : [],
       },
       {
         id: "opencode-go",
-        name: "OpenCode Go",
+        name: "AI Craft Go",
         methods: [{ type: "key" }],
         connections: state.authorized ? [{ type: "credential", id: "cred_go", label: "Go key", method: "key" }] : [],
       },
@@ -266,10 +266,10 @@ test("the free usage limit opens the Go dialog once, leaves a readable notice, a
 
   // Subscribe -> Go API key -> Continue switches the model in the current session without opening a new draft tab.
   await upsell.getByRole("button", { name: "Subscribe", exact: true }).click()
-  const connect = page.getByRole("dialog", { name: "Connect OpenCode Go", exact: true })
+  const connect = page.getByRole("dialog", { name: "Connect AI Craft Go", exact: true })
   await connect.getByPlaceholder("API key").fill("sk-go-test")
   await connect.getByRole("button", { name: "Continue", exact: true }).click()
-  const connected = page.getByRole("dialog", { name: "Connected to OpenCode Go" })
+  const connected = page.getByRole("dialog", { name: "Connected to AI Craft Go" })
   await expect(connected.getByRole("radio", { name: "GLM-5 Go", exact: true })).toHaveAttribute("aria-checked", "true")
   await connected.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(page.getByRole("dialog")).toHaveCount(0)
@@ -363,7 +363,7 @@ for (const action of ["tray", "picker"] as const) {
         all: [
           {
             id: "opencode",
-            name: "OpenCode",
+            name: "AI Craft",
             models: {
               "big-pickle": {
                 id: "big-pickle",
@@ -375,7 +375,7 @@ for (const action of ["tray", "picker"] as const) {
           },
           {
             id: "opencode-go",
-            name: "OpenCode Go",
+            name: "AI Craft Go",
             models: {
               "glm-5-go": {
                 id: "glm-5-go",
@@ -399,7 +399,7 @@ for (const action of ["tray", "picker"] as const) {
 
     await expect(page.getByText("Refactor the parser", { exact: true })).toBeVisible()
 
-    // The refusal OpenCode Console sends a Go subscriber at a limit, as core records it.
+    // The refusal AI Craft Console sends a Go subscriber at a limit, as core records it.
     const body = {
       type: "error",
       error: { type: "GoUsageLimitError", message: "Go usage limit exceeded" },
@@ -418,7 +418,7 @@ for (const action of ["tray", "picker"] as const) {
           assistantMessageID: "msg_go_assistant",
           error: {
             type: "provider.go-limit",
-            message: "OpenCode Go 5 hour usage limit reached.",
+            message: "AI Craft Go 5 hour usage limit reached.",
             status: 429,
             response: { body: JSON.stringify(body) },
             retryAfterMs: 3_600_000,
@@ -430,13 +430,13 @@ for (const action of ["tray", "picker"] as const) {
     const tray = page.locator('[data-component="session-go-limit-tray"]')
     await expect(tray).toContainText(/Go 5 hour usage limit reached\. It resets at .+?\./)
     await expect(
-      page.getByRole("status").filter({ hasText: /^You've reached your OpenCode Go usage limit\. It resets at / }),
+      page.getByRole("status").filter({ hasText: /^You've reached your AI Craft Go usage limit\. It resets at / }),
     ).toBeVisible()
     await expect(view.editor).toHaveText("Refactor the parser")
-    await expect(page.getByText("OpenCode Go 5 hour usage limit reached.")).toHaveCount(0)
+    await expect(page.getByText("AI Craft Go 5 hour usage limit reached.")).toHaveCount(0)
     await expect(page.getByRole("dialog")).toHaveCount(0)
 
-    // Extra Usage is turned on from the workspace's Go page in OpenCode Console.
+    // Extra Usage is turned on from the workspace's Go page in Aicraft Console.
     const popup = page.waitForEvent("popup")
     await tray.getByRole("button", { name: "Turn on Extra Usage", exact: true }).click()
     await expect(await popup).toHaveURL("https://opencode.ai/console/wrk_go_limit/go")
@@ -555,7 +555,7 @@ test("a catalog refresh cannot replace an existing session's model", async ({ pa
       data: {},
     },
   ])
-  await expect(control).toHaveText("OpenCode / Alpha")
+  await expect(control).toHaveText("AI Craft / Alpha")
   await view.editor.press("Enter")
   await expect.poll(() => prompts.length).toBe(1)
   // The session already runs Alpha high, so the send has no switch to make.
@@ -681,7 +681,7 @@ test("a send pressed while the Location's plugins activate waits, Esc cancels it
 test("an opened session in another Location names its model from a loaded catalog before its agents load", async ({
   page,
 }) => {
-  const other = "C:/OpenCode/WarmOther"
+  const other = "C:/AI Craft/WarmOther"
   await mockWorkspace(page, {
     name: "WarmOpen",
     sessions: [
@@ -712,7 +712,7 @@ test("an opened session in another Location names its model from a loaded catalo
   try {
     await page.locator(`[data-slot="vertical-tabs"] a[href="${sessionHref("ses_warm_there", SERVER)}"]`).click()
     await held.arrived
-    await expect(control).toHaveText("OpenCode / Beta")
+    await expect(control).toHaveText("AI Craft / Beta")
     const painted = await control.elementHandle()
 
     const loaded = ["/api/agent", "/api/config"].map((path) =>
@@ -762,7 +762,7 @@ test("a managed composer label follows direct connections, not picker filtering 
         {
           id: "opencode",
           integrationID: "opencode",
-          name: "Anomaly / OpenCode",
+          name: "Anomaly / AI Craft",
           models: {},
         },
         {
@@ -820,15 +820,15 @@ test("a managed composer label follows direct connections, not picker filtering 
       data: {},
     },
   ])
-  await expect(control).toHaveText("OpenCode / OpenAI / GPT")
-  await expect(control).toHaveAccessibleName("OpenCode / OpenAI / GPT")
+  await expect(control).toHaveText("AI Craft / OpenAI / GPT")
+  await expect(control).toHaveAccessibleName("AI Craft / OpenAI / GPT")
   await control.click()
   const search = picker.getByRole("combobox", { name: "Search models", exact: true })
   await expect(picker.locator('[data-option-key="openai:direct-model"]')).toBeVisible()
   await search.fill("GPT")
   await expect(picker.locator('[data-option-key="openai:direct-model"]')).toHaveCount(0)
   await expect(selected).toHaveAttribute("aria-current", "true")
-  await expect(control).toHaveText("OpenCode / OpenAI / GPT")
+  await expect(control).toHaveText("AI Craft / OpenAI / GPT")
   await search.press("Escape")
   await expect(picker).toBeHidden()
 
@@ -1174,7 +1174,7 @@ test("shows the dropzone and attaches a dropped file", async ({ page }) => {
     .toEqual([
       {
         path: expect.stringMatching(/\/uploads\/[0-9a-f-]{36}\/dropzone\.txt$/),
-        directory: "C:/OpenCode/ComposerDraft",
+        directory: "C:/AI Craft/ComposerDraft",
         body: "Dropzone fixture",
       },
     ])
@@ -1285,7 +1285,7 @@ test("keeps focus in a dialog that replaces the model dialog and returns it to t
   await expect(editor).toHaveText("keep, me")
 })
 
-test("lists OpenCode's free models in the model picker however old they are", async ({ page }) => {
+test("lists AI Craft's free models in the model picker however old they are", async ({ page }) => {
   await page.clock.setFixedTime(T0)
   const year = { released: T0 - 365 * 24 * 60 * 60 * 1000 }
   await openSession(page, {
@@ -1299,9 +1299,9 @@ test("lists OpenCode's free models in the model picker however old they are", as
 
   await page.locator('[data-component="composer"] [data-action="composer-model"]').click()
   const models = page.getByRole("dialog", { name: "Select model", exact: true })
-  await expect(models.locator('[data-option-key="opencode:new-paid"]')).toBeVisible()
-  await expect(models.locator('[data-option-key="opencode:big-pickle"]')).toBeVisible()
-  await expect(models.locator('[data-option-key="opencode:old-paid"]')).toHaveCount(0)
+  await expect(models.locator('[data-option-key="aicraft:new-paid"]')).toBeVisible()
+  await expect(models.locator('[data-option-key="aicraft:big-pickle"]')).toBeVisible()
+  await expect(models.locator('[data-option-key="aicraft:old-paid"]')).toHaveCount(0)
 })
 
 test("lists slash commands in their built-in order", async ({ page }) => {
@@ -1439,7 +1439,7 @@ test("marks a Console provider with its workspace only when it is also connected
     name: "ComposerConsoleProviders",
     provider: {
       all: [
-        managed("opencode", "opencode", "OpenCode", model("console-model", "Console Model")),
+        managed("opencode", "opencode", "AI Craft", model("console-model", "Console Model")),
         managed("console-google", "google", "Google", model("managed-gemini", "Managed Gemini")),
         managed("console-openai", "openai", "OpenAI", model("managed-gpt", "Managed GPT")),
         { id: "google", canonical: "google", name: "Google", models: model("direct-gemini", "Direct Gemini") },
@@ -1472,7 +1472,7 @@ test("marks a Console provider with its workspace only when it is also connected
   await expect(headings.filter({ hasText: /^GoogleAnomaly$/ })).toHaveCount(1)
   await expect(headings.filter({ hasText: /^Google$/ })).toHaveCount(1)
   await expect(headings.filter({ hasText: /^OpenAI$/ })).toHaveCount(1)
-  await expect(headings.filter({ hasText: /^OpenCode$/ })).toHaveCount(1)
+  await expect(headings.filter({ hasText: /^Aicraft$/ })).toHaveCount(1)
   await expect(menu.getByText(/Anomaly \//)).toHaveCount(0)
 })
 

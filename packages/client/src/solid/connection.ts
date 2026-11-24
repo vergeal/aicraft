@@ -1,6 +1,6 @@
 import { batch, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
-import type { OpenCodeClient, OpenCodeEvent } from "../promise"
+import type { AicraftClient, AicraftEvent } from "../promise"
 
 export type ClientConnectionStatus = "connected" | "connecting" | "reconnecting"
 export type ClientConnectionEvent = {
@@ -14,8 +14,8 @@ export type ClientConnectionEvent = {
 }
 
 export type ClientConnectionOptions = {
-  readonly reconnect?: (signal: AbortSignal) => Promise<OpenCodeClient>
-  readonly onEvent: (event: OpenCodeEvent) => void
+  readonly reconnect?: (signal: AbortSignal) => Promise<AicraftClient>
+  readonly onEvent: (event: AicraftEvent) => void
   readonly flushInterval?: number
   readonly pageLifecycle?: boolean
   /**
@@ -43,7 +43,7 @@ export const defaultIdleTimeout = 45_000
 // returns to the foreground is probably half-open after the device slept.
 export const foregroundIdleThreshold = 20_000
 
-export function createClientConnection(initialApi: OpenCodeClient, options: ClientConnectionOptions) {
+export function createClientConnection(initialApi: AicraftClient, options: ClientConnectionOptions) {
   const abort = new AbortController()
   const history: ClientConnectionEvent[] = []
   const idleTimeout = options.idleTimeout ?? defaultIdleTimeout
@@ -53,7 +53,7 @@ export function createClientConnection(initialApi: OpenCodeClient, options: Clie
     error?: string
   }>({ status: "connecting", attempt: 0 })
   let api = initialApi
-  let pending: OpenCodeEvent[] = []
+  let pending: AicraftEvent[] = []
   let flushTimer: ReturnType<typeof setTimeout> | undefined
   let stream: AbortController | undefined
   let current: AbortController | undefined
@@ -68,7 +68,7 @@ export function createClientConnection(initialApi: OpenCodeClient, options: Clie
     if (history.length > connectionHistoryLimit) history.shift()
   }
 
-  function publish(event: OpenCodeEvent) {
+  function publish(event: AicraftEvent) {
     pending.push(event)
     if (flushTimer) return
     flushTimer = setTimeout(flush, options.flushInterval ?? 10)

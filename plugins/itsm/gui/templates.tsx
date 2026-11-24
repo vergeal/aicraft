@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js"
-import { usePlugin } from "@opencode/plugin/gui"
-import { uuid } from "@opencode/util/uuid"
+import { usePlugin } from "@aicraft/plugin/gui"
+import { uuid } from "@aicraft/util/uuid"
 import type { Question, QuestionType, Template } from "../src/contract.js"
 import type { Definition } from "./definition.js"
 

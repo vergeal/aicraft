@@ -4,11 +4,11 @@ import { enableCompileCache } from "node:module"
 import { homedir, tmpdir } from "node:os"
 import path from "node:path"
 import { app } from "electron"
-import { debugBuild, memoryLogInterval } from "@opencode/gui-plugins/debug/options"
+import { debugBuild, memoryLogInterval } from "@aicraft/gui-plugins/debug/options"
 import { APP_ID, APP_NAME, CHANNEL } from "../constants"
 import { remoteDebuggingPort } from "../diagnostics/options"
 
-const testOnboarding = process.env.OPENCODE_TEST_ONBOARDING === "1"
+const testOnboarding = process.env.AICRAFT_TEST_ONBOARDING === "1"
 
 const jsCallStackFeature = "DocumentPolicyIncludeJSCallStacksInCrashReports"
 
@@ -20,7 +20,7 @@ export function configureApplication() {
     process.chdir(homedir())
   } catch {}
 
-  process.env.OPENCODE_DISABLE_EMBEDDED_WEB_UI = "true"
+  process.env.AICRAFT_DISABLE_EMBEDDED_WEB_UI = "true"
 
   app.setName(APP_NAME)
   app.setAppUserModelId(APP_ID)
@@ -37,7 +37,7 @@ export function configureApplication() {
   if (process.platform === "darwin") app.commandLine.appendSwitch("force-high-performance-gpu")
 
   const build = { packaged: app.isPackaged, channel: CHANNEL }
-  const debugPort = remoteDebuggingPort(build, process.env.OPENCODE_DESKTOP_REMOTE_DEBUGGING_PORT)
+  const debugPort = remoteDebuggingPort(build, process.env.AICRAFT_DESKTOP_REMOTE_DEBUGGING_PORT)
 
   if (debugPort) app.commandLine.appendSwitch("remote-debugging-port", debugPort)
 
@@ -45,7 +45,7 @@ export function configureApplication() {
     app.commandLine.appendSwitch("remote-debugging-address", "127.0.0.1")
 
   // Precise heap sizes need a launch switch. The debug bar's toggle starts the log without one.
-  if (debugBuild(build) && memoryLogInterval(process.env.OPENCODE_DESKTOP_MEMORY_LOG) !== undefined)
+  if (debugBuild(build) && memoryLogInterval(process.env.AICRAFT_DESKTOP_MEMORY_LOG) !== undefined)
     app.commandLine.appendSwitch("enable-precise-memory-info")
 
   const testRoot = createTestRoot()
@@ -70,10 +70,10 @@ export function acquireApplicationLock() {
 }
 
 const legacyAppIDs: Record<string, string> = {
-  local: "ai.opencode.desktop.dev",
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
+  local: "ai.aicraft.desktop.dev",
+  dev: "ai.aicraft.desktop.dev",
+  beta: "ai.aicraft.desktop.beta",
+  prod: "ai.aicraft.desktop",
 }
 
 // The product rename moved every data root. Move the previous roots once, before anything reads or
@@ -89,10 +89,10 @@ function migrateLegacyData(appData: string) {
   ]
   const userData = path.join(appData, APP_ID)
   const pairs: [string, string][] = [
-    [path.join(home, ".opencode"), path.join(home, ".aicraft")],
+    [path.join(home, ".aicraft"), path.join(home, ".aicraft")],
     ...roots.map((root): [string, string] => [path.join(root, "opencode"), path.join(root, "aicraft")]),
     [path.join(appData, legacyAppIDs[CHANNEL] ?? legacyAppIDs.dev), userData],
-    [path.join(userData, "opencode.settings"), path.join(userData, "aicraft.settings")],
+    [path.join(userData, "aicraft.settings"), path.join(userData, "aicraft.settings")],
   ]
 
   for (const [from, to] of pairs) {
@@ -108,7 +108,7 @@ function migrateLegacyData(appData: string) {
   if (!existsSync(dataRoot)) return
 
   for (const name of readdirSync(dataRoot)) {
-    if (!/^opencode.*\.db(?:-(?:wal|shm))?$/.test(name)) continue
+    if (!/^aicraft.*\.db(?:-(?:wal|shm))?$/.test(name)) continue
     const next = `aicraft${name.slice("opencode".length)}`
     if (existsSync(path.join(dataRoot, next))) continue
     try {
@@ -119,8 +119,8 @@ function migrateLegacyData(appData: string) {
 
 function createTestRoot() {
   const root = testOnboarding
-    ? path.join(tmpdir(), `opencode-onboarding-${randomUUID()}`)
-    : process.env.OPENCODE_DESKTOP_TEST_ROOT
+    ? path.join(tmpdir(), `aicraft-onboarding-${randomUUID()}`)
+    : process.env.AICRAFT_DESKTOP_TEST_ROOT
 
   if (!root) return undefined
 
@@ -129,7 +129,7 @@ function createTestRoot() {
   for (const dir of ["data", "config", "cache", "state", "desktop", "session", "documents"])
     mkdirSync(path.join(root, dir), { recursive: true })
 
-  if (testOnboarding) process.env.OPENCODE_DB = ":memory:"
+  if (testOnboarding) process.env.AICRAFT_DB = ":memory:"
 
   process.env.XDG_DATA_HOME = path.join(root, "data")
   process.env.XDG_CONFIG_HOME = path.join(root, "config")

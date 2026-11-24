@@ -24,10 +24,10 @@ type ThemeState = {
 }
 
 const STORAGE_KEYS = {
-  THEME_ID: "opencode-theme-id",
-  COLOR_SCHEME: "opencode-color-scheme",
-  THEME_CSS_LIGHT: "opencode-theme-css-light",
-  THEME_CSS_DARK: "opencode-theme-css-dark",
+  THEME_ID: "aicraft-theme-id",
+  COLOR_SCHEME: "aicraft-color-scheme",
+  THEME_CSS_LIGHT: "aicraft-theme-css-light",
+  THEME_CSS_DARK: "aicraft-theme-css-dark",
 } as const
 
 const THEME_STYLE_ID = "oc-theme"
@@ -63,7 +63,7 @@ function knownThemes() {
 
 const names = new Map(
   Object.entries({
-    "oc-2": "OpenCode",
+    "oc-2": "AI Craft",
     amoled: "AMOLED",
     aura: "Aura",
     ayu: "Ayu",

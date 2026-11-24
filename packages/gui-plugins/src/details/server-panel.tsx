@@ -1,15 +1,15 @@
-import type { PluginInfo } from "@opencode/client"
-import { Button } from "@opencode/ui/button"
-import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { ErrorDetails } from "@opencode/ui/error-details"
-import { Icon } from "@opencode/ui/icon"
-import { Loader } from "@opencode/ui/loader"
-import { MenuScroll } from "@opencode/ui/menu-scroll"
-import { Switch } from "@opencode/ui/switch"
-import { TextInput } from "@opencode/ui/text-input"
-import { showToast } from "@opencode/ui/toast"
-import { Tooltip } from "@opencode/ui/tooltip"
-import { TruncatedText } from "@opencode/ui/truncated-text"
+import type { PluginInfo } from "@aicraft/client"
+import { Button } from "@aicraft/ui/button"
+import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
+import { ErrorDetails } from "@aicraft/ui/error-details"
+import { Icon } from "@aicraft/ui/icon"
+import { Loader } from "@aicraft/ui/loader"
+import { MenuScroll } from "@aicraft/ui/menu-scroll"
+import { Switch } from "@aicraft/ui/switch"
+import { TextInput } from "@aicraft/ui/text-input"
+import { showToast } from "@aicraft/ui/toast"
+import { Tooltip } from "@aicraft/ui/tooltip"
+import { TruncatedText } from "@aicraft/ui/truncated-text"
 import { useMutation } from "@tanstack/solid-query"
 import {
   children,
@@ -27,9 +27,9 @@ import {
   type JSX,
 } from "solid-js"
 import { createStore } from "solid-js/store"
-import { createKeyed, useDrawer, usePlugin, type MountedSession } from "@opencode/plugin/gui"
+import { createKeyed, useDrawer, usePlugin, type MountedSession } from "@aicraft/plugin/gui"
 import { globalConfigDirectory, serviceConfigFile } from "./config-file"
-import { builtinContext } from "@opencode/plugin/gui/builtin"
+import { builtinContext } from "@aicraft/plugin/gui/builtin"
 import { createFlyoutMotion } from "./flyout-motion"
 
 const services = [
@@ -928,7 +928,7 @@ function ServiceConfigLink(props: { owner: ServiceProps; service: Service }) {
   )
 }
 
-// Starts a draft session in the global configuration's directory that asks OpenCode to set the service up.
+// Starts a draft session in the global configuration's directory that asks AI Craft to set the service up.
 function ServiceSetup(props: { owner: ServiceProps; service: Service }) {
   const ctx = usePlugin()
   const [store, setStore] = createStore({ opening: false })

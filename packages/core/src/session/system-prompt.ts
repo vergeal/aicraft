@@ -22,5 +22,5 @@ export function render(prompt: string, tools: string[]) {
       "- 使用 edit 工具对现有文本文件做局部改动。它把 `oldString` 中的确切文本替换为 `newString`，且两者的值必须不同。默认情况下，`oldString` 必须只出现一次。如果出现多次，请包含更多上下文使其唯一，或设置 `replaceAll` 为 true 以替换每一处。",
     )
   }
-  return prompt.replace("${OPENCODE_TOOL_GUIDANCE}", instructions.join("\n"))
+  return prompt.replace("${AICRAFT_TOOL_GUIDANCE}", instructions.join("\n"))
 }

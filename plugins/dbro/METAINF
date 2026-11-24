@@ -12,7 +12,7 @@
     "python": ">=3.10",
     "dependencies": ["pymysql>=1.0", "psycopg2-binary>=2.9"]
   },
-  "externals": ["effect", "@opencode/plugin", "@opencode/schema"],
+  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema"],
   "display": {
     "name": "DBRO",
     "description": "只读查询达梦 8、MySQL 和 PostgreSQL：统一入口、方言适配的表清单与表结构，没有写开关。",

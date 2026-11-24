@@ -1,8 +1,8 @@
 import { expect } from "bun:test"
-import { RequestExecutor } from "@opencode/ai/route"
-import { Credential } from "@opencode/core/credential"
-import { Integration } from "@opencode/core/integration"
-import { Voice } from "@opencode/core/voice"
+import { RequestExecutor } from "@aicraft/ai/route"
+import { Credential } from "@aicraft/core/credential"
+import { Integration } from "@aicraft/core/integration"
+import { Voice } from "@aicraft/core/voice"
 import { Effect, Layer } from "effect"
 import { HttpClient, type HttpClientRequest, HttpClientResponse } from "effect/http"
 import { TestClock } from "effect/testing"
@@ -22,10 +22,10 @@ const keys: Record<string, string> = {
   stored: "sk-stored",
   XAI_API_KEY: "xai-env-key",
   GEMINI_API_KEY: "gemini-env-key",
-  OPENCODE_API_KEY: "opencode-env-key",
+  OPENCODE_API_KEY: "aicraft-env-key",
 }
 
-// A ChatGPT sign-in can't start voice sessions, so resolving one fails the test; an OpenCode Console sign-in can.
+// A ChatGPT sign-in can't start voice sessions, so resolving one fails the test; an AI Craft Console sign-in can.
 const resolveCredential: Integration.Interface["connection"]["resolve"] = (connection) => {
   if (connection.type === "env") return Effect.succeed(Credential.Key.make({ type: "key", key: keys[connection.name] }))
   if (connection.id === "chatgpt") return Effect.die("a ChatGPT sign-in was resolved")
@@ -153,28 +153,28 @@ it.effect("uses the first key or env connection Integration lists and never a Ch
 )
 
 it.effect(
-  "starts GPT-Live on OpenCode's hosted endpoint with an OpenCode Console connection only without an OpenAI key",
+  "starts GPT-Live on AI Craft's hosted endpoint with an AI Craft Console connection only without an OpenAI key",
   () =>
     Effect.gen(function* () {
       const requests: HttpClientRequest.HttpClientRequest[] = []
-      const opencode = { opencode: [credential("console", "oauth")] }
+      const aicraft = { aicraft: [credential("console", "oauth")] }
 
-      yield* start("gpt-live-1", { openai: [credential("chatgpt", "oauth")], ...opencode }, requests)
-      yield* start("gpt-live-1", { opencode: [{ type: "env", name: "OPENCODE_API_KEY" }] }, requests)
-      yield* start("gpt-live-1", { openai: [credential("active", "key")], ...opencode }, requests)
+      yield* start("gpt-live-1", { openai: [credential("chatgpt", "oauth")], ...aicraft }, requests)
+      yield* start("gpt-live-1", { aicraft: [{ type: "env", name: "OPENCODE_API_KEY" }] }, requests)
+      yield* start("gpt-live-1", { openai: [credential("active", "key")], ...aicraft }, requests)
       expect(
         requests.map((req): (string | undefined)[] => [
           req.url,
           req.headers.authorization,
-          req.headers["x-opencode-org-id"],
+          req.headers["x-aicraft-org-id"],
         ]),
       ).toEqual([
         ["https://opencode.ai/inference/openai/v1/live/sessions", "Bearer console-access", "wrk_console"],
-        ["https://opencode.ai/inference/openai/v1/live/sessions", "Bearer opencode-env-key", undefined],
+        ["https://opencode.ai/inference/openai/v1/live/sessions", "Bearer aicraft-env-key", undefined],
         ["https://api.openai.com/v1/live/sessions", "Bearer sk-active", undefined],
       ])
 
-      const realtime = yield* start("gpt-realtime-2.1", opencode, requests).pipe(Effect.flip)
+      const realtime = yield* start("gpt-realtime-2.1", aicraft, requests).pipe(Effect.flip)
       expect(realtime).toMatchObject({ _tag: "Voice.UnavailableError", service: "openai" })
       expect(requests).toHaveLength(3)
     }),
@@ -213,7 +213,7 @@ it.effect("lists voice models with availability and default without resolving cr
     })
 
     expect(
-      yield* list({ openai: [credential("chatgpt", "oauth")], opencode: [credential("console", "oauth")] }),
+      yield* list({ openai: [credential("chatgpt", "oauth")], aicraft: [credential("console", "oauth")] }),
     ).toEqual({
       models: [
         { model: "gpt-live-1", provider: "opencode", transports: ["webrtc"], available: true },

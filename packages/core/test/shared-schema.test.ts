@@ -1,32 +1,32 @@
 import { expect, test } from "bun:test"
 import { Schema } from "effect"
-import { Agent } from "@opencode/core/agent"
-import { Session } from "@opencode/core/session"
-import { SessionStore } from "@opencode/core/session/store"
-import { Location } from "@opencode/schema/location"
-import { Model } from "@opencode/schema/model"
-import { Provider } from "@opencode/schema/provider"
-import { Project } from "@opencode/schema/project"
-import { Worktree } from "@opencode/schema/worktree"
-import { Prompt } from "@opencode/schema/prompt"
-import { SessionInbox } from "@opencode/schema/session-inbox"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { Workspace } from "@opencode/schema/workspace"
-import { Command } from "@opencode/schema/command"
-import { Connection } from "@opencode/schema/connection"
-import { Credential } from "@opencode/schema/credential"
-import { FileSystem } from "@opencode/schema/filesystem"
-import { Integration } from "@opencode/schema/integration"
-import { LLM } from "@opencode/schema/llm"
-import { Permission } from "@opencode/schema/permission"
-import { Pty } from "@opencode/schema/pty"
-import { Reference } from "@opencode/schema/reference"
-import { Skill } from "@opencode/schema/skill"
-import { AbsolutePath, optional, statics } from "@opencode/schema/schema"
+import { Agent } from "@aicraft/core/agent"
+import { Session } from "@aicraft/core/session"
+import { SessionStore } from "@aicraft/core/session/store"
+import { Location } from "@aicraft/schema/location"
+import { Model } from "@aicraft/schema/model"
+import { Provider } from "@aicraft/schema/provider"
+import { Project } from "@aicraft/schema/project"
+import { Worktree } from "@aicraft/schema/worktree"
+import { Prompt } from "@aicraft/schema/prompt"
+import { SessionInbox } from "@aicraft/schema/session-inbox"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { Workspace } from "@aicraft/schema/workspace"
+import { Command } from "@aicraft/schema/command"
+import { Connection } from "@aicraft/schema/connection"
+import { Credential } from "@aicraft/schema/credential"
+import { FileSystem } from "@aicraft/schema/filesystem"
+import { Integration } from "@aicraft/schema/integration"
+import { LLM } from "@aicraft/schema/llm"
+import { Permission } from "@aicraft/schema/permission"
+import { Pty } from "@aicraft/schema/pty"
+import { Reference } from "@aicraft/schema/reference"
+import { Skill } from "@aicraft/schema/skill"
+import { AbsolutePath, optional, statics } from "@aicraft/schema/schema"
 
 test("Core reuses the canonical shared schemas", async () => {
-  const schemaAgent = await import("@opencode/schema/agent")
-  const schemaSession = await import("@opencode/schema/session")
+  const schemaAgent = await import("@aicraft/schema/agent")
+  const schemaSession = await import("@aicraft/schema/session")
   const [
     coreCommand,
     coreConnection,
@@ -48,25 +48,25 @@ test("Core reuses the canonical shared schemas", async () => {
     coreSchema,
     coreWorkspace,
   ] = await Promise.all([
-    import("@opencode/core/command"),
-    import("@opencode/core/integration/connection"),
-    import("@opencode/core/credential"),
-    import("@opencode/core/filesystem"),
-    import("@opencode/core/integration"),
-    import("@opencode/core/location"),
-    import("@opencode/ai/effect"),
-    import("@opencode/core/model"),
-    import("@opencode/core/permission"),
-    import("@opencode/core/worktree"),
-    import("@opencode/core/pty"),
-    import("@opencode/core/project/schema"),
-    import("@opencode/core/provider"),
-    import("@opencode/core/reference"),
-    import("@opencode/core/session/inbox"),
-    import("@opencode/core/session/message"),
-    import("@opencode/core/skill"),
-    import("@opencode/core/schema"),
-    import("@opencode/core/workspace"),
+    import("@aicraft/core/command"),
+    import("@aicraft/core/integration/connection"),
+    import("@aicraft/core/credential"),
+    import("@aicraft/core/filesystem"),
+    import("@aicraft/core/integration"),
+    import("@aicraft/core/location"),
+    import("@aicraft/ai/effect"),
+    import("@aicraft/core/model"),
+    import("@aicraft/core/permission"),
+    import("@aicraft/core/worktree"),
+    import("@aicraft/core/pty"),
+    import("@aicraft/core/project/schema"),
+    import("@aicraft/core/provider"),
+    import("@aicraft/core/reference"),
+    import("@aicraft/core/session/inbox"),
+    import("@aicraft/core/session/message"),
+    import("@aicraft/core/skill"),
+    import("@aicraft/core/schema"),
+    import("@aicraft/core/workspace"),
   ])
 
   const schemas = [

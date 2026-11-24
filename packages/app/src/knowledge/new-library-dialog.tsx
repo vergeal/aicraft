@@ -1,8 +1,8 @@
-import { Button } from "@opencode/ui/button"
-import { useDialog } from "@opencode/ui/context/dialog"
-import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { TextInput } from "@opencode/ui/text-input"
-import { Textarea } from "@opencode/ui/textarea"
+import { Button } from "@aicraft/ui/button"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
+import { TextInput } from "@aicraft/ui/text-input"
+import { Textarea } from "@aicraft/ui/textarea"
 import { createSignal } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 

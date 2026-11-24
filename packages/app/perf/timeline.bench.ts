@@ -24,7 +24,7 @@ let divider: Divider | undefined
 export default bench({
   targets: {
     web: web({
-      expect: { title: "OpenCode" },
+      expect: { title: "AI Craft" },
       viewport: { width: 1366, height: 768 },
       prepare: async ({ case: name, playwright, mock, url }) => ({
         ...(await mockTimelineSession(cached(playwright.page, mock), {

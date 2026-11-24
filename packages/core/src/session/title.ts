@@ -1,12 +1,12 @@
 export * as SessionTitle from "./title.js"
 
-import { LLMClient, LLMEvent, Message, SystemPart } from "@opencode/ai/effect"
-import type { Agent } from "@opencode/schema/agent"
+import { LLMClient, LLMEvent, Message, SystemPart } from "@aicraft/ai/effect"
+import type { Agent } from "@aicraft/schema/agent"
 import { Context, DateTime, Effect, Layer, Option, Stream } from "effect"
 import { Database } from "../database/database.js"
 import { Bus } from "../bus.js"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
-import { isExactRootFallback } from "@opencode/util/session-title-fallback"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
+import { isExactRootFallback } from "@aicraft/util/session-title-fallback"
 import { llmClient } from "../effect/app-node-platform.js"
 import { SessionContext } from "./context.js"
 import { SessionEvent } from "./event.js"
@@ -32,7 +32,7 @@ export interface Interface {
   readonly generate: (sessionID: SessionSchema.ID) => Effect.Effect<void>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/SessionTitle") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/SessionTitle") {}
 
 const truncate = (value: string, max = MAX_LENGTH) =>
   value.length <= max ? value : `${value.slice(0, Math.max(0, max - 3))}...`

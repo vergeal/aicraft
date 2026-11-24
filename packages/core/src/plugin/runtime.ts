@@ -5,15 +5,15 @@ import { existsSync } from "node:fs"
 import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { inflateRawSync } from "node:zlib"
-import type { Plugin } from "@opencode/schema/plugin"
-import type { PluginManifest } from "@opencode/schema/plugin-manifest"
+import type { Plugin } from "@aicraft/schema/plugin"
+import type { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Effect } from "effect"
 import { compareVersions } from "./local.js"
 import { PluginPaths } from "./paths.js"
 
 /**
  * The uv release the host downloads when the machine has none. Pinned so one code revision prepares one environment;
- * `OPENCODE_UV_VERSION` picks another.
+ * `AICRAFT_UV_VERSION` picks another.
  */
 const UV_VERSION = "0.13.8"
 
@@ -234,7 +234,7 @@ async function findUv(input: {
   readonly uv?: UvSeam
 }): Promise<{ readonly command: string } | { readonly error: string }> {
   const which = input.uv?.which ?? available
-  const explicit = process.env.OPENCODE_UV_PATH?.trim()
+  const explicit = process.env.AICRAFT_UV_PATH?.trim()
   if (explicit && (await which(explicit))) return { command: explicit }
   if (await which("uv")) return { command: "uv" }
   return download(input)
@@ -253,7 +253,7 @@ async function download(input: {
   // A finished binary is the only answer needed, so two plugins preparing at once download once.
   if (await available(target)) return { command: target }
 
-  const version = process.env.OPENCODE_UV_VERSION?.trim() || UV_VERSION
+  const version = process.env.AICRAFT_UV_VERSION?.trim() || UV_VERSION
   const get = input.uv?.download ?? release
   const staging = path.join(directory, `.uv-${crypto.randomUUID()}`)
   const failures: string[] = []
@@ -311,7 +311,7 @@ function uvUrls(version: string, asset: string) {
 
 /** The mirror to download from. An empty override asks for the proxy and the official host only. */
 function uvMirror() {
-  const override = process.env.OPENCODE_UV_MIRROR
+  const override = process.env.AICRAFT_UV_MIRROR
   if (override === undefined) return UV_MIRROR
   return override.trim() || undefined
 }
@@ -373,13 +373,13 @@ function unzipEntry(bytes: Uint8Array, endsWith: string): Uint8Array | undefined
 
 /** The package index handed to uv and `pip`. An empty override asks for the official services instead. */
 function pypiIndex() {
-  const override = process.env.OPENCODE_PYPI_INDEX
+  const override = process.env.AICRAFT_PYPI_INDEX
   if (override === undefined) return PYPI_INDEX
   return override.trim() || undefined
 }
 
 function pythonMirror() {
-  const override = process.env.OPENCODE_PYTHON_INSTALL_MIRROR
+  const override = process.env.AICRAFT_PYTHON_INSTALL_MIRROR
   if (override === undefined) return PYTHON_MIRROR
   return override.trim() || undefined
 }
@@ -400,7 +400,7 @@ async function release(url: string) {
   return new Uint8Array(await response.arrayBuffer())
 }
 
-/** The version a constraint names, without its operator. Only a lower bound is checked, as `requires.opencode` does. */
+/** The version a constraint names, without its operator. Only a lower bound is checked, as `requires.aicraft` does. */
 function minimum(constraint: string | undefined) {
   if (!constraint) return undefined
   return pad(constraint.replace(/^[\^~>=v\s]+/, ""))

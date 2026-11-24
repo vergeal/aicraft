@@ -1,18 +1,18 @@
-import { Config } from "@opencode/core/config"
-import { ConfigIntegration } from "@opencode/core/config/integration"
-import { ConfigPolicyPlugin } from "@opencode/core/config/plugin/policy"
-import { Integration } from "@opencode/core/integration"
-import { Mcp } from "@opencode/core/mcp/index"
-import { Skill } from "@opencode/core/skill"
-import { Info } from "@opencode/schema/config"
-import { ConfigPolicy } from "@opencode/schema/config/policy"
-import { ID } from "@opencode/schema/event"
-import { Credential } from "@opencode/core/credential"
-import { WebSearch } from "@opencode/core/websearch"
+import { Config } from "@aicraft/core/config"
+import { ConfigIntegration } from "@aicraft/core/config/integration"
+import { ConfigPolicyPlugin } from "@aicraft/core/config/plugin/policy"
+import { Integration } from "@aicraft/core/integration"
+import { Mcp } from "@aicraft/core/mcp/index"
+import { Skill } from "@aicraft/core/skill"
+import { Info } from "@aicraft/schema/config"
+import { ConfigPolicy } from "@aicraft/schema/config/policy"
+import { ID } from "@aicraft/schema/event"
+import { Credential } from "@aicraft/core/credential"
+import { WebSearch } from "@aicraft/core/websearch"
 import { Effect, Schema, Stream } from "effect"
 import { host } from "../plugin/host"
 
-/** A connected organization's policy as the OpenCode Console delivers it: an integration config document. */
+/** A connected organization's policy as the AI Craft Console delivers it: an integration config document. */
 export function organizationPolicy(policies: ConfigPolicy.Info[], organization?: string) {
   return new ConfigIntegration.Document({
     type: "document",

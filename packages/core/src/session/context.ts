@@ -6,7 +6,7 @@ import { Context, Effect, Layer, Schema } from "effect"
 import { Agent } from "../agent.js"
 import { CodeModeInstructions } from "../codemode/instructions.js"
 import { Database } from "../database/database.js"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { InstructionDiscovery } from "../instruction-discovery.js"
 import { Instructions } from "../instructions/index.js"
 import { InstructionBuiltIns } from "../instructions/builtins.js"
@@ -74,7 +74,7 @@ export interface Interface {
 }
 
 /** Location-scoped model-context loader for durable Session Steps. */
-export class Service extends Context.Service<Service, Interface>()("@opencode/SessionContext") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/SessionContext") {}
 
 const layer = Layer.effect(
   Service,

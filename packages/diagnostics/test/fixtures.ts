@@ -11,7 +11,7 @@ function event(t: number, type: string, data: unknown): DiagnosticsEvent {
 
 export function makeDumpFixture(overrides: Partial<DiagnosticsDocument> = {}): DiagnosticsDocument {
   return {
-    schema: "opencode.diagnostics.v2",
+    schema: "aicraft.diagnostics.v2",
     generatedAt: "2023-11-14T22:13:21.000Z",
     timeOrigin,
     capture: {
@@ -30,7 +30,7 @@ export function makeDumpFixture(overrides: Partial<DiagnosticsDocument> = {}): D
       ],
     },
     environment: {
-      url: "opencode://session/ses_fixture",
+      url: "aicraft://session/ses_fixture",
       route: "/session/ses_fixture",
       sessionID: "ses_fixture",
       theme: "dark",

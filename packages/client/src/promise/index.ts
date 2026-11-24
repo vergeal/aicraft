@@ -1,7 +1,7 @@
-import type { OpenCode } from "./client.js"
+import type { Aicraft } from "./client.js"
 
 export * from "./generated/index.js"
-export { OpenCode } from "./client.js"
+export { Aicraft } from "./client.js"
 export { mediaHashFromUri, withMediaRefs, type MediaRequestOptions } from "./media.js"
 export type {
   AgentApi,
@@ -21,10 +21,10 @@ export type {
   SessionApi,
   SkillApi,
 } from "./api.js"
-export type { EventSubscribeOutput as OpenCodeEvent } from "./generated/types.js"
+export type { EventSubscribeOutput as AicraftEvent } from "./generated/types.js"
 export type {
   MediaFileAttachment as PromptMediaFileAttachment,
   Attachment as PromptAttachment,
-} from "@opencode/schema/prompt"
+} from "@aicraft/schema/prompt"
 export type { TraceContext } from "../trace.js"
-export type OpenCodeClient = ReturnType<typeof OpenCode.make>
+export type AicraftClient = ReturnType<typeof Aicraft.make>

@@ -245,7 +245,7 @@
   },
   "opencode-go": {
     "id": "opencode-go",
-    "name": "OpenCode Go",
+    "name": "AI Craft Go",
     "env": ["OPENCODE_API_KEY"],
     "models": {
       "minimax-m3": {

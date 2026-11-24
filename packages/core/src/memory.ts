@@ -1,7 +1,7 @@
 export * as Memory from "./memory.js"
 
-import { ConfigMemory } from "@opencode/schema/config/memory"
-import { Memory as MemorySchema } from "@opencode/schema/memory"
+import { ConfigMemory } from "@aicraft/schema/config/memory"
+import { Memory as MemorySchema } from "@aicraft/schema/memory"
 import { Effect, Option, Schema } from "effect"
 import { KV } from "./kv.js"
 

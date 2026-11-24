@@ -1,7 +1,7 @@
 import { For, Show, createEffect, createMemo, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
-import { SelectionIndicator } from "@opencode/ui/selection-indicator"
+import { SelectionIndicator } from "@aicraft/ui/selection-indicator"
 import { useLanguage } from "@/runtime/i18n/language"
 import { bundledFonts, isMonospace, quoteFamily, type FontOption } from "@/runtime/platform/fonts"
 import "./font-picker.css"

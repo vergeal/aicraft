@@ -1,9 +1,9 @@
-import { createSimpleContext } from "@opencode/ui/context"
+import { createSimpleContext } from "@aicraft/ui/context"
 import type { AsyncStorage, SyncStorage } from "@solid-primitives/storage"
 import type { Accessor } from "solid-js"
 import type { DesktopMenuAction, DesktopZoomLevel } from "@/shell/commands/desktop-menu"
 import type { DraftStore } from "@/runtime/persistence/drafts"
-import type { Bridge } from "@opencode/plugin/gui/host"
+import type { Bridge } from "@aicraft/plugin/gui/host"
 
 type PickerPaths = string | string[] | null
 
@@ -103,9 +103,13 @@ export type FatalRendererErrorLog = {
   os?: DesktopOS
 }
 
+/**
+ * The main process's half of a diagnostics dump. The renderer reads only `clock`, to put both processes on one
+ * timeline; every other section goes to `diagnostics.section("main", ...)` as captured.
+ */
 export type MainDiagnosticsSnapshot = {
   clock: { wall: number; uptime: number; capturedAt: string }
-} & Record<string, unknown>
+}
 
 type PlatformBase = {
   requestMicrophone?(): Promise<boolean>
@@ -175,6 +179,9 @@ type PlatformBase = {
 
   /** Move the native macOS traffic lights' top-left corner, in window points (desktop only) */
   setTrafficLightsPosition?(position: { x: number; y: number }): Promise<void>
+
+  /** Color the native window controls for a titlebar in custom colors; omit the color to follow the theme again (desktop only) */
+  setTitlebarControls?(color: string | undefined): Promise<void>
 
   /** Get whether native pinch/Ctrl-scroll zoom gestures are enabled (desktop only) */
   getPinchZoomEnabled?(): Promise<boolean> | boolean

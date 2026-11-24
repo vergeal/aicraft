@@ -1,6 +1,6 @@
-import type { Browser } from "@opencode/plugin-browser/rpc"
-import type { IpcClient } from "@opencode/plugin/gui"
-import { uuid } from "@opencode/util/uuid"
+import type { Browser } from "@aicraft/plugin-browser/rpc"
+import type { IpcClient } from "@aicraft/plugin/gui"
+import { uuid } from "@aicraft/util/uuid"
 import type { BrowserPane, PaneEvent } from "./ipc"
 
 type Client = IpcClient<(typeof BrowserPane)["spec"]>

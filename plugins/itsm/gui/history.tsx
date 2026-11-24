@@ -1,5 +1,5 @@
 import { For, Show } from "solid-js"
-import { usePlugin } from "@opencode/plugin/gui"
+import { usePlugin } from "@aicraft/plugin/gui"
 import type { Run, Template } from "../src/contract.js"
 import type { Definition } from "./definition.js"
 

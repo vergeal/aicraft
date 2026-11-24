@@ -1,11 +1,11 @@
-import { type FilteredListProps, useFilteredList } from "@opencode/ui/hooks"
+import { type FilteredListProps, useFilteredList } from "@aicraft/ui/hooks"
 import { createEffect, createMemo, createSignal, For, type JSX, on, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { useI18n } from "../context/i18n"
 import { listActive, listScrollTarget } from "../hooks/list-machine"
-import { Icon, type IconProps } from "@opencode/ui/icon"
-import { IconButton } from "@opencode/ui/icon-button"
+import { Icon, type IconProps } from "@aicraft/ui/icon"
+import { IconButton } from "@aicraft/ui/icon-button"
 import { TextField } from "./text-field"
 
 function findByKey(container: HTMLElement, key: string) {

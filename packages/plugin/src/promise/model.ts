@@ -1,5 +1,5 @@
-import type { ModelApi } from "@opencode/client/promise/api"
-import type { Model } from "@opencode/schema/model"
+import type { ModelApi } from "@aicraft/client/promise/api"
+import type { Model } from "@aicraft/schema/model"
 import type { Types } from "effect"
 import type { ProviderRecord } from "./provider.js"
 import type { Transform } from "./registration.js"

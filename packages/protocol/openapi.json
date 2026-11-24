@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "opencode HttpApi",
+    "title": "aicraft HttpApi",
     "version": "0.0.1",
     "description": "Experimental HttpApi surface for selected instance routes."
   },
@@ -8835,7 +8835,7 @@
         "operationId": "experimental.mcp.client.token",
         "parameters": [
           {
-            "name": "x-opencode-ticket",
+            "name": "x-aicraft-ticket",
             "in": "header",
             "schema": {
               "type": "string"
@@ -12186,7 +12186,7 @@
             "required": true
           },
           {
-            "name": "x-opencode-ticket",
+            "name": "x-aicraft-ticket",
             "in": "header",
             "schema": {
               "type": "string"
@@ -13045,7 +13045,7 @@
             "required": true
           },
           {
-            "name": "x-opencode-ticket",
+            "name": "x-aicraft-ticket",
             "in": "header",
             "schema": {
               "type": "string"
@@ -16894,7 +16894,7 @@
             }
           }
         },
-        "description": "Return the OpenCode Go allowance and Console budgets of the OpenCode Console workspace the location is signed in to, or null when it isn't signed in.",
+        "description": "Return the AI Craft Go allowance and Console budgets of the AI Craft Console workspace the location is signed in to, or null when it isn't signed in.",
         "summary": "Get usage limits"
       }
     },

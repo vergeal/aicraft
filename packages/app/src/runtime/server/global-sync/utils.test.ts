@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { AgentListOutput, ModelListOutput, Project, ProviderListOutput } from "@opencode/client/promise"
+import type { AgentListOutput, ModelListOutput, Project, ProviderListOutput } from "@aicraft/client/promise"
 import { directoryKey, normalizeAgentList, normalizeProjectInfo, normalizeProviderList } from "./utils"
 
 describe("normalizeAgentList", () => {
@@ -101,7 +101,7 @@ describe("normalizeProviderList", () => {
     ["disabled-only none variant", [{ id: "none" }], undefined, false],
   ] as const)("derives reasoning capability from %s", (_, variants, compatibility, expected) => {
     const providers: ProviderListOutput["data"] = [
-      { id: "opencode", name: "OpenCode", activation: "auto", package: "@opencode/ai/providers/openai-compatible" },
+      { id: "opencode", name: "AI Craft", activation: "auto", package: "@aicraft/ai/providers/openai-compatible" },
     ]
 
     const models: ModelListOutput["data"] = [
@@ -143,10 +143,10 @@ describe("normalizeProjectInfo", () => {
 })
 
 test.each([
-  ["C:\\Repos\\sst\\opencode", "C:/Repos/sst/opencode"],
-  ["C:/Repos/sst/opencode", "C:/Repos/sst/opencode"],
+  ["C:\\Repos\\sst\\aicraft", "C:/Repos/sst/aicraft"],
+  ["C:/Repos/sst/aicraft", "C:/Repos/sst/aicraft"],
   ["/tmp/foo\\bar", "/tmp/foo\\bar"],
-  ["C:/Repos/sst/opencode/", "C:/Repos/sst/opencode"],
+  ["C:/Repos/sst/aicraft/", "C:/Repos/sst/aicraft"],
   ["C:/", "C:/"],
   ["/", "/"],
 ])("directoryKey(%p) is %p", (input, expected) => {

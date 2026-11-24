@@ -1,6 +1,6 @@
-import { Database } from "@opencode/core/database/database"
-import { SessionBlob } from "@opencode/core/session/blob"
-import { FileNotFoundError } from "@opencode/protocol/errors"
+import { Database } from "@aicraft/core/database/database"
+import { SessionBlob } from "@aicraft/core/session/blob"
+import { FileNotFoundError } from "@aicraft/protocol/errors"
 import { Effect } from "effect"
 import { type HttpServerRequest, HttpServerResponse } from "effect/http"
 

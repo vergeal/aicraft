@@ -1,52 +1,52 @@
 import { describe, expect } from "bun:test"
-import type { FileSystem } from "@opencode/core/filesystem"
+import type { FileSystem } from "@aicraft/core/filesystem"
 import { DateTime, Effect, Fiber, Layer, LayerMap, Schema, Stream } from "effect"
 import path from "path"
 import { pathToFileURL } from "url"
 import { eq } from "drizzle-orm"
-import { Database } from "@opencode/core/database/database"
-import { Agent } from "@opencode/core/agent"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { makeGlobalNode } from "@opencode/util/effect/app-node"
-import { Bus } from "@opencode/core/bus"
-import { EventTable } from "@opencode/core/event/sql"
-import { Location } from "@opencode/schema/location"
-import { SessionEvent } from "@opencode/core/session/event"
-import { Model } from "@opencode/core/model"
-import { Provider } from "@opencode/core/provider"
-import { Project } from "@opencode/core/project"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Session } from "@opencode/core/session"
-import { SessionMessage } from "@opencode/core/session/message"
-import { SessionProjector } from "@opencode/core/session/projector"
-import { SessionExecution } from "@opencode/core/session/execution"
-import { SessionInbox } from "@opencode/core/session/inbox"
+import { Database } from "@aicraft/core/database/database"
+import { Agent } from "@aicraft/core/agent"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { makeGlobalNode } from "@aicraft/util/effect/app-node"
+import { Bus } from "@aicraft/core/bus"
+import { EventTable } from "@aicraft/core/event/sql"
+import { Location } from "@aicraft/schema/location"
+import { SessionEvent } from "@aicraft/core/session/event"
+import { Model } from "@aicraft/core/model"
+import { Provider } from "@aicraft/core/provider"
+import { Project } from "@aicraft/core/project"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Session } from "@aicraft/core/session"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { SessionProjector } from "@aicraft/core/session/projector"
+import { SessionExecution } from "@aicraft/core/session/execution"
+import { SessionInbox } from "@aicraft/core/session/inbox"
 import {
   BlobRefTable,
   BlobTable,
   SessionInboxTable,
   SessionMessageTable,
   SessionTable,
-} from "@opencode/core/session/sql"
-import { SessionStore } from "@opencode/core/session/store"
-import { LocationServiceMap } from "@opencode/core/location-service-map"
-import type { LocationServices } from "@opencode/core/location-services"
-import { Image } from "@opencode/core/image"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { Snapshot } from "@opencode/core/snapshot"
-import { Skill } from "@opencode/core/skill"
+} from "@aicraft/core/session/sql"
+import { SessionStore } from "@aicraft/core/session/store"
+import { LocationServiceMap } from "@aicraft/core/location-service-map"
+import type { LocationServices } from "@aicraft/core/location-services"
+import { Image } from "@aicraft/core/image"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { Snapshot } from "@aicraft/core/snapshot"
+import { Skill } from "@aicraft/core/skill"
 import { tmpdirScoped } from "./fixture/tmpdir"
 import { testEffect } from "./lib/effect"
-import { Config } from "@opencode/core/config"
-import { Document, Info } from "@opencode/schema/config"
-import { ConfigExperimental } from "@opencode/schema/config/experimental"
-import { SessionStored } from "@opencode/core/session/stored"
-import { SessionBlob } from "@opencode/core/session/blob"
-import { SessionTransfer } from "@opencode/core/session/transfer"
-import { PromptInput } from "@opencode/schema/prompt-input"
+import { Config } from "@aicraft/core/config"
+import { Document, Info } from "@aicraft/schema/config"
+import { ConfigExperimental } from "@aicraft/schema/config/experimental"
+import { SessionStored } from "@aicraft/core/session/stored"
+import { SessionBlob } from "@aicraft/core/session/blob"
+import { SessionTransfer } from "@aicraft/core/session/transfer"
+import { PromptInput } from "@aicraft/schema/prompt-input"
 
 const executionCalls: Session.ID[] = []
 const interruptCalls: Session.ID[] = []
@@ -507,7 +507,7 @@ describe("Session.prompt", () => {
     Effect.gen(function* () {
       yield* setup
       const session = yield* Session.Service
-      const directory = yield* tmpdirScoped("opencode-session-prompt-")
+      const directory = yield* tmpdirScoped("aicraft-session-prompt-")
       const source = path.join(directory.path, "image.png")
       const bytes = Buffer.from(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -539,7 +539,7 @@ describe("Session.prompt", () => {
     Effect.gen(function* () {
       yield* setup
       const session = yield* Session.Service
-      const directory = yield* tmpdirScoped("opencode-session-prompt-")
+      const directory = yield* tmpdirScoped("aicraft-session-prompt-")
       const source = path.join(directory.path, "screenshot.png")
       yield* Effect.promise(() => Bun.write(source, Buffer.from(pngBase64, "base64")))
       const bytes = yield* Effect.promise(() => Bun.file(source).arrayBuffer())

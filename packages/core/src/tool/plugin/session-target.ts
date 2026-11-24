@@ -1,9 +1,9 @@
 export * as SessionTarget from "./session-target.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import type { SessionInbox } from "@opencode/schema/session-inbox"
-import { parseSessionMention } from "@opencode/util/session-mention"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { SessionInbox } from "@aicraft/schema/session-inbox"
+import { parseSessionMention } from "@aicraft/util/session-mention"
 import { Effect } from "effect"
 import { SessionSchema } from "../../session/schema.js"
 

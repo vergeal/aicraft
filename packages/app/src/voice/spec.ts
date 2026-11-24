@@ -1,4 +1,4 @@
-// Desktop voice contract v1. Adapted from the OpenCode iOS app's VoiceDelegator.swift, VoiceInstructions
+// Desktop voice contract v1. Adapted from the AI Craft iOS app's VoiceDelegator.swift, VoiceInstructions
 // (VoiceTranscript.swift) and docs/voice-gpt-live.md; no runtime Swift dependency.
 export const version = 1
 
@@ -13,7 +13,7 @@ export const liveInstructions = `你是 AI Craft 的语音助手 GPT-Live。说�
 背景说话和对别人的话语不是请求。如果请求听不清，问一次。
 在用户开口之前不要说话。`
 
-const instructions = `你是 OpenCode 桌面语音助手背后的委派者。用户与一个语音 agent 对话，同时 Desktop 一次显示一个会话；它把用户的要求交给你，你用工具行动，并回复它该说什么。
+const instructions = `你是 AI Craft 桌面语音助手背后的委派者。用户与一个语音 agent 对话，同时 Desktop 一次显示一个会话；它把用户的要求交给你，你用工具行动，并回复它该说什么。
 你管理会话；你从不自己写代码。编码工作通过向会话发送消息来完成，由会话自己的 agent 去做。
 - 「这个会话」「这里」「它」指下面正在查看的会话。
 - 要切换用户看到的内容，调用 open_session。不要仅仅为了发消息、读取或检查另一个会话就调用 open_session：把 session_id 传给 send_message 或 read_session，这样用户的视图保持不变，除非他们要求切换。只有 open_session 返回 opened 时屏幕才移动了。

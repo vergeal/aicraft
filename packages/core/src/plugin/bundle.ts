@@ -4,9 +4,9 @@ import { createHash } from "node:crypto"
 import { createRequire } from "node:module"
 import { mkdir, readdir, readFile, rename, rm, stat, symlink, utimes } from "node:fs/promises"
 import path from "node:path"
-import { Host } from "@opencode/plugin/host"
-import { Catalog } from "@opencode/schema/catalog"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { Host } from "@aicraft/plugin/host"
+import { Catalog } from "@aicraft/schema/catalog"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Option, Schema } from "effect"
 import { compareVersions, installRoot, root as localRoot } from "./local.js"
 import { PluginConfiguration, type Configuration } from "./configuration.js"
@@ -29,7 +29,7 @@ type Manifest = {
   }
   skills?: { id: string; name: string; description: string; path: string }[]
   assets?: string[]
-  requires?: { opencode?: string }
+  requires?: { aicraft?: string }
   configuration?: Configuration
   runtime?: PluginManifest.Runtime
 }
@@ -45,14 +45,14 @@ export async function install(input: {
   readonly config: string
   readonly cwd: string
   readonly home: string
-  readonly opencodeVersion?: string
+  readonly aicraftVersion?: string
 }): Promise<Result> {
   const file = await find(input)
   const archive = new Bun.Archive(new Uint8Array(await readFile(file)))
   const entries = await archive.files()
-  const manifest = await readManifest(entries, input.opencodeVersion)
+  const manifest = await readManifest(entries, input.aicraftVersion)
   if (manifest.apiVersion !== 1)
-    throw new Error(`This bundle needs a newer OpenCode (format ${manifest.apiVersion}). Update the app first.`)
+    throw new Error(`This bundle needs a newer AI Craft (format ${manifest.apiVersion}). Update the app first.`)
   if (manifest.id !== input.id) throw new Error(`This bundle is ${manifest.id}, not ${input.id}.`)
   if (input.version && manifest.version !== input.version)
     throw new Error(`This bundle is version ${manifest.version}, not ${input.version}.`)
@@ -150,7 +150,7 @@ async function findLocal(input: { id: string; version?: string; home: string }) 
   return file ? path.join(directory, version, file) : undefined
 }
 
-async function readManifest(entries: Map<string, File>, opencodeVersion?: string): Promise<Manifest> {
+async function readManifest(entries: Map<string, File>, aicraftVersion?: string): Promise<Manifest> {
   const file = entries.get("METAINF")
   if (!file) throw new Error("This is not a plugin bundle: METAINF is missing.")
   const parsed: unknown = JSON.parse(await file.text())
@@ -171,7 +171,7 @@ async function readManifest(entries: Map<string, File>, opencodeVersion?: string
   requireAssets(manifest.assets)
   requireConfiguration(manifest.configuration)
   const runtime = requireRuntime(manifest.runtime)
-  requireVersion(manifest.requires, opencodeVersion)
+  requireVersion(manifest.requires, aicraftVersion)
   return (runtime === undefined ? { ...manifest, entry } : { ...manifest, entry, runtime }) as Manifest
 }
 
@@ -222,7 +222,7 @@ function resolveKind(
     // log pipeline to hand this to; this stays a console warning by design. The load path is different: `Host.resolve`
     // returns the fallback as data and `PluginModule` logs it once per load.
     console.warn(
-      `[opencode] Plugin "${id}" ${kind} entry "${found}" is deprecated; this bundle should declare and ship "${kind}/main".`,
+      `[aicraft] Plugin "${id}" ${kind} entry "${found}" is deprecated; this bundle should declare and ship "${kind}/main".`,
     )
   }
   return found
@@ -296,20 +296,20 @@ function requireRuntime(input: unknown): PluginManifest.Runtime | undefined {
   return runtime
 }
 
-function requireVersion(input: unknown, opencodeVersion: string | undefined) {
+function requireVersion(input: unknown, aicraftVersion: string | undefined) {
   if (input === undefined) return
   if (typeof input !== "object" || input === null) throw new Error("This plugin bundle has unreadable requirements.")
-  const required = (input as { opencode?: unknown }).opencode
+  const required = (input as { aicraft?: unknown }).aicraft
   if (required === undefined) return
-  if (typeof required !== "string") throw new Error("This plugin bundle requires an unreadable OpenCode version.")
-  if (opencodeVersion === undefined) return
+  if (typeof required !== "string") throw new Error("This plugin bundle requires an unreadable AI Craft version.")
+  if (aicraftVersion === undefined) return
   const minimum = required.replace(/^[\^~>=v\s]+/, "")
-  if (compareVersions(opencodeVersion, minimum) < 0)
-    throw new Error(`This plugin needs OpenCode >= ${minimum}; this app is ${opencodeVersion}.`)
+  if (compareVersions(aicraftVersion, minimum) < 0)
+    throw new Error(`This plugin needs AI Craft >= ${minimum}; this app is ${aicraftVersion}.`)
 }
 
 /**
- * The bundle's entry imports the host's own `effect` and `@opencode/*` modules, and a plugin directory lives outside
+ * The bundle's entry imports the host's own `effect` and `@aicraft/*` modules, and a plugin directory lives outside
  * any node_modules tree. Link each host module into the plugin so those imports resolve to the same instances the
  * host already loaded.
  */

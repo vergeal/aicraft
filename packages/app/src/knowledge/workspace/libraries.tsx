@@ -1,4 +1,4 @@
-import { Icon } from "@opencode/ui/icon"
+import { Icon } from "@aicraft/ui/icon"
 import { createMemo, For, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { FileGlyph, LibraryGlyph, PageHead, View } from "./bits"

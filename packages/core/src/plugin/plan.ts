@@ -1,10 +1,10 @@
 export * as PlanPlugin from "./plan.js"
 
-import { Message, ToolFailure } from "@opencode/ai/effect"
-import { define } from "@opencode/plugin/effect/plugin"
-import { Agent } from "@opencode/schema/agent"
-import type { SessionEvent } from "@opencode/schema/session-event"
-import { Global } from "@opencode/util/global"
+import { Message, ToolFailure } from "@aicraft/ai/effect"
+import { define } from "@aicraft/plugin/effect/plugin"
+import { Agent } from "@aicraft/schema/agent"
+import type { SessionEvent } from "@aicraft/schema/session-event"
+import { Global } from "@aicraft/util/global"
 import { Effect, Stream } from "effect"
 import path from "path"
 import { Permission } from "../permission.js"
@@ -25,7 +25,7 @@ const leave = `<system-reminder>
 </system-reminder>`
 
 export const Plugin = define({
-  id: "opencode.plan",
+  id: "aicraft.plan",
   effect: Effect.fn(function* (ctx) {
     const global = yield* Global.Service
     const directory = path.join(global.home, ".aicraft", "plan")

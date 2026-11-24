@@ -1,5 +1,5 @@
 import { Component, For, Show } from "solid-js"
-import { Select } from "@opencode/ui/select"
+import { Select } from "@aicraft/ui/select"
 import { FontPicker } from "./font-picker"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ExternalLink } from "@/runtime/platform/external-link"

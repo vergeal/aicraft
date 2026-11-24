@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 import { $ } from "bun"
 import pkg from "../package.json"
-import { Script } from "@opencode/script"
-import { archiveDir, npmDir } from "@opencode/script/pack"
+import { Script } from "@aicraft/script"
+import { archiveDir, npmDir } from "@aicraft/script/pack"
 import { existsSync } from "fs"
 import { chmod, mkdir, rm, utimes } from "node:fs/promises"
 import path from "node:path"
@@ -19,18 +19,18 @@ await packDistribution({
   root,
   name: pkg.name,
   command: "opencode",
-  legacyCommand: "opencode2",
+  legacyCommand: "aicraft2",
   binary: "opencode",
-  packagePrefix: "@opencode/cli-",
+  packagePrefix: "@aicraft/cli-",
   archive: (target) => target.startsWith("linux-"),
 })
 if (existsSync(path.join(root, "node"))) {
   await packDistribution({
     root: path.join(root, "node"),
-    name: "@opencode/cli-node",
-    command: "opencode2-node",
-    binary: "opencode2-node",
-    packagePrefix: "@opencode/cli-node-",
+    name: "@aicraft/cli-node",
+    command: "aicraft2-node",
+    binary: "aicraft2-node",
+    packagePrefix: "@aicraft/cli-node-",
     archive: () => true,
   })
 }
@@ -77,7 +77,7 @@ async function packDistribution(input: {
           [input.command]: `./bin/${input.command}.exe`,
           ...(input.legacyCommand ? { [input.legacyCommand]: `./bin/${input.command}.exe` } : {}),
         },
-        ...(input.command !== input.binary ? { opencodeSourceBinary: input.binary } : {}),
+        ...(input.command !== input.binary ? { aicraftSourceBinary: input.binary } : {}),
         scripts: { postinstall: "node ./postinstall.mjs" },
         version,
         license: pkg.license,
@@ -91,7 +91,7 @@ async function packDistribution(input: {
     ),
   )
 
-  await Promise.all(Object.keys(binaries).map((name) => pack(`${input.root}/${name.replace("@opencode/", "")}`)))
+  await Promise.all(Object.keys(binaries).map((name) => pack(`${input.root}/${name.replace("@aicraft/", "")}`)))
   await pack(`${input.root}/${input.name}`)
   await Promise.all(
     Object.keys(binaries)
@@ -99,7 +99,7 @@ async function packDistribution(input: {
       .filter(input.archive)
       .map((target) =>
         archive(
-          path.join(input.root, `${input.packagePrefix.replace("@opencode/", "")}${target}`, "bin"),
+          path.join(input.root, `${input.packagePrefix.replace("@aicraft/", "")}${target}`, "bin"),
           target,
           input.binary,
         ),

@@ -1,8 +1,8 @@
-import type { EnableState } from "@opencode/plugin/gui/host"
+import type { EnableState } from "@aicraft/plugin/gui/host"
 
 export const IpcTransportPort = "desktop-rpc-port"
 
-export const DragCancelEvent = "opencode:drag-cancel"
+export const DragCancelEvent = "aicraft:drag-cancel"
 
 export const WindowSnapshotChannel = "desktop-window-snapshot"
 

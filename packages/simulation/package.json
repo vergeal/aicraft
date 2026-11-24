@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/simulation",
+  "name": "@aicraft/simulation",
   "version": "2.2.5",
   "type": "module",
   "license": "MIT",
@@ -31,11 +31,11 @@
     "typecheck:tsc": "tsc -b"
   },
   "dependencies": {
-    "@opencode/core": "workspace:*",
-    "@opencode/ai": "workspace:*",
-    "@opencode/plugin": "workspace:*",
-    "@opencode/protocol": "workspace:*",
-    "@opencode/util": "workspace:*",
+    "@aicraft/core": "workspace:*",
+    "@aicraft/ai": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/protocol": "workspace:*",
+    "@aicraft/util": "workspace:*",
     "@opentui/core": "catalog:",
     "effect": "catalog:",
     "ws": "8.21.0"

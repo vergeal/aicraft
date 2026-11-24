@@ -10,22 +10,22 @@ import {
   QuotaExceededError,
   RateLimitError,
   TransportError,
-} from "@opencode/ai/effect"
-import { RequestExecutor } from "@opencode/ai/route"
-import { OpenAIChat } from "@opencode/ai/protocols"
-import { TestLLM } from "@opencode/ai/testing"
-import { AISDK } from "@opencode/core/aisdk"
-import { Credential } from "@opencode/core/credential"
-import { Generate } from "@opencode/core/generate"
-import { Integration } from "@opencode/core/integration"
-import { IntegrationConnection } from "@opencode/core/integration/connection"
-import { ModelResolver } from "@opencode/core/model-resolver"
-import { ModelsDev } from "@opencode/core/models-dev"
-import { ID, Info, Model, Ref, VariantID } from "@opencode/core/model"
-import { Provider } from "@opencode/core/provider"
-import { Variant } from "@opencode/core/variant"
-import { Money } from "@opencode/schema/money"
-import { Npm } from "@opencode/util/npm"
+} from "@aicraft/ai/effect"
+import { RequestExecutor } from "@aicraft/ai/route"
+import { OpenAIChat } from "@aicraft/ai/protocols"
+import { TestLLM } from "@aicraft/ai/testing"
+import { AISDK } from "@aicraft/core/aisdk"
+import { Credential } from "@aicraft/core/credential"
+import { Generate } from "@aicraft/core/generate"
+import { Integration } from "@aicraft/core/integration"
+import { IntegrationConnection } from "@aicraft/core/integration/connection"
+import { ModelResolver } from "@aicraft/core/model-resolver"
+import { ModelsDev } from "@aicraft/core/models-dev"
+import { ID, Info, Model, Ref, VariantID } from "@aicraft/core/model"
+import { Provider } from "@aicraft/core/provider"
+import { Variant } from "@aicraft/core/variant"
+import { Money } from "@aicraft/schema/money"
+import { Npm } from "@aicraft/util/npm"
 import { Effect, Exit, Fiber, Layer } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, HttpClientResponse } from "effect/http"
@@ -228,7 +228,7 @@ testEffect(Layer.empty).effect("attributes each stateless completion without cre
       HttpClient.HttpClient,
       HttpClient.make((request) =>
         Effect.sync(() => {
-          const session = request.headers["x-opencode-session"]
+          const session = request.headers["x-aicraft-session"]
           if (!session)
             return HttpClientResponse.fromWeb(
               request,
@@ -280,26 +280,26 @@ describe("image and decision generation", () => {
     Info.make({
       ...Info.default(Provider.ID.openai, ID.make("gpt-image-1-mini")),
       type: "image",
-      package: "@opencode/ai/providers/openai/images",
+      package: "@aicraft/ai/providers/openai/images",
     }),
     Info.make({
-      ...Info.default(Provider.ID.opencode, ID.make("gpt-image-2.5-sunburst")),
+      ...Info.default(Provider.ID.aicraft, ID.make("gpt-image-2.5-sunburst")),
       type: "image",
-      package: "@opencode/ai/providers/openai/images",
+      package: "@aicraft/ai/providers/openai/images",
     }),
     Info.make({
       ...Info.default(Provider.ID.make("zai"), ID.make("glm-image")),
       type: "image",
-      package: "@opencode/ai/providers/zai/images",
+      package: "@aicraft/ai/providers/zai/images",
     }),
     Info.make({
       ...Info.default(Provider.ID.openai, ID.make("gpt-5")),
-      package: "@opencode/ai/providers/openai/responses",
+      package: "@aicraft/ai/providers/openai/responses",
     }),
     Info.make({
       ...Info.default(Provider.ID.make("openrouter"), ID.make("typesafe/jev-1.13")),
       type: "decision",
-      package: "@opencode/ai/providers/openrouter/decisions",
+      package: "@aicraft/ai/providers/openrouter/decisions",
     }),
   ].concat(
     decisionCatalog(),
@@ -307,7 +307,7 @@ describe("image and decision generation", () => {
       const gemini = Info.make({
         ...Info.default(Provider.ID.make("google"), ID.make("gemini-3.1-flash-image")),
         type: "image",
-        package: "@opencode/ai/providers/google/images",
+        package: "@aicraft/ai/providers/google/images",
       })
       return [{ ...gemini, variants: Variant.resolve(gemini, Variant.supports({ supported: true, effort: ["high"] })) }]
     })(),
@@ -331,7 +331,7 @@ describe("image and decision generation", () => {
       ),
     available: (types) => Effect.succeed(catalog.filter((model) => (types ?? ["chat"]).includes(model.type ?? "chat"))),
   })
-  // An OpenCode Console login keeps its server and organization as credential metadata.
+  // An AI Craft Console login keeps its server and organization as credential metadata.
   const mediaIntegrations = Layer.mock(Integration.Service, {
     revision: () => 0,
     connection: {
@@ -614,7 +614,7 @@ function decisionCatalog() {
     api: {
       systemone: {
         base_url: "https://api.typesafe.ai/v1",
-        sdk: { opencodeai: "@opencode/ai/providers/typesafe-ai/decisions" },
+        sdk: { aicraftai: "@aicraft/ai/providers/typesafe-ai/decisions" },
         ...(compatibility ? { compatibility } : {}),
       },
     },

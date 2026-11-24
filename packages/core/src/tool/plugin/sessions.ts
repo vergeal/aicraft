@@ -1,7 +1,7 @@
 export * as SessionsTool from "./sessions.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
 import { DateTime, Effect, Schema } from "effect"
 import { Git } from "../../git.js"
 import { AbsolutePath } from "../../schema.js"
@@ -72,7 +72,7 @@ export const Output = Schema.Struct({
 })
 
 export const Plugin = {
-  id: "opencode.tool.sessions",
+  id: "aicraft.tool.sessions",
   effect: Effect.fn("SessionsTool.Plugin")(function* (ctx: Context) {
     const git = yield* Git.Service
 

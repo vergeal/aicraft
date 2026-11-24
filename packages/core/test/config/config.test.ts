@@ -2,33 +2,33 @@ import path from "path"
 import fs from "fs/promises"
 import { describe, expect, test } from "bun:test"
 import { Arbitrary, Effect, Fiber, Layer, Logger, Schema, Stream } from "effect"
-import { Config } from "@opencode/core/config"
-import { ConfigDiscovery } from "@opencode/core/config/discovery"
-import { ConfigIntegration } from "@opencode/core/config/integration"
-import { Directory, Document, type Entry, Event, Info } from "@opencode/schema/config"
-import { ConfigModel } from "@opencode/schema/config/model"
-import { ConfigProvider } from "@opencode/schema/config/provider"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { makeGlobalNode } from "@opencode/util/effect/app-node"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Credential } from "@opencode/core/credential"
+import { Config } from "@aicraft/core/config"
+import { ConfigDiscovery } from "@aicraft/core/config/discovery"
+import { ConfigIntegration } from "@aicraft/core/config/integration"
+import { Directory, Document, type Entry, Event, Info } from "@aicraft/schema/config"
+import { ConfigModel } from "@aicraft/schema/config/model"
+import { ConfigProvider } from "@aicraft/schema/config/provider"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { makeGlobalNode } from "@aicraft/util/effect/app-node"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Credential } from "@aicraft/core/credential"
 import { ConfigV1 } from "../fixture/v1-config/config"
-import { ConfigPermissionV1 } from "@opencode/core/v1/config/permission"
-import { ConfigNormalize } from "@opencode/core/config/normalize"
-import { ConfigVariable } from "@opencode/core/config/variable"
-import { FSUtil } from "@opencode/util/fs-util"
-import { Watcher } from "@opencode/core/filesystem/watcher"
-import { Bus } from "@opencode/core/bus"
-import { Global } from "@opencode/util/global"
-import { Location } from "@opencode/core/location"
-import { Project } from "@opencode/core/project"
-import { Provider } from "@opencode/core/provider"
-import { AbsolutePath } from "@opencode/core/schema"
-import { WellKnown } from "@opencode/core/wellknown"
-import { KV } from "@opencode/core/kv"
-import { ManagedPolicy } from "@opencode/core/managed-policy"
-import { Wildcard } from "@opencode/core/util/wildcard"
-import { Integration } from "@opencode/schema/integration"
+import { ConfigPermissionV1 } from "@aicraft/core/v1/config/permission"
+import { ConfigNormalize } from "@aicraft/core/config/normalize"
+import { ConfigVariable } from "@aicraft/core/config/variable"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { Watcher } from "@aicraft/core/filesystem/watcher"
+import { Bus } from "@aicraft/core/bus"
+import { Global } from "@aicraft/util/global"
+import { Location } from "@aicraft/core/location"
+import { Project } from "@aicraft/core/project"
+import { Provider } from "@aicraft/core/provider"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { WellKnown } from "@aicraft/core/wellknown"
+import { KV } from "@aicraft/core/kv"
+import { ManagedPolicy } from "@aicraft/core/managed-policy"
+import { Wildcard } from "@aicraft/core/util/wildcard"
+import { Integration } from "@aicraft/schema/integration"
 import { emptyCredentialNode, emptyWellknownNode } from "../fixture/config-nodes"
 import { withEnv } from "../fixture/env"
 import { location } from "../fixture/location"
@@ -253,7 +253,7 @@ describe("Config", () => {
     Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
       Effect.flatMap((tmp) => {
         // The global config dir is the project's own .aicraft (as isolated
-        // hosts pin OPENCODE_CONFIG_DIR), and the location is the project under
+        // hosts pin AICRAFT_CONFIG_DIR), and the location is the project under
         // a symlinked spelling, so the walk reaches the same directory under a
         // different string than the global root.
         const real = path.join(tmp.path, "real")
@@ -272,7 +272,7 @@ describe("Config", () => {
           ).toEqual([global])
           expect(
             (yield* watcher.subscriptions()).filter((subscription) =>
-              subscription.path.includes(`${path.sep}.opencode${path.sep}`),
+              subscription.path.includes(`${path.sep}.aicraft${path.sep}`),
             ),
           ).toEqual([])
         })
@@ -376,7 +376,7 @@ describe("Config", () => {
       JSON.parse(
         ConfigDiscovery.stripPreferenceMetadata(
           JSON.stringify({
-            PayloadDisplayName: "OpenCode",
+            PayloadDisplayName: "AI Craft",
             PayloadIdentifier: "changhong.aicraft.managed",
             PayloadType: "changhong.aicraft.managed",
             PayloadUUID: "00000000-0000-0000-0000-000000000000",
@@ -567,7 +567,7 @@ describe("Config", () => {
         const global = path.join(tmp.path, "global")
         const project = path.join(tmp.path, "project")
         const allowed = "org_allowed"
-        const opencode = Integration.ID.make("opencode")
+        const aicraft = Integration.ID.make("opencode")
         const origin = "https://ai.acme.com"
         const credentialID = Credential.ID.create()
         let org = "org_personal"
@@ -579,7 +579,7 @@ describe("Config", () => {
               Effect.succeed(
                 new Credential.Info({
                   id,
-                  integrationID: opencode,
+                  integrationID: aicraft,
                   label: "Console",
                   value: Credential.Key.make({ type: "key", key: "secret", metadata: { orgID: org } }),
                 }),
@@ -616,7 +616,7 @@ describe("Config", () => {
               JSON.stringify({
                 policies: [
                   { action: "integration.use", resource: "*", effect: "deny" },
-                  { action: "integration.use", resource: `opencode#${allowed}`, effect: "allow" },
+                  { action: "integration.use", resource: `aicraft#${allowed}`, effect: "allow" },
                 ],
               }),
             ),
@@ -627,9 +627,9 @@ describe("Config", () => {
               const config = yield* Config.Service
               const install = () =>
                 config.integration!(
-                  opencode,
+                  aicraft,
                   ConfigIntegration.make({
-                    integrationID: opencode,
+                    integrationID: aicraft,
                     connection: { type: "credential", id: credentialID, label: "Console", method: "key" },
                     organization: org,
                     info: decodeInfo({
@@ -645,7 +645,7 @@ describe("Config", () => {
                 { servers: [], policies: 1 },
               ])
               org = allowed
-              yield* config.integration!(opencode, undefined)
+              yield* config.integration!(aicraft, undefined)
               yield* install()
               expect(supplied(yield* config.entries())).toEqual([
                 { servers: ["docs"], policies: 1 },
@@ -981,7 +981,7 @@ describe("Config", () => {
         port: 0,
         fetch(request) {
           const url = new URL(request.url)
-          if (url.pathname === "/.well-known/opencode") {
+          if (url.pathname === "/.well-known/aicraft") {
             if (manifestStatus !== 200) return new Response("Unavailable", { status: manifestStatus })
             return Response.json({
               auth: { command: ["login"], env: "TOKEN" },
@@ -1187,7 +1187,7 @@ describe("Config", () => {
             `${path.join(project, "aicraft.json")}:$:invalid`,
             `${malformed}:$:invalid`,
             "https://invalid.example.com:$:invalid",
-            "OPENCODE_CONFIG_CONTENT:$:invalid",
+            "AICRAFT_CONFIG_CONTENT:$:invalid",
           ].toSorted(),
         )
         expect(JSON.stringify(output)).not.toContain("secret")
@@ -1548,7 +1548,7 @@ describe("Config", () => {
     ),
   )
 
-  it.live("loads opencode JSON and JSONC files from lowest to highest priority", () =>
+  it.live("loads aicraft JSON and JSONC files from lowest to highest priority", () =>
     Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
       Effect.flatMap((tmp) =>
         Effect.gen(function* () {
@@ -1596,9 +1596,9 @@ describe("Config", () => {
   it.live("substitutes environment variables and relative file contents", () =>
     withEnv(
       {
-        OPENCODE_TEST_FLAG: "false",
-        OPENCODE_TEST_MCP_TOKEN: String.raw`C:\Users\new\"secret"`,
-        OPENCODE_TEST_MISSING: undefined,
+        AICRAFT_TEST_FLAG: "false",
+        AICRAFT_TEST_MCP_TOKEN: String.raw`C:\Users\new\"secret"`,
+        AICRAFT_TEST_MISSING: undefined,
       },
       () =>
         withTempDir((tmp) =>
@@ -1610,15 +1610,15 @@ describe("Config", () => {
                   path.join(tmp.path, "aicraft.jsonc"),
                   `{
                       // Ignored reference: {file:.}
-                      "username": "user-{env:OPENCODE_TEST_MISSING}",
-                      "snapshots": {env:OPENCODE_TEST_FLAG},
+                      "username": "user-{env:AICRAFT_TEST_MISSING}",
+                      "snapshots": {env:AICRAFT_TEST_FLAG},
                       "mcp": {
                         "servers": {
                           "remote": {
                             "type": "remote",
                             "url": "https://example.com/mcp",
                             "headers": {
-                              "Authorization": "Bearer {env:OPENCODE_TEST_MCP_TOKEN}",
+                              "Authorization": "Bearer {env:AICRAFT_TEST_MCP_TOKEN}",
                               "X-Token": "{file:token.txt}",
                               "X-Missing": "Bearer {file:~/.aicraft-test-missing/key}",
                               "X-Folder": "{file:.}"

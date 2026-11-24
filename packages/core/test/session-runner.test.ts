@@ -15,78 +15,78 @@ import {
   InvalidRequestError,
   RateLimitError,
   UnknownProviderError,
-} from "@opencode/ai/effect"
-import { OpenAIChat } from "@opencode/ai/protocols/openai-chat"
-import { AnthropicMessages, OpenAIResponses } from "@opencode/ai/protocols"
-import { TestLLM, compileRequest } from "@opencode/ai/testing"
-import { RequestExecutor } from "@opencode/ai/route"
-import type { SessionHooks } from "@opencode/plugin/effect/session"
-import { Database } from "@opencode/core/database/database"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNodePlatform } from "@opencode/core/effect/app-node-platform"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Bus } from "@opencode/core/bus"
-import { Event } from "@opencode/schema/event"
-import { App } from "@opencode/core/app"
-import { Permission } from "@opencode/core/permission"
-import { EventTable } from "@opencode/core/event/sql"
-import { Project } from "@opencode/core/project"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { Form } from "@opencode/core/form"
-import { Job } from "@opencode/core/job"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Session } from "@opencode/core/session"
-import { Snapshot } from "@opencode/core/snapshot"
-import { SessionEvent } from "@opencode/core/session/event"
-import { SessionCompaction } from "@opencode/core/session/compaction"
-import { SessionInbox } from "@opencode/core/session/inbox"
-import { SessionMessage } from "@opencode/core/session/message"
-import { SessionModelTransport } from "@opencode/core/session/model-transport"
-import { Money } from "@opencode/schema/money"
-import { SessionProjector } from "@opencode/core/session/projector"
-import { SessionExecution } from "@opencode/core/session/execution"
-import { SessionRunCoordinator } from "@opencode/core/session/run-coordinator"
-import { SessionRunner } from "@opencode/core/session/runner/index"
-import { SessionRunnerLLM } from "@opencode/core/session/runner/llm"
-import { SessionRunnerModel } from "@opencode/core/session/runner/model"
-import { SessionUsage } from "@opencode/core/session/usage"
-import { PluginSupervisor } from "@opencode/core/plugin/supervisor"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { PluginPromise } from "@opencode/core/plugin/promise"
-import { OptimizePlugin } from "@opencode/core/plugin/optimize"
-import { IdentityPlugin } from "@opencode/core/plugin/identity"
-import { QuestionTool } from "@opencode/core/tool/plugin/question"
-import { Agent } from "@opencode/core/agent"
-import { Config } from "@opencode/core/config"
-import { Document, Info } from "@opencode/schema/config"
-import { ConfigCompaction } from "@opencode/schema/config/compaction"
-import { Tool } from "@opencode/core/tool"
-import type { Info as ToolInfo } from "@opencode/schema/tool"
-import { InstructionStateTable, SessionInboxTable, SessionMessageTable, SessionTable } from "@opencode/core/session/sql"
-import { InstructionEntry } from "@opencode/core/session/instruction-entry"
-import { SessionStore } from "@opencode/core/session/store"
-import { Instructions } from "@opencode/core/instructions/index"
-import { InstructionBuiltIns } from "@opencode/core/instructions/builtins"
-import { InstructionDiscovery } from "@opencode/core/instruction-discovery"
-import { SkillInstructions } from "@opencode/core/skill/instructions"
-import { ReferenceInstructions } from "@opencode/core/reference/instructions"
-import { McpInstructions } from "@opencode/core/mcp/instructions"
-import { SessionSystemPrompt } from "@opencode/core/session/system-prompt"
-import { ID, Model } from "@opencode/core/model"
-import { Location } from "@opencode/core/location"
-import { Provider } from "@opencode/core/provider"
+} from "@aicraft/ai/effect"
+import { OpenAIChat } from "@aicraft/ai/protocols/openai-chat"
+import { AnthropicMessages, OpenAIResponses } from "@aicraft/ai/protocols"
+import { TestLLM, compileRequest } from "@aicraft/ai/testing"
+import { RequestExecutor } from "@aicraft/ai/route"
+import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { Database } from "@aicraft/core/database/database"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNodePlatform } from "@aicraft/core/effect/app-node-platform"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { Event } from "@aicraft/schema/event"
+import { App } from "@aicraft/core/app"
+import { Permission } from "@aicraft/core/permission"
+import { EventTable } from "@aicraft/core/event/sql"
+import { Project } from "@aicraft/core/project"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { Form } from "@aicraft/core/form"
+import { Job } from "@aicraft/core/job"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Session } from "@aicraft/core/session"
+import { Snapshot } from "@aicraft/core/snapshot"
+import { SessionEvent } from "@aicraft/core/session/event"
+import { SessionCompaction } from "@aicraft/core/session/compaction"
+import { SessionInbox } from "@aicraft/core/session/inbox"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { SessionModelTransport } from "@aicraft/core/session/model-transport"
+import { Money } from "@aicraft/schema/money"
+import { SessionProjector } from "@aicraft/core/session/projector"
+import { SessionExecution } from "@aicraft/core/session/execution"
+import { SessionRunCoordinator } from "@aicraft/core/session/run-coordinator"
+import { SessionRunner } from "@aicraft/core/session/runner/index"
+import { SessionRunnerLLM } from "@aicraft/core/session/runner/llm"
+import { SessionRunnerModel } from "@aicraft/core/session/runner/model"
+import { SessionUsage } from "@aicraft/core/session/usage"
+import { PluginSupervisor } from "@aicraft/core/plugin/supervisor"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { PluginPromise } from "@aicraft/core/plugin/promise"
+import { OptimizePlugin } from "@aicraft/core/plugin/optimize"
+import { IdentityPlugin } from "@aicraft/core/plugin/identity"
+import { QuestionTool } from "@aicraft/core/tool/plugin/question"
+import { Agent } from "@aicraft/core/agent"
+import { Config } from "@aicraft/core/config"
+import { Document, Info } from "@aicraft/schema/config"
+import { ConfigCompaction } from "@aicraft/schema/config/compaction"
+import { Tool } from "@aicraft/core/tool"
+import type { Info as ToolInfo } from "@aicraft/schema/tool"
+import { InstructionStateTable, SessionInboxTable, SessionMessageTable, SessionTable } from "@aicraft/core/session/sql"
+import { InstructionEntry } from "@aicraft/core/session/instruction-entry"
+import { SessionStore } from "@aicraft/core/session/store"
+import { Instructions } from "@aicraft/core/instructions/index"
+import { InstructionBuiltIns } from "@aicraft/core/instructions/builtins"
+import { InstructionDiscovery } from "@aicraft/core/instruction-discovery"
+import { SkillInstructions } from "@aicraft/core/skill/instructions"
+import { ReferenceInstructions } from "@aicraft/core/reference/instructions"
+import { McpInstructions } from "@aicraft/core/mcp/instructions"
+import { SessionSystemPrompt } from "@aicraft/core/session/system-prompt"
+import { ID, Model } from "@aicraft/core/model"
+import { Location } from "@aicraft/core/location"
+import { Provider } from "@aicraft/core/provider"
 import { Cause, Context, DateTime, Deferred, Effect, Exit, Fiber, Layer, Queue, Schema, Scope, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { testEffect } from "./lib/effect"
 import { promptLocationNode } from "./fixture/prompt-location"
-import { LocationServiceMap } from "@opencode/core/location-service-map"
+import { LocationServiceMap } from "@aicraft/core/location-service-map"
 import { Expected } from "./lib/session-message"
 import { permissionLayer } from "./lib/permission"
 import { agentHost, modelHost, host, noProviders } from "./plugin/host"
-import { CodeModeInstructions } from "@opencode/core/codemode/instructions"
+import { CodeModeInstructions } from "@aicraft/core/codemode/instructions"
 
 const emptyCodeMode = `${CodeModeInstructions.render({ total: 0, shown: 0, namespaces: [] })}\n\n`
 type ToolBarrier = {
@@ -5245,12 +5245,12 @@ describe("SessionRunnerLLM", () => {
     yield* s.runPrompt("Run correlated request")
 
     expect(s.requests[0]?.headers).toEqual({
-      "x-opencode-session-id": sessionID,
+      "x-aicraft-session-id": sessionID,
       "x-session-affinity": sessionID,
       "X-Session-Id": sessionID,
       "User-Agent": App.useragent(App.make()),
-      "x-opencode-project": Project.ID.global,
-      "x-opencode-session": sessionID,
+      "x-aicraft-project": Project.ID.global,
+      "x-aicraft-session": sessionID,
       "x-opencode-client": "opencode",
     })
   })
@@ -5267,12 +5267,12 @@ describe("SessionRunnerLLM", () => {
     yield* s.runPrompt("Run child request")
 
     expect(s.requests[0]?.headers).toMatchObject({
-      "x-opencode-session-id": sessionID,
-      "x-opencode-parent-session-id": parentID,
+      "x-aicraft-session-id": sessionID,
+      "x-aicraft-parent-session-id": parentID,
       "x-session-affinity": parentID,
       "X-Session-Id": parentID,
       "x-parent-session-id": parentID,
-      "x-opencode-session": parentID,
+      "x-aicraft-session": parentID,
     })
     expect(s.requests[0]?.promptCacheKey).toBe(parentID)
   })
@@ -6694,7 +6694,7 @@ describe("SessionRunnerLLM", () => {
     expect(yield* recordedEventTypes(sessionID)).not.toContain("session.retry.scheduled.1")
   })
 
-  scenario("records OpenCode Console's Go usage limit 429 as a typed step failure without retrying", function* (s) {
+  scenario("records AI Craft Console's Go usage limit 429 as a typed step failure without retrying", function* (s) {
     // The exact refusal Console sends a Go subscriber at a limit.
     const body = JSON.stringify({
       type: "error",
@@ -6722,7 +6722,7 @@ describe("SessionRunnerLLM", () => {
           error: {
             type: "provider.go-limit",
             message:
-              "OpenCode Go 5 hour usage limit reached. Switch to a free model, or turn on Extra Usage on the Go page in OpenCode Console to keep going.",
+              "AI Craft Go 5 hour usage limit reached. Switch to a free model, or turn on Extra Usage on the Go page in AI Craft Console to keep going.",
             status: 429,
             response: { body },
             retryAfterMs: 3_600_000,

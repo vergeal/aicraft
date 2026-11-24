@@ -1,15 +1,16 @@
 import { Show, createRenderEffect, createSignal, on, onCleanup, onMount, type JSX } from "solid-js"
-import type { SessionMessageInfo } from "@opencode/client/promise"
-import { Icon } from "@opencode/ui/icon"
-import { ScrollView } from "@opencode/ui/scroll-view"
-import { AnswerPage, type CollapseTiming, type FoldedReplies, type TranscriptView } from "@opencode/session-ui/answer"
-import type { SessionUserActions } from "@opencode/session-ui/actions"
+import type { SessionMessageInfo } from "@aicraft/client/promise"
+import { Icon } from "@aicraft/ui/icon"
+import { ScrollView } from "@aicraft/ui/scroll-view"
+import { AnswerPage, type CollapseTiming, type FoldedReplies, type TranscriptView } from "@aicraft/session-ui/answer"
+import type { SessionUserActions } from "@aicraft/session-ui/actions"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePluginHost } from "@/runtime/plugin/host"
 import { usePluginAttachment } from "@/runtime/plugin/host-apis"
 import { revealInTimeline } from "./answer-reveal"
 import type { TimelineFollow } from "./follow"
 import { END_EPSILON, MIN_OVERFLOW, ZOOM_SLACK, needsEndProbe } from "./machine"
+import { probeLanding } from "./landing-probe"
 import { readPosition, writePosition, type SavedPosition } from "./position"
 
 const SAVE_DELAY = 200
@@ -203,6 +204,7 @@ export function AnswerTimeline(props: {
   const restoreMissed = () => {
     holdPosition = true
     props.follow.dispatch({ type: "follow" })
+    probeLanding("restore-missed", viewport)
     // Settle at the newest content. A view left at its clamped offset reads as a jump to the first message, so the
     // miss ends with the end in view while the saved record stays held for a later page-in.
     stickToEnd()
@@ -222,6 +224,10 @@ export function AnswerTimeline(props: {
         queueMicrotask(() => {
           const saved = savedPosition()
           if (viewport) lastContentHeight = viewport.scrollHeight
+          probeLanding("activate", viewport, {
+            saved: saved ? { offset: Math.round(saved.offset), bottom: saved.bottom } : null,
+            rows: props.messages.length,
+          })
 
           if (!saved || saved.bottom) {
             startLanding()
@@ -342,7 +348,7 @@ export function AnswerTimeline(props: {
   })
 
   return (
-    <div class="relative h-full w-full min-w-0">
+    <div data-slot="answer-timeline" class="relative h-full w-full min-w-0" style={{ background: "rgb(20, 20, 20)" }}>
       <ScrollView
         data-slot="session-timeline-scroll"
         viewportRef={(element) => {

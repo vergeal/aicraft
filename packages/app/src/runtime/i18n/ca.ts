@@ -128,9 +128,9 @@ export const dict = {
   "dialog.provider.empty": "No s'han trobat proveïdors",
   "dialog.provider.group.popular": "Popular",
   "dialog.provider.tag.recommended": "Recomanat",
-  "dialog.provider.opencode.note": "Models seleccionats que inclouen Claude, GPT, Gemini i més",
-  "dialog.provider.opencode.tagline": "Models optimitzats fiables",
-  "dialog.provider.opencodeGo.tagline": "Subscripció de baix cost per a tothom",
+  "dialog.provider.aicraft.note": "Models seleccionats que inclouen Claude, GPT, Gemini i més",
+  "dialog.provider.aicraft.tagline": "Models optimitzats fiables",
+  "dialog.provider.aicraftGo.tagline": "Subscripció de baix cost per a tothom",
   "dialog.provider.copilot.note": "Models d'IA per a l'assistència de codificació mitjançant GitHub Copilot",
   "dialog.provider.openai.note": "GPT models per a tasques d'IA generals ràpides i capaces",
   "dialog.provider.google.note": "Gemini models per a respostes ràpides i estructurades",
@@ -610,7 +610,7 @@ export const dict = {
   "desktop.menu.installCli": "Instal·la la CLI...",
   "desktop.cli.installed.title": "CLI instal·lada",
   "desktop.cli.installed.message":
-    "La CLI s'ha instal·lat a {{path}}\n\nReinicieu el terminal per utilitzar l'ordre 'opencode2'.",
+    "La CLI s'ha instal·lat a {{path}}\n\nReinicieu el terminal per utilitzar l'ordre 'aicraft2'.",
   "desktop.cli.failed.title": "La instal·lació ha fallat",
   "desktop.cli.failed.message": "No s'ha pogut instal·lar la CLI: {{error}}",
   "command.project.copyID": "Copia l'ID del projecte",
@@ -683,7 +683,7 @@ export const dict = {
   "settings.about.firstIllustrated": "Il·lustrat per primera vegada a Londres, Anglaterra",
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, l'agent de codificació de codi obert",
-  "settings.about.trademark": "OpenCode és una marca registrada de Anomaly Innovations, Inc.",
+  "settings.about.trademark": "AI Craft és una marca registrada de Anomaly Innovations, Inc.",
   "settings.about.typeset": "Tipografia en Inter i IBM Plex Mono",
   "settings.about.tagline": "La IA no pot crear un gran programari sense tu",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
@@ -730,9 +730,9 @@ export const dict = {
   "server.connect.failed":
     "No s'ha pogut connectar. Comproveu l'adreça i la contrasenya del servidor i torneu-ho a provar.",
   "server.connect.scan": "Escaneja el codi QR",
-  "server.connect.scan.description": "Apunteu la càmera al codi QR que mostra opencode pair.",
+  "server.connect.scan.description": "Apunteu la càmera al codi QR que mostra aicraft pair.",
   "server.connect.scan.invalid":
-    "Aquest no és un codi d'aparellament AI Craft. Escaneja el codi mostrat per opencode pair.",
+    "Aquest no és un codi d'aparellament AI Craft. Escaneja el codi mostrat per aicraft pair.",
   "server.connect.camera": "Càmera d'aparellament",
   "server.connect.camera.starting": "Obertura de la càmera...",
   "server.connect.mixedContent":
@@ -773,8 +773,8 @@ export const dict = {
   "project.settings.color.description":
     "S'utilitza per a la icona del projecte quan no s'ha establert cap imatge personalitzada",
   "project.settings.worktree.startup.description": "S'executa una vegada després de crear un nou arbre de treball",
-  "project.settings.worktree.startup.hint.base": "Utilitzeu $OPENCODE_WORKTREE_BASE per a l'arbre de treball base.",
-  "project.settings.worktree.startup.hint.new": "Utilitzeu $OPENCODE_WORKTREE_PATH per al nou arbre de treball.",
+  "project.settings.worktree.startup.hint.base": "Utilitzeu $AICRAFT_WORKTREE_BASE per a l'arbre de treball base.",
+  "project.settings.worktree.startup.hint.new": "Utilitzeu $AICRAFT_WORKTREE_PATH per al nou arbre de treball.",
   "project.settings.extensions.empty.mcps.title": "Encara no MCPs",
   "project.settings.extensions.empty.mcps.description": "MCPs disponible per a AI Craft apareixerà aquí",
   "project.settings.extensions.empty.plugins.title": "Encara no hi ha connectors",

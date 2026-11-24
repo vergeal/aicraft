@@ -7,7 +7,7 @@ import {
   CloudflareWorkersAI,
   DigitalOcean,
   OpenAI,
-  OpenCode,
+  Aicraft,
   OpenRouter,
   TypeSafeAI,
 } from "../../src/providers.js"
@@ -47,8 +47,8 @@ const typesafe = recordedTests({
   metadata: { model: "jev-latest" },
 })
 
-const opencode = recordedTests({
-  prefix: "opencode-decision",
+const aicraft = recordedTests({
+  prefix: "aicraft-decision",
   provider: "opencode",
   protocol: "system-one",
   requires: ["OPENCODE_API_KEY"],
@@ -114,8 +114,8 @@ describe("Decision recorded", () => {
     assertDecision(TypeSafeAI.configure({ apiKey: process.env.TYPESAFE_API_KEY ?? "fixture" }).decision("jev-latest")),
   )
 
-  opencode.effect("decides choice score and predicate questions", () =>
-    assertDecision(OpenCode.configure({ apiKey: process.env.OPENCODE_API_KEY ?? "fixture" }).decision("jev-1.13-free")),
+  aicraft.effect("decides choice score and predicate questions", () =>
+    assertDecision(Aicraft.configure({ apiKey: process.env.OPENCODE_API_KEY ?? "fixture" }).decision("jev-1.13-free")),
   )
 
   openrouter.effect("decides choice score and predicate questions", () =>

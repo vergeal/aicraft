@@ -1,8 +1,8 @@
 export * as TranscriptTool from "./transcript.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { SessionMessage } from "@opencode/schema/session-message"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { SessionMessage } from "@aicraft/schema/session-message"
 import { DateTime, Effect, Schema } from "effect"
 import { Session } from "../../session.js"
 import { SessionSchema } from "../../session/schema.js"
@@ -113,7 +113,7 @@ export const Output = Schema.Struct({
 })
 
 export const Plugin = {
-  id: "opencode.tool.transcript",
+  id: "aicraft.tool.transcript",
   effect: Effect.fn("TranscriptTool.Plugin")(function* (ctx: Context) {
     const sessions = yield* Session.Service
 

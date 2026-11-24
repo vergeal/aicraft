@@ -1,7 +1,7 @@
-import { base64Encode, checksum } from "@opencode/util/encode"
+import { base64Encode, checksum } from "@aicraft/util/encode"
 import type { Page } from "@playwright/test"
 import { sessionHref } from "../../e2e/utils/app"
-import { mockOpenCodeServer } from "../../e2e/utils/mock-server"
+import { mockAicraftServer } from "../../e2e/utils/mock-server"
 import { pathKey } from "../../src/workspaces/path-key"
 import { fixture } from "../../e2e/utils/session-fixture"
 
@@ -13,7 +13,7 @@ function workspaceStorage(dir: string) {
   const head = (dir.slice(0, 12) || "workspace").replace(/[^a-zA-Z0-9._-]/g, "-")
   const sum = checksum(dir) ?? "0"
 
-  return `opencode.workspace.${head}.${sum}.dat`
+  return `aicraft.workspace.${head}.${sum}.dat`
 }
 
 /** The large draft's last words: the caret starts after them. */
@@ -46,7 +46,7 @@ export async function mockLargeDraft(page: Page, server: string) {
     ).join("\n"),
   }))
 
-  await mockOpenCodeServer(page, {
+  await mockAicraftServer(page, {
     server,
     directory: fixture.directory,
     project: fixture.project,
@@ -156,7 +156,7 @@ export async function seedHistory(page: Page, origin: string) {
         }),
       )
 
-      const open = indexedDB.open("opencode-drafts", 1)
+      const open = indexedDB.open("aicraft-drafts", 1)
       open.onupgradeneeded = () => {
         open.result.createObjectStore("documents")
         open.result.createObjectStore("blobs")

@@ -1,7 +1,7 @@
 import { expect } from "bun:test"
 import { Effect, Fiber } from "effect"
 import { TestClock } from "effect/testing"
-import { Plugin } from "@opencode/core/plugin"
+import { Plugin } from "@aicraft/core/plugin"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 

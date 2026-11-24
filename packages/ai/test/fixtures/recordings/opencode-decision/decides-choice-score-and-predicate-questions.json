@@ -3,11 +3,11 @@
   "metadata": {
     "model": "jev-1.13-free",
     "tags": [
-      "prefix:opencode-decision",
-      "provider:opencode",
+      "prefix:aicraft-decision",
+      "provider:aicraft",
       "protocol:system-one"
     ],
-    "name": "opencode-decision/decides-choice-score-and-predicate-questions",
+    "name": "aicraft-decision/decides-choice-score-and-predicate-questions",
     "recordedAt": "2026-09-22T03:44:57.511Z"
   },
   "interactions": [

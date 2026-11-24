@@ -1,14 +1,14 @@
-import { useDialog } from "@opencode/ui/context/dialog"
-import { Button } from "@opencode/ui/button"
-import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode/ui/dialog"
-import { Divider } from "@opencode/ui/divider"
-import { Loader } from "@opencode/ui/loader"
-import { RadioGroup, RadioItem } from "@opencode/ui/radio"
-import { TextInput } from "@opencode/ui/text-input"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { Button } from "@aicraft/ui/button"
+import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@aicraft/ui/dialog"
+import { Divider } from "@aicraft/ui/divider"
+import { Loader } from "@aicraft/ui/loader"
+import { RadioGroup, RadioItem } from "@aicraft/ui/radio"
+import { TextInput } from "@aicraft/ui/text-input"
 import { createMemo, For, Show } from "solid-js"
 import { createStore } from "solid-js/store"
-import { showToast } from "@opencode/ui/toast"
-import { usePlugin, type Context, type IpcClient } from "@opencode/plugin/gui"
+import { showToast } from "@aicraft/ui/toast"
+import { usePlugin, type Context, type IpcClient } from "@aicraft/plugin/gui"
 import type { Wsl, WslServersState } from "./contract"
 import { useWslAddServerProbes } from "./probes"
 import { addServerViewModel, type AddServerText } from "./model"
@@ -357,8 +357,8 @@ function useWslAddServerController(props: DialogWslServerProps) {
 
     if (!distro || !action) return
 
-    if (action === "install-opencode") {
-      await run(() => api().installOpencode({ name: distro }))
+    if (action === "install-aicraft") {
+      await run(() => api().installAicraft({ name: distro }))
 
       return
     }
@@ -483,7 +483,7 @@ function unavailable(error: string): WslServersState {
     installed: [],
     online: [],
     distroProbes: {},
-    opencodeChecks: {},
+    aicraftChecks: {},
     pendingRestart: false,
     servers: [],
     hostJob: "idle",

@@ -69,7 +69,7 @@ icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="
     "server": "server/main",
     "gui": "gui/main"
   },
-  "externals": ["effect", "@opencode/plugin", "@opencode/schema", "@opencode/schema/plugin-manifest"],
+  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema", "@aicraft/schema/plugin-manifest"],
   "display": {
     "name": "Acme Notes",
     "description": "把项目笔记收进一个可搜索的面板。",
@@ -93,9 +93,9 @@ icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="
 
 - `apiVersion` 当前只接受 `1`。
 - `id` 同时是安装目录名。不能与内置插件 id 相同或前缀交叉。
-- `requires.opencode` 只做最低版本判断：`^2.2.0` 等价于 `>= 2.2.0`，没有上界。
+- `requires.aicraft` 只做最低版本判断：`^2.2.0` 等价于 `>= 2.2.0`，没有上界。
 - `entry.server` 必需。只有声明了 `entry.gui`，界面才会被加载。
-- `externals` 由宿主提供、不被打进产物；安装时软链到插件的 `node_modules`。服务端入口至少列 `effect`、`@opencode/plugin`、`@opencode/schema`，用到清单校验再列 `@opencode/schema/plugin-manifest`。
+- `externals` 由宿主提供、不被打进产物；安装时软链到插件的 `node_modules`。服务端入口至少列 `effect`、`@aicraft/plugin`、`@aicraft/schema`，用到清单校验再列 `@aicraft/schema/plugin-manifest`。
 - `display.name` 与 `display.description` 必填（安装时会校验）。
 - `display.tools` 是展示用的工具名前缀，如 `acme.notes.*`。
 - `display.icon` 是可选的内联 SVG 字符串，规则见「图标」。
@@ -113,8 +113,8 @@ Python 运行时用 `runtime` 字段（本技能默认不生成）：
 默认导出 `Plugin.define`，`id` 必须与清单一致。`activate` 在每次加载时执行。
 
 ```ts
-import { Plugin } from "@opencode/plugin"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { Plugin } from "@aicraft/plugin"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Schema } from "effect"
 
 const manifest = PluginManifest.decode(
@@ -192,8 +192,8 @@ description: 用 acme.notes 工具读写项目笔记。
 在 `activate` 里读取并注册：
 
 ```ts
-import { AbsolutePath } from "@opencode/schema/schema"
-import { Skill } from "@opencode/schema/skill"
+import { AbsolutePath } from "@aicraft/schema/schema"
+import { Skill } from "@aicraft/schema/skill"
 
 const file = new URL("../skills/acme-notes/SKILL.md", import.meta.url)
 const content = await Bun.file(file).text()
@@ -216,7 +216,7 @@ await ctx.skill.transform((skills) =>
 `gui/main.tsx` 默认导出 GUI 的 `Plugin.define`。`setup` 必须是同步函数。
 
 ```tsx
-import { Command, Plugin, Slot } from "@opencode/plugin/gui"
+import { Command, Plugin, Slot } from "@aicraft/plugin/gui"
 
 export default Plugin.define({
   setup(ctx) {
@@ -237,7 +237,7 @@ export default Plugin.define({
 
 ```ts
 import { defineConfig } from "vite"
-import { gui } from "@opencode/plugin/gui/vite"
+import { gui } from "@aicraft/plugin/gui/vite"
 
 export default defineConfig({ plugins: [gui()] })
 ```
@@ -246,7 +246,7 @@ export default defineConfig({ plugins: [gui()] })
 
 - 构建产物必须是 CommonJS：`dist/gui/main.cjs`，不含 `import` / `export` 语句。
 - 第三方界面只在桌面端加载，Web 端不加载。
-- 界面 bundle 只能引用白名单模块：`effect`、`@opencode/plugin/gui`、`@opencode/plugin/gui/main`、`@opencode/plugin/rpc`、`@opencode/schema/rpc`、`@opencode/client`、`@opencode/client/effect`、`solid-js` 家族、`@opencode/client/solid`、`@opencode/plugin/gui/{file,review,browser}`。其余会被构建器拒绝。
+- 界面 bundle 只能引用白名单模块：`effect`、`@aicraft/plugin/gui`、`@aicraft/plugin/gui/main`、`@aicraft/plugin/rpc`、`@aicraft/schema/rpc`、`@aicraft/client`、`@aicraft/client/effect`、`solid-js` 家族、`@aicraft/client/solid`、`@aicraft/plugin/gui/{file,review,browser}`。其余会被构建器拒绝。
 - 不能替换内置组件的渲染逻辑；可以新增注册表条目、插槽内容、CSS 与主题。
 - 与内置插件同 id 会被判定冲突，界面不加载。
 
@@ -415,7 +415,7 @@ console.log(`packed ${archive}`)
 
 - [ ] `METAINF` 的 `id` 与 `server/main.ts` 的 `id` 一致。
 - [ ] `entry.server` 是 `server/main`，`entry.gui`（如有）是 `gui/main`。
-- [ ] `externals` 含 `effect`、`@opencode/plugin`、`@opencode/schema`。
+- [ ] `externals` 含 `effect`、`@aicraft/plugin`、`@aicraft/schema`。
 - [ ] `display.name` 与 `display.description` 非空。
 - [ ] `skills[].path` 指向真实存在的文件，且 `activate` 里注册了对应技能。
 - [ ] `bun install` 成功，`bun run build` 产出 `dist/server/main.js`。
@@ -434,7 +434,7 @@ console.log(`packed ${archive}`)
 | `This plugin bundle is incomplete: <path> is missing.` | `skills[].path` 指向的文件不在包里 |
 | `This bundle is damaged: <path> does not match its checksum.` | 打包后改过文件，重新打包 |
 | `This bundle is <id>, not <requested id>.` | 清单 `id` 与安装请求不一致 |
-| `This plugin needs AI Craft >= x.y.z; this app is a.b.c.` | `requires.opencode` 高于当前应用版本 |
+| `This plugin needs AI Craft >= x.y.z; this app is a.b.c.` | `requires.aicraft` 高于当前应用版本 |
 | `A plugin's GUI must have a window setup, a main setup, or both` | 界面定义里 `setup` 与 `main` 都没有 |
 | `<module> is not a module the AI Craft app provides to plugin GUIs` | 界面 bundle 引用了白名单外的模块 |
 | `Plugin activation did not finish within 30s` | `activate` 里有可中断的长时间等待 |

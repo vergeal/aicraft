@@ -43,7 +43,7 @@ const serviceLayer = Layer.effect(
     yield* Effect.logInfo("app starting", {
       version: VERSION,
       packaged: app.isPackaged,
-      onboardingTest: process.env.OPENCODE_TEST_ONBOARDING === "1",
+      onboardingTest: process.env.AICRAFT_TEST_ONBOARDING === "1",
       marks,
     })
     const exportDebug = exportDebugLogsEffect(fs, path).pipe(Effect.orDie)
@@ -166,7 +166,7 @@ function exportDebugLogsEffect(fs: FileSystem.FileSystem, path: Path.Path) {
       )
     }
 
-    const output = path.join(app.getPath("downloads"), `opencode-debug-${stamp()}.zip`)
+    const output = path.join(app.getPath("downloads"), `aicraft-debug-${stamp()}.zip`)
 
     return yield* Effect.gen(function* () {
       yield* Effect.logInfo("exporting debug logs", { output })

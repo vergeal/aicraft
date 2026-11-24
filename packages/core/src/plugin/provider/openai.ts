@@ -1,6 +1,6 @@
-import type { IntegrationOAuthMethodRegistration } from "@opencode/plugin/effect/integration"
-import { define } from "@opencode/plugin/effect/plugin"
-import type { SessionRequest } from "@opencode/plugin/effect/session"
+import type { IntegrationOAuthMethodRegistration } from "@aicraft/plugin/effect/integration"
+import { define } from "@aicraft/plugin/effect/plugin"
+import type { SessionRequest } from "@aicraft/plugin/effect/session"
 import { Deferred, Effect, Option, Schema, Semaphore } from "effect"
 import type { Server } from "node:http"
 import { App } from "../../app.js"
@@ -233,7 +233,7 @@ const headless = (app: App.Info) =>
   }) satisfies IntegrationOAuthMethodRegistration
 
 export const OpenAIPlugin = define({
-  id: "opencode.provider.openai",
+  id: "aicraft.provider.openai",
   effect: Effect.fn(function* (ctx) {
     const loading = Semaphore.makeUnsafe(1)
     let chatgpt: Credential.OAuth | undefined

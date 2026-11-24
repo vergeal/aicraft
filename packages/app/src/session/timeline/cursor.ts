@@ -1,4 +1,4 @@
-import type { SessionMessageUser } from "@opencode/client/promise"
+import type { SessionMessageUser } from "@aicraft/client/promise"
 import { useLocation, useNavigate } from "@solidjs/router"
 import { createEffect, createSignal, on, onCleanup, onMount, untrack, type Accessor } from "solid-js"
 import { messageIdFromHash } from "../message-id-from-hash"

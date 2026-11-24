@@ -1,5 +1,5 @@
-import { SessionStore } from "@opencode/core/session/store"
-import type { MessageHit } from "@opencode/protocol/groups/search"
+import { SessionStore } from "@aicraft/core/session/store"
+import type { MessageHit } from "@aicraft/protocol/groups/search"
 import { DateTime, Effect } from "effect"
 
 /** `search.*` in the `server.experimental` group. Reads this server's own history; see `SessionStore.searchMessages`. */

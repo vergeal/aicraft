@@ -4,18 +4,18 @@ import { Cause, Effect, Fiber, Layer, Option, Schema, Semaphore } from "effect"
 import { Database } from "./database.js"
 import { storedAbsolutePath } from "./path.js"
 import { SessionMessageTable, SessionTable } from "../session/sql.js"
-import { SessionV1 } from "@opencode/schema/session-v1"
+import { SessionV1 } from "@aicraft/schema/session-v1"
 import { SessionMessage } from "../session/message.js"
 import { SessionSchema } from "../session/schema.js"
 import { KVTable } from "../kv/sql.js"
 import { EventSequenceTable } from "../event/sql.js"
 import { eq, sql } from "drizzle-orm"
-import { Global } from "@opencode/util/global"
-import { FSUtil } from "@opencode/util/fs-util"
+import { Global } from "@aicraft/util/global"
+import { FSUtil } from "@aicraft/util/fs-util"
 import { existsSync } from "node:fs"
 import path from "node:path"
 import type { Database as SQLiteDatabase } from "bun:sqlite"
-import { Agent } from "@opencode/schema/agent"
+import { Agent } from "@aicraft/schema/agent"
 import { Project } from "../project.js"
 import { AbsolutePath } from "../schema.js"
 import { ProjectTable } from "../project/sql.js"
@@ -798,7 +798,7 @@ function resolveDirectory(directory: string) {
 
 function nextPath(options: Options, data: string) {
   if (options.nextDatabasePath) return options.nextDatabasePath
-  if (process.env.OPENCODE_DB === ":memory:") return undefined
+  if (process.env.AICRAFT_DB === ":memory:") return undefined
   return path.join(data, "aicraft-next.db")
 }
 

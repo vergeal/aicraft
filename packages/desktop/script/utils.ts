@@ -10,7 +10,7 @@ const Manifest = Schema.fromJsonString(Schema.Struct({ version: Schema.NonEmptyS
 export type Channel = "dev" | "beta" | "prod"
 
 export function resolveChannel(): Channel {
-  const raw = process.env.OPENCODE_CHANNEL
+  const raw = process.env.AICRAFT_CHANNEL
 
   if (raw === "dev" || raw === "beta" || raw === "prod") return raw
 
@@ -22,37 +22,37 @@ export function resolveChannel(): Channel {
 export const CLI_BINARIES: Array<{ target: string; package: string; os: string; cpu: string }> = [
   {
     target: "darwin-arm64",
-    package: "@opencode/cli-darwin-arm64",
+    package: "@aicraft/cli-darwin-arm64",
     os: "darwin",
     cpu: "arm64",
   },
   {
     target: "darwin-x64",
-    package: "@opencode/cli-darwin-x64-baseline",
+    package: "@aicraft/cli-darwin-x64-baseline",
     os: "darwin",
     cpu: "x64",
   },
   {
     target: "windows-arm64",
-    package: "@opencode/cli-windows-arm64",
+    package: "@aicraft/cli-windows-arm64",
     os: "win32",
     cpu: "arm64",
   },
   {
     target: "windows-x64",
-    package: "@opencode/cli-windows-x64-baseline",
+    package: "@aicraft/cli-windows-x64-baseline",
     os: "win32",
     cpu: "x64",
   },
   {
     target: "linux-x64",
-    package: "@opencode/cli-linux-x64-baseline",
+    package: "@aicraft/cli-linux-x64-baseline",
     os: "linux",
     cpu: "x64",
   },
   {
     target: "linux-arm64",
-    package: "@opencode/cli-linux-arm64",
+    package: "@aicraft/cli-linux-arm64",
     os: "linux",
     cpu: "arm64",
   },
@@ -69,7 +69,7 @@ function nativeTarget() {
   throw new Error(`Unsupported platform: ${platform}/${arch}`)
 }
 
-export function getCurrentCli(target = process.env.OPENCODE_TARGET ?? nativeTarget()) {
+export function getCurrentCli(target = process.env.AICRAFT_TARGET ?? nativeTarget()) {
   const binaryConfig = CLI_BINARIES.find((item) => item.target === target)
 
   if (!binaryConfig) throw new Error(`CLI configuration not available for target '${target}'`)
@@ -100,7 +100,7 @@ export async function downloadCliToResources(version = CLI_VERSION, dest = windo
 
 export async function copyBuiltCliToResources(root: string, dest = windowsify("resources/opencode-cli")) {
   const cli = getCurrentCli()
-  const directory = cli.package.replace("@opencode/", "")
+  const directory = cli.package.replace("@aicraft/", "")
   await copyCliToResources(join(root, directory), dest)
 }
 
@@ -109,7 +109,7 @@ export async function copyBuiltCliToResources(root: string, dest = windowsify("r
 // 200 MB binary on first launch.
 async function copyCliToResources(pkg: string, dest: string) {
   const cli = getCurrentCli()
-  await copyFile(join(pkg, "bin", cli.os === "win32" ? "opencode.exe" : "opencode"), dest)
+  await copyFile(join(pkg, "bin", cli.os === "win32" ? "aicraft.exe" : "opencode"), dest)
   await prepareCli(dest)
 
   const manifest = Option.getOrUndefined(

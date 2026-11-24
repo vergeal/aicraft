@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test"
-import { SystemPart } from "@opencode/ai/effect"
-import { Agent } from "@opencode/core/agent"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { PluginHost } from "@opencode/core/plugin/host"
-import { IdentityPlugin } from "@opencode/core/plugin/identity"
-import { OptimizePlugin } from "@opencode/core/plugin/optimize"
-import { Session } from "@opencode/core/session"
-import { SessionSystemPrompt } from "@opencode/core/session/system-prompt"
-import type { SessionHooks } from "@opencode/plugin/effect/session"
-import { Model } from "@opencode/schema/model"
-import { Provider } from "@opencode/core/provider"
+import { SystemPart } from "@aicraft/ai/effect"
+import { Agent } from "@aicraft/core/agent"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { PluginHost } from "@aicraft/core/plugin/host"
+import { IdentityPlugin } from "@aicraft/core/plugin/identity"
+import { OptimizePlugin } from "@aicraft/core/plugin/optimize"
+import { Session } from "@aicraft/core/session"
+import { SessionSystemPrompt } from "@aicraft/core/session/system-prompt"
+import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { Model } from "@aicraft/schema/model"
+import { Provider } from "@aicraft/core/provider"
 import { Effect } from "effect"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
@@ -49,11 +49,11 @@ const context = (id: string, system = fallback): SessionHooks["context"] => ({
 describe("OptimizePlugin", () => {
   test("enables prompt plugins without model-specific tool optimization", () => {
     expect(OptimizePlugin.Plugins.map((plugin) => plugin.id)).toEqual([
-      "opencode.prompt.openai",
-      "opencode.prompt.anthropic",
-      "opencode.prompt.kimi",
-      "opencode.prompt.arcee",
-      "opencode.prompt.meta",
+      "aicraft.prompt.openai",
+      "aicraft.prompt.anthropic",
+      "aicraft.prompt.kimi",
+      "aicraft.prompt.arcee",
+      "aicraft.prompt.meta",
     ])
   })
 
@@ -128,7 +128,7 @@ describe("OptimizePlugin", () => {
         SessionSystemPrompt.render(PROMPT_GPT, Object.keys(event.tools)),
         "Project instructions",
       ])
-      expect(event.system[0]?.text).not.toContain("${OPENCODE_TOOL_GUIDANCE}")
+      expect(event.system[0]?.text).not.toContain("${AICRAFT_TOOL_GUIDANCE}")
       expect(Object.keys(event.tools).sort()).toEqual(["edit", "glob", "grep", "patch", "read", "shell", "write"])
     }),
   )

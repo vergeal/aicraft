@@ -1,11 +1,11 @@
 export * as PluginSupervisor from "./supervisor.js"
 
-import { Event } from "@opencode/schema/config"
+import { Event } from "@aicraft/schema/config"
 import { Cause, Clock, Context, Effect, Layer, Queue, Stream } from "effect"
 import { ConfigPluginSource } from "../config/plugin/source.js"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Bus } from "../bus.js"
-import { Npm } from "@opencode/util/npm"
+import { Npm } from "@aicraft/util/npm"
 import { Plugin } from "../plugin.js"
 import { InstancePlugins } from "./instance.js"
 import { PluginInternal } from "./internal.js"
@@ -86,7 +86,7 @@ const resolve = Effect.fn("PluginSupervisor.resolve")(function* (
       matched.length > 0 ||
       operation.target === "*" ||
       operation.target.endsWith(".*") ||
-      operation.target.startsWith("opencode.")
+      operation.target.startsWith("aicraft.")
     if (selectsPlugins) {
       matched.forEach((plugin) => enabled.add(plugin.id))
       continue
@@ -177,7 +177,7 @@ export interface Interface {
   readonly retry: (target: string) => Effect.Effect<void>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/PluginSupervisor") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/PluginSupervisor") {}
 
 export const layer = Layer.effect(
   Service,

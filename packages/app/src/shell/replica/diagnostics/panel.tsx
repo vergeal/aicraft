@@ -1,7 +1,7 @@
 import { createEffect, createMemo, For, on, onCleanup, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
-import { SegmentedControl, SegmentedControlItem } from "@opencode/ui/segmented-control"
-import { diagnostics, summarize, type Finding, type FindingSeverity } from "@opencode/diagnostics"
+import { SegmentedControl, SegmentedControlItem } from "@aicraft/ui/segmented-control"
+import { diagnostics, summarize, type Finding, type FindingSeverity } from "@aicraft/diagnostics"
 import { useLanguage } from "@/runtime/i18n/language"
 import { DIAGNOSIS_DEPTHS, type DiagnosisDepth } from "./export"
 

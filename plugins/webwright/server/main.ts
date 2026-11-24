@@ -1,5 +1,5 @@
-import { Plugin } from "@opencode/plugin/effect"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { Plugin } from "@aicraft/plugin/effect"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Effect } from "effect"
 import { join } from "node:path"
 import { BrowserRuntime } from "../src/browser.js"

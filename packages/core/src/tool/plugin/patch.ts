@@ -1,18 +1,18 @@
 export * as PatchTool from "./patch.js"
 
-import type { Context } from "@opencode/plugin/effect/plugin"
-import type { SessionHooks } from "@opencode/plugin/effect/session"
-import { ToolFailure } from "@opencode/ai/effect"
-import { FileDiff } from "@opencode/schema/file-diff"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { ToolFailure } from "@aicraft/ai/effect"
+import { FileDiff } from "@aicraft/schema/file-diff"
 import { Effect, Result, Schema } from "effect"
-import { Bom } from "@opencode/util/bom"
+import { Bom } from "@aicraft/util/bom"
 import { toolFailure } from "../runtime.js"
 import { Environment } from "../../environment/index.js"
 import { Formatter } from "../../formatter.js"
 import { FileMutation } from "../../file-mutation.js"
 import { Location } from "../../location.js"
 import { FileAccess } from "../../file-access.js"
-import { Patch } from "@opencode/util/patch"
+import { Patch } from "@aicraft/util/patch"
 import { Permission } from "../../permission.js"
 import DESCRIPTION from "../patch.txt"
 import { fileDiff } from "./file-diff.js"
@@ -66,7 +66,7 @@ type Prepared =
     })
 
 export const Plugin = {
-  id: "opencode.tool.patch",
+  id: "aicraft.tool.patch",
   effect: Effect.fn("PatchTool.Plugin")(function* (ctx: Context) {
     const environment = yield* Environment.Service
     const access = yield* FileAccess.Service

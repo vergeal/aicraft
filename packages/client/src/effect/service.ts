@@ -11,7 +11,7 @@ export { headers }
 /** Contents of the local service registration file. */
 export type Info = typeof Info.Type
 
-// Find, start, and stop the local opencode background service.
+// Find, start, and stop the local aicraft background service.
 //
 // The service daemon advertises itself through a registration file in the
 // user's state directory: url, pid, version, and the private password, with

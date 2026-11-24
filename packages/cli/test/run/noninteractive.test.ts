@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test"
 import {
-  OpenCode,
+  Aicraft,
   type EventSubscribeOutput,
   type ExperimentalJobListOutput,
   type SessionMessageAssistantTool,
   type SessionMessageInfo,
-} from "@opencode/client/promise"
+} from "@aicraft/client/promise"
 import { runNonInteractivePrompt } from "../../src/run/noninteractive"
 
 type V2Event = EventSubscribeOutput
@@ -221,7 +221,7 @@ async function run(input: {
   jobs?: () => ExperimentalJobListOutput
   terminalDelay?: number
 }) {
-  const sdk = OpenCode.make({ baseUrl: "https://opencode.test" })
+  const sdk = Aicraft.make({ baseUrl: "https://aicraft.test" })
   const values: V2Event[] = [{ id: "evt_connected", type: "server.connected", data: {} }]
   let wake: (() => void) | undefined
   const wait = Promise.withResolvers<void>()
@@ -492,7 +492,7 @@ describe("runNonInteractivePrompt", () => {
     })
     const globalOptions = {
       headers: {
-        "x-opencode-directory": "%2Fwork%20tree",
+        "x-aicraft-directory": "%2Fwork%20tree",
       },
     }
     expect(sdk.session.form.cancel).toHaveBeenCalledWith({ sessionID: "global", formID: "frm_live" }, globalOptions)

@@ -7,7 +7,7 @@ const module = pathToFileURL(path.join(import.meta.dir, "../src/global-roots.ts"
 
 describe("global roots", () => {
   test("uses XDG overrides", () => {
-    const root = path.join(os.tmpdir(), "opencode-xdg-overrides")
+    const root = path.join(os.tmpdir(), "aicraft-xdg-overrides")
     const env = {
       XDG_DATA_HOME: path.join(root, "data"),
       XDG_CACHE_HOME: path.join(root, "cache"),
@@ -25,7 +25,7 @@ describe("global roots", () => {
   })
 
   test("empty XDG overrides use home directory defaults", () => {
-    const home = path.join(os.tmpdir(), "opencode-xdg-home")
+    const home = path.join(os.tmpdir(), "aicraft-xdg-home")
 
     expect(
       run({

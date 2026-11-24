@@ -11,7 +11,7 @@ import {
 import { createTestRenderer } from "@opentui/core/testing"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
-import type { FormInfo } from "@opencode/client/promise"
+import type { FormInfo } from "@aicraft/client/promise"
 import { Keymap } from "../../src/context/keymap"
 import type { ClipboardContent, ClipboardService } from "../../src/context/clipboard"
 import {
@@ -64,8 +64,8 @@ afterAll(async () => {
 async function nativeLightTheme() {
   await using tmp = await tmpdir()
   await Bun.write(`${tmp.path}/themes/mini-native-light.json`, JSON.stringify({ light: {} }))
-  const previous = process.env.OPENCODE_CONFIG_DIR
-  process.env.OPENCODE_CONFIG_DIR = tmp.path
+  const previous = process.env.AICRAFT_CONFIG_DIR
+  process.env.AICRAFT_CONFIG_DIR = tmp.path
   try {
     return await resolveRunTheme(
       {
@@ -78,8 +78,8 @@ async function nativeLightTheme() {
       { name: "mini-native-light" },
     )
   } finally {
-    if (previous === undefined) delete process.env.OPENCODE_CONFIG_DIR
-    else process.env.OPENCODE_CONFIG_DIR = previous
+    if (previous === undefined) delete process.env.AICRAFT_CONFIG_DIR
+    else process.env.AICRAFT_CONFIG_DIR = previous
   }
 }
 
@@ -573,7 +573,7 @@ test("direct footer describes commands and context and shows the model provider"
   try {
     await app.renderOnce()
     expect(app.captureCharFrame()).toContain("┃ Ask anything, / for commands, @ for context…")
-    expect(app.captureCharFrame()).toContain("Build · GPT-5 · opencode · ctrl+p menu")
+    expect(app.captureCharFrame()).toContain("Build · GPT-5 · aicraft · ctrl+p menu")
   } finally {
     app.cleanup()
   }
@@ -1761,7 +1761,7 @@ test("direct footer counts queued and steering work while running", async () => 
     const transparent = RGBA.fromValues(0, 0, 0, 0).toInts()
     const statusline = footerStatusline(app.renderer.root)
     expect(frame).toContain("esc stop · ctrl+x q 2 pending · ↓ 1 subagent · ctrl+b background · Build")
-    expect(frame).toMatch(/opencode · ctrl\+p menu *$/m)
+    expect(frame).toMatch(/aicraft · ctrl\+p menu *$/m)
     expect(frame).not.toContain("1 agent")
     expect(statusline.backgroundColor.toInts()).toEqual(transparent)
   } finally {
@@ -1843,7 +1843,7 @@ test.each([
   { field: "agent", text: "esc stop · GPT-5 [high]" },
   {
     field: "model",
-    text: "esc stop · Build · long-model-long-model-lo… [high] · opencode · ctrl+p menu",
+    text: "esc stop · Build · long-model-long-model-lo… [high] · aicraft · ctrl+p menu",
   },
   { field: "provider", text: "esc stop · Build · GPT-5 [high]" },
 ])("running footer abbreviates only the model and stops at an oversized $field", async ({ field, text }) => {

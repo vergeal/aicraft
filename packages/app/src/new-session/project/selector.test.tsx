@@ -89,9 +89,9 @@ describe("new session project selection", () => {
     createRoot((dispose) => {
       const controller = createPromptProjectController({ controls: () => controls })
       expect(controller.projects().map((project) => `${project.server?.name}:${project.id}`)).toEqual([
-        "apollo:opencode",
+        "apollo:aicraft",
         "hailmary:local-used",
-        "hailmary:opencode",
+        "hailmary:aicraft",
         "hailmary:local-unused",
         "apollo:apollo-unused",
       ])

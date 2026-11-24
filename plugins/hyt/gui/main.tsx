@@ -1,4 +1,4 @@
-import { Plugin } from "@opencode/plugin/gui"
+import { Plugin } from "@aicraft/plugin/gui"
 import { catalog as chatCatalog } from "./chat/i18n.js"
 import { registerChat } from "./chat/index.js"
 import { provideChatIpc } from "./chat/main.js"

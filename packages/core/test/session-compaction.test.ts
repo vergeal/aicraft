@@ -8,41 +8,41 @@ import {
   Message,
   ToolDefinition,
   type LLMRequest,
-} from "@opencode/ai/effect"
-import { OpenAIChat } from "@opencode/ai/protocols"
-import { Database } from "@opencode/core/database/database"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { llmClient } from "@opencode/core/effect/app-node-platform"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Bus } from "@opencode/core/bus"
-import { EventTable } from "@opencode/core/event/sql"
-import { Instructions } from "@opencode/core/instructions/index"
-import { SessionCompaction } from "@opencode/core/session/compaction"
-import type { SessionContext } from "@opencode/core/session/context"
-import { MessageDecodeError } from "@opencode/core/session/error"
-import { SessionEvent } from "@opencode/core/session/event"
-import { SessionHistory } from "@opencode/core/session/history"
-import { SessionMessage } from "@opencode/core/session/message"
-import { SessionModelRequest } from "@opencode/core/session/model-request"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { Token } from "@opencode/core/util/token"
-import { SessionProjector } from "@opencode/core/session/projector"
-import { SessionRunnerModel } from "@opencode/core/session/runner/model"
-import { toLLMMessages } from "@opencode/core/session/runner/to-llm-message"
-import { SessionMessageTable, SessionTable } from "@opencode/core/session/sql"
-import { SessionStore } from "@opencode/core/session/store"
-import { Session } from "@opencode/core/session"
-import { Location } from "@opencode/core/location"
-import { Project } from "@opencode/core/project"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { App } from "@opencode/core/app"
-import { Agent } from "@opencode/core/agent"
-import { Model } from "@opencode/core/model"
-import { Provider } from "@opencode/core/provider"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Money } from "@opencode/schema/money"
-import { Skill } from "@opencode/schema/skill"
-import { Shell } from "@opencode/schema/shell"
+} from "@aicraft/ai/effect"
+import { OpenAIChat } from "@aicraft/ai/protocols"
+import { Database } from "@aicraft/core/database/database"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { llmClient } from "@aicraft/core/effect/app-node-platform"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { EventTable } from "@aicraft/core/event/sql"
+import { Instructions } from "@aicraft/core/instructions/index"
+import { SessionCompaction } from "@aicraft/core/session/compaction"
+import type { SessionContext } from "@aicraft/core/session/context"
+import { MessageDecodeError } from "@aicraft/core/session/error"
+import { SessionEvent } from "@aicraft/core/session/event"
+import { SessionHistory } from "@aicraft/core/session/history"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { SessionModelRequest } from "@aicraft/core/session/model-request"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { Token } from "@aicraft/core/util/token"
+import { SessionProjector } from "@aicraft/core/session/projector"
+import { SessionRunnerModel } from "@aicraft/core/session/runner/model"
+import { toLLMMessages } from "@aicraft/core/session/runner/to-llm-message"
+import { SessionMessageTable, SessionTable } from "@aicraft/core/session/sql"
+import { SessionStore } from "@aicraft/core/session/store"
+import { Session } from "@aicraft/core/session"
+import { Location } from "@aicraft/core/location"
+import { Project } from "@aicraft/core/project"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { App } from "@aicraft/core/app"
+import { Agent } from "@aicraft/core/agent"
+import { Model } from "@aicraft/core/model"
+import { Provider } from "@aicraft/core/provider"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Money } from "@aicraft/schema/money"
+import { Skill } from "@aicraft/schema/skill"
+import { Shell } from "@aicraft/schema/shell"
 import { DateTime, Deferred, Effect, Fiber, Layer, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { asc, eq, inArray, sql } from "drizzle-orm"
@@ -713,14 +713,14 @@ it.effect("manual compaction summarizes short context instead of no-op", () =>
     expect(requests).toHaveLength(1)
     expect(requests[0]?.promptCacheKey).toBe(parentID)
     expect(requests[0]?.headers).toEqual({
-      "x-opencode-session-id": session.id,
-      "x-opencode-parent-session-id": parentID,
+      "x-aicraft-session-id": session.id,
+      "x-aicraft-parent-session-id": parentID,
       "x-session-affinity": parentID,
       "X-Session-Id": parentID,
       "x-parent-session-id": parentID,
       "User-Agent": App.useragent(App.make()),
-      "x-opencode-project": Project.ID.global,
-      "x-opencode-session": parentID,
+      "x-aicraft-project": Project.ID.global,
+      "x-aicraft-session": parentID,
       "x-opencode-client": "opencode",
     })
     expect(requests[0]?.maxTokens).toBe(30_000)

@@ -1,4 +1,4 @@
-import type { ScheduleInfo } from "@opencode/client/promise"
+import type { ScheduleInfo } from "@aicraft/client/promise"
 
 /** What the page knows about the task list. The list owns it, so no boolean beside it repeats the phase. */
 export type TaskState =

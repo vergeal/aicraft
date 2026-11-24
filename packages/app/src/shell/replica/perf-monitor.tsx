@@ -1,7 +1,7 @@
 import { createStore } from "solid-js/store"
 import { onCleanup, onMount, Show, type ComponentProps } from "solid-js"
 import { useNavigate } from "@solidjs/router"
-import { Popover } from "@opencode/ui/popover"
+import { Popover } from "@aicraft/ui/popover"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useGlobal } from "@/runtime/server/runtime"
@@ -11,9 +11,9 @@ import { showToast } from "@/shell/notifications/toast"
 import { runAgentDiagnosis, type DiagnosisDepth } from "./diagnostics/export"
 import { DiagnosticsDepth, DiagnosticsTimeline } from "./diagnostics/panel"
 import { installStateSection } from "./diagnostics/state"
-import { diagnostics, type DiagnosticsMetrics } from "@opencode/diagnostics"
+import { diagnostics, type DiagnosticsMetrics } from "@aicraft/diagnostics"
 
-// Dev-only instrumentation for the desktop window. The recorder lives in @opencode/diagnostics; this
+// Dev-only instrumentation for the desktop window. The recorder lives in @aicraft/diagnostics; this
 // component shows the latest sample and offers the "Agent diagnosis" handoff.
 
 const EMPTY: DiagnosticsMetrics = {

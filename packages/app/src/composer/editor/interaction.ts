@@ -1,9 +1,9 @@
 import { Predicate } from "effect"
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, type Accessor } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
-import { useFilteredList } from "@opencode/ui/hooks"
-import { abort } from "@opencode/util/abort"
-import { getFilename } from "@opencode/util/path"
+import { useFilteredList } from "@aicraft/ui/hooks"
+import { abort } from "@aicraft/util/abort"
+import { getFilename } from "@aicraft/util/path"
 import { createComposerAttachments, type ComposerAttachmentConfig } from "../attachments/attachments"
 import type { Upload } from "../attachments/uploads"
 import { resolveBlobUrl } from "@/runtime/persistence/drafts"
@@ -26,7 +26,7 @@ import {
 import { clonePrompt, isAttachment, promptLength } from "../prompt-parts"
 import type { ComposerDelivery, ComposerQueue } from "../adapter"
 import { isCommentItem } from "../state"
-import type { ComposerQuoteAnchor } from "@opencode/plugin/gui"
+import type { ComposerQuoteAnchor } from "@aicraft/plugin/gui"
 
 export type ComposerSelectControl = {
   options: Accessor<ComposerOption[]>

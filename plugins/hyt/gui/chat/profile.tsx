@@ -1,4 +1,4 @@
-import type { Context } from "@opencode/plugin/gui"
+import type { Context } from "@aicraft/plugin/gui"
 import { Show, createSignal, onCleanup, onMount } from "solid-js"
 import { Face } from "./avatar.js"
 import { text } from "./i18n.js"

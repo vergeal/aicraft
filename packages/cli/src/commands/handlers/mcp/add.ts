@@ -3,7 +3,7 @@ import path from "node:path"
 import { readFile, stat, writeFile } from "node:fs/promises"
 import { Effect, Option } from "effect"
 import { applyEdits, modify } from "jsonc-parser"
-import { Global } from "@opencode/util/global"
+import { Global } from "@aicraft/util/global"
 import { Commands } from "../../commands"
 import { Runtime } from "../../../framework/runtime"
 
@@ -41,8 +41,8 @@ export async function resolveConfigPath(directory: string) {
   const candidates = [
     path.join(directory, "aicraft.json"),
     path.join(directory, "aicraft.jsonc"),
-    path.join(directory, ".opencode", "aicraft.json"),
-    path.join(directory, ".opencode", "aicraft.jsonc"),
+    path.join(directory, ".aicraft", "aicraft.json"),
+    path.join(directory, ".aicraft", "aicraft.jsonc"),
   ]
   for (const candidate of candidates) {
     if (

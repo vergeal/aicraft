@@ -1,20 +1,20 @@
 #!/usr/bin/env bun
 
-import { ensurePluginRuntime } from "@opencode/plugin/runtime"
+import { ensurePluginRuntime } from "@aicraft/plugin/runtime"
 import { NodeRuntime, NodeServices } from "@effect/platform-node"
 import { Cause, Effect } from "effect"
 import { getErrorReported } from "effect/Runtime"
 import { Commands } from "./commands/commands"
 import { Runtime } from "./framework/runtime"
-import { Observability } from "@opencode/util/observability"
+import { Observability } from "@aicraft/util/observability"
 import { Updater } from "./services/updater"
-import { OPENCODE_ARTIFACT, OPENCODE_CHANNEL, OPENCODE_LOCAL, OPENCODE_VERSION } from "./version"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Global } from "@opencode/util/global"
-import { AppProcess } from "@opencode/util/process"
+import { AICRAFT_ARTIFACT, AICRAFT_CHANNEL, AICRAFT_LOCAL, AICRAFT_VERSION } from "./version"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Global } from "@aicraft/util/global"
+import { AppProcess } from "@aicraft/util/process"
 import { Config } from "./config"
-import { Npm } from "@opencode/util/npm"
-import { EffectFlock } from "@opencode/util/effect-flock"
+import { Npm } from "@aicraft/util/npm"
+import { EffectFlock } from "@aicraft/util/effect-flock"
 import { Heap } from "./heap"
 import { CpuProfile } from "./cpu-profile"
 import { ShutdownDeadline } from "./shutdown-deadline"
@@ -34,7 +34,7 @@ process.env.no_proxy = noProxy
 
 ensurePluginRuntime()
 
-if (process.env.OPENCODE_SSH_ASKPASS_PORT) {
+if (process.env.AICRAFT_SSH_ASKPASS_PORT) {
   const { askpass } = await import("./ssh-askpass")
   process.exit(await Effect.runPromise(askpass.pipe(Effect.provide(NodeServices.layer))))
 }
@@ -116,12 +116,12 @@ Effect.gen(function* () {
     }),
   )
   yield* Effect.logInfo("cli starting", {
-    version: OPENCODE_VERSION,
-    channel: OPENCODE_CHANNEL,
-    local: OPENCODE_LOCAL,
+    version: AICRAFT_VERSION,
+    channel: AICRAFT_CHANNEL,
+    local: AICRAFT_LOCAL,
     args: process.argv.slice(2),
   })
-  return yield* Runtime.run(Commands, Handlers, { version: OPENCODE_VERSION })
+  return yield* Runtime.run(Commands, Handlers, { version: AICRAFT_VERSION })
 }).pipe(
   Effect.catchCause((cause) =>
     Effect.logError("cli process failed", {
@@ -136,7 +136,7 @@ Effect.gen(function* () {
     LayerNode.compile(LayerNode.group([Global.node, AppProcess.node, Npm.node, EffectFlock.node]), {
       replacements: [
         Global.node.replace(
-          Global.layerWith(process.env.OPENCODE_CONFIG_DIR ? { config: process.env.OPENCODE_CONFIG_DIR } : {}),
+          Global.layerWith(process.env.AICRAFT_CONFIG_DIR ? { config: process.env.AICRAFT_CONFIG_DIR } : {}),
         ),
       ],
     }),
@@ -145,9 +145,9 @@ Effect.gen(function* () {
     Observability.layer({
       endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
       headers: process.env.OTEL_EXPORTER_OTLP_HEADERS,
-      client: process.env.OPENCODE_CLIENT ?? OPENCODE_ARTIFACT,
-      version: OPENCODE_VERSION,
-      channel: OPENCODE_CHANNEL,
+      client: process.env.AICRAFT_CLIENT ?? AICRAFT_ARTIFACT,
+      version: AICRAFT_VERSION,
+      channel: AICRAFT_CHANNEL,
     }),
   ),
   Effect.provide(NodeServices.layer),

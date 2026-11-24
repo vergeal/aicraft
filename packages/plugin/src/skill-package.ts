@@ -1,9 +1,9 @@
 export * as SkillPackage from "./skill-package.js"
 
-import { AbsolutePath } from "@opencode/schema/schema"
-import { Catalog } from "@opencode/schema/catalog"
-import { optional } from "@opencode/schema/schema"
-import { Skill } from "@opencode/schema/skill"
+import { AbsolutePath } from "@aicraft/schema/schema"
+import { Catalog } from "@aicraft/schema/catalog"
+import { optional } from "@aicraft/schema/schema"
+import { Skill } from "@aicraft/schema/skill"
 import { Schema } from "effect"
 import matter from "gray-matter"
 

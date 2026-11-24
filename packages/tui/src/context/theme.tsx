@@ -6,10 +6,10 @@ import {
   themeModes,
   type ResolvedTheme,
   type SurfaceName,
-} from "@opencode/theme/tui"
+} from "@aicraft/theme/tui"
 import {
   allThemes,
-  getOpenCode2Theme,
+  getAicraft2Theme,
   hasTheme,
   parseTheme,
   setCustomThemes,
@@ -290,7 +290,7 @@ const themeContext = createSimpleContext({
 
     const available = createMemo(
       (): Record<string, ThemeDocumentSource> =>
-        newDesigns() ? { opencode2: getOpenCode2Theme(), ...themeSources() } : themeSources(),
+        newDesigns() ? { aicraft2: getAicraft2Theme(), ...themeSources() } : themeSources(),
     )
     const has = (name: string) => Boolean(name) && available()[name] !== undefined
 
@@ -304,7 +304,7 @@ const themeContext = createSimpleContext({
         if (name === "opencode") throw error
         themeErrors.emit(name, error)
         setStore("active", "opencode")
-        return loadTheme(sources.opencode, "opencode", store.mode, newDesigns())
+        return loadTheme(sources.aicraft, "opencode", store.mode, newDesigns())
       }
     })
     const modes = () => selected().modes

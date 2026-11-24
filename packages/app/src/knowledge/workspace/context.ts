@@ -1,4 +1,4 @@
-import { createSimpleContext } from "@opencode/ui/context"
+import { createSimpleContext } from "@aicraft/ui/context"
 import { createMemo } from "solid-js"
 import { useKnowledge } from "../context"
 import { createWorkspaceData } from "./data"

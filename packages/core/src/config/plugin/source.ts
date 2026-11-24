@@ -1,11 +1,11 @@
 export * as ConfigPluginSource from "./source.js"
 
-import { Directory, Document, type Entry } from "@opencode/schema/config"
-import { ConfigPlugin } from "@opencode/schema/config/plugin"
-import { FSUtil } from "@opencode/util/fs-util"
-import { Host } from "@opencode/plugin/host"
-import { Path } from "@opencode/util/global"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { Directory, Document, type Entry } from "@aicraft/schema/config"
+import { ConfigPlugin } from "@aicraft/schema/config/plugin"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { Host } from "@aicraft/plugin/host"
+import { Path } from "@aicraft/util/global"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Context, Effect, Layer, Option, PubSub, Scope, Stream } from "effect"
 import path from "path"
 import { fileURLToPath, pathToFileURL } from "url"
@@ -33,7 +33,7 @@ export interface Interface {
   readonly changes: () => Stream.Stream<void>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/ConfigPluginSource") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/ConfigPluginSource") {}
 
 export const layer = Layer.effect(
   Service,

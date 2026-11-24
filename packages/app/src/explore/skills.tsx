@@ -1,13 +1,13 @@
-import type { SkillInfo } from "@opencode/client/promise"
-import { Button } from "@opencode/ui/button"
-import { useDialog } from "@opencode/ui/context/dialog"
-import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { Switch } from "@opencode/ui/switch"
-import { TextInput } from "@opencode/ui/text-input"
-import { Textarea } from "@opencode/ui/textarea"
-import { MarkdownProvider } from "@opencode/session-ui/context/markdown"
-import { Markdown } from "@opencode/session-ui/markdown"
-import { getDirectory, getFilename } from "@opencode/util/path"
+import type { SkillInfo } from "@aicraft/client/promise"
+import { Button } from "@aicraft/ui/button"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
+import { Switch } from "@aicraft/ui/switch"
+import { TextInput } from "@aicraft/ui/text-input"
+import { Textarea } from "@aicraft/ui/textarea"
+import { MarkdownProvider } from "@aicraft/session-ui/context/markdown"
+import { Markdown } from "@aicraft/session-ui/markdown"
+import { getDirectory, getFilename } from "@aicraft/util/path"
 import { createEffect, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useExploreInstalled } from "@/explore/installed"
@@ -45,7 +45,7 @@ function withAutoinvoke(text: string, enabled: boolean) {
     const stop = end === -1 ? lines.length : end
 
     const existing = lines.findIndex(
-      (line, index) => index > metadata && index < stop && /^([ \t]+)opencode\/autoinvoke[ \t]*:/.test(line),
+      (line, index) => index > metadata && index < stop && /^([ \t]+)aicraft\/autoinvoke[ \t]*:/.test(line),
     )
 
     if (existing !== -1) {

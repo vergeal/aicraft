@@ -76,7 +76,7 @@ export const dict = {
   "ui.sessionTurn.error.addCredits": "充值",
 
   "dialog.usageExceeded.freeTier.title": "免费额度已用完",
-  "dialog.usageExceeded.freeTier.description": "每月 $10 订阅 OpenCode Go，可靠地使用最佳开源模型。",
+  "dialog.usageExceeded.freeTier.description": "每月 $10 订阅 AI Craft Go，可靠地使用最佳开源模型。",
   "dialog.usageExceeded.freeTier.actionLabel": "订阅",
 
   "ui.sessionTurn.status.delegating": "正在委派工作",
@@ -475,8 +475,8 @@ export const dict = {
   "ui.sessionTurn.budgetLimit.modelsUntilReset": "模型额度已用完 · 此模型暂停至额度重置",
   "ui.sessionTurn.budgetLimit.useFreeModel": "改用免费模型",
   "ui.sessionTurn.budgetLimit.switchModel": "切换模型",
-  "ui.sessionTurn.goLimit.title": "你已达到 OpenCode Go 的使用额度上限。",
-  "ui.sessionTurn.goLimit.lineReset": "你已达到 OpenCode Go 的使用额度上限，{{time}} 重置。",
+  "ui.sessionTurn.goLimit.title": "你已达到 AI Craft Go 的使用额度上限。",
+  "ui.sessionTurn.goLimit.lineReset": "你已达到 AI Craft Go 的使用额度上限，{{time}} 重置。",
   "dialog.usageExceeded.freeTier.reset": "免费消息 {{time}} 重置。",
   "ui.messagePart.compaction.queued": "会话压缩已排队",
   "ui.messagePart.compaction.done": "已压缩",

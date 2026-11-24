@@ -1,10 +1,10 @@
-import type { FileDiffInfo } from "@opencode/client/promise"
-import type { SessionReviewLineComment } from "@opencode/session-ui/session-review"
-import { previewSelectedLines } from "@opencode/session-ui/pierre/selection-bridge"
-import { artifactMime } from "@opencode/util/artifact"
-import { bytesToBase64 } from "@opencode/util/base64"
-import { checksum } from "@opencode/util/encode"
-import { showToast } from "@opencode/ui/toast"
+import type { FileDiffInfo } from "@aicraft/client/promise"
+import type { SessionReviewLineComment } from "@aicraft/session-ui/session-review"
+import { previewSelectedLines } from "@aicraft/session-ui/pierre/selection-bridge"
+import { artifactMime } from "@aicraft/util/artifact"
+import { bytesToBase64 } from "@aicraft/util/base64"
+import { checksum } from "@aicraft/util/encode"
+import { showToast } from "@aicraft/ui/toast"
 import { createQuery, focusManager, useQueries, useQueryClient } from "@tanstack/solid-query"
 import { debounce } from "@solid-primitives/scheduled"
 import { createMemo, createSignal, on, onCleanup, untrack, type Accessor } from "solid-js"
@@ -16,7 +16,7 @@ import {
   type MountedSession,
   type SessionScreen,
   type SetupContext,
-} from "@opencode/plugin/gui"
+} from "@aicraft/plugin/gui"
 import type Review from "./index"
 import {
   expandReviewFolders,

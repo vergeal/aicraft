@@ -110,7 +110,7 @@ story("shows a catalog bundle and hides it once installed", async ({ page }) => 
   }, fixture)
 
   expect(result.catalogOnly.state).toEqual({ cards: 1, name: "Webwright" })
-  expect(result.catalogOnly.detail.type).toContain("~/.distribution/plugins/opencode.webwright")
+  expect(result.catalogOnly.detail.type).toContain("~/.distribution/plugins/aicraft.webwright")
   expect(result.catalogOnly.detail.hasInstall).toBe(true)
 
   expect(result.installed.state).toEqual({ cards: 1, name: "Webwright" })

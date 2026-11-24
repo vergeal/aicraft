@@ -1,12 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/cli",
+  "name": "@aicraft/cli",
   "version": "2.2.5",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "opencode": "./bin/opencode.cjs",
-    "opencode2": "./bin/opencode2.cjs"
+    "opencode": "./bin/aicraft.cjs",
+    "aicraft2": "./bin/aicraft2.cjs"
   },
   "files": [
     "bin"
@@ -20,7 +20,7 @@
     "build": "bun run script/build.ts",
     "build:node": "bun run script/build-node.ts",
     "pack": "bun run script/pack.ts",
-    "pack:docker": "chmod +x dist/cli-linux-*-musl/bin/opencode && mkdir -p ../../dist/docker && docker buildx build --platform linux/amd64,linux/arm64 --output type=oci,dest=../../dist/docker/opencode-image.tar .",
+    "pack:docker": "chmod +x dist/cli-linux-*-musl/bin/aicraft && mkdir -p ../../dist/docker && docker buildx build --platform linux/amd64,linux/arm64 --output type=oci,dest=../../dist/docker/aicraft-image.tar .",
     "dev": "bun run src/index.ts",
     "test": "bun test --timeout 30000 --only-failures",
     "typecheck": "bun check --no-script -b",
@@ -31,13 +31,13 @@
     "@clack/core": "1.0.0-alpha.1",
     "@clack/prompts": "1.0.0-alpha.1",
     "@effect/platform-node": "catalog:",
-    "@opencode/client": "workspace:*",
-    "@opencode/plugin": "workspace:*",
+    "@aicraft/client": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
     "@opencode/pty": "0.4.0",
-    "@opencode/schema": "workspace:*",
-    "@opencode/server": "workspace:*",
-    "@opencode/tui": "workspace:*",
-    "@opencode/util": "workspace:*",
+    "@aicraft/schema": "workspace:*",
+    "@aicraft/server": "workspace:*",
+    "@aicraft/tui": "workspace:*",
+    "@aicraft/util": "workspace:*",
     "@opentui/core": "catalog:",
     "@opentui/solid": "catalog:",
     "@opentunnel/client": "0.6.1",
@@ -53,8 +53,8 @@
     "ws": "8.21.0"
   },
   "devDependencies": {
-    "@opencode/script": "workspace:*",
-    "@opencode/protocol": "workspace:*",
+    "@aicraft/script": "workspace:*",
+    "@aicraft/protocol": "workspace:*",
     "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "@typescript/native": "catalog:",

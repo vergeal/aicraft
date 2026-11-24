@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/plugin-webwright",
+  "name": "@aicraft/plugin-webwright",
   "version": "2.3.1",
   "description": "Playwright-driven browser tools: open pages, click, fill forms and scrape content in a dedicated profile",
   "type": "module",
@@ -28,8 +28,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode/plugin": "workspace:*",
-    "@opencode/schema": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/schema": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

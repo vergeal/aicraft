@@ -1,9 +1,9 @@
 export * as ForkTool from "./fork.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { SessionFork } from "@opencode/schema/session-fork"
-import { SessionMessage } from "@opencode/schema/session-message"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { SessionFork } from "@aicraft/schema/session-fork"
+import { SessionMessage } from "@aicraft/schema/session-message"
 import { DateTime, Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
@@ -39,7 +39,7 @@ export const Output = Schema.Struct({
 })
 
 export const Plugin = {
-  id: "opencode.tool.fork",
+  id: "aicraft.tool.fork",
   effect: Effect.fn("ForkTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
 

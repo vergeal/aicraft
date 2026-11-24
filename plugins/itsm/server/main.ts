@@ -1,5 +1,5 @@
-import { Plugin } from "@opencode/plugin"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { Plugin } from "@aicraft/plugin"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { join } from "node:path"
 
 const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())

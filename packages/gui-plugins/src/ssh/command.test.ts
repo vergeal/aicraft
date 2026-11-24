@@ -31,13 +31,13 @@ describe("SSH connection commands", () => {
     expect(
       commandFailureDetail(1, {
         stdout:
-          'OPENCODE_SSH_REGISTRATION_BEGIN\n{"password":"secret"}\nOPENCODE_SSH_REGISTRATION_END\nFailed to read next file',
+          'AICRAFT_SSH_REGISTRATION_BEGIN\n{"password":"secret"}\nAICRAFT_SSH_REGISTRATION_END\nFailed to read next file',
         stderr: "",
       }),
     ).toBe("Failed to read next file")
     expect(
       commandFailureDetail(1, {
-        stdout: 'OPENCODE_SSH_REGISTRATION_BEGIN\n{"password":"secret"}',
+        stdout: 'AICRAFT_SSH_REGISTRATION_BEGIN\n{"password":"secret"}',
         stderr: "read interrupted",
       }),
     ).toBe("read interrupted")

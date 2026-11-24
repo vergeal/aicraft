@@ -1,6 +1,6 @@
 import { expect, type Page, type Request } from "@playwright/test"
-import type { SessionMessageInfo } from "@opencode/client/promise"
-import { base64Encode, checksum } from "@opencode/util/encode"
+import type { SessionMessageInfo } from "@aicraft/client/promise"
+import { base64Encode, checksum } from "@aicraft/util/encode"
 
 // The mocked default server. Production builds connect to their own origin, so CI points this at the app.
 export const SERVER = `http://${process.env.PLAYWRIGHT_SERVER_HOST ?? "127.0.0.1"}:${process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"}`
@@ -26,7 +26,7 @@ export function tabKey(sessionID: string, server = SERVER) {
 export function workspaceKey(directory: string, key: string) {
   const head = directory.slice(0, 12).replace(/[^a-zA-Z0-9._-]/g, "-")
 
-  return `opencode.workspace.${head}.${checksum(directory) ?? "0"}.dat:workspace:${key}`
+  return `aicraft.workspace.${head}.${checksum(directory) ?? "0"}.dat:workspace:${key}`
 }
 
 export async function expectPath(page: Page, href: string) {
@@ -86,7 +86,7 @@ export async function seed(page: Page, input: SeedInput) {
         localStorage.setItem(key, JSON.stringify(Object.fromEntries(merged)))
       })
     },
-    { marker: `opencode.e2e.seed.${seeds.next++}`, entries: storageEntries(input) },
+    { marker: `aicraft.e2e.seed.${seeds.next++}`, entries: storageEntries(input) },
   )
 }
 
@@ -119,7 +119,7 @@ function storageEntries(input: SeedInput): [string, string, boolean][] {
       : {}),
     ...(input.settings ? { "settings.v3": input.settings } : {}),
     ...(locale ? { "aicraft.global.dat:language": { locale } } : {}),
-    ...(input.theme ? { "opencode-theme-id": input.theme.id, "opencode-color-scheme": input.theme.scheme } : {}),
+    ...(input.theme ? { "aicraft-theme-id": input.theme.id, "aicraft-color-scheme": input.theme.scheme } : {}),
     ...input.storage,
   }
 
@@ -179,7 +179,7 @@ export function provider(...models: ModelSeed[]) {
     all: [
       {
         id: "opencode",
-        name: "OpenCode",
+        name: "AI Craft",
         models: Object.fromEntries(all.map((model) => [model.id, { limit: { context: 200_000 }, ...model }])),
       },
     ],

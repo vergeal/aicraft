@@ -1,10 +1,10 @@
 import { describe, expect } from "bun:test"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHost } from "@opencode/core/plugin/host"
-import { MemoryPlugin } from "@opencode/core/plugin/memory"
-import { Rpc } from "@opencode/core/rpc"
-import { Skill } from "@opencode/core/skill"
-import { Tool } from "@opencode/core/tool"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHost } from "@aicraft/core/plugin/host"
+import { MemoryPlugin } from "@aicraft/core/plugin/memory"
+import { Rpc } from "@aicraft/core/rpc"
+import { Skill } from "@aicraft/core/skill"
+import { Tool } from "@aicraft/core/tool"
 import { Effect } from "effect"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
@@ -35,7 +35,7 @@ describe("memory plugin", () => {
       yield* activate
       const rpc = yield* Rpc.Service
 
-      const saved = (yield* rpc.call("opencode.memory", "save", {
+      const saved = (yield* rpc.call("aicraft.memory", "save", {
         scope: "global",
         projectID: null,
         text: "回复用中文",
@@ -43,12 +43,12 @@ describe("memory plugin", () => {
       })) as { entry: { id: string }; duplicate: boolean }
       expect(saved.duplicate).toBe(false)
 
-      const listed = (yield* rpc.call("opencode.memory", "list", { projectID: null })) as {
+      const listed = (yield* rpc.call("aicraft.memory", "list", { projectID: null })) as {
         global: ReadonlyArray<{ text: string }>
       }
       expect(listed.global.map((entry) => entry.text)).toEqual(["回复用中文"])
 
-      const updated = (yield* rpc.call("opencode.memory", "update", {
+      const updated = (yield* rpc.call("aicraft.memory", "update", {
         scope: "global",
         projectID: null,
         id: saved.entry.id,
@@ -57,12 +57,12 @@ describe("memory plugin", () => {
       })) as { entry: { text: string } | null }
       expect(updated.entry?.text).toBe("回复尽量用中文")
 
-      yield* rpc.call("opencode.memory", "remove", {
+      yield* rpc.call("aicraft.memory", "remove", {
         scope: "global",
         projectID: null,
         id: saved.entry.id,
       })
-      const after = (yield* rpc.call("opencode.memory", "list", { projectID: null })) as {
+      const after = (yield* rpc.call("aicraft.memory", "list", { projectID: null })) as {
         global: ReadonlyArray<unknown>
       }
       expect(after.global).toHaveLength(0)

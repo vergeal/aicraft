@@ -11,11 +11,11 @@ describe("debug paths command", () => {
     expect(debug.stdout).toContain("paths")
     expect(debug.stdout).toContain("Show global paths (data, config, cache, state)")
     expect(paths.exitCode).toBe(0)
-    expect(paths.stdout).toContain("opencode debug paths [flags]")
+    expect(paths.stdout).toContain("aicraft debug paths [flags]")
   })
 
   test("prints resolved global paths without starting a server", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-debug-paths-"))
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "aicraft-debug-paths-"))
 
     try {
       const result = await cli(["debug", "paths"], {

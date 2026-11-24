@@ -1,9 +1,9 @@
 export * as ScheduleCheck from "./check.js"
 
-import { CodeMode } from "@opencode/codemode"
-import { isRecord } from "@opencode/util/record"
-import { collectStream } from "@opencode/util/process"
-import type { Schedule as ScheduleSchema } from "@opencode/schema/schedule"
+import { CodeMode } from "@aicraft/codemode"
+import { isRecord } from "@aicraft/util/record"
+import { collectStream } from "@aicraft/util/process"
+import type { Schedule as ScheduleSchema } from "@aicraft/schema/schedule"
 import { Array, Duration, Effect, Option, Result, Schema } from "effect"
 import { ChildProcess } from "effect/process"
 import { Agent } from "../agent.js"
@@ -29,14 +29,14 @@ const CODE_LIMITS: CodeMode.ExecutionLimits = {
 }
 
 const FORBIDDEN_CODE_TOOLS = new Set([
-  "opencode.schedule_create",
-  "opencode.schedule_pause",
-  "opencode.schedule_resume",
-  "opencode.schedule_delete",
-  "opencode.session_move",
-  "opencode.session_rename",
-  "opencode.worktree_create",
-  "opencode.worktree_remove",
+  "aicraft.schedule_create",
+  "aicraft.schedule_pause",
+  "aicraft.schedule_resume",
+  "aicraft.schedule_delete",
+  "aicraft.session_move",
+  "aicraft.session_rename",
+  "aicraft.worktree_create",
+  "aicraft.worktree_remove",
 ])
 
 const decodeCodeObjectResult = Schema.decodeUnknownResult(

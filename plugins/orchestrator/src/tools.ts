@@ -1,8 +1,8 @@
 export * as Tools from "./tools.js"
 
-import type { ToolEditor } from "@opencode/plugin/promise/tool"
-import { Tool } from "@opencode/schema/tool"
-import { optional } from "@opencode/schema/schema"
+import type { ToolEditor } from "@aicraft/plugin/promise/tool"
+import { Tool } from "@aicraft/schema/tool"
+import { optional } from "@aicraft/schema/schema"
 import { Schema } from "effect"
 import { Ledger } from "./ledger.js"
 import { Plan } from "./plan.js"

@@ -1,11 +1,11 @@
 export * as DeliverTool from "./deliver.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { FSUtil } from "@opencode/util/fs-util"
-import { getFilename } from "@opencode/util/path"
-import { parseSessionMention } from "@opencode/util/session-mention"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { getFilename } from "@aicraft/util/path"
+import { parseSessionMention } from "@aicraft/util/session-mention"
 import { Clock, Effect, Schema } from "effect"
 import { basename, isAbsolute, join } from "path"
 import { pathToFileURL } from "url"
@@ -85,7 +85,7 @@ export const Output = Schema.Struct({
 })
 
 export const Plugin = {
-  id: "opencode.tool.deliver",
+  id: "aicraft.tool.deliver",
   effect: Effect.fn("DeliverTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
     const fs = yield* FSUtil.Service

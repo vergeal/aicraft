@@ -1,14 +1,14 @@
 export * as ConsoleAccess from "./console-access.js"
 
 import { Context, Layer } from "effect"
-import { makeGlobalNode } from "@opencode/util/effect/app-node"
+import { makeGlobalNode } from "@aicraft/util/effect/app-node"
 import type { Credential } from "./credential.js"
 
 /**
  * How the host keeps a connected Console's config fresh. `poll` re-checks it every minute in the background; without
  * it, the config refreshes only when a prompt starts, so a host that suspends between prompts stays idle.
  */
-export const Options = Context.Reference<{ readonly poll: boolean }>("@opencode/ConsoleAccess/Options", {
+export const Options = Context.Reference<{ readonly poll: boolean }>("@aicraft/ConsoleAccess/Options", {
   defaultValue: () => ({ poll: true }),
 })
 
@@ -19,12 +19,12 @@ export const node = configured()
 
 export const defaultServer = "https://opencode.ai/console"
 
-/** The OpenCode Console a credential signed in to. */
+/** The AI Craft Console a credential signed in to. */
 export function server(value: Credential.Value) {
   const server = typeof value.metadata?.server === "string" ? value.metadata.server : defaultServer
   // Credentials saved before August 2026 store the retired console.opencode.ai host, which maps path-for-path onto
   // the default server; rewriting it lets that host be shut down without forcing those users to reconnect.
-  return server.replace(/^https:\/\/console\.opencode\.ai(?=\/|$)/, defaultServer)
+  return server.replace(/^https:\/\/console\.aicraft\.ai(?=\/|$)/, defaultServer)
 }
 
 /** Authenticates a Console request as the credential's member, in the workspace the sign-in chose. */

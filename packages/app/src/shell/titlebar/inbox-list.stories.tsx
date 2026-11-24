@@ -1,4 +1,4 @@
-import { Button } from "@opencode/ui/button"
+import { Button } from "@aicraft/ui/button"
 import { createEffect, createMemo, For, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { InboxSessionCard, InboxSessionList } from "./inbox"
@@ -92,12 +92,12 @@ function SessionListStory(props: {
       {(session) => (
         <InboxSessionCard
           project={{
-            id: session.index % 3 === 2 ? "lab-port-ui" : "lab-opencode",
+            id: session.index % 3 === 2 ? "lab-port-ui" : "lab-aicraft",
             name: session.index % 3 === 2 ? "port-ui" : "opencode",
-            worktree: "/workspace/opencode",
+            worktree: "/workspace/aicraft",
             icon: { color: session.index % 3 === 2 ? "purple" : "blue" },
           }}
-          directory={session.index % 2 === 0 ? "/workspace/opencode/worktrees/tooltip-status" : "/workspace/opencode"}
+          directory={session.index % 2 === 0 ? "/workspace/aicraft/worktrees/tooltip-status" : "/workspace/aicraft"}
           title={session.title}
           status={session.status}
           selected={state.selected === session.id}

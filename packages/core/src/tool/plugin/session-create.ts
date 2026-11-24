@@ -1,7 +1,7 @@
 export * as SessionCreateTool from "./session-create.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
 import { Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionSchema } from "../../session/schema.js"
@@ -31,7 +31,7 @@ export const Output = Schema.Struct({
 })
 
 export const Plugin = {
-  id: "opencode.tool.session-create",
+  id: "aicraft.tool.session-create",
   effect: Effect.fn("SessionCreateTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
 

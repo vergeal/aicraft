@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js"
-import type { OpenCodeClient } from "@opencode/client/promise"
+import type { AicraftClient } from "@aicraft/client/promise"
 import type { Cleanup } from "./core.js"
 import type { Context } from "./context.js"
 
@@ -166,4 +166,4 @@ export type OverlayContext = Pick<
 /** A plugin's overlay render: the root of one overlay window. Runs under the plugin's Solid owner. */
 export type OverlayRender = (ctx: OverlayContext) => JSX.Element
 
-export type { OpenCodeClient }
+export type { AicraftClient }

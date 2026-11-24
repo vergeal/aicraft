@@ -1,4 +1,4 @@
-import { optional } from "@opencode/schema/schema"
+import { optional } from "@aicraft/schema/schema"
 import { Option, Schema } from "effect"
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
 import { existsSync } from "node:fs"

@@ -1,6 +1,6 @@
 # DBRO
 
-`@opencode/plugin-dbro` 把 dbro 只读查询门面封装成 `.exc`，用一组方言感知的
+`@aicraft/plugin-dbro` 把 dbro 只读查询门面封装成 `.exc`，用一组方言感知的
 `dbro.*` 工具同时覆盖达梦 8、MySQL 和 PostgreSQL。
 
 查询脚本随包分发：`dbro.py` 和三个单库执行器都在 `assets/dbro` 内，安装后只读这个目录，不依赖任何本机工具目录。

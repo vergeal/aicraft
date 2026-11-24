@@ -1,8 +1,8 @@
 import { Overlay, Portal, Root, Trigger } from "@kobalte/core/dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup } from "./dialog"
 import { ConfirmDialog } from "./confirm-dialog"
-import { Button } from "@opencode/ui/button"
-import { useDialog } from "@opencode/ui/context/dialog"
+import { Button } from "@aicraft/ui/button"
+import { useDialog } from "@aicraft/ui/context/dialog"
 import { onMount, type JSX } from "solid-js"
 
 const docs = `### Overview

@@ -1,11 +1,11 @@
-import type { LocationRef } from "@opencode/client/promise"
+import type { LocationRef } from "@aicraft/client/promise"
 import {
   diagnosisPrompt,
   diagnostics,
   summarize,
   type DiagnosisSource,
   type DiagnosticsDocument,
-} from "@opencode/diagnostics"
+} from "@aicraft/diagnostics"
 import type { Platform } from "@/runtime/platform/platform"
 import type { ServerCtx } from "@/runtime/server/runtime"
 import type { ServerConnection } from "@/runtime/server/registry"
@@ -122,7 +122,7 @@ export async function runAgentDiagnosis(input: {
   if (main.status === "rejected") dump.notes.push(`sections.main 采集失败，本次没有这一段：${reasonText(main.reason)}`)
   if (server.status === "rejected")
     dump.notes.push(`sections.server 采集失败，本次没有这一段：${reasonText(server.reason)}`)
-  const name = `opencode-diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`
+  const name = `aicraft-diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`
   const path = await write({ name, content: JSON.stringify(dump) })
 
   const created = input.ctx.data.session.create({

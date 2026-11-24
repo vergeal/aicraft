@@ -1,4 +1,4 @@
-import { Browser } from "@opencode/plugin-browser/rpc"
+import { Browser } from "@aicraft/plugin-browser/rpc"
 import type { Protocol } from "devtools-protocol"
 import { Schema } from "effect"
 import { abortError, waitFor, type Cdp } from "./cdp"

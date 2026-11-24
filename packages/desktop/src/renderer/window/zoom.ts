@@ -7,7 +7,7 @@ import {
   desktopZoomLevelFactor,
   nextDesktopZoomLevel,
   type DesktopZoomLevel,
-} from "@opencode/app/desktop-menu"
+} from "@aicraft/app/desktop-menu"
 import { createSignal } from "solid-js"
 import { api } from "../api"
 

@@ -1,6 +1,6 @@
 export * as Browser from "./rpc.js"
 
-import { optional } from "@opencode/schema/schema"
+import { optional } from "@aicraft/schema/schema"
 import { Schema } from "effect"
 
 export const MAX_TEXT = 100_000

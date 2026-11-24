@@ -4,9 +4,9 @@ import { and, eq, inArray } from "drizzle-orm"
 import { Cause, Context, DateTime, Effect, Layer, Option, Schema } from "effect"
 import { isSqlError } from "effect/sql/SqlError"
 import type { EffectDrizzleQueryError } from "drizzle-orm/effect-core/errors"
-import { Node, makeGlobalNode } from "@opencode/util/effect/app-node"
-import type { LayerNode } from "@opencode/util/effect/layer-node"
-import { Knowledge as KnowledgeSchema } from "@opencode/schema/knowledge"
+import { Node, makeGlobalNode } from "@aicraft/util/effect/app-node"
+import type { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Knowledge as KnowledgeSchema } from "@aicraft/schema/knowledge"
 import { Agent } from "./agent.js"
 import { Database } from "./database/database.js"
 import {
@@ -65,7 +65,7 @@ export interface Interface {
   }) => Effect.Effect<ReadonlyArray<KnowledgeSchema.SearchHit>>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Knowledge") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/Knowledge") {}
 
 type LibraryRow = typeof KnowledgeLibraryTable.$inferSelect
 

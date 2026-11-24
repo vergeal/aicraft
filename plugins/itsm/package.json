@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/plugin-itsm",
+  "name": "@aicraft/plugin-itsm",
   "version": "0.1.4",
   "description": "Fill Changhong ITSM tickets in an embedded browser and stop before submit",
   "type": "module",
@@ -21,9 +21,9 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode/plugin": "workspace:*",
-    "@opencode/schema": "workspace:*",
-    "@opencode/util": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/schema": "workspace:*",
+    "@aicraft/util": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

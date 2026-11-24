@@ -8,7 +8,7 @@ import { startServer } from "./fixture/server"
 
 it.live("waits for plugin initialization before listing models", () =>
   Effect.gen(function* () {
-    const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("opencode-model-endpoint-")))
+    const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("aicraft-model-endpoint-")))
     yield* Effect.promise(() =>
       fs.writeFile(
         path.join(tmp.path, "aicraft.json"),

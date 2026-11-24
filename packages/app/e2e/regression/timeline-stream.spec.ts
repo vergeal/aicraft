@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
-import type { SessionMessageAssistant, SessionMessageInfo, ShellInfo } from "@opencode/client/promise"
-import { timelinePresets } from "@opencode/session-ui/timeline/detail"
+import type { SessionMessageAssistant, SessionMessageInfo, ShellInfo } from "@aicraft/client/promise"
+import { timelinePresets } from "@aicraft/session-ui/timeline/detail"
 import { createTwoFilesPatch } from "diff"
 import { readSessionDraftText } from "../utils/drafts"
 import { holdRoute } from "../utils/app"
@@ -229,7 +229,7 @@ test.describe("static projection", () => {
     const loaded = group.locator('[data-component="tool-loaded-item"]')
     await expect(loaded).toHaveCount(2)
     await expect(loaded.nth(0)).toHaveAttribute("aria-label", "Loaded ocpr, effect, ui-pr-screenshots skills")
-    await expect(loaded.nth(1)).toHaveAttribute("aria-label", "Loaded opencode skill")
+    await expect(loaded.nth(1)).toHaveAttribute("aria-label", "Loaded aicraft skill")
   })
 
   test("leaves tools expanded by settings outside the collapsed stack", async ({ page }) => {

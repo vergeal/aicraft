@@ -1,7 +1,7 @@
-import { Plugin } from "@opencode/plugin"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
-import { AbsolutePath } from "@opencode/schema/schema"
-import { Session } from "@opencode/schema/session"
+import { Plugin } from "@aicraft/plugin"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
+import { AbsolutePath } from "@aicraft/schema/schema"
+import { Session } from "@aicraft/schema/session"
 import { join } from "node:path"
 const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 import { Collect } from "../src/collect.js"

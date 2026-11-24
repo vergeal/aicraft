@@ -1,4 +1,4 @@
-import type { Context } from "@opencode/plugin/gui"
+import type { Context } from "@aicraft/plugin/gui"
 import { For, Show, createEffect, createMemo, createSignal, onMount } from "solid-js"
 import type { DraftRow, MemberRow, SendState } from "./contract.js"
 import { text } from "./i18n.js"

@@ -1,8 +1,8 @@
 export * as PluginInbox from "./inbox.js"
 
 import { randomUUID } from "node:crypto"
-import type { InboxDomain, InboxMessage, InboxPatch } from "@opencode/plugin/effect/inbox"
-import { Plugin } from "@opencode/schema/plugin"
+import type { InboxDomain, InboxMessage, InboxPatch } from "@aicraft/plugin/effect/inbox"
+import { Plugin } from "@aicraft/schema/plugin"
 import { Effect, Scope } from "effect"
 import { KV } from "../kv.js"
 

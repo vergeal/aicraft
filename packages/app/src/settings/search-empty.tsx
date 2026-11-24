@@ -1,7 +1,7 @@
 import { createEffect, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
-import { Button } from "@opencode/ui/button"
+import { Button } from "@aicraft/ui/button"
 import { useLanguage } from "@/runtime/i18n/language"
 
 export function SettingsSearchEmpty(props: { query: string; onClear?: () => void }) {

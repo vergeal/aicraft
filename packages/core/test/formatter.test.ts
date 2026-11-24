@@ -2,16 +2,16 @@ import fs from "fs/promises"
 import path from "path"
 import { describe, expect } from "bun:test"
 import { Deferred, Effect, Fiber } from "effect"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { Bus } from "@opencode/core/bus"
-import { Database } from "@opencode/core/database/database"
-import { LocationServiceMap } from "@opencode/core/location-services"
-import { Plugin } from "@opencode/core/plugin"
-import { SdkPlugins } from "@opencode/core/plugin/sdk"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Info } from "@opencode/schema/config"
-import { Global } from "@opencode/util/global"
-import { LayerNode } from "@opencode/util/effect/layer-node"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { Bus } from "@aicraft/core/bus"
+import { Database } from "@aicraft/core/database/database"
+import { LocationServiceMap } from "@aicraft/core/location-services"
+import { Plugin } from "@aicraft/core/plugin"
+import { SdkPlugins } from "@aicraft/core/plugin/sdk"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Info } from "@aicraft/schema/config"
+import { Global } from "@aicraft/util/global"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
 import { Formatter } from "../src/formatter"
 import { Location } from "../src/location"
 import { tempGlobalLayer } from "./fixture/global"
@@ -62,7 +62,7 @@ function append(expression: string) {
 const markdown = { command: append("'md'"), extensions: [".md"] }
 const project = { command: append("'project'"), extensions: [".project"] }
 
-// Writes formatter config layers from lowest to highest priority: global, project, then project .opencode.
+// Writes formatter config layers from lowest to highest priority: global, project, then project .aicraft.
 function withLayers<A, E, R>(
   layers: ConfigInput["formatter"][],
   body: (formatter: Formatter.Interface, directory: string) => Effect.Effect<A, E, R>,

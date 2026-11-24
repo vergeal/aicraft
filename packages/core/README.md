@@ -1,3 +1,3 @@
-# @opencode/core
+# @aicraft/core
 
-Core runtime services for OpenCode.
+Core runtime services for AI Craft.

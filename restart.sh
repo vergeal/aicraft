@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 强制结束本仓库所有 OpenCode dev 进程，再按原样重启前端与后端。
+# 强制结束本仓库所有 AI Craft dev 进程，再按原样重启前端与后端。
 #
 # 覆盖范围：
 #   - 后端：packages/cli 的 `src/index.ts serve --service`（dev 后台服务）
-#   - 前端：packages/desktop 的 `bun run dev` / electron-vite / OpenCode Dev.app
+#   - 前端：packages/desktop 的 `bun run dev` / electron-vite / AI Craft Dev.app
 #   - 前端：packages/app 的 web dev
 #   - 顺带清理 console、www 的 dev
 #
-# 只匹配本仓库内的 dev 进程，不会动 /Applications 里安装的正式版 OpenCode。
+# 只匹配本仓库内的 dev 进程，不会动 /Applications 里安装的正式版 AI Craft。
 # 注意：如果你正在 dev 版桌面端里运行本脚本，它会把宿主客户端一起杀掉。
 #
 # 用法：
@@ -75,9 +75,9 @@ ENTRIES=()
 while IFS= read -r line; do ENTRIES+=("$line"); done < <(collect)
 
 if [ "${#ENTRIES[@]}" -eq 0 ]; then
-  echo "没有发现运行中的 OpenCode dev 进程。"
+  echo "没有发现运行中的 AI Craft dev 进程。"
 else
-  echo "发现 ${#ENTRIES[@]} 个 OpenCode dev 进程："
+  echo "发现 ${#ENTRIES[@]} 个 AI Craft dev 进程："
   for entry in "${ENTRIES[@]}"; do
     printf '  %s\t%s\n' "${entry%%$'\t'*}" "$(echo "$entry" | cut -f2- | cut -c1-160)"
   done
@@ -146,7 +146,7 @@ if [ "${#REST[@]}" -gt 0 ]; then
 fi
 
 LEFT=$(collect | wc -l | tr -d ' ')
-echo "已结束 OpenCode dev 进程，剩余 ${LEFT} 个。"
+echo "已结束 AI Craft dev 进程，剩余 ${LEFT} 个。"
 
 mkdir -p "$LOG_DIR"
 

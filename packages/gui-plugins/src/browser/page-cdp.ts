@@ -1,6 +1,6 @@
 import type { Protocol } from "devtools-protocol"
 import { Schema } from "effect"
-import { Browser } from "@opencode/plugin-browser/rpc"
+import { Browser } from "@aicraft/plugin-browser/rpc"
 import { abortError, type Cdp } from "./cdp"
 import type { BrowserFiles } from "./files"
 import type { Diagnostics } from "./diagnostics"

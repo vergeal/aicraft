@@ -168,7 +168,7 @@
 
 ### 10.1 必须使用
 
-凡是有键盘上下（或左右）移动选中的列表，都用 `@opencode/ui/selection-indicator`：
+凡是有键盘上下（或左右）移动选中的列表，都用 `@aicraft/ui/selection-indicator`：
 
 - Composer 的 `@` / `/` 弹窗、历史弹窗
 - 菜单、下拉菜单、上下文菜单（含 Build/Plan 切换、agent 菜单）

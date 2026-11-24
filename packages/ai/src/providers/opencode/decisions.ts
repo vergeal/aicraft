@@ -1,2 +1,2 @@
-export { decisionModel as model } from "../opencode.js"
-export type { Settings } from "../opencode.js"
+export { decisionModel as model } from "../aicraft.js"
+export type { Settings } from "../aicraft.js"

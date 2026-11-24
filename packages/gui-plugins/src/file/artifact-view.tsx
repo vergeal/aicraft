@@ -13,19 +13,19 @@ import {
 import { createStore } from "solid-js/store"
 import { Dynamic } from "solid-js/web"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
-import { PreviewControls } from "@opencode/ui/preview-controls"
-import { useDialog } from "@opencode/ui/context/dialog"
-import { FileIcon } from "@opencode/ui/file-icon"
-import { Icon } from "@opencode/ui/icon"
-import { IconButton } from "@opencode/ui/icon-button"
-import { ImagePreview } from "@opencode/ui/image-preview"
-import { Loader } from "@opencode/ui/loader"
-import { showToast } from "@opencode/ui/toast"
-import { Markdown } from "@opencode/session-ui/markdown"
-import { MarkdownProvider, useMarkdown } from "@opencode/session-ui/context/markdown"
-import { artifactKind, type ArtifactKind } from "@opencode/util/artifact"
-import { getDirectory, getFilename } from "@opencode/util/path"
-import { createKeyed, usePlugin, type FileContent, type MountedSession, type SessionScreen } from "@opencode/plugin/gui"
+import { PreviewControls } from "@aicraft/ui/preview-controls"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { FileIcon } from "@aicraft/ui/file-icon"
+import { Icon } from "@aicraft/ui/icon"
+import { IconButton } from "@aicraft/ui/icon-button"
+import { ImagePreview } from "@aicraft/ui/image-preview"
+import { Loader } from "@aicraft/ui/loader"
+import { showToast } from "@aicraft/ui/toast"
+import { Markdown } from "@aicraft/session-ui/markdown"
+import { MarkdownProvider, useMarkdown } from "@aicraft/session-ui/context/markdown"
+import { artifactKind, type ArtifactKind } from "@aicraft/util/artifact"
+import { getDirectory, getFilename } from "@aicraft/util/path"
+import { createKeyed, usePlugin, type FileContent, type MountedSession, type SessionScreen } from "@aicraft/plugin/gui"
 import {
   blobUrlFromContent,
   bytesFromContent,
@@ -35,7 +35,7 @@ import {
   splitFrontmatter,
   type FrontmatterProperty,
 } from "./artifact"
-import { FileViewer } from "@opencode/plugin/gui/file"
+import { FileViewer } from "@aicraft/plugin/gui/file"
 import { ArtifactToolbar } from "./artifact-toolbar"
 
 type ArtifactMode = "preview" | "source"

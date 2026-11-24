@@ -85,7 +85,7 @@
 - [ ] 动画可中断、可取消，不排队。
 - [ ] `prefers-reduced-motion` 关闭装饰但保留状态反馈。
 - [ ] 发送到会话态是连续过渡，composer 未重建。
-- [ ] 有键盘选中的列表用 `@opencode/ui/selection-indicator`，行内不再画选中背景（见 `13-motion.md` §10）。
+- [ ] 有键盘选中的列表用 `@aicraft/ui/selection-indicator`，行内不再画选中背景（见 `13-motion.md` §10）。
 - [ ] 指示器首次出现直接落位，移动 160ms `ease-out`，滚动时贴合选中行。
 - [ ] 指示器圆角与行一致；容器有 `position: relative`。
 - [ ] 指针连续扫过的区域（侧栏、整页列表）不加过渡或滑动块，hover 即时切换。

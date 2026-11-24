@@ -21,7 +21,7 @@ const finished = (durationMs: number, failed = false) => ({
   startTime: 1_000_000_000n,
   endTime: 1_000_000_000n + BigInt(Math.round(durationMs * 1e6)),
   attributes: new Map<string, unknown>([
-    ["opencode.trace.id", "4bf92f3577b34da6a3ce929d0e0e4736"],
+    ["aicraft.trace.id", "4bf92f3577b34da6a3ce929d0e0e4736"],
     ["client", { id: 1 }],
   ]),
   failed,
@@ -46,7 +46,7 @@ describe("toRecord", () => {
       name: "Vcs.refreshBranch",
       startWall: 1_000,
       durationMs: 12.5,
-      attributes: { "opencode.trace.id": "4bf92f3577b34da6a3ce929d0e0e4736", client: "[object Object]" },
+      attributes: { "aicraft.trace.id": "4bf92f3577b34da6a3ce929d0e0e4736", client: "[object Object]" },
       status: "ok",
     })
   })

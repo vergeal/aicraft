@@ -1,12 +1,12 @@
 import { NodeHttpClient } from "@effect/platform-node"
-import { Browser } from "@opencode/plugin-browser/rpc"
-import { OpenCode } from "@opencode/client/effect"
-import { SessionID } from "@opencode/schema/session-id"
+import { Browser } from "@aicraft/plugin-browser/rpc"
+import { Aicraft } from "@aicraft/client/effect"
+import { SessionID } from "@aicraft/schema/session-id"
 import electron, { type BrowserWindow } from "electron"
 import { Cause, Deferred, Effect, ManagedRuntime, Option, Queue, Schedule, Schema, Stream } from "effect"
 import { HttpClient, HttpClientRequest } from "effect/http"
-import type { BuiltinMainStorage } from "@opencode/plugin/gui/builtin"
-import type { Embeds, Persisted, ServerEndpoints, Windows } from "@opencode/plugin/gui/main"
+import type { BuiltinMainStorage } from "@aicraft/plugin/gui/builtin"
+import type { Embeds, Persisted, ServerEndpoints, Windows } from "@aicraft/plugin/gui/main"
 import { createBrowserPage, type BrowserPage, type Shared } from "./chromium"
 import { createExternalPage, type ExternalPage } from "./external"
 import { browserProfileDirectory, launchChrome, resolveBackend, type Backend } from "./backend"
@@ -94,14 +94,14 @@ export function createBrowserPane(input: {
   const backend = () =>
     (resolved ??= resolveBackend(
       {
-        endpoint: process.env.OPENCODE_BROWSER_CDP_ENDPOINT ?? "http://127.0.0.1:9222/json/version",
-        port: Number(new URL(process.env.OPENCODE_BROWSER_CDP_ENDPOINT ?? "http://127.0.0.1:9222").port) || 9222,
+        endpoint: process.env.AICRAFT_BROWSER_CDP_ENDPOINT ?? "http://127.0.0.1:9222/json/version",
+        port: Number(new URL(process.env.AICRAFT_BROWSER_CDP_ENDPOINT ?? "http://127.0.0.1:9222").port) || 9222,
         userDataDir: browserProfileDirectory(electron.app.getPath("userData")),
       },
       {
         // A configured path wins, so a Chrome outside the usual locations still works.
         candidates: () => {
-          const override = process.env.OPENCODE_CHROME_PATH
+          const override = process.env.AICRAFT_CHROME_PATH
 
           return override ? [override, ...chromeCandidates()] : chromeCandidates()
         },
@@ -124,7 +124,7 @@ export function createBrowserPane(input: {
       if (win.isDestroyed() || win.webContents.isDestroyed()) throw new Error("browser.pane.owner.unavailable")
       const sessionID = SessionID.make(target.session)
       const storageKey = `${target.server}\n${sessionID}`
-      const partition = `opencode-browser-${crypto.randomUUID()}`
+      const partition = `aicraft-browser-${crypto.randomUUID()}`
 
       // Navigation guards cover documents; subresources (img, script, fetch) also must not read
       // file: URLs outside the roots. One listener per partition covers every page in this attachment.
@@ -174,7 +174,7 @@ export function createBrowserPane(input: {
 
             // The renderer never holds the managed sidecar's password; Node requests bypass
             // the webRequest header injection, so the host resolves the credential here in main.
-            const client = yield* OpenCode.make({ baseUrl: server.url }).pipe(
+            const client = yield* Aicraft.make({ baseUrl: server.url }).pipe(
               Effect.provideService(
                 HttpClient.HttpClient,
                 Object.keys(server.headers).length

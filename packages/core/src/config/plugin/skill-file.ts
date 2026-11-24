@@ -1,9 +1,9 @@
 export * as SkillFile from "./skill-file.js"
 
 import path from "path"
-import { isRecord } from "@opencode/util/record"
+import { isRecord } from "@aicraft/util/record"
 import { Result, Schema, type SchemaIssue, SchemaParser } from "effect"
-import { Catalog } from "@opencode/schema/catalog"
+import { Catalog } from "@aicraft/schema/catalog"
 import { ConfigMarkdown } from "../markdown.js"
 import { AbsolutePath } from "../../schema.js"
 import { Skill } from "../../skill.js"
@@ -49,9 +49,9 @@ export function parse(directory: string, filepath: string, content: string): Par
     path.dirname(filepath) === directory && path.basename(filepath) !== "SKILL.md"
       ? path.basename(filepath, ".md")
       : path.basename(path.dirname(filepath))
-  const opencodeAutoinvoke = metadataBoolean(frontmatter.metadata, "opencode/autoinvoke")
+  const aicraftAutoinvoke = metadataBoolean(frontmatter.metadata, "opencode/autoinvoke")
   const disableModelInvocation = booleanValue(frontmatter["disable-model-invocation"])
-  const autoinvoke = opencodeAutoinvoke ?? (disableModelInvocation ? false : undefined)
+  const autoinvoke = aicraftAutoinvoke ?? (disableModelInvocation ? false : undefined)
   const icon = frontmatter.icon?.trim()
   const category = frontmatter.category?.trim()
   // A category the product does not ship would have no heading in the library, so the skill is not loaded at all.

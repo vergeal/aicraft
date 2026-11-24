@@ -1,13 +1,13 @@
-import { Bus } from "@opencode/core/bus"
-import { Config } from "@opencode/core/config"
-import { Integration } from "@opencode/core/integration"
-import { Model } from "@opencode/core/model"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHost } from "@opencode/core/plugin/host"
-import { LMStudioPlugin, make } from "@opencode/core/plugin/provider/lmstudio"
-import { ProviderPlugins } from "@opencode/core/plugin/provider"
-import { Provider } from "@opencode/core/provider"
-import { Document, Event, Info } from "@opencode/schema/config"
+import { Bus } from "@aicraft/core/bus"
+import { Config } from "@aicraft/core/config"
+import { Integration } from "@aicraft/core/integration"
+import { Model } from "@aicraft/core/model"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHost } from "@aicraft/core/plugin/host"
+import { LMStudioPlugin, make } from "@aicraft/core/plugin/provider/lmstudio"
+import { ProviderPlugins } from "@aicraft/core/plugin/provider"
+import { Provider } from "@aicraft/core/provider"
+import { Document, Event, Info } from "@aicraft/schema/config"
 import { describe, expect, test } from "bun:test"
 import { Duration, Effect, Layer, Schema } from "effect"
 import { eventually } from "../lib/eventually"
@@ -25,8 +25,8 @@ const addPlugin = Effect.fn(function* (origin: string, interval: Duration.Input 
 
 describe("LMStudioPlugin", () => {
   test("is registered as a built-in provider plugin", () => {
-    expect(LMStudioPlugin.id).toBe("opencode.provider.lmstudio")
-    expect(ProviderPlugins.map((item) => item.id)).toContain("opencode.provider.lmstudio")
+    expect(LMStudioPlugin.id).toBe("aicraft.provider.lmstudio")
+    expect(ProviderPlugins.map((item) => item.id)).toContain("aicraft.provider.lmstudio")
   })
 
   it.live("discovers local language models with their capabilities and effective context", () =>
@@ -88,7 +88,7 @@ describe("LMStudioPlugin", () => {
             id: providerID,
             name: "LM Studio",
             activation: "enabled",
-            package: "@opencode/ai/providers/openai-compatible",
+            package: "@aicraft/ai/providers/openai-compatible",
             settings: { baseURL: `${server.url.origin}/v1`, provider: "lmstudio", apiKey: "" },
           })
           expect((yield* providers.available()).map((provider) => provider.id)).toContain(providerID)
@@ -298,7 +298,7 @@ describe("LMStudioPlugin", () => {
           yield* providers.transform((editor) => {
             editor.update(providerID, (provider) => {
               provider.name = "LMStudio"
-              provider.package = "@opencode/ai/providers/openai-compatible"
+              provider.package = "@aicraft/ai/providers/openai-compatible"
               provider.integrationID = Integration.ID.make("lmstudio")
             })
             editor.models.update(providerID, Model.ID.make("static-model"), () => {})

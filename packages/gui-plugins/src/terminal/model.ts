@@ -6,7 +6,7 @@ import {
   isPtyFeatureUnsupportedError,
   isServiceUnavailableError,
   type PersistentPtyInfo,
-} from "@opencode/client"
+} from "@aicraft/client"
 import {
   createKeyed,
   type Layout,
@@ -15,7 +15,7 @@ import {
   type SessionRef,
   type Storage,
   type Toasts,
-} from "@opencode/plugin/gui"
+} from "@aicraft/plugin/gui"
 import { defaultTitle, titleNumber } from "./title"
 import {
   initialState,

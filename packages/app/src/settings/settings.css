@@ -1,5 +1,5 @@
-@import "@opencode/ui/text-input.css";
-@import "@opencode/ui/button.css";
+@import "@aicraft/ui/text-input.css";
+@import "@aicraft/ui/button.css";
 
 /* One metric scale for the whole settings surface: a 4px base, an 8/12/16/20/24 rhythm, radius 8/12/16/20/28 and
    three control tiers. Every colour comes from the shared theme layer (--v2-*); this block only names metrics, so no

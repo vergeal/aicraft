@@ -37,13 +37,13 @@ import type {
   ToolContent,
   UsageLimitsInfo,
   VcsInfo,
-  OpenCodeEvent,
-  OpenCodeClient,
+  AicraftEvent,
+  AicraftClient,
   WebSearchProvider,
 } from "../promise"
-import { Worktree } from "@opencode/schema/worktree"
-import { SessionID } from "@opencode/schema/session-id"
-import { SessionMessage } from "@opencode/schema/session-message"
+import { Worktree } from "@aicraft/schema/worktree"
+import { SessionID } from "@aicraft/schema/session-id"
+import { SessionMessage } from "@aicraft/schema/session-message"
 import {
   isFormAlreadySettledError,
   isFormNotFoundError,
@@ -53,7 +53,7 @@ import {
   type SessionPromptInput,
 } from "../promise"
 import { createStore, produce, reconcile } from "solid-js/store"
-import type { SessionInbox } from "@opencode/schema/session-inbox"
+import type { SessionInbox } from "@aicraft/schema/session-inbox"
 import { batch, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 
 export type DataSessionStatus = "idle" | "running"
@@ -63,19 +63,19 @@ export type DataSessionStatus = "idle" | "running"
  * execution that ended without delivering it, and `queued` waits for every steer to drain.
  */
 export type DataPendingStatus = "starting" | "steering" | "stranded" | "queued"
-type OpenCodeEventMap = { [Type in OpenCodeEvent["type"]]: Extract<OpenCodeEvent, { type: Type }> }
+type AicraftEventMap = { [Type in AicraftEvent["type"]]: Extract<AicraftEvent, { type: Type }> }
 
 export type CreateDataInput = {
-  readonly api: () => OpenCodeClient
+  readonly api: () => AicraftClient
   readonly directory: string
   /** Raw-message window used for an initial transcript read. Older pages retain their normal size. */
   readonly initialMessageLimit?: () => number
   readonly event: {
-    readonly on: <Type extends OpenCodeEvent["type"]>(
+    readonly on: <Type extends AicraftEvent["type"]>(
       type: Type,
-      handler: (event: OpenCodeEventMap[Type]) => void,
+      handler: (event: AicraftEventMap[Type]) => void,
     ) => () => void
-    readonly listen: (handler: (event: { name: OpenCodeEvent["type"]; details: OpenCodeEvent }) => void) => () => void
+    readonly listen: (handler: (event: { name: AicraftEvent["type"]; details: AicraftEvent }) => void) => () => void
   }
   readonly connection?: {
     readonly status: () => "connected" | "connecting" | "reconnecting"
@@ -112,7 +112,7 @@ type LocationData = {
   provider?: ProviderInfo[]
   reference?: ReferenceInfo[]
   websearch?: WebSearchProvider[]
-  // The Go allowance and Console budgets of the OpenCode Console workspace the location is signed in to; null when it
+  // The Go allowance and Console budgets of the AI Craft Console workspace the location is signed in to; null when it
   // isn't signed in.
   usageLimits?: UsageLimitsInfo | null
   // Currently running shell commands for this location, keyed by shell id. Entries are removed
@@ -198,7 +198,7 @@ function formRequestOptions(sessionID: string, ref?: LocationRef) {
   if (sessionID !== "global" || !ref) return undefined
   return {
     headers: {
-      "x-opencode-directory": encodeURIComponent(ref.directory),
+      "x-aicraft-directory": encodeURIComponent(ref.directory),
     },
   }
 }
@@ -701,7 +701,7 @@ export function createData(config: CreateDataInput) {
     )
   }
 
-  function handleEvent(event: OpenCodeEvent) {
+  function handleEvent(event: AicraftEvent) {
     switch (event.type) {
       case "server.connected": {
         const updates = new Map<string, DataSessionStatus | undefined>()
@@ -1457,7 +1457,7 @@ export function createData(config: CreateDataInput) {
   // A cached per-location catalog. `sync` loads once per invalidation, keyed by the
   // effective location, and publishes under the server's canonical location; `alias`
   // also publishes under the requested key when the two differ.
-  // Reloads usage limits only where something has read them, since each load asks OpenCode Console.
+  // Reloads usage limits only where something has read them, since each load asks AI Craft Console.
   function refreshUsageLimits(location: LocationRef) {
     const loaded =
       store.location[locationKey(location)]?.usageLimits !== undefined ||

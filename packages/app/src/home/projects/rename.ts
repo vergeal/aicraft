@@ -1,5 +1,5 @@
-import { Project } from "@opencode/schema/project"
-import { getFilename } from "@opencode/util/path"
+import { Project } from "@aicraft/schema/project"
+import { getFilename } from "@aicraft/util/path"
 import { useLanguage } from "@/runtime/i18n/language"
 import type { ServerCtx } from "@/runtime/server/runtime"
 import { errorMessage } from "@/shell/layout/helpers"

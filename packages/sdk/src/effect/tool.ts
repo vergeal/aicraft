@@ -1,3 +1,3 @@
-export { RegistrationError } from "@opencode/core/tool"
-export { Error } from "@opencode/schema/tool"
-export type { Context, Info } from "@opencode/schema/tool"
+export { RegistrationError } from "@aicraft/core/tool"
+export { Error } from "@aicraft/schema/tool"
+export type { Context, Info } from "@aicraft/schema/tool"

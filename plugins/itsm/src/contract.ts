@@ -1,6 +1,6 @@
 export * as ItsmContract from "./contract.js"
 
-import { Rpc } from "@opencode/schema/rpc"
+import { Rpc } from "@aicraft/schema/rpc"
 import { Schema } from "effect"
 
 /** 一个答案值：单行/多行文本、单选、人员、时间都是一个字符串；多选是字符串数组。 */

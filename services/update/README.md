@@ -1,4 +1,4 @@
-# OpenCode Update
+# AI Craft Update
 
 The update Worker serves all selected artifacts for a channel.
 
@@ -16,7 +16,7 @@ the `/update` prefix. Admin forms, pagination, and redirects preserve the reques
 Electron updater manifests are available at `/api/<channel>/desktop/<distribution>/<filename>`:
 
 ```sh
-curl 'https://opencode.ai/update/api/beta/desktop/opencode/latest-mac.yml'
+curl 'https://opencode.ai/update/api/beta/desktop/aicraft/latest-mac.yml'
 ```
 
 Use `latest.yml` for Windows, `latest-mac.yml` for macOS, `latest-linux.yml` for Linux x64,
@@ -60,8 +60,8 @@ cannot set a minimum and lookups ignore any existing preview minimum; the admin 
 still lets you clear one.
 
 Clients send their running version as `?current=<version>` and use the CLI's default
-`User-Agent: opencode/<channel>/<version>/cli`. When `current` is absent, the service
-parses that User-Agent or the older `opencode/<version>` format.
+`User-Agent: aicraft/<channel>/<version>/cli`. When `current` is absent, the service
+parses that User-Agent or the older `aicraft/<version>` format.
 The caller's channel comes from the default User-Agent, or from a preview version
 such as `0.0.0-beta-18955` when that channel is absent. If an identified caller channel
 differs from the requested channel, the service serves the active release without
@@ -78,13 +78,13 @@ channel transparently resolves to `beta` for older clients.
 
 Choose a minimum that older clients can install and that can itself consume the active
 release. For the CLI package migration, retain a package-aware release published as
-`@opencode-ai/cli` as the minimum before activating releases under `@opencode/cli`.
+`@opencode-ai/cli` as the minimum before activating releases under `@aicraft/cli`.
 
 Both admin mounts must be protected by the same Cloudflare Access self-hosted application:
 
 - Public hostname/path: `update.opencode.ai/admin*`
 - Public hostname/path: `opencode.ai/update/admin*`
-- Policy: allow the OpenCode team identity group
+- Policy: allow the AI Craft team identity group
 
 Configure Access before deploying the new Worker route. The Worker has `workers_dev`
 and preview URLs disabled; it is exposed through its custom hostname and the `/update` routes.
@@ -114,9 +114,9 @@ The release workflow also registers direct binary downloads with distribution
 `opencode`, after uploading every file to the public files bucket:
 
 ```sh
-curl 'https://opencode.ai/update/api/dev/cli/opencode'
-curl 'https://opencode.ai/update/api/dev/cli-node/opencode'
-curl 'https://opencode.ai/update/api/latest/desktop/opencode'
+curl 'https://opencode.ai/update/api/dev/cli/aicraft'
+curl 'https://opencode.ai/update/api/dev/cli-node/aicraft'
+curl 'https://opencode.ai/update/api/latest/desktop/aicraft'
 ```
 
 `metadata.files` maps each filename to its direct

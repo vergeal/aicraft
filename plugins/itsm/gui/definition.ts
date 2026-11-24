@@ -1,4 +1,4 @@
-import { Plugin } from "@opencode/plugin/gui"
+import { Plugin } from "@aicraft/plugin/gui"
 import { catalog } from "./i18n.js"
 
 /** 窗口与 main 两侧共用的声明；setup 与 main 分开写在各自的文件里。 */

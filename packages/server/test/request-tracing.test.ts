@@ -76,7 +76,7 @@ it.live("handler spans nest under their request, not under server startup", () =
     const response = yield* Effect.promise(() =>
       fetch(new URL("/api/session", HttpServer.formatAddress(server.address)), {
         method: "POST",
-        headers: { authorization: `Basic ${btoa("opencode:secret")}`, "content-type": "application/json" },
+        headers: { authorization: `Basic ${btoa("aicraft:secret")}`, "content-type": "application/json" },
         body: JSON.stringify({ title: "Traced" }),
       }),
     )
@@ -159,8 +159,8 @@ test("records an accepted traceparent on the request span, its logs and handlers
     sampled: true,
   })
   const span = spans.find((candidate) => candidate.kind === "server")!
-  expect(span.attributes.get("opencode.trace.id")).toBe("11111111111111111111111111111111")
-  expect(span.attributes.get("opencode.trace.parent_span_id")).toBe("2222222222222222")
+  expect(span.attributes.get("aicraft.trace.id")).toBe("11111111111111111111111111111111")
+  expect(span.attributes.get("aicraft.trace.parent_span_id")).toBe("2222222222222222")
   expect(annotations).toEqual([{ traceID: "11111111111111111111111111111111", spanID: "2222222222222222" }])
 })
 
@@ -207,6 +207,6 @@ test("leaves a request without a usable traceparent unchanged", async () => {
   expect(Option.isNone(seen[0]!)).toBe(true)
   expect(annotations).toEqual([{}])
   const span = spans.find((candidate) => candidate.kind === "server")!
-  expect(span.attributes.get("opencode.trace.id")).toBeUndefined()
-  expect(span.attributes.get("opencode.trace.parent_span_id")).toBeUndefined()
+  expect(span.attributes.get("aicraft.trace.id")).toBeUndefined()
+  expect(span.attributes.get("aicraft.trace.parent_span_id")).toBeUndefined()
 })

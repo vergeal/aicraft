@@ -1,4 +1,4 @@
-import type { IpcImpl, IpcProvider, MainContext } from "@opencode/plugin/gui/main"
+import type { IpcImpl, IpcProvider, MainContext } from "@aicraft/plugin/gui/main"
 import { Schema } from "effect"
 import { readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"

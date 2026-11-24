@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { PluginPaths } from "@opencode/core/plugin/paths"
+import { PluginPaths } from "@aicraft/core/plugin/paths"
 
 const windows = "C:\\Users\\me"
 const posix = "/home/me"

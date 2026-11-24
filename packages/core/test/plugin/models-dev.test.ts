@@ -1,20 +1,20 @@
 import path from "path"
 import { describe, expect } from "bun:test"
-import { Money } from "@opencode/schema/money"
+import { Money } from "@aicraft/schema/money"
 import { Context, Effect, Exit, Layer, Scope } from "effect"
 import { TestClock } from "effect/testing"
-import { Integration } from "@opencode/core/integration"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Bus } from "@opencode/core/bus"
-import { Location } from "@opencode/core/location"
-import { Model } from "@opencode/core/model"
-import { ModelsDev } from "@opencode/core/models-dev"
-import { ModelsDevPlugin } from "@opencode/core/plugin/models-dev"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHost } from "@opencode/core/plugin/host"
-import { Provider } from "@opencode/core/provider"
-import { AbsolutePath } from "@opencode/core/schema"
+import { Integration } from "@aicraft/core/integration"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { Location } from "@aicraft/core/location"
+import { Model } from "@aicraft/core/model"
+import { ModelsDev } from "@aicraft/core/models-dev"
+import { ModelsDevPlugin } from "@aicraft/core/plugin/models-dev"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHost } from "@aicraft/core/plugin/host"
+import { Provider } from "@aicraft/core/provider"
+import { AbsolutePath } from "@aicraft/core/schema"
 import { withEnv } from "../fixture/env"
 import { location } from "../fixture/location"
 import { testEffect } from "../lib/effect"
@@ -74,7 +74,7 @@ const richSnapshot = (name = "Acme") => {
         id: providerID,
         name,
         activation: "auto",
-        package: "@opencode/ai/providers/openai-compatible",
+        package: "@aicraft/ai/providers/openai-compatible",
         settings: { baseURL: "https://api.acme.test/v1", thinking: { type: "adaptive", display: "summarized" } },
         headers: { "x-acme": "provider" },
         body: { service_tier: "default", tags: ["stable"] },
@@ -335,7 +335,7 @@ describe("ModelsDevPlugin", () => {
                 id: providerID,
                 name: "Acme",
                 activation: "auto",
-                package: "@opencode/ai/providers/openai-compatible",
+                package: "@aicraft/ai/providers/openai-compatible",
               },
               environment: [],
               models: [
@@ -392,7 +392,7 @@ describe("ModelsDevPlugin", () => {
             id: providerID,
             name: "Acme",
             activation: "auto",
-            package: "@opencode/ai/providers/openai-compatible",
+            package: "@aicraft/ai/providers/openai-compatible",
             settings: { baseURL: "https://api.acme.test/v1" },
             headers: { "x-acme": "provider" },
           },
@@ -471,7 +471,7 @@ describe("ModelsDevPlugin", () => {
                 id: providerID,
                 name: "Acme",
                 activation: "auto",
-                package: "@opencode/ai/providers/openai-compatible",
+                package: "@aicraft/ai/providers/openai-compatible",
                 settings: { baseURL: "https://api.acme.test/v1" },
               },
               environment: [],
@@ -523,7 +523,7 @@ describe("ModelsDevPlugin", () => {
                   providerID,
                   name: "GPT-5.4 Fast",
                   family: Model.Family.make("gpt"),
-                  package: "@opencode/ai/providers/openai-compatible",
+                  package: "@aicraft/ai/providers/openai-compatible",
                   settings: { baseURL: "https://api.acme.test/v1" },
                   headers: { "x-mode": "fast" },
                   body: { service_tier: "priority" },
@@ -586,7 +586,7 @@ describe("ModelsDevPlugin", () => {
         modelID: "gpt-5.4",
         providerID: "openai",
         name: "GPT-5.4 Fast",
-        package: "@opencode/ai/providers/openai-compatible",
+        package: "@aicraft/ai/providers/openai-compatible",
         settings: { baseURL: "https://api.acme.test/v1" },
         headers: { "x-mode": "fast" },
         body: { service_tier: "priority" },
@@ -651,7 +651,7 @@ describe("ModelsDevPlugin", () => {
             id: providerID,
             name: "Acme",
             activation: "auto",
-            package: "@opencode/ai/providers/openai-compatible",
+            package: "@aicraft/ai/providers/openai-compatible",
           },
           environment: [],
           models: [
@@ -728,7 +728,7 @@ describe("ModelsDevPlugin", () => {
           id: providerID,
           name: "Acme",
           activation: "auto",
-          package: "@opencode/ai/providers/openai-compatible",
+          package: "@aicraft/ai/providers/openai-compatible",
         },
         environment: [],
         models: Object.entries(types).map(([id, type]) => ({
@@ -823,7 +823,7 @@ describe("ModelsDevPlugin", () => {
                         id: providerID,
                         name: "Acme",
                         activation: "auto",
-                        package: "@opencode/ai/providers/openai-compatible",
+                        package: "@aicraft/ai/providers/openai-compatible",
                         settings: { baseURL: "https://${ACME_HOST}/${UNDECLARED_HOST}/v1" },
                       },
                       environment: ["ACME_HOST", "ACME_MODEL_PATH", "ACME_API_KEY"],
@@ -875,7 +875,7 @@ describe("ModelsDevPlugin", () => {
           id: providerID,
           name: "Acme",
           activation: "auto",
-          package: "@opencode/ai/providers/openai-compatible",
+          package: "@aicraft/ai/providers/openai-compatible",
         },
         environment: [],
         models: [
@@ -932,7 +932,7 @@ describe("ModelsDevPlugin", () => {
           id: Provider.ID.make(id),
           name,
           activation: "auto",
-          package: "@opencode/ai/providers/openai-compatible",
+          package: "@aicraft/ai/providers/openai-compatible",
         },
         environment: [environment],
         models: [],
@@ -986,7 +986,7 @@ describe("ModelsDevPlugin", () => {
                     id: Provider.ID.make("openai"),
                     name: "OpenAI",
                     activation: "auto",
-                    package: "@opencode/ai/providers/openai",
+                    package: "@aicraft/ai/providers/openai",
                   },
                   environment: ["OPENAI_API_KEY", "OPENAI_ORG_ID"],
                   models: [],
@@ -996,7 +996,7 @@ describe("ModelsDevPlugin", () => {
                     id: Provider.ID.make("deepseek"),
                     name: "DeepSeek",
                     activation: "auto",
-                    package: "@opencode/ai/providers/deepseek",
+                    package: "@aicraft/ai/providers/deepseek",
                   },
                   environment: ["DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL"],
                   models: [],

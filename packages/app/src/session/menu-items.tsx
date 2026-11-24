@@ -1,4 +1,4 @@
-import { Menu } from "@opencode/ui/menu"
+import { Menu } from "@aicraft/ui/menu"
 import type { Component } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"

@@ -1,5 +1,5 @@
-import { Icon } from "@opencode/ui/icon"
-import { Loader } from "@opencode/ui/loader"
+import { Icon } from "@aicraft/ui/icon"
+import { Loader } from "@aicraft/ui/loader"
 import { createEffect, createMemo, For, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { FileGlyph, FileStatus, PageHead, trapModalTab, View } from "./bits"

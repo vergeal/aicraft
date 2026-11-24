@@ -1,9 +1,9 @@
 export * as ScheduleTools from "./schedule.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { optional } from "@opencode/schema/schema"
-import type { Session } from "@opencode/schema/session"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { optional } from "@aicraft/schema/schema"
+import type { Session } from "@aicraft/schema/session"
 import { DateTime, Effect, Option, Schema } from "effect"
 import { Config } from "../../config.js"
 import { ConfigEntryObserver } from "../../config/plugin/entry-observer.js"
@@ -42,7 +42,7 @@ export const IDInput = Schema.Struct({
 const RemoveOutput = Schema.Struct({ id: Schedule.ID, removed: Schema.Boolean })
 
 export const Plugin = {
-  id: "opencode.tool.schedule",
+  id: "aicraft.tool.schedule",
   effect: Effect.fn("ScheduleTools.Plugin")(function* (ctx: Context) {
     const config = yield* Config.Service
     const schedules = yield* Schedule.Service

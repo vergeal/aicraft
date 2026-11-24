@@ -1,10 +1,10 @@
-import { Button } from "@opencode/ui/button"
-import { Badge } from "@opencode/ui/badge"
-import { useDialog } from "@opencode/ui/context/dialog"
-import { Icon } from "@opencode/ui/icon"
-import { Loader } from "@opencode/ui/loader"
-import { Menu } from "@opencode/ui/menu"
-import { OpenCodeLogo } from "@/providers/opencode-logo"
+import { Button } from "@aicraft/ui/button"
+import { Badge } from "@aicraft/ui/badge"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { Icon } from "@aicraft/ui/icon"
+import { Loader } from "@aicraft/ui/loader"
+import { Menu } from "@aicraft/ui/menu"
+import { AicraftLogo } from "@/providers/aicraft-logo"
 import { showToast } from "@/shell/notifications/toast"
 import { useQuery } from "@tanstack/solid-query"
 import { DialogCustomProvider, customProvidersFrom, readOnlyProvidersFrom, type CustomProvider } from "./custom/dialog"
@@ -53,8 +53,8 @@ type PendingRemoval = {
 }
 
 const PROVIDER_NOTES = [
-  { match: (id: string) => id === "opencode", key: "dialog.provider.opencode.note" },
-  { match: (id: string) => id === "opencode-go", key: "dialog.provider.opencodeGo.tagline" },
+  { match: (id: string) => id === "opencode", key: "dialog.provider.aicraft.note" },
+  { match: (id: string) => id === "opencode-go", key: "dialog.provider.aicraftGo.tagline" },
   { match: (id: string) => id === "anthropic", key: "dialog.provider.anthropic.note" },
   { match: (id: string) => id === "claude-agent", key: "dialog.provider.claudeAgent.note" },
   { match: (id: string) => id.startsWith("github-copilot"), key: "dialog.provider.copilot.note" },
@@ -607,12 +607,12 @@ export const SettingsProviders: Component<{
             <div class="settings-provider-console-header">
               <div class="settings-provider-lead">
                 <span class="settings-provider-lead-icon">
-                  <OpenCodeLogo class="settings-provider-icon size-4 shrink-0" />
+                  <AicraftLogo class="settings-provider-icon size-4 shrink-0" />
                 </span>
                 <div class="settings-provider-console-summary">
                   <div class="settings-provider-main">
                     <span class="settings-provider-name truncate">
-                      {language.t("provider.connect.opencode.name")}
+                      {language.t("provider.connect.aicraft.name")}
                     </span>
                     <Badge>{group().workspace}</Badge>
                   </div>
@@ -652,14 +652,14 @@ export const SettingsProviders: Component<{
                         size="normal"
                         variant="ghost-muted"
                         onClick={() =>
-                          requestDisconnect(row.item, language.t("provider.connect.opencode.name"))
+                          requestDisconnect(row.item, language.t("provider.connect.aicraft.name"))
                         }
                       >
                         {language.t("common.disconnect")}
                       </Button>
                     }
                   >
-                    <RowMenu item={row.item} name={language.t("provider.connect.opencode.name")} />
+                    <RowMenu item={row.item} name={language.t("provider.connect.aicraft.name")} />
                   </Show>
                 }
               >

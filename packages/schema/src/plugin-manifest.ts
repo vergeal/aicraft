@@ -80,7 +80,7 @@ export const Manifest = Schema.Struct({
   id: Schema.String,
   version: Schema.String,
   entry: Entry,
-  requires: Schema.optional(Schema.Struct({ opencode: Schema.optional(Schema.String) })),
+  requires: Schema.optional(Schema.Struct({ aicraft: Schema.optional(Schema.String) })),
   externals: Schema.optional(Schema.Array(Schema.String)),
   display: Schema.Struct({
     name: Schema.String,

@@ -1,6 +1,6 @@
 export * as AgentPlugin from "./agent.js"
 
-import { define } from "@opencode/plugin/effect/plugin"
+import { define } from "@aicraft/plugin/effect/plugin"
 import { Effect } from "effect"
 import { Agent } from "../agent.js"
 
@@ -61,7 +61,7 @@ const PROMPT_KNOWLEDGE = `你维护一个 Project 的知识库搜索索引。
 - 描述整个库，而不是某一篇文档。`
 
 export const Plugin = define({
-  id: "opencode.agent",
+  id: "aicraft.agent",
   effect: Effect.fn(function* (ctx) {
     yield* ctx.agent.transform((editor) => {
       editor.update(Agent.defaultID, (item) => {

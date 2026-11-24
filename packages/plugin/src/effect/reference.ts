@@ -1,5 +1,5 @@
-import type { ReferenceGitSource, ReferenceLocalSource } from "@opencode/client"
-import type { ReferenceApi } from "@opencode/client/effect/api"
+import type { ReferenceGitSource, ReferenceLocalSource } from "@aicraft/client"
+import type { ReferenceApi } from "@aicraft/client/effect/api"
 import type { Effect } from "effect"
 import type { Transform } from "./registration.js"
 

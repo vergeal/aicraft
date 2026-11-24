@@ -1,4 +1,4 @@
-import type { PromptAttachment, SessionMessageInfo } from "@opencode/client/promise"
+import type { PromptAttachment, SessionMessageInfo } from "@aicraft/client/promise"
 import { Option, Schema } from "effect"
 import { changedFileDiff } from "../components/apply-patch-file"
 import { isInterruptedError } from "../timeline/turn-phase-machine"

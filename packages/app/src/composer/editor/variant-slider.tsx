@@ -1,7 +1,7 @@
 import { Show } from "solid-js"
 import { createStore } from "solid-js/store"
-import { Keybind } from "@opencode/ui/keybind"
-import { Tooltip } from "@opencode/ui/tooltip"
+import { Keybind } from "@aicraft/ui/keybind"
+import { Tooltip } from "@aicraft/ui/tooltip"
 import type { ComposerSelectControl } from "./interaction"
 import "./variant-slider.css"
 

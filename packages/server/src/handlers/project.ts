@@ -1,9 +1,9 @@
-import { Project } from "@opencode/core/project"
-import { Session } from "@opencode/core/session"
+import { Project } from "@aicraft/core/project"
+import { Session } from "@aicraft/core/session"
 import { Effect } from "effect"
 import { HttpApiBuilder, HttpApiSchema } from "effect/http-api"
 import { Api } from "../api"
-import { ProjectNotFoundError } from "@opencode/protocol/errors"
+import { ProjectNotFoundError } from "@aicraft/protocol/errors"
 
 function missingProject(projectID: Project.ID) {
   return new ProjectNotFoundError({ projectID, message: `Project not found: ${projectID}` })

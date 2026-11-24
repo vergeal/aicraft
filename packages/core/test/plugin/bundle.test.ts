@@ -2,7 +2,7 @@ import { expect, spyOn } from "bun:test"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { Effect } from "effect"
-import { PluginBundle } from "@opencode/core/plugin/bundle"
+import { PluginBundle } from "@aicraft/core/plugin/bundle"
 import { testEffect } from "../lib/effect"
 import { tmpdirScoped } from "../fixture/tmpdir"
 import { PluginTestLayer } from "./fixture"
@@ -43,7 +43,7 @@ const install = (input: {
   readonly home: string
   readonly version: string
   readonly id?: string
-  readonly opencodeVersion?: string
+  readonly aicraftVersion?: string
 }) =>
   PluginBundle.install({
     id: input.id ?? "test.bundle",
@@ -51,22 +51,22 @@ const install = (input: {
     config: path.join(input.home, "config"),
     cwd: input.home,
     home: input.home,
-    opencodeVersion: input.opencodeVersion,
+    aicraftVersion: input.aicraftVersion,
   })
 
-it.effect("refuses a bundle that needs a newer OpenCode", () =>
+it.effect("refuses a bundle that needs a newer AI Craft", () =>
   Effect.gen(function* () {
     const temp = yield* tmpdirScoped()
-    yield* Effect.promise(() => publish({ home: temp.path, manifest: { ...base, requires: { opencode: "^9.0.0" } } }))
+    yield* Effect.promise(() => publish({ home: temp.path, manifest: { ...base, requires: { aicraft: "^9.0.0" } } }))
 
     const exit = yield* Effect.promise(() =>
-      install({ home: temp.path, version: "1.0.0", opencodeVersion: "2.0.0" }).then(
+      install({ home: temp.path, version: "1.0.0", aicraftVersion: "2.0.0" }).then(
         () => "installed",
         (cause: unknown) => String(cause),
       ),
     )
 
-    expect(exit).toContain("OpenCode >= 9.0.0")
+    expect(exit).toContain("AI Craft >= 9.0.0")
   }),
 )
 
@@ -76,12 +76,12 @@ it.effect("accepts a bundle whose requirement is met", () =>
     yield* Effect.promise(() =>
       publish({
         home: temp.path,
-        manifest: { ...base, requires: { opencode: "^1.0.0" }, configuration: { properties: {} } },
+        manifest: { ...base, requires: { aicraft: "^1.0.0" }, configuration: { properties: {} } },
       }),
     )
 
     const installed = yield* Effect.promise(() =>
-      install({ home: temp.path, version: "1.0.0", opencodeVersion: "2.0.0" }),
+      install({ home: temp.path, version: "1.0.0", aicraftVersion: "2.0.0" }),
     )
 
     expect(installed).toMatchObject({ id: "test.bundle", version: "1.0.0" })
@@ -102,7 +102,7 @@ it.effect("rejects a configuration with nested values", () =>
     )
 
     const message = yield* Effect.promise(() =>
-      install({ home: temp.path, version: "1.0.0", opencodeVersion: "2.0.0" }).then(
+      install({ home: temp.path, version: "1.0.0", aicraftVersion: "2.0.0" }).then(
         () => "installed",
         (cause: unknown) => String(cause),
       ),
@@ -126,7 +126,7 @@ it.effect("rejects a skill whose path is not in the bundle", () =>
     )
 
     const message = yield* Effect.promise(() =>
-      install({ home: temp.path, version: "1.0.0", opencodeVersion: "2.0.0" }).then(
+      install({ home: temp.path, version: "1.0.0", aicraftVersion: "2.0.0" }).then(
         () => "installed",
         (cause: unknown) => String(cause),
       ),
@@ -154,7 +154,7 @@ it.effect("installs the webwright manifest as it ships", () =>
         home: temp.path,
         manifest,
         files: {
-          [entry]: "export default { id: 'opencode.webwright', effect: () => {} }",
+          [entry]: "export default { id: 'aicraft.webwright', effect: () => {} }",
           ...Object.fromEntries((manifest.skills ?? []).map((skill) => [skill.path, "# Webwright"])),
         },
       }),
@@ -165,7 +165,7 @@ it.effect("installs the webwright manifest as it ships", () =>
         home: temp.path,
         id: manifest.id,
         version: manifest.version,
-        opencodeVersion: "2.2.5",
+        aicraftVersion: "2.2.5",
       }),
     )
 

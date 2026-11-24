@@ -10,7 +10,7 @@ on:
 jobs:
   sync-locales:
     if: false
-    #if: github.actor != 'opencode-agent[bot]'
+    #if: github.actor != 'aicraft-agent[bot]'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: release
     permissions:
@@ -30,8 +30,8 @@ jobs:
         id: committer
         uses: ./.github/actions/setup-git-committer
         with:
-          opencode-app-id: ${{ vars.OPENCODE_APP_ID }}
-          opencode-app-secret: ${{ secrets.OPENCODE_APP_SECRET }}
+          aicraft-app-id: ${{ vars.AICRAFT_APP_ID }}
+          aicraft-app-secret: ${{ secrets.AICRAFT_APP_SECRET }}
 
       - name: Compute changed English docs
         id: changes
@@ -49,15 +49,15 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Install OpenCode
+      - name: Install AI Craft
         if: steps.changes.outputs.has_changes == 'true'
         run: curl -fsSL https://opencode.ai/install | bash
 
-      - name: Sync locale docs with OpenCode
+      - name: Sync locale docs with AI Craft
         if: steps.changes.outputs.has_changes == 'true'
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          OPENCODE_CONFIG_CONTENT: |
+          AICRAFT_CONFIG_CONTENT: |
             {
               "permission": {
                 "*": "deny",
@@ -68,7 +68,7 @@ jobs:
               }
             }
         run: |
-          opencode run --agent docs --model opencode/gpt-5.3-codex <<'EOF'
+          aicraft run --agent docs --model opencode/gpt-5.3-codex <<'EOF'
             Update localized docs to match the latest English docs changes.
 
             Changed English doc files:

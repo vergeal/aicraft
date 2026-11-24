@@ -1,4 +1,4 @@
-import type { SessionMessageAssistant, SessionMessageInfo } from "@opencode/client/promise"
+import type { SessionMessageAssistant, SessionMessageInfo } from "@aicraft/client/promise"
 import { createSignal } from "solid-js"
 import { DataProvider } from "../context/data"
 import { MarkdownProvider } from "../context/markdown"
@@ -6,7 +6,7 @@ import { CURRENT_SESSION_ID } from "../storybook/current-session-fixtures"
 import { AnswerPage } from "./page"
 
 export default {
-  title: "OpenCode/Conversation/Answer page",
+  title: "AI Craft/Conversation/Answer page",
   id: "answer-page",
   component: AnswerPage,
   parameters: { layout: "fullscreen" },
@@ -235,7 +235,7 @@ const longDetail: SessionMessageInfo[] = [
           status: "running",
           input: {
             command:
-              "cd D:/dev/projects/opencode && bun run check --all --verbose --reporter=line && echo this-is-a-very-long-command-that-should-be-truncated",
+              "cd D:/dev/projects/aicraft && bun run check --all --verbose --reporter=line && echo this-is-a-very-long-command-that-should-be-truncated",
           },
           metadata: {},
         },
@@ -951,7 +951,7 @@ const pictureTool = (id: string, path: string): Content => ({
       { type: "text", text: `Read ${path}` },
       {
         type: "file",
-        uri: `file:///Users/ekko/Projects/opencode/${path}`,
+        uri: `file:///Users/ekko/Projects/aicraft/${path}`,
         mime: "image/svg+xml",
         name: path.split("/").pop(),
       },
@@ -993,7 +993,7 @@ const strippedPicture: SessionMessageInfo[] = [
         name: "read",
         state: {
           status: "completed",
-          input: { path: "C:/workspaces/opencode/packages/app/before.svg" },
+          input: { path: "C:/workspaces/aicraft/packages/app/before.svg" },
           content: [
             { type: "file", uri: "data:image/svg+xml;base64,", mime: "image/svg+xml", name: "before.svg" },
           ],
@@ -1066,7 +1066,7 @@ export const ReadPictureRef = {
   render: () => (
     <DataProvider
       data={{ session: [], session_status: {}, session_diff: {} }}
-      directory="C:/workspaces/opencode"
+      directory="C:/workspaces/aicraft"
       readMedia={() => Promise.resolve(URL.createObjectURL(pictureBytes))}
     >
       <div class="h-dvh">

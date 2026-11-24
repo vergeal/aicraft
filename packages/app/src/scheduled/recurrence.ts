@@ -2,7 +2,7 @@
  * The recurrence the create form edits. Everything the form shows maps onto one of these variants, and each
  * variant knows how to become the `when` the schedule API accepts.
  */
-import type { Schedule } from "@opencode/schema/schedule"
+import type { Schedule } from "@aicraft/schema/schedule"
 
 export type Recurrence =
   | { kind: "hourly"; hours: number }

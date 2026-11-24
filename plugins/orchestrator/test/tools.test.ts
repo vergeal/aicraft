@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import type { Info, ToolContext, ToolEditor } from "@opencode/plugin/promise/tool"
-import { Tool } from "@opencode/schema/tool"
+import type { Info, ToolContext, ToolEditor } from "@aicraft/plugin/promise/tool"
+import { Tool } from "@aicraft/schema/tool"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"

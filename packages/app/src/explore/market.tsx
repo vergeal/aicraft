@@ -1,6 +1,6 @@
 import { PluginGlyph } from "@/explore/plugin-icon"
-import { Icon } from "@opencode/ui/icon"
-import { Loader } from "@opencode/ui/loader"
+import { Icon } from "@aicraft/ui/icon"
+import { Loader } from "@aicraft/ui/loader"
 import { For, Show, type JSX } from "solid-js"
 import "./explore.css"
 

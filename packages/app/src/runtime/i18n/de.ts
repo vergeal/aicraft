@@ -28,9 +28,9 @@ export const dict = {
   "server.connect.failed":
     "Es konnte keine Verbindung hergestellt werden. Überprüfen Sie die Serveradresse und das Passwort und versuchen Sie es dann erneut.",
   "server.connect.scan": "Scannen Sie den QR-Code",
-  "server.connect.scan.description": "Richten Sie Ihre Kamera auf den von opencode pair angezeigten Code QR.",
+  "server.connect.scan.description": "Richten Sie Ihre Kamera auf den von aicraft pair angezeigten Code QR.",
   "server.connect.scan.invalid":
-    "Dies ist kein AI Craft-Pairing-Code. Scannen Sie den von opencode pair angezeigten Code.",
+    "Dies ist kein AI Craft-Pairing-Code. Scannen Sie den von aicraft pair angezeigten Code.",
   "server.connect.camera": "Kamera koppeln",
   "server.connect.camera.starting": "Kamera wird geöffnet…",
   "server.connect.mixedContent":
@@ -73,8 +73,8 @@ export const dict = {
     "Wird für das Projektsymbol verwendet, wenn kein benutzerdefiniertes Bild festgelegt ist",
   "project.settings.worktree.startup.description":
     "Wird einmal ausgeführt, nachdem ein neuer Arbeitsbereich erstellt wurde",
-  "project.settings.worktree.startup.hint.base": "Verwenden Sie $OPENCODE_WORKTREE_BASE für den Basisarbeitsbaum.",
-  "project.settings.worktree.startup.hint.new": "Verwenden Sie $OPENCODE_WORKTREE_PATH für den neuen Arbeitsbereich.",
+  "project.settings.worktree.startup.hint.base": "Verwenden Sie $AICRAFT_WORKTREE_BASE für den Basisarbeitsbaum.",
+  "project.settings.worktree.startup.hint.new": "Verwenden Sie $AICRAFT_WORKTREE_PATH für den neuen Arbeitsbereich.",
   "project.settings.extensions.empty.mcps.title": "Noch kein MCPs",
   "project.settings.extensions.empty.mcps.description": "MCPs verfügbar für AI Craft wird hier angezeigt",
   "project.settings.extensions.empty.plugins.title": "Noch keine Plugins",
@@ -157,7 +157,7 @@ export const dict = {
   "settings.about.firstIllustrated": "Erstmals illustriert in London, England",
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, der Open-Source-Coding-Agent",
-  "settings.about.trademark": "OpenCode ist eine eingetragene Marke von Anomaly Innovations, Inc.",
+  "settings.about.trademark": "AI Craft ist eine eingetragene Marke von Anomaly Innovations, Inc.",
   "settings.about.typeset": "Gesetzt in Inter und IBM Plex Mono",
   "settings.about.tagline": "KI kann ohne Sie keine großartige Software entwickeln",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
@@ -279,9 +279,9 @@ export const dict = {
   "dialog.provider.empty": "Keine Anbieter gefunden",
   "dialog.provider.group.popular": "Beliebt",
   "dialog.provider.tag.recommended": "Empfohlen",
-  "dialog.provider.opencode.note": "Kuratierte Modelle inklusive Claude, GPT, Gemini und mehr",
-  "dialog.provider.opencode.tagline": "Zuverlässige, optimierte Modelle",
-  "dialog.provider.opencodeGo.tagline": "Kostengünstiges Abo für alle",
+  "dialog.provider.aicraft.note": "Kuratierte Modelle inklusive Claude, GPT, Gemini und mehr",
+  "dialog.provider.aicraft.tagline": "Zuverlässige, optimierte Modelle",
+  "dialog.provider.aicraftGo.tagline": "Kostengünstiges Abo für alle",
   "dialog.provider.copilot.note": "KI-Modelle zur Programmierunterstützung über GitHub Copilot",
   "dialog.provider.openai.note": "GPT-Modelle für schnelle, leistungsfähige allgemeine KI-Aufgaben",
   "dialog.provider.google.note": "Gemini-Modelle für schnelle, strukturierte Antworten",
@@ -827,7 +827,7 @@ export const dict = {
   "desktop.menu.installCli": "CLI installieren...",
   "desktop.cli.installed.title": "CLI installiert",
   "desktop.cli.installed.message":
-    "CLI wurde unter {{path}} installiert.\n\nStarten Sie Ihr Terminal neu, um den Befehl 'opencode2' zu verwenden.",
+    "CLI wurde unter {{path}} installiert.\n\nStarten Sie Ihr Terminal neu, um den Befehl 'aicraft2' zu verwenden.",
   "desktop.cli.failed.title": "Installation fehlgeschlagen",
   "desktop.cli.failed.message": "CLI konnte nicht installiert werden: {{error}}",
   "command.project.copyID": "Projekt-ID kopieren",

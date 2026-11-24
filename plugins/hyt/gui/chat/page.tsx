@@ -1,4 +1,4 @@
-import type { Context, IpcClient } from "@opencode/plugin/gui"
+import type { Context, IpcClient } from "@aicraft/plugin/gui"
 import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import { Blank } from "./blank.js"
 import { Composer } from "./composer.js"

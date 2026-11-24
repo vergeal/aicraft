@@ -3,15 +3,15 @@ import { $ } from "bun"
 import fs from "fs/promises"
 import path from "path"
 import { Effect, Layer, Stream } from "effect"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Bus } from "@opencode/core/bus"
-import { Database } from "@opencode/core/database/database"
-import { Project } from "@opencode/core/project"
-import { ProjectSchema } from "@opencode/core/project/schema"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Hash } from "@opencode/util/hash"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { Database } from "@aicraft/core/database/database"
+import { Project } from "@aicraft/core/project"
+import { ProjectSchema } from "@aicraft/core/project/schema"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Hash } from "@aicraft/util/hash"
 import { initGit } from "./fixture/git"
 import { countingSpawner } from "./fixture/spawn"
 import { tmpdirScoped } from "./fixture/tmpdir"
@@ -256,19 +256,19 @@ describe("Project archiving", () => {
         .values([
           {
             id: Project.ID.make("updated"),
-            worktree: abs("/opencode-missing-updated"),
+            worktree: abs("/aicraft-missing-updated"),
             sandboxes: [],
             time_active: old,
           },
           {
             id: Project.ID.make("active"),
-            worktree: abs("/opencode-missing-active"),
+            worktree: abs("/aicraft-missing-active"),
             sandboxes: [],
             time_updated: old,
           },
           {
             id: Project.ID.make("idle"),
-            worktree: abs("/opencode-missing-idle"),
+            worktree: abs("/aicraft-missing-idle"),
             sandboxes: [],
             time_updated: old,
             time_active: old,
@@ -293,7 +293,7 @@ describe("Project archiving", () => {
         .insert(ProjectTable)
         .values({
           id: Project.ID.global,
-          worktree: abs("/opencode-missing-global"),
+          worktree: abs("/aicraft-missing-global"),
           sandboxes: [],
           time_updated: 1,
           time_active: 1,
@@ -757,7 +757,7 @@ describe("Project.resolve", () => {
         const project = yield* Project.Service
         expect((yield* project.resolve(abs(tmp.path))).id).toBe(Project.ID.global)
         yield* Effect.promise(() =>
-          $`git -c user.name=Test -c user.email=test@opencode.test -c commit.gpgsign=false commit --allow-empty -qm root`
+          $`git -c user.name=Test -c user.email=test@aicraft.test -c commit.gpgsign=false commit --allow-empty -qm root`
             .cwd(tmp.path)
             .quiet(),
         )

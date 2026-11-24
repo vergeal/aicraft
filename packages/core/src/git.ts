@@ -5,10 +5,10 @@ import path from "path"
 import { Cause, Context, Deferred, Effect, Exit, Layer, Option, Schedule, Schema } from "effect"
 import { ChildProcess } from "effect/process"
 import { AbsolutePath, RelativePath } from "./schema.js"
-import { FSUtil } from "@opencode/util/fs-util"
-import { AppProcess } from "@opencode/util/process"
-import { makeGlobalNode } from "@opencode/util/effect/app-node"
-import { FileDiff } from "@opencode/schema/file-diff"
+import { FSUtil } from "@aicraft/util/fs-util"
+import { AppProcess } from "@aicraft/util/process"
+import { makeGlobalNode } from "@aicraft/util/effect/app-node"
+import { FileDiff } from "@aicraft/schema/file-diff"
 import { KeyedMutex } from "./effect/keyed-mutex.js"
 import { VcsPatch } from "./vcs/patch.js"
 import { gitExecutable } from "./util/git-executable.js"
@@ -19,9 +19,9 @@ export class Repository extends Schema.Class<Repository>("Git.Repository")({
   commonDirectory: AbsolutePath,
 }) {}
 
-// Included from $GIT_DIR/config via include.path (git >= 1.7.10); OpenCode owns
+// Included from $GIT_DIR/config via include.path (git >= 1.7.10); AI Craft owns
 // this file entirely, so updates are plain rewrites with no config parsing.
-const snapshotConfigFile = "opencode.gitconfig"
+const snapshotConfigFile = "aicraft.gitconfig"
 const snapshotConfigInclude = `[include]
 	path = ${snapshotConfigFile}
 `
@@ -213,7 +213,7 @@ export interface Interface {
   }
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Git") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/Git") {}
 
 const layer = Layer.effect(
   Service,
@@ -952,7 +952,7 @@ const layer = Layer.effect(
       ).pipe(Effect.ignore, Effect.ensuring(fs.remove(temporary, { force: true }).pipe(Effect.ignore)))
     })
 
-    // Stores created by earlier releases would otherwise keep their original settings; only OpenCode's include file is rewritten, never `config`.
+    // Stores created by earlier releases would otherwise keep their original settings; only AI Craft's include file is rewritten, never `config`.
     const ensureSnapshotConfig = Effect.fnUntraced(function* (repository: Repository) {
       const file = path.join(repository.gitDirectory, snapshotConfigFile)
       const current = yield* fs.readFileStringSafe(file).pipe(Effect.orElseSucceed(() => undefined))
@@ -1391,7 +1391,7 @@ const layer = Layer.effect(
 
     // Cross-process exclusion: concurrent packing would stay lossless but duplicate work and objects.
     const withPackLock = <A, E, R>(repository: Repository, effect: Effect.Effect<A, E, R>) => {
-      const file = path.join(repository.gitDirectory, "opencode-pack.lock")
+      const file = path.join(repository.gitDirectory, "aicraft-pack.lock")
       return Effect.gen(function* () {
         const stale = yield* fs.stat(file).pipe(
           Effect.map((info) => (Option.getOrUndefined(info.mtime)?.getTime() ?? 0) < Date.now() - 60 * 60 * 1000),

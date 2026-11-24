@@ -1,4 +1,4 @@
-import type { Catalog } from "@opencode/plugin/gui"
+import type { Catalog } from "@aicraft/plugin/gui"
 
 /**
  * 聊天主界面的中文文案。

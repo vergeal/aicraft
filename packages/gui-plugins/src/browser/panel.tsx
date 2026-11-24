@@ -1,20 +1,20 @@
 import { Popover } from "@kobalte/core/popover"
-import { Button } from "@opencode/ui/button"
-import { Icon, newIcons } from "@opencode/ui/icon"
-import type { IconName } from "@opencode/ui/icons/catalog"
-import { IconButton } from "@opencode/ui/icon-button"
-import { LineCommentEditor } from "@opencode/ui/line-comment"
-import { Loader } from "@opencode/ui/loader"
-import { Keybind } from "@opencode/ui/keybind"
-import { Menu } from "@opencode/ui/menu"
-import { MenuScroll } from "@opencode/ui/menu-scroll"
-import { showToast } from "@opencode/ui/toast"
-import { Tooltip } from "@opencode/ui/tooltip"
+import { Button } from "@aicraft/ui/button"
+import { Icon, newIcons } from "@aicraft/ui/icon"
+import type { IconName } from "@aicraft/ui/icons/catalog"
+import { IconButton } from "@aicraft/ui/icon-button"
+import { LineCommentEditor } from "@aicraft/ui/line-comment"
+import { Loader } from "@aicraft/ui/loader"
+import { Keybind } from "@aicraft/ui/keybind"
+import { Menu } from "@aicraft/ui/menu"
+import { MenuScroll } from "@aicraft/ui/menu-scroll"
+import { showToast } from "@aicraft/ui/toast"
+import { Tooltip } from "@aicraft/ui/tooltip"
 import { createEventListener } from "@solid-primitives/event-listener"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { createMemo, createSignal, For, on, onCleanup, Show, type Accessor, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
-import type { Browser } from "@opencode/plugin-browser/rpc"
+import type { Browser } from "@aicraft/plugin-browser/rpc"
 import {
   createKeyed,
   usePlugin,
@@ -22,7 +22,7 @@ import {
   type PanelTab,
   type MountedSession,
   type SessionScreen,
-} from "@opencode/plugin/gui"
+} from "@aicraft/plugin/gui"
 import { addressParts, connection, loopback, resolveAddress, searches } from "./address"
 import { commentNote, pageNote } from "./comment"
 import { bare, completes, highlight, suggest, type Visit } from "./history"

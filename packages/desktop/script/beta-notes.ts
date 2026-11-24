@@ -1,6 +1,6 @@
 // The user-facing changes compiled into a beta build: the build's commit, the newest commits of its history, and the
 // feat, fix and perf commits among them, with who made each and what its pull request says it does when GitHub can be
-// asked. electron.vite.config.ts embeds them in the renderer as import.meta.env.OPENCODE_BETA_NOTES; the updater's
+// asked. electron.vite.config.ts embeds them in the renderer as import.meta.env.AICRAFT_BETA_NOTES; the updater's
 // "What's new in beta" dialog lists the ones after the commit of the build the user saw last.
 // Usage: GITHUB_TOKEN=... bun script/beta-notes.ts [head]
 export * as BetaNotes from "./beta-notes"
@@ -259,7 +259,7 @@ async function pullRequests(numbers: number[], token: string, request: Request) 
 
   const response = await request("https://api.github.com/graphql", {
     method: "POST",
-    headers: { authorization: `bearer ${token}`, "content-type": "application/json", "user-agent": "opencode-desktop" },
+    headers: { authorization: `bearer ${token}`, "content-type": "application/json", "user-agent": "aicraft-desktop" },
     body: JSON.stringify({ query }),
     signal: AbortSignal.timeout(10_000),
   })

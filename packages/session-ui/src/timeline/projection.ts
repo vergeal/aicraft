@@ -6,7 +6,7 @@ import type {
   SessionMessageShell,
   SessionMessageUser,
   SessionStatus,
-} from "@opencode/client/promise"
+} from "@aicraft/client/promise"
 import { Effect, Option, Predicate, Schema } from "effect"
 import { createComputed, createMemo, createSignal, mapArray, type Accessor } from "solid-js"
 import { currentToolFailed } from "../message/current-tool-state"
@@ -690,7 +690,7 @@ function usageLimit(
   return { kind, resetAt: base + delay }
 }
 
-// OpenCode Console says when the budget resets in its refusal's metadata, which every protocol's envelope names `resetsAt`.
+// AI Craft Console says when the budget resets in its refusal's metadata, which every protocol's envelope names `resetsAt`.
 function budgetLimit(message: Pick<SessionMessageAssistant, "error">) {
   const type = message.error?.type
 

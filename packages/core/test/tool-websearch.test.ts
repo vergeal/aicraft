@@ -1,25 +1,25 @@
 import { describe, expect } from "bun:test"
 import { Context, Effect, Layer } from "effect"
 import type { HttpClientError } from "effect/http"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Permission } from "@opencode/core/permission"
-import { KV } from "@opencode/core/kv"
-import { Form } from "@opencode/core/form"
-import { WebSearch } from "@opencode/core/websearch"
-import { Session } from "@opencode/core/session"
-import { toSessionError } from "@opencode/core/session/to-session-error"
-import { Tool } from "@opencode/core/tool"
-import { WebSearchTool } from "@opencode/core/tool/plugin/websearch"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
-import { Image } from "@opencode/core/image"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Permission } from "@aicraft/core/permission"
+import { KV } from "@aicraft/core/kv"
+import { Form } from "@aicraft/core/form"
+import { WebSearch } from "@aicraft/core/websearch"
+import { Session } from "@aicraft/core/session"
+import { toSessionError } from "@aicraft/core/session/to-session-error"
+import { Tool } from "@aicraft/core/tool"
+import { WebSearchTool } from "@aicraft/core/tool/plugin/websearch"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
+import { Image } from "@aicraft/core/image"
 import { testEffect } from "./lib/effect"
 import { imagePassthrough } from "./lib/image"
 import { permissionLayer } from "./lib/permission"
 import { toolIdentity, executeTool, registerToolPlugin, toolDefinitions } from "./lib/tool"
 import { webSearchHost } from "./plugin/host"
 import { TestWebSearch } from "./lib/websearch"
-import type { SessionContext } from "@opencode/plugin/effect/session"
+import type { SessionContext } from "@aicraft/plugin/effect/session"
 
 // The plugin's `context` hook, which edits the tools offered to the model.
 const contextHooks: ((event: SessionContext) => Effect.Effect<void>)[] = []
@@ -239,7 +239,7 @@ describe("WebSearchTool registration", () => {
           fields: [
             {
               key: "choice",
-              description: "Allow OpenCode to search the web for up-to-date information?",
+              description: "Allow AI Craft to search the web for up-to-date information?",
               type: "string",
               required: true,
               custom: false,

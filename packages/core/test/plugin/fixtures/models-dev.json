@@ -44,7 +44,7 @@
   },
   "opencode": {
     "id": "opencode",
-    "name": "OpenCode",
+    "name": "AI Craft",
     "env": [],
     "models": {
       "gpt-5.5": {

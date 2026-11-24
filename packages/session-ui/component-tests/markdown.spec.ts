@@ -972,7 +972,7 @@ for (const streaming of [false, true]) {
       const requests: string[] = []
       await page.route("**/api/fs/read/**", async (route) => {
         expect(route.request().headers().authorization).toBe(
-          `Basic ${Buffer.from("opencode:fixture").toString("base64")}`,
+          `Basic ${Buffer.from("aicraft:fixture").toString("base64")}`,
         )
         requests.push(route.request().url())
         await route.fulfill({ contentType: "image/png", body: png })

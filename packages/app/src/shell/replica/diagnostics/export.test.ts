@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { DiagnosticsDocument } from "@opencode/diagnostics"
+import type { DiagnosticsDocument } from "@aicraft/diagnostics"
 import { trimForDepth } from "./export"
 
 const retention = {
@@ -9,7 +9,7 @@ const retention = {
 
 function documentWith(sections: Record<string, unknown>): DiagnosticsDocument {
   return {
-    schema: "opencode.diagnostics.v2",
+    schema: "aicraft.diagnostics.v2",
     generatedAt: "2024-01-01T00:00:00.000Z",
     timeOrigin: 0,
     capture: { windowSeconds: 60, events: 0, dropped: 0, startedAt: "2024-01-01T00:00:00.000Z", sources: [] },

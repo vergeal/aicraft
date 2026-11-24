@@ -1,4 +1,4 @@
-import { prefersReducedMotion } from "@opencode/ui/motion"
+import { prefersReducedMotion } from "@aicraft/ui/motion"
 import { followRow, mountOverlay, replicaRow } from "./overlay"
 
 const WIDTH = 38

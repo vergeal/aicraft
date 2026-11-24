@@ -3,8 +3,8 @@ import { createHash } from "node:crypto"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { expect } from "bun:test"
-import { OpenCode, type SessionMessageInfo } from "@opencode/client"
-import { Session } from "@opencode/schema/session"
+import { Aicraft, type SessionMessageInfo } from "@aicraft/client"
+import { Session } from "@aicraft/schema/session"
 import { Effect } from "effect"
 import { tmpdirScoped } from "../../core/test/fixture/tmpdir"
 import { it } from "../../core/test/lib/effect"
@@ -73,21 +73,21 @@ const serve = (database: string, mediaBlob: boolean) =>
   })
 
 const client = (handler: (request: Request) => Promise<Response>, capabilities?: string) =>
-  OpenCode.make({
-    baseUrl: "http://opencode.local",
-    ...(capabilities === undefined ? {} : { headers: { "X-OpenCode-Capabilities": capabilities } }),
+  Aicraft.make({
+    baseUrl: "http://aicraft.local",
+    ...(capabilities === undefined ? {} : { headers: { "X-AI Craft-Capabilities": capabilities } }),
     fetch: Object.assign((input: string | URL | Request, init?: RequestInit) => handler(new Request(input, init)), {
       preconnect: fetch.preconnect,
     }),
   })
 
 const media = (base64: string) => `media:${hash(base64)}`
-const route = (base64: string) => `http://opencode.local/api/experimental/media/${hash(base64)}`
+const route = (base64: string) => `http://aicraft.local/api/experimental/media/${hash(base64)}`
 
 it.live("serves stored media as refs only to clients that opt in while experimental.media_blob is on", () =>
   Effect.gen(function* () {
     // Acquired first so it is removed after the servers below are released; Windows can't delete an open db.
-    const dir = (yield* tmpdirScoped("opencode-media-wire-")).path
+    const dir = (yield* tmpdirScoped("aicraft-media-wire-")).path
     yield* Effect.gen(function* () {
       const database = path.join(dir, "aicraft.db")
       const handler = yield* serve(database, true)
@@ -183,11 +183,11 @@ it.live("serves stored media as refs only to clients that opt in while experimen
         expect(cached.headers.get("etag")).toBe(`"${hash(png)}"`)
         expect((await cached.arrayBuffer()).byteLength).toBe(0)
         for (const invalid of ["deadbeef", "A".repeat(64), "g".repeat(64)])
-          expect((await handler(new Request(`http://opencode.local/api/experimental/media/${invalid}`))).status).toBe(
+          expect((await handler(new Request(`http://aicraft.local/api/experimental/media/${invalid}`))).status).toBe(
             400,
           )
         expect(
-          (await handler(new Request(`http://opencode.local/api/experimental/media/${"0".repeat(64)}`))).status,
+          (await handler(new Request(`http://aicraft.local/api/experimental/media/${"0".repeat(64)}`))).status,
         ).toBe(404)
         expect(Buffer.from(await opted.experimental.media.get({ hash: hash(png) })).toString("base64")).toBe(png)
 
@@ -281,7 +281,7 @@ it.live("serves stored media as refs only to clients that opt in while experimen
 
 it.live("follows experimental.media_blob from the session's project config and serves only referenced blobs", () =>
   Effect.gen(function* () {
-    const dir = (yield* tmpdirScoped("opencode-media-project-")).path
+    const dir = (yield* tmpdirScoped("aicraft-media-project-")).path
     yield* Effect.gen(function* () {
       const database = path.join(dir, "aicraft.db")
       const global = path.join(dir, "global")

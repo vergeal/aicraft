@@ -26,7 +26,7 @@ if (!build.success) {
   process.exit(1)
 }
 
-// The GUI bundle runs in the desktop app's main process and in every window; the host resolves `@opencode/plugin/gui`
+// The GUI bundle runs in the desktop app's main process and in every window; the host resolves `@aicraft/plugin/gui`
 // to the main SDK in one and to the window SDK in the other. A CommonJS file is what a manifest's gui entry accepts.
 await mkdir(join(dist, "gui"), { recursive: true })
 const gui = await Bun.build({
@@ -35,13 +35,13 @@ const gui = await Bun.build({
   format: "cjs",
   outdir: join(dist, "gui"),
   naming: "main.js",
-  // `@opencode/schema/rpc` is the contract's runtime; the window host shares it with the bundle.
+  // `@aicraft/schema/rpc` is the contract's runtime; the window host shares it with the bundle.
   external: [
     "effect",
-    "@opencode/schema/rpc",
-    "@opencode/plugin/gui",
-    "@opencode/plugin/gui/main",
-    "@opencode/plugin",
+    "@aicraft/schema/rpc",
+    "@aicraft/plugin/gui",
+    "@aicraft/plugin/gui/main",
+    "@aicraft/plugin",
     "solid-js",
     "solid-js/web",
     "solid-js/store",

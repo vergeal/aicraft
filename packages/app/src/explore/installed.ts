@@ -1,5 +1,5 @@
-import type { SkillInfo } from "@opencode/client/promise"
-import { createSimpleContext } from "@opencode/ui/context"
+import type { SkillInfo } from "@aicraft/client/promise"
+import { createSimpleContext } from "@aicraft/ui/context"
 import { createEffect, createMemo, createResource, onCleanup } from "solid-js"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"

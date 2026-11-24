@@ -1,7 +1,7 @@
 export * as BrowserTools from "./tools.js"
 
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { Tool } from "@opencode/schema/tool"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { Tool } from "@aicraft/schema/tool"
 import { Effect, Result, Schema } from "effect"
 import type { BrowserRuntime } from "./browser.js"
 import { Browser } from "./rpc.js"

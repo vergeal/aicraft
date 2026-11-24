@@ -1,9 +1,9 @@
-import type { SessionMessageUser } from "@opencode/client/promise"
+import type { SessionMessageUser } from "@aicraft/client/promise"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLocation } from "@solidjs/router"
 import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { frameLoop } from "@opencode/ui/motion"
+import { frameLoop } from "@aicraft/ui/motion"
 import type { SessionModel } from "../model"
 import { createTimelineCursor } from "./cursor"
 import {

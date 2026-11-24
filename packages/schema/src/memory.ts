@@ -32,7 +32,7 @@ const ScopeInput = {
  * not tied to the directory the settings page happens to reach the server through.
  */
 export const Definition = Rpc.define({
-  id: "opencode.memory",
+  id: "aicraft.memory",
   methods: {
     list: {
       input: Schema.toStandardSchemaV1(Schema.Struct({ projectID: Schema.NullOr(Schema.String) })),

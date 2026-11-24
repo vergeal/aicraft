@@ -1,4 +1,4 @@
-import type { TokenUsage } from "@opencode/schema/token-usage"
+import type { TokenUsage } from "@aicraft/schema/token-usage"
 
 // DeepSeek Flash list price in CNY per million tokens at peak hours; off-peak is half of every entry.
 // DeepSeek charges cached input separately and has no separate cache-write price, so writes bill as cache misses.

@@ -1,9 +1,9 @@
-import type { OpenCodeEvent, SessionMessageInfo } from "@opencode/client/promise"
+import type { AicraftEvent, SessionMessageInfo } from "@aicraft/client/promise"
 import { expect, test, type Locator, type Page } from "@playwright/test"
-import { base64Encode } from "@opencode/util/encode"
+import { base64Encode } from "@aicraft/util/encode"
 import { SERVER, holdRoute, project, provider, session } from "../utils/app"
 import { browseFiles, openFileLauncher, openReviewLauncher, reviewTabs } from "../utils/side-panel"
-import { mockOpenCodeServer } from "../utils/mock-server"
+import { mockAicraftServer } from "../utils/mock-server"
 import { fileDiff, fileNode, openSession } from "../utils/workspace"
 import { expectSessionTitle } from "../utils/waits"
 import { readFile } from "node:fs/promises"
@@ -77,7 +77,7 @@ test("Git initialization belongs to its session and refreshes after a session sw
     ],
     seed: {
       panes: { ses_init_a: { review: true }, ses_init_b: { review: true } },
-      storage: reviewTabs("C:/OpenCode/ReviewInitSwitch", "ses_init_a", "ses_init_b"),
+      storage: reviewTabs("C:/AI Craft/ReviewInitSwitch", "ses_init_a", "ses_init_b"),
     },
   })
 
@@ -132,7 +132,7 @@ test("a rejected Git init releases its session's button without showing an error
     ],
     seed: {
       panes: { ses_init_failure_a: { review: true }, ses_init_failure_b: { review: true } },
-      storage: reviewTabs("C:/OpenCode/ReviewInitFailure", "ses_init_failure_a", "ses_init_failure_b"),
+      storage: reviewTabs("C:/AI Craft/ReviewInitFailure", "ses_init_failure_a", "ses_init_failure_b"),
     },
   })
   const request = await holdRoute(page, (url) => url.pathname === "/api/vcs/init", { method: "POST" })
@@ -174,7 +174,7 @@ test("opens file picker launchers when randomUUID is unavailable on insecure HTT
 
 test("open file tab browses, searches, and tracks missing files", async ({ page }) => {
   const searches: { query: string; dirs?: string; limit?: number; directory: string }[] = []
-  const directory = "C:/OpenCode/ReviewOpenFile"
+  const directory = "C:/AI Craft/ReviewOpenFile"
   const files = Array.from({ length: 80 }, (_, index) => `file-${String(index).padStart(2, "0")}.ts`)
 
   const workspace = await openSession(page, {
@@ -197,7 +197,7 @@ test("open file tab browses, searches, and tracks missing files", async ({ page 
     seed: {
       panes: { ses_reviewopenfile: { review: true } },
       storage: {
-        ...reviewTabs("C:/OpenCode/ReviewOpenFile", "ses_reviewopenfile"),
+        ...reviewTabs("C:/AI Craft/ReviewOpenFile", "ses_reviewopenfile"),
         "aicraft.global.dat:review-panel-v2": { sidebarOpened: false },
       },
     },
@@ -340,7 +340,7 @@ for (const listed of [false, true]) {
   test(`the open file heading names a subfolder session ${listed ? "after its sidebar project" : "after its folder"}`, async ({
     page,
   }) => {
-    const root = "C:/OpenCode/BrowserRepo"
+    const root = "C:/AI Craft/BrowserRepo"
     const directory = `${root}/packages/app`
     await openSession(page, {
       name: "BrowserRepo",
@@ -372,7 +372,7 @@ test("context closes the side region only when its button opened it", async ({ p
       storage: {
         "aicraft.global.dat:layout": {
           sessionTabs: {
-            [`local\u0000${base64Encode("C:/OpenCode/ReviewContextOpener")}/ses_reviewcontextopener`]: {
+            [`local\u0000${base64Encode("C:/AI Craft/ReviewContextOpener")}/ses_reviewcontextopener`]: {
               all: ["btw"],
               active: "btw",
             },
@@ -505,7 +505,7 @@ test("context hides free-model cost but keeps paid-model zero cost", async ({ pa
 })
 
 test("file tree expands Windows paths and scrolls long names in both directions", async ({ page }) => {
-  const directory = "C:/OpenCode/OpenFileExpand"
+  const directory = "C:/AI Craft/OpenFileExpand"
   const longFilename = "a-very-long-file-name-that-must-overflow-the-file-sidebar-instead-of-being-truncated.ts"
   const longPath = `frontend/${longFilename}`
   await openSession(page, {
@@ -612,7 +612,7 @@ test("file tree expands Windows paths and scrolls long names in both directions"
     .toBeGreaterThan(0)
   await expect(status).toHaveText("A")
   await expect.poll(() => statusInset(status, "right")).toBeLessThanOrEqual(24)
-  const treeScroll = panel.locator(".opencode-pierre-file-tree")
+  const treeScroll = panel.locator(".aicraft-pierre-file-tree")
 
   const scrollTree = (position: { left?: number; top?: number }) =>
     treeScroll.evaluate((element, position) => {
@@ -1307,7 +1307,7 @@ test("image gestures anchor zoom, pan, and reset independently of the pane", asy
 
 test("image files load into the review panel and keep it painted while loading", async ({ page }) => {
   await page.setViewportSize({ width: 960, height: 900 })
-  const directory = "C:/OpenCode/ReviewImage"
+  const directory = "C:/AI Craft/ReviewImage"
   const image = "assets/preview.png"
   const read = Promise.withResolvers<void>()
   const release = Promise.withResolvers<void>()
@@ -1402,7 +1402,7 @@ test("image files load into the review panel and keep it painted while loading",
 test("video files stream into the viewer behind a loading state, open into the preview, and come back on Escape without remounting", async ({
   page,
 }) => {
-  const directory = "C:/OpenCode/ReviewVideo"
+  const directory = "C:/AI Craft/ReviewVideo"
   const file = "arcade-update-draft.mp4"
 
   const head = Buffer.from(
@@ -1508,7 +1508,7 @@ test("review file navigation focuses the arrow for the keyboard direction", asyn
     seed: {
       panes: { ses_reviewarrowfocus: { review: true } },
       storage: {
-        ...reviewTabs("C:/OpenCode/ReviewArrowFocus", "ses_reviewarrowfocus"),
+        ...reviewTabs("C:/AI Craft/ReviewArrowFocus", "ses_reviewarrowfocus"),
         "aicraft.global.dat:review-panel-v2": { sidebarOpened: false },
       },
     },
@@ -1551,7 +1551,7 @@ test("restores review state and the side-panel tab per session", async ({ page }
     { id: "ses_review_state_c", title: "Gamma review state" },
   ]
 
-  const directory = "C:/OpenCode/ReviewState"
+  const directory = "C:/AI Craft/ReviewState"
   await openSession(page, {
     name: "ReviewState",
     sessions,
@@ -1674,7 +1674,7 @@ test("shows and restores last turn changes from the session diff", async ({ page
 })
 
 test("keeps the review state a session stored before plugins", async ({ page }) => {
-  const directory = "C:/OpenCode/ReviewLegacy"
+  const directory = "C:/AI Craft/ReviewLegacy"
   await openSession(page, {
     name: "ReviewLegacy",
     vcs: { current: "feature", default: "dev" },
@@ -1724,10 +1724,10 @@ test("keeps the review state a session stored before plugins", async ({ page }) 
 })
 
 test("desktop review waits for the session's stored mode before it loads changes", async ({ page }) => {
-  const directory = "C:/OpenCode/ReviewDesktop"
+  const directory = "C:/AI Craft/ReviewDesktop"
   const id = "ses_review_desktop"
   const title = "Desktop review"
-  await mockOpenCodeServer(page, {
+  await mockAicraftServer(page, {
     directory,
     project: project({ id: "proj_review_desktop", directory }),
     provider: provider(),
@@ -1883,7 +1883,7 @@ test("names a single change source and keeps the review header rows at 48px", as
 })
 
 test("Review from a new tab keeps the file browser and preview open", async ({ page }) => {
-  const directory = "C:/OpenCode/ReviewNewTabFile"
+  const directory = "C:/AI Craft/ReviewNewTabFile"
   await openSession(page, {
     name: "ReviewNewTabFile",
     fileList: (path) => (path ? [] : [fileNode(directory, "README.md")]),
@@ -1996,7 +1996,7 @@ async function statusInset(status: Locator, side: "left" | "right") {
   }, side)
 }
 
-function filesystemEvent(directory: string, file: string, event: "add" | "change" | "unlink"): OpenCodeEvent {
+function filesystemEvent(directory: string, file: string, event: "add" | "change" | "unlink"): AicraftEvent {
   return {
     id: `evt_${file}_${event}`,
     created: 1,

@@ -103,6 +103,9 @@
      One stroke plus two soft layers: the card lifts off the conversation without greying it. */
   --shadow-composer:
     0 0 0 1px rgb(0 0 0 / 4%), 0 2px 8px rgb(0 0 0 / 4%), 0 4px 80px 8px rgb(0 0 0 / 2.3%);
+  /* The composer card's own hairline, without the glow. The queue tray above it is the same surface, so it redraws
+     the edge that the card would have drawn there and leaves both drop shadows to the composer. */
+  --shadow-composer-edge: 0 0 0 1px rgb(0 0 0 / 4%);
   --shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.1);
   --shadow-dialog: 0 16px 44px rgba(0, 0, 0, 0.15);
 
@@ -158,6 +161,7 @@
   --shadow-composer:
     0 0 0 1px rgb(0 0 0 / 4%), 0 2px 8px rgb(0 0 0 / 4%), 0 4px 80px 8px rgb(0 0 0 / 2.3%),
     inset 0 0 1px 0 rgb(255 255 255 / 20%);
+  --shadow-composer-edge: 0 0 0 1px rgb(0 0 0 / 4%), inset 0 0 1px 0 rgb(255 255 255 / 20%);
 }
 
 /* One titlebar split at the sidebar boundary: window controls on the left, conversation title on the right. */
@@ -957,7 +961,8 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 
 @media (prefers-reduced-motion: reduce) {
   [data-replica] [data-ui="composer"],
-  [data-replica] [data-slot="replica-compose-card"] {
+  [data-replica] [data-slot="replica-compose-card"],
+  [data-replica] [data-component="session-queue-panel"] {
     transition: none;
   }
 }
@@ -986,6 +991,22 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 [data-color-scheme="dark"] [data-replica] [data-slot="composer-morph"][data-dock-border-underlay] {
   border-radius: var(--radius-composer);
   background: var(--replica-composer-fill);
+}
+
+/* The queue tray is the top of the composer card rather than a second card behind it: it takes the card's fill, its
+   corners and its hairline, so the two read as one surface with a single drop shadow under the input. */
+[data-replica] [data-component="session-queue-panel"] {
+  background: var(--replica-composer-fill);
+  border-radius: var(--radius-composer);
+  box-shadow: var(--shadow-composer-edge);
+  transition: border-radius 160ms ease;
+}
+
+/* A single-line composer is a capsule, so the tray above it takes the capsule's corners too. */
+[data-replica]
+  [data-component="session-composer-dock"]:has([data-component="composer-editor"][data-lines="single"])
+  [data-component="session-queue-panel"] {
+  border-radius: var(--radius-composer-single-line);
 }
 
 /* The model chip is a quiet label, not a form control: no blue focus ring when it opens its menu. */

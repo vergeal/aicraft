@@ -1,5 +1,5 @@
-import type { FileDiffInfo } from "@opencode/client/promise"
-import type { TurnDiffInput } from "@opencode/session-ui/context"
+import type { FileDiffInfo } from "@aicraft/client/promise"
+import type { TurnDiffInput } from "@aicraft/session-ui/context"
 import { createStore } from "solid-js/store"
 
 /**

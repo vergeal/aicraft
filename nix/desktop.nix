@@ -10,7 +10,7 @@
   autoPatchelfHook,
   copyDesktopItems,
   makeDesktopItem,
-  opencode,
+  aicraft,
 }:
 let
   electronPin =
@@ -21,8 +21,8 @@ let
   electron = callPackage ./electron.nix { inherit electronPin; };
 in
 stdenv.mkDerivation (finalAttrs: {
-  pname = "opencode-desktop";
-  inherit (opencode)
+  pname = "aicraft-desktop";
+  inherit (aicraft)
     version
     src
     node_modules
@@ -52,15 +52,15 @@ stdenv.mkDerivation (finalAttrs: {
 
   desktopItems = lib.optional stdenv.hostPlatform.isLinux (makeDesktopItem {
     name = "changhong.aicraft.desktop";
-    desktopName = "OpenCode";
-    exec = "opencode-desktop %U";
+    desktopName = "AI Craft";
+    exec = "aicraft-desktop %U";
     icon = "changhong.aicraft.desktop";
     # Electron derives X11 WM_CLASS from app.name.
-    startupWMClass = "OpenCode";
+    startupWMClass = "AI Craft";
     categories = [ "Development" ];
   });
 
-  env = opencode.env // {
+  env = aicraft.env // {
     ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
   };
 
@@ -77,7 +77,7 @@ stdenv.mkDerivation (finalAttrs: {
       substituteInPlace \
         packages/desktop/src/main/windows/appearance.ts \
         packages/desktop/src/main/service/desktop-cli.ts \
-        --replace-fail "process.resourcesPath" "'$out/opt/opencode-desktop/resources'"
+        --replace-fail "process.resourcesPath" "'$out/opt/aicraft-desktop/resources'"
     '';
 
   preBuild = ''
@@ -95,17 +95,17 @@ stdenv.mkDerivation (finalAttrs: {
 
     cd packages/desktop
 
-    export OPENCODE_CLI_DIST="$TMPDIR/desktop-cli"
-    cli_package=$(bun -e 'import { getCurrentCli } from "./script/utils.ts"; console.log(getCurrentCli().package.replace("@opencode/", ""))')
+    export AICRAFT_CLI_DIST="$TMPDIR/desktop-cli"
+    cli_package=$(bun -e 'import { getCurrentCli } from "./script/utils.ts"; console.log(getCurrentCli().package.replace("@aicraft/", ""))')
     # copyBuiltCliToResources joins this dist with the npm package name getCurrentCli()
     # reports, not the Nix build's name. It reads only .version from the manifest and
     # writes it as opencode-cli.version beside the binary.
-    mkdir -p "$OPENCODE_CLI_DIST/$cli_package/bin"
-    cp ${lib.getExe opencode} "$OPENCODE_CLI_DIST/$cli_package/bin/opencode"
-    # OPENCODE_VERSION is what the bundled CLI prints for --version, so the manifest
+    mkdir -p "$AICRAFT_CLI_DIST/$cli_package/bin"
+    cp ${lib.getExe aicraft} "$AICRAFT_CLI_DIST/$cli_package/bin/aicraft"
+    # AICRAFT_VERSION is what the bundled CLI prints for --version, so the manifest
     # and the executable cannot drift.
-    bun -e 'await Bun.write(process.argv[1], JSON.stringify({ version: process.env.OPENCODE_VERSION }) + "\n")' \
-      "$OPENCODE_CLI_DIST/$cli_package/package.json"
+    bun -e 'await Bun.write(process.argv[1], JSON.stringify({ version: process.env.AICRAFT_VERSION }) + "\n")' \
+      "$AICRAFT_CLI_DIST/$cli_package/package.json"
 
     bun run build
     npx electron-builder --dir \
@@ -122,11 +122,11 @@ stdenv.mkDerivation (finalAttrs: {
   + lib.optionalString stdenv.hostPlatform.isDarwin ''
     mkdir -p $out/Applications
     mv dist/mac*/*.app $out/Applications
-    makeWrapper "$out/Applications/OpenCode.app/Contents/MacOS/OpenCode" $out/bin/opencode-desktop
+    makeWrapper "$out/Applications/AI Craft.app/Contents/MacOS/AI Craft" $out/bin/aicraft-desktop
   ''
   + lib.optionalString stdenv.hostPlatform.isLinux ''
-    mkdir -p $out/opt/opencode-desktop
-    cp -r dist/linux*-unpacked/{resources,LICENSE*} $out/opt/opencode-desktop
+    mkdir -p $out/opt/aicraft-desktop
+    cp -r dist/linux*-unpacked/{resources,LICENSE*} $out/opt/aicraft-desktop
     install -Dm644 resources/icons/32x32.png \
       "$out/share/icons/hicolor/32x32/apps/changhong.aicraft.desktop.png"
     install -Dm644 resources/icons/64x64.png \
@@ -139,10 +139,10 @@ stdenv.mkDerivation (finalAttrs: {
       "$out/share/icons/hicolor/512x512/apps/changhong.aicraft.desktop.png"
     install -Dm644 resources/changhong.aicraft.desktop.metainfo.xml \
       "$out/share/metainfo/changhong.aicraft.desktop.metainfo.xml"
-    makeWrapper ${lib.getExe electron} $out/bin/opencode-desktop \
+    makeWrapper ${lib.getExe electron} $out/bin/aicraft-desktop \
      --inherit-argv0 \
      --set ELECTRON_FORCE_IS_PACKAGED 1 \
-     --add-flags $out/opt/opencode-desktop/resources/app.asar \
+     --add-flags $out/opt/aicraft-desktop/resources/app.asar \
      --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
   ''
   + ''
@@ -161,8 +161,8 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   meta = {
-    description = "OpenCode Desktop App";
-    mainProgram = "opencode-desktop";
-    inherit (opencode.meta) homepage license platforms;
+    description = "AI Craft Desktop App";
+    mainProgram = "aicraft-desktop";
+    inherit (aicraft.meta) homepage license platforms;
   };
 })

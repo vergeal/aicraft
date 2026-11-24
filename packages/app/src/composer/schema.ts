@@ -1,8 +1,8 @@
 import { Schema, SchemaGetter, Struct } from "effect"
-import { checksum } from "@opencode/util/encode"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { Skill } from "@opencode/schema/skill"
-import { Session } from "@opencode/schema/session"
+import { checksum } from "@aicraft/util/encode"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { Skill } from "@aicraft/schema/skill"
+import { Session } from "@aicraft/schema/session"
 import { Persistence } from "@/runtime/persistence/schema"
 import { FileSelection, SelectedLineRange } from "@/workspaces/files/types"
 

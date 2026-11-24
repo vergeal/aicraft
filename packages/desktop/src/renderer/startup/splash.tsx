@@ -1,5 +1,5 @@
-import { BrandMark } from "@opencode/ui/brand-mark"
-import type { Platform } from "@opencode/app/desktop"
+import { BrandMark } from "@aicraft/ui/brand-mark"
+import type { Platform } from "@aicraft/app/desktop"
 import { onCleanup, onMount, Show } from "solid-js"
 import "./splash.css"
 

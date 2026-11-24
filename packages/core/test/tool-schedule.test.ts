@@ -1,16 +1,16 @@
 import { describe, expect } from "bun:test"
 import { DateTime, Effect, Layer, Stream } from "effect"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { Config } from "@opencode/core/config"
-import { Image } from "@opencode/core/image"
-import { Permission } from "@opencode/core/permission"
-import { Schedule } from "@opencode/core/schedule"
-import { Session } from "@opencode/core/session"
-import { Tool } from "@opencode/core/tool"
-import { ScheduleTools } from "@opencode/core/tool/plugin/schedule"
-import { Document, Info, type Entry } from "@opencode/schema/config"
-import { ConfigExperimental } from "@opencode/schema/config/experimental"
-import type { CommandDefinition } from "@opencode/plugin/effect/command"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { Config } from "@aicraft/core/config"
+import { Image } from "@aicraft/core/image"
+import { Permission } from "@aicraft/core/permission"
+import { Schedule } from "@aicraft/core/schedule"
+import { Session } from "@aicraft/core/session"
+import { Tool } from "@aicraft/core/tool"
+import { ScheduleTools } from "@aicraft/core/tool/plugin/schedule"
+import { Document, Info, type Entry } from "@aicraft/schema/config"
+import { ConfigExperimental } from "@aicraft/schema/config/experimental"
+import type { CommandDefinition } from "@aicraft/plugin/effect/command"
 import { testEffect } from "./lib/effect"
 import { imagePassthrough } from "./lib/image"
 import { permissionLayer } from "./lib/permission"
@@ -20,7 +20,7 @@ const sessionID = Session.ID.make("ses_schedule_tool_test")
 const otherSessionID = Session.ID.make("ses_schedule_tool_other")
 const now = DateTime.makeUnsafe("2026-10-27T13:00:00Z")
 const names = ["schedule_create", "schedule_list", "schedule_pause", "schedule_resume", "schedule_delete"].map(
-  (name) => `opencode.${name}`,
+  (name) => `aicraft.${name}`,
 )
 
 const it = testEffect(
@@ -114,7 +114,7 @@ const call = (registry: Tool.Interface, name: string, input: unknown, session = 
       type: "tool-call",
       id: `call-${name}`,
       name: "execute",
-      input: { code: `return await tools.opencode.${name}(${JSON.stringify(input)})` },
+      input: { code: `return await tools.aicraft.${name}(${JSON.stringify(input)})` },
     },
   })
 const run = (registry: Tool.Interface, name: string, input: unknown, session = sessionID) =>
@@ -129,7 +129,7 @@ const direct = (registry: Tool.Interface, name: string, input: unknown) =>
       tools.execute({
         sessionID,
         ...toolIdentity,
-        call: { type: "tool-call", id: `call-direct-${name}`, name: `opencode_${name}`, input },
+        call: { type: "tool-call", id: `call-direct-${name}`, name: `aicraft_${name}`, input },
       }),
     ),
     Effect.map((result) => result.content?.map((part) => (part.type === "text" ? part.text : "")).join("")),

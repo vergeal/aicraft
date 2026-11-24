@@ -25,7 +25,7 @@ export default {
   "heap.reveal": "在文件夹中显示",
   "memory.label": "MEMLOG",
   "memory.tip": "内存诊断：每 30 秒把应用内存写入桌面端日志。重启后仍保持开启，直到手动关闭；运行期间调试栏保持展开。",
-  "memory.tipEnv": "本次启动已开启内存诊断：已设置 OPENCODE_DESKTOP_MEMORY_LOG。",
+  "memory.tipEnv": "本次启动已开启内存诊断：已设置 AICRAFT_DESKTOP_MEMORY_LOG。",
   "memory.env": "ENV",
   "motion.label": "KNOBS",
   "motion.title": "动效参数",

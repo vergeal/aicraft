@@ -1,6 +1,6 @@
 export * as BrowserRuntime from "./browser.js"
 
-import type { PluginOptions } from "@opencode/plugin/options"
+import type { PluginOptions } from "@aicraft/plugin/options"
 import type { Browser as CdpBrowser, BrowserContext, Page, chromium } from "playwright-core"
 import { spawn } from "node:child_process"
 import { existsSync, readFileSync, rmSync } from "node:fs"

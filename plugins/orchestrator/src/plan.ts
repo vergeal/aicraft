@@ -1,6 +1,6 @@
 export * as Plan from "./plan.js"
 
-import { optional } from "@opencode/schema/schema"
+import { optional } from "@aicraft/schema/schema"
 import { Schema } from "effect"
 
 export const TaskInput = Schema.Struct({

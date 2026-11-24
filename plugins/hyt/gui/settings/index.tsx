@@ -1,5 +1,5 @@
-import { SettingsPage, Style } from "@opencode/plugin/gui"
-import type { Context } from "@opencode/plugin/gui"
+import { SettingsPage, Style } from "@aicraft/plugin/gui"
+import type { Context } from "@aicraft/plugin/gui"
 import { For, Show, createSignal } from "solid-js"
 import { Status, useHyt } from "../shared/components.js"
 import type { Hyt } from "../shared/components.js"

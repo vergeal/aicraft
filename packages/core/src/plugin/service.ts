@@ -2,9 +2,9 @@ export * as Plugin from "./service.js"
 
 // The service tag lives apart from the layer so Session entry points can wait on activation without
 // importing the plugin host, which itself depends on Session.
-import { Plugin } from "@opencode/schema/plugin"
-import type { PluginManifest } from "@opencode/schema/plugin-manifest"
-import type { Plugin as PluginDefinition } from "@opencode/plugin/effect/plugin"
+import { Plugin } from "@aicraft/schema/plugin"
+import type { PluginManifest } from "@aicraft/schema/plugin-manifest"
+import type { Plugin as PluginDefinition } from "@aicraft/plugin/effect/plugin"
 import { Context, type Effect, type Exit } from "effect"
 import type { Configuration } from "./configuration.js"
 
@@ -48,7 +48,7 @@ export type Generation = PluginDefinition & {
   readonly runtime?: PluginManifest.Runtime
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Plugin") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/Plugin") {}
 
 /**
  * Session entry points wait here before reading plugin-provided state such as commands, skills, hooks,

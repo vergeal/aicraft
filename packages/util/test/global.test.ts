@@ -8,7 +8,7 @@ import { Global } from "../src/global.js"
 
 describe("global", () => {
   test("importing the module does not create directories", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-global-import-"))
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "aicraft-global-import-"))
     const directories = ["data", "cache", "config", "state", "tmp"].map((directory) => path.join(root, directory))
     const module = pathToFileURL(path.join(import.meta.dir, "../src/global.ts")).href
     const result = Bun.spawnSync({
@@ -32,7 +32,7 @@ describe("global", () => {
   })
 
   test("building layerWith creates service directories and preserves an explicit tmp", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-global-layer-"))
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "aicraft-global-layer-"))
     const directories = {
       data: path.join(root, "data"),
       config: path.join(root, "config"),
@@ -51,7 +51,7 @@ describe("global", () => {
   })
 
   test("building a layer with default tmp creates and canonicalizes it", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-global-layer-"))
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "aicraft-global-layer-"))
     const directories = ["data", "cache", "config", "state", "tmp"].map((directory) => path.join(root, directory))
     const module = pathToFileURL(path.join(import.meta.dir, "../src/global.ts")).href
     const result = Bun.spawnSync({

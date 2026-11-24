@@ -1,22 +1,22 @@
 import { describe, expect, test } from "bun:test"
 import { Cause, Deferred, Effect, Fiber, Layer, Schema } from "effect"
-import { Agent } from "@opencode/core/agent"
-import { Database } from "@opencode/core/database/database"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Bus } from "@opencode/core/bus"
-import { Location } from "@opencode/core/location"
-import { Permission } from "@opencode/core/permission"
-import { PermissionTable } from "@opencode/core/permission/sql"
-import { PermissionSaved } from "@opencode/core/permission/saved"
-import { Project } from "@opencode/core/project"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Session } from "@opencode/core/session"
-import { SessionTable } from "@opencode/core/session/sql"
-import { SessionStore } from "@opencode/core/session/store"
-import { ShellParse } from "@opencode/core/shell/parse"
-import { Wildcard } from "@opencode/core/util/wildcard"
+import { Agent } from "@aicraft/core/agent"
+import { Database } from "@aicraft/core/database/database"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { Location } from "@aicraft/core/location"
+import { Permission } from "@aicraft/core/permission"
+import { PermissionTable } from "@aicraft/core/permission/sql"
+import { PermissionSaved } from "@aicraft/core/permission/saved"
+import { Project } from "@aicraft/core/project"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Session } from "@aicraft/core/session"
+import { SessionTable } from "@aicraft/core/session/sql"
+import { SessionStore } from "@aicraft/core/session/store"
+import { ShellParse } from "@aicraft/core/shell/parse"
+import { Wildcard } from "@aicraft/core/util/wildcard"
 import { eq } from "drizzle-orm"
 import { location } from "./fixture/location"
 import { testEffect } from "./lib/effect"
@@ -189,14 +189,14 @@ describe("Permission", () => {
       { action: "shell", resource: "git push*", effect: "ask" },
     ]
     const files = process.platform === "darwin" || process.platform === "win32"
-    expect(Permission.evaluate("edit", ".OPENCODE/plugins/guard.ts", rules).effect).toBe(files ? "ask" : "allow")
+    expect(Permission.evaluate("edit", ".AICRAFT/plugins/guard.ts", rules).effect).toBe(files ? "ask" : "allow")
     expect(Permission.evaluate("read", "Secrets.ENV", rules).effect).toBe(files ? "deny" : "allow")
     // Commands and other resources keep their case outside Windows.
     expect(Permission.evaluate("shell", "GIT PUSH origin dev", rules).effect).toBe(
       process.platform === "win32" ? "ask" : "allow",
     )
-    expect(Wildcard.match(".OPENCODE/x", ".aicraft/*", true)).toBe(true)
-    expect(Wildcard.match(".OPENCODE/x", ".aicraft/*")).toBe(process.platform === "win32")
+    expect(Wildcard.match(".AICRAFT/x", ".aicraft/*", true)).toBe(true)
+    expect(Wildcard.match(".AICRAFT/x", ".aicraft/*")).toBe(process.platform === "win32")
   })
 
   it.effect("allows managed output reads without granting external directory access", () =>

@@ -1,4 +1,4 @@
-import type { UsageLimitsBudget, UsageLimitsInfo } from "@opencode/client/promise"
+import type { UsageLimitsBudget, UsageLimitsInfo } from "@aicraft/client/promise"
 
 /** The model the member is using, so a per-model budget shows this model's own counter. */
 export type CurrentModel = { readonly providerID: string; readonly modelID: string; readonly name: string }
@@ -127,7 +127,7 @@ export type ModelUsage = { readonly left: number; readonly reached: boolean; rea
 
 /**
  * What the Console budgets leave for a model, when any covers it. A budget on all spend covers every model the
- * workspace serves; OpenCode Go bills its own allowance instead.
+ * workspace serves; AI Craft Go bills its own allowance instead.
  */
 export function modelUsage(
   info: UsageLimitsInfo,

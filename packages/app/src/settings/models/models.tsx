@@ -1,7 +1,7 @@
-import { Button } from "@opencode/ui/button"
-import { useFilteredList } from "@opencode/ui/hooks"
-import { Loader } from "@opencode/ui/loader"
-import { Switch } from "@opencode/ui/switch"
+import { Button } from "@aicraft/ui/button"
+import { useFilteredList } from "@aicraft/ui/hooks"
+import { Loader } from "@aicraft/ui/loader"
+import { Switch } from "@aicraft/ui/switch"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { type Component, createEffect, createMemo, createSignal, For, type JSX, onMount, Show } from "solid-js"
 

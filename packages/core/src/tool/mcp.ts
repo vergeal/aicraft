@@ -1,9 +1,9 @@
 export * as McpTool from "./mcp.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import { McpEvent } from "@opencode/schema/mcp-event"
+import { ToolFailure } from "@aicraft/ai/effect"
+import { McpEvent } from "@aicraft/schema/mcp-event"
 import { Context, Effect, Fiber, type JsonSchema, Layer, Option, PubSub, Schema, Semaphore, Stream } from "effect"
-import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { extension } from "mime-types"
 import { Bus } from "../bus.js"
 
@@ -32,7 +32,7 @@ export interface Interface {
   readonly flush: Effect.Effect<void>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/McpTool") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/McpTool") {}
 
 export const layer = Layer.effect(
   Service,
@@ -156,7 +156,7 @@ export const layer = Layer.effect(
 
 // A server declares its tool's mark in the tool's own `_meta`, so no name-to-icon table is kept outside the tool.
 const metaIcon = (meta: Record<string, unknown> | undefined) => {
-  const value = meta?.["ai.opencode/icon"]
+  const value = meta?.["ai.aicraft/icon"]
 
   return typeof value === "string" && value !== "" ? value : undefined
 }

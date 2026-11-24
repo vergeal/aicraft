@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { SessionMessageAssistant } from "@opencode/client/promise"
+import type { SessionMessageAssistant } from "@aicraft/client/promise"
 import { buildWorkingStep, formatWorkingDuration } from "./working-step"
 
 const tool = (

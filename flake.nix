@@ -1,5 +1,5 @@
 {
-  description = "OpenCode development flake";
+  description = "AI Craft development flake";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -38,11 +38,11 @@
             };
           in
           rec {
-            opencode = final.callPackage ./nix/opencode.nix {
+            aicraft = final.callPackage ./nix/aicraft.nix {
               inherit node_modules;
             };
-            opencode-desktop = final.callPackage ./nix/desktop.nix {
-              inherit opencode;
+            aicraft-desktop = final.callPackage ./nix/desktop.nix {
+              inherit aicraft;
             };
           };
       };
@@ -55,12 +55,12 @@
           };
         in
         rec {
-          default = opencode;
-          opencode = pkgs.callPackage ./nix/opencode.nix {
+          default = aicraft;
+          aicraft = pkgs.callPackage ./nix/aicraft.nix {
             inherit node_modules;
           };
-          opencode-desktop = pkgs.callPackage ./nix/desktop.nix {
-            inherit opencode;
+          aicraft-desktop = pkgs.callPackage ./nix/desktop.nix {
+            inherit aicraft;
           };
           # Updater derivation with fakeHash - build fails and reveals correct hash
           node_modules_updater = node_modules.override {

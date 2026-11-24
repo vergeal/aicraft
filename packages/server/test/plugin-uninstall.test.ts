@@ -35,12 +35,12 @@ export default {
       ),
     )
 
-    const previous = process.env.OPENCODE_TEST_HOME
-    process.env.OPENCODE_TEST_HOME = home
+    const previous = process.env.AICRAFT_TEST_HOME
+    process.env.AICRAFT_TEST_HOME = home
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
-        if (previous === undefined) delete process.env.OPENCODE_TEST_HOME
-        else process.env.OPENCODE_TEST_HOME = previous
+        if (previous === undefined) delete process.env.AICRAFT_TEST_HOME
+        else process.env.AICRAFT_TEST_HOME = previous
       }),
     )
     yield* Effect.addFinalizer(() => Effect.promise(() => rm(home, { recursive: true, force: true })))
@@ -53,7 +53,7 @@ export default {
       config: { content: JSON.stringify({ plugins: [directory] }) },
     })
     const request = (pathname: string, init?: RequestInit) =>
-      Effect.promise(() => handler(new Request(`http://opencode.local${pathname}`, init)))
+      Effect.promise(() => handler(new Request(`http://aicraft.local${pathname}`, init)))
 
     const listed = Effect.gen(function* () {
       const response = yield* request("/api/plugin")

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { globalConfigDirectory, serviceConfigFile } from "./config-file"
 
-const global = "/home/kit/.config/opencode/aicraft.jsonc"
+const global = "/home/kit/.config/aicraft/aicraft.jsonc"
 
 const project = "/work/acme/.aicraft/aicraft.jsonc"
 
@@ -12,7 +12,7 @@ test("a project file that sets a service without entries does not hide the globa
       path: global,
       info: {
         mcp: { servers: { atlas: { type: "remote" as const, url: "https://atlas.example" } } },
-        plugins: ["opencode-tidewater"],
+        plugins: ["aicraft-tidewater"],
       },
     },
     {
@@ -42,17 +42,17 @@ test("a file that only sets a service still wins over one that never mentions it
 test("setup sessions run in the global configuration's directory, never an ancestor project's", () => {
   // In the server's order: global files and root, an ancestor's config outside the worktree, then the project's.
   const ancestor = "/work/aicraft.json"
-  const projectRoot = { type: "directory" as const, path: "/work/acme/.opencode" }
+  const projectRoot = { type: "directory" as const, path: "/work/acme/.aicraft" }
 
   const entries = [
     { type: "document" as const, path: global, info: {} },
-    { type: "directory" as const, path: "/home/kit/.config/opencode" },
+    { type: "directory" as const, path: "/home/kit/.config/aicraft" },
     { type: "document" as const, path: ancestor, info: {} },
     { type: "document" as const, path: project, info: {} },
     projectRoot,
   ]
 
-  expect(globalConfigDirectory(entries, "/work/acme")).toBe("/home/kit/.config/opencode")
+  expect(globalConfigDirectory(entries, "/work/acme")).toBe("/home/kit/.config/aicraft")
   // With global configuration off, the ancestor's directory is still not taken for the global one.
   expect(
     globalConfigDirectory(

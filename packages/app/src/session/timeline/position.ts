@@ -1,5 +1,5 @@
 /** Where the reader stopped in a session, kept per browser so reopening it resumes in place. */
-const POSITION_PREFIX = "opencode.timeline.position:"
+const POSITION_PREFIX = "aicraft.timeline.position:"
 
 export type SavedPosition = { key: string; offset: number; bottom: boolean }
 

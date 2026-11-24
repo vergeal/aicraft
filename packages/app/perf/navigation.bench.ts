@@ -5,7 +5,7 @@
 import { bench, web, type Case } from "@hona/strobe"
 import { draftHref, sessionHref } from "../e2e/utils/app"
 import { messages } from "../e2e/utils/markdown-sessions"
-import { mockOpenCodeServer } from "../e2e/utils/mock-server"
+import { mockAicraftServer } from "../e2e/utils/mock-server"
 import { fixture, installTimelineSettings, mockStressTimeline } from "../e2e/utils/session-fixture"
 import { installProjects } from "./fixtures/home"
 import { cached } from "./fixtures/mock"
@@ -99,7 +99,7 @@ const metrics = ["run.duration", "interaction.p50"]
 export default bench({
   targets: {
     web: web({
-      expect: { title: "OpenCode" },
+      expect: { title: "AI Craft" },
       viewport: { width: 1440, height: 900 },
       async prepare({ case: name, playwright, mock, url }) {
         const server = new URL(url).origin
@@ -109,7 +109,7 @@ export default bench({
         if (!scene) throw new Error(`navigation.bench.ts: no scene for "${name}"`)
 
         if (scene === restoring)
-          await mockOpenCodeServer(page, {
+          await mockAicraftServer(page, {
             server,
             sessions: restored,
             provider: fixture.provider,

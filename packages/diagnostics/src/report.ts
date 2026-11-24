@@ -32,7 +32,7 @@ export function diagnosisPrompt(input: {
 
 ## 数据结构
 
-\`schema\` 为 \`opencode.diagnostics.v2\`：
+\`schema\` 为 \`aicraft.diagnostics.v2\`：
 
 - \`environment\`：应用版本、平台/OS、窗口与屏幕尺寸、DPR、语言/时区、主题、路由、会话、服务端、UA、在线状态；\`clock.offsetMs\` 是主进程时钟减渲染进程时钟的估算值。
 - \`timeOrigin\`：\`performance.timeOrigin\`，配合事件里的 \`t\` 还原 Unix 时间。
@@ -111,7 +111,7 @@ jq '.events[] | select(.type == "dom") | .data.mutations[] | select(.kind == "ch
 jq '.events[] | select(.type | test("^(network\\.error|network\\.retry)$"))' "$DUMP"
 
 # 把导出时刻的 DOM 另存，便于对照选择器
-jq -r '.dom.html' "$DUMP" > /tmp/opencode-diagnostics-dom.html
+jq -r '.dom.html' "$DUMP" > /tmp/aicraft-diagnostics-dom.html
 \`\`\`
 
 ## 对应源码

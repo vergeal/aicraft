@@ -1,10 +1,10 @@
-import { DialogBody, DialogHeader, DialogTitle, Dialog } from "@opencode/ui/dialog"
-import { Badge } from "@opencode/ui/badge"
-import { Icon } from "@opencode/ui/icon"
-import { MenuScroll } from "@opencode/ui/menu-scroll"
+import { DialogBody, DialogHeader, DialogTitle, Dialog } from "@aicraft/ui/dialog"
+import { Badge } from "@aicraft/ui/badge"
+import { Icon } from "@aicraft/ui/icon"
+import { MenuScroll } from "@aicraft/ui/menu-scroll"
 import { ProviderModelIcon } from "@/providers/models/provider-group"
-import { Tooltip } from "@opencode/ui/tooltip"
-import { useDialog } from "@opencode/ui/context/dialog"
+import { Tooltip } from "@aicraft/ui/tooltip"
+import { useDialog } from "@aicraft/ui/context/dialog"
 import { createMemo, onCleanup, onMount, type Component, For, Show } from "solid-js"
 import { useLocal, type ModelSelection } from "@/providers/models/selection"
 import { isFreeModel } from "@/providers/models/models"
@@ -35,7 +35,7 @@ export const DialogSelectModelUnpaid: Component<{ model?: ModelState }> = (props
   })
 
   const providerName = (provider: { id: string; name: string }) =>
-    provider.id === "opencode" ? language.t("provider.connect.opencode.name") : provider.name
+    provider.id === "opencode" ? language.t("provider.connect.aicraft.name") : provider.name
 
   const freeModels = createMemo(() => model.list().filter(isFreeModel))
 
@@ -154,8 +154,8 @@ export const DialogSelectModelUnpaid: Component<{ model?: ModelState }> = (props
                           <span class="truncate text-[12px] font-normal leading-4 text-v2-text-text-muted">
                             {language.t(
                               provider.id === "opencode"
-                                ? "dialog.provider.opencode.tagline"
-                                : "dialog.provider.opencodeGo.tagline",
+                                ? "dialog.provider.aicraft.tagline"
+                                : "dialog.provider.aicraftGo.tagline",
                             )}
                           </span>
                         </Show>

@@ -37,18 +37,18 @@ describe("sortModelOptions", () => {
     expect(titles.slice(1)).toEqual(matches.map((item) => item.title).filter((title) => title !== "Claude Haiku Free"))
   })
 
-  test("orders OpenCode Go before Zen and other providers", () => {
+  test("orders AI Craft Go before Zen and other providers", () => {
     const sorted = sortModelOptions([
       { providerID: "openai", providerName: "OpenAI", title: "GPT 5" },
-      { providerID: "opencode", providerName: "OpenCode Zen", title: "Claude Sonnet 4" },
+      { providerID: "opencode", providerName: "AI Craft Zen", title: "Claude Sonnet 4" },
       { providerID: "anthropic", providerName: "Anthropic", title: "Claude Opus 4" },
-      { providerID: "opencode-go", providerName: "OpenCode Go", title: "Kimi K3" },
+      { providerID: "opencode-go", providerName: "AI Craft Go", title: "Kimi K3" },
     ])
 
     expect(sorted.map((model) => model.title)).toEqual(["Kimi K3", "Claude Sonnet 4", "Claude Opus 4", "GPT 5"])
   })
 
-  test("keeps ungrouped results free-first regardless of OpenCode provider", () => {
+  test("keeps ungrouped results free-first regardless of AI Craft provider", () => {
     const sorted = sortModelOptions(
       [
         { providerID: "opencode-go", title: "Go model" },
@@ -81,7 +81,7 @@ describe("sortModelOptions", () => {
     expect(sorted.map((model) => model.title)).toEqual(["Claude Sonnet 4", "Claude Opus 4"])
   })
 
-  test("preserves the server's order for free OpenCode models", () => {
+  test("preserves the server's order for free AI Craft models", () => {
     // `Model.available()` puts the preferred free models first, then the rest newest-first.
     const serverOrder = [
       "Big Pickle",
@@ -93,7 +93,7 @@ describe("sortModelOptions", () => {
     const options = serverOrder.map((title, index) => ({
       value: { providerID: "opencode", modelID: title.toLowerCase().replaceAll(" ", "-") },
       providerID: "opencode",
-      providerName: "OpenCode Zen",
+      providerName: "AI Craft Zen",
       releaseDate: index === 0 ? 1000 : 5000 - index,
       title,
       free: true,

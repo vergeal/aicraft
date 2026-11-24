@@ -15,7 +15,7 @@ export async function prepareDevElectron() {
     .digest("hex")
     .slice(0, 16)
 
-  const root = join(import.meta.dirname, "../node_modules/.cache/opencode-dev", hash)
+  const root = join(import.meta.dirname, "../node_modules/.cache/aicraft-dev", hash)
   const bundle = join(root, "AI Craft Dev.app")
   // Electron uses the executable's name to distinguish development from packaged apps.
   const executable = join(bundle, "Contents/MacOS/Electron")

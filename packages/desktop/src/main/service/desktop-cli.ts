@@ -56,8 +56,8 @@ export const layer = Layer.effect(
 )
 
 const make = Effect.fn("DesktopCli.resolve")(function* () {
-  const development = !app.isPackaged && process.env.OPENCODE_DESKTOP_CLI_DEV
-  const version = process.env.OPENCODE_VERSION ?? "local"
+  const development = !app.isPackaged && process.env.AICRAFT_DESKTOP_CLI_DEV
+  const version = process.env.AICRAFT_VERSION ?? "local"
 
   const cli = development
     ? {
@@ -66,16 +66,16 @@ const make = Effect.fn("DesktopCli.resolve")(function* () {
         // run. Reading it from the inherited environment keeps the define fixed and the cache warm.
         command: [
           // Electron's executable is not Bun, and Windows may not resolve the Bun shim through PATH.
-          process.env.OPENCODE_DESKTOP_BUN ?? "bun",
+          process.env.AICRAFT_DESKTOP_BUN ?? "bun",
           "run",
           "--cwd",
           development,
-          "--define=OPENCODE_VERSION=process.env.OPENCODE_VERSION",
+          "--define=AICRAFT_VERSION=process.env.AICRAFT_VERSION",
           "src/index.ts",
         ],
         binary: undefined,
       }
-    : yield* resolveBundledCli(!app.isPackaged && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1")
+    : yield* resolveBundledCli(!app.isPackaged && process.env.AICRAFT_DESKTOP_ISOLATED_SERVER === "1")
 
   return cli satisfies Resolved
 })

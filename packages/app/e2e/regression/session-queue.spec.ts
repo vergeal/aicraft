@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test"
-import type { OpenCodeEvent, SessionInboxInfo, SessionMessageInfo, ShellInfo } from "@opencode/client/promise"
-import { PromptInput } from "@opencode/schema/prompt-input"
-import { SessionInbox } from "@opencode/schema/session-inbox"
-import { SessionMessage } from "@opencode/schema/session-message"
+import type { AicraftEvent, SessionInboxInfo, SessionMessageInfo, ShellInfo } from "@aicraft/client/promise"
+import { PromptInput } from "@aicraft/schema/prompt-input"
+import { SessionInbox } from "@aicraft/schema/session-inbox"
+import { SessionMessage } from "@aicraft/schema/session-message"
 import { Schema } from "effect"
 import { holdRoute, provider } from "../utils/app"
 import type { MockServerConfig } from "../utils/mock-server"
@@ -60,7 +60,7 @@ function createQueueMock(seed: string[], messages: SessionMessageInfo[] = []) {
     delivery: "queue",
   }))
 
-  const events: OpenCodeEvent[] = []
+  const events: AicraftEvent[] = []
   const prompts: (typeof PromptBody.Type)[] = []
   const compactions: SessionInboxInfo[] = []
   const changes: { inboxID: string; action: "cancel" | "steer" | "queue" }[] = []
@@ -69,19 +69,19 @@ function createQueueMock(seed: string[], messages: SessionMessageInfo[] = []) {
   const shells: ShellInfo[] = []
   let sequence = 0
 
-  const emit = <Type extends OpenCodeEvent["type"]>(
+  const emit = <Type extends AicraftEvent["type"]>(
     type: Type,
-    data: Extract<OpenCodeEvent, { type: Type }>["data"],
+    data: Extract<AicraftEvent, { type: Type }>["data"],
   ) => {
     sequence += 1
-    // SAFETY: `type` selects `data` from the same OpenCodeEvent member, so the pair is that member.
+    // SAFETY: `type` selects `data` from the same AicraftEvent member, so the pair is that member.
     events.push({
       id: `evt_queue_${sequence}`,
       type,
       created: Date.now(),
       durable: { aggregateID: sessionID, seq: sequence, version: type === "session.tool.success" ? 2 : 1 },
       data,
-    } as OpenCodeEvent)
+    } as AicraftEvent)
   }
 
   return {
@@ -1435,7 +1435,7 @@ test("a steer moves a blocking shell to the background after its admission, so t
     id: "sh_steer_background",
     status: "running",
     command: "bun test --timeout 600000",
-    cwd: "C:/OpenCode/SessionQueueRegression",
+    cwd: "C:/AI Craft/SessionQueueRegression",
     shell: "bash",
     file: "/tmp/steer-background.out",
     metadata: { sessionID },

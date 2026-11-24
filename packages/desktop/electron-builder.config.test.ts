@@ -19,22 +19,22 @@ const channels = [
 ] as const
 
 function load(channel: string, target?: string): Configuration {
-  const previous = process.env.OPENCODE_CHANNEL
-  const previousTarget = process.env.OPENCODE_TARGET
-  process.env.OPENCODE_CHANNEL = channel
+  const previous = process.env.AICRAFT_CHANNEL
+  const previousTarget = process.env.AICRAFT_TARGET
+  process.env.AICRAFT_CHANNEL = channel
 
-  if (target !== undefined) process.env.OPENCODE_TARGET = target
-  else delete process.env.OPENCODE_TARGET
+  if (target !== undefined) process.env.AICRAFT_TARGET = target
+  else delete process.env.AICRAFT_TARGET
 
   try {
     return getConfig()
   } finally {
-    delete process.env.OPENCODE_CHANNEL
-    delete process.env.OPENCODE_TARGET
+    delete process.env.AICRAFT_CHANNEL
+    delete process.env.AICRAFT_TARGET
 
-    if (previous !== undefined) process.env.OPENCODE_CHANNEL = previous
+    if (previous !== undefined) process.env.AICRAFT_CHANNEL = previous
 
-    if (previousTarget !== undefined) process.env.OPENCODE_TARGET = previousTarget
+    if (previousTarget !== undefined) process.env.AICRAFT_TARGET = previousTarget
   }
 }
 
@@ -53,7 +53,7 @@ test.each(channels)("channel identity for $channel", ({ channel, appId, feed }) 
   // Every published channel updates from its own feed on the update service.
   expect(config.publish).toEqual({
     provider: "generic",
-    url: `https://opencode.ai/update/api/${feed}/desktop/opencode/`,
+    url: `https://opencode.ai/update/api/${feed}/desktop/aicraft/`,
     channel: "latest",
   })
   expect(config.extraMetadata?.desktopName).toBe(`${appId}.desktop`)
@@ -70,7 +70,7 @@ test.each(channels)("channel identity for $channel", ({ channel, appId, feed }) 
   for (const fpm of [config.deb?.fpm, config.rpm?.fpm]) {
     expect(fpm).toContainEqual(expect.stringContaining(`/usr/share/metainfo/${appId}.metainfo.xml`))
     expect(
-      fpm?.some((entry) => entry.endsWith("opencode-desktop.desktop=/usr/share/applications/opencode-desktop.desktop")),
+      fpm?.some((entry) => entry.endsWith("aicraft-desktop.desktop=/usr/share/applications/aicraft-desktop.desktop")),
     ).toBe(channel === "prod")
   }
 
@@ -81,9 +81,9 @@ test.each(channels)("channel identity for $channel", ({ channel, appId, feed }) 
 })
 
 test("legacy Linux launcher stays hidden", async () => {
-  const desktop = await Bun.file(path.join(import.meta.dirname, "resources/linux/opencode-desktop.desktop")).text()
-  expect(desktop).toContain("Exec=/opt/OpenCode/ai.opencode %U")
-  expect(desktop).toContain("Icon=ai.opencode")
+  const desktop = await Bun.file(path.join(import.meta.dirname, "resources/linux/aicraft-desktop.desktop")).text()
+  expect(desktop).toContain("Exec=/opt/AI Craft/ai.aicraft %U")
+  expect(desktop).toContain("Icon=ai.aicraft")
   expect(desktop).toContain("StartupWMClass=changhong.aicraft.desktop")
   expect(desktop).toContain("NoDisplay=true")
 })
@@ -199,7 +199,7 @@ test("trims external dependencies without excluding runtime files", () => {
 
 test("the trimmed Zip.js package can still export compressed logs", async () => {
   const config = load("dev")
-  const dir = await mkdtemp(path.join(os.tmpdir(), "opencode-zip-package-"))
+  const dir = await mkdtemp(path.join(os.tmpdir(), "aicraft-zip-package-"))
   const source = path.dirname(fileURLToPath(import.meta.resolve("@zip.js/zip.js/package.json")))
   const filter = trimFilter(dir, config)
 

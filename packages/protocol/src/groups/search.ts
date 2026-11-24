@@ -1,7 +1,7 @@
-import { Project } from "@opencode/schema/project"
-import { DateTimeUtcFromMillis, optional } from "@opencode/schema/schema"
-import { Session } from "@opencode/schema/session"
-import { SessionMessage } from "@opencode/schema/session-message"
+import { Project } from "@aicraft/schema/project"
+import { DateTimeUtcFromMillis, optional } from "@aicraft/schema/schema"
+import { Session } from "@aicraft/schema/session"
+import { SessionMessage } from "@aicraft/schema/session-message"
 import { Schema } from "effect"
 import { HttpApiEndpoint, OpenApi } from "effect/http-api"
 

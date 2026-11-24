@@ -17,7 +17,7 @@ afterEach(async () => {
 })
 
 describe("connectClientMcp", () => {
-  test("serves registered tools to the opencode server", async () => {
+  test("serves registered tools to the aicraft server", async () => {
     const server = serve()
     const connection = connectClientMcp({
       url: server.url + "?ticket=t1",
@@ -62,7 +62,7 @@ describe("connectClientMcp", () => {
       { name: "fail", inputSchema: { type: "object" } },
     ])
     expect(
-      await peer.client.callTool({ name: "whoami", arguments: {}, _meta: { "ai.opencode/sessionID": "ses_1" } }),
+      await peer.client.callTool({ name: "whoami", arguments: {}, _meta: { "ai.aicraft/sessionID": "ses_1" } }),
     ).toMatchObject({ content: [{ type: "text", text: "ses_1" }] })
     expect(await peer.client.callTool({ name: "whoami", arguments: {} })).toMatchObject({
       content: [{ type: "text", text: "none" }],
@@ -114,7 +114,7 @@ describe("connectClientMcp", () => {
     expect(socket.opened()).toBe(1)
   })
 
-  test("keeps backing off while the opencode server never initializes", async () => {
+  test("keeps backing off while the aicraft server never initializes", async () => {
     const server = Bun.serve({
       port: 0,
       fetch(request, server) {

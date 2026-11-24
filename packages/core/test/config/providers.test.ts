@@ -3,16 +3,16 @@ import fs from "fs/promises"
 import { describe, expect } from "bun:test"
 import { parse } from "jsonc-parser"
 import { Effect, Layer } from "effect"
-import { Config } from "@opencode/core/config"
-import { Document } from "@opencode/schema/config"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Global } from "@opencode/util/global"
-import { Location } from "@opencode/core/location"
-import { AbsolutePath } from "@opencode/core/schema"
+import { Config } from "@aicraft/core/config"
+import { Document } from "@aicraft/schema/config"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Global } from "@aicraft/util/global"
+import { Location } from "@aicraft/core/location"
+import { AbsolutePath } from "@aicraft/core/schema"
 import { emptyCredentialNode, emptyWellknownNode } from "../fixture/config-nodes"
-import { Credential } from "@opencode/core/credential"
-import { WellKnown } from "@opencode/core/wellknown"
+import { Credential } from "@aicraft/core/credential"
+import { WellKnown } from "@aicraft/core/wellknown"
 import { location } from "../fixture/location"
 import { tmpdir } from "../fixture/tmpdir"
 import { testEffect } from "../lib/effect"
@@ -35,7 +35,7 @@ const layer = (project: string, global: string) =>
 
 const provider = (name: string, baseURL: string, models: readonly string[]) => ({
   name,
-  package: "@opencode/ai/providers/openai-compatible",
+  package: "@aicraft/ai/providers/openai-compatible",
   settings: { baseURL },
   models: Object.fromEntries(models.map((id) => [id, { name: id }])),
 })
@@ -318,7 +318,7 @@ describe("Config.update providers", () => {
                 providers: {
                   newapi: {
                     name: "NewAPI",
-                    package: "@opencode/ai/providers/openai-compatible",
+                    package: "@aicraft/ai/providers/openai-compatible",
                     settings: { baseURL: "https://new.example/v1" },
                     models: { deepseek: {} },
                   },

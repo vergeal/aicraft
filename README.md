@@ -3,20 +3,20 @@
     <picture>
       <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
       <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
+      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="AI Craft logo">
     </picture>
   </a>
 </p>
-<p align="center">The open source AI coding agent.</p>
+<p align="center">开源的 AI Coding Agent。</p>
 <p align="center">
   <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/@opencode/cli"><img alt="npm" src="https://img.shields.io/npm/v/@opencode/cli?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@aicraft/cli"><img alt="npm" src="https://img.shields.io/npm/v/@aicraft/cli?style=flat-square" /></a>
   <a href="https://github.com/anomalyco/opencode/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/release.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
   <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
+  <a href="README.md">简体中文</a> |
   <a href="README.zht.md">繁體中文</a> |
   <a href="README.ko.md">한국어</a> |
   <a href="README.de.md">Deutsch</a> |
@@ -39,76 +39,75 @@
   <a href="README.vi.md">Tiếng Việt</a>
 </p>
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+[![AI Craft Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
 ---
 
-### Installation
+### 安装
 
 ```bash
-# YOLO
+# 直接安装 (YOLO)
 curl -fsSL https://opencode.ai/v2/install | bash
 
-# Package managers
-npm i -g @opencode/cli@latest      # or bun/pnpm/yarn
-brew install anomalyco/tap/opencode-v2 # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-beta              # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
+# 软件包管理器
+npm i -g @aicraft/cli@latest      # 也可使用 bun/pnpm/yarn
+brew install anomalyco/tap/aicraft-v2 # macOS 和 Linux（推荐，始终保持最新）
+brew install aicraft              # macOS 和 Linux（官方 brew formula，更新频率较低）
+sudo pacman -S aicraft            # Arch Linux (Stable)
+paru -S aicraft-beta              # Arch Linux (Latest from AUR)
+mise use -g aicraft               # 任意系统
 nix run github:anomalyco/opencode  # Nix
 ```
 
 > [!TIP]
-> Remove versions older than 0.1.x before installing.
+> 安装前请先移除 0.1.x 之前的旧版本。
 
-### Desktop App (BETA)
+### 桌面应用程序 (BETA)
 
-OpenCode is also available as a desktop application. Download it from [opencode.ai/download](https://opencode.ai/download).
+AI Craft 也提供桌面版应用。可从 [opencode.ai/download](https://opencode.ai/download) 下载。
 
-| Platform              | Download                           |
+| 平台                  | 下载文件                           |
 | --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-win-x64.exe`     |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+| macOS (Apple Silicon) | `aicraft-desktop-mac-arm64.dmg`   |
+| macOS (Intel)         | `aicraft-desktop-mac-x64.dmg`     |
+| Windows               | `aicraft-desktop-win-x64.exe`     |
+| Linux                 | `.deb`、`.rpm` 或 AppImage         |
 
 ```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
+# macOS (Homebrew Cask)
+brew install --cask aicraft-desktop
 ```
 
-#### Installation Directory
+#### 安装目录
 
-The install script installs OpenCode to `/.aicraft/bin`.
+安装脚本将 AI Craft 安装到 `$HOME/.aicraft/bin`。
 
 ### Agents
 
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
+AI Craft 内置两种 Agent，可用 `Tab` 键快速切换：
 
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
+- **build** - 默认模式，具备完整权限，适合开发工作
+- **plan** - 只读模式，适合代码分析与探索
+  - 默认拒绝修改文件
+  - 运行 bash 命令前会询问
+  - 便于探索未知代码库或规划改动
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
+另外还包含一个 **general** 子 Agent，用于复杂搜索和多步任务，内部使用，也可在消息中输入 `@general` 调用。
 
-Learn more about [agents](https://opencode.ai/v2/docs/agents).
+了解更多 [Agents](https://opencode.ai/v2/docs/agents) 相关信息。
 
-### Documentation
+### 文档
 
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/v2/docs).
+更多配置说明请查看我们的 [**官方文档**](https://opencode.ai/v2/docs)。
 
-### Contributing
+### 参与贡献
 
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
+如有兴趣贡献代码，请在提交 PR 前阅读 [贡献指南 (Contributing Docs)](./CONTRIBUTING.md)。
 
-### Building on OpenCode
+### 基于 AI Craft 进行开发
 
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
+如果你在项目名中使用了 “aicraft”（如 “aicraft-dashboard” 或 “aicraft-mobile”），请在 README 里注明该项目不是 AI Craft 团队官方开发，且不存在隶属关系。
 
 ---
 
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+**加入我们的社区** [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=52ao9352-5623-4fa0-b7dd-3407c392c1af&qr_code=true) | [X.com](https://x.com/aicraft)

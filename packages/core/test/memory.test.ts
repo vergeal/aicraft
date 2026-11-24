@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import { Effect } from "effect"
-import { KV } from "@opencode/core/kv"
-import { Memory } from "@opencode/core/memory"
-import { LayerNode } from "@opencode/util/effect/layer-node"
+import { KV } from "@aicraft/core/kv"
+import { Memory } from "@aicraft/core/memory"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
 import { testEffect } from "./lib/effect"
 
 const it = testEffect(LayerNode.compile(KV.node))

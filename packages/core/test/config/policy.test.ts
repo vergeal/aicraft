@@ -1,21 +1,21 @@
 import { describe, expect } from "bun:test"
-import { Document, Event, Info, type Entry } from "@opencode/schema/config"
-import { ConfigPolicy } from "@opencode/schema/config/policy"
-import { Permission } from "@opencode/schema/permission"
-import { Config } from "@opencode/core/config"
-import { Integration } from "@opencode/core/integration"
-import { ConfigPolicyPlugin } from "@opencode/core/config/plugin/policy"
-import { Bus } from "@opencode/core/bus"
-import { Plugin } from "@opencode/core/plugin"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { PluginHost } from "@opencode/core/plugin/host"
-import { Provider } from "@opencode/core/provider"
-import { Session } from "@opencode/core/session"
-import { Credential } from "@opencode/core/credential"
-import { ConfigIntegration } from "@opencode/core/config/integration"
-import { WebSearch } from "@opencode/core/websearch"
-import { WebSearchExa } from "@opencode/core/plugin/websearch/exa"
-import { WebSearchTinyFish } from "@opencode/core/plugin/websearch/tinyfish"
+import { Document, Event, Info, type Entry } from "@aicraft/schema/config"
+import { ConfigPolicy } from "@aicraft/schema/config/policy"
+import { Permission } from "@aicraft/schema/permission"
+import { Config } from "@aicraft/core/config"
+import { Integration } from "@aicraft/core/integration"
+import { ConfigPolicyPlugin } from "@aicraft/core/config/plugin/policy"
+import { Bus } from "@aicraft/core/bus"
+import { Plugin } from "@aicraft/core/plugin"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { PluginHost } from "@aicraft/core/plugin/host"
+import { Provider } from "@aicraft/core/provider"
+import { Session } from "@aicraft/core/session"
+import { Credential } from "@aicraft/core/credential"
+import { ConfigIntegration } from "@aicraft/core/config/integration"
+import { WebSearch } from "@aicraft/core/websearch"
+import { WebSearchExa } from "@aicraft/core/plugin/websearch/exa"
+import { WebSearchTinyFish } from "@aicraft/core/plugin/websearch/tinyfish"
 import { Effect, Schema } from "effect"
 import { FetchHttpClient } from "effect/http"
 import { waitUntil } from "../lib/eventually"
@@ -51,7 +51,7 @@ const lockdown = () =>
     integration("integration.connect", "deny", "*"),
     integration("integration.connect", "allow", "opencode"),
     integration("integration.use", "deny", "*"),
-    integration("integration.use", "allow", `opencode#${orgID}`),
+    integration("integration.use", "allow", `aicraft#${orgID}`),
   )
 
 const consoleCredential = (org: string) =>
@@ -211,7 +211,7 @@ describe("ConfigPolicyPlugin.Plugin", () => {
       yield* catalog.transform((catalog) => {
         catalog.update(Provider.ID.openai, () => {})
         catalog.update(Provider.ID.anthropic, () => {})
-        catalog.update(Provider.ID.opencode, () => {})
+        catalog.update(Provider.ID.aicraft, () => {})
       })
       yield* addPlugin([
         organizationPolicy([provider("deny", "*"), provider("allow", "opencode")]),
@@ -220,7 +220,7 @@ describe("ConfigPolicyPlugin.Plugin", () => {
 
       expect(yield* catalog.get(Provider.ID.anthropic)).toBeUndefined()
       expect(yield* catalog.get(Provider.ID.openai)).toBeUndefined()
-      expect(yield* catalog.get(Provider.ID.opencode)).toBeDefined()
+      expect(yield* catalog.get(Provider.ID.aicraft)).toBeDefined()
     }),
   )
 
@@ -256,16 +256,16 @@ describe("ConfigPolicyPlugin.Plugin", () => {
       const bus = yield* Bus.Service
       const test = yield* Config.Test
       const host = yield* PluginHost.make(yield* Plugin.Service, "test")
-      const opencode = Integration.ID.make("opencode")
+      const aicraft = Integration.ID.make("opencode")
       yield* catalog.transform((catalog) => catalog.update(Provider.ID.openai, () => {}))
       yield* ConfigPolicyPlugin.Plugin.effect(host)
       expect(yield* catalog.get(Provider.ID.openai)).toBeDefined()
 
-      yield* test.integration?.(opencode, organizationPolicy([provider("deny", "openai")])) ?? Effect.void
+      yield* test.integration?.(aicraft, organizationPolicy([provider("deny", "openai")])) ?? Effect.void
       yield* bus.publish(Event.Updated, {})
       yield* waitUntil(catalog.get(Provider.ID.openai).pipe(Effect.map((provider) => provider === undefined)))
 
-      yield* test.integration?.(opencode, undefined) ?? Effect.void
+      yield* test.integration?.(aicraft, undefined) ?? Effect.void
       yield* bus.publish(Event.Updated, {})
       yield* waitUntil(catalog.get(Provider.ID.openai).pipe(Effect.map((provider) => provider !== undefined)))
     }).pipe(Effect.provide(Config.testLayer())),
@@ -285,8 +285,8 @@ describe("integration policy", () => {
         execute: () => Effect.succeed([]),
       })
       yield* catalog.transform((catalog) => {
-        // The signed-out free tier enables OpenCode without any connection.
-        catalog.update(Provider.ID.opencode, (provider) => {
+        // The signed-out free tier enables AI Craft without any connection.
+        catalog.update(Provider.ID.aicraft, (provider) => {
           provider.activation = "enabled"
         })
         // An env API key: Anthropic's integration with no account.
@@ -345,7 +345,7 @@ describe("integration policy", () => {
         value: consoleCredential("org_other"),
       })
       yield* catalog.transform((catalog) => {
-        catalog.update(Provider.ID.opencode, () => {})
+        catalog.update(Provider.ID.aicraft, () => {})
         catalog.update(Provider.ID.anthropic, () => {})
       })
       yield* addPlugin([
@@ -356,8 +356,8 @@ describe("integration policy", () => {
         ),
       ])
       expect(yield* catalog.get(Provider.ID.anthropic)).toBeDefined()
-      // `opencode` names only account-less use; a connected account needs `opencode#*` or its own ID.
-      expect(yield* catalog.get(Provider.ID.opencode)).toBeUndefined()
+      // `opencode` names only account-less use; a connected account needs `aicraft#*` or its own ID.
+      expect(yield* catalog.get(Provider.ID.aicraft)).toBeUndefined()
     }),
   )
 
@@ -383,13 +383,13 @@ describe("integration policy", () => {
             type: "document",
             integrationID: origin,
             info: decode({
-              providers: { "acme-gateway": { package: "@opencode/ai/providers/openai-compatible", models: {} } },
+              providers: { "acme-gateway": { package: "@aicraft/ai/providers/openai-compatible", models: {} } },
             }),
           }),
           new Document({
             type: "document",
             info: decode({
-              providers: { "my-llm": { package: "@opencode/ai/providers/openai-compatible", models: {} } },
+              providers: { "my-llm": { package: "@aicraft/ai/providers/openai-compatible", models: {} } },
             }),
           }),
         ])

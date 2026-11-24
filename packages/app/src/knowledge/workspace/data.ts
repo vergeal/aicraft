@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/solid-query"
 import { createMemo } from "solid-js"
-import type { ExperimentalServerKnowledgeSearchOutput } from "@opencode/client/promise"
+import type { ExperimentalServerKnowledgeSearchOutput } from "@aicraft/client/promise"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useServer } from "@/runtime/server/current"
 import { normalizeAgentList } from "@/runtime/server/global-sync/utils"

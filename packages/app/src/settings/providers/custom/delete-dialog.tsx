@@ -1,4 +1,4 @@
-import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
+import { ConfirmDialog } from "@aicraft/ui/confirm-dialog"
 import { createSignal } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"

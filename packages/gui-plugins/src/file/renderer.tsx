@@ -12,8 +12,8 @@ import {
   type Signal,
 } from "solid-js"
 import { createStore, produce, unwrap } from "solid-js/store"
-import { Icon } from "@opencode/ui/icon"
-import { encodeFilePath, getFilename } from "@opencode/util/path"
+import { Icon } from "@aicraft/ui/icon"
+import { encodeFilePath, getFilename } from "@aicraft/util/path"
 import {
   Command,
   createKeyed,
@@ -30,9 +30,9 @@ import {
   type SessionScreen,
   type ServerRef,
   type Plugin,
-} from "@opencode/plugin/gui"
-import { artifactKind } from "@opencode/util/artifact"
-import { uuid } from "@opencode/util/uuid"
+} from "@aicraft/plugin/gui"
+import { artifactKind } from "@aicraft/util/artifact"
+import { uuid } from "@aicraft/util/uuid"
 import { resolveArtifactPath } from "./artifact"
 import { FileContext, type FileShared } from "./context"
 import type { OpenApp } from "./apps"
@@ -42,7 +42,7 @@ import {
   type FileListProps,
   type FileTreeProps,
   type OpenInAppProps,
-} from "@opencode/plugin/gui/file"
+} from "@aicraft/plugin/gui/file"
 import type File from "./index"
 import { FileVisual } from "./label"
 import {
@@ -70,9 +70,9 @@ import {
   type PickerEvent,
 } from "./picker-machine"
 import tabStyles from "./tabs.css?inline"
-import { onIdle, BuiltinPanel, BuiltinSlot, type BuiltinPanelTab } from "@opencode/plugin/gui/builtin"
-import { Browser } from "@opencode/plugin/gui/browser"
-import { Changes } from "@opencode/plugin/gui/review"
+import { onIdle, BuiltinPanel, BuiltinSlot, type BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
+import { Browser } from "@aicraft/plugin/gui/browser"
+import { Changes } from "@aicraft/plugin/gui/review"
 
 const OPEN = "open"
 

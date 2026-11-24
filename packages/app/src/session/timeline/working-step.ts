@@ -1,5 +1,5 @@
-import type { SessionMessageAssistant, SessionMessageAssistantTool } from "@opencode/client/promise"
-import { getFilename } from "@opencode/util/path"
+import type { SessionMessageAssistant, SessionMessageAssistantTool } from "@aicraft/client/promise"
+import { getFilename } from "@aicraft/util/path"
 
 type AssistantMessage = Pick<SessionMessageAssistant, "id" | "content" | "time">
 

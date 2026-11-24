@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { uuid } from "@opencode/util/uuid"
+import { uuid } from "@aicraft/util/uuid"
 import type { KnowledgeDiscard } from "@/runtime/platform/platform"
 import { Persistence } from "@/runtime/persistence/schema"
 import { Persist, persisted } from "@/runtime/persistence/storage"

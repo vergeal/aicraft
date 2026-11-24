@@ -1,5 +1,5 @@
 import type { Component, Owner } from "solid-js"
-import type { PluginInfo } from "@opencode/client/promise"
+import type { PluginInfo } from "@aicraft/client/promise"
 import type {
   CodeBlockProps,
   Context,
@@ -9,9 +9,9 @@ import type {
   Live,
   SessionRef,
   SessionScreen,
-} from "@opencode/plugin/gui"
-import type { BuiltinPanelTab } from "@opencode/plugin/gui/builtin"
-import type { Bridge, BridgeMessage, EnableState, Installed } from "@opencode/plugin/gui/host"
+} from "@aicraft/plugin/gui"
+import type { BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
+import type { Bridge, BridgeMessage, EnableState, Installed } from "@aicraft/plugin/gui/host"
 import type { mountCodeBlocks } from "./plugin-host.fixture"
 import { expect, sourceURL, story } from "../../stories/playwright/story"
 
@@ -459,7 +459,7 @@ story("ctx.ui renders the app's components in a contribution, a host menu and a 
   }, fixture)
 
   const root = page.getByTestId("ui-host")
-  await expect(root.locator('svg[data-slot="icon-svg"] > use[href="#opencode-v2-icon-branch"]')).toHaveCount(1)
+  await expect(root.locator('svg[data-slot="icon-svg"] > use[href="#aicraft-v2-icon-branch"]')).toHaveCount(1)
   await expect(root.locator('svg[data-component="loader-v2"]')).toHaveAttribute("width", "20")
   await expect(root.locator('[data-component="keybind-v2"]')).toHaveText("CtrlK")
   await expect(root.locator('[data-component="markdown"] h1')).toHaveText("Fixture heading")
@@ -470,7 +470,7 @@ story("ctx.ui renders the app's components in a contribution, a host menu and a 
 
   const apply = root.getByRole("button", { name: "Apply" })
   await expect(apply).toHaveAttribute("data-component", "button-v2")
-  await expect(apply.locator('use[href="#opencode-v2-icon-check"]')).toHaveCount(1)
+  await expect(apply.locator('use[href="#aicraft-v2-icon-check"]')).toHaveCount(1)
   await apply.click()
 
   const reload = root.getByRole("button", { name: "Reload" })
@@ -522,7 +522,7 @@ story("ctx.ui renders the app's components in a contribution, a host menu and a 
   await expect(project.getByRole("separator")).toHaveCount(1)
   const usage = project.getByRole("menuitem", { name: "Usage" })
   await expect(usage).toHaveAttribute("data-component", "menu-v2-item")
-  await expect(usage.locator('use[href="#opencode-v2-icon-status"]')).toHaveCount(1)
+  await expect(usage.locator('use[href="#aicraft-v2-icon-status"]')).toHaveCount(1)
   await expect(usage.locator('[data-component="keybind-v2"]')).toHaveText("U")
   await usage.click()
   await expect(project).toHaveCount(0)
@@ -1326,7 +1326,7 @@ story("Extensions › Plugins merges the own server's plugins with the desktop G
         // A plugin without a GUI lists its name only.
         listed("lint-rules", { server: true }),
         // The server's own built-ins are not listed, as on every server.
-        { ...listed("opencode-builtin", { server: true }), source: { type: "builtin" } },
+        { ...listed("aicraft-builtin", { server: true }), source: { type: "builtin" } },
       ],
       definitions: [
         { id: "review", windowEntry: async () => ({ default: () => {} }) },
@@ -1659,7 +1659,7 @@ story(
       const withdrawn = {
         listed: host.options().some((option: { id: string }) => option.id === "acme:midnight"),
         selected: host.selected(),
-        stored: localStorage.getItem("opencode-theme-id"),
+        stored: localStorage.getItem("aicraft-theme-id"),
       }
 
       host.enable()
@@ -1684,9 +1684,9 @@ story("a selected plugin theme that never returns shows the default theme once p
     const { mountThemes, until } = await import(fixture)
     const root = document.documentElement
     // The last run picked a theme whose plugin is now uninstalled, and cached its colors.
-    localStorage.setItem("opencode-theme-id", "gone:midnight")
-    localStorage.setItem("opencode-theme-css-dark", "--background-base:#010203;")
-    localStorage.setItem("opencode-theme-css-light", "--background-base:#010203;")
+    localStorage.setItem("aicraft-theme-id", "gone:midnight")
+    localStorage.setItem("aicraft-theme-css-dark", "--background-base:#010203;")
+    localStorage.setItem("aicraft-theme-css-light", "--background-base:#010203;")
 
     const host = mountThemes({ definitions: [], pending: true })
     // The window is ready to show on the cached colors while the plugin list is still on its way.
@@ -1700,8 +1700,8 @@ story("a selected plugin theme that never returns shows the default theme once p
 
     const settled = {
       selected: host.selected(),
-      stored: localStorage.getItem("opencode-theme-id"),
-      cached: localStorage.getItem("opencode-theme-css-dark") ?? localStorage.getItem("opencode-theme-css-light"),
+      stored: localStorage.getItem("aicraft-theme-id"),
+      cached: localStorage.getItem("aicraft-theme-css-dark") ?? localStorage.getItem("aicraft-theme-css-light"),
     }
 
     host.unmount()

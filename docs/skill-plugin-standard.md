@@ -4,7 +4,7 @@
 
 - 适用范围：`packages/core`（加载器）、`packages/schema`（数据结构）、`packages/plugin`（入口解析）、`.aicraft/**` 与用户全局配置目录下的技能、插件。
 - 唯一事实来源是代码，本文件描述的是代码当前的加载契约。行为变更时必须同步修改本文。
-- 术语：**配置目录**指项目里向上查找到的 `.aicraft/`，或全局的 `~/.config/opencode/`（macOS 受管环境还可能是系统目录）。
+- 术语：**配置目录**指项目里向上查找到的 `.aicraft/`，或全局的 `~/.config/aicraft/`（macOS 受管环境还可能是系统目录）。
 
 ---
 
@@ -14,18 +14,18 @@
 
 | 来源         | 位置                                                            | 加载者                          |
 | ------------ | --------------------------------------------------------------- | ------------------------------- |
-| 项目配置目录 | `<project>/.aicraft/skill/`、`<project>/.aicraft/skills/`     | `opencode.config.skill`         |
-| 全局配置目录 | `~/.config/aicraft/skill/`、`~/.config/aicraft/skills/`       | `opencode.config.skill`         |
-| 配置字段     | `aicraft.json(c)` 的 `skills`，每项是路径或 `https?://` URL    | `opencode.config.skill`         |
-| Claude 兼容  | `<project>/.claude/skills/`、`~/.claude/skills/`                | `opencode.config.compatibility` |
-| Agents 兼容  | `<project>/.agents/skills/`、`~/.agents/skills/`                | `opencode.config.compatibility` |
-| 内置         | 虚拟路径 `skill://aicraft/SKILL.md`、`skill://report/SKILL.md` | `opencode.skill`                |
+| 项目配置目录 | `<project>/.aicraft/skill/`、`<project>/.aicraft/skills/`     | `aicraft.config.skill`         |
+| 全局配置目录 | `~/.config/aicraft/skill/`、`~/.config/aicraft/skills/`       | `aicraft.config.skill`         |
+| 配置字段     | `aicraft.json(c)` 的 `skills`，每项是路径或 `https?://` URL    | `aicraft.config.skill`         |
+| Claude 兼容  | `<project>/.claude/skills/`、`~/.claude/skills/`                | `aicraft.config.compatibility` |
+| Agents 兼容  | `<project>/.agents/skills/`、`~/.agents/skills/`                | `aicraft.config.compatibility` |
+| 内置         | 虚拟路径 `skill://aicraft/SKILL.md`、`skill://report/SKILL.md` | `aicraft.skill`                |
 
 - `skill/` 与 `skills/` 两个目录名都会被扫描，二者等价。
 - `skills` 配置项支持两种写法：数组 `["路径或 URL", ...]`，或对象 `{ "paths": [...], "urls": [...] }`。
 - `skills` 配置项支持 `~/` 展开；相对路径相对当前工作目录；`http(s)` 链接会被拉取后当作目录源。
 - 所有来源解析成 `Skill.Info` 后按 `id` 合并，后加载的同名技能覆盖先加载的。
-- `Skill.Info` 带可选的 `plugin` 字段，记录贡献该技能的插件 id（如 `changhong.aicraft.dbro`、`opencode.skill`）。探索页与设置里的「已安装」技能列表据此把插件带入的技能归到插件自己的详情页，只保留用户自己写的技能与不上探索页的内置技能。
+- `Skill.Info` 带可选的 `plugin` 字段，记录贡献该技能的插件 id（如 `changhong.aicraft.dbro`、`aicraft.skill`）。探索页与设置里的「已安装」技能列表据此把插件带入的技能归到插件自己的详情页，只保留用户自己写的技能与不上探索页的内置技能。
 
 ### 1.2 目录形态
 
@@ -97,7 +97,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 
 布尔值接受 `true/false`、`yes/no`、`on/off`、`1/0`（不区分大小写、允许前后空格）。
 
-`category` 由**客户端定义**，作者只能在下列取值里选一个（`@opencode/schema` 的 `Catalog.Categories`）：
+`category` 由**客户端定义**，作者只能在下列取值里选一个（`@aicraft/schema` 的 `Catalog.Categories`）：
 
 | 取值              | 中文标签 |
 | ----------------- | -------- |
@@ -147,7 +147,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 | 来源         | 位置                                                                 |
 | ------------ | -------------------------------------------------------------------- |
 | 项目配置目录 | `<project>/.aicraft/plugin/`、`<project>/.aicraft/plugins/`        |
-| 全局配置目录 | `~/.config/opencode/plugin/`、`~/.config/opencode/plugins/`          |
+| 全局配置目录 | `~/.config/aicraft/plugin/`、`~/.config/aicraft/plugins/`          |
 | 已安装组合包 | `~/.aicraft/exc/<id>/`（每个子目录是一个插件）                |
 | 配置字段     | `aicraft.json(c)` 的 `plugins: (string \| { package, options? })[]` |
 
@@ -220,7 +220,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 
 ### 2.6 插件是能力组合包
 
-**定义：插件 = 工具链 + 技能的组合包。** 插件不是「一个入口文件」或「一段可执行代码」，而是向 opencode 大脑登记能力的一份清单。模型是唯一调度者：插件之间不直接互调，各自把自己的工具、命令、MCP 服务器和技能注册上来，由模型在会话里组合使用。
+**定义：插件 = 工具链 + 技能的组合包。** 插件不是「一个入口文件」或「一段可执行代码」，而是向 aicraft 大脑登记能力的一份清单。模型是唯一调度者：插件之间不直接互调，各自把自己的工具、命令、MCP 服务器和技能注册上来，由模型在会话里组合使用。
 
 #### 能力类型
 
@@ -243,10 +243,10 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 内部插件默认**不**出现在探索页。要让用户看见它、并能查看它带了哪些能力，在 `Plugin.define` 里声明 `display`：
 
 ```ts
-import { Plugin } from "@opencode/plugin/effect"
+import { Plugin } from "@aicraft/plugin/effect"
 
 export default Plugin.define({
-  id: "opencode.example",
+  id: "aicraft.example",
   display: {
     name: "面向用户的名称",
     description: "面向用户的说明，不写包名与内部术语。",
@@ -320,7 +320,7 @@ export default Plugin.define({
 #### 现有案例
 
 - `packages/plugin-browser`：桌面浏览器插件，通过 CDP/proxy 控制浏览器，作为内置插件编译进 Core，注册 `browser.*` 工具与 `browser` 技能。
-- `plugins/webwright`（`opencode.webwright`）：独立的 `.exc` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
+- `plugins/webwright`（`aicraft.webwright`）：独立的 `.exc` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
 
 ---
 
@@ -376,11 +376,11 @@ README.md                # 可选
 ```jsonc
 {
   "apiVersion": 1,
-  "id": "opencode.webwright",
+  "id": "aicraft.webwright",
   "version": "2.2.5",
   "requires": { "opencode": "^2.2.5" },
   "entry": { "server": "server/index.js" },
-  "externals": ["effect", "@opencode/plugin", "@opencode/schema", "@opencode/util"],
+  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema", "@aicraft/util"],
   "display": {
     "name": "Webwright",
     "description": "让 AI 直接操作浏览器……",
@@ -406,7 +406,7 @@ README.md                # 可选
 | `apiVersion`        | 是   | 组合包规范版本。未知版本拒绝安装，提示升级 AI Craft。                                                      |
 | `id`                | 是   | 插件 id，必须与入口 `Plugin.define({ id })` 完全一致。点分命名，作为安装目录名与 `-id` 键。                |
 | `version`           | 是   | semver。同 id 安装新版本即覆盖升级。                                                                       |
-| `requires.opencode` | 否   | semver range；不满足时拒绝安装并给出所需版本。                                                             |
+| `requires.aicraft` | 否   | semver range；不满足时拒绝安装并给出所需版本。                                                             |
 | `entry`             | 是   | 入口相对路径，至少一个；文件必须存在且位于包内。                                                           |
 | `externals`         | 否   | 由宿主提供的模块，不得打进包内，见 3.5。                                                                   |
 | `display`           | 否   | 展示元数据，字段与 `Plugin.Display` 相同（`name`、`description`、`category`、`icon`、`skills`、`tools`）。 |
@@ -425,20 +425,20 @@ README.md                # 可选
 
 ### 3.5 依赖与宿主模块
 
-插件在宿主进程内运行，必须与宿主共享**同一份** `effect` 与 `@opencode/*` 模块实例：
+插件在宿主进程内运行，必须与宿主共享**同一份** `effect` 与 `@aicraft/*` 模块实例：
 
 - `Context.Service`、`Schema` 品牌、Layer 依赖都靠模块单例识别。若插件把 `effect` 打进自己的 bundle，插件里的 `Service` 与宿主的不是同一个 tag，注册会静默失效。
 - 因此这些模块必须列进 `externals`，构建时 `--external`，**不**打进包内。
 - 包内也不放 `node_modules/`。安装器负责让 `externals` 可解析：在 `<插件目录>/node_modules/` 下生成**纯文件 shim**（不依赖符号链接权限），内容指向宿主实际入口：
 
   ```json
-  // <插件目录>/node_modules/@opencode/plugin/package.json
-  { "name": "@opencode/plugin", "exports": "./index.js" }
+  // <插件目录>/node_modules/@aicraft/plugin/package.json
+  { "name": "@aicraft/plugin", "exports": "./index.js" }
   ```
 
   ```js
-  // <插件目录>/node_modules/@opencode/plugin/index.js
-  export * from "file:///…/node_modules/@opencode/plugin/dist/index.js"
+  // <插件目录>/node_modules/@aicraft/plugin/index.js
+  export * from "file:///…/node_modules/@aicraft/plugin/dist/index.js"
   ```
 
   宿主在自己的进程里能解析到这些模块，安装器因此可以复制它实际加载的那份入口 URL，保证版本一致。
@@ -474,11 +474,11 @@ README.md                # 可选
 安装位置：`~/.aicraft/exc/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
 
 - **安装 = 解包到插件目录**，不写 `plugins` 配置。
-- **卸载 = 删除目录**；临时禁用可在配置里写 `-opencode.webwright`（见 2.1 顺序规则）。
+- **卸载 = 删除目录**；临时禁用可在配置里写 `-aicraft.webwright`（见 2.1 顺序规则）。
 
 安装步骤（原子、可回滚）：
 
-1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.exc`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.opencode`、`entry` 是否存在且位于包内。
+1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.exc`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.aicraft`、`entry` 是否存在且位于包内。
 2. 拒绝路径穿越、绝对路径、符号链接、超大文件；校验 `files` 中的 sha256（若声明）。
 3. 解包到同级的临时目录 `.<id>.tmp-<random>`。
 4. 按 3.5 生成 `externals` shim。
@@ -496,7 +496,7 @@ README.md                # 可选
 
 ### 3.9 版本、兼容与安全
 
-- `apiVersion` 与 `requires.opencode` 不满足：拒绝安装，并在错误里给出当前宿主版本。
+- `apiVersion` 与 `requires.aicraft` 不满足：拒绝安装，并在错误里给出当前宿主版本。
 - v1 只做 sha256 完整性校验，不签名；安装器仍需把包内容当作不可信输入。
 - 安全边界以「不执行包内代码」为前提：校验与解包阶段不 import 任何包内模块，只做文件操作与 JSON 解析。
 - 将来支持签名时，在 `METAINF` 增加签名段，`apiVersion` 递增；旧宿主必须拒绝未知版本，而不是忽略。

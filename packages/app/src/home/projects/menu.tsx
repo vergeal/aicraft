@@ -1,6 +1,6 @@
 import { For } from "solid-js"
-import { Project } from "@opencode/schema/project"
-import { Menu } from "@opencode/ui/menu"
+import { Project } from "@aicraft/schema/project"
+import { Menu } from "@aicraft/ui/menu"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import type { ServerConnection } from "@/runtime/server/registry"

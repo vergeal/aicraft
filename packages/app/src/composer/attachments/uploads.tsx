@@ -1,7 +1,7 @@
 import { createEffect, createRoot, For, on, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
-import { Icon } from "@opencode/ui/icon"
-import { Toast, toaster } from "@opencode/ui/toast"
+import { Icon } from "@aicraft/ui/icon"
+import { Toast, toaster } from "@aicraft/ui/toast"
 import { useLanguage } from "@/runtime/i18n/language"
 
 export type Upload = {

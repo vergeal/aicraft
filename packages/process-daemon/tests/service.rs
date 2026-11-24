@@ -7,8 +7,8 @@ use std::env;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use opencode_pty::service::{CreateTerminal, TerminalLifecycle, TerminalService};
-use opencode_pty::{protocol::AttachmentRole, service::StreamEvent};
+use aicraft_pty::service::{CreateTerminal, TerminalLifecycle, TerminalService};
+use aicraft_pty::{protocol::AttachmentRole, service::StreamEvent};
 use resize_fixture::ResizeFixture;
 
 #[test]

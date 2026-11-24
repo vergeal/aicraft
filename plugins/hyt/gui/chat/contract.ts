@@ -1,4 +1,4 @@
-import { Ipc } from "@opencode/plugin/gui"
+import { Ipc } from "@aicraft/plugin/gui"
 import { Schema } from "effect"
 
 /**

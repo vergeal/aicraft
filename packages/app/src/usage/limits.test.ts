@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { UsageLimitsBudget, UsageLimitsInfo } from "@opencode/client/promise"
+import type { UsageLimitsBudget, UsageLimitsInfo } from "@aicraft/client/promise"
 import { modelUsage, usageView } from "./limits"
 
 const RESET = Date.UTC(2026, 10, 1)
@@ -47,7 +47,7 @@ describe("modelUsage", () => {
 
     expect(modelUsage(limits, served("claude-sonnet-5"))).toEqual({ left: 30, reached: false, resetsAt: RESET })
     expect(modelUsage(limits, served("claude-opus-5"))).toEqual({ left: 0, reached: true, resetsAt: RESET })
-    // A budget on all spend covers models served through the workspace, but not OpenCode Go or a direct provider.
+    // A budget on all spend covers models served through the workspace, but not AI Craft Go or a direct provider.
     expect(modelUsage(limits, served("gpt-6-sol", "console-openai"))).toEqual({
       left: 400,
       reached: false,

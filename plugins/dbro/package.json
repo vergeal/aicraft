@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@opencode/plugin-dbro",
+  "name": "@aicraft/plugin-dbro",
   "version": "0.1.1",
   "description": "Read-only database queries for 达梦 8, MySQL and PostgreSQL through one dialect-aware tool namespace",
   "type": "module",
@@ -20,8 +20,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode/plugin": "workspace:*",
-    "@opencode/schema": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/schema": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

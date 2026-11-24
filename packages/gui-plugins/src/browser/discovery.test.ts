@@ -67,9 +67,9 @@ test("parseVersion requires both fields", () => {
 })
 
 test("launch args name the port and a separate profile", () => {
-  expect(launchArgs({ port: 9222, userDataDir: "/tmp/opencode-chrome" })).toEqual([
+  expect(launchArgs({ port: 9222, userDataDir: "/tmp/aicraft-chrome" })).toEqual([
     "--remote-debugging-port=9222",
-    "--user-data-dir=/tmp/opencode-chrome",
+    "--user-data-dir=/tmp/aicraft-chrome",
   ])
 })
 

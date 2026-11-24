@@ -8,7 +8,7 @@ import { DesktopLogging, scoped } from "../native/logging"
 import { DesktopStorage } from "../storage"
 import { safeWebContentsURL } from "../windows/state"
 import { getLastFocusedWindow, mainWindows, setAppQuitting, setRelaunchHandler } from "../windows"
-import type { Scope } from "@opencode/plugin/gui/host"
+import type { Scope } from "@aicraft/plugin/gui/host"
 import { marks } from "./marks"
 import {
   createDriver,
@@ -98,7 +98,7 @@ const runtime = Layer.effect(
     const relaunch = () => driver.dispatch({ type: "exit.requested", mode: "relaunch" })
 
     const secondInstance = (_event: Event, argv: string[]) => {
-      const urls = argv.filter((arg) => arg.startsWith("opencode://"))
+      const urls = argv.filter((arg) => arg.startsWith("aicraft://"))
 
       if (urls.length) {
         runFork(Effect.logInfo("deep link received via second-instance", { urls }))

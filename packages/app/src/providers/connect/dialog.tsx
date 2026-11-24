@@ -1,13 +1,13 @@
-import { Button } from "@opencode/ui/button"
-import { Badge } from "@opencode/ui/badge"
-import { useDialog } from "@opencode/ui/context/dialog"
-import { Icon } from "@opencode/ui/icon"
-import { RadioGroup, RadioItem } from "@opencode/ui/radio"
-import { Checkbox } from "@opencode/ui/checkbox"
-import { Loader } from "@opencode/ui/loader"
-import { TextField } from "@opencode/ui/text-field"
-import { DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup, Dialog } from "@opencode/ui/dialog"
-import { TextInput } from "@opencode/ui/text-input"
+import { Button } from "@aicraft/ui/button"
+import { Badge } from "@aicraft/ui/badge"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { Icon } from "@aicraft/ui/icon"
+import { RadioGroup, RadioItem } from "@aicraft/ui/radio"
+import { Checkbox } from "@aicraft/ui/checkbox"
+import { Loader } from "@aicraft/ui/loader"
+import { TextField } from "@aicraft/ui/text-field"
+import { DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup, Dialog } from "@aicraft/ui/dialog"
+import { TextInput } from "@aicraft/ui/text-input"
 import { showToast } from "@/shell/notifications/toast"
 import {
   type Component,
@@ -44,7 +44,7 @@ import { useTabs } from "@/shell/tabs/tabs"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { Persistence } from "@/runtime/persistence/schema"
 import { Schema } from "effect"
-import type { FormAnswer, FormField, FormValue, IntegrationInfo } from "@opencode/client/promise"
+import type { FormAnswer, FormField, FormValue, IntegrationInfo } from "@aicraft/client/promise"
 import { CLAUDE_AGENT_INTEGRATION, CONSOLE_INTEGRATION, createProviderConnectionController } from "./controller"
 import { connectMethods, providerFormDefaults, type ProviderConnectMethod } from "./machine"
 import { ConsoleAuthorization } from "./console"
@@ -782,7 +782,7 @@ function ProviderConnection(props: {
     if (showAccounts() && !claudeAgentSetup()) return props.onTitle(provider().name)
 
     if (isConsole && view().status === "failed")
-      return props.onTitle(language.t("provider.connect.opencode.errorTitle"))
+      return props.onTitle(language.t("provider.connect.aicraft.errorTitle"))
 
     if (consoleSignIn())
       return props.onTitle(
@@ -796,7 +796,7 @@ function ProviderConnection(props: {
 
     props.onTitle(
       language.t("provider.connect.title", {
-        provider: props.provider === "opencode" ? language.t("provider.connect.opencode.name") : provider().name,
+        provider: props.provider === "opencode" ? language.t("provider.connect.aicraft.name") : provider().name,
       }),
     )
   })

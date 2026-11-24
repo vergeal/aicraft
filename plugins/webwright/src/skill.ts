@@ -1,8 +1,8 @@
 export * as BrowserSkill from "./skill.js"
 
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
-import { AbsolutePath } from "@opencode/schema/schema"
-import { Skill } from "@opencode/schema/skill"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
+import { AbsolutePath } from "@aicraft/schema/schema"
+import { Skill } from "@aicraft/schema/skill"
 import { Effect } from "effect"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"

@@ -1,7 +1,7 @@
 import { lazy, Show, Suspense } from "solid-js"
-import { Button } from "@opencode/ui/button"
-import { TextInput } from "@opencode/ui/text-input"
-import { ChanghongLogo } from "@opencode/ui/changhong-logo"
+import { Button } from "@aicraft/ui/button"
+import { TextInput } from "@aicraft/ui/text-input"
+import { ChanghongLogo } from "@aicraft/ui/changhong-logo"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { cameraHint, createCameraAvailability } from "./camera"
@@ -154,7 +154,7 @@ export function ConnectServerScreen(props: { url?: string } = {}) {
           <Show when={view().draft.method === "link"}>
             <footer>
               <p>{language.t("server.connect.pair.link")}</p>
-              <code dir="ltr">opencode pair</code>
+              <code dir="ltr">aicraft pair</code>
             </footer>
           </Show>
         </Show>

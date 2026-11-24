@@ -1,4 +1,4 @@
-import type { SessionMessageAssistant } from "@opencode/client/promise"
+import type { SessionMessageAssistant } from "@aicraft/client/promise"
 import { Predicate } from "effect"
 import type { ProcessActivity } from "./types"
 
@@ -21,9 +21,9 @@ export function toolMark(tool: Pick<ToolPart, "name" | "icon">): string {
   return `tool-${(MARK_ALIASES[label] ?? label).replace(/[^a-zA-Z0-9_-]/g, "_")}`
 }
 
-/** The advertised tool name without its `opencode_` namespace prefix, for display and catalog keys. */
+/** The advertised tool name without its `aicraft_` namespace prefix, for display and catalog keys. */
 export function toolLabel(name: string): string {
-  return name.replace(/^opencode_/, "")
+  return name.replace(/^aicraft_/, "")
 }
 
 /** A tool's input: an object when parsed, raw text while it streams. */

@@ -1,4 +1,4 @@
-@import "@opencode/ui/document-surface.css";
+@import "@aicraft/ui/document-surface.css";
 
 [data-slot="knowledge-panel"] {
   /* Tones are picked per card so a flat grid still reads as a set of distinct collections. */

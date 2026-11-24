@@ -1,11 +1,11 @@
-export * as OpenCodeTools from "./opencode.js"
+export * as AicraftTools from "./aicraft.js"
 
-import { SystemPart, ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import type { SessionHooks } from "@opencode/plugin/effect/session"
-import { Model } from "@opencode/schema/model"
-import { AbsolutePath } from "@opencode/schema/schema"
-import { Session } from "@opencode/schema/session"
+import { SystemPart, ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { Model } from "@aicraft/schema/model"
+import { AbsolutePath } from "@aicraft/schema/schema"
+import { Session } from "@aicraft/schema/session"
 import { Effect, Schema } from "effect"
 import { toolFailure } from "../runtime.js"
 import { FileAccess } from "../../file-access.js"
@@ -93,15 +93,15 @@ const ModelsOutput = Schema.Struct({
 })
 
 export const Plugin = {
-  id: "opencode.tools",
-  effect: Effect.fn("OpenCodeTools.Plugin")(function* (ctx: Context) {
+  id: "aicraft.tools",
+  effect: Effect.fn("AicraftTools.Plugin")(function* (ctx: Context) {
     const access = yield* FileAccess.Service
     const permission = yield* Permission.Service
     const hook = (event: SessionHooks["context"]) =>
       Effect.sync(() => {
         event.system.push(
           SystemPart.make(
-            "When you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.opencode.session_move` and make the worktree the session's working directory.",
+            "When you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.aicraft.session_move` and make the worktree the session's working directory.",
           ),
         )
       })
@@ -113,7 +113,7 @@ export const Plugin = {
         draft.namespace({
           name: "opencode",
           description:
-            "Tools for managing OpenCode itself, such as working with sessions and worktrees, searching the available models, and reading MCP resources.",
+            "Tools for managing AI Craft itself, such as working with sessions and worktrees, searching the available models, and reading MCP resources.",
         })
         draft.add({
           name: "session_rename",

@@ -129,9 +129,9 @@ export const dict = {
   "dialog.provider.empty": "Δεν βρέθηκαν πάροχοι",
   "dialog.provider.group.popular": "Δημοφιλή",
   "dialog.provider.tag.recommended": "Συνιστάται",
-  "dialog.provider.opencode.note": "Επιμελημένα μοντέλα συμπεριλαμβανομένων των Claude, GPT, Gemini και άλλων",
-  "dialog.provider.opencode.tagline": "Αξιόπιστα βελτιστοποιημένα μοντέλα",
-  "dialog.provider.opencodeGo.tagline": "Συνδρομή χαμηλού κόστους για όλους",
+  "dialog.provider.aicraft.note": "Επιμελημένα μοντέλα συμπεριλαμβανομένων των Claude, GPT, Gemini και άλλων",
+  "dialog.provider.aicraft.tagline": "Αξιόπιστα βελτιστοποιημένα μοντέλα",
+  "dialog.provider.aicraftGo.tagline": "Συνδρομή χαμηλού κόστους για όλους",
   "dialog.provider.copilot.note": "Μοντέλα AI για βοήθεια κωδικοποίησης μέσω GitHub Copilot",
   "dialog.provider.openai.note": "GPT μοντέλα για γρήγορες, ικανές εργασίες γενικής τεχνητής νοημοσύνης",
   "dialog.provider.google.note": "Gemini μοντέλα για γρήγορες, δομημένες απαντήσεις",
@@ -612,7 +612,7 @@ export const dict = {
   "desktop.menu.installCli": "Εγκατάσταση CLI...",
   "desktop.cli.installed.title": "Το CLI εγκαταστάθηκε",
   "desktop.cli.installed.message":
-    "Το CLI εγκαταστάθηκε στη διαδρομή {{path}}\n\nΕπανεκκινήστε το τερματικό για να χρησιμοποιήσετε την εντολή 'opencode2'.",
+    "Το CLI εγκαταστάθηκε στη διαδρομή {{path}}\n\nΕπανεκκινήστε το τερματικό για να χρησιμοποιήσετε την εντολή 'aicraft2'.",
   "desktop.cli.failed.title": "Η εγκατάσταση απέτυχε",
   "desktop.cli.failed.message": "Αποτυχία εγκατάστασης του CLI: {{error}}",
   "command.project.copyID": "Αντιγραφή ID έργου",
@@ -684,7 +684,7 @@ export const dict = {
   "settings.about.firstIllustrated": "Εικονογραφήθηκε για πρώτη φορά στο Λονδίνο της Αγγλίας",
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ο παράγοντας κωδικοποίησης ανοιχτού κώδικα",
-  "settings.about.trademark": "Το OpenCode είναι σήμα κατατεθέν της Anomaly Innovations, Inc.",
+  "settings.about.trademark": "Το AI Craft είναι σήμα κατατεθέν της Anomaly Innovations, Inc.",
   "settings.about.typeset": "Δακτυλογράφηση σε Inter και IBM Plex Mono",
   "settings.about.tagline": "Το AI δεν μπορεί να δημιουργήσει εξαιρετικό λογισμικό, χωρίς εσάς",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
@@ -728,9 +728,9 @@ export const dict = {
   "server.connect.failed":
     "Δεν ήταν δυνατή η σύνδεση. Ελέγξτε τη διεύθυνση του διακομιστή και τον κωδικό πρόσβασης και, στη συνέχεια, δοκιμάστε ξανά.",
   "server.connect.scan": "Σάρωση κωδικού QR",
-  "server.connect.scan.description": "Στρέψτε την κάμερά σας στον κωδικό QR που εμφανίζεται από το opencode pair.",
+  "server.connect.scan.description": "Στρέψτε την κάμερά σας στον κωδικό QR που εμφανίζεται από το aicraft pair.",
   "server.connect.scan.invalid":
-    "Αυτός δεν είναι κωδικός σύζευξης AI Craft. Σαρώστε τον κωδικό που εμφανίζεται από το opencode pair.",
+    "Αυτός δεν είναι κωδικός σύζευξης AI Craft. Σαρώστε τον κωδικό που εμφανίζεται από το aicraft pair.",
   "server.connect.camera": "Κάμερα ζευγοποίησης",
   "server.connect.camera.starting": "Άνοιγμα κάμερας…",
   "server.connect.mixedContent":
@@ -773,8 +773,8 @@ export const dict = {
     "Χρησιμοποιείται για το εικονίδιο του έργου όταν δεν έχει οριστεί προσαρμοσμένη εικόνα",
   "project.settings.worktree.startup.description": "Εκτελείται μία φορά μετά τη δημιουργία ενός νέου δέντρου εργασίας",
   "project.settings.worktree.startup.hint.base":
-    "Χρησιμοποιήστε το $OPENCODE_WORKTREE_BASE για το βασικό δέντρο εργασίας.",
-  "project.settings.worktree.startup.hint.new": "Χρησιμοποιήστε το $OPENCODE_WORKTREE_PATH για το νέο δέντρο εργασίας.",
+    "Χρησιμοποιήστε το $AICRAFT_WORKTREE_BASE για το βασικό δέντρο εργασίας.",
+  "project.settings.worktree.startup.hint.new": "Χρησιμοποιήστε το $AICRAFT_WORKTREE_PATH για το νέο δέντρο εργασίας.",
   "project.settings.extensions.empty.mcps.title": "Όχι MCPs ακόμα",
   "project.settings.extensions.empty.mcps.description": "Το MCPs διαθέσιμο στο AI Craft θα εμφανιστεί εδώ",
   "project.settings.extensions.empty.plugins.title": "Δεν υπάρχουν πρόσθετα ακόμα",

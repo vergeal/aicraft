@@ -1,24 +1,24 @@
-import type { OpenCodeEvent } from "@opencode/client"
+import type { AicraftEvent } from "@aicraft/client"
 import { useClient } from "./client"
 
 type EventMetadata = {
   directory: string | undefined
 }
-type OpenCodeEventMap = { [Type in OpenCodeEvent["type"]]: Extract<OpenCodeEvent, { type: Type }> }
+type AicraftEventMap = { [Type in AicraftEvent["type"]]: Extract<AicraftEvent, { type: Type }> }
 
 export function useEvent() {
   const client = useClient()
 
-  function subscribe(handler: (event: OpenCodeEvent, metadata: EventMetadata) => void) {
+  function subscribe(handler: (event: AicraftEvent, metadata: EventMetadata) => void) {
     return client.event.listen(({ details }) => {
       if (details.type === "server.connected") return
       handler(details, { directory: details.location?.directory })
     })
   }
 
-  function on<T extends OpenCodeEvent["type"]>(
+  function on<T extends AicraftEvent["type"]>(
     type: T,
-    handler: (event: OpenCodeEventMap[T], metadata: EventMetadata) => void,
+    handler: (event: AicraftEventMap[T], metadata: EventMetadata) => void,
   ) {
     return client.event.on(type, (event) => {
       handler(event, { directory: event.location?.directory })

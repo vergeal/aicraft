@@ -1,7 +1,7 @@
 export * as BrowserSkill from "./skill.js"
 
-import { SkillPackage } from "@opencode/plugin/skill-package"
-import { Skill } from "@opencode/schema/skill"
+import { SkillPackage } from "@aicraft/plugin/skill-package"
+import { Skill } from "@aicraft/schema/skill"
 import { Browser } from "./rpc.js"
 
 export const id = Skill.ID.make("browser")

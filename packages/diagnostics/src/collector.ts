@@ -153,7 +153,7 @@ export const diagnostics = {
     const timeOrigin = performance.timeOrigin
 
     return {
-      schema: "opencode.diagnostics.v2",
+      schema: "aicraft.diagnostics.v2",
       generatedAt: new Date().toISOString(),
       timeOrigin,
       capture: captureStats(),

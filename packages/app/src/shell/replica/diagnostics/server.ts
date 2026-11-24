@@ -1,4 +1,4 @@
-import { diagnostics } from "@opencode/diagnostics"
+import { diagnostics } from "@aicraft/diagnostics"
 import type { ServerCtx } from "@/runtime/server/runtime"
 
 // The server keeps an in-process span and slow-query buffer and exposes it through an experimental

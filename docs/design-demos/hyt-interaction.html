@@ -1,0 +1,1997 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>虹云通 · 交互补充设计</title>
+    <style>
+      /* =======================================================================
+         虹云通交互补充 · 设计图
+         -----------------------------------------------------------------------
+         五项：右键菜单、选中复制、复制按钮位置、用户卡片、分割胶囊。
+         颜色取 hyt/styles.ts 的同一组 token，浅深两套都按原值；
+         这里只做一处新增语义：选区底色（--sel），用 --link 混出。
+
+         可交互：右键会话/消息/头像，点头像看卡片，悬浮并拖动中缝。
+         ======================================================================= */
+
+      :root {
+        --paper: #ffffff;
+        --chrome: #f3f5f7;
+        --ink: #1b2430;
+        --muted: #55636f;
+        --line: #e4e8ec;
+        --line-soft: #edf0f3;
+        --seal: #c33a2e;
+        --seal-ink: #b03227;
+        --seal-bg: #fbe9e6;
+        --mark: #ffe873;
+        --bubble: #f2f4f6;
+        --bubble-self: #dfeaf4;
+        --link: #2e5f8a;
+        --hover: #ebeef1;
+        --face-a-bg: #e6f2e8;
+        --face-a-fg: #2f6b3f;
+        --face-b-bg: #eceff2;
+        --face-b-fg: #4d5a66;
+        --online: #3ba55d;
+        --shadow: rgba(27, 36, 48, 0.08);
+        --shadow-lg: rgba(27, 36, 48, 0.16);
+        --focus-ring: rgba(46, 95, 138, 0.16);
+        --sel: color-mix(in srgb, var(--link) 22%, transparent);
+
+        --r-row: 8px;
+        --r-bubble: 12px;
+        --r-tip: 4px;
+
+        --page: #0f1216;
+        --page-ink: #e6ebf0;
+        --page-muted: #8c98a5;
+        --page-line: rgba(255, 255, 255, 0.1);
+        --page-card: #171b21;
+
+        --sans: "Inter", "Segoe UI", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        --ledger: "FangSong", "STFangsong", "仿宋", "FangSong_GB2312", serif;
+      }
+
+      [data-theme="dark"] {
+        --paper: #1a1e23;
+        --chrome: #0d1013;
+        --ink: #e3e8ed;
+        --muted: #96a2ae;
+        --line: #303740;
+        --line-soft: #262c33;
+        --seal: #d7564a;
+        --seal-ink: #e88a80;
+        --seal-bg: #39221f;
+        --mark: #6b5616;
+        --bubble: #2a3038;
+        --bubble-self: #29384a;
+        --link: #86b6da;
+        --hover: #1f252b;
+        --face-a-bg: #22342a;
+        --face-a-fg: #93cfa4;
+        --face-b-bg: #2b3138;
+        --face-b-fg: #b6c0c9;
+        --online: #4ecb71;
+        --shadow: rgba(0, 0, 0, 0.45);
+        --shadow-lg: rgba(0, 0, 0, 0.55);
+        --focus-ring: rgba(134, 182, 218, 0.25);
+        --sel: color-mix(in srgb, var(--link) 32%, transparent);
+
+        --page: #0b0d10;
+        --page-card: #14181d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        padding: 44px 40px 80px;
+        background: var(--page);
+        color: var(--page-ink);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 32px;
+        max-width: 1240px;
+        margin: 0 auto 22px;
+      }
+
+      .head h1 {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .head p {
+        margin-top: 8px;
+        max-width: 66ch;
+        color: var(--page-muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .switch {
+        display: flex;
+        flex: 0 0 auto;
+        padding: 3px;
+        border: 1px solid var(--page-line);
+        border-radius: 999px;
+        background: var(--page-card);
+      }
+
+      .switch button {
+        padding: 5px 14px;
+        border-radius: 999px;
+        color: var(--page-muted);
+        font-size: 12px;
+      }
+
+      .switch button[aria-pressed="true"] {
+        background: var(--page-ink);
+        color: var(--page);
+        font-weight: 500;
+      }
+
+      .frame {
+        position: relative;
+        max-width: 1240px;
+        margin: 0 auto;
+      }
+
+      .hint {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 auto 12px;
+        max-width: 1240px;
+      }
+
+      .hint span {
+        padding: 4px 10px;
+        border: 1px solid var(--page-line);
+        border-radius: 999px;
+        color: var(--page-muted);
+        font-size: 12px;
+      }
+
+      .hint b {
+        color: var(--page-ink);
+        font-weight: 500;
+      }
+
+      /* ── 窗口 ─────────────────────────────────────────────────────────── */
+
+      .mock {
+        --rail: 300px;
+        position: relative;
+        display: grid;
+        grid-template-rows: 48px minmax(0, 1fr);
+        width: 100%;
+        height: 720px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        background: var(--paper);
+        box-shadow:
+          0 32px 80px rgba(0, 0, 0, 0.55),
+          0 2px 0 rgba(255, 255, 255, 0.04) inset;
+        color: var(--ink);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .mock[data-resizing="true"] {
+        cursor: col-resize;
+        user-select: none;
+      }
+
+      .mock[data-resizing="true"] * {
+        cursor: col-resize !important;
+      }
+
+      .mock button,
+      .mock input,
+      .mock textarea,
+      .mock .no-select {
+        user-select: none;
+      }
+
+      .titlebar {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px 0 16px;
+        background: linear-gradient(to right, var(--chrome) 0 var(--rail), var(--paper) var(--rail));
+        border-bottom: 1px solid var(--line-soft);
+        transition: background 120ms ease;
+      }
+
+      .titlebar .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .titlebar .mark {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        background: var(--seal);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .titlebar .trail {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .titlebar .trail b {
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .titlebar .slashes {
+        opacity: 0.5;
+      }
+
+      .window-buttons {
+        display: flex;
+        gap: 2px;
+        margin-left: auto;
+        color: var(--ink);
+      }
+
+      .window-buttons i {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 26px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-style: normal;
+        opacity: 0.55;
+      }
+
+      .stage-body {
+        display: grid;
+        grid-template-columns: var(--rail) minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      /* ── 左栏 ─────────────────────────────────────────────────────────── */
+
+      .rail {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--chrome);
+      }
+
+      .rail-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 18px 0;
+      }
+
+      .rail-head .logo {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: var(--seal);
+        color: #fff;
+        font-family: var(--ledger);
+        font-size: 17px;
+      }
+
+      .rail-head .who {
+        min-width: 0;
+      }
+
+      .rail-head .who strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .rail-head .who span {
+        display: block;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .rail-head .unread {
+        margin-left: auto;
+        color: var(--seal-ink);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .search {
+        position: relative;
+        margin: 12px 16px 0;
+      }
+
+      .search input {
+        width: 100%;
+        height: 38px;
+        padding: 0 44px 0 12px;
+        border: 1px solid transparent;
+        border-radius: var(--r-row);
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 13px;
+        cursor: text;
+      }
+
+      .search input::placeholder {
+        color: var(--muted);
+      }
+
+      .search kbd {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 1px 5px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--muted);
+        font-family: inherit;
+        font-size: 12px;
+      }
+
+      .ledger {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 4px 10px 16px;
+        scrollbar-width: none;
+      }
+
+      .ledger::-webkit-scrollbar {
+        display: none;
+      }
+
+      .day {
+        padding: 16px 8px 4px;
+        color: var(--muted);
+        font-family: var(--ledger);
+        font-size: 13px;
+        letter-spacing: 0.03em;
+      }
+
+      .entry {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: 10px;
+        width: 100%;
+        padding: 8px;
+        border-radius: var(--r-row);
+        text-align: start;
+      }
+
+      .entry:hover {
+        background: var(--hover);
+      }
+
+      .entry[aria-current="true"] {
+        background: var(--paper);
+        box-shadow:
+          inset 2px 0 0 var(--seal),
+          inset 0 0 0 1px var(--line);
+      }
+
+      .face {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--face-b-bg);
+        color: var(--face-b-fg);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .face[data-hue="a"] {
+        background: var(--face-a-bg);
+        color: var(--face-a-fg);
+      }
+
+      .face[data-online="true"]::after {
+        content: "";
+        position: absolute;
+        right: -2px;
+        bottom: -2px;
+        width: 9px;
+        height: 9px;
+        border: 2px solid var(--chrome);
+        border-radius: 50%;
+        background: var(--online);
+      }
+
+      .entry[aria-current="true"] .face[data-online="true"]::after {
+        border-color: var(--paper);
+      }
+
+      .entry-text {
+        min-width: 0;
+      }
+
+      .entry-head {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+
+      .entry-name {
+        overflow: hidden;
+        font-size: 14px;
+        font-weight: 500;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .entry-time {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .entry-preview {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      .entry-preview span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .entry[data-unread="true"] .entry-preview span {
+        background: linear-gradient(transparent 62%, var(--mark) 62%);
+        color: var(--ink);
+      }
+
+      .dot {
+        flex: 0 0 auto;
+        padding: 0 4px;
+        border-radius: 4px;
+        background: var(--seal-bg);
+        color: var(--seal-ink);
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .badge {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        min-width: 17px;
+        height: 17px;
+        margin-left: auto;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: var(--seal-bg);
+        color: var(--seal-ink);
+        font-size: 11px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .rail-foot {
+        padding: 10px 18px 14px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .rail-foot strong {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      /* ── 聊天区 ───────────────────────────────────────────────────────── */
+
+      .desk {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        background: var(--paper);
+      }
+
+      .desk-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 0 0 auto;
+        height: 62px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      .desk-head .title {
+        min-width: 0;
+      }
+
+      .desk-head h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .desk-head .sub {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .head-actions {
+        display: flex;
+        gap: 2px;
+        margin-left: auto;
+        color: var(--muted);
+      }
+
+      .head-actions i {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-style: normal;
+        letter-spacing: 0.02em;
+      }
+
+      .head-actions i:hover {
+        background: var(--hover);
+        color: var(--ink);
+      }
+
+      .stream {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 20px 26px 8px;
+        scrollbar-width: none;
+      }
+
+      .stream::-webkit-scrollbar {
+        display: none;
+      }
+
+      .stamp {
+        margin: 2px 0 20px;
+        color: var(--muted);
+        font-family: var(--ledger);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+
+      .system {
+        margin-bottom: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      .msg {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .msg[data-grouped="true"] {
+        margin-top: -8px;
+        margin-bottom: 8px;
+      }
+
+      .msg[data-grouped="true"] .msg-face,
+      .msg[data-grouped="true"] .msg-meta {
+        visibility: hidden;
+      }
+
+      .msg[data-self="true"] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .msg-face {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: var(--face-b-bg);
+        color: var(--face-b-fg);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .msg-face[data-hue="a"] {
+        background: var(--face-a-bg);
+        color: var(--face-a-fg);
+      }
+
+      .msg-body {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+      }
+
+      .msg[data-self="true"] .msg-body {
+        align-items: flex-end;
+      }
+
+      .msg-meta {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 3px;
+      }
+
+      .msg-name {
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .msg-time {
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bubble {
+        max-width: min(560px, 86%);
+        padding: 8px 13px;
+        border-radius: var(--r-bubble);
+        border-top-left-radius: var(--r-tip);
+        background: var(--bubble);
+        font-size: 15px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        user-select: text;
+      }
+
+      .msg[data-self="true"] .bubble {
+        border-top-left-radius: var(--r-bubble);
+        border-top-right-radius: var(--r-tip);
+        background: var(--bubble-self);
+      }
+
+      .bubble .at {
+        padding: 0 4px;
+        border-radius: var(--r-tip);
+        background: var(--seal-bg);
+        color: var(--seal-ink);
+        font-weight: 500;
+      }
+
+      .bubble mark {
+        padding: 0 1px;
+        background: var(--mark);
+        color: var(--ink);
+      }
+
+      .bubble .sel {
+        background: var(--sel);
+        border-radius: 2px;
+        box-shadow: 0 0 0 2px var(--sel);
+      }
+
+      /* 复制行：气泡下方、同侧对齐，悬停/聚焦/选中时出现，占位不跳动 */
+      .msg-tools {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        height: 20px;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 120ms ease-out;
+      }
+
+      .msg:hover .msg-tools,
+      .msg:focus-within .msg-tools,
+      .msg[data-selected="true"] .msg-tools {
+        opacity: 1;
+      }
+
+      .msg-tools button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        padding: 0 5px;
+        border-radius: 4px;
+        color: inherit;
+        font-size: 12px;
+      }
+
+      .msg-tools button:hover {
+        background: var(--chrome);
+        color: var(--ink);
+      }
+
+      .msg-tools .sep {
+        width: 1px;
+        height: 10px;
+        background: var(--line);
+      }
+
+      .msg-tools svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .composer {
+        flex: 0 0 auto;
+        padding: 0 26px 20px;
+      }
+
+      .composer-box {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        box-shadow: 0 1px 2px var(--shadow);
+      }
+
+      .composer-box:focus-within {
+        border-color: var(--muted);
+        box-shadow: 0 0 0 2px var(--focus-ring);
+      }
+
+      .composer-box .field {
+        padding: 10px 14px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        user-select: text;
+      }
+
+      .composer-bar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .composer-bar i {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-style: normal;
+      }
+
+      .composer-bar .send {
+        margin-left: auto;
+        padding: 4px 12px;
+        border-radius: 7px;
+        background: var(--ink);
+        color: var(--paper);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+
+      /* ── 分割胶囊 ─────────────────────────────────────────────────────── */
+
+      .splitter {
+        position: absolute;
+        top: 48px;
+        bottom: 0;
+        left: calc(var(--rail) - 4px);
+        z-index: 20;
+        width: 8px;
+        cursor: col-resize;
+        touch-action: none;
+        outline: none;
+      }
+
+      .splitter::after {
+        content: "";
+        position: absolute;
+        top: calc(50% - var(--titlebar, 48px) / 2);
+        left: 50%;
+        width: 3px;
+        height: 40px;
+        border-radius: 999px;
+        background: #c9d1d8;
+        opacity: 0;
+        transform: translate(-50%, -50%);
+        transition:
+          opacity 130ms ease,
+          background 130ms ease;
+      }
+
+      .splitter:hover::after,
+      .splitter:focus-visible::after {
+        opacity: 1;
+        background: #c9d1d8;
+      }
+
+      [data-theme="dark"] .splitter::after {
+        background: #49525c;
+      }
+
+      .splitter[data-dragging="true"]::after {
+        opacity: 1;
+        background: #ffffff;
+        box-shadow:
+          0 0 0 0.5px rgba(0, 0, 0, 0.16),
+          0 2px 6px rgba(0, 0, 0, 0.24);
+      }
+
+      .splitter:focus-visible::after {
+        box-shadow: 0 0 0 2px var(--focus-ring);
+      }
+
+      /* ── 右键菜单 ─────────────────────────────────────────────────────── */
+
+      .menu {
+        position: absolute;
+        z-index: 40;
+        min-width: 188px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        box-shadow:
+          0 8px 24px var(--shadow-lg),
+          0 1px 2px var(--shadow);
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.5;
+        user-select: none;
+      }
+
+      .menu[hidden] {
+        display: none;
+      }
+
+      .menu .group {
+        padding: 4px 10px 3px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.02em;
+      }
+
+      .menu .item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 6px;
+        text-align: start;
+      }
+
+      .menu .item:hover,
+      .menu .item:focus-visible {
+        outline: none;
+        background: var(--hover);
+      }
+
+      .menu .item kbd {
+        margin-left: auto;
+        color: var(--muted);
+        font-family: inherit;
+        font-size: 11px;
+      }
+
+      .menu .item[data-disabled="true"] {
+        color: var(--muted);
+        opacity: 0.6;
+      }
+
+      .menu .rule {
+        height: 1px;
+        margin: 4px 6px;
+        background: var(--line-soft);
+      }
+
+      .menu .check {
+        width: 12px;
+        color: var(--seal-ink);
+        font-size: 11px;
+      }
+
+      /* ── 用户卡片 ─────────────────────────────────────────────────────── */
+
+      .card {
+        position: absolute;
+        z-index: 45;
+        width: 296px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        box-shadow:
+          0 16px 40px var(--shadow-lg),
+          0 1px 2px var(--shadow);
+        color: var(--ink);
+        user-select: none;
+      }
+
+      .card[hidden] {
+        display: none;
+      }
+
+      .card .who {
+        display: flex;
+        gap: 12px;
+      }
+
+      .card .face-xl {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 52px;
+        height: 52px;
+        border-radius: 13px;
+        background: var(--face-b-bg);
+        color: var(--face-b-fg);
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .card .face-xl[data-hue="a"] {
+        background: var(--face-a-bg);
+        color: var(--face-a-fg);
+      }
+
+      .card .name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .card .online {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 400;
+      }
+
+      .card .online::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--online);
+      }
+
+      .card .account {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .card .dept {
+        margin-top: 1px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .card .rows {
+        margin: 14px 0 0;
+        padding: 10px 0 0;
+        border-top: 1px solid var(--line-soft);
+        font-size: 12px;
+      }
+
+      .card .rows div {
+        display: flex;
+        gap: 10px;
+        padding: 2px 0;
+        color: var(--muted);
+      }
+
+      .card .rows b {
+        flex: 0 0 56px;
+        color: var(--ink);
+        font-weight: 400;
+      }
+
+      .card .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .card .actions button {
+        flex: 1 1 0;
+        height: 32px;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      .card .actions .primary {
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 500;
+      }
+
+      .card .actions .ghost {
+        border: 1px solid var(--line);
+        color: var(--ink);
+      }
+
+      .card .note {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .card .note b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      /* ── 标注 ─────────────────────────────────────────────────────────── */
+
+      .pin {
+        position: absolute;
+        z-index: 50;
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: #1b2430;
+        box-shadow:
+          0 0 0 2px rgba(255, 255, 255, 0.9),
+          0 2px 6px rgba(0, 0, 0, 0.3);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        pointer-events: none;
+      }
+
+      [data-theme="dark"] .pin {
+        background: #e3e8ed;
+        box-shadow:
+          0 0 0 2px rgba(0, 0, 0, 0.6),
+          0 2px 6px rgba(0, 0, 0, 0.5);
+        color: #14181d;
+      }
+
+      /* ── 分节 ─────────────────────────────────────────────────────────── */
+
+      .section {
+        max-width: 1240px;
+        margin: 64px auto 0;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .section-head h2 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .section-head p {
+        color: var(--page-muted);
+        font-size: 12.5px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .tile {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border: 1px solid var(--page-line);
+        border-radius: 12px;
+        background: var(--page-card);
+        overflow: hidden;
+      }
+
+      .tile .tile-stage {
+        position: relative;
+        display: grid;
+        place-items: center;
+        height: 256px;
+        padding: 18px;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.04), transparent 70%),
+          var(--page-card);
+        overflow: hidden;
+      }
+
+      .tile .tile-stage[data-plane="light"] {
+        background: var(--chrome);
+      }
+
+      .tile .tile-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px 16px 16px;
+        border-top: 1px solid var(--page-line);
+      }
+
+      .tile h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .tile h3 em {
+        display: grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--page-ink);
+        color: var(--page);
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 600;
+      }
+
+      .tile ul {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin: 0;
+        padding-left: 16px;
+        color: var(--page-muted);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .tile li::marker {
+        color: rgba(255, 255, 255, 0.25);
+      }
+
+      .tile li b {
+        color: var(--page-ink);
+        font-weight: 500;
+      }
+
+      /* 状态板里的静态片段 */
+      .swatch {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .swatch-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--page-muted);
+        font-size: 11px;
+      }
+
+      .swatch-row > span {
+        flex: 0 0 52px;
+        text-align: right;
+      }
+
+      .pill-box {
+        position: relative;
+        display: grid;
+        place-items: center;
+        flex: 1 1 auto;
+        height: 44px;
+        border: 1px dashed var(--page-line);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.18);
+      }
+
+      .pill {
+        width: 3px;
+        height: 40px;
+        border-radius: 999px;
+        background: #c9d1d8;
+      }
+
+      .pill[data-state="idle"] {
+        opacity: 0;
+      }
+
+      .pill[data-state="hover"] {
+        opacity: 1;
+        background: #c9d1d8;
+      }
+
+      .pill[data-state="drag"] {
+        opacity: 1;
+        background: #fff;
+        box-shadow:
+          0 0 0 0.5px rgba(0, 0, 0, 0.16),
+          0 2px 6px rgba(0, 0, 0, 0.24);
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .spec {
+        border: 1px solid var(--page-line);
+        border-radius: 12px;
+        background: var(--page-card);
+        overflow: hidden;
+      }
+
+      .spec h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--page-line);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .spec h3 em {
+        display: grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--page-ink);
+        color: var(--page);
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 600;
+      }
+
+      .spec table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+      }
+
+      .spec th,
+      .spec td {
+        padding: 9px 16px;
+        border-bottom: 1px solid var(--page-line);
+        vertical-align: top;
+        text-align: start;
+        line-height: 1.6;
+      }
+
+      .spec tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .spec th {
+        width: 118px;
+        color: var(--page-muted);
+        font-weight: 400;
+      }
+
+      .spec td {
+        color: var(--page-ink);
+      }
+
+      .spec td code {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.06);
+        font-family: "Cascadia Mono", Consolas, monospace;
+        font-size: 11.5px;
+      }
+
+      .foot {
+        max-width: 1240px;
+        margin: 48px auto 0;
+        padding-top: 18px;
+        border-top: 1px solid var(--page-line);
+        color: var(--page-muted);
+        font-size: 12px;
+        line-height: 1.8;
+      }
+
+      @media (max-width: 1080px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .board {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 760px) {
+        body {
+          padding: 24px 16px 48px;
+        }
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .mock {
+          height: 620px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="head">
+      <div>
+        <h1>虹云通 · 交互补充设计</h1>
+        <p>
+          五项都从「在聊天里能做什么」出发：内容要选得中、拿得走，列表与头像要能问出「这是谁」，两栏之间的手柄只在需要时出现。颜色沿用聊天界面现有的
+          token，没有新增色相。
+        </p>
+      </div>
+      <div class="switch" role="group" aria-label="主题">
+        <button type="button" data-theme-set="light" aria-pressed="true">浅色</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">深色</button>
+      </div>
+    </header>
+
+    <div class="hint">
+      <span>可交互：<b>右键</b>会话行 / 消息 / 头像</span>
+      <span><b>点</b>头像看用户卡片</span>
+      <span><b>悬浮</b>或<b>拖动</b>两栏中缝</span>
+      <span><b>拖选</b>气泡里的文字</span>
+    </div>
+
+    <div class="frame">
+      <div class="mock" id="mock" data-resizing="false">
+        <div class="titlebar">
+          <span class="brand"><span class="mark">虹</span>虹云通</span>
+          <span class="slashes">/</span>
+          <span class="trail"><b>设备科 · 值班群</b><span>14 人 · 3 条未读</span></span>
+          <span class="window-buttons"><i>—</i><i>▢</i><i>✕</i></span>
+        </div>
+
+        <div class="stage-body">
+          <aside class="rail" id="rail">
+            <div class="rail-head">
+              <span class="logo">值</span>
+              <span class="who">
+                <strong>值班台</strong>
+                <span>changhong · 本地聊天记录</span>
+              </span>
+              <span class="unread">全部已读</span>
+            </div>
+
+            <label class="search">
+              <input type="text" placeholder="搜索会话或消息" aria-label="搜索消息" />
+              <kbd>K</kbd>
+            </label>
+
+            <div class="ledger">
+              <div class="day">今天</div>
+
+              <button class="entry" type="button" aria-current="true" data-unread="true" data-kind="session">
+                <span class="face" data-hue="a" data-avatar="设备科 · 值班群" data-kind="group">值</span>
+                <span class="entry-text">
+                  <span class="entry-head">
+                    <span class="entry-name">设备科 · 值班群</span>
+                    <span class="entry-time">09:16</span>
+                  </span>
+                  <span class="entry-preview">
+                    <span class="dot">@我</span>
+                    <span>李婷：B 区机柜的巡检表我更新了</span>
+                    <span class="badge">3</span>
+                  </span>
+                </span>
+              </button>
+
+              <button class="entry" type="button" data-kind="session">
+                <span class="face" data-online="true" data-avatar="张伟" data-kind="direct">张</span>
+                <span class="entry-text">
+                  <span class="entry-head">
+                    <span class="entry-name">张伟</span>
+                    <span class="entry-time">09:12</span>
+                  </span>
+                  <span class="entry-preview"><span>3 号机房的空调回风温度到 31℃ 了</span></span>
+                </span>
+              </button>
+
+              <button class="entry" type="button" data-unread="true" data-kind="session">
+                <span class="face" data-avatar="B 区机房巡检" data-kind="group">B</span>
+                <span class="entry-text">
+                  <span class="entry-head">
+                    <span class="entry-name">B 区机房巡检</span>
+                    <span class="entry-time">08:40</span>
+                  </span>
+                  <span class="entry-preview"><span>陈磊：PDU 负载截图我放共享盘了</span><span class="badge">1</span></span>
+                </span>
+              </button>
+
+              <button class="entry" type="button" data-kind="session">
+                <span class="face" data-avatar="李婷" data-kind="direct">李</span>
+                <span class="entry-text">
+                  <span class="entry-head">
+                    <span class="entry-name">李婷</span>
+                    <span class="entry-time">昨天</span>
+                  </span>
+                  <span class="entry-preview"><span>明天上午的联动测试先别排我</span></span>
+                </span>
+              </button>
+
+              <button class="entry" type="button" data-kind="session">
+                <span class="face" data-avatar="系统通知">系</span>
+                <span class="entry-text">
+                  <span class="entry-head">
+                    <span class="entry-name">系统通知</span>
+                    <span class="entry-time">昨天</span>
+                  </span>
+                  <span class="entry-preview"><span>值班表已更新到 12 月</span></span>
+                </span>
+              </button>
+            </div>
+
+            <div class="rail-foot"><strong>3 个会话有草稿</strong><br />最后刷新 09:17:04</div>
+          </aside>
+
+          <section class="desk">
+            <header class="desk-head">
+              <span class="title">
+                <h2>设备科 · 值班群 <span class="dot">@我</span></h2>
+                <span class="sub">14 人 · 张伟、李婷在群里</span>
+              </span>
+              <span class="head-actions"><i>搜</i><i>刷</i><i>资</i></span>
+            </header>
+
+            <div class="stream" id="stream">
+              <div class="stamp">11 月 23 日 周日</div>
+              <div class="system">以上为更早的消息</div>
+
+              <div class="msg" data-message="1">
+                <span class="msg-face" data-avatar="张伟" data-kind="direct">张</span>
+                <div class="msg-body">
+                  <div class="msg-meta"><span class="msg-name">张伟</span><span class="msg-time">09:12</span></div>
+                  <div class="bubble">3 号机房的空调回风温度到 31℃ 了，我先看了一眼，压缩机在反复启停。</div>
+                  <div class="msg-tools">
+                    <button type="button" data-copy="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>复制</button>
+                    <span class="sep"></span>
+                    <button type="button">更多</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg" data-message="2" data-grouped="true">
+                <span class="msg-face">张</span>
+                <div class="msg-body">
+                  <div class="bubble">要不要现在派人上去？</div>
+                  <div class="msg-tools">
+                    <button type="button" data-copy="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>复制</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg" data-self="true" data-message="3">
+                <div class="msg-body">
+                  <div class="msg-meta"><span class="msg-time">09:14</span><span class="msg-name">我</span></div>
+                  <div class="bubble">先别停机，把<span class="sel">回风温度曲线</span>截图发我，我同步给设备科。</div>
+                  <div class="msg-tools">
+                    <button type="button" data-copy="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>复制</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg" data-message="4">
+                <span class="msg-face" data-hue="a" data-avatar="李婷" data-kind="direct">李</span>
+                <div class="msg-body">
+                  <div class="msg-meta"><span class="msg-name">李婷</span><span class="msg-time">09:16</span></div>
+                  <div class="bubble">
+                    <span class="at">@我</span> B 区机柜的巡检表我更新了，缺的两台交换机明天补录。<br />
+                    PDU 负载超过 <mark>78%</mark> 的那两个柜子我标红了。
+                  </div>
+                  <div class="msg-tools">
+                    <button type="button" data-copy="4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>复制</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="composer">
+              <div class="composer-box">
+                <div class="field">回复 设备科 · 值班群…</div>
+                <div class="composer-bar"><i>@</i><i>图</i><i>文</i><span class="send">发送</span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="拖动调整列表宽度" tabindex="0"></div>
+
+        <div class="pin" style="left: 262px; top: 246px">①</div>
+        <div class="pin" style="left: 512px; top: 429px">②</div>
+        <div class="pin" style="left: 596px; top: 470px">③</div>
+        <div class="pin" style="left: 334px; top: 470px">④</div>
+        <div class="pin" id="pin-five" style="left: 286px; top: 500px">⑤</div>
+
+        <div class="menu" id="menu-session" hidden>
+          <div class="group">设备科 · 值班群</div>
+          <button class="item" type="button"><span class="check">●</span>标为已读<kbd>Ctrl+Shift+R</kbd></button>
+          <button class="item" type="button">复制会话名</button>
+          <button class="item" type="button">复制群号</button>
+          <div class="rule"></div>
+          <button class="item" type="button">打开资料面板</button>
+        </div>
+
+        <div class="menu" id="menu-message" hidden>
+          <div class="group">消息 · 李婷 09:16</div>
+          <button class="item" type="button">复制选中<kbd>Ctrl+C</kbd></button>
+          <button class="item" type="button">复制整条消息</button>
+          <div class="rule"></div>
+          <button class="item" type="button">复制发送者账号</button>
+          <button class="item" type="button">查看发送者资料</button>
+        </div>
+
+        <div class="menu" id="menu-avatar" hidden>
+          <div class="group">张伟</div>
+          <button class="item" type="button">查看资料</button>
+          <button class="item" type="button">发消息</button>
+          <div class="rule"></div>
+          <button class="item" type="button">复制账号</button>
+        </div>
+
+        <div class="card" id="user-card" hidden>
+          <div class="who">
+            <span class="face-xl" data-online-card="true">张</span>
+            <span>
+              <span class="name">张伟 <span class="online">在线</span></span>
+              <span class="account">cs100234</span>
+              <span class="dept">设备科 · 机房运维组</span>
+            </span>
+          </div>
+          <div class="rows">
+            <div><b>最近活跃</b>今天 09:12</div>
+            <div><b>会话</b>单聊 · 2 条未读草稿</div>
+          </div>
+          <div class="actions">
+            <button class="primary" type="button">发消息</button>
+            <button class="ghost" type="button">复制账号</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>逐项设计</h2>
+        <p>每块先给出触发后的样子，再说明为什么这样做。</p>
+      </div>
+
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-stage" data-plane="light">
+            <div class="swatch">
+              <div class="swatch-row">
+                <span>会话行</span>
+                <div class="menu" style="position: static; box-shadow: 0 6px 18px var(--shadow); min-width: 0; width: 100%">
+                  <button class="item" type="button"><span class="check">●</span>标为已读</button>
+                  <button class="item" type="button">复制会话名</button>
+                  <button class="item" type="button">复制群号</button>
+                  <div class="rule"></div>
+                  <button class="item" type="button">打开资料面板</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <h3><em>1</em>右键菜单：三处各有各的话</h3>
+            <ul>
+              <li>会话行给<b>会话级</b>动作：标为已读、复制会话名/群号。</li>
+              <li>消息给<b>内容级</b>动作：有选区时首项变成「复制选中」。</li>
+              <li>头像给<b>人</b>动作：查看资料、发消息、复制账号。</li>
+              <li>Shift+F10 也能开；Esc 关；条目高 28px，与宿主菜单同规格。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tile">
+          <div class="tile-stage" data-plane="light">
+            <div style="width: 100%; max-width: 300px">
+              <div class="bubble" style="max-width: none">
+                3 号机房的空调回风温度到 <span class="sel">31℃</span> 了，压缩机在反复启停。
+              </div>
+              <div class="msg-tools" style="opacity: 1; color: var(--muted)">
+                <button type="button">已选中 3 字 · 复制</button>
+              </div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <h3><em>2</em>内容要选得中、拿得走</h3>
+            <ul>
+              <li>根因是宿主外壳给整页设了 <code>select-none</code>，插件页继承了它。</li>
+              <li>插件页根节点恢复 <b>可选文本</b>，只让按钮、时间戳、徽标保持不可选。</li>
+              <li>选区用 <code>--link</code> 混 22%，深色 32%，纸色底上仍然清爽。</li>
+              <li>Ctrl+C 复制纯文本，不带 @ 高亮或荧光笔底色。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tile">
+          <div class="tile-stage" data-plane="light">
+            <div style="display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 300px">
+              <div class="msg" style="margin: 0; grid-template-columns: minmax(0, 1fr)">
+                <div class="msg-body">
+                  <div class="bubble">要不要现在派人上去？</div>
+                  <div class="msg-tools" style="opacity: 1">
+                    <button type="button">复制</button>
+                    <span class="sep"></span>
+                    <button type="button">更多</button>
+                  </div>
+                </div>
+              </div>
+              <div class="msg" style="margin: 0; grid-template-columns: minmax(0, 1fr)" data-self="true">
+                <div class="msg-body">
+                  <div class="bubble">先别停机，把曲线截图发我。</div>
+                  <div class="msg-tools" style="opacity: 1">
+                    <button type="button">复制</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <h3><em>3</em>复制按钮落在气泡下方</h3>
+            <ul>
+              <li>跟气泡<b>同一侧</b>对齐：他人的靠左，自己的靠右，不再跑到另一端。</li>
+              <li>悬停、键盘聚焦、或选中该气泡文字时出现；预留 20px 行高，不跳动。</li>
+              <li>点完变「已复制」，1.2 秒复原。</li>
+              <li>连续同人只在最后一条显示，避免每句话下面都挂一排。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tile">
+          <div class="tile-stage" data-plane="light">
+            <div class="card" style="position: static; width: 100%; max-width: 300px; box-shadow: 0 8px 24px var(--shadow)">
+              <div class="who">
+                <span class="face-xl">张</span>
+                <span>
+                  <span class="name">张伟 <span class="online">在线</span></span>
+                  <span class="account">cs100234</span>
+                  <span class="dept">设备科 · 机房运维组</span>
+                </span>
+              </div>
+              <div class="actions">
+                <button class="primary" type="button">发消息</button>
+                <button class="ghost" type="button">复制账号</button>
+              </div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <h3><em>4</em>点头像，先确认「这是谁」</h3>
+            <ul>
+              <li>头像在列表、消息、成员里都能点，卡片长在头像旁边，贴边翻转。</li>
+              <li>有单聊时「发消息」直接切过去并聚焦输入框。</li>
+              <li>还没单聊时，主按钮换成「复制账号」，下面一行说明原因，不给死按钮。</li>
+              <li>Esc 或点击外部关闭，焦点回到头像。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tile" style="grid-column: span 2">
+          <div class="tile-stage" data-plane="light">
+            <div class="swatch" style="max-width: 420px">
+              <div class="swatch-row"><span>默认</span><div class="pill-box"><i class="pill" data-state="idle"></i></div></div>
+              <div class="swatch-row"><span>悬浮</span><div class="pill-box"><i class="pill" data-state="hover"></i></div></div>
+              <div class="swatch-row"><span>拖动中</span><div class="pill-box"><i class="pill" data-state="drag"></i></div></div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <h3><em>5</em>中缝胶囊：要拖的时候才出现</h3>
+            <ul>
+              <li>平时完全透明，不画线、不抢注意力；两栏只靠底色分开。</li>
+              <li>悬浮到分割位置（8px 命中带）出现 <b>3×40 灰色胶囊</b>；按下拖动变<b>白色</b>并加一层轻阴影。</li>
+              <li>胶囊按<b>整扇窗</b>垂直居中，所以要减掉顶栏高度，而不是按页面居中。</li>
+              <li>拖动中整页双向箭头、禁选文字；键盘聚焦后 ←/→ 每次 16px，并显示 focus ring。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>行为与边界</h2>
+        <p>实现时按这张表验收。</p>
+      </div>
+
+      <div class="board">
+        <div class="spec">
+          <h3><em>1</em>右键菜单</h3>
+          <table>
+            <tr><th>打开</th><td>右键；或在聚焦的会话行/消息上按 Shift+F10、菜单键。</td></tr>
+            <tr><th>键盘</th><td>↑↓ 移动、Enter 执行、Esc 关闭、Tab 关闭并把焦点还给触发元素。</td></tr>
+            <tr><th>位置</th><td>跟随指针，距窗口边缘不足 12px 时向左/向上翻转，不裁切。</td></tr>
+            <tr><th>文案</th><td>全部走 i18n；「标为已读」在无未读时不出现，而不是灰着。</td></tr>
+            <tr><th>不做</th><td>不做「回复/引用」「转发」——发送侧还没有这些能力，菜单不摆空按钮。</td></tr>
+          </table>
+        </div>
+
+        <div class="spec">
+          <h3><em>2</em>选中与复制</h3>
+          <table>
+            <tr><th>可选范围</th><td>气泡正文、输入框、标题与账号等文本；按钮、时间戳、未读徽标保持不可选。</td></tr>
+            <tr><th>复制</th><td>Ctrl+C 与右键「复制选中」都复制纯文本；没有选区时首项为「复制整条消息」。</td></tr>
+            <tr><th>选区样式</th><td><code>color-mix(in srgb, var(--link) 22%, transparent)</code>，深色 32%。</td></tr>
+            <tr><th>不引入</th><td>不做自定义选区高亮 JS、不做浮动工具条，浏览器原生选区足够。</td></tr>
+          </table>
+        </div>
+
+        <div class="spec">
+          <h3><em>3</em>复制按钮</h3>
+          <table>
+            <tr><th>位置</th><td>气泡下方 2px，与气泡同侧；不进入气泡内部，也不浮在气泡右上角。</td></tr>
+            <tr><th>出现</th><td>悬停消息、focus-within、或该消息内有选区时可见；基础高度 20px 常驻占位。</td></tr>
+            <tr><th>同人分组</th><td>只在组内最后一条显示，中间条目不重复。</td></tr>
+            <tr><th>反馈</th><td>「已复制」保持 1.2 秒；失败时显示「复制失败」，不弹全局提示。</td></tr>
+          </table>
+        </div>
+
+        <div class="spec">
+          <h3><em>4</em>用户卡片</h3>
+          <table>
+            <tr><th>触发</th><td>点击头像（左栏、消息、@ 成员）；右键菜单「查看资料」。</td></tr>
+            <tr><th>内容</th><td>头像、姓名、在线、账号、部门全名；群头像换成群名、群号、成员数。</td></tr>
+            <tr><th>进入单聊</th><td>已有单聊 → 切会话并聚焦输入框；没有 → 主按钮为「复制账号」并说明「还没有和 TA 的会话」。</td></tr>
+            <tr><th>关闭</th><td>Esc、点击外部、滚动消息流时关闭；焦点回到触发头像。</td></tr>
+          </table>
+        </div>
+
+        <div class="spec">
+          <h3><em>5</em>分割胶囊</h3>
+          <table>
+            <tr><th>默认</th><td>透明；命中带 8px 宽、不挡内容点击（悬停才变 col-resize）。</td></tr>
+            <tr><th>悬浮</th><td>灰色胶囊，浅色 <code>#c9d1d8</code>、深色 <code>#49525c</code>。</td></tr>
+            <tr><th>拖动</th><td>白色胶囊 + 轻阴影；整页禁选文字，松手写一次存储。</td></tr>
+            <tr><th>键盘</th><td>聚焦后 ←/→ 每次 16px，范围 240–460px 且不超过窗口一半。</td></tr>
+            <tr><th>跟随</th><td>宽度变化时顶栏左右分段立即跟上，窄屏（&lt;760px）与空态整条同色。</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="foot">
+      设计稿 · 颜色与字号取自 <code>plugins/hyt/gui/chat/styles.ts</code>；菜单规格对齐宿主 <code>packages/ui</code> 的 context-menu。确认后按此实现：右键菜单与用户卡片加在 hyt 窗口层，选中恢复与复制行落在宿主与气泡组件两侧。
+    </p>
+
+    <script>
+      const html = document.documentElement
+      const mock = document.getElementById("mock")
+      const rail = document.getElementById("rail")
+      const splitter = document.getElementById("splitter")
+      const menus = {
+        session: document.getElementById("menu-session"),
+        message: document.getElementById("menu-message"),
+        avatar: document.getElementById("menu-avatar"),
+      }
+      const card = document.getElementById("user-card")
+      const pinFive = document.getElementById("pin-five")
+
+      for (const button of document.querySelectorAll("[data-theme-set]")) {
+        button.addEventListener("click", () => {
+          const theme = button.dataset.themeSet
+          html.dataset.theme = theme
+          for (const other of document.querySelectorAll("[data-theme-set]")) {
+            other.setAttribute("aria-pressed", String(other === button))
+          }
+        })
+      }
+
+      const closeAll = () => {
+        for (const menu of Object.values(menus)) menu.hidden = true
+        card.hidden = true
+      }
+
+      const place = (element, x, y) => {
+        const bounds = mock.getBoundingClientRect()
+        const left = x - bounds.left
+        const top = y - bounds.top
+        element.hidden = false
+        const width = element.offsetWidth
+        const height = element.offsetHeight
+        element.style.left = `${Math.min(left, bounds.width - width - 8)}px`
+        element.style.top = `${Math.min(top, bounds.height - height - 8)}px`
+      }
+
+      const openMenu = (element, x, y) => {
+        closeAll()
+        place(element, x, y)
+      }
+
+      mock.addEventListener("contextmenu", (event) => {
+        const target = event.target
+        const avatar = target.closest("[data-avatar]")
+        if (avatar) {
+          event.preventDefault()
+          openMenu(menus.avatar, event.clientX, event.clientY)
+          return
+        }
+        const message = target.closest("[data-message]")
+        if (message) {
+          event.preventDefault()
+          openMenu(menus.message, event.clientX, event.clientY)
+          return
+        }
+        const session = target.closest("[data-kind='session']")
+        if (session) {
+          event.preventDefault()
+          openMenu(menus.session, event.clientX, event.clientY)
+        }
+      })
+
+      document.addEventListener("pointerdown", (event) => {
+        if (!event.target.closest(".menu") && !event.target.closest(".card") && !event.target.closest("[data-avatar]")) {
+          closeAll()
+        }
+      })
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeAll()
+      })
+
+      for (const button of Object.values(menus).flatMap((menu) => [...menu.querySelectorAll(".item")])) {
+        button.addEventListener("click", closeAll)
+      }
+
+      mock.addEventListener("click", (event) => {
+        const avatar = event.target.closest("[data-avatar]")
+        if (!avatar) return
+        const bounds = avatar.getBoundingClientRect()
+        const isGroup = avatar.dataset.kind === "group"
+        card.querySelector(".face-xl").textContent = isGroup ? "值" : "张"
+        card.querySelector(".name").firstChild.textContent = isGroup ? "设备科 · 值班群 " : "张伟 "
+        card.querySelector(".account").textContent = isGroup ? "群号 g-10021" : "cs100234"
+        card.querySelector(".dept").textContent = isGroup ? "14 人 · 设备科" : "设备科 · 机房运维组"
+        card.querySelector(".rows").innerHTML = isGroup
+          ? "<div><b>最近活跃</b>今天 09:16</div><div><b>未读</b>3 条</div>"
+          : "<div><b>最近活跃</b>今天 09:12</div><div><b>会话</b>单聊 · 2 条未读草稿</div>"
+        closeAll()
+        place(card, bounds.right + 8, bounds.top)
+      })
+
+      for (const button of document.querySelectorAll("[data-copy]")) {
+        button.addEventListener("click", () => {
+          const label = button.lastChild
+          const before = label.textContent
+          label.textContent = " 已复制"
+          setTimeout(() => {
+            label.textContent = before
+          }, 1200)
+        })
+      }
+
+      rail.addEventListener("scroll", closeAll)
+
+      let drag = null
+      splitter.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return
+        event.preventDefault()
+        drag = { pointer: event.pointerId, x: event.clientX, width: rail.getBoundingClientRect().width }
+        splitter.setPointerCapture(event.pointerId)
+        splitter.dataset.dragging = "true"
+        mock.dataset.resizing = "true"
+      })
+
+      splitter.addEventListener("pointermove", (event) => {
+        if (!drag || event.pointerId !== drag.pointer) return
+        const next = Math.min(Math.max(drag.width + event.clientX - drag.x, 240), Math.min(460, mock.clientWidth * 0.5))
+        mock.style.setProperty("--rail", `${Math.round(next)}px`)
+        pinFive.style.left = `${Math.round(next) - 14}px`
+      })
+
+      const endDrag = (event) => {
+        if (!drag || event.pointerId !== drag.pointer) return
+        drag = null
+        delete splitter.dataset.dragging
+        mock.dataset.resizing = "false"
+        if (splitter.hasPointerCapture(event.pointerId)) splitter.releasePointerCapture(event.pointerId)
+      }
+
+      splitter.addEventListener("pointerup", endDrag)
+      splitter.addEventListener("pointercancel", endDrag)
+
+      splitter.addEventListener("keydown", (event) => {
+        const step = event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0
+        if (!step) return
+        event.preventDefault()
+        const width = Math.round(rail.getBoundingClientRect().width)
+        const next = Math.min(Math.max(width + step, 240), Math.min(460, mock.clientWidth * 0.5))
+        mock.style.setProperty("--rail", `${Math.round(next)}px`)
+        pinFive.style.left = `${Math.round(next) - 14}px`
+      })
+
+      pinFive.style.left = `286px`
+    </script>
+  </body>
+</html>

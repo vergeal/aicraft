@@ -9,7 +9,7 @@ import { decide, fallback, headers, probeResult, same } from "../service-probe.j
 export * from "../service.js"
 export { fallback, headers }
 
-// Find, start, and stop the local opencode background service.
+// Find, start, and stop the local aicraft background service.
 //
 // The registration file is the complete discovery contract. This module is
 // intentionally implemented with Node APIs so Promise clients do not need

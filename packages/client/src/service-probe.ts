@@ -49,7 +49,7 @@ export function same(left: Info, right: Info) {
 export async function probeResult(info: Info, timeout = defaultEnsureTiming.requestTimeout) {
   const endpoint = {
     url: info.url,
-    auth: info.password === undefined ? undefined : { type: "basic", username: "opencode", password: info.password },
+    auth: info.password === undefined ? undefined : { type: "basic", username: "aicraft", password: info.password },
   } satisfies Endpoint
   const signal = AbortSignal.timeout(timeout)
   const result = await fetch(new URL("/api/info", info.url), { headers: headers(endpoint), signal })

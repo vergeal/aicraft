@@ -17,7 +17,7 @@ export default bench({
 
   targets: {
     web: web({
-      expect: { title: "OpenCode" },
+      expect: { title: "AI Craft" },
       viewport: { width: 1440, height: 900 },
       async prepare({ params, playwright, mock, url }) {
         const server = new URL(url).origin

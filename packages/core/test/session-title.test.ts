@@ -9,32 +9,32 @@ import {
   SystemPart,
   TransportError,
   type LLMRequest,
-} from "@opencode/ai/effect"
-import { OpenAIChat } from "@opencode/ai/protocols"
-import { Agent } from "@opencode/core/agent"
-import { Database } from "@opencode/core/database/database"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { llmClient } from "@opencode/core/effect/app-node-platform"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Bus } from "@opencode/core/bus"
-import { SessionEvent } from "@opencode/core/session/event"
-import { SessionMessage } from "@opencode/core/session/message"
-import { SessionProjector } from "@opencode/core/session/projector"
-import { SessionRunnerModel } from "@opencode/core/session/runner/model"
-import { SessionTable } from "@opencode/core/session/sql"
-import { SessionStore } from "@opencode/core/session/store"
-import { SessionTitle } from "@opencode/core/session/title"
-import { PluginHooks } from "@opencode/core/plugin/hooks"
-import { PluginSupervisor } from "@opencode/core/plugin/supervisor"
-import { Location } from "@opencode/core/location"
-import { Session } from "@opencode/core/session"
-import { Project } from "@opencode/core/project"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { App } from "@opencode/core/app"
-import { Model } from "@opencode/core/model"
-import { Provider } from "@opencode/core/provider"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Money } from "@opencode/schema/money"
+} from "@aicraft/ai/effect"
+import { OpenAIChat } from "@aicraft/ai/protocols"
+import { Agent } from "@aicraft/core/agent"
+import { Database } from "@aicraft/core/database/database"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { llmClient } from "@aicraft/core/effect/app-node-platform"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { SessionEvent } from "@aicraft/core/session/event"
+import { SessionMessage } from "@aicraft/core/session/message"
+import { SessionProjector } from "@aicraft/core/session/projector"
+import { SessionRunnerModel } from "@aicraft/core/session/runner/model"
+import { SessionTable } from "@aicraft/core/session/sql"
+import { SessionStore } from "@aicraft/core/session/store"
+import { SessionTitle } from "@aicraft/core/session/title"
+import { PluginHooks } from "@aicraft/core/plugin/hooks"
+import { PluginSupervisor } from "@aicraft/core/plugin/supervisor"
+import { Location } from "@aicraft/core/location"
+import { Session } from "@aicraft/core/session"
+import { Project } from "@aicraft/core/project"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { App } from "@aicraft/core/app"
+import { Model } from "@aicraft/core/model"
+import { Provider } from "@aicraft/core/provider"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Money } from "@aicraft/schema/money"
 import { Deferred, Effect, Fiber, Layer, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { testEffect } from "./lib/effect"
@@ -227,12 +227,12 @@ it.effect("generates a title from the sole user message and renames the session"
 
     expect(requests).toHaveLength(1)
     expect(requests[0]?.headers).toEqual({
-      "x-opencode-session-id": sessionID,
+      "x-aicraft-session-id": sessionID,
       "x-session-affinity": sessionID,
       "X-Session-Id": sessionID,
       "User-Agent": App.useragent(App.make()),
-      "x-opencode-project": Project.ID.global,
-      "x-opencode-session": sessionID,
+      "x-aicraft-project": Project.ID.global,
+      "x-aicraft-session": sessionID,
       "x-opencode-client": "opencode",
     })
     expect(requests[0]?.promptCacheKey).toBe(sessionID)

@@ -40,7 +40,7 @@ export function parseTraceparent(value: string | undefined): TraceContext | unde
  * `const trace = yield* CurrentRequestTrace`.
  */
 export const CurrentRequestTrace = Context.Reference<Option.Option<TraceContext>>(
-  "@opencode/server/request-tracing/current",
+  "@aicraft/server/request-tracing/current",
   { defaultValue: () => Option.none() },
 )
 
@@ -60,8 +60,8 @@ export const requestTrace = <E, R>(
     if (trace === undefined) return app
     return Effect.andThen(
       Effect.annotateCurrentSpan({
-        "opencode.trace.id": trace.traceID,
-        "opencode.trace.parent_span_id": trace.spanID,
+        "aicraft.trace.id": trace.traceID,
+        "aicraft.trace.parent_span_id": trace.spanID,
       }),
       app,
     ).pipe(

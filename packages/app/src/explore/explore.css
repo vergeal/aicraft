@@ -1,5 +1,5 @@
 /* Explore: one page for the plugins and skills a server makes available. */
-@import "@opencode/ui/document-surface.css";
+@import "@aicraft/ui/document-surface.css";
 
 .explore-content {
   width: 100%;

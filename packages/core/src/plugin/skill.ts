@@ -2,27 +2,27 @@
 
 export * as SkillPlugin from "./skill.js"
 
-import { SkillPackage } from "@opencode/plugin/skill-package"
-import { define, type Context } from "@opencode/plugin/effect/plugin"
-import { Document } from "@opencode/schema/config"
+import { SkillPackage } from "@aicraft/plugin/skill-package"
+import { define, type Context } from "@aicraft/plugin/effect/plugin"
+import { Document } from "@aicraft/schema/config"
 import { Effect } from "effect"
 import { Config } from "../config.js"
 import os from "os"
-import opencodeContent from "./skill/opencode.md" with { type: "text" }
+import aicraftContent from "./skill/aicraft.md" with { type: "text" }
 import reportContent from "./skill/report.md" with { type: "text" }
 import creatorContent from "./skill/creator.md" with { type: "text" }
 
-export const OpencodeContent = opencodeContent
+export const AicraftContent = aicraftContent
 export const ReportContent = reportContent
 export const CreatorContent = creatorContent
 
 export const Plugin = define({
-  id: "opencode.skill",
+  id: "aicraft.skill",
   effect: Effect.fn(function* (ctx) {
     const reportContent = yield* reportContentWithDiagnostics(ctx.app)
     // Each built-in skill is the same SKILL.md package a published skill ships, read the same way.
     yield* ctx.skill.transform((editor) => {
-      editor.add(SkillPackage.read("aicraft", OpencodeContent))
+      editor.add(SkillPackage.read("aicraft", AicraftContent))
       editor.add(SkillPackage.read("report", reportContent))
       editor.add(SkillPackage.read("creator", CreatorContent))
     })

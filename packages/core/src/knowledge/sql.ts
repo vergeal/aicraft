@@ -1,5 +1,5 @@
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core"
-import type { Knowledge } from "@opencode/schema/knowledge"
+import type { Knowledge } from "@aicraft/schema/knowledge"
 import { Timestamps } from "../database/schema.sql.js"
 import { ProjectTable } from "../project/sql.js"
 import type { ProjectSchema } from "../project/schema.js"

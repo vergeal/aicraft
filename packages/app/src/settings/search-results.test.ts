@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test"
-import { dict } from "@opencode/ui/i18n/en"
+import { dict } from "@aicraft/ui/i18n/en"
 import en from "@/runtime/i18n/en"
 import { settingsSearchIndex, type SettingsSearchServer } from "./search-index"
 import { rankSettings } from "./search-results"
 
 const strings = new Map(Object.entries({ ...dict, ...en }))
 
-const project = { id: "proj_opencode", name: "OpenCode", worktree: "/projects/opencode" }
+const project = { id: "proj_aicraft", name: "AI Craft", worktree: "/projects/aicraft" }
 
 const servers: SettingsSearchServer[] = [
   { key: "local", name: "Local server", connected: true, projects: [project] },
@@ -87,7 +87,7 @@ describe("settings search index", () => {
     const withIcon = { ...project, icon: { color: "orange", override: "data:image/png;base64,example" } }
     const items = index({ servers: [{ ...servers[0], projects: [withIcon] }] })
     expect(rankSettings("opencode", items)[0].projectInfo).toEqual(withIcon)
-    expect(rankSettings("opencode color", items)).toEqual([])
+    expect(rankSettings("aicraft color", items)).toEqual([])
   })
 })
 
@@ -105,11 +105,11 @@ describe("settings search ranking", () => {
   })
 
   test("qualifies project settings by project name on the selected server", () => {
-    expect(rankSettings("opencode name", index()).map((item) => item.view.target)).toEqual(["settings-project-name"])
-    expect(rankSettings("opencode name", index({ selected: "remote" })).map((item) => item.server)).toEqual([
+    expect(rankSettings("aicraft name", index()).map((item) => item.view.target)).toEqual(["settings-project-name"])
+    expect(rankSettings("aicraft name", index({ selected: "remote" })).map((item) => item.server)).toEqual([
       "remote",
     ])
-    expect(rankSettings("opencode skills", index()).map((item) => item.view.subtab)).toEqual(["skills"])
+    expect(rankSettings("aicraft skills", index()).map((item) => item.view.subtab)).toEqual(["skills"])
   })
 
   test("project names alone find projects, including names that are setting labels", () => {
@@ -132,7 +132,7 @@ describe("settings search ranking", () => {
   test("does not search paths or use the Projects category to match unrelated names", () => {
     const items = index({ servers: [{ ...servers[0], projects: [{ ...project, name: "codename" }] }] })
     expect(rankSettings("project name", items).some((item) => item.project)).toBe(false)
-    expect(rankSettings("/projects/opencode", items)).toEqual([])
+    expect(rankSettings("/projects/aicraft", items)).toEqual([])
   })
 
   test("supports synonyms and fuzzy title matches while rejecting unrelated queries", () => {

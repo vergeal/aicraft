@@ -1,5 +1,5 @@
 import { type ComponentProps } from "solid-js"
-import { GlowOrb } from "@opencode/ui/glow-orb"
+import { GlowOrb } from "@aicraft/ui/glow-orb"
 import "./session-progress-indicator-v2.css"
 
 // The app's one activity spinner, shared by the activity chip, subagent rows, task cards and loading tabs.

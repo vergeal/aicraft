@@ -5,11 +5,11 @@ import { AutoScroller, Feedback, PointerActivationConstraints } from "@dnd-kit/d
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
 import { arrayMove } from "@/runtime/array-move"
-import { Icon } from "@opencode/ui/icon"
-import { IconButton } from "@opencode/ui/icon-button"
-import { Loader } from "@opencode/ui/loader"
-import { Tooltip } from "@opencode/ui/tooltip"
-import { prefersReducedMotion } from "@opencode/ui/motion"
+import { Icon } from "@aicraft/ui/icon"
+import { IconButton } from "@aicraft/ui/icon-button"
+import { Loader } from "@aicraft/ui/loader"
+import { Tooltip } from "@aicraft/ui/tooltip"
+import { prefersReducedMotion } from "@aicraft/ui/motion"
 import { useLanguage } from "@/runtime/i18n/language"
 import type { SessionQueueView } from "./queue"
 import { cascade, Grow, queueStagger } from "./spring-height"
@@ -86,12 +86,13 @@ export function SessionQueuePanel(props: { queue: SessionQueueView; hidden?: boo
       <div
         data-component="session-queue-panel"
         inert={!open()}
-        class="relative z-0 -mb-3 rounded-xl bg-v2-background-bg-base px-1.5 pt-1.5 shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]"
-        // Match the composer overlap so the scroll crop meets the input edge.
-        classList={{ "pb-3": count() > 4, "pb-[18px]": count() <= 4 }}
+        class="relative z-0 -mb-3 rounded-[12px] bg-v2-background-bg-base px-1.5 pt-2 pb-3 shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]"
       >
         <Grow when={count() > 3} fade>
-          <div class="px-1.5 pt-1 pb-px text-[12px] font-[530] uppercase leading-[var(--line-height-tight)] tracking-[0.05px] text-v2-text-text-muted [font-variant-numeric:tabular-nums]">
+          <div
+            data-slot="session-queue-heading"
+            class="flex h-6 shrink-0 items-center px-2 text-[12px] font-medium leading-[var(--line-height-compact)] text-v2-text-text-muted tabular-nums"
+          >
             {language.plural("session.queue.count", count())}
           </div>
         </Grow>
@@ -119,11 +120,12 @@ export function SessionQueuePanel(props: { queue: SessionQueueView; hidden?: boo
         >
           {/* Keyed on row IDs so store updates move row elements instead of
               remounting them, which would kill an in-flight drag. */}
-          {/* Four 32px rows, four 1px gaps, and half a row hint at more queued prompts. */}
+          {/* Four 32px rows, their hairlines, and half a row hint at more queued prompts. */}
           <div
             ref={listRef}
             data-slot="session-queue-list"
-            class="flex flex-col"
+            data-scrollable={count() > 4 ? "" : undefined}
+            class="mb-1.5 flex flex-col"
             classList={{ "max-h-[148px] overflow-y-auto": count() > 4 }}
             style={{
               "mask-image":
@@ -196,59 +198,59 @@ function SessionQueueRow(props: { queue: SessionQueueView; id: string; index: nu
           data-component={leaving() ? undefined : "session-queue-row"}
           data-leaving={leaving() || undefined}
           aria-busy={leaving() ? undefined : entry().pending}
-          class="group/queue-row mb-px flex h-8 shrink-0 items-center justify-between gap-2 rounded-full py-1 ps-0.5 pe-2"
+          class="group/queue-row relative flex h-8 shrink-0 items-center gap-0.5 rounded-[6px] transition-colors"
           classList={{
+            "hover:bg-v2-overlay-simple-overlay-hover": !editing() && !entry().pending,
             "bg-v2-overlay-simple-overlay-hover": editing(),
             "opacity-60": sortable.isDragSource(),
           }}
         >
-          <div class="flex min-w-0 flex-1 items-center gap-2">
-            <button
-              ref={sortable.handleRef}
-              type="button"
-              class="grid shrink-0 cursor-grab touch-none grid-cols-2 gap-x-[2px] gap-y-[2.25px] p-1"
-              aria-label={language.t("session.queue.reorder")}
-            >
+          {/* A 28px handle, centred so its dots land on the composer's text column: the queue reads as one list under
+              the input instead of a second, deeper-indented list. */}
+          <button
+            ref={sortable.handleRef}
+            type="button"
+            class="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-[6px] text-v2-icon-icon-faint outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-v2-border-border-focus active:cursor-grabbing"
+            aria-label={language.t("session.queue.reorder")}
+          >
+            <span aria-hidden="true" class="grid grid-cols-2 gap-x-[2px] gap-y-[2px]">
               <For each={Array.from({ length: 6 })}>
-                {() => <span class="size-[2px] bg-v2-background-bg-layer-04" />}
+                {() => <span class="size-[2px] rounded-full bg-current" />}
               </For>
-            </button>
-            <div class="flex min-w-0 items-center gap-4">
-              {/* The row shows the prompt it holds and doubles as its edit control: the transcript bubble is
-                  below the work it waits behind, often off screen, so a row without the text reads as empty. */}
-              <button
-                type="button"
-                data-action="session-queue-edit"
-                aria-disabled={entry().pending}
-                aria-label={language.t("session.queue.edit")}
-                dir="auto"
-                class="flex max-w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[4px] text-start"
-                classList={{
-                  "text-v2-text-text-faint": editing() || entry().pending,
-                  "cursor-progress": entry().pending,
-                  "text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover": !editing() && !entry().pending,
-                }}
-                onClick={() => props.queue.edit(props.id)}
-              >
-                <Icon name="pencil-line" size="small" class="shrink-0" />
-                <span
-                  data-slot="session-queue-row-label"
-                  class="min-w-0 truncate text-[13px] font-[400] leading-[var(--line-height-compact)]"
-                >
-                  {entry().text ||
-                    (entry().attachments ? language.plural("session.queue.attachments", entry().attachments) : "")}
-                </span>
-              </button>
-              <Show when={entry().attachments && entry().text}>
-                <span class="shrink-0 whitespace-nowrap text-[13px] font-[400] leading-[var(--line-height-compact)] text-v2-text-text-muted">
-                  {language.plural("session.queue.attachments", entry().attachments)}
-                </span>
-              </Show>
-            </div>
-          </div>
+            </span>
+          </button>
+          {/* The row shows the prompt it holds and doubles as its edit control: the transcript bubble is below the
+              work it waits behind, often off screen, so a row without the text reads as empty. */}
+          <button
+            type="button"
+            data-action="session-queue-edit"
+            aria-disabled={entry().pending}
+            aria-label={language.t("session.queue.edit")}
+            dir="auto"
+            class="flex min-w-0 flex-1 items-center gap-2 self-stretch rounded-[6px] pe-2 text-start outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-v2-border-border-focus"
+            classList={{
+              "text-v2-text-text-faint": editing() || entry().pending,
+              "cursor-progress": entry().pending,
+              "cursor-pointer text-v2-text-text-base": !editing() && !entry().pending,
+            }}
+            onClick={() => props.queue.edit(props.id)}
+          >
+            <span
+              data-slot="session-queue-row-label"
+              class="min-w-0 truncate text-[13px] font-[400] leading-[var(--line-height-compact)]"
+            >
+              {entry().text ||
+                (entry().attachments ? language.plural("session.queue.attachments", entry().attachments) : "")}
+            </span>
+            <Show when={entry().attachments && entry().text}>
+              <span class="shrink-0 whitespace-nowrap text-[12px] font-[400] leading-[var(--line-height-tight)] tabular-nums text-v2-text-text-faint">
+                {language.plural("session.queue.attachmentsBadge", entry().attachments)}
+              </span>
+            </Show>
+          </button>
           <div
             data-slot="session-queue-actions"
-            class="flex shrink-0 items-center gap-1"
+            class="flex shrink-0 items-center gap-0.5 pe-0.5"
             classList={{
               "opacity-0 focus-within:opacity-100 group-hover/queue-row:opacity-100 [@media(hover:none)]:opacity-100":
                 !active() && !editing() && !entry().pending,
@@ -268,6 +270,7 @@ function SessionQueueRow(props: { queue: SessionQueueView; id: string; index: nu
                 <IconButton
                   data-action="session-queue-steer"
                   type="button"
+                  size="large"
                   variant="ghost-muted"
                   icon={<Icon name="arrow-up" />}
                   disabled={props.queue.busy()}
@@ -281,6 +284,7 @@ function SessionQueueRow(props: { queue: SessionQueueView; id: string; index: nu
                 <IconButton
                   data-action="session-queue-undo"
                   type="button"
+                  size="large"
                   variant="ghost-muted"
                   icon={<Icon name="outline-undo" />}
                   disabled={props.queue.busy()}
@@ -294,6 +298,7 @@ function SessionQueueRow(props: { queue: SessionQueueView; id: string; index: nu
                 <IconButton
                   data-action="session-queue-remove"
                   type="button"
+                  size="large"
                   variant="ghost-muted"
                   icon={<Icon name="outline-xmark" />}
                   disabled={props.queue.busy()}

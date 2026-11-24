@@ -1,4 +1,4 @@
-import { Button } from "@opencode/ui/button"
+import { Button } from "@aicraft/ui/button"
 import { For, Show, createSignal } from "solid-js"
 import { SessionElicitationDock } from "@/session/requests/session-elicitation-dock"
 import { getRelativeTime } from "@/shell/time"

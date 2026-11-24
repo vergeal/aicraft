@@ -6,11 +6,11 @@
 
 cli=$1 desktop=$2 out=$3
 sum() { sha256 "$1" | cut -c1-64 | tr a-f A-F; }
-base="https://opencode.ai/files/bin/$OPENCODE_VERSION"
+base="https://opencode.ai/files/bin/$AICRAFT_VERSION"
 date=$(date -u +%F)
 header() {
   printf '# yaml-language-server: $schema=https://aka.ms/winget-manifest.%s.1.12.0.schema.json\n\nPackageIdentifier: %s\nPackageVersion: %s\n' \
-    "$2" "$1" "$OPENCODE_VERSION"
+    "$2" "$1" "$AICRAFT_VERSION"
 }
 footer() { printf 'ManifestType: %s\nManifestVersion: 1.12.0\n' "$1"; }
 manifests() {
@@ -21,7 +21,7 @@ manifests() {
   { header "$id" installer; printf '%s\n' "$@" "ReleaseDate: $date"; footer installer; } > "$out/$id/$id.installer.yaml"
   {
     header "$id" defaultLocale
-    printf '%s\n' "PackageLocale: en-US" "Publisher: OpenCode" "PublisherUrl: https://anoma.ly/" \
+    printf '%s\n' "PackageLocale: en-US" "Publisher: AI Craft" "PublisherUrl: https://anoma.ly/" \
       "PublisherSupportUrl: https://github.com/anomalyco/opencode/issues" "PrivacyUrl: https://opencode.ai/legal/privacy-policy" \
       "PackageName: $name" "PackageUrl: https://opencode.ai/" "License: MIT" "LicenseUrl: https://github.com/anomalyco/opencode/blob/HEAD/LICENSE" \
       "ShortDescription: $description" "Moniker: $moniker" "Tags:" "- ai" "- coding-agent" "- developer-tools" \
@@ -30,16 +30,16 @@ manifests() {
   } > "$out/$id/$id.locale.en-US.yaml"
 }
 
-manifests Anomaly.OpenCode "OpenCode CLI" "The open source AI coding agent for the terminal." opencode \
+manifests Anomaly.OpenCode "AI Craft CLI" "The open source AI coding agent for the terminal." aicraft \
   "InstallerType: zip" "NestedInstallerType: portable" "NestedInstallerFiles:" \
-  "- RelativeFilePath: opencode.exe" "  PortableCommandAlias: opencode" "Commands:" "- opencode" "Installers:" \
-  "- Architecture: x64" "  InstallerUrl: $base/opencode-windows-x64-baseline.zip" "  InstallerSha256: $(sum "$cli/opencode-windows-x64-baseline.zip")" \
-  "- Architecture: arm64" "  InstallerUrl: $base/opencode-windows-arm64.zip" "  InstallerSha256: $(sum "$cli/opencode-windows-arm64.zip")"
+  "- RelativeFilePath: aicraft.exe" "  PortableCommandAlias: aicraft" "Commands:" "- aicraft" "Installers:" \
+  "- Architecture: x64" "  InstallerUrl: $base/aicraft-windows-x64-baseline.zip" "  InstallerSha256: $(sum "$cli/aicraft-windows-x64-baseline.zip")" \
+  "- Architecture: arm64" "  InstallerUrl: $base/aicraft-windows-arm64.zip" "  InstallerSha256: $(sum "$cli/aicraft-windows-arm64.zip")"
 
-# The display name and uninstall key match what the NSIS installer registers for ai.opencode.desktop.
-manifests Anomaly.OpenCode.Desktop "OpenCode" "The open source AI coding agent as a desktop app." opencode-desktop \
+# The display name and uninstall key match what the NSIS installer registers for ai.aicraft.desktop.
+manifests Anomaly.OpenCode.Desktop "AI Craft" "The open source AI coding agent as a desktop app." aicraft-desktop \
   "InstallerType: nullsoft" "Scope: user" "UpgradeBehavior: install" "ProductCode: d074f30d-5f88-5885-b075-be1348cc7676" \
-  "Protocols:" "- opencode" "Installers:" \
-  "- Architecture: x64" "  InstallerUrl: $base/opencode-desktop-win-x64.exe" "  InstallerSha256: $(sum "$desktop/opencode-desktop-win-x64.exe")" \
-  "- Architecture: arm64" "  InstallerUrl: $base/opencode-desktop-win-arm64.exe" "  InstallerSha256: $(sum "$desktop/opencode-desktop-win-arm64.exe")"
+  "Protocols:" "- aicraft" "Installers:" \
+  "- Architecture: x64" "  InstallerUrl: $base/aicraft-desktop-win-x64.exe" "  InstallerSha256: $(sum "$desktop/aicraft-desktop-win-x64.exe")" \
+  "- Architecture: arm64" "  InstallerUrl: $base/aicraft-desktop-win-arm64.exe" "  InstallerSha256: $(sum "$desktop/aicraft-desktop-win-arm64.exe")"
 tail -n +1 "$out"/*/*

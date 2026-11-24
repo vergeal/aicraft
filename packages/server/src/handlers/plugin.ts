@@ -1,15 +1,15 @@
-import { Plugin } from "@opencode/core/plugin"
-import { App } from "@opencode/core/app"
-import { PluginBundle } from "@opencode/core/plugin/bundle"
-import { PluginInbox } from "@opencode/core/plugin/inbox"
-import { PluginLocal } from "@opencode/core/plugin/local"
-import { PluginSupervisor } from "@opencode/core/plugin/supervisor"
-import { PluginUpdate } from "@opencode/core/plugin/update"
-import { Global } from "@opencode/util/global"
-import { InvalidRequestError, PluginNotFoundError, ServiceUnavailableError } from "@opencode/protocol/errors"
+import { Plugin } from "@aicraft/core/plugin"
+import { App } from "@aicraft/core/app"
+import { PluginBundle } from "@aicraft/core/plugin/bundle"
+import { PluginInbox } from "@aicraft/core/plugin/inbox"
+import { PluginLocal } from "@aicraft/core/plugin/local"
+import { PluginSupervisor } from "@aicraft/core/plugin/supervisor"
+import { PluginUpdate } from "@aicraft/core/plugin/update"
+import { Global } from "@aicraft/util/global"
+import { InvalidRequestError, PluginNotFoundError, ServiceUnavailableError } from "@aicraft/protocol/errors"
 import { Cause, Effect, Exit } from "effect"
 import { HttpApiBuilder } from "effect/http-api"
-import { KV } from "@opencode/core/kv"
+import { KV } from "@aicraft/core/kv"
 import { Api } from "../api"
 import { response } from "../location"
 
@@ -154,7 +154,7 @@ export const PluginHandler = HttpApiBuilder.group(Api, "server.plugin", (handler
               config: global.config,
               cwd: process.cwd(),
               home: global.home,
-              opencodeVersion: app.version,
+              aicraftVersion: app.version,
             }),
           catch: (error) =>
             new InvalidRequestError({

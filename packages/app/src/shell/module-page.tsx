@@ -1,7 +1,7 @@
 import { createSignal, onCleanup, Show, type JSX, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { Icon } from "@opencode/ui/icon"
+import { Icon } from "@aicraft/ui/icon"
 import { PagePanel } from "@/shell/page"
 import "./module-page.css"
 

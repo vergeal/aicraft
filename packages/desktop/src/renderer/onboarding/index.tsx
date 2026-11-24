@@ -1,4 +1,4 @@
-import { ServerConnection, useCurrentRoute, useGlobal, useServers, useTabs } from "@opencode/app/desktop"
+import { ServerConnection, useCurrentRoute, useGlobal, useServers, useTabs } from "@aicraft/app/desktop"
 import { onMount } from "solid-js"
 import type { ElectronAPI } from "../api-types"
 import type { StartupEvent } from "../startup/machine"

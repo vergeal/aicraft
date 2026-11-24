@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { Operations } from "../src/rpc.js"

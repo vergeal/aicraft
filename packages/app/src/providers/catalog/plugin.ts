@@ -1,4 +1,4 @@
-import type { PluginInfo } from "@opencode/client"
+import type { PluginInfo } from "@aicraft/client"
 
 export function pluginLabel(plugin: PluginInfo) {
   if (plugin.display) return plugin.display.name

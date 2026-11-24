@@ -1,6 +1,6 @@
-export * as OpenCode from "./opencode"
+export * as Aicraft from "./aicraft"
 export * as Tool from "./tool"
 
-export { ClientError } from "@opencode/client"
-export type { OpenCodeEvent } from "@opencode/client"
+export { ClientError } from "@aicraft/client"
+export type { AicraftEvent } from "@aicraft/client"
 export * from "./contracts"

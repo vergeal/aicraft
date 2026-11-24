@@ -1,8 +1,8 @@
 export * as KnowledgeTools from "./knowledge.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { Knowledge } from "@opencode/schema/knowledge"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { Knowledge } from "@aicraft/schema/knowledge"
 import { Effect, Schema } from "effect"
 import { Knowledge as KnowledgeService } from "../../knowledge.js"
 
@@ -20,7 +20,7 @@ const Output = Schema.Struct({
  * even listed for a main session: knowledge passages never reach the main conversation's context by accident.
  */
 export const Plugin = {
-  id: "opencode.tool.knowledge",
+  id: "aicraft.tool.knowledge",
   effect: Effect.fn("KnowledgeTools.Plugin")(function* (ctx: Context) {
     const knowledge = yield* KnowledgeService.Service
 

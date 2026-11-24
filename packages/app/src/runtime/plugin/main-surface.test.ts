@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import type { MainSurface } from "@opencode/plugin/gui"
+import type { MainSurface } from "@aicraft/plugin/gui"
 import { findMainSurface, mainSurfaceEntries, mainSurfacePath, type MainSurfaceEntry } from "./main-surface"
 
 const surface = (id: string, fields: Partial<MainSurface> = {}): MainSurface => ({

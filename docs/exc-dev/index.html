@@ -359,7 +359,7 @@
   </head>
   <body>
     <div class="manhead">
-      <span>OPENCODE(7)</span>
+      <span>AICRAFT(7)</span>
       <span>AI Craft Plugin Manual</span>
       <span class="ver">apiVersion 1 &middot; 2026-11-13</span>
     </div>
@@ -559,7 +559,7 @@
         加载路径（<code>packages/core/src/plugin/module.ts</code>）记一条<b>结构化日志</b>，不是拼接字符串：
       </p>
       <pre><span class="path">服务端日志</span><code>msg:      "plugin uses a legacy entry"
-target:   "/Users/…/exc/opencode.webwright"   # 插件目标或 id
+target:   "/Users/…/exc/aicraft.webwright"   # 插件目标或 id
 kind:     "server"
 found:    "server/index"                            # 实际命中的旧路径
 expected: "server/main"                             # 应该改成的路径</code></pre>
@@ -569,7 +569,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         每次都警告会刷屏。所以同一个插件可能「列表里已经出现」但日志还没警告。
         安装期（<code>packages/core/src/plugin/bundle.ts</code>）仍是控制台警告：
       </p>
-      <pre><span class="path">服务端日志</span><code>[opencode] Plugin "test.bundle" server entry "server/index" is deprecated; this bundle should declare and ship "server/main".</code></pre>
+      <pre><span class="path">服务端日志</span><code>[aicraft] Plugin "test.bundle" server entry "server/index" is deprecated; this bundle should declare and ship "server/main".</code></pre>
 
       <div class="warn">
         <b>只进服务端日志。</b>这类警告没有界面通道、不需要 i18n：插件列表、设置页、toast 都不会提示。
@@ -675,8 +675,8 @@ expected: "server/main"                             # 应该改成的路径</cod
         <tr>
           <td>目录（Windows）</td>
           <td>
-            <code>D:\.opencode\plugin-runtime\&lt;id&gt;\</code>；<code>D:\</code> 不存在或不可写时回落
-            <code>%USERPROFILE%\.opencode\plugin-runtime\&lt;id&gt;\</code>。判定细节见<a href="#s2-1-dirs">目录位置</a>。
+            <code>D:\.aicraft\plugin-runtime\&lt;id&gt;\</code>；<code>D:\</code> 不存在或不可写时回落
+            <code>%USERPROFILE%\.aicraft\plugin-runtime\&lt;id&gt;\</code>。判定细节见<a href="#s2-1-dirs">目录位置</a>。
           </td>
         </tr>
         <tr><td>卸载时</td><td>整个目录删除。它是可重建的，与 <code>plugin-cache</code> 同一类。</td></tr>
@@ -693,22 +693,22 @@ expected: "server/main"                             # 应该改成的路径</cod
         <tr>
           <td>运行环境</td>
           <td><code>~/.aicraft/plugin-runtime/&lt;id&gt;/</code></td>
-          <td><code>D:\.opencode\plugin-runtime\&lt;id&gt;\</code>，否则 <code>%USERPROFILE%\.opencode\plugin-runtime\&lt;id&gt;\</code></td>
+          <td><code>D:\.aicraft\plugin-runtime\&lt;id&gt;\</code>，否则 <code>%USERPROFILE%\.aicraft\plugin-runtime\&lt;id&gt;\</code></td>
         </tr>
         <tr>
           <td>缓存</td>
           <td><code>~/.aicraft/plugin-cache/&lt;id&gt;/</code></td>
-          <td><code>D:\.opencode\plugin-cache\&lt;id&gt;\</code>，否则 <code>%USERPROFILE%\.opencode\plugin-cache\&lt;id&gt;\</code></td>
+          <td><code>D:\.aicraft\plugin-cache\&lt;id&gt;\</code>，否则 <code>%USERPROFILE%\.aicraft\plugin-cache\&lt;id&gt;\</code></td>
         </tr>
         <tr>
           <td>数据（<code>config.json</code>）</td>
           <td><code>~/.aicraft/plugin-data/&lt;id&gt;/</code></td>
-          <td><code>%USERPROFILE%\.opencode\plugin-data\&lt;id&gt;\</code></td>
+          <td><code>%USERPROFILE%\.aicraft\plugin-data\&lt;id&gt;\</code></td>
         </tr>
         <tr>
           <td>日志</td>
           <td><code>~/.aicraft/logs/plugin/&lt;id&gt;.log</code></td>
-          <td><code>%USERPROFILE%\.opencode\logs\plugin\&lt;id&gt;.log</code></td>
+          <td><code>%USERPROFILE%\.aicraft\logs\plugin\&lt;id&gt;.log</code></td>
         </tr>
       </table>
       <p>
@@ -738,7 +738,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p>每次加载都会检测三项，任一项不过就重新准备：</p>
       <ol>
         <li>虚拟环境存在且解释器可用。</li>
-        <li>解释器版本满足 <code>runtime.python</code>。约束里的运算符（<code>&gt;=</code>、<code>^</code>、<code>~</code>）只用来取最低版本，比较时只校验下限，与 <code>requires.opencode</code> 的判定方式相同。</li>
+        <li>解释器版本满足 <code>runtime.python</code>。约束里的运算符（<code>&gt;=</code>、<code>^</code>、<code>~</code>）只用来取最低版本，比较时只校验下限，与 <code>requires.aicraft</code> 的判定方式相同。</li>
         <li>依赖规范化后的 hash 与标记文件一致。</li>
       </ol>
       <ul>
@@ -762,7 +762,7 @@ expected: "server/main"                             # 应该改成的路径</cod
 
       <p><b>找 uv 的顺序</b></p>
       <ol>
-        <li><code>OPENCODE_UV_PATH</code> 指定的路径，能跑就用。</li>
+        <li><code>AICRAFT_UV_PATH</code> 指定的路径，能跑就用。</li>
         <li><code>PATH</code> 里的 <code>uv</code>。</li>
         <li>已经下载过、能跑的 <code>~/.aicraft/bin/uv</code>。</li>
         <li>都没有才下载。</li>
@@ -782,7 +782,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p><b>版本与平台</b></p>
       <table>
         <tr><th>项</th><th>规则</th></tr>
-        <tr><td>版本</td><td>固定 <code>0.13.8</code>，不跟 <code>latest</code>——一个代码版本对应一份工具链，环境可复现。用 <code>OPENCODE_UV_VERSION</code> 覆盖。</td></tr>
+        <tr><td>版本</td><td>固定 <code>0.13.8</code>，不跟 <code>latest</code>——一个代码版本对应一份工具链，环境可复现。用 <code>AICRAFT_UV_VERSION</code> 覆盖。</td></tr>
         <tr><td>平台</td><td><code>darwin-arm64</code>、<code>darwin-x64</code>、<code>linux-arm64</code>、<code>linux-x64</code>、<code>win32-x64</code>。其余组合 uv 没有可用构建，直接回退系统 <code>python3</code>。</td></tr>
         <tr><td>包格式</td><td>macOS / Linux 是 <code>.tar.gz</code>；Windows 是 <code>.zip</code>。</td></tr>
         <tr><td>解压</td><td><code>Bun.Archive</code> 只读 tar，所以 Windows 的 zip 由宿主自己读中央目录、用 <code>inflateRawSync</code> 取出 <code>uv.exe</code>。</td></tr>
@@ -801,11 +801,11 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p>默认全部指向中科大，可用这些变量覆盖：</p>
       <table>
         <tr><th>变量</th><th>作用</th></tr>
-        <tr><td><code>OPENCODE_UV_PATH</code></td><td>强制使用指定的 uv 可执行文件。</td></tr>
-        <tr><td><code>OPENCODE_UV_VERSION</code></td><td>换下载的 uv 版本。</td></tr>
-        <tr><td><code>OPENCODE_UV_MIRROR</code></td><td>换 uv 下载镜像；设成空字符串则跳过镜像，只用代理与官方。</td></tr>
-        <tr><td><code>OPENCODE_PYTHON_INSTALL_MIRROR</code></td><td>换 CPython 的下载镜像。</td></tr>
-        <tr><td><code>OPENCODE_PYPI_INDEX</code></td><td>换包索引；空字符串表示回官方 PyPI。</td></tr>
+        <tr><td><code>AICRAFT_UV_PATH</code></td><td>强制使用指定的 uv 可执行文件。</td></tr>
+        <tr><td><code>AICRAFT_UV_VERSION</code></td><td>换下载的 uv 版本。</td></tr>
+        <tr><td><code>AICRAFT_UV_MIRROR</code></td><td>换 uv 下载镜像；设成空字符串则跳过镜像，只用代理与官方。</td></tr>
+        <tr><td><code>AICRAFT_PYTHON_INSTALL_MIRROR</code></td><td>换 CPython 的下载镜像。</td></tr>
+        <tr><td><code>AICRAFT_PYPI_INDEX</code></td><td>换包索引；空字符串表示回官方 PyPI。</td></tr>
       </table>
       <div class="note">
         下载并执行 <code>uv</code> 与「安装插件声明的依赖」是同一层信任：用户装了一个声明 <code>runtime</code> 的插件，
@@ -969,7 +969,7 @@ expected: "server/main"                             # 应该改成的路径</cod
 
       <pre><span class="path">echo-plugin/METAINF</span><code>{
   "apiVersion": 1,
-  "id": "opencode.echo",
+  "id": "aicraft.echo",
   "version": "0.1.0",
   "requires": { "opencode": "^2.2.0" },
   "entry": {
@@ -978,8 +978,8 @@ expected: "server/main"                             # 应该改成的路径</cod
   },
   "externals": [
     "effect",
-    "@opencode/plugin",
-    "@opencode/schema"
+    "@aicraft/plugin",
+    "@aicraft/schema"
   ],
   "display": {
     "name": "Echo",
@@ -1159,7 +1159,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       </p>
 
       <pre><span class="path">dist/package.json</span><code>{
-  "name": "opencode.echo",
+  "name": "aicraft.echo",
   "version": "0.1.0",
   "type": "module",
   "main": "./server/main.js",
@@ -1181,7 +1181,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <h3 id="s2-6">2.6 package.json（工程本身）</h3>
 
       <pre><span class="path">echo-plugin/package.json</span><code>{
-  "name": "opencode-echo",
+  "name": "aicraft-echo",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -1190,8 +1190,8 @@ expected: "server/main"                             # 应该改成的路径</cod
     "pack": "bun run script/pack.ts"
   },
   "dependencies": {
-    "@opencode/plugin": "^2.2.0",
-    "@opencode/schema": "^2.2.0",
+    "@aicraft/plugin": "^2.2.0",
+    "@aicraft/schema": "^2.2.0",
     "effect": "^4.0.0"
   },
   "devDependencies": {
@@ -1226,11 +1226,11 @@ expected: "server/main"                             # 应该改成的路径</cod
         （旧名 <code>setup</code> 仍可用，等价于 <code>activate</code>，下一个 minor 移除）。
       </p>
 
-      <pre><span class="path">echo-plugin/server/main.ts</span><code>import { Plugin } from "@opencode/plugin"
+      <pre><span class="path">echo-plugin/server/main.ts</span><code>import { Plugin } from "@aicraft/plugin"
 import { Schema } from "effect"
 
 export default Plugin.define({
-  id: "opencode.echo",
+  id: "aicraft.echo",
 
   async activate(ctx) {
     // 注册工具
@@ -1248,7 +1248,7 @@ export default Plugin.define({
 
       <h3 id="s2-9">2.9 gui/main.tsx（界面入口）</h3>
 
-      <pre><span class="path">echo-plugin/gui/main.tsx</span><code>import { Command, Plugin, Slot } from "@opencode/plugin/gui"
+      <pre><span class="path">echo-plugin/gui/main.tsx</span><code>import { Command, Plugin, Slot } from "@aicraft/plugin/gui"
 import { createSignal } from "solid-js"
 
 export default Plugin.define({
@@ -1282,7 +1282,7 @@ function Pet() {
       <p>构建界面需要 <code>vite.config.ts</code>：</p>
 
       <pre><span class="path">echo-plugin/vite.config.ts</span><code>import { defineConfig } from "vite"
-import { gui } from "@opencode/plugin/gui/vite"
+import { gui } from "@aicraft/plugin/gui/vite"
 
 export default defineConfig({
   plugins: [gui()],
@@ -1302,8 +1302,8 @@ description: 使用 echo 工具把文本原样返回。
 
       <p>运行时注册技能（放在 <code>activate</code> 里，先读文件再注册）：</p>
 
-      <pre><span class="path">echo-plugin/server/main.ts（片段）</span><code>import { AbsolutePath } from "@opencode/schema/schema"
-import { Skill } from "@opencode/schema/skill"
+      <pre><span class="path">echo-plugin/server/main.ts（片段）</span><code>import { AbsolutePath } from "@aicraft/schema/schema"
+import { Skill } from "@aicraft/schema/skill"
 
 const file = new URL("../skills/echo/SKILL.md", import.meta.url)
 const content = await Bun.file(file).text()
@@ -1404,7 +1404,7 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
 
       <p>
         生成的 <code>METAINF</code> 直接符合入口标准：<code>server/main</code>，gui / tui 各写
-        <code>gui/main</code>、<code>tui/main</code>，<code>externals</code> 含 <code>@opencode/plugin</code>。
+        <code>gui/main</code>、<code>tui/main</code>，<code>externals</code> 含 <code>@aicraft/plugin</code>。
         它<b>不生成</b> <code>runtime</code> 字段——需要 Python 就自己加，见 <a href="#s2-1">2.1</a>。
       </p>
       <pre><span class="path">生成后</span><code>packages/plugins/my-plugin/
@@ -1416,12 +1416,12 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
 └── .gitignore</code></pre>
 
       <div class="warn">
-        脚手架只写 <code>workspace:*</code> 与 <code>catalog:</code> 依赖，所以<b>只能在 opencode 仓库内</b>
+        脚手架只写 <code>workspace:*</code> 与 <code>catalog:</code> 依赖，所以<b>只能在 aicraft 仓库内</b>
         （<code>packages/</code> 下）生成。目录在仓库外会直接报错，而不是生成一个装不上依赖的工程。
       </div>
 
       <p>
-        GUI 模板的 <code>vite.config.ts</code> 用 <code>@opencode/plugin/gui/vite</code> 的 <code>gui()</code>，
+        GUI 模板的 <code>vite.config.ts</code> 用 <code>@aicraft/plugin/gui/vite</code> 的 <code>gui()</code>，
         构建输出 <code>dist/gui/main.cjs</code>——就是宿主用 <code>eval</code> 执行的那个 CommonJS bundle。
       </p>
 
@@ -1435,7 +1435,7 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
         没有旧扩展名回退，旧包需要重新打包。
       </p>
 
-      <pre>opencode.echo-0.1.0.exc  (gzip tar)
+      <pre>aicraft.echo-0.1.0.exc  (gzip tar)
 ├── METAINF     &lt;- 带 files[].sha256
 ├── package.json
 ├── server/main.js
@@ -1605,7 +1605,7 @@ console.log(`packed ${archive}`)</code></pre>
       <pre><span class="path">HTTP</span><code>POST /api/experimental/plugin/reload
 Content-Type: application/json
 
-{ "id": "opencode.echo" }</code></pre>
+{ "id": "aicraft.echo" }</code></pre>
       <p>
         语义是「清掉该目标的加载退避，再通过 supervisor 既有的触发队列请求一次重新激活」，不会另起一条激活链。
         <b>返回 200 只表示已排入重试，不表示插件已经加载成功</b>：要看插件状态，读
@@ -1808,7 +1808,7 @@ Content-Type: application/json
         <code>tags</code> 里的空串和重复项会被丢弃，最多保留 8 个、每个 30 字。<code>MemoryEntry</code> 的形状是
         <code>{ id, text, tags, createdAt, updatedAt }</code>，两个时间都是 ISO 字符串。
       </p>
-      <pre><span class="path">acme-plugin/server/main.ts</span><code>import { Plugin } from "@opencode/plugin"
+      <pre><span class="path">acme-plugin/server/main.ts</span><code>import { Plugin } from "@aicraft/plugin"
 
 export default Plugin.define({
   id: "acme.notes",
@@ -1839,7 +1839,7 @@ export default Plugin.define({
         <tr><td><code>data</code></td><td><code>~/.aicraft/plugin-data/&lt;id&gt;</code></td><td>保留</td></tr>
         <tr>
           <td><code>cache</code></td>
-          <td><code>~/.aicraft/plugin-cache/&lt;id&gt;</code>；Windows 上默认是 <code>D:\.opencode\plugin-cache\&lt;id&gt;</code></td>
+          <td><code>~/.aicraft/plugin-cache/&lt;id&gt;</code>；Windows 上默认是 <code>D:\.aicraft\plugin-cache\&lt;id&gt;</code></td>
           <td>整个删除</td>
         </tr>
         <tr><td><code>log</code></td><td><code>~/.aicraft/logs/plugin/&lt;id&gt;.log</code></td><td>保留</td></tr>
@@ -2515,21 +2515,21 @@ await ctx.session.hook("retry", (event) =&gt; {
       <h4>两个进程共享</h4>
       <ul>
         <li><code>effect</code></li>
-        <li><code>@opencode/plugin/gui</code></li>
-        <li><code>@opencode/plugin/gui/main</code></li>
-        <li><code>@opencode/plugin/rpc</code></li>
-        <li><code>@opencode/schema/rpc</code></li>
-        <li><code>@opencode/client</code></li>
-        <li><code>@opencode/client/effect</code></li>
+        <li><code>@aicraft/plugin/gui</code></li>
+        <li><code>@aicraft/plugin/gui/main</code></li>
+        <li><code>@aicraft/plugin/rpc</code></li>
+        <li><code>@aicraft/schema/rpc</code></li>
+        <li><code>@aicraft/client</code></li>
+        <li><code>@aicraft/client/effect</code></li>
       </ul>
 
       <h4>仅窗口</h4>
       <ul>
         <li><code>solid-js</code>、<code>solid-js/web</code>、<code>solid-js/store</code></li>
-        <li><code>@opencode/client/solid</code></li>
-        <li><code>@opencode/plugin/gui/file</code></li>
-        <li><code>@opencode/plugin/gui/review</code></li>
-        <li><code>@opencode/plugin/gui/browser</code></li>
+        <li><code>@aicraft/client/solid</code></li>
+        <li><code>@aicraft/plugin/gui/file</code></li>
+        <li><code>@aicraft/plugin/gui/review</code></li>
+        <li><code>@aicraft/plugin/gui/browser</code></li>
       </ul>
 
       <p>构建时另可用 <code>electron</code> 与 Node 内置模块（只在主进程入口有效）。</p>
@@ -2650,7 +2650,7 @@ await ctx.session.hook("retry", (event) =&gt; {
         服务端插件用声明式方法描述生命周期，由宿主按确定规则调用。三个钩子都可选；都不写时行为与从前一致。
       </p>
       <pre><span class="path">服务端</span><code>export default Plugin.define({
-  id: "opencode.acme",
+  id: "aicraft.acme",
 
   async activate(ctx) {},     // 每次加载都跑；旧名 setup
   async onInstall(ctx) {},    // 本进程内首次加载
@@ -2843,12 +2843,12 @@ await ctx.session.hook("retry", (event) =&gt; {
       <h3 id="s4-16">4.16 RPC（服务端）</h3>
 
       <p>
-        <code>ctx.rpc</code> 是服务端侧的 <code>RpcDomain</code>：用 <code>@opencode/plugin/rpc</code> 的
+        <code>ctx.rpc</code> 是服务端侧的 <code>RpcDomain</code>：用 <code>@aicraft/plugin/rpc</code> 的
         <code>Rpc.define</code> 定义契约，走服务端的 RPC 端点，可以被其他插件与界面调用。
       </p>
 
       <h4>调用方</h4>
-      <pre><span class="path">契约</span><code>import { Rpc } from "@opencode/plugin/rpc"
+      <pre><span class="path">契约</span><code>import { Rpc } from "@aicraft/plugin/rpc"
 import { Schema } from "effect"
 
 export const Acme = Rpc.define({
@@ -2909,7 +2909,7 @@ await registration.events.emit("indexed", { count: 3 })</code></pre>
       </table>
 
       <h4>Ipc 定义</h4>
-      <pre><span class="path">契约</span><code>import { Ipc } from "@opencode/plugin/gui"
+      <pre><span class="path">契约</span><code>import { Ipc } from "@aicraft/plugin/gui"
 import { Schema } from "effect"
 
 export const Pairing = Ipc.define({
@@ -2995,7 +2995,7 @@ ctx.inbox.onSeen((ids) =&gt; {                // 用户把本插件的消息标�
       </table>
 
       <h4>类型</h4>
-      <pre><span class="path">@opencode/plugin</span><code>type InboxStatus = "pending" | "done" | "failed"
+      <pre><span class="path">@aicraft/plugin</span><code>type InboxStatus = "pending" | "done" | "failed"
 
 type InboxMessage = {
   externalID: string        // 同插件内重复投递按更新处理
@@ -3165,7 +3165,7 @@ Content-Type: application/json
         导航区（侧边栏列表、过滤、搜索、未读点与排序）由宿主渲染，插件不能改。插件能自定义的是<b>单条消息的内容页</b>，
         而且只对自己的消息生效。
       </p>
-      <pre><span class="path">gui</span><code>import { InboxContent } from "@opencode/plugin/gui"
+      <pre><span class="path">gui</span><code>import { InboxContent } from "@aicraft/plugin/gui"
 
 ctx.add(InboxContent, {
   render: (record) =&gt; &lt;MailMessage id={record.id} payload={record.payload} /&gt;,
@@ -3217,7 +3217,7 @@ ctx.add(InboxContent, {
       <h3>5.1 确认插件被加载</h3>
       <p>在 <code>activate</code> 开头写一行日志：</p>
       <pre><span class="path">server/main.ts</span><code>export default Plugin.define({
-  id: "opencode.echo",
+  id: "aicraft.echo",
   async activate(ctx) {
     console.log("[echo] loaded")
     ...
@@ -3258,7 +3258,7 @@ ctx.add(InboxContent, {
       <table>
         <tr><th>错误</th><th>原因与处理</th></tr>
         <tr><td>This bundle needs a newer AI Craft (format N)</td><td><code>apiVersion</code> 高于宿主支持。升级应用或改回 1。</td></tr>
-        <tr><td>This plugin needs AI Craft &gt;= x.y.z; this app is a.b.c.</td><td>清单 <code>requires.opencode</code> 高于当前应用版本。升级应用，或改低要求。</td></tr>
+        <tr><td>This plugin needs AI Craft &gt;= x.y.z; this app is a.b.c.</td><td>清单 <code>requires.aicraft</code> 高于当前应用版本。升级应用，或改低要求。</td></tr>
         <tr><td>This plugin bundle has a display without a name and description.</td><td><code>display</code> 缺 <code>name</code> 或 <code>description</code>。</td></tr>
         <tr><td>This plugin bundle is incomplete: &lt;path&gt; is missing.</td><td><code>skills[].path</code> 指向的文件不在包里。</td></tr>
         <tr><td>This plugin bundle has an invalid configuration: ...</td><td><code>configuration</code> 用了不支持的类型（嵌套对象、非 string 数组等）。</td></tr>
@@ -3291,8 +3291,8 @@ ctx.add(InboxContent, {
         <tr><th>路径</th><th>作用</th></tr>
         <tr><td><code>~/.aicraft/exc/&lt;id&gt;/</code></td><td>已安装插件；自动扫描、监听，放入即加载。</td></tr>
         <tr><td><code>~/.aicraft/plugin-data/&lt;id&gt;/</code></td><td>插件数据目录（<code>ctx.paths.data</code>），卸载后保留；<code>config.json</code> 也在这里。</td></tr>
-        <tr><td><code>~/.aicraft/plugin-cache/&lt;id&gt;/</code></td><td>插件缓存目录（<code>ctx.paths.cache</code>），卸载时整个删除。Windows 上默认在 <code>D:\.opencode\plugin-cache\&lt;id&gt;\</code>，见 <a href="#s2-1-dirs">2.1</a>。</td></tr>
-        <tr><td><code>~/.aicraft/plugin-runtime/&lt;id&gt;/</code></td><td>Python 运行时环境（<a href="#s2-1">2.1</a>），id 里的 <code>/</code> 换成 <code>+</code>；卸载时删除，可按清单重建。Windows 上默认在 <code>D:\.opencode\plugin-runtime\&lt;id&gt;\</code>。</td></tr>
+        <tr><td><code>~/.aicraft/plugin-cache/&lt;id&gt;/</code></td><td>插件缓存目录（<code>ctx.paths.cache</code>），卸载时整个删除。Windows 上默认在 <code>D:\.aicraft\plugin-cache\&lt;id&gt;\</code>，见 <a href="#s2-1-dirs">2.1</a>。</td></tr>
+        <tr><td><code>~/.aicraft/plugin-runtime/&lt;id&gt;/</code></td><td>Python 运行时环境（<a href="#s2-1">2.1</a>），id 里的 <code>/</code> 换成 <code>+</code>；卸载时删除，可按清单重建。Windows 上默认在 <code>D:\.aicraft\plugin-runtime\&lt;id&gt;\</code>。</td></tr>
         <tr><td><code>~/.aicraft/bin/uv</code></td><td>宿主按需下载的 <code>uv</code>（<a href="#s2-1-uv">2.1 uv 与镜像</a>），所有插件共用；不随插件卸载删除。</td></tr>
         <tr><td><code>~/.aicraft/logs/plugin/&lt;id&gt;.log</code></td><td>插件日志（<code>ctx.paths.log</code>），卸载后保留。</td></tr>
         <tr><td><code>~/.aicraft/secrets.key</code></td><td>加密凭据的主密钥，首次使用生成，权限 <code>0600</code>。</td></tr>
@@ -3300,7 +3300,7 @@ ctx.add(InboxContent, {
         <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：每个版本只有一个 <code>&lt;id&gt;-&lt;version&gt;.exc</code>（清单在包内）；探索页从这里列出可安装版本。</td></tr>
         <tr><td><code>&lt;project&gt;/.aicraft/plugins/</code></td><td>项目级插件目录。</td></tr>
         <tr><td><code>aicraft.json</code> 的 <code>plugins</code></td><td>显式声明插件包或本地目录。</td></tr>
-        <tr><td><code>~/.config/opencode/aicraft.json</code></td><td>全局配置，可写插件 options。</td></tr>
+        <tr><td><code>~/.config/aicraft/aicraft.json</code></td><td>全局配置，可写插件 options。</td></tr>
       </table>
 
       <h2 id="s8">8. 能力边界与常见问题</h2>
@@ -3386,7 +3386,7 @@ ctx.add(InboxContent, {
           </td>
         </tr>
         <tr>
-          <td>「<code>requires.opencode</code> 是完整 semver range」</td>
+          <td>「<code>requires.aicraft</code> 是完整 semver range」</td>
           <td>
             不是。安装器只解析出<b>最低版本</b>再比较：<code>^2.2.5</code> 等价于 <code>&gt;= 2.2.5</code>，
             <b>不限制上界</b>。真正的兼容性契约是 <code>apiVersion</code>，它不变就意味着插件 API 兼容。

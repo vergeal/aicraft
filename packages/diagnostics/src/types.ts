@@ -46,7 +46,7 @@ export type DiagnosticsSourceStats = {
 }
 
 export type DiagnosticsDocument = {
-  schema: "opencode.diagnostics.v2"
+  schema: "aicraft.diagnostics.v2"
   generatedAt: string
   /** `performance.timeOrigin` of the renderer that produced this dump. */
   timeOrigin: number

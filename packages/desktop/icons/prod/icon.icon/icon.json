@@ -1,10 +1,10 @@
 {
   "groups": [
     {
-      "name": "OpenCode",
+      "name": "AI Craft",
       "layers": [
         {
-          "name": "OpenCode",
+          "name": "AI Craft",
           "image-name": "icon.png",
           "glass": false
         }

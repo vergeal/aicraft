@@ -2,7 +2,7 @@ import { SessionProgressIndicatorV2 } from "./session-progress-indicator-v2"
 import { createSignal, onCleanup, onMount } from "solid-js"
 
 const docs = `### Overview
-Glowing orb for in-progress session state.
+Animated glowing orb for in-progress session state.
 
 Ported from uiverse.io/terenceodonoghue/rare-cow-16 (MIT).
 
@@ -10,8 +10,9 @@ Ported from uiverse.io/terenceodonoghue/rare-cow-16 (MIT).
 - Accepts \`width\` and \`height\` plus standard span props.
 
 ### Behavior
-- Four blurred copies of a gradient sit under a solid core; the orb is static.
+- Four blurred copies of a gradient sit under a solid core; the whole orb rotates in a 1.2s loop.
 - Blur radius, inset and core border are fractions of the orb size, so 12px and 96px keep the same shape.
+- Pauses while scrolled out of view through \`syncSpinPhase\`.
 
 ### Accessibility
 - Sets \`aria-hidden="true"\` by default.
@@ -21,7 +22,7 @@ Ported from uiverse.io/terenceodonoghue/rare-cow-16 (MIT).
 `
 
 export default {
-  title: "OpenCode/Status/Session progress",
+  title: "AI Craft/Status/Session progress",
   id: "components-session-progress-indicator-v2",
   component: SessionProgressIndicatorV2,
   tags: ["autodocs"],

@@ -1,12 +1,12 @@
 import { createMemo, createSignal, For, onCleanup, Show, type JSX, type ParentProps } from "solid-js"
 import { createStore } from "solid-js/store"
-import { AppIcon } from "@opencode/ui/app-icon"
-import { Icon } from "@opencode/ui/icon"
-import { Menu } from "@opencode/ui/menu"
-import { Loader } from "@opencode/ui/loader"
-import { SplitButton, SplitButtonAction, SplitButtonMenuTrigger } from "@opencode/ui/split-button"
-import { showToast } from "@opencode/ui/toast"
-import { Tooltip } from "@opencode/ui/tooltip"
+import { AppIcon } from "@aicraft/ui/app-icon"
+import { Icon } from "@aicraft/ui/icon"
+import { Menu } from "@aicraft/ui/menu"
+import { Loader } from "@aicraft/ui/loader"
+import { SplitButton, SplitButtonAction, SplitButtonMenuTrigger } from "@aicraft/ui/split-button"
+import { showToast } from "@aicraft/ui/toast"
+import { Tooltip } from "@aicraft/ui/tooltip"
 import {
   createLatest,
   usePlugin,
@@ -14,7 +14,7 @@ import {
   type OS,
   type MountedSession,
   type SessionScreen,
-} from "@opencode/plugin/gui"
+} from "@aicraft/plugin/gui"
 import type { OpenApp } from "./apps"
 import { useShared, type OpenRequest } from "./context"
 import { openInAppParentPath } from "./path"

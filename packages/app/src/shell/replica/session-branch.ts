@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect"
-import { Session } from "@opencode/schema/session"
-import { prefersReducedMotion } from "@opencode/ui/motion"
+import { Session } from "@aicraft/schema/session"
+import { prefersReducedMotion } from "@aicraft/ui/motion"
 import { followRow, mountOverlay, replicaRow } from "./overlay"
 
 const SVG_NS = "http://www.w3.org/2000/svg"

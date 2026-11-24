@@ -4,8 +4,8 @@ import {
   inertModule,
   pluginWindowModules,
   type pluginSharedModules,
-} from "@opencode/plugin/gui/host"
-import type { Plugin } from "@opencode/plugin/gui/main"
+} from "@aicraft/plugin/gui/host"
+import type { Plugin } from "@aicraft/plugin/gui/main"
 
 const native = createRequire(import.meta.url)
 
@@ -13,12 +13,12 @@ const native = createRequire(import.meta.url)
 // checks against. In main, the window SDK's name resolves to the main SDK.
 const shared = {
   effect: () => import("effect"),
-  "@opencode/plugin/gui": () => import("@opencode/plugin/gui/main"),
-  "@opencode/plugin/gui/main": () => import("@opencode/plugin/gui/main"),
-  "@opencode/plugin/rpc": () => import("@opencode/plugin/rpc"),
-  "@opencode/schema/rpc": () => import("@opencode/schema/rpc"),
-  "@opencode/client": () => import("@opencode/client"),
-  "@opencode/client/effect": () => import("@opencode/client/effect"),
+  "@aicraft/plugin/gui": () => import("@aicraft/plugin/gui/main"),
+  "@aicraft/plugin/gui/main": () => import("@aicraft/plugin/gui/main"),
+  "@aicraft/plugin/rpc": () => import("@aicraft/plugin/rpc"),
+  "@aicraft/schema/rpc": () => import("@aicraft/schema/rpc"),
+  "@aicraft/client": () => import("@aicraft/client"),
+  "@aicraft/client/effect": () => import("@aicraft/client/effect"),
 } satisfies Record<(typeof pluginSharedModules)[number], () => Promise<object>>
 
 const windowOnly = new Set<string>(pluginWindowModules)

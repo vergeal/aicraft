@@ -1,6 +1,6 @@
 export * as ItsmIpc from "./ipc.js"
 
-import { Ipc } from "@opencode/plugin/gui"
+import { Ipc } from "@aicraft/plugin/gui"
 import { Schema } from "effect"
 import { AnswerValue, Template } from "./contract.js"
 

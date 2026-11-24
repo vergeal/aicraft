@@ -70,13 +70,13 @@
 
 ```bash
 # 计算样式探测（支持性 + 七种场景）
-/Users/ekko/Projects/opencode/packages/desktop/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron \
-  /private/var/folders/6j/dmtcww5s4vscysry2hgh39mw0000gp/T/opencode/replica-css-check.js
+/Users/ekko/Projects/aicraft/packages/desktop/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron \
+  /private/var/folders/6j/dmtcww5s4vscysry2hgh39mw0000gp/T/aicraft/replica-css-check.js
 ```
 
 截图脚本（真实 `replica.css` + 渐变背景代替壁纸，浅/深各 baseline 与 reduce 两张）：
-`/private/var/folders/6j/dmtcww5s4vscysry2hgh39mw0000gp/T/opencode/replica-shots.js`，
-输出目录 `/private/var/folders/6j/dmtcww5s4vscysry2hgh39mw0000gp/T/opencode/replica-glass/`。
+`/private/var/folders/6j/dmtcww5s4vscysry2hgh39mw0000gp/T/aicraft/replica-shots.js`，
+输出目录 `/private/var/folders/6j/dmtcww5s4vscysry2hgh39mw0000gp/T/aicraft/replica-glass/`。
 
 注意：这些是页面渲染截图，不是系统截图。窗口 vibrancy 只能在真实 desktop 窗口里看到。
 

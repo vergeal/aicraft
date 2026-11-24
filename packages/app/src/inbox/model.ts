@@ -1,4 +1,4 @@
-import type { FormAnswer, FormInfo, KnowledgeInfo, PermissionRequest, PluginInboxRecord, ScheduleInfo } from "@opencode/client/promise"
+import type { FormAnswer, FormInfo, KnowledgeInfo, PermissionRequest, PluginInboxRecord, ScheduleInfo } from "@aicraft/client/promise"
 import { useQueries, useQueryClient } from "@tanstack/solid-query"
 import { Schema } from "effect"
 import { createMemo } from "solid-js"

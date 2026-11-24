@@ -1,6 +1,6 @@
 import { RGBA, SyntaxStyle, type CliRenderer, type ColorInput, type TerminalColors } from "@opentui/core"
-import { generateSyntax, resolveThemeDocument, themeModes, type ResolvedTheme } from "@opencode/theme/tui"
-import { allThemes, getOpenCodeTheme, isThemeSource, parseTheme, type ThemeDocumentSource } from "../theme"
+import { generateSyntax, resolveThemeDocument, themeModes, type ResolvedTheme } from "@aicraft/theme/tui"
+import { allThemes, getAicraftTheme, isThemeSource, parseTheme, type ThemeDocumentSource } from "../theme"
 import { ansiToRgba } from "../theme/color"
 import { discoverThemes } from "../theme/discovery"
 import { generateSystem, terminalMode } from "../theme/system"
@@ -196,11 +196,11 @@ function map(
 }
 
 export const RUN_THEME_FALLBACK = map(
-  resolveThemeDocument(parseTheme(getOpenCodeTheme()), "dark"),
+  resolveThemeDocument(parseTheme(getAicraftTheme()), "dark"),
   ansiPalette,
 )
 export const RUN_THEME_FALLBACK_LIGHT = map(
-  resolveThemeDocument(parseTheme(getOpenCodeTheme()), "light"),
+  resolveThemeDocument(parseTheme(getAicraftTheme()), "light"),
   ansiPalette,
 )
 
@@ -298,7 +298,7 @@ export async function resolveRunTheme(
       if (themeModes(document).includes(mode)) return resolveThemeDocument(document, mode)
     })
     .catch(() => undefined)
-  const theme = resolved ?? resolveThemeDocument(parseTheme(getOpenCodeTheme()), mode)
+  const theme = resolved ?? resolveThemeDocument(parseTheme(getAicraftTheme()), mode)
   const indexed = colors
     ? ansiPalette.map((color, index) => (colors.palette[index] ? RGBA.fromIndex(index, colors.palette[index]!) : color))
     : ansiPalette
@@ -319,10 +319,10 @@ async function themeSource(
   mode: "dark" | "light",
 ): Promise<ThemeDocumentSource> {
   if (name === "system" && colors) return generateSystem(colors, mode)
-  const { Global } = await import("@opencode/util/global")
+  const { Global } = await import("@aicraft/util/global")
   const custom = await discoverThemes(
-    configDirectories(process.env.OPENCODE_CONFIG_DIR ?? Global.Path.config, process.cwd()),
+    configDirectories(process.env.AICRAFT_CONFIG_DIR ?? Global.Path.config, process.cwd()),
   )
-  const source = custom[name] ?? allThemes()[name] ?? getOpenCodeTheme()
-  return isThemeSource(source) ? source : getOpenCodeTheme()
+  const source = custom[name] ?? allThemes()[name] ?? getAicraftTheme()
+  return isThemeSource(source) ? source : getAicraftTheme()
 }

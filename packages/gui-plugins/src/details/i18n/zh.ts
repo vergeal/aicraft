@@ -43,7 +43,7 @@ export default {
   "mcp.error.details": "MCP 服务器：{{name}}\n状态：失败\n配置位置：mcp.servers.{{name}}\n错误：{{error}}",
   "mcp.signIn.open": "登录 {{name}}",
   "mcp.signIn.description":
-    "将打开浏览器以便你登录 {{name}}。如果浏览器无法访问运行 OpenCode 的这台电脑，请把跳转后的 URL 粘贴到下方。",
+    "将打开浏览器以便你登录 {{name}}。如果浏览器无法访问运行 AI Craft 的这台电脑，请把跳转后的 URL 粘贴到下方。",
   "mcp.signIn.waiting": "正在等待授权…",
   "mcp.signIn.failed": "授权失败：{{error}}",
   "mcp.signIn.expired": "授权已过期",
@@ -51,13 +51,13 @@ export default {
   "mcp.signIn.paste.label": "跳转 URL",
   "mcp.signIn.paste.placeholder": "http://127.0.0.1:…/callback?code=…",
   "mcp.signIn.paste.required": "请粘贴浏览器地址栏中的 URL",
-  "setup.mcp": "用 OpenCode 添加服务器",
+  "setup.mcp": "用 AI Craft 添加服务器",
   "setup.mcp.prompt":
-    "帮我在 OpenCode 的全局配置里添加一个 MCP 服务器。先问我要连接哪个服务，然后完成配置并确认它能连上。",
-  "setup.plugins": "用 OpenCode 添加插件",
+    "帮我在 AI Craft 的全局配置里添加一个 MCP 服务器。先问我要连接哪个服务，然后完成配置并确认它能连上。",
+  "setup.plugins": "用 AI Craft 添加插件",
   "setup.plugins.prompt":
-    "帮我在 OpenCode 的全局配置里添加一个插件。先问我想实现什么，再推荐一个合适的插件并添加进去。",
-  "setup.skills": "用 OpenCode 新建技能",
+    "帮我在 AI Craft 的全局配置里添加一个插件。先问我想实现什么，再推荐一个合适的插件并添加进去。",
+  "setup.skills": "用 AI Craft 新建技能",
   "setup.skills.prompt":
-    "帮我在 OpenCode 的全局配置里编写一个新技能。先问我要教你些什么，然后写出它的 SKILL.md。",
+    "帮我在 AI Craft 的全局配置里编写一个新技能。先问我要教你些什么，然后写出它的 SKILL.md。",
 }

@@ -3,9 +3,9 @@ export * as Host from "./host.js"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Option, Schema } from "effect"
-import { importModule, resolveModule } from "@opencode/util/runtime-import"
+import { importModule, resolveModule } from "@aicraft/util/runtime-import"
 
 export interface Target {
   readonly directory: string

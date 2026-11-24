@@ -1,5 +1,5 @@
-import { Agent } from "@opencode/schema/agent"
-import { Permission } from "@opencode/schema/permission"
+import { Agent } from "@aicraft/schema/agent"
+import { Permission } from "@aicraft/schema/permission"
 import { Schema } from "effect"
 
 export const AssertInput = Schema.Struct({

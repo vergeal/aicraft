@@ -21,7 +21,7 @@ async function install() {
   if (!(await isDirectory(source))) return
 
   // The server reads its discover root from Global.home.
-  const target = path.join(process.env.OPENCODE_TEST_HOME ?? homedir(), ".distribution")
+  const target = path.join(process.env.AICRAFT_TEST_HOME ?? homedir(), ".distribution")
   const marker = path.join(target, `.bundled-${app.getVersion()}`)
 
   if (await exists(marker)) return

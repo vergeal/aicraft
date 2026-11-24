@@ -7,7 +7,7 @@ import { supportsForeignKeyToggle } from "#sqlite"
 import { EffectDrizzleSqlite } from "./drizzle.js"
 import { migrations } from "./migration.gen.js"
 import schema from "./schema.gen.js"
-import { Global } from "@opencode/util/global"
+import { Global } from "@aicraft/util/global"
 
 type Database = EffectDrizzleSqlite.EffectSQLiteDatabase & { readonly $client?: SqlClient.SqlClient }
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
@@ -22,7 +22,7 @@ export type Migration = {
 // it is bootstrapping, since two instances over one file must not race.
 export function apply(db: Database) {
   return Effect.gen(function* () {
-    // OpenCode owns the unprefixed table namespace. Embedders sharing this
+    // AI Craft owns the unprefixed table namespace. Embedders sharing this
     // database may own underscore-prefixed tables, which bootstrap ignores.
     const tables = yield* db.all<{ name: string }>(
       sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND substr(name, 1, 1) <> '_'`,

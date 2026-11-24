@@ -11,7 +11,7 @@ export type CustomProviderDraft = {
 }
 
 /** The package a custom OpenAI-compatible provider is registered with. */
-export const CUSTOM_PROVIDER_PACKAGE = "@opencode/ai/providers/openai-compatible"
+export const CUSTOM_PROVIDER_PACKAGE = "@aicraft/ai/providers/openai-compatible"
 
 export const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/
 

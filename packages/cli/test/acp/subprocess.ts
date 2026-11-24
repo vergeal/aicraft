@@ -82,10 +82,10 @@ export async function createAcpFixture(
       const acp = spawnAcp({
         env: isolatedEnv(root, {
           USERPROFILE: root,
-          OPENCODE_CONFIG: undefined,
-          OPENCODE_CONFIG_CONTENT: undefined,
-          OPENCODE_DISABLE_AUTOUPDATE: "true",
-          OPENCODE_MODELS_PATH: models,
+          AICRAFT_CONFIG: undefined,
+          AICRAFT_CONFIG_CONTENT: undefined,
+          AICRAFT_DISABLE_AUTOUPDATE: "true",
+          AICRAFT_MODELS_PATH: models,
         }),
       })
       processes.add(acp)
@@ -112,7 +112,7 @@ export function initialize(acp: AcpProcess) {
     .request<InitializeResponse>("initialize", {
       protocolVersion: 1,
       clientCapabilities: { _meta: { "terminal-auth": true } },
-      clientInfo: { name: "opencode-local-acp", version: "0.1.0" },
+      clientInfo: { name: "aicraft-local-acp", version: "0.1.0" },
     })
     .then(expectOk)
 }

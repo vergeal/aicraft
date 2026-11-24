@@ -1,4 +1,4 @@
-import { Ipc } from "@opencode/plugin/gui"
+import { Ipc } from "@aicraft/plugin/gui"
 import { Schema } from "effect"
 import { AUTOPILOT_SCOPES, HytProfile, PRESET_NAMES, ROLES, SCENES } from "../../src/profile/schema.js"
 

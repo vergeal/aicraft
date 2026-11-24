@@ -1,5 +1,5 @@
-import { Scope } from "@opencode/plugin/gui/host"
-import type { Cleanup } from "@opencode/plugin/gui/main"
+import { Scope } from "@aicraft/plugin/gui/host"
+import type { Cleanup } from "@aicraft/plugin/gui/main"
 import { isQuitting, keptScope, type Handoff, type State } from "../lifecycle/machine"
 
 /** How long disposal waits for an instance's finalizers and a setup still running. */

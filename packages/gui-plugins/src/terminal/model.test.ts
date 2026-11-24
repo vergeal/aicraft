@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import { createStore, produce } from "solid-js/store"
-import { ClientError, type PersistentPtyInfo } from "@opencode/client"
-import type { Layout, ServerRef, SessionRef, Storage, ToastOptions } from "@opencode/plugin/gui"
-import { PtyFeatureUnsupportedError, ServiceUnavailableError } from "@opencode/protocol/errors"
+import { ClientError, type PersistentPtyInfo } from "@aicraft/client"
+import type { Layout, ServerRef, SessionRef, Storage, ToastOptions } from "@aicraft/plugin/gui"
+import { PtyFeatureUnsupportedError, ServiceUnavailableError } from "@aicraft/protocol/errors"
 import { createTerminalModel } from "./model"
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -294,8 +294,8 @@ describe("terminal model", () => {
   test("treats a server whose terminal daemon is unavailable like one without terminal support", async () => {
     const server = fakeServer()
     server.state.listError = new ServiceUnavailableError({
-      message: "opencode-pty is not available",
-      service: "opencode-pty",
+      message: "aicraft-pty is not available",
+      service: "aicraft-pty",
     })
     const { model, session } = setup(server)
 
@@ -361,8 +361,8 @@ describe("terminal model", () => {
     expect(terminal.all().map((item) => item.id)).toEqual(["pty_1", "pty_2"])
 
     server.state.listError = new ServiceUnavailableError({
-      message: "opencode-pty is not available",
-      service: "opencode-pty",
+      message: "aicraft-pty is not available",
+      service: "aicraft-pty",
     })
     slow.resolve()
     await flush()

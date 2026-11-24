@@ -1,9 +1,9 @@
 export * as RecallTool from "./recall.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { SessionMessage } from "@opencode/schema/session-message"
-import type { SessionInbox } from "@opencode/schema/session-inbox"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import type { SessionInbox } from "@aicraft/schema/session-inbox"
 import { Effect, Schema } from "effect"
 import { Permission } from "../../permission.js"
 import { SessionTarget } from "./session-target.js"
@@ -106,7 +106,7 @@ export const run = (input: {
 const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 export const Plugin = {
-  id: "opencode.tool.recall",
+  id: "aicraft.tool.recall",
   effect: Effect.fn("RecallTool.Plugin")(function* (ctx: Context) {
     const permission = yield* Permission.Service
 

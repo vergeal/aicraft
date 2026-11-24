@@ -24,9 +24,9 @@ export const dict = {
   "server.connect.failed":
     "No se pudo conectar. Verifique la dirección y la contraseña del servidor y vuelva a intentarlo.",
   "server.connect.scan": "Escanea el código QR",
-  "server.connect.scan.description": "Apunte su cámara al código QR mostrado por opencode pair.",
+  "server.connect.scan.description": "Apunte su cámara al código QR mostrado por aicraft pair.",
   "server.connect.scan.invalid":
-    "Este no es un código de emparejamiento AI Craft. Escanea el código mostrado por opencode pair.",
+    "Este no es un código de emparejamiento AI Craft. Escanea el código mostrado por aicraft pair.",
   "server.connect.camera": "Emparejamiento de cámara",
   "server.connect.camera.starting": "Abriendo cámara...",
   "server.connect.mixedContent":
@@ -67,8 +67,8 @@ export const dict = {
   "project.settings.color.description":
     "Se utiliza para el icono del proyecto cuando no se establece ninguna imagen personalizada.",
   "project.settings.worktree.startup.description": "Se ejecuta una vez después de crear un nuevo espacio de trabajo.",
-  "project.settings.worktree.startup.hint.base": "Utilice $OPENCODE_WORKTREE_BASE para el espacio de trabajo base.",
-  "project.settings.worktree.startup.hint.new": "Utilice $OPENCODE_WORKTREE_PATH para el nuevo espacio de trabajo.",
+  "project.settings.worktree.startup.hint.base": "Utilice $AICRAFT_WORKTREE_BASE para el espacio de trabajo base.",
+  "project.settings.worktree.startup.hint.new": "Utilice $AICRAFT_WORKTREE_PATH para el nuevo espacio de trabajo.",
   "project.settings.extensions.empty.mcps.title": "Aún no hay MCPs",
   "project.settings.extensions.empty.mcps.description": "MCPs disponible para AI Craft aparecerá aquí",
   "project.settings.extensions.empty.plugins.title": "Aún no hay complementos",
@@ -157,7 +157,7 @@ export const dict = {
   "settings.about.firstIllustrated": "Ilustrado por primera vez en Londres, Inglaterra",
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, el agente de programación de código abierto",
-  "settings.about.trademark": "OpenCode es una marca registrada de Anomaly Innovations, Inc.",
+  "settings.about.trademark": "AI Craft es una marca registrada de Anomaly Innovations, Inc.",
   "settings.about.typeset": "Compuesto con Inter e IBM Plex Mono",
   "settings.about.tagline": "La IA no puede crear software excelente sin ti",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
@@ -355,9 +355,9 @@ export const dict = {
   "dialog.provider.empty": "No se encontraron proveedores",
   "dialog.provider.group.popular": "Populares",
   "dialog.provider.tag.recommended": "Recomendado",
-  "dialog.provider.opencode.note": "Selección de modelos como Claude, GPT, Gemini y otros",
-  "dialog.provider.opencode.tagline": "Modelos optimizados y fiables",
-  "dialog.provider.opencodeGo.tagline": "Suscripción económica para todos",
+  "dialog.provider.aicraft.note": "Selección de modelos como Claude, GPT, Gemini y otros",
+  "dialog.provider.aicraft.tagline": "Modelos optimizados y fiables",
+  "dialog.provider.aicraftGo.tagline": "Suscripción económica para todos",
   "dialog.provider.copilot.note": "Modelos de IA para asistencia de codificación a través de GitHub Copilot",
   "dialog.provider.openai.note": "Modelos GPT para tareas de IA generales rápidas y capaces",
   "dialog.provider.google.note": "Modelos Gemini para respuestas rápidas y estructuradas",
@@ -887,7 +887,7 @@ export const dict = {
   "desktop.menu.installCli": "Instalar CLI...",
   "desktop.cli.installed.title": "CLI instalada",
   "desktop.cli.installed.message":
-    "La CLI se ha instalado en {{path}}.\n\nReinicia el terminal para usar el comando 'opencode2'.",
+    "La CLI se ha instalado en {{path}}.\n\nReinicia el terminal para usar el comando 'aicraft2'.",
   "desktop.cli.failed.title": "Error de instalación",
   "desktop.cli.failed.message": "No se pudo instalar la CLI: {{error}}",
   "command.project.copyID": "Copiar ID del proyecto",

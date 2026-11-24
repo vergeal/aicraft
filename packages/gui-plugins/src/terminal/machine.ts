@@ -1,4 +1,4 @@
-import type { PersistentPtyInfo } from "@opencode/client"
+import type { PersistentPtyInfo } from "@aicraft/client"
 
 /**
  * A session's terminal list once the server offers terminals. `connection` is the server connection whose answer the

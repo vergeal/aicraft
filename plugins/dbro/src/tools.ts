@@ -1,8 +1,8 @@
 export * as DbroTools from "./tools.js"
 
-import { optional } from "@opencode/schema/schema"
-import { Tool } from "@opencode/schema/tool"
-import type { ToolEditor } from "@opencode/plugin/promise/tool"
+import { optional } from "@aicraft/schema/schema"
+import { Tool } from "@aicraft/schema/tool"
+import type { ToolEditor } from "@aicraft/plugin/promise/tool"
 import { Schema } from "effect"
 import * as Dialects from "./dialects.js"
 import * as Executor from "./executor.js"

@@ -1,9 +1,9 @@
-import type { FileSystem } from "@opencode/core/filesystem"
+import type { FileSystem } from "@aicraft/core/filesystem"
 import fs from "fs/promises"
 import path from "path"
 import { describe, expect } from "bun:test"
-import { Event } from "@opencode/schema/config"
-import { Money } from "@opencode/schema/money"
+import { Event } from "@aicraft/schema/config"
+import { Money } from "@aicraft/schema/money"
 import {
   Context,
   DateTime,
@@ -24,25 +24,25 @@ import {
   Stream,
 } from "effect"
 import { TestClock } from "effect/testing"
-import { Agent } from "@opencode/core/agent"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Global } from "@opencode/util/global"
-import { LocationServiceMap, type LocationServices } from "@opencode/core/location-services"
-import { LocationActivity } from "@opencode/core/location-activity"
-import { Location } from "@opencode/core/location"
-import { LocationLifecycle } from "@opencode/core/location-lifecycle"
-import { Config } from "@opencode/core/config"
-import { LocationWatcher } from "@opencode/core/filesystem/location-watcher"
-import { Plugin } from "@opencode/core/plugin"
-import { Model } from "@opencode/core/model"
-import { Project } from "@opencode/core/project"
-import { Provider } from "@opencode/core/provider"
-import { AbsolutePath } from "@opencode/core/schema"
-import { Session } from "@opencode/core/session"
-import { Workspace } from "@opencode/core/workspace"
-import { SessionEvent } from "@opencode/core/session/event"
-import { SessionRunnerModel } from "@opencode/core/session/runner/model"
+import { Agent } from "@aicraft/core/agent"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Global } from "@aicraft/util/global"
+import { LocationServiceMap, type LocationServices } from "@aicraft/core/location-services"
+import { LocationActivity } from "@aicraft/core/location-activity"
+import { Location } from "@aicraft/core/location"
+import { LocationLifecycle } from "@aicraft/core/location-lifecycle"
+import { Config } from "@aicraft/core/config"
+import { LocationWatcher } from "@aicraft/core/filesystem/location-watcher"
+import { Plugin } from "@aicraft/core/plugin"
+import { Model } from "@aicraft/core/model"
+import { Project } from "@aicraft/core/project"
+import { Provider } from "@aicraft/core/provider"
+import { AbsolutePath } from "@aicraft/core/schema"
+import { Session } from "@aicraft/core/session"
+import { Workspace } from "@aicraft/core/workspace"
+import { SessionEvent } from "@aicraft/core/session/event"
+import { SessionRunnerModel } from "@aicraft/core/session/runner/model"
 import { tmpdir, tmpdirScoped } from "./fixture/tmpdir"
 import { tempGlobalLayer } from "./fixture/global"
 import { offlineModels } from "./fixture/models"
@@ -709,7 +709,7 @@ describe("LocationServiceMap", () => {
             const modelState = yield* Model.Service
             yield* providers.transform((editor) => {
               editor.update(Provider.ID.make("aliased"), (provider) => {
-                provider.package = "@opencode/ai/providers/openai"
+                provider.package = "@aicraft/ai/providers/openai"
               })
               editor.models.update(Provider.ID.make("aliased"), Model.ID.make("fast"), (model) => {
                 // Catalog id and package model id intentionally differ, like gpt-5.5-fast -> gpt-5.5.

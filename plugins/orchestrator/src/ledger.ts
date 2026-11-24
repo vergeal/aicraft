@@ -1,6 +1,6 @@
 export * as Ledger from "./ledger.js"
 
-import { optional } from "@opencode/schema/schema"
+import { optional } from "@aicraft/schema/schema"
 import { Option, Schema } from "effect"
 import type { Types } from "effect"
 import { randomUUID } from "node:crypto"

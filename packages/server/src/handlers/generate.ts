@@ -1,17 +1,17 @@
-import { Generate } from "@opencode/core/generate"
-import { Location } from "@opencode/core/location"
-import { LocationServiceMap } from "@opencode/core/location-services"
-import { AbsolutePath } from "@opencode/core/schema"
+import { Generate } from "@aicraft/core/generate"
+import { Location } from "@aicraft/core/location"
+import { LocationServiceMap } from "@aicraft/core/location-services"
+import { AbsolutePath } from "@aicraft/core/schema"
 import {
   InvalidRequestError,
   ModelNotFoundError,
   ProviderRequestError,
   ServiceUnavailableError,
   UnsupportedModelError,
-} from "@opencode/protocol/errors"
-import type { DecisionRequest, ImageRequest } from "@opencode/schema/generate"
-import { Global } from "@opencode/util/global"
-import { Model } from "@opencode/schema/model"
+} from "@aicraft/protocol/errors"
+import type { DecisionRequest, ImageRequest } from "@aicraft/schema/generate"
+import { Global } from "@aicraft/util/global"
+import { Model } from "@aicraft/schema/model"
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/http-api"
 import { Api } from "../api"

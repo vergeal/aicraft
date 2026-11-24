@@ -1,4 +1,4 @@
-import { Browser } from "@opencode/plugin-browser/rpc"
+import { Browser } from "@aicraft/plugin-browser/rpc"
 import type { Protocol } from "devtools-protocol"
 import type { ProtocolMapping } from "devtools-protocol/types/protocol-mapping.js"
 import type { Cdp } from "./cdp"

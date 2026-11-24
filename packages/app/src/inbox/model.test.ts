@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { FormInfo, KnowledgeInfo, PermissionRequest, ScheduleInfo } from "@opencode/client/promise"
+import type { FormInfo, KnowledgeInfo, PermissionRequest, ScheduleInfo } from "@aicraft/client/promise"
 import {
   knowledgeItem,
   permissionItem,

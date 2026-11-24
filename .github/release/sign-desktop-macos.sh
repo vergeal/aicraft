@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sign-desktop-macos.sh <out dir> <app tarball>...: signs each unsigned .app inside-out with hardened runtime,
-# notarizes them in one submission, staples them, and only then builds opencode-desktop-mac-<arch>.{zip,dmg,app.tar.gz}
+# notarizes them in one submission, staples them, and only then builds aicraft-desktop-mac-<arch>.{zip,dmg,app.tar.gz}
 # from the stapled apps. Dry runs sign ad-hoc and skip notarization. Dev and beta trade larger files for faster
 # packaging (zip and dmg at zlib level 1) and skip the .app.tar.gz, which only the retired Tauri updater feed read.
 # Notarization reads APPLE_NOTARY_KEY (the .p8 contents), APPLE_NOTARY_KEY_ID and APPLE_NOTARY_ISSUER_ID.
@@ -12,7 +12,7 @@ mkdir -p "$out"
 apps=$(mktemp -d)
 identity=- timestamp=--timestamp=none
 zip_level=() dmg_level=() preview=false
-case "$OPENCODE_CHANNEL" in dev | beta) preview=true ;; esac
+case "$AICRAFT_CHANNEL" in dev | beta) preview=true ;; esac
 if [ "$preview" = true ]; then zip_level=(--zlibCompressionLevel 1) dmg_level=(-imagekey zlib-level=1); fi
 if ! dry_run; then
   identity=$(security find-identity -v -p codesigning build.keychain | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -n 1)
@@ -28,7 +28,7 @@ bundle() {
 
 for tarball in "$@"; do
   arch=$(basename "$tarball" .app.tar)
-  arch=${arch#opencode-desktop-mac-}
+  arch=${arch#aicraft-desktop-mac-}
   [ "$arch" = arm64 ] || [ "$arch" = x64 ] || die "Unexpected app tarball: $tarball"
   mkdir -p "$apps/$arch"
   tar -xf "$tarball" -C "$apps/$arch"
@@ -78,11 +78,11 @@ for dir in "$apps"/*; do
     xcrun stapler validate "$app"
     spctl --assess --type execute --verbose=2 "$app"
   fi
-  ditto -c -k ${zip_level[@]+"${zip_level[@]}"} --sequesterRsrc --keepParent "$app" "$out/opencode-desktop-mac-$arch.zip"
+  ditto -c -k ${zip_level[@]+"${zip_level[@]}"} --sequesterRsrc --keepParent "$app" "$out/aicraft-desktop-mac-$arch.zip"
   staging=$(mktemp -d)
   ditto "$app" "$staging/$name"
   ln -s /Applications "$staging/Applications"
-  hdiutil create -volname "${name%.app}" -srcfolder "$staging" -fs HFS+ -format UDZO ${dmg_level[@]+"${dmg_level[@]}"} -ov "$out/opencode-desktop-mac-$arch.dmg"
+  hdiutil create -volname "${name%.app}" -srcfolder "$staging" -fs HFS+ -format UDZO ${dmg_level[@]+"${dmg_level[@]}"} -ov "$out/aicraft-desktop-mac-$arch.dmg"
   if [ "$preview" = true ]; then continue; fi
-  COPYFILE_DISABLE=1 tar --no-mac-metadata -czf "$out/opencode-desktop-mac-$arch.app.tar.gz" -C "$dir" "$name"
+  COPYFILE_DISABLE=1 tar --no-mac-metadata -czf "$out/aicraft-desktop-mac-$arch.app.tar.gz" -C "$dir" "$name"
 done

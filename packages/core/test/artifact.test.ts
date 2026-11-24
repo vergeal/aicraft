@@ -1,20 +1,20 @@
 import path from "node:path"
 import { describe, expect } from "bun:test"
 import { Effect, Layer, Stream } from "effect"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { Artifact } from "@opencode/core/artifact"
-import { Config } from "@opencode/core/config"
-import { Image } from "@opencode/core/image"
-import { Location } from "@opencode/core/location"
-import { Permission } from "@opencode/core/permission"
-import { Session } from "@opencode/core/session"
-import { Tool } from "@opencode/core/tool"
-import { ArtifactTools } from "@opencode/core/tool/plugin/artifact"
-import { LayerNode } from "@opencode/util/effect/layer-node"
-import { Global } from "@opencode/util/global"
-import { Document, Info } from "@opencode/schema/config"
-import { ConfigExperimental } from "@opencode/schema/config/experimental"
-import { AbsolutePath } from "@opencode/schema/schema"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { Artifact } from "@aicraft/core/artifact"
+import { Config } from "@aicraft/core/config"
+import { Image } from "@aicraft/core/image"
+import { Location } from "@aicraft/core/location"
+import { Permission } from "@aicraft/core/permission"
+import { Session } from "@aicraft/core/session"
+import { Tool } from "@aicraft/core/tool"
+import { ArtifactTools } from "@aicraft/core/tool/plugin/artifact"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
+import { Global } from "@aicraft/util/global"
+import { Document, Info } from "@aicraft/schema/config"
+import { ConfigExperimental } from "@aicraft/schema/config/experimental"
+import { AbsolutePath } from "@aicraft/schema/schema"
 import { tmpdirScoped } from "./fixture/tmpdir"
 import { testEffect } from "./lib/effect"
 import { imagePassthrough } from "./lib/image"
@@ -22,10 +22,10 @@ import { permissionLayer } from "./lib/permission"
 import { codeModeListings, executeTool, registerToolPlugin, toolIdentity } from "./lib/tool"
 
 const toolPaths = [
-  "opencode.artifact_create",
-  "opencode.artifact_read",
-  "opencode.artifact_update",
-  "opencode.artifact_delete",
+  "aicraft.artifact_create",
+  "aicraft.artifact_read",
+  "aicraft.artifact_update",
+  "aicraft.artifact_delete",
 ]
 
 const buildLayer = (artifactsEnabled: boolean, dir: string) => {
@@ -60,7 +60,7 @@ const callCodeMode = (registry: Tool.Interface, sessionID: Session.ID, name: str
       type: "tool-call",
       id: `call-${name}`,
       name: "execute",
-      input: { code: `return await tools.opencode.${name}(${JSON.stringify(input)})` },
+      input: { code: `return await tools.aicraft.${name}(${JSON.stringify(input)})` },
     },
   }).pipe(
     Effect.map((result) => {
@@ -76,7 +76,7 @@ const it = testEffect(Layer.empty)
 describe("experimental.artifacts service and tools", () => {
   it.live("stays disabled and hides artifact tools when experimental.artifacts is unset", () =>
     Effect.gen(function* () {
-      const dir = (yield* tmpdirScoped("opencode-artifact-off-")).path
+      const dir = (yield* tmpdirScoped("aicraft-artifact-off-")).path
       yield* Effect.gen(function* () {
         const artifacts = yield* Artifact.Service
         const registry = yield* Tool.Service
@@ -101,7 +101,7 @@ describe("experimental.artifacts service and tools", () => {
 
   it.live("registers custom providers, routes overrides, and runs the 4 CRUD tools", () =>
     Effect.gen(function* () {
-      const dir = (yield* tmpdirScoped("opencode-artifact-on-")).path
+      const dir = (yield* tmpdirScoped("aicraft-artifact-on-")).path
 
       yield* Effect.gen(function* () {
         const artifacts = yield* Artifact.Service
@@ -144,7 +144,7 @@ describe("experimental.artifacts service and tools", () => {
         const listings = snap.codeModeCatalog ? codeModeListings(snap.codeModeCatalog) : []
         expect(listings.map((item) => item.path)).toEqual(expect.arrayContaining(toolPaths))
         const rawTools = yield* registry.list()
-        const createTool = rawTools.find((item) => item.id === "opencode_artifact_create")
+        const createTool = rawTools.find((item) => item.id === "aicraft_artifact_create")
         expect(createTool?.description).toContain(
           "Default provider (cloudflare [static, server-code, sqlite, durable-objects]): Artifacts deploy to Cloudflare with SQLite and Durable Objects.",
         )

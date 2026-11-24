@@ -1,4 +1,4 @@
-import { Icon } from "@opencode/ui/icon"
+import { Icon } from "@aicraft/ui/icon"
 import { Show, type ComponentProps, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import type { KnowledgeFile } from "../store"

@@ -1,34 +1,34 @@
 import { expect, test } from "bun:test"
-import { EnvironmentDriver } from "@opencode/core/environment/driver"
-import { EnvironmentFiles } from "@opencode/core/environment/files"
-import { Location as CoreLocation } from "@opencode/core/location"
-import { WorkspaceDriver } from "@opencode/core/workspace/driver"
-import { SessionInbox as CoreSessionInbox } from "@opencode/core/session/inbox"
-import { SessionMessage as CoreSessionMessage } from "@opencode/core/session/message"
-import { Agent } from "@opencode/schema/agent"
-import { Config } from "@opencode/schema/config"
-import { Event } from "@opencode/schema/event"
-import { Location } from "@opencode/schema/location"
-import { Model } from "@opencode/schema/model"
-import { Project } from "@opencode/schema/project"
-import { Provider } from "@opencode/schema/provider"
-import { WebSearch } from "@opencode/schema/websearch"
-import { Session } from "@opencode/schema/session"
-import { SessionInbox } from "@opencode/schema/session-inbox"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { Workspace } from "@opencode/schema/workspace"
-import { Worktree } from "@opencode/schema/worktree"
-import { Api } from "@opencode/server/api"
-import { ClientApi, clientNamespace, groupNames, promiseOmitEndpoints } from "@opencode/protocol/client"
-import { compile, emitPromise } from "@opencode/httpapi-codegen"
+import { EnvironmentDriver } from "@aicraft/core/environment/driver"
+import { EnvironmentFiles } from "@aicraft/core/environment/files"
+import { Location as CoreLocation } from "@aicraft/core/location"
+import { WorkspaceDriver } from "@aicraft/core/workspace/driver"
+import { SessionInbox as CoreSessionInbox } from "@aicraft/core/session/inbox"
+import { SessionMessage as CoreSessionMessage } from "@aicraft/core/session/message"
+import { Agent } from "@aicraft/schema/agent"
+import { Config } from "@aicraft/schema/config"
+import { Event } from "@aicraft/schema/event"
+import { Location } from "@aicraft/schema/location"
+import { Model } from "@aicraft/schema/model"
+import { Project } from "@aicraft/schema/project"
+import { Provider } from "@aicraft/schema/provider"
+import { WebSearch } from "@aicraft/schema/websearch"
+import { Session } from "@aicraft/schema/session"
+import { SessionInbox } from "@aicraft/schema/session-inbox"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { Workspace } from "@aicraft/schema/workspace"
+import { Worktree } from "@aicraft/schema/worktree"
+import { Api } from "@aicraft/server/api"
+import { ClientApi, clientNamespace, groupNames, promiseOmitEndpoints } from "@aicraft/protocol/client"
+import { compile, emitPromise } from "@aicraft/httpapi-codegen"
 
 const SDK = await import("../src/index")
 const SDKEffect = await import("../src/effect")
-const CoreAgent = await import("@opencode/core/agent")
-const CoreModel = await import("@opencode/core/model")
-const CoreProject = await import("@opencode/core/project")
-const CoreSession = await import("@opencode/core/session")
-const CoreWorktree = await import("@opencode/core/worktree")
+const CoreAgent = await import("@aicraft/core/agent")
+const CoreModel = await import("@aicraft/core/model")
+const CoreProject = await import("@aicraft/core/project")
+const CoreSession = await import("@aicraft/core/session")
+const CoreWorktree = await import("@aicraft/core/worktree")
 
 test("re-exports canonical contracts directly from Schema", () => {
   expect(SDK.Agent).toBe(Agent)
@@ -51,7 +51,7 @@ test("re-exports canonical contracts directly from Schema", () => {
     "Integration",
     "Location",
     "Model",
-    "OpenCode",
+    "AI Craft",
     "Permission",
     "PermissionSaved",
     "Project",
@@ -103,7 +103,7 @@ test("client and Server contracts generate identically", () => {
   expect(emitPromise(client)).toEqual(emitPromise(server))
 })
 
-test("re-exports workspace and environment driver contracts from @opencode/sdk/effect", () => {
+test("re-exports workspace and environment driver contracts from @aicraft/sdk/effect", () => {
   expect(SDKEffect.WorkspaceDriver).toBe(WorkspaceDriver)
   expect(SDKEffect.EnvironmentDriver).toBe(EnvironmentDriver)
   expect(SDKEffect.EnvironmentFiles).toBe(EnvironmentFiles)

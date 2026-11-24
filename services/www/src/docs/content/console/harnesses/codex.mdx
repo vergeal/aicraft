@@ -14,8 +14,8 @@ Add Console as a model provider in `~/.codex/config.toml` and make it the defaul
 model = "gpt-6.1-sol"
 model_provider = "opencode"
 
-[model_providers.opencode]
-name = "OpenCode Console"
+[model_providers.aicraft]
+name = "Aicraft Console"
 base_url = "https://opencode.ai/inference/openai/v1"
 env_key = "OPENCODE_API_KEY"
 wire_api = "responses"
@@ -42,7 +42,7 @@ model = "kimi-k3"
 model_provider = "opencode-go"
 
 [model_providers.opencode-go]
-name = "OpenCode Go"
+name = "Aicraft Go"
 base_url = "https://opencode.ai/inference/go/openai/v1"
 env_key = "OPENCODE_API_KEY"
 wire_api = "responses"
@@ -79,11 +79,11 @@ codex --profile go
 Add the [Console MCP](/console/harnesses#console-mcp) server and sign in from the browser.
 
 ```bash
-codex mcp add opencode-console --url https://opencode.ai/console/mcp
+codex mcp add aicraft-console --url https://opencode.ai/console/mcp
 ```
 
 If the sign-in doesn't start automatically, run it yourself.
 
 ```bash
-codex mcp login opencode-console
+codex mcp login aicraft-console
 ```

@@ -23,7 +23,7 @@ const open: Case<{}> = {
 export default bench({
   targets: {
     web: web({
-      expect: { title: "OpenCode" },
+      expect: { title: "AI Craft" },
       viewport: { width: 1366, height: 768 },
       async prepare({ case: name, playwright, mock, url }) {
         const page = cached(playwright.page, mock)

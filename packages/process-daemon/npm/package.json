@@ -1,7 +1,7 @@
 {
-  "name": "@opencode/pty",
+  "name": "@aicraft/pty",
   "version": "0.4.0",
-  "description": "Persistent PTY service for OpenCode",
+  "description": "Persistent PTY service for AI Craft",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -17,7 +17,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "opencode-pty": "./bin/opencode-pty.js"
+    "aicraft-pty": "./bin/aicraft-pty.js"
   },
   "files": [
     "bin",
@@ -25,14 +25,14 @@
     "index.js"
   ],
   "optionalDependencies": {
-    "@opencode/pty-darwin-arm64": "0.4.0",
-    "@opencode/pty-darwin-x64": "0.4.0",
-    "@opencode/pty-linux-arm64-gnu": "0.4.0",
-    "@opencode/pty-linux-arm64-musl": "0.4.0",
-    "@opencode/pty-linux-x64-gnu": "0.4.0",
-    "@opencode/pty-linux-x64-musl": "0.4.0",
-    "@opencode/pty-win32-arm64": "0.4.0",
-    "@opencode/pty-win32-x64": "0.4.0"
+    "@aicraft/pty-darwin-arm64": "0.4.0",
+    "@aicraft/pty-darwin-x64": "0.4.0",
+    "@aicraft/pty-linux-arm64-gnu": "0.4.0",
+    "@aicraft/pty-linux-arm64-musl": "0.4.0",
+    "@aicraft/pty-linux-x64-gnu": "0.4.0",
+    "@aicraft/pty-linux-x64-musl": "0.4.0",
+    "@aicraft/pty-win32-arm64": "0.4.0",
+    "@aicraft/pty-win32-x64": "0.4.0"
   },
   "publishConfig": {
     "access": "public"

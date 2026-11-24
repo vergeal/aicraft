@@ -3,8 +3,8 @@
 use std::env;
 use std::time::{Duration, Instant};
 
-use opencode_pty::protocol::AttachmentRole;
-use opencode_pty::service::{
+use aicraft_pty::protocol::AttachmentRole;
+use aicraft_pty::service::{
     CreateTerminal, ProcessMode, StreamEvent, TerminalId, TerminalLifecycle, TerminalService,
 };
 

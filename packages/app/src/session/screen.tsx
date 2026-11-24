@@ -14,8 +14,8 @@ import {
   type Accessor,
 } from "solid-js"
 import { createStore } from "solid-js/store"
-import { ResizeHandle } from "@opencode/ui/resize-handle"
-import type { BackgroundTask, MountedSession, SessionScreen } from "@opencode/plugin/gui"
+import { ResizeHandle } from "@aicraft/ui/resize-handle"
+import type { BackgroundTask, MountedSession, SessionScreen } from "@aicraft/plugin/gui"
 import { MessageTimeline } from "@/session/timeline/message-timeline"
 import { ComposerDropzone } from "@/composer/dropzone"
 import { useSettings } from "@/settings/model"
@@ -34,16 +34,17 @@ import { createSessionScreenLayout } from "./screen-layout"
 import { PaneTabs, SideRegion } from "@/runtime/plugin/side-region"
 import { createPaneDrag } from "@/runtime/plugin/pane-drag"
 import { useLanguage } from "@/runtime/i18n/language"
-import { IconButton } from "@opencode/ui/icon-button"
-import { Icon } from "@opencode/ui/icon"
-import { Tooltip } from "@opencode/ui/tooltip"
+import { IconButton } from "@aicraft/ui/icon-button"
+import { Icon } from "@aicraft/ui/icon"
+import { Loader } from "@aicraft/ui/loader"
+import { Tooltip } from "@aicraft/ui/tooltip"
 import { createSessionTimelineInteraction } from "./timeline/interaction"
 import { createTimelineSearchController } from "./timeline/search-controller"
 import { TimelineSearchBar } from "./timeline/search-bar"
 import { createTimelineQuote, TimelineQuote } from "./timeline/quote"
 import { createTimelineQuoteHighlight } from "./timeline/quote-highlight"
 import { ActiveSessionComposerRegion, createActiveSessionRegion } from "./composer/region"
-import { SessionIdentityHeader, SessionLocation } from "./session-identity-header"
+import { SessionLocation } from "./session-identity-header"
 import { SessionHeaderDrag, windowDragEnabled } from "./header/drag-area"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useServer } from "@/runtime/server/current"
@@ -419,10 +420,9 @@ function SessionScreenContent(props: {
             )}
           </Match>
           <Match when={session.identity.params.id}>
-            <Show when={isDesktop() && !messagesReady()}>
-              <SessionIdentityHeader sessionID={session.identity.params.id ?? ""} session={session.data.info()} />
+            <Show when={messagesReady()} fallback={<SessionHistoryLoading />}>
+              {timelineView()}
             </Show>
-            <Show when={messagesReady() && session.identity.params.id}>{timelineView()}</Show>
           </Match>
         </Switch>
       </div>
@@ -595,3 +595,21 @@ function SessionScreenContent(props: {
 }
 
 const BOTTOM_PANE_HEIGHT_MIN = 120
+
+/** Shown while a session's history is still loading, so the transcript is revealed once instead of filling in. */
+function SessionHistoryLoading() {
+  const language = useLanguage()
+
+  return (
+    <div data-component="session-history-loading" class="flex size-full flex-col">
+      <div
+        role="status"
+        aria-live="polite"
+        class="flex min-h-0 flex-1 items-center justify-center gap-2 pb-10 text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-muted"
+      >
+        <Loader />
+        <span>{language.t("session.history.loading")}</span>
+      </div>
+    </div>
+  )
+}

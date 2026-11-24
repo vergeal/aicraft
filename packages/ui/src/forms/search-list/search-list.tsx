@@ -11,7 +11,7 @@ import {
   useContext,
 } from "solid-js"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
-import { Icon } from "@opencode/ui/icon"
+import { Icon } from "@aicraft/ui/icon"
 import { MenuScroll } from "../../components/menu-scroll"
 import { SelectionIndicator } from "../../components/selection-indicator"
 import { TextInput } from "../text-input/text-input"

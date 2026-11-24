@@ -1,14 +1,14 @@
 import { createMemo, createSignal, createUniqueId, For, onCleanup, Show, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createQuery, keepPreviousData } from "@tanstack/solid-query"
-import { Icon } from "@opencode/ui/icon"
-import { IconButton } from "@opencode/ui/icon-button"
-import { Tooltip } from "@opencode/ui/tooltip"
-import { SessionFilePanelV2, SessionFilePanelV2Empty } from "@opencode/session-ui/v2/session-file-panel-v2"
-import { SessionReviewV2Sidebar, SessionReviewV2SidebarToggle } from "@opencode/session-ui/v2/session-review-v2"
-import { getFilename } from "@opencode/util/path"
-import { artifactKind } from "@opencode/util/artifact"
-import type { ChangeKind } from "@opencode/plugin/gui/review"
+import { Icon } from "@aicraft/ui/icon"
+import { IconButton } from "@aicraft/ui/icon-button"
+import { Tooltip } from "@aicraft/ui/tooltip"
+import { SessionFilePanelV2, SessionFilePanelV2Empty } from "@aicraft/session-ui/v2/session-file-panel-v2"
+import { SessionReviewV2Sidebar, SessionReviewV2SidebarToggle } from "@aicraft/session-ui/v2/session-review-v2"
+import { getFilename } from "@aicraft/util/path"
+import { artifactKind } from "@aicraft/util/artifact"
+import type { ChangeKind } from "@aicraft/plugin/gui/review"
 import {
   createKeyed,
   usePlugin,
@@ -17,7 +17,7 @@ import {
   type PanelSidebar,
   type PanelTab,
   type SessionScreen,
-} from "@opencode/plugin/gui"
+} from "@aicraft/plugin/gui"
 import { current, useShared } from "./context"
 import SessionFileList, { applyFileListKeyDown } from "./list"
 import { fileTabPath, isFileTab } from "./path"

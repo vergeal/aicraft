@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { OpenCode } from "../src/promise/index"
+import { Aicraft } from "../src/promise/index"
 import { formatTraceparent, TRACEPARENT, withTraceparent } from "../src/trace"
 
 const traceID = "4bf92f3577b34da6a3ce929d0e0e4736"
@@ -28,7 +28,7 @@ test("forwards requests untouched without a trace context", async () => {
 
 test("injects traceparent on every client request", async () => {
   const seen: Array<string | null> = []
-  const client = OpenCode.make({
+  const client = Aicraft.make({
     baseUrl: "http://localhost:3000",
     fetch: async (_input, init) => {
       seen.push(new Headers(init?.headers).get(TRACEPARENT))

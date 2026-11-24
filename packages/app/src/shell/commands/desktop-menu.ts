@@ -299,7 +299,7 @@ export const DESKTOP_MENU: DesktopMenu[] = [
     labelKey: "desktop.menu.help",
     items: [
       { type: "item", labelKey: "desktop.menu.documentation", href: "https://opencode.ai/v2/docs" },
-      { type: "item", labelKey: "desktop.menu.supportForum", href: "https://discord.com/invite/opencode" },
+      { type: "item", labelKey: "desktop.menu.supportForum", href: "https://discord.com/invite/aicraft" },
       { type: "item", labelKey: "desktop.menu.exportLogs", command: "logs.export" },
       { type: "separator" },
       {

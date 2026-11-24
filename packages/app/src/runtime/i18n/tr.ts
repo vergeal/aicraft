@@ -51,7 +51,7 @@ export const dict = {
 
   "desktop.cli.installed.title": "CLI yüklendi",
   "desktop.cli.installed.message":
-    "CLI, {{path}} konumuna yüklendi.\n\n'opencode2' komutunu kullanmak için terminalinizi yeniden başlatın.",
+    "CLI, {{path}} konumuna yüklendi.\n\n'aicraft2' komutunu kullanmak için terminalinizi yeniden başlatın.",
   "desktop.cli.failed.title": "Yükleme başarısız oldu",
   "desktop.cli.failed.message": "CLI yüklenemedi: {{error}}",
 
@@ -151,9 +151,9 @@ export const dict = {
   "dialog.provider.empty": "Sağlayıcı bulunamadı",
   "dialog.provider.group.popular": "Popüler",
   "dialog.provider.tag.recommended": "Önerilen",
-  "dialog.provider.opencode.note": "Claude, GPT, Gemini ve daha fazlasını içeren seçilmiş modeller",
-  "dialog.provider.opencode.tagline": "Güvenilir, optimize edilmiş modeller",
-  "dialog.provider.opencodeGo.tagline": "Herkes için düşük maliyetli abonelik",
+  "dialog.provider.aicraft.note": "Claude, GPT, Gemini ve daha fazlasını içeren seçilmiş modeller",
+  "dialog.provider.aicraft.tagline": "Güvenilir, optimize edilmiş modeller",
+  "dialog.provider.aicraftGo.tagline": "Herkes için düşük maliyetli abonelik",
   "dialog.provider.copilot.note": "GitHub Copilot üzerinden kodlama yardımı için yapay zekâ modelleri",
   "dialog.provider.openai.note": "Hızlı ve yetenekli genel yapay zekâ görevleri için GPT modelleri",
   "dialog.provider.google.note": "Hızlı ve yapılandırılmış yanıtlar için Gemini modelleri",
@@ -752,7 +752,7 @@ export const dict = {
   "settings.about.firstIllustrated": "İlk kez Londra, İngiltere'de resmedildi",
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, açık kaynak kodlama aracısı",
-  "settings.about.trademark": "OpenCode, Anomaly Innovations, Inc.'in tescilli ticari markasıdır.",
+  "settings.about.trademark": "AI Craft, Anomaly Innovations, Inc.'in tescilli ticari markasıdır.",
   "settings.about.typeset": "Inter ve IBM Plex Mono'da dizgi",
   "settings.about.tagline": "Yapay zeka siz olmadan mükemmel yazılım geliştiremez",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
@@ -792,9 +792,9 @@ export const dict = {
   "server.connect.address.invalid": "Geçerli bir HTTP veya HTTPS sunucu adresi girin.",
   "server.connect.failed": "Bağlantı kurulamadı. Sunucu adresini ve şifreyi kontrol edip tekrar deneyin.",
   "server.connect.scan": "QR kodunu tarayın",
-  "server.connect.scan.description": "Kameranızı opencode pair tarafından gösterilen QR koduna doğrultun.",
+  "server.connect.scan.description": "Kameranızı aicraft pair tarafından gösterilen QR koduna doğrultun.",
   "server.connect.scan.invalid":
-    "Bu bir AI Craft eşleştirme kodu değildir. opencode pair tarafından gösterilen kodu tarayın.",
+    "Bu bir AI Craft eşleştirme kodu değildir. aicraft pair tarafından gösterilen kodu tarayın.",
   "server.connect.camera": "Kamera eşleniyor",
   "server.connect.camera.starting": "Kamera açılıyor…",
   "server.connect.mixedContent":
@@ -834,8 +834,8 @@ export const dict = {
   "project.settings.icon.description": "Önerilen: 128×128 piksel. Bir görseli yüklemek için tıklayın veya sürükleyin.",
   "project.settings.color.description": "Özel bir görüntü ayarlanmadığında proje simgesi için kullanılır",
   "project.settings.worktree.startup.description": "Yeni bir çalışma ağacı oluşturulduktan sonra bir kez çalıştırılır",
-  "project.settings.worktree.startup.hint.base": "Temel çalışma ağacı için $OPENCODE_WORKTREE_BASE kullanın.",
-  "project.settings.worktree.startup.hint.new": "Yeni çalışma ağacı için $OPENCODE_WORKTREE_PATH'yi kullanın.",
+  "project.settings.worktree.startup.hint.base": "Temel çalışma ağacı için $AICRAFT_WORKTREE_BASE kullanın.",
+  "project.settings.worktree.startup.hint.new": "Yeni çalışma ağacı için $AICRAFT_WORKTREE_PATH'yi kullanın.",
   "project.settings.extensions.empty.mcps.title": "Henüz MCPs yok",
   "project.settings.extensions.empty.mcps.description": "AI Craft tarafından kullanılabilen MCPs burada görünecek",
   "project.settings.extensions.empty.plugins.title": "Henüz eklenti yok",

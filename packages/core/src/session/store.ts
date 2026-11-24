@@ -2,15 +2,15 @@ export * as SessionStore from "./store.js"
 
 import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or, sql, type SQL } from "drizzle-orm"
 import { Context, Effect, Layer, Schema } from "effect"
-import { Project } from "@opencode/schema/project"
-import { Workspace } from "@opencode/schema/workspace"
-import { AbsolutePath, PositiveInt, RelativePath } from "@opencode/schema/schema"
+import { Project } from "@aicraft/schema/project"
+import { Workspace } from "@aicraft/schema/workspace"
+import { AbsolutePath, PositiveInt, RelativePath } from "@aicraft/schema/schema"
 import { Database } from "../database/database.js"
-import { makeGlobalNode } from "@opencode/util/effect/app-node"
+import { makeGlobalNode } from "@aicraft/util/effect/app-node"
 import { SessionHistory } from "./history.js"
 import { MessageDecodeError } from "./error.js"
 import { SessionMessage } from "./message.js"
-import { Session } from "@opencode/schema/session"
+import { Session } from "@aicraft/schema/session"
 import { SessionMessageTable, SessionPartTable, SessionTable } from "./sql.js"
 import { fromRow } from "./info.js"
 
@@ -115,7 +115,7 @@ export interface Interface {
   readonly countResume: (sessionID: Session.ID) => Effect.Effect<number | undefined>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/SessionStore") {}
+export class Service extends Context.Service<Service, Interface>()("@aicraft/SessionStore") {}
 
 const layer = Layer.effect(
   Service,

@@ -1,6 +1,6 @@
-import type { JsonValue } from "@opencode/client/promise"
-import type { InboxPublishMessage, Json } from "@opencode/plugin/gui"
-import { uuid } from "@opencode/util/uuid"
+import type { JsonValue } from "@aicraft/client/promise"
+import type { InboxPublishMessage, Json } from "@aicraft/plugin/gui"
+import { uuid } from "@aicraft/util/uuid"
 
 const STATUSES = ["pending", "done", "failed"] as const
 

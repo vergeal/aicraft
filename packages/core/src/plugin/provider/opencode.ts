@@ -1,7 +1,7 @@
 import { Duration, Effect, Equal, FiberHandle, Option, Schema, Scope, Semaphore } from "effect"
-import type { IntegrationOAuthMethodRegistration } from "@opencode/plugin/effect/integration"
-import { define } from "@opencode/plugin/effect/plugin"
-import type { SessionHttpResponse } from "@opencode/plugin/effect/session"
+import type { IntegrationOAuthMethodRegistration } from "@aicraft/plugin/effect/integration"
+import { define } from "@aicraft/plugin/effect/plugin"
+import type { SessionHttpResponse } from "@aicraft/plugin/effect/session"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { App } from "../../app.js"
 import { Bus } from "../../bus.js"
@@ -65,11 +65,11 @@ const SkillBundle = Schema.Struct({
   files: Schema.Array(Schema.Struct({ path: Schema.String, content: Schema.String })),
 })
 type LibrarySkill = { readonly skill: Skill.Info; readonly files: Record<string, string> }
-const signedOutMessage = "Reconnect OpenCode Console to continue"
+const signedOutMessage = "Reconnect AI Craft Console to continue"
 const ssoMessage = (organization: string | undefined) =>
-  `Sign in with SSO again to use ${organization ?? "your OpenCode Console organization"}`
+  `Sign in with SSO again to use ${organization ?? "your AI Craft Console organization"}`
 
-class SsoRequiredError extends Schema.TaggedError<SsoRequiredError>()("OpencodeConsole.SsoRequired", {
+class SsoRequiredError extends Schema.TaggedError<SsoRequiredError>()("AicraftConsole.SsoRequired", {
   organization: Schema.optional(Schema.String),
   url: Schema.String,
 }) {
@@ -79,7 +79,7 @@ class SsoRequiredError extends Schema.TaggedError<SsoRequiredError>()("OpencodeC
 }
 
 // The Console session or refresh token was revoked or expired; only a new device login recovers.
-class SignedOutError extends Schema.TaggedError<SignedOutError>()("OpencodeConsole.SignedOut", {}) {
+class SignedOutError extends Schema.TaggedError<SignedOutError>()("AicraftConsole.SignedOut", {}) {
   override get message() {
     return `${signedOutMessage}.`
   }
@@ -91,7 +91,7 @@ function oauth(http: HttpClient.HttpClient) {
     method: {
       id: methodID,
       type: "oauth",
-      label: "OpenCode Console account",
+      label: "AI Craft Console account",
       form: [
         {
           key: "server",
@@ -164,7 +164,7 @@ function oauth(http: HttpClient.HttpClient) {
   } satisfies IntegrationOAuthMethodRegistration
 }
 
-export const OpencodePlugin = define<
+export const AicraftPlugin = define<
   | HttpClient.HttpClient
   | Bus.Service
   | Config.Service
@@ -173,11 +173,11 @@ export const OpencodePlugin = define<
   | Skill.Service
   | Scope.Scope
 >({
-  id: "opencode.provider.opencode",
+  id: "aicraft.provider.aicraft",
   effect: Effect.fn(function* (ctx) {
-    const disableFree = ["1", "true"].includes(process.env.OPENCODE_DISABLE_FREE_MODELS?.toLowerCase() ?? "")
+    const disableFree = ["1", "true"].includes(process.env.AICRAFT_DISABLE_FREE_MODELS?.toLowerCase() ?? "")
     const client = yield* HttpClient.HttpClient
-    // Every request here goes to the Console, which reads the User-Agent to tell which OpenCode a member runs
+    // Every request here goes to the Console, which reads the User-Agent to tell which AI Craft a member runs
     // and whether it evaluates the policies it is being sent.
     const http = HttpClient.mapRequest(client, HttpClientRequest.setHeader("User-Agent", App.useragent(ctx.app)))
     const config = yield* Config.Service
@@ -189,7 +189,7 @@ export const OpencodePlugin = define<
     const loading = Semaphore.makeUnsafe(1)
     type ActiveConnection = Effect.Success<ReturnType<typeof ctx.integration.connection.active>>
     let snapshot: {
-      // The Console's regular OpenCode config, merged as an integration config layer.
+      // The Console's regular AI Craft config, merged as an integration config layer.
       remote: typeof ConsoleConfig.Type | undefined
       connection: ActiveConnection
       organization: string | undefined
@@ -210,7 +210,7 @@ export const OpencodePlugin = define<
     // Every project signed in to the same workspace shares one fetch, reused while it is younger than `maxAge`.
     // A failed load reports only its connection: what it falls back to depends on the snapshot, which is read under
     // `loading` when the outcome is applied.
-    const load = Effect.fn("OpencodePlugin.load")(function* (
+    const load = Effect.fn("AicraftPlugin.load")(function* (
       maxAge: Duration.Input = Duration.minutes(1),
     ): Effect.fn.Return<
       | { readonly _tag: "Loaded"; readonly next: typeof snapshot }
@@ -231,7 +231,7 @@ export const OpencodePlugin = define<
             return Effect.succeed({ remote: undefined, connection, organization: undefined, access: undefined })
           return cache
             .get({
-              key: `opencode-console:${workspaceKey(connection, credential)}`,
+              key: `aicraft-console:${workspaceKey(connection, credential)}`,
               interval: maxAge,
               // A sign-in error is Console's answer for this sign-in, so it is shared like a config rather than
               // replaced by the last config, as a network failure is.
@@ -261,7 +261,7 @@ export const OpencodePlugin = define<
             // Only well-formed Console errors change the connection status; anything else may be transient.
             const next = connectionStatus(cause)
             if (next) yield* status(next)
-            yield* Effect.logWarning("failed to load OpenCode provider config", { cause })
+            yield* Effect.logWarning("failed to load AI Craft provider config", { cause })
             return { _tag: "Failed" as const, connection }
           }),
         ),
@@ -309,7 +309,7 @@ export const OpencodePlugin = define<
         : undefined
       instructions = (library?.instructions ?? []).map(
         (item) =>
-          new InstructionDiscovery.File({ path: `OpenCode Console instruction ${item.id}`, content: item.content }),
+          new InstructionDiscovery.File({ path: `AI Craft Console instruction ${item.id}`, content: item.content }),
       )
       if (!allowed) librarySkills = { owner: "", items: [] }
       // Skills download in the background, so startup and config changes never wait on them. The current ones stay
@@ -340,7 +340,7 @@ export const OpencodePlugin = define<
           listed,
           (item) => {
             const input = {
-              key: `opencode-console-skill:${workspace}:${item.slug}`,
+              key: `aicraft-console-skill:${workspace}:${item.slug}`,
               interval: Duration.infinity,
               load: downloadSkill(http, server, item.slug, ConsoleAccess.headers(credential)).pipe(
                 Effect.map((skill) => ({ version: item.version, skill })),
@@ -367,15 +367,15 @@ export const OpencodePlugin = define<
     )
     const search = (providerID: WebSearch.ID, connection: NonNullable<ActiveConnection>) => ({
       id: providerID,
-      name: "OpenCode Web Search",
+      name: "AI Craft Web Search",
       execute: (input: WebSearch.ProviderInput) =>
         Effect.gen(function* () {
           const active = yield* ctx.integration.connection.active("opencode")
           if (!active || IntegrationConnection.key(active) !== IntegrationConnection.key(connection))
-            return yield* Effect.fail(new Error("OpenCode Console connection changed"))
+            return yield* Effect.fail(new Error("AI Craft Console connection changed"))
           const credential = yield* ctx.integration.connection.resolve(active)
           if (!credential || credential.type === "external")
-            return yield* Effect.fail(new Error("OpenCode Console is not connected"))
+            return yield* Effect.fail(new Error("AI Craft Console is not connected"))
           const metadata = credential.metadata
           const orgID = typeof metadata?.orgID === "string" ? metadata.orgID : undefined
           const token = credential.type === "oauth" ? credential.access : credential.key
@@ -397,12 +397,12 @@ export const OpencodePlugin = define<
               Effect.scoped,
               Effect.timeoutOrElse({
                 duration: Duration.seconds(25),
-                orElse: () => Effect.fail(new Error("OpenCode web search request timed out")),
+                orElse: () => Effect.fail(new Error("AI Craft web search request timed out")),
               }),
             )
           if (response.providerID !== providerID) {
             return yield* Effect.fail(
-              new Error(`OpenCode web search returned provider ${response.providerID} instead of ${providerID}`),
+              new Error(`AI Craft web search returned provider ${response.providerID} instead of ${providerID}`),
             )
           }
           return response.results
@@ -411,7 +411,7 @@ export const OpencodePlugin = define<
 
     yield* ctx.integration.transform((editor) => {
       editor.update("opencode", (integration) => {
-        integration.name = "OpenCode Console"
+        integration.name = "AI Craft Console"
       })
       editor.method.update(oauth(http))
       editor.method.update({ integrationID: "opencode", method: { type: "key", label: "API key (service account)" } })
@@ -424,7 +424,7 @@ export const OpencodePlugin = define<
       if (integrated) ConfigProviderPlugin.integrate(providers, integrated)
     })
     yield* ctx.provider.transform((providers) => {
-      const item = providers.get(Provider.ID.opencode)
+      const item = providers.get(Provider.ID.aicraft)
       if (!item) return
       const hasKey = Boolean(process.env.OPENCODE_API_KEY || snapshot.connection || item.provider.settings?.apiKey)
       providers.update(item.provider.id, (provider) => {
@@ -435,7 +435,7 @@ export const OpencodePlugin = define<
       })
     })
     yield* ctx.model.transform((models) => {
-      const item = models.provider.get(Provider.ID.opencode)
+      const item = models.provider.get(Provider.ID.aicraft)
       if (!item) return
       const hasKey = Boolean(
         process.env.OPENCODE_API_KEY ||
@@ -464,7 +464,7 @@ export const OpencodePlugin = define<
       librarySkills.items.forEach((item) => editor.add(item.skill, item.files))
     })
 
-    const apply = Effect.fn("OpencodePlugin.apply")(function* (next: typeof snapshot) {
+    const apply = Effect.fn("AicraftPlugin.apply")(function* (next: typeof snapshot) {
       snapshot = next
       yield* publish(next)
       yield* guard(next)
@@ -516,10 +516,10 @@ export const OpencodePlugin = define<
         )
       })
     // Hooks are scoped per provider so requests to unrelated providers skip the HTTP hook path.
-    const guard = Effect.fn("OpencodePlugin.guard")(function* (next: typeof snapshot) {
+    const guard = Effect.fn("AicraftPlugin.guard")(function* (next: typeof snapshot) {
       yield* Effect.forEach(explainers, (registration) => registration.dispose, { discard: true })
       explainers = yield* Effect.forEach(
-        next.connection ? new Set([Provider.ID.opencode, ...Object.keys(next.remote?.providers ?? {})]) : [],
+        next.connection ? new Set([Provider.ID.aicraft, ...Object.keys(next.remote?.providers ?? {})]) : [],
         (providerID) => ctx.session.hook("http.response", explain, { providerID }).pipe(Scope.provide(scope)),
       )
     })
@@ -717,7 +717,7 @@ function credential(http: HttpClient.HttpClient, server: string, token: typeof T
         ? orgs.toSorted((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))[0]
         : orgs.find((org) => org.id === token.org_id)
     if (token.org_id != null && !org) {
-      return yield* Effect.fail(new Error(`OpenCode organization not found: ${token.org_id}`))
+      return yield* Effect.fail(new Error(`AI Craft organization not found: ${token.org_id}`))
     }
     return Credential.OAuth.make({
       type: "oauth" as const,

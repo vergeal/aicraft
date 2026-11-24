@@ -1,5 +1,5 @@
 import { For, Show, createEffect, createMemo, onCleanup } from "solid-js"
-import type { PromptAgentAttachment, PromptAttachment, PromptSkillAttachment } from "@opencode/client/promise"
+import type { PromptAgentAttachment, PromptAttachment, PromptSkillAttachment } from "@aicraft/client/promise"
 import { linkSegments } from "./link-segments"
 import { sessionReferenceText, setupSessionLinks } from "./markdown-session-links"
 import { useMarkdown } from "../context/markdown"

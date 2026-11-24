@@ -1,6 +1,6 @@
 import { For } from "solid-js"
-import { Icon } from "@opencode/ui/icon"
-import type { IconName } from "@opencode/ui/icons/catalog"
+import { Icon } from "@aicraft/ui/icon"
+import type { IconName } from "@aicraft/ui/icons/catalog"
 
 const NAMES: readonly IconName[] = [
   "answer-thinking",
@@ -23,7 +23,7 @@ const NAMES: readonly IconName[] = [
 ]
 
 export default {
-  title: "OpenCode/Conversation/Answer icons",
+  title: "AI Craft/Conversation/Answer icons",
   id: "answer-icons",
   parameters: { layout: "fullscreen" },
 }

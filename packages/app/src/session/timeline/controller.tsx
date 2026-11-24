@@ -1,11 +1,11 @@
-import type { SessionMessageInfo } from "@opencode/client/promise"
-import { ConfirmDialog } from "@opencode/ui/confirm-dialog"
+import type { SessionMessageInfo } from "@aicraft/client/promise"
+import { ConfirmDialog } from "@aicraft/ui/confirm-dialog"
 import { useNavigate } from "@solidjs/router"
 import { createEffect, createMemo, on, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Option, Predicate, Schema } from "effect"
 import { notifySessionTabsRemoved } from "@/shell/titlebar/session-events"
-import { useDialog } from "@opencode/ui/context/dialog"
+import { useDialog } from "@aicraft/ui/context/dialog"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
 import { useWorkspaceLocation } from "@/workspaces/location"
@@ -22,7 +22,7 @@ import { applyTimelineMessageHandoff, timelineChildTitle, visibleTimelineMessage
 import { createTimelineProjection } from "./projection"
 import { useServer } from "@/runtime/server/current"
 import { getSessionMessageHandoff } from "@/session/handoff"
-import type { ReasoningMode } from "@opencode/session-ui/timeline/projection"
+import type { ReasoningMode } from "@aicraft/session-ui/timeline/projection"
 
 const emptyMessages: SessionMessageInfo[] = []
 

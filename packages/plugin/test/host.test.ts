@@ -11,7 +11,7 @@ const source = 'throw new Error("Plugin code must not run during resolution")'
 const name = "@fixture/plugin"
 
 async function fixture(files: Record<string, string>, installed = false) {
-  const root = await realpath(await mkdtemp(path.join(tmpdir(), "opencode-host-")))
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), "aicraft-host-")))
   const directory = installed ? path.join(root, "node_modules", name) : root
   await Promise.all(
     Object.entries(files).map(async ([file, content]) => {
@@ -257,13 +257,13 @@ describe("Host.resolve", () => {
   it("names a plugin without a server part after its manifest, package, or local directory", async () => {
     await using declared = await fixture({
       METAINF: manifest({ gui: "gui/main" }),
-      "package.json": JSON.stringify({ name: "@acme/opencode-gui" }),
+      "package.json": JSON.stringify({ name: "@acme/aicraft-gui" }),
     })
-    await using named = await fixture({ "package.json": JSON.stringify({ name: "@acme/opencode-gui" }) })
+    await using named = await fixture({ "package.json": JSON.stringify({ name: "@acme/aicraft-gui" }) })
     await using unnamed = await fixture({ "tui.tsx": source })
     await using published = await fixture({ "package.json": JSON.stringify({ name }) }, true)
     assert.equal(Host.packageID(declared.target), name)
-    assert.equal(Host.packageID(named.target), "@acme/opencode-gui")
+    assert.equal(Host.packageID(named.target), "@acme/aicraft-gui")
     assert.equal(Host.packageID(unnamed.target), path.basename(unnamed.target.directory))
     assert.equal(Host.packageID(published.target), name)
   })

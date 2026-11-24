@@ -1,9 +1,9 @@
 export * as QueueTool from "./queue.js"
 
-import { ToolFailure } from "@opencode/ai/effect"
-import type { Context } from "@opencode/plugin/effect/plugin"
-import { SessionInbox } from "@opencode/schema/session-inbox"
-import { SessionMessage } from "@opencode/schema/session-message"
+import { ToolFailure } from "@aicraft/ai/effect"
+import type { Context } from "@aicraft/plugin/effect/plugin"
+import { SessionInbox } from "@aicraft/schema/session-inbox"
+import { SessionMessage } from "@aicraft/schema/session-message"
 import { DateTime, Effect, Schema } from "effect"
 import { SessionSchema } from "../../session/schema.js"
 import { SessionTarget } from "./session-target.js"
@@ -97,7 +97,7 @@ const render = (target: { id: string; title?: string }, items: readonly SessionI
 }
 
 export const Plugin = {
-  id: "opencode.tool.queue",
+  id: "aicraft.tool.queue",
   effect: Effect.fn("QueueTool.Plugin")(function* (ctx: Context) {
     yield* ctx.tool
       .transform((editor) =>

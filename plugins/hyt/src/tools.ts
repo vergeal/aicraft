@@ -1,8 +1,8 @@
 export * as HytTools from "./tools.js"
 
-import type { ToolEditor } from "@opencode/plugin/promise/tool"
-import { optional } from "@opencode/schema/schema"
-import { Tool } from "@opencode/schema/tool"
+import type { ToolEditor } from "@aicraft/plugin/promise/tool"
+import { optional } from "@aicraft/schema/schema"
+import { Tool } from "@aicraft/schema/tool"
 import { Schema } from "effect"
 import type { ChatMessage } from "./chat/message.js"
 import { isOutgoing, mentionsAll, preview } from "./chat/message.js"

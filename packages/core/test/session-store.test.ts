@@ -1,27 +1,27 @@
 import { describe, expect } from "bun:test"
 import { asc, eq } from "drizzle-orm"
 import { Effect } from "effect"
-import { Bus } from "@opencode/core/bus"
-import { Config } from "@opencode/core/config"
-import { Database } from "@opencode/core/database/database"
-import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
-import { ProjectTable } from "@opencode/core/project/sql"
-import { SessionProjector } from "@opencode/core/session/projector"
-import { SessionHistory } from "@opencode/core/session/history"
-import { SessionMessageTable, SessionPartTable } from "@opencode/core/session/sql"
-import { SessionStore } from "@opencode/core/session/store"
-import { Agent } from "@opencode/schema/agent"
-import { Document, Info } from "@opencode/schema/config"
-import { ConfigExperimental } from "@opencode/schema/config/experimental"
-import { Event } from "@opencode/schema/event"
-import { Model } from "@opencode/schema/model"
-import { Project } from "@opencode/schema/project"
-import { Provider } from "@opencode/schema/provider"
-import { AbsolutePath } from "@opencode/schema/schema"
-import { Session } from "@opencode/schema/session"
-import { SessionEvent } from "@opencode/schema/session-event"
-import { SessionMessage } from "@opencode/schema/session-message"
-import { LayerNode } from "@opencode/util/effect/layer-node"
+import { Bus } from "@aicraft/core/bus"
+import { Config } from "@aicraft/core/config"
+import { Database } from "@aicraft/core/database/database"
+import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
+import { ProjectTable } from "@aicraft/core/project/sql"
+import { SessionProjector } from "@aicraft/core/session/projector"
+import { SessionHistory } from "@aicraft/core/session/history"
+import { SessionMessageTable, SessionPartTable } from "@aicraft/core/session/sql"
+import { SessionStore } from "@aicraft/core/session/store"
+import { Agent } from "@aicraft/schema/agent"
+import { Document, Info } from "@aicraft/schema/config"
+import { ConfigExperimental } from "@aicraft/schema/config/experimental"
+import { Event } from "@aicraft/schema/event"
+import { Model } from "@aicraft/schema/model"
+import { Project } from "@aicraft/schema/project"
+import { Provider } from "@aicraft/schema/provider"
+import { AbsolutePath } from "@aicraft/schema/schema"
+import { Session } from "@aicraft/schema/session"
+import { SessionEvent } from "@aicraft/schema/session-event"
+import { SessionMessage } from "@aicraft/schema/session-message"
+import { LayerNode } from "@aicraft/util/effect/layer-node"
 import { testEffect } from "./lib/effect"
 
 const it = testEffect(
@@ -119,7 +119,7 @@ describe("SessionStore", () => {
     Effect.gen(function* () {
       yield* seedSessions([
         { id: "ses_cyrillic", updated: 10, title: "Тестова сесия" },
-        { id: "ses_ascii", updated: 20, title: "OpenCode notes" },
+        { id: "ses_ascii", updated: 20, title: "AI Craft notes" },
         { id: "ses_percent", updated: 30, title: "100% done" },
         { id: "ses_underscore", updated: 40, title: "file_name [draft]" },
       ])
@@ -130,7 +130,7 @@ describe("SessionStore", () => {
       expect(yield* search("тестова")).toEqual(["ses_cyrillic"])
       expect(yield* search("ТЕСТОВА СЕСИЯ")).toEqual(["ses_cyrillic"])
       expect(yield* search("opencode")).toEqual(["ses_ascii"])
-      expect(yield* search("OPENCODE")).toEqual(["ses_ascii"])
+      expect(yield* search("AICRAFT")).toEqual(["ses_ascii"])
       expect(yield* search("тест%сия")).toEqual(["ses_cyrillic"])
       expect(yield* search("OP_NCODE")).toEqual(["ses_ascii"])
       expect(yield* search("100%")).toEqual(["ses_percent"])

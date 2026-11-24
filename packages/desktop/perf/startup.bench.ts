@@ -1,5 +1,5 @@
 import { app, bench, command, type LaunchContext, type Milestone } from "@hona/strobe"
-import { Service } from "@opencode/client/service"
+import { Service } from "@aicraft/client/service"
 import { spawn, spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { basename, dirname, join } from "node:path"
@@ -53,7 +53,7 @@ const dev = {
 export default bench({
   targets: {
     // The installed app by its strobe.json profile. Compare two packaged builds with
-    // `--base exe:<path> --head exe:<path>`, or channels with `--base app:opencode-beta`.
+    // `--base exe:<path> --head exe:<path>`, or channels with `--base app:aicraft-beta`.
     // Launches keep the GPU shader caches earlier launches of the same build compiled (strobe's `gpuCache: "warm"`),
     // as a returning user's machine has them.
     desktop: app("opencode"),
@@ -62,15 +62,15 @@ export default bench({
     install: app("opencode", { gpuCache: "cold" }),
     // A contributor's `bun dev:desktop` in each variant's checkout, isolated under the launch's home.
     dev: command("bun dev:desktop", {
-      unset: ["OPENCODE_*", "OTEL_*", "SENTRY_*"],
+      unset: ["AICRAFT_*", "OTEL_*", "SENTRY_*"],
       env: {
-        OPENCODE_CONFIG_DIR: "{home}/config",
-        OPENCODE_DB: "{home}/data/aicraft.db",
-        OPENCODE_TEST_HOME: "{home}/home",
-        OPENCODE_TEST_ONBOARDING: "0",
-        OPENCODE_DESKTOP_TEST_ROOT: "{home}",
-        OPENCODE_DESKTOP_REMOTE_DEBUGGING_PORT: "0",
-        OPENCODE_DESKTOP_DISABLE_PROTOCOL_REGISTRATION: "1",
+        AICRAFT_CONFIG_DIR: "{home}/config",
+        AICRAFT_DB: "{home}/data/aicraft.db",
+        AICRAFT_TEST_HOME: "{home}/home",
+        AICRAFT_TEST_ONBOARDING: "0",
+        AICRAFT_DESKTOP_TEST_ROOT: "{home}",
+        AICRAFT_DESKTOP_REMOTE_DEBUGGING_PORT: "0",
+        AICRAFT_DESKTOP_DISABLE_PROTOCOL_REGISTRATION: "1",
         // The test root moves XDG_CACHE_HOME, which would make every start transpile the source CLI
         // from scratch; a contributor's dev start reuses Bun's own cache.
         BUN_RUNTIME_TRANSPILER_CACHE_PATH: process.env.BUN_RUNTIME_TRANSPILER_CACHE_PATH ?? bunTranspilerCache(),
@@ -158,7 +158,7 @@ function skipOnboarding(ctx: LaunchContext<unknown>) {
       ? "changhong.aicraft.desktop.dev"
       : "changhong.aicraft.desktop"
 
-  const file = join(ctx.home!, "AppData", "Roaming", id, "opencode.settings")
+  const file = join(ctx.home!, "AppData", "Roaming", id, "aicraft.settings")
   const settings = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {}
 
   if (settings.firstLaunchOnboardingComplete) return

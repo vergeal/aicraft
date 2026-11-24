@@ -1,12 +1,12 @@
 {
-  "name": "@opencode/desktop",
+  "name": "@aicraft/desktop",
   "private": true,
   "version": "2.2.5",
   "type": "module",
   "license": "MIT",
   "homepage": "https://opencode.ai",
   "author": {
-    "name": "OpenCode",
+    "name": "AI Craft",
     "email": "hello@opencode.ai"
   },
   "scripts": {
@@ -32,12 +32,12 @@
     "@effect/platform-node": "catalog:",
     "@hona/strobe": "catalog:",
     "@lydell/node-pty": "catalog:",
-    "@opencode/app": "workspace:*",
-    "@opencode/gui-plugins": "workspace:*",
-    "@opencode/plugin": "workspace:*",
-    "@opencode/client": "workspace:*",
-    "@opencode/schema": "workspace:*",
-    "@opencode/ui": "workspace:*",
+    "@aicraft/app": "workspace:*",
+    "@aicraft/gui-plugins": "workspace:*",
+    "@aicraft/plugin": "workspace:*",
+    "@aicraft/client": "workspace:*",
+    "@aicraft/schema": "workspace:*",
+    "@aicraft/ui": "workspace:*",
     "@sentry/solid": "catalog:",
     "@solidjs/router": "catalog:",
     "@types/bun": "catalog:",

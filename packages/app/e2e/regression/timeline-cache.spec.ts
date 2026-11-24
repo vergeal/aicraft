@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
-import type { OpenCodeEvent, SessionMessageInfo } from "@opencode/client/promise"
-import { timelinePresets } from "@opencode/session-ui/timeline/detail"
+import type { AicraftEvent, SessionMessageInfo } from "@aicraft/client/promise"
+import { timelinePresets } from "@aicraft/session-ui/timeline/detail"
 import { expected, messages } from "../utils/markdown-sessions"
 import { expectPath, holdRoute, seed, sessionHref, type SeedInput } from "../utils/app"
 import type { MockServerConfig } from "../utils/mock-server"
@@ -170,8 +170,8 @@ test("reloads a transcript only after inline file links have their final styling
 })
 
 test("keeps verified inline paths across a workspace tab switch", async ({ page }) => {
-  const directory = "C:/OpenCode/InlinePaths"
-  const other = "C:/OpenCode/OtherInlinePaths"
+  const directory = "C:/AI Craft/InlinePaths"
+  const other = "C:/AI Craft/OtherInlinePaths"
   const sourceID = "ses_inline_source"
   const targetID = "ses_inline_target"
   const queries: { query: string; directory: string }[] = []
@@ -343,7 +343,7 @@ test("focuses Find in the selected cached timeline", async ({ page }) => {
 })
 
 test("keeps the old workspace's shell on its own Location while destination history is loading", async ({ page }) => {
-  const destination = "C:/OpenCode/OtherProject"
+  const destination = "C:/AI Craft/OtherProject"
   const requested = Promise.withResolvers<void>()
   const release = Promise.withResolvers<void>()
   const reads: string[] = []
@@ -606,7 +606,7 @@ function part(page: Page, sessionID: string) {
   return page.locator(`[data-timeline-part-id="answer_${sessionID}:text:0"]`)
 }
 
-function textEnded(sessionID: string, directory: string): OpenCodeEvent {
+function textEnded(sessionID: string, directory: string): AicraftEvent {
   return {
     id: `evt_text_${sessionID}`,
     created: 4,

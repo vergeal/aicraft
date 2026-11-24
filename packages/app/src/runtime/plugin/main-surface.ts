@@ -1,4 +1,4 @@
-import type { MainSurface } from "@opencode/plugin/gui"
+import type { MainSurface } from "@aicraft/plugin/gui"
 
 /** One contributed main surface, with the plugin that contributed it. */
 export type MainSurfaceEntry = {

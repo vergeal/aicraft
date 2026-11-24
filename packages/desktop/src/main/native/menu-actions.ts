@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron"
-import { desktopZoomLevelFactor, nextDesktopZoomLevel, type DesktopMenuAction } from "@opencode/app/desktop-menu"
+import { desktopZoomLevelFactor, nextDesktopZoomLevel, type DesktopMenuAction } from "@aicraft/app/desktop-menu"
 import { setZoomLevel } from "../windows"
 
 export type DesktopMenuActionHandlers = Partial<{

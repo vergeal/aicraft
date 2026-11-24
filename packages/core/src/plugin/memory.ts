@@ -1,12 +1,12 @@
 export * as MemoryPlugin from "./memory.js"
 
-import { SkillPackage } from "@opencode/plugin/skill-package"
-import { define } from "@opencode/plugin/effect/plugin"
-import { Memory as MemorySchema } from "@opencode/schema/memory"
-import { Session } from "@opencode/schema/session"
-import { Skill } from "@opencode/schema/skill"
-import { optional } from "@opencode/schema/schema"
-import { Tool } from "@opencode/schema/tool"
+import { SkillPackage } from "@aicraft/plugin/skill-package"
+import { define } from "@aicraft/plugin/effect/plugin"
+import { Memory as MemorySchema } from "@aicraft/schema/memory"
+import { Session } from "@aicraft/schema/session"
+import { Skill } from "@aicraft/schema/skill"
+import { optional } from "@aicraft/schema/schema"
+import { Tool } from "@aicraft/schema/tool"
 import { Effect, Schema } from "effect"
 import { Config } from "../config.js"
 import { KV } from "../kv.js"
@@ -82,7 +82,7 @@ const ForgetResult = Schema.Struct({ id: Schema.String, removed: Schema.Boolean 
 const options = { namespace: "memory", codemode: true } as const
 
 export const Plugin = define({
-  id: "opencode.memory",
+  id: "aicraft.memory",
   effect: Effect.fn("MemoryPlugin")(function* (ctx) {
     const kv = yield* KV.Service
     const config = yield* Config.Service

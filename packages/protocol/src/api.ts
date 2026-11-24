@@ -15,7 +15,7 @@ import { CommandGroup } from "./groups/command.js"
 import { SkillGroup } from "./groups/skill.js"
 import { RpcGroup } from "./groups/rpc.js"
 import { EventGroup, makeEventGroup } from "./groups/event.js"
-import type { Definition } from "@opencode/schema/event"
+import type { Definition } from "@aicraft/schema/event"
 import { AgentGroup } from "./groups/agent.js"
 import { PluginGroup } from "./groups/plugin.js"
 import { ServerGroup } from "./groups/server.js"
@@ -202,7 +202,7 @@ const makeApiFromGroup = <
     .add(KnowledgeGroup)
     .annotateMerge(
       OpenApi.annotations({
-        title: "opencode HttpApi",
+        title: "aicraft HttpApi",
         version: "0.0.1",
         description: "Experimental HttpApi surface for selected instance routes.",
       }),

@@ -38,4 +38,4 @@ export const decisionModel = (modelID: string, settings?: Settings) => {
   return configure(input).decision(modelID, input.providerOptions)
 }
 
-export * as OpenCode from "./opencode.js"
+export * as Aicraft from "./aicraft.js"

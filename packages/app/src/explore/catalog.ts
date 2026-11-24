@@ -1,12 +1,12 @@
 /**
- * The Explore catalog: the plugins and skills people publish for OpenCode, as the sidebar's "Discover" lists.
+ * The Explore catalog: the plugins and skills people publish for AI Craft, as the sidebar's "Discover" lists.
  *
  * Plugins and skills come from the local discover root (`~/.distribution/`), which stands in for a registry until one
  * exists: the server reads it and returns each plugin id with its available versions, and every skill directory with a
  * `SKILL.md`. `loadLocalCatalog` is the one seam that changes when a real registry lands.
  */
-import type { PluginLocalEntry } from "@opencode/client/promise"
-import { Catalog } from "@opencode/schema/catalog"
+import type { PluginLocalEntry } from "@aicraft/client/promise"
+import { Catalog } from "@aicraft/schema/catalog"
 
 export type CatalogVersion = { version: string; file: string }
 

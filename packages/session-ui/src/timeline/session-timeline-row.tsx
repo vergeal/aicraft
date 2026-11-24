@@ -3,9 +3,9 @@ import type {
   SessionMessageInfo,
   SessionMessageUser,
   SessionStatus,
-} from "@opencode/client/promise"
-import { useI18n } from "@opencode/ui/context/i18n"
-import { SessionTurn } from "@opencode/util/session-turn"
+} from "@aicraft/client/promise"
+import { useI18n } from "@aicraft/ui/context/i18n"
+import { SessionTurn } from "@aicraft/util/session-turn"
 import { Predicate } from "effect"
 import {
   For,
@@ -21,11 +21,11 @@ import {
   type Accessor,
   type JSX,
 } from "solid-js"
-import { DiffChanges } from "@opencode/ui/diff-changes"
-import { Icon } from "@opencode/ui/icon"
-import { TextShimmer } from "@opencode/ui/text-shimmer"
-import { enter, Spring, frameLoop, prefersReducedMotion } from "@opencode/ui/motion"
-import { springStyle } from "@opencode/ui/motion/solid"
+import { DiffChanges } from "@aicraft/ui/diff-changes"
+import { Icon } from "@aicraft/ui/icon"
+import { TextShimmer } from "@aicraft/ui/text-shimmer"
+import { enter, Spring, frameLoop, prefersReducedMotion } from "@aicraft/ui/motion"
+import { springStyle } from "@aicraft/ui/motion/solid"
 import { Dynamic } from "solid-js/web"
 import type { SessionUserActions, SessionUserAttachmentReference, SessionUserComment } from "../actions"
 import { useData } from "../context"

@@ -1,9 +1,9 @@
 import { Option, Schema } from "effect"
 import { For, Show } from "solid-js"
-import type { PermissionRequest } from "@opencode/client/promise"
-import { Button } from "@opencode/ui/button"
-import { DockPrompt } from "@opencode/session-ui/dock-prompt"
-import { Icon } from "@opencode/ui/icon"
+import type { PermissionRequest } from "@aicraft/client/promise"
+import { Button } from "@aicraft/ui/button"
+import { DockPrompt } from "@aicraft/session-ui/dock-prompt"
+import { Icon } from "@aicraft/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 
 const decodeToolInput = Schema.decodeUnknownOption(Schema.Record(Schema.String, Schema.Unknown))

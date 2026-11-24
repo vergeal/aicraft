@@ -1,4 +1,4 @@
-import type { Context } from "@opencode/plugin/gui"
+import type { Context } from "@aicraft/plugin/gui"
 import { createSignal } from "solid-js"
 import type { JSX } from "solid-js"
 import { HytIpc } from "./contract.js"

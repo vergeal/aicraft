@@ -1,8 +1,8 @@
 export * as PluginLocal from "./local.js"
 
-import type { Plugin } from "@opencode/schema/plugin"
-import { Catalog } from "@opencode/schema/catalog"
-import { PluginManifest } from "@opencode/schema/plugin-manifest"
+import type { Plugin } from "@aicraft/schema/plugin"
+import { Catalog } from "@aicraft/schema/catalog"
+import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Option, Schema } from "effect"
 import { readdir, readFile } from "node:fs/promises"
 import path from "node:path"

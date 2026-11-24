@@ -17,7 +17,7 @@ export function BrandMark(props: { class?: string; label?: string }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label={props.label ?? "OpenCode"}
+      aria-label={props.label ?? "AI Craft"}
     >
       <defs>
         <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">

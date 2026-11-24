@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { Session } from "@opencode/schema/session"
+import { Session } from "@aicraft/schema/session"
 import {
   createNewSessionStartState,
   transitionNewSessionStart,

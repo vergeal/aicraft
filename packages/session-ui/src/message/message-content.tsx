@@ -54,7 +54,7 @@ import type {
 import type { SessionUserActions, SessionUserAttachmentReference, SessionUserComment } from "../actions"
 import { agentLabel } from "./agent-label"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
-import { attached, imageAttachmentPlaceholderStyle, typeLabel } from "../components/message-file"
+import { attached, typeLabel } from "../components/message-file"
 import { UserMessageActions } from "./user-message-actions"
 import { writeClipboard } from "../components/markdown-clipboard"
 
@@ -319,6 +319,7 @@ export function CurrentUserMessageDisplay(props: {
   const files = createMemo(() => (props.message.files ?? []) as PromptAttachment[])
   const attachments = createMemo(() => files().filter(attached))
   const references = createMemo(() => props.references ?? [])
+  const pictures = createMemo(() => attachments().filter((file) => file.mime.startsWith("image/")).length)
   const inlineFiles = createMemo(() => files().filter((file) => !!file.mention))
   const agents = createMemo(() => props.message.agents ?? [])
   const skills = createMemo(() => props.message.skills ?? [])
@@ -412,7 +413,7 @@ export function CurrentUserMessageDisplay(props: {
 
   const renderAttachments = () => (
     <Show when={attachments().length > 0 || references().length > 0}>
-      <div data-slot="user-message-attachments">
+      <div data-slot="user-message-attachments" data-pictures={pictures()}>
         <For each={references()}>
           {(file) => (
             <AttachmentCard title={file.name} hover={file.path}>
@@ -473,25 +474,6 @@ export function CurrentUserMessageDisplay(props: {
             const name = () => file().name ?? i18n.t("ui.message.attachment.alt")
             const image = () => file().mime.startsWith("image/")
 
-            const width = () => {
-              const current = file()
-
-              return "width" in current ? current.width : undefined
-            }
-
-            const height = () => {
-              const current = file()
-
-              return "height" in current ? current.height : undefined
-            }
-
-            const placeholderStyle = () =>
-              imageAttachmentPlaceholderStyle({
-                width: width(),
-                height: height(),
-                loaded: Boolean(url()),
-              })
-
             return (
               <Show
                 when={!image()}
@@ -501,9 +483,6 @@ export function CurrentUserMessageDisplay(props: {
                     data-type="image"
                     data-clickable={url() ? "true" : undefined}
                     data-placeholder={url() ? undefined : "true"}
-                    data-width={width()}
-                    data-height={height()}
-                    style={placeholderStyle()}
                     onClick={(event) => {
                       const src = url()
                       const origin = event.currentTarget
@@ -512,15 +491,7 @@ export function CurrentUserMessageDisplay(props: {
                     }}
                   >
                     <Show when={url()}>
-                      {(src) => (
-                        <img
-                          data-slot="user-message-attachment-image"
-                          src={src()}
-                          width={width()}
-                          height={height()}
-                          alt={name()}
-                        />
-                      )}
+                      {(src) => <img data-slot="user-message-attachment-image" src={src()} alt={name()} />}
                     </Show>
                   </div>
                 }

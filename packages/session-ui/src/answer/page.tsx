@@ -1555,7 +1555,7 @@ function InputBubble(props: {
   return (
     <div data-slot="user-message-body" class="flex w-fit max-w-[min(82%,64ch)] flex-col items-end ms-auto">
       <Show when={pictures().length > 0}>
-        <div data-slot="user-message-attachments">
+        <div data-slot="user-message-attachments" data-pictures={pictures().length}>
           <For each={pictures()}>{(file) => <PromptPicture file={file} />}</For>
         </div>
       </Show>
@@ -1625,7 +1625,7 @@ function PromptPicture(props: { file: PromptAttachment }) {
       ref={root}
       data-slot="user-message-attachment"
       data-state={image.broken() ? "broken" : image.url() ? "ready" : "loading"}
-      class="relative h-[46px] w-[58px] shrink-0 overflow-hidden rounded-[6px] border-[0.5px] border-v2-border-border-base"
+      class="relative shrink-0 overflow-hidden border-[0.5px] border-v2-border-border-base"
       style={{ background: "var(--v2-background-bg-layer-02)" }}
     >
       <Show when={image.broken() ? undefined : image.url()}>

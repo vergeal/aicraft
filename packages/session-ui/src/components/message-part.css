@@ -37,6 +37,29 @@
     width: fit-content;
     max-width: min(82%, 64ch);
     margin-inline-start: auto;
+    --user-image-width: 58px;
+    --user-image-height: 46px;
+    --user-image-radius: 6px;
+
+    /* One picture reads as a preview; each extra one steps the frame down, so four still sit in one row. The corner
+       softens with the frame, so a 200px preview and a 58px chip share the same rounded read. */
+    &[data-pictures="1"] {
+      --user-image-width: 200px;
+      --user-image-height: 136px;
+      --user-image-radius: 16px;
+    }
+
+    &[data-pictures="2"] {
+      --user-image-width: 124px;
+      --user-image-height: 84px;
+      --user-image-radius: 12px;
+    }
+
+    &[data-pictures="3"] {
+      --user-image-width: 86px;
+      --user-image-height: 58px;
+      --user-image-radius: 9px;
+    }
   }
 
   [data-slot="user-message-attachment"] {
@@ -64,8 +87,9 @@
 
     &[data-type="image"] {
       position: relative;
-      width: 58px;
-      height: 46px;
+      width: var(--user-image-width, 58px);
+      height: var(--user-image-height, 46px);
+      border-radius: var(--user-image-radius, 6px);
       border: none;
 
       /* inset box-shadows do not paint over <img> content, so the hairline is an overlay */

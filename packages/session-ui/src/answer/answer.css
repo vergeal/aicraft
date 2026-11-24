@@ -193,6 +193,38 @@
   object-fit: cover;
 }
 
+/* One picture reads as a preview and each extra one steps the frame down, so four still fit a single row. The corner
+   softens with the frame, keeping the same rounded read from a 200px preview down to a 58px chip. */
+.answer-scope [data-slot="user-message-attachments"] {
+  --prompt-picture-width: 58px;
+  --prompt-picture-height: 46px;
+  --prompt-picture-radius: 6px;
+}
+
+.answer-scope [data-slot="user-message-attachments"][data-pictures="1"] {
+  --prompt-picture-width: 200px;
+  --prompt-picture-height: 136px;
+  --prompt-picture-radius: 16px;
+}
+
+.answer-scope [data-slot="user-message-attachments"][data-pictures="2"] {
+  --prompt-picture-width: 124px;
+  --prompt-picture-height: 84px;
+  --prompt-picture-radius: 12px;
+}
+
+.answer-scope [data-slot="user-message-attachments"][data-pictures="3"] {
+  --prompt-picture-width: 86px;
+  --prompt-picture-height: 58px;
+  --prompt-picture-radius: 9px;
+}
+
+.answer-scope [data-slot="user-message-attachment"] {
+  width: var(--prompt-picture-width, 58px);
+  height: var(--prompt-picture-height, 46px);
+  border-radius: var(--prompt-picture-radius, 6px);
+}
+
 /* A file the prompt carried joins its own text as a link: the bubble already wraps the copy, so the filename reads
    as the last line of what the writer said instead of a second, card-shaped block. */
 .answer-scope [data-slot="user-message-files"] {

@@ -118,8 +118,19 @@ function rehold(next: Landing | undefined) {
   driver?.begin()
 
   if (boxes.length === 0) return
+
   flights.forEach((flight) => flight.land())
-  const widths = boxes.map((item) => item.box.getBoundingClientRect().width)
+
+  // The target's landing width, not the box's: a panel box can carry its own border or padding, and the target lays
+  // out inside that. Writing the box's outer width here left the contents a hair wider than the box they land in, so
+  // they shifted when the hold came off.
+  const widths = boxes.map((item) => {
+    const box = item.box.getBoundingClientRect()
+    const target = item.target.getBoundingClientRect()
+
+    return Math.max(0, box.width - Math.max(0, target.left - box.left))
+  })
+
   flights.forEach((flight) => flight.resume())
 
   const kept = boxes

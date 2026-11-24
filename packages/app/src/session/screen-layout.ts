@@ -42,19 +42,26 @@ export function createSessionScreenLayout(
     return { width, resize: (next: number) => input.widths.set(key, next) }
   })
 
-  const [rowSize, setRowSize] = createStore<{ width?: number }>({})
+  const [rowSize, setRowSize] = createStore<{ width?: number; gap?: number }>({})
   let row: HTMLDivElement | undefined
   createResizeObserver(
     () => row,
-    ({ width }) => setRowSize({ width }),
+    ({ width }) => {
+      // The row's real gap, not a constant. The shell folds the side panel against the conversation and clears the
+      // row's gap, so assuming 8px left the panel's contents 8px narrower than the box a panel flight measured, and
+      // the panel's head shifted when the flight landed.
+      setRowSize({ width, gap: row ? Number.parseFloat(getComputedStyle(row).columnGap) || 0 : 0 })
+    },
   )
+
+  const gap = () => rowSize.gap ?? 0
 
   const available = createMemo<number | undefined>(() => {
     const width = rowSize.width
 
     if (width === undefined) return undefined
 
-    return width - 8
+    return width - gap()
   })
 
   const splitSide = createMemo(() => tabsOpen() && input.wide())
@@ -83,12 +90,13 @@ export function createSessionScreenLayout(
     if (!tabsOpen()) return "100%"
     const current = sized()
 
-    if (current) return sidePanelWidthCss(current.width)
+    if (current) return sidePanelWidthCss(current.width, gap())
 
     return sessionPanelWidthCss({
       width: view().session.width(),
       split: splitSide(),
       resized: view().session.resized(),
+      gap: gap(),
     })
   })
 
@@ -108,12 +116,6 @@ export function createSessionScreenLayout(
 
     return previous
   })
-
-  const sideContentWidth = createMemo<string>((previous) => {
-    const width = sideWidth()
-
-    return width === undefined ? previous : `${width}px`
-  }, "100%")
 
   return {
     centered: createMemo(() => session.isDesktop()),
@@ -135,7 +137,6 @@ export function createSessionScreenLayout(
       },
     },
     side: {
-      contentWidth: sideContentWidth,
       width: sideWidth,
       open: tabsOpen,
       tabs: { open: tabsOpen },

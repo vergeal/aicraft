@@ -44,12 +44,6 @@ export function SideRegion(props: {
   sidebar: PanelSidebar
   present?: boolean
   size: Sizing
-  /**
-   * The width the contents keep, the side region's open width, which a close keeps as the far end of its travel. Set
-   * on the content box alone: an inherited custom property on an ancestor restyled every element in the region, the
-   * review's diffs included, on every frame of a resize drag.
-   */
-  contentWidth: Accessor<string>
   /** Takes the whole content area while it shows a full panel: no card edge, and the conversation beside it is hidden. */
   full?: boolean
   drag: PaneDrag
@@ -147,7 +141,9 @@ export function SideRegion(props: {
           <div
             data-slot="session-review-content"
             class="h-full flex shrink-0 contain-strict"
-            style={{ width: `var(--panel-hold-width, ${props.contentWidth()})` }}
+            // At rest the contents fill the panel's own box. While the panel travels, the hold carries the width it
+            // lands at, which is that same box: the head keeps its place instead of shifting when the flight ends.
+            style={{ width: "var(--panel-hold-width, 100%)" }}
           >
             <div
               ref={stack}

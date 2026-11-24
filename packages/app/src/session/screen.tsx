@@ -177,6 +177,7 @@ function SessionScreenContent(props: {
     "blocks",
     () => sideContent?.querySelector<HTMLElement>('[data-slot="session-review-content"]'),
   )
+
   const sideMotion = createPanelMotion({
     open: sideVisible,
     identity: session.layout.tabKey,
@@ -522,7 +523,6 @@ function SessionScreenContent(props: {
                         sidebar={sidebar}
                         present={sideMotion.present()}
                         size={screen.size}
-                        contentWidth={() => (fullSide() ? "100%" : screen.side.contentWidth())}
                         full={fullSide()}
                         drag={drag}
                       />

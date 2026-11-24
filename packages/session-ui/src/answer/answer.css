@@ -182,6 +182,41 @@
   padding-top: 4px;
 }
 
+/* The closing reply's facts take the same 20px row as the prompt's action line, and stay hidden until the reply
+   is hovered so a settled exchange reads as text alone. The row keeps its box, so revealing it never shifts the
+   transcript. */
+.answer-scope [data-slot="answer-reply-footer"] {
+  height: 20px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.answer-scope [data-slot="answer-row"]:hover [data-slot="answer-reply-footer"],
+.answer-scope [data-slot="answer-row"]:focus-within [data-slot="answer-reply-footer"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.answer-scope [data-slot="answer-reply-meta"] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: var(--line-height-compact, 20px);
+  white-space: nowrap;
+  color: var(--answer-ink-tertiary);
+}
+
+.answer-scope [data-slot="answer-reply-meta-item"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Branch guides: a group body reads as a tree, one rail down the children and a short elbow per entry.
    Each entry draws its own rail segment so the run stops on the last row's midline even when that row
    is expanded, instead of running past it to the bottom of the body. */
@@ -475,4 +510,15 @@
 .answer-scope :is([data-slot="answer-retry-dialog"], [data-slot="answer-inspect-dialog"])::backdrop {
   background: var(--v2-overlay-simple-overlay-scrim);
   backdrop-filter: blur(6px);
+}
+
+/* While the reader scrolls, the spinners stop. `animation: none` rather than `animation-play-state: paused`:
+   `spin-phase.ts` pins a running loop by setting its start time, and that makes a paused animation resume and ignore
+   its play state from then on. Removing the animation is the only stop the pin cannot undo; dropping this rule
+   restarts it, and `animationstart` re-pins every instance to the shared phase. The mark is on the root because the
+   spinners that cost the scroll frames sit in the sidebar rows, outside the scrolling element; a spinner only reports
+   that work is happening, so a short stop keeps the meaning and gives the scroll the frames.
+   `SCROLL_ANIMATION_IDLE` in `answer-timeline.tsx` clears the mark once scrolling rests. */
+:root[data-timeline-scrolling] [data-slot="spinner-dots"] {
+  animation: none !important;
 }

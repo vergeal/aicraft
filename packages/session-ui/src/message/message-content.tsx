@@ -407,6 +407,7 @@ export function CurrentUserMessageDisplay(props: {
       actions={props.actions}
       text={props.text}
       fullText={props.voice ? props.message.text : undefined}
+      fork={false}
     />
   )
 

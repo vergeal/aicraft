@@ -1,11 +1,13 @@
 import { For, Show, createContext, createEffect, createMemo, createRenderEffect, createSignal, createUniqueId, on, onCleanup, onMount, untrack, useContext, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
-import { mediaHashFromUri, type SessionMessageInfo } from "@opencode/client/promise"
+import { mediaHashFromUri, type SessionMessageAssistant, type SessionMessageInfo } from "@opencode/client/promise"
 import { DiffChanges } from "@opencode/ui/diff-changes"
 import { FileIcon } from "@opencode/ui/file-icon"
 import { getDirectory, getFilename } from "@opencode/util/path"
 import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
+import { Tooltip } from "@opencode/ui/tooltip"
 import { isIconName, type IconName } from "@opencode/ui/icons/catalog"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { Spinner } from "@opencode/ui/spinner"
@@ -13,6 +15,7 @@ import { useI18n, type UiI18nOrdinaryKey } from "@opencode/ui/context/i18n"
 import { hasMarkdownSyntax, Markdown } from "../components/markdown"
 import { writeClipboard } from "../components/markdown-clipboard"
 import { UserMessageActions } from "../message/user-message-actions"
+import { agentLabel } from "../message/agent-label"
 import type { SessionUserActions } from "../actions"
 import { File } from "../components/file"
 import { changedFileDiff } from "../components/apply-patch-file"
@@ -60,6 +63,20 @@ const RowDisclosureContext = createContext<RowDisclosure>()
 type MessageActionsValue = { sessionID?: string; actions?: SessionUserActions }
 
 const MessageActionsContext = createContext<MessageActionsValue>({})
+
+/**
+ * What the reply footer needs from the page's projection: the durable assistant message that carries the model and
+ * agent, and the reply that closes each settled turn.
+ */
+type ReplyMeta = {
+  assistant: (messageID: string) => SessionMessageAssistant | undefined
+  closingReply: (turn: number) => string | undefined
+}
+
+const ReplyMetaContext = createContext<ReplyMeta>({
+  assistant: () => undefined,
+  closingReply: () => undefined,
+})
 
 export interface AnswerPageProps {
   readonly messages: () => readonly SessionMessageInfo[]
@@ -404,6 +421,32 @@ export function AnswerPage(props: AnswerPageProps) {
   // The previous projection is passed back in so unchanged rows keep their payload object: a streamed
   // delta then only invalidates the row it touched instead of every memo in the transcript.
   const snapshot = createMemo<Snapshot>((previous) => projectTimeline(messages(), previous))
+
+  // The footer reports facts the projection leaves out: the model and agent that produced a reply, and when it
+  // finished. Keep them keyed by message so each row reads only its own.
+  const assistantByID = createMemo(() => {
+    const index = new Map<string, SessionMessageAssistant>()
+
+    for (const message of messages()) if (message.type === "assistant") index.set(message.id, message)
+
+    return index
+  })
+
+  // Only a settled turn's closing reply carries the footer: while the model still works, its text is progress, not an
+  // answer with a model to name.
+  const closingReplyKey = createMemo(() => {
+    const index = new Map<number, string>()
+
+    for (const turn of snapshot().turns.values())
+      if (turn.status !== "open" && turn.answer) index.set(turn.turn, turn.answer)
+
+    return index
+  })
+
+  const replyMeta = createMemo<ReplyMeta>(() => ({
+    assistant: (messageID) => assistantByID().get(messageID),
+    closingReply: (turn) => closingReplyKey().get(turn),
+  }))
   const [folded, setFolded] = createStore<Record<string, boolean | undefined>>({})
   const [openGroups, setOpenGroups] = createStore<Record<string, boolean | undefined>>({})
   // Row disclosures live here rather than in the row components: streamed projection rebuilds those
@@ -839,20 +882,22 @@ export function AnswerPage(props: AnswerPageProps) {
   onCleanup(() => props.setReveal?.(undefined))
 
   return (
-    <MessageActionsContext.Provider value={{ sessionID: props.sessionID, actions: props.actions }}>
-      <RowDisclosureContext.Provider
-        value={{
-          open: (key) => openRows[key],
-          toggle: (key, next) => setOpenRows(key, next),
-        }}
-      >
-        <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
-          <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
-            <For each={keys()}>{(key) => renderEntry(key)}</For>
+    <ReplyMetaContext.Provider value={replyMeta()}>
+      <MessageActionsContext.Provider value={{ sessionID: props.sessionID, actions: props.actions }}>
+        <RowDisclosureContext.Provider
+          value={{
+            open: (key) => openRows[key],
+            toggle: (key, next) => setOpenRows(key, next),
+          }}
+        >
+          <div class={`answer-scope flex flex-col ${props.class ?? ""}`} data-component="answer-page">
+            <div class="mx-auto flex w-full max-w-[var(--container-session,840px)] flex-col px-4 pt-4 pb-10">
+              <For each={keys()}>{(key) => renderEntry(key)}</For>
+            </div>
           </div>
-        </div>
-      </RowDisclosureContext.Provider>
-    </MessageActionsContext.Provider>
+        </RowDisclosureContext.Provider>
+      </MessageActionsContext.Provider>
+    </ReplyMetaContext.Provider>
   )
 }
 
@@ -1489,6 +1534,7 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
       data-timeline-part-id={props.node.partID}
     >
       <Payload
+        node={props.node}
         payload={props.node.payload}
         messageID={props.node.messageID ?? ""}
         cacheKey={key}
@@ -1498,6 +1544,101 @@ function NodeRow(props: { node: TimelineNode; view: TranscriptView; live: boolea
         onToggleRow={rows ? (next) => rows.toggle(key, next) : undefined}
       />
     </div>
+  )
+}
+
+/**
+ * The closing reply's own facts: copy, the agent and model that produced it, and when it finished. They sit under
+ * the answer and appear on hover, so a short exchange stays quiet until the reader points at the reply.
+ */
+function ReplyFooter(props: { node: TimelineNode; text: string }) {
+  const i18n = useI18n()
+  const data = useContext(DataContext)
+  const meta = useContext(ReplyMetaContext)
+  const actions = useContext(MessageActionsContext)
+  const message = createMemo(() => (props.node.messageID ? meta.assistant(props.node.messageID) : undefined))
+  const closing = () => meta.closingReply(props.node.turn) === props.node.key
+  const [copied, setCopied] = createSignal(false)
+  const copy = async () => {
+    if (!(await writeClipboard(props.text))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const fork = () => {
+    const value = message()
+
+    if (!value || !actions.sessionID) return
+
+    actions.actions?.forkAfter?.({ sessionID: actions.sessionID, messageID: value.id })
+  }
+
+  const labels = createMemo(() => {
+    const value = message()
+
+    if (!value) return []
+
+    const agent = agentLabel(value.agent, true)
+    const name = data?.store.provider?.all?.get(value.model.providerID)?.models?.[value.model.id]?.name ?? value.model.id
+    const variant =
+      value.model.variant && value.model.variant !== "default"
+        ? value.model.variant[0]?.toUpperCase() + value.model.variant.slice(1)
+        : ""
+
+    return [agent, name, variant].filter((label) => label)
+  })
+
+  return (
+    <Show when={closing() && props.text.trim().length > 0 && message()}>
+      <div data-slot="answer-reply-footer">
+        <Tooltip
+          appearance="compact"
+          value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+          placement="top"
+          gutter={4}
+        >
+          <IconButton
+            icon={<Icon name={copied() ? "check" : "outline-copy"} size="small" />}
+            size="small"
+            variant="ghost-muted"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={copy}
+            aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+          />
+        </Tooltip>
+        <Show when={actions.actions?.forkAfter && actions.sessionID}>
+          <Tooltip appearance="compact" value={i18n.t("ui.message.forkResponse")} placement="top" gutter={4}>
+            <IconButton
+              icon={<Icon name="fork" size="small" />}
+              size="small"
+              variant="ghost-muted"
+              disabled={message()?.time.completed === undefined}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={fork}
+              aria-label={i18n.t("ui.message.forkResponse")}
+            />
+          </Tooltip>
+        </Show>
+        <Show when={labels().length > 0}>
+          <span data-slot="answer-reply-meta">
+            <For each={labels()}>
+              {(label, index) => (
+                <>
+                  <Show when={index() > 0}>
+                    <span data-slot="answer-reply-meta-separator" aria-hidden="true">
+                      {"\u00B7"}
+                    </span>
+                  </Show>
+                  <span data-slot="answer-reply-meta-item" dir="auto">
+                    {label}
+                  </span>
+                </>
+              )}
+            </For>
+          </span>
+        </Show>
+      </div>
+    </Show>
   )
 }
 
@@ -1570,12 +1711,14 @@ function InputBubble(props: { text: string; cacheKey: string; messageID: string;
         createdAt={props.createdAt}
         actions={messageActions.actions}
         text={props.text}
+        fork={false}
       />
     </div>
   )
 }
 
 function Payload(props: {
+  node: TimelineNode
   payload: NodePayload
   messageID: string
   cacheKey: string
@@ -1604,6 +1747,7 @@ function Payload(props: {
             deferUntilReady
             class="answer-markdown [overflow-wrap:anywhere]"
           />
+          <ReplyFooter node={props.node} text={props.payload.text} />
         </div>
       )
     case "reasoning":

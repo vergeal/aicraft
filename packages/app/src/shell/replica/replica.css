@@ -620,8 +620,9 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   --sidebar-fade-bottom: var(--sidebar-fade);
 }
 
-/* A project row turns one chevron instead of swapping two glyphs; its sessions open and fold at once. The list used
-   to unfold by grid rows with an opacity fade, which read as a bounce and flashed the rows while it ran. */
+/* A project row turns one chevron instead of swapping two glyphs, and its sessions fold under it by grid rows: the
+   list is clipped away as the row closes and grows back as it opens. There is no fade here on purpose — fading the
+   rows out first reads as "the list vanished, then the gap shrank", which is what looked like no animation at all. */
 .replica-project-chevron {
   transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -635,7 +636,7 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   min-height: 0;
   grid-template-rows: minmax(0, 1fr);
   visibility: visible;
-  opacity: 1;
+  transition: grid-template-rows 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* A project row and its first session sit 2px apart, the same gap the rows below use, so the project's hover
@@ -645,12 +646,23 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   margin-block-start: 2px;
 }
 
+/* `visibility` switches only after the row has finished closing, so the rows stay painted while the list is clipped;
+   switching it up front made the content disappear before the height moved. Opening reveals it at once. */
 .replica-project-sessions[data-collapsed="true"] {
   grid-template-rows: minmax(0, 0fr);
   visibility: hidden;
-  opacity: 0;
+  transition:
+    grid-template-rows 200ms cubic-bezier(0.2, 0, 0, 1),
+    visibility 0s linear 200ms;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .replica-project-sessions {
+    transition: none;
+  }
+}
+
+:root[data-motion="reduce"] .replica-project-sessions,
 :root[data-motion="reduce"] .replica-project-chevron,
 :root[data-motion="reduce"] .replica-project-icon,
 :root[data-motion="reduce"] [data-slot="replica-project-name"],

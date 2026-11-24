@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite"
 import { noticeNames, resolveGroupNames } from "./groups.js"
 import type { ChatRow } from "./message.js"
-import { toMessage } from "./message.js"
+import { PRESENCE_MSGTYPE, toMessage } from "./message.js"
 
 /**
  * chatmsg.db / keepgroup / lastmsg 的读写，全部是「拿一个句柄做事」的纯函数：不缓存连接、不保留全局状态。
@@ -44,9 +44,9 @@ export function listSessions(db: Database, input: { limit?: number; root?: strin
       [number]
     >(
       `select SessionId as sessionId, count(*) as total, max(cast(CreatedTime as integer)) as lastAt,
-              (select Msg from chatmsg m2 where m2.SessionId = m1.SessionId order by m2.Id desc limit 1) as lastText,
-              (select MsgType from chatmsg m3 where m3.SessionId = m1.SessionId order by m3.Id desc limit 1) as lastMsgType
-       from chatmsg m1 group by SessionId order by lastAt desc limit ?1`,
+              (select Msg from chatmsg m2 where m2.SessionId = m1.SessionId and m2.MsgType <> ${PRESENCE_MSGTYPE} order by m2.Id desc limit 1) as lastText,
+              (select MsgType from chatmsg m3 where m3.SessionId = m1.SessionId and m3.MsgType <> ${PRESENCE_MSGTYPE} order by m3.Id desc limit 1) as lastMsgType
+       from chatmsg m1 where MsgType <> ${PRESENCE_MSGTYPE} group by SessionId order by lastAt desc limit ?1`,
     )
     .all(Math.min(Math.max(input.limit ?? 50, 1), 500))
   const groups = resolveGroupNames({
@@ -81,6 +81,7 @@ export function listMessages(db: Database, input: MessagesQuery) {
     .query<ChatRow, [string, number | null, number | null, number | null, number]>(
       `select ${COLUMNS} from chatmsg
        where SessionId = ?1
+         and MsgType <> ${PRESENCE_MSGTYPE}
          and (?2 is null or Id < ?2)
          and (?3 is null or cast(CreatedTime as integer) >= ?3)
          and (?4 is null or cast(CreatedTime as integer) <= ?4)
@@ -105,7 +106,8 @@ export function searchMessages(
   const rows = db
     .query<ChatRow, [string, string | null, number]>(
       `select ${COLUMNS} from chatmsg
-       where (Msg like ?1 escape '\\' or SenderNick like ?1 escape '\\' or FileName like ?1 escape '\\')
+       where MsgType <> ${PRESENCE_MSGTYPE}
+         and (Msg like ?1 escape '\\' or SenderNick like ?1 escape '\\' or FileName like ?1 escape '\\')
          and (?2 is null or SessionId = ?2)
        order by Id desc limit ?3`,
     )
@@ -115,7 +117,9 @@ export function searchMessages(
 
 export function countMessages(db: Database, sessionId: string) {
   const row = db
-    .query<{ total: number }, [string]>("select count(*) as total from chatmsg where SessionId = ?1")
+    .query<{ total: number }, [string]>(
+      `select count(*) as total from chatmsg where SessionId = ?1 and MsgType <> ${PRESENCE_MSGTYPE}`,
+    )
     .get(sessionId)
   return row?.total ?? 0
 }
@@ -125,7 +129,7 @@ export function unreadCounts(db: Database, account: string) {
   return db
     .query<{ sessionId: string; unread: number }, [string, string, number]>(
       `select SessionId as sessionId, count(*) as unread from chatmsg
-       where ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
+       where MsgType <> ${PRESENCE_MSGTYPE} and ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
        group by SessionId order by unread desc limit ?`,
     )
     .all(account, account, 500)
@@ -150,7 +154,7 @@ function groupMembers(db: Database) {
     .query<{ sessionId: string; sender: string; nick: string; total: number }, []>(
       `select SessionId as sessionId, Sender as sender, SenderNick as nick, count(*) as total
        from chatmsg
-       where SessionType = 1 and Sender is not null and Sender <> ''
+       where SessionType = 1 and MsgType <> ${PRESENCE_MSGTYPE} and Sender is not null and Sender <> ''
          and SenderNick is not null and SenderNick <> ''
        group by SessionId, Sender, SenderNick
        order by SessionId, total desc, min(Id)`,

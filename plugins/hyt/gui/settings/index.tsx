@@ -419,6 +419,11 @@ function CostSection(props: { hyt: Hyt }) {
         title={text(hyt.ctx, "hyt.cost.estimate")}
         description={text(hyt.ctx, "hyt.cost.estimate.description", { runs: runs(), batch: batchValue(), total: total() })}
       />
+
+      <ui.SettingsRow
+        title={text(hyt.ctx, "hyt.cost.model.usage")}
+        description={text(hyt.ctx, "hyt.cost.model.usage.description")}
+      />
     </ui.SettingsSection>
   )
 }

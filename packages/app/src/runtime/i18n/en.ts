@@ -147,7 +147,7 @@ export const dict = {
   "spotlight.group.scheduled": "Scheduled",
   "spotlight.group.projects": "Projects",
   "spotlight.archived": "Archived",
-  "spotlight.empty": "No results for \"{{query}}\"",
+  "spotlight.empty": 'No results for "{{query}}"',
   "spotlight.hint": "↑↓ to move · Enter to open · Esc to close",
 
   "dialog.provider.title": "Integrations",
@@ -2194,7 +2194,8 @@ export const dict = {
   "knowledge.workspace.home.greeting.morning": "Good morning",
   "knowledge.workspace.home.greeting.afternoon": "Good afternoon",
   "knowledge.workspace.home.greeting.evening": "Good evening",
-  "knowledge.workspace.home.summary": "{{libraries}} libraries \u00b7 {{documents}} documents. Pick up where you left off.",
+  "knowledge.workspace.home.summary":
+    "{{libraries}} libraries \u00b7 {{documents}} documents. Pick up where you left off.",
   "knowledge.workspace.home.search": "Search documents and passages in every library",
   "knowledge.workspace.home.recent": "Recent",
   "knowledge.workspace.home.recentAll": "All libraries",
@@ -2220,6 +2221,7 @@ export const dict = {
   "knowledge.workspace.libraries.sort.name": "Name",
   "knowledge.workspace.libraries.sort.count": "Documents",
   "knowledge.workspace.libraries.count": "{{libraries}} libraries \u00b7 {{documents}} documents",
+  "knowledge.workspace.libraries.foot": "{{libraries}} libraries, {{documents}} documents, {{chunks}} chunks",
   "knowledge.workspace.libraries.columns.name": "Name",
   "knowledge.workspace.libraries.columns.documents": "Documents",
   "knowledge.workspace.libraries.columns.chunks": "Passages",
@@ -2329,7 +2331,8 @@ export const dict = {
   "knowledge.workspace.search.facet.libraries": "Libraries",
   "knowledge.workspace.search.facet.clear": "Clear",
   "knowledge.workspace.search.empty.title": "Search your knowledge",
-  "knowledge.workspace.search.empty.hint": "Results come from the server index, even for documents you have not opened.",
+  "knowledge.workspace.search.empty.hint":
+    "Results come from the server index, even for documents you have not opened.",
   "knowledge.workspace.search.failed.title": "Search failed",
   "knowledge.workspace.search.retry": "Retry",
   "knowledge.workspace.search.none.title": "No results for \u201c{{query}}\u201d",
@@ -2370,8 +2373,7 @@ export const dict = {
   "knowledge.workspace.jobs.drawer.chunks": "Passages",
   "knowledge.workspace.jobs.drawer.embedding": "Embedding",
   "knowledge.workspace.jobs.drawer.updated": "Updated",
-  "knowledge.workspace.jobs.drawer.note":
-    "Retrying re-reads the source file and rebuilds its passages.",
+  "knowledge.workspace.jobs.drawer.note": "Retrying re-reads the source file and rebuilds its passages.",
   "knowledge.workspace.jobs.drawer.open": "Open document",
   "knowledge.workspace.jobs.drawer.retry": "Retry",
   "knowledge.workspace.jobs.drawer.stage.parse": "Parse",
@@ -2387,8 +2389,7 @@ export const dict = {
   "knowledge.workspace.agents.granted": "Agents with access",
   "knowledge.workspace.agents.count": "{{count}} agents",
   "knowledge.workspace.agents.readonly": "Read only",
-  "knowledge.workspace.agents.readonlyNote":
-    "Knowledge is read-only: Agents retrieve passages and never write them.",
+  "knowledge.workspace.agents.readonlyNote": "Knowledge is read-only: Agents retrieve passages and never write them.",
   "knowledge.workspace.agents.note": "Assigning a library grants every Agent in this project read access.",
   "knowledge.workspace.agents.remove": "Remove {{name}}",
   "knowledge.workspace.agents.removeLibrary": "Remove this library from the project",
@@ -2397,8 +2398,7 @@ export const dict = {
   "knowledge.workspace.agents.noneAvailable": "Every library is already assigned.",
   "knowledge.workspace.agents.offline": "Connect to a server to manage Agent access.",
   "knowledge.workspace.agents.empty.title": "No Agent can read this library",
-  "knowledge.workspace.agents.empty.hint":
-    "Assign it to the project so every Agent here can retrieve its passages.",
+  "knowledge.workspace.agents.empty.hint": "Assign it to the project so every Agent here can retrieve its passages.",
   "knowledge.workspace.agents.empty.action": "Assign to project",
   "knowledge.workspace.agents.emptyLibraries.title": "No libraries to assign",
   "knowledge.workspace.agents.emptyLibraries.hint": "Create a library first, then assign it to Agents.",
@@ -2409,6 +2409,10 @@ export const dict = {
   "knowledge.workspace.collections.today": "Today",
   "knowledge.workspace.collections.week": "This week",
   "knowledge.workspace.collections.earlier": "Earlier",
+  "knowledge.workspace.collections.all": "All",
+  "knowledge.workspace.collections.favorite": "Favorited",
+  "knowledge.workspace.collections.favoriteLibraries": "Favorite libraries",
+  "knowledge.workspace.collections.favoriteDocuments": "Favorite documents",
   "knowledge.workspace.collections.favorites": "Favorites",
   "knowledge.workspace.collections.favoritesNote": "Libraries and documents you pinned.",
   "knowledge.workspace.collections.favoritesEmpty.title": "No favorites yet",
@@ -2418,8 +2422,7 @@ export const dict = {
   "knowledge.workspace.collections.libraryMeta": "{{documents}} documents",
   "knowledge.workspace.collections.unfavorite": "Remove from favorites",
   "knowledge.workspace.collections.trash": "Trash",
-  "knowledge.workspace.collections.trashDescription":
-    "Removed documents keep their entry until the trash is emptied.",
+  "knowledge.workspace.collections.trashDescription": "Removed documents keep their entry until the trash is emptied.",
   "knowledge.workspace.collections.trashEmpty.title": "Trash is empty",
   "knowledge.workspace.collections.trashEmpty.hint": "Documents you remove from a library appear here.",
   "knowledge.workspace.collections.emptyTrash": "Empty trash",
@@ -2437,8 +2440,7 @@ export const dict = {
   "knowledge.workspace.dialog.documents": "Documents",
   "knowledge.workspace.dialog.sources": "Sources",
   "knowledge.workspace.dialog.local": "local",
-  "knowledge.workspace.dialog.indexNote":
-    "This library's index stays {{state}} and is rebuilt when its files change.",
+  "knowledge.workspace.dialog.indexNote": "This library's index stays {{state}} and is rebuilt when its files change.",
   "knowledge.workspace.dialog.newFolder": "New folder",
   "knowledge.workspace.dialog.folderName": "Folder name",
   "knowledge.workspace.dialog.folderPlaceholder": "e.g. Product specs",
@@ -2451,12 +2453,10 @@ export const dict = {
   "knowledge.workspace.dialog.renameFile": "Rename document",
   "knowledge.workspace.dialog.renameHint": "Only the display name changes; the file stays in {{folder}}.",
   "knowledge.workspace.dialog.deleteTitle": "Remove {{count}} documents?",
-  "knowledge.workspace.dialog.deleteCopy":
-    "They move to Trash. The original files on disk are not deleted.",
+  "knowledge.workspace.dialog.deleteCopy": "They move to Trash. The original files on disk are not deleted.",
   "knowledge.workspace.dialog.deleteAction": "Move to trash",
   "knowledge.workspace.dialog.purgeTitle": "Delete permanently?",
-  "knowledge.workspace.dialog.purgeCopy":
-    "The library's copy is deleted. The original file on disk is untouched.",
+  "knowledge.workspace.dialog.purgeCopy": "The library's copy is deleted. The original file on disk is untouched.",
   "knowledge.workspace.dialog.purgeAction": "Delete permanently",
   "knowledge.workspace.dialog.emptyTrashTitle": "Empty trash?",
   "knowledge.workspace.dialog.emptyTrashCopy":

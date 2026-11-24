@@ -2508,6 +2508,48 @@ await ctx.session.hook("retry", (event) =&gt; {
         <tr><td><code>ctx.servers</code></td><td><code>list</code>、<code>get</code></td><td>已配置服务器。</td></tr>
       </table>
 
+      <h4 id="s4-12-toast">4.12.1 内部通知卡片（ctx.toast）</h4>
+
+      <p>
+        <code>ctx.toast</code> 用的就是客户端自己的通知卡片——「已复制」这类轻提示是同一张，插件不要自绘浮层。
+        它只在窗口内出现，不弹系统通知；需要系统级通知时用 <code>ctx.attention.notify</code>。
+      </p>
+
+      <table>
+        <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+        <tr><td><code>title</code></td><td><code>string</code></td><td>必填，卡片主标题。</td></tr>
+        <tr><td><code>description</code></td><td><code>string?</code></td><td>标题下的一行说明；长文本会换行，不要塞整段日志。</td></tr>
+        <tr><td><code>variant</code></td><td><code>"default" | "success" | "error" | "loading"</code></td><td>语气。<code>success</code> 默认带对勾图标，<code>error</code> 走危险色。</td></tr>
+        <tr><td><code>icon</code></td><td><code>IconName | JSX.Element?</code></td><td>图标目录里的名字，或插件自己的 mark（例如 METAINF 的 <code>display.icon</code>）作为元素传入。</td></tr>
+        <tr><td><code>duration</code></td><td><code>number?</code></td><td>自动关闭的毫秒数，默认 5000。</td></tr>
+        <tr><td><code>persistent</code></td><td><code>boolean?</code></td><td>为真时不自动关闭，等用户或句柄关闭。<code>loading</code> 配它用。</td></tr>
+        <tr><td><code>actions</code></td><td><code>readonly { label, run }[]?</code></td><td>卡片上的按钮；点击后先执行 <code>run</code>，再关闭卡片。</td></tr>
+      </table>
+
+      <pre><code>// 复制后的轻确认，和客户端「已复制」保持一致
+await ctx.system.copy(account)
+ctx.toast.show({ variant: "success", title: "已复制" })
+
+// 带插件图标、说明与动作
+ctx.toast.show({
+  variant: "success",
+  title: ctx.t("chat.copied"),
+  description: account,
+  icon: &lt;HytMark /&gt;,
+  actions: [{ label: ctx.t("chat.open"), run: () =&gt; ctx.tabs.open(session) }],
+})
+
+// 确定性进度：先 persistent，结束时 dismiss
+const task = ctx.toast.progress({ title: "正在同步", current: 0, total: 3 })
+task.update(1)
+task.done()</code></pre>
+
+      <ul>
+        <li>标题、说明、变体、时长、持久化与按钮标签都相同的卡片会<b>替换</b>正在显示的那张，不会堆叠。</li>
+        <li>插件被停用、重载或移除时，它弹出的卡片自动关闭；<code>show</code> 返回的句柄可以提前关掉。</li>
+        <li><code>progress.update</code> 目前是关闭旧卡再在原位重建，会重播入场动画，不显示百分比进度条。</li>
+      </ul>
+
       <h3 id="s4-13">4.13 可加载模块白名单</h3>
 
       <p>界面 bundle 只能 <code>require</code> 下列模块，其余会被构建器拒绝：</p>

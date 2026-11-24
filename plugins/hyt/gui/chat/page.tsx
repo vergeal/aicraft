@@ -6,6 +6,7 @@ import { ChatIpc } from "./contract.js"
 import type { MergeItemRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import { InfoPanel } from "./info.js"
+import { LoginPage } from "./login.js"
 import { MenuLayer, createMenu } from "./menu.js"
 import type { MenuEntry, MenuTarget } from "./menu.js"
 import { MessageStream } from "./messages.js"
@@ -15,6 +16,13 @@ import { Rail } from "./sessions.js"
 import { RAIL_MAX, RAIL_MIN, rowTime, shellBlank } from "./util.js"
 
 const POLL_MS = 4_000
+/**
+ * 对方正在输入时的轮询间隔。
+ *
+ * 输入状态是几秒钟的瞬时信号，4 秒一轮很容易整段错过（人打完就发了）。对方停止后自动回到 4 秒，
+ * 所以这档加速只发生在真正有人打字的那几秒。
+ */
+const TYPING_POLL_MS = 1_500
 const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"] as const
 
 /**
@@ -33,9 +41,34 @@ export function ChatPage(props: {
   onListWidth: (width: number) => void
   /** 松开分隔线时提交一次，写进存储。 */
   onListWidthEnd: () => void
+  /** 是否处于整页视图（登录、空态、错误），外层据此把窗口顶栏换成纸张色。 */
+  onFullPage: (value: boolean) => void
 }) {
   const ctx = props.ctx
   const state = () => props.client.state()
+  /** 退出登录进行中：按钮置灰，避免重复断连。 */
+  const [loggingOut, setLoggingOut] = createSignal(false)
+  /** 主动打开的登录页：有 login.db 旧账号时也能改用账号密码重新登录。 */
+  const [loginOpen, setLoginOpen] = createSignal(false)
+  /**
+   * 只有服务端拒绝这组账号密码时才自动打开登录页。
+   *
+   * 桥接刚启动、旧实例还没退出、网络抖动、被同事在本机客户端顶下线，都与密码无关：
+   * 本地的凭据仍然有效，后台会自己重登，不该每次都拿登录页打断用户。
+   */
+  const passwordRejected = (message: string) => /连接失败（code=2|密码|账号或密码/.test(message)
+  let authPrompted = false
+  createEffect(() => {
+    const error = state()?.status.authError ?? ""
+    if (error.length === 0) {
+      authPrompted = false
+      return
+    }
+    if (authPrompted) return
+    if (!passwordRejected(error)) return
+    authPrompted = true
+    setLoginOpen(true)
+  })
 
   const phase = () => state()?.status.phase ?? "loading"
   /**
@@ -51,15 +84,33 @@ export function ChatPage(props: {
   })
   const selectedId = () => state()?.selected ?? ""
   const selected = () => sessions().find((session) => session.id === selectedId())
+  /**
+   * 消息数组按条复用。
+   *
+   * 主进程每次刷新都会推全新的对象；整页换成新引用时，消息流的 `<For>` 会把 40 条气泡全部销毁重建
+   * （图片重载、展开状态丢失、滚动跳一下）——看起来就是每几秒闪一次。
+   * 内容没变的条目沿用上一份对象，只让真正变化的那一条更新。
+   */
   const messages = createMemo((previous?: readonly MessageRow[]) => {
     const next = state()?.messages ?? []
-    if (previous === undefined || previous.length !== next.length) return next
-    for (let index = 0; index < next.length; index += 1)
-      if (messageKey(previous[index]!) !== messageKey(next[index]!)) return next
-    return previous
+    if (previous === undefined) return next
+    const byId = new Map(previous.map((message) => [message.id, message]))
+    let changed = previous.length !== next.length
+    const reused = next.map((message) => {
+      const old = byId.get(message.id)
+      if (old !== undefined && messageKey(old) === messageKey(message)) return old
+      changed = true
+      return message
+    })
+    return changed ? reused : previous
   })
   /** 没有数据、读取失败、或者一条会话都没有时整页走空态，不画空三栏。 */
   const blank = () => shellBlank(state())
+
+  // 整页视图（含登录页）时把窗口顶栏也换成纸张色；回到聊天页再换回左栏色。
+  createEffect(() => {
+    props.onFullPage(blank() || loginOpen() || phase() === "no-account")
+  })
 
   const [query, setQuery] = createSignal("")
   const [searching, setSearching] = createSignal(false)
@@ -124,26 +175,57 @@ export function ChatPage(props: {
     const current = state()
     if (current === undefined) return ""
     const paths = new Set<string>()
-    for (const session of current.sessions)
-      for (const member of session.members) if (member.headPath.length > 0) paths.add(member.headPath)
+    // 当前会话的头像先入队：名额有限，正在看的消息与成员不该被左栏的会话头像挤掉。
     for (const message of current.messages) if (message.senderHead.length > 0) paths.add(message.senderHead)
+    for (const session of current.sessions) {
+      if (session.avatar.length > 0) paths.add(session.avatar)
+      for (const member of session.members) if (member.headPath.length > 0) paths.add(member.headPath)
+    }
     return [...paths].slice(0, 200).sort().join("\n")
   }
 
-  const [avatars] = createResource(avatarKey, async (key) => {
-    const paths = key.length === 0 ? [] : key.split("\n")
-    if (paths.length === 0) return {} as Record<string, string>
-    const rows = await props.client.avatars({ paths }).catch(() => [])
-    return Object.fromEntries(
-      rows.flatMap((row) => (row.dataUrl.length > 0 ? [[row.path, row.dataUrl] as const] : [])),
-    ) as Record<string, string>
-  })
-
-  // 不要直接读 resource 的值：重新取头像时会挂起，切会话时整页会被移出约 80ms。
-  const avatarMap = () => {
-    const status = avatars.state
-    return status === "ready" || status === "refreshing" ? (avatars.latest ?? {}) : {}
+  /**
+   * 头像累积表。
+   *
+   * 切会话时需要的头像集合会变；若每次都拿新结果整体替换，已显示的头像会先退回文字再变回图片，
+   * 整屏看起来就是闪一下。这里只增不减：一屏里出现过的头像不会因为换了会话而消失。
+   */
+  const [avatarMap, setAvatarMap] = createSignal<Record<string, string>>({})
+  /** 已经请求过的头像路径：弹窗按需补人时不会把同一张重复下载。 */
+  const requestedAvatars = new Set<string>()
+  /**
+   * 取一批头像并入共享表。
+   *
+   * 侧栏、会话头、消息、成员列表、回执名单都从这里拿图，主进程只按路径解码一次；
+   * 任何地方都不该自己再发一次头像请求。
+   */
+  const loadAvatars = (paths: readonly string[]) => {
+    const fresh = paths.filter((path) => path.length > 0 && !requestedAvatars.has(path))
+    if (fresh.length === 0) return
+    for (const path of fresh) requestedAvatars.add(path)
+    void props.client
+      .avatars({ paths: fresh })
+      .then((rows) => {
+        if (rows.length === 0) return
+        setAvatarMap((previous) => {
+          const next = { ...previous }
+          for (const row of rows) if (row.dataUrl.length > 0) next[row.path] = row.dataUrl
+          return next
+        })
+      })
+      .catch(() => {
+        // 失败的头像允许下一轮再试，不要永久占住路径。
+        for (const path of fresh) requestedAvatars.delete(path)
+      })
   }
+
+  let avatarQuery = ""
+  createEffect(() => {
+    const key = avatarKey()
+    if (key.length === 0 || key === avatarQuery) return
+    avatarQuery = key
+    loadAvatars(key.split("\n"))
+  })
 
   const fail = (cause: unknown) => {
     setNotice(cause instanceof Error ? cause.message : String(cause))
@@ -153,13 +235,40 @@ export function ChatPage(props: {
     void props.client.refresh().catch(fail)
   }
 
-  onMount(() => {
-    const tick = () => {
-      if (document.visibilityState !== "visible") return
+  const logout = async () => {
+    if (loggingOut()) return
+    setLoggingOut(true)
+    try {
+      const result = await props.client.logout()
+      if (!result.ok)
+        setNotice(text(ctx, "hyt.chat.rail.logout.failed", { message: result.error || "未知原因" }))
+    } catch (cause) {
+      setNotice(text(ctx, "hyt.chat.rail.logout.failed", { message: cause instanceof Error ? cause.message : String(cause) }))
+    } finally {
+      setLoggingOut(false)
       void props.client.refresh().catch(() => undefined)
     }
+  }
+
+  onMount(() => {
+    // 自调度轮询而不是固定 setInterval：间隔要看当前是否有人在输入，且上一轮没回来就不再发请求，
+    // 读库偶尔变慢时不会在窗口侧堆一串排队。
+    let timer: number | undefined
+    const delay = () => (state()?.typing.active === true ? TYPING_POLL_MS : POLL_MS)
+    const schedule = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(tick, delay())
+    }
+    const tick = () => {
+      window.clearTimeout(timer)
+      // 窗口不可见时不轮询；切回前台由 visibilitychange 立刻补一轮。
+      if (document.visibilityState !== "visible") return
+      void props.client
+        .refresh()
+        .catch(() => undefined)
+        .finally(schedule)
+    }
     tick()
-    const timer = window.setInterval(tick, POLL_MS)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
@@ -171,7 +280,7 @@ export function ChatPage(props: {
     window.addEventListener("keydown", onKeyDown)
     document.addEventListener("visibilitychange", tick)
     onCleanup(() => {
-      window.clearInterval(timer)
+      window.clearTimeout(timer)
       window.removeEventListener("keydown", onKeyDown)
       document.removeEventListener("visibilitychange", tick)
       if (searchTimer !== undefined) window.clearTimeout(searchTimer)
@@ -222,8 +331,13 @@ export function ChatPage(props: {
   const menu = createMenu()
   const profile = createProfile()
 
+  /** 复制走宿主的内部通知卡片，和客户端自己的「已复制」提示是同一张。 */
   const copy = (value: string) => {
-    if (value.length > 0) void ctx.system.copy(value).catch(() => undefined)
+    if (value.length === 0) return
+    void ctx.system.copy(value).then(
+      () => ctx.toast.show({ variant: "success", title: text(ctx, "hyt.chat.msg.copied") }),
+      () => ctx.toast.show({ variant: "error", title: text(ctx, "hyt.chat.msg.copyFailed") }),
+    )
   }
 
   /** 「查看资料」要贴着触发元素弹出；键盘打开时给的就是那个元素本身。 */
@@ -233,11 +347,17 @@ export function ChatPage(props: {
   const departmentOf = (account: string | undefined) =>
     account === undefined ? undefined : state()?.members.find((member) => member.account === account)?.department
 
+  /** 头像路径 → 已解码的 data URL：卡片里不能直接拿路径当 img src。 */
+  const headOf = (path: string | undefined) => {
+    if (path === undefined || path.length === 0) return undefined
+    return avatarOf(avatarMap(), path)
+  }
+
   /** 会话 → 卡片里的身份。群聊只说「群聊」，本地库拿不到可信人数就不写数字。 */
   const personOfSession = (session: SessionRow): Person => ({
     account: session.id,
     name: session.name,
-    head: session.members[0]?.headPath,
+    head: headOf(session.avatar),
     online: session.online,
     department: departmentOf(session.group ? undefined : session.id),
     group: session.group,
@@ -250,7 +370,7 @@ export function ChatPage(props: {
     return {
       account: message.sender,
       name: message.senderNick || message.sender,
-      head: message.senderHead,
+      head: headOf(message.senderHead),
       online: direct?.online ?? false,
       department: departmentOf(message.sender),
       sessionId: direct?.id,
@@ -373,15 +493,28 @@ export function ChatPage(props: {
   }
 
   const mediaCache = new Map<string, Promise<string>>()
-  const onMedia = (path: string) => {
-    if (path.length === 0) return Promise.resolve("")
-    const cached = mediaCache.get(path)
+  // 本地没有副本时主进程会按 msgId 补下载，所以缓存键必须带上消息 id：
+  // 同一条消息补下载完成后 path 会变，那时应重新读一次，而不是复用失败的缓存。
+  const onMedia = (path: string, msgId: string) => {
+    if (path.length === 0 && msgId.length === 0) return Promise.resolve("")
+    const key = `${msgId}\u0000${path}`
+    const cached = mediaCache.get(key)
     if (cached !== undefined) return cached
     const request = props.client
-      .media({ path })
-      .then((result) => (result.error.length > 0 ? "" : result.dataUrl))
-      .catch(() => "")
-    mediaCache.set(path, request)
+      .media({ path, msgId })
+      .then((result) => {
+        // 失败（未登录、下载还没回来）不留在缓存里：登录成功或下次进入会话时要能重试。
+        if (result.error.length > 0) {
+          mediaCache.delete(key)
+          return ""
+        }
+        return result.dataUrl
+      })
+      .catch(() => {
+        mediaCache.delete(key)
+        return ""
+      })
+    mediaCache.set(key, request)
     return request
   }
 
@@ -457,21 +590,46 @@ export function ChatPage(props: {
     <div
       class="hyt-shell"
       data-theme={ctx.appearance.mode()}
-      data-panel={infoOpen() && !blank() ? "open" : "closed"}
-      data-blank={blank() ? "true" : "false"}
+      data-panel={infoOpen() && !blank() && !loginOpen() ? "open" : "closed"}
+      data-blank={blank() || loginOpen() ? "true" : "false"}
       data-resizing={resizing() ? "true" : undefined}
       style={{ "--rail": `${props.listWidth()}px` }}
     >
+      {/*
+        登录页要盖住整页：主界面有本地数据时 blank() 为 false，若只在空态分支里判断 loginOpen，
+        栏脚的「登录」按钮点了不会有任何反应。
+      */}
       <Show
-        when={!blank()}
+        when={!blank() && !loginOpen() && phase() !== "no-account"}
         fallback={
-          <Blank
-            ctx={ctx}
-            phase={phase()}
-            detail={state()?.status.detail ?? ""}
-            onRetry={refresh}
-            onSettings={() => ctx.layout.settings()}
-          />
+          <Show
+            when={loginOpen() || phase() === "no-account"}
+            fallback={
+              <Blank
+                ctx={ctx}
+                phase={phase()}
+                detail={state()?.status.detail ?? ""}
+                authError={state()?.status.authError ?? ""}
+                credential={state()?.status.credential ?? "missing"}
+                onRetry={refresh}
+                onSettings={() => ctx.layout.settings()}
+                onLogin={() => setLoginOpen(true)}
+                onLogout={
+                  state()?.status.credential === "saved" ? () => void logout() : undefined
+                }
+              />
+            }
+          >
+            <LoginPage
+              ctx={ctx}
+              client={props.client}
+              detail={state()?.status.detail ?? ""}
+              initialError={state()?.status.authError ?? ""}
+              defaultUser={state()?.status.credentialUser ?? ""}
+              onCancel={blank() ? undefined : () => setLoginOpen(false)}
+              onLoggedIn={() => setLoginOpen(false)}
+            />
+          </Show>
         }
       >
         <Rail
@@ -488,6 +646,10 @@ export function ChatPage(props: {
           onSelect={select}
           onSearch={search}
           onMarkAllRead={() => void props.client.markAllRead().catch(fail)}
+          credential={state()?.status.credential ?? "missing"}
+          loggingOut={loggingOut()}
+          onLogin={() => setLoginOpen(true)}
+          onLogout={() => void logout()}
           onProfile={(session, element) => profile.open(element, personOfSession(session))}
           onPersonMenu={(session, event) => personMenu(personOfSession(session), event)}
           onMenu={sessionMenu}
@@ -519,11 +681,14 @@ export function ChatPage(props: {
           <header class="head">
             <Show when={selected()}>
               <span class="head-face" aria-hidden="true">
-                <Show
-                  when={headSource()}
-                  fallback={(selected()?.members[0]?.name ?? selected()?.name ?? "").slice(0, 2)}
-                >
-                  <img src={headSource()} alt="" onError={() => setHeadBroken(true)} />
+                {/* 群聊没有「脸」，固定用群头像；单聊才取对方的头像。 */}
+                <Show when={selected()?.group !== true} fallback={<GroupMark />}>
+                  <Show
+                    when={headSource()}
+                    fallback={(selected()?.members[0]?.name ?? selected()?.name ?? "").slice(0, 2)}
+                  >
+                    <img src={headSource()} alt="" onError={() => setHeadBroken(true)} />
+                  </Show>
                 </Show>
               </span>
               <div class="head-text">
@@ -567,9 +732,23 @@ export function ChatPage(props: {
             </div>
           </header>
 
+          {/*
+            凭据过期或被服务端踢下线时，本地历史仍能只读浏览，但发送一定失败。
+            主界面也必须把这件事摆出来，否则用户只看到正常的会话列表。
+          */}
+          <Show when={(state()?.status.authError ?? "").length > 0}>
+            <div class="auth-banner" role="status">
+              <span>{text(ctx, "hyt.chat.state.auth.banner", { message: state()?.status.authError ?? "" })}</span>
+              <button class="ghost" type="button" onClick={() => setLoginOpen(true)}>
+                {text(ctx, "hyt.chat.rail.login")}
+              </button>
+            </div>
+          </Show>
+
           <MessageStream
             ctx={ctx}
             messages={messages()}
+            typing={state()?.typing.active ?? false}
             hasMore={state()?.hasMore ?? false}
             newMessageId={state()?.newMessageId ?? 0}
             loadingMore={loadingMore()}
@@ -581,6 +760,7 @@ export function ChatPage(props: {
             sessionId={selected()?.id ?? ""}
             receiptVersion={state()?.receiptsVersion ?? 0}
             onReceipts={(input) => props.client.receipts(input)}
+            onAvatars={loadAvatars}
             onMedia={onMedia}
             onMerge={onMerge}
             onOpenFile={reveal}
@@ -598,6 +778,7 @@ export function ChatPage(props: {
             bridge={state()?.status.bridge ?? "missing"}
             sending={sending()}
             members={state()?.members ?? []}
+            avatars={avatarMap()}
             draft={currentDraft()}
             basis={messages().length}
             notice={notice()}
@@ -642,7 +823,8 @@ export function ChatPage(props: {
 
   function headAvatar() {
     const session = selected()
-    const path = session?.members[0]?.headPath ?? ""
+    if (session === undefined || session.group) return undefined
+    const path = session.avatar
     if (path.length === 0) return undefined
     const value = avatarMap()[path]
     return value === undefined || value.length === 0 ? undefined : value
@@ -664,6 +846,9 @@ function messageKey(message: MessageRow) {
     message.fileName,
     message.fileSize,
     message.filePath,
+    message.receipt === undefined
+      ? ""
+      : `${message.receipt.available ? 1 : 0}:${message.receipt.read}:${message.receipt.unread}`,
   ].join("\u0001")
 }
 

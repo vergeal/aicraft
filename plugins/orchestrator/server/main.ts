@@ -26,6 +26,7 @@ export default Plugin.define({
     name: manifest.display.name,
     description: manifest.display.description,
     category: manifest.display.category,
+    icon: manifest.display.icon,
     skills: (manifest.skills ?? []).map((skill) => ({
       id: skill.id,
       name: skill.name,

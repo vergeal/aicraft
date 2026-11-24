@@ -1511,8 +1511,11 @@ export interface ToastOptions {
    * - `loading`: something is in progress. Pair it with `persistent` and dismiss it when the work ends.
    */
   readonly variant?: "default" | "success" | "error" | "loading"
-  /** An icon before the title. Omit it for none, or the variant's own. */
-  readonly icon?: IconName
+  /**
+   * An icon before the title. Omit it for none, or the variant's own. Pass an element to show the plugin's own mark,
+   * such as its manifest `display.icon`, instead of an icon from the app's catalog.
+   */
+  readonly icon?: IconName | JSX.Element
   /** Milliseconds before the toast closes itself. Ignored when `persistent` is true. Defaults to the app's 5 seconds. */
   readonly duration?: number
   /** Stays until the user or `dismiss` closes it, instead of closing after `duration`. Defaults to false. */

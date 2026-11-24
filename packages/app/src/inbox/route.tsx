@@ -174,9 +174,6 @@ export function InboxScreen() {
             <p class="max-w-80 text-[12px] leading-[var(--line-height-base)] text-v2-text-text-muted">
               {language.t("inbox.empty.hint")}
             </p>
-            <Button size="small" variant="neutral" onClick={() => navigate("/scheduled")}>
-              {language.t("inbox.empty.action")}
-            </Button>
           </div>
         }
       >

@@ -1,0 +1,2203 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>知识库 · 索引页 · AI Craft</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <style>
+      /* =====================================================================
+         知识库 · 重新设计（demo）
+
+         布局语言取自三个模块页：
+         · 收件箱 / 定时任务：一个滚动面、页头只有落点、分组标题 + 发丝线、
+           就地展开、⌘F 玻璃搜索浮层。
+         · 探索：页面级大标题 + 一句话、右侧胶囊搜索 / 圆形图标 / 反色主操作、
+           两列行网格、40 级别的行高节奏。
+         · 知识库：库 → 文件 → 正文的包含关系，用「目录页 → 库内页 → 抽屉」承载。
+
+         设计主张：知识库是索引册，不是文件管理器。
+         · 唯一的视觉装置是右对齐的页码列（文档 / 片段）与库内的状态构成条；
+           它们承载真实数量，其余部分保持安静：无卡片阴影、无彩色实心块。
+         · 颜色、字体、圆角全部引用 ../tokens.css；字号与行高按 04-typography 的六档。
+         ===================================================================== */
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: var(--v2-background-bg-base);
+        color: var(--v2-text-text-base);
+        font-family: var(--font-family-sans);
+        font-size: 14px;
+        line-height: 22px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: inherit;
+        cursor: default;
+      }
+
+      input,
+      select {
+        font: inherit;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--v2-border-border-focus);
+        outline-offset: 2px;
+      }
+
+      /* 行与命中项用 grid / flex，[hidden] 的 UA 规则压不过它们。 */
+      [hidden] {
+        display: none !important;
+      }
+
+      .ico {
+        display: block;
+        width: 16px;
+        height: 16px;
+        flex: none;
+      }
+
+      .ico-sm {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---------- 画布 ---------- */
+
+      .kb {
+        display: flex;
+        height: 100%;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .kb-scroll {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+
+      .kb-page {
+        max-width: 820px;
+        margin-inline: auto;
+        padding: 26px 24px 96px;
+      }
+
+      /* ---------- 页头：标题是唯一落点 ---------- */
+
+      .kb-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .kb-head h1 {
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 36px;
+        letter-spacing: -0.02em;
+      }
+
+      .kb-head p {
+        max-width: 560px;
+        margin-top: 8px;
+        color: var(--v2-text-text-muted);
+        font-size: 14px;
+        line-height: 22px;
+      }
+
+      .kb-tools {
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 4px;
+        padding-top: 4px;
+      }
+
+      .kb-search {
+        display: flex;
+        width: 208px;
+        height: 32px;
+        align-items: center;
+        gap: 7px;
+        padding: 0 11px;
+        border-radius: 16px;
+        background: var(--v2-background-bg-layer-01);
+        box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+        color: var(--v2-text-text-muted);
+        transition:
+          background 140ms cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 140ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-search:focus-within {
+        background: var(--v2-background-bg-layer-02);
+        box-shadow: inset 0 0 0 1px var(--v2-border-border-strong);
+      }
+
+      .kb-search .ico {
+        color: var(--v2-text-text-faint);
+      }
+
+      .kb-search input {
+        min-width: 0;
+        flex: 1;
+        border: 0;
+        background: none;
+        outline: none;
+        color: var(--v2-text-text-base);
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .kb-search input::placeholder {
+        color: var(--v2-text-text-faint);
+      }
+
+      .kb-icon-btn {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 999px;
+        color: var(--v2-icon-icon-muted);
+        transition:
+          background 130ms cubic-bezier(0.22, 1, 0.36, 1),
+          color 130ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-icon-btn:hover {
+        background: var(--v2-overlay-simple-overlay-hover);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-icon-btn[aria-pressed="true"] {
+        color: var(--v2-icon-icon-accent);
+      }
+
+      .kb-primary,
+      .kb-neutral {
+        display: inline-flex;
+        height: 32px;
+        align-items: center;
+        gap: 5px;
+        padding: 0 12px;
+        border-radius: 16px;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 20px;
+        white-space: nowrap;
+        transition: opacity 130ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-primary {
+        background: var(--v2-background-bg-contrast);
+        color: var(--v2-text-text-contrast);
+      }
+
+      .kb-primary .ico {
+        color: var(--v2-text-text-contrast);
+      }
+
+      .kb-primary:hover,
+      .kb-neutral:hover {
+        opacity: 0.86;
+      }
+
+      .kb-neutral {
+        box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-neutral .ico {
+        color: var(--v2-icon-icon-muted);
+      }
+
+      /* ---------- 集合切换：探索页的轻 tabs ---------- */
+
+      .kb-tabs {
+        display: flex;
+        gap: 6px;
+        margin: 18px 0 0 -9px;
+      }
+
+      .kb-tabs button {
+        display: inline-flex;
+        height: 26px;
+        align-items: center;
+        gap: 7px;
+        padding: 0 9px;
+        border-radius: 7px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 20px;
+        transition:
+          background 130ms cubic-bezier(0.22, 1, 0.36, 1),
+          color 130ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-tabs button:hover {
+        background: var(--v2-overlay-simple-overlay-hover);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-tabs button[aria-selected="true"] {
+        color: var(--v2-text-text-base);
+        font-weight: 500;
+      }
+
+      .kb-tabs .n {
+        color: var(--v2-text-text-faint);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- 分组：章标题 + 横贯发丝线 + 列标题 ---------- */
+
+      .kb-group {
+        margin-top: 32px;
+      }
+
+      .kb-group + .kb-group {
+        margin-top: 44px;
+      }
+
+      .kb-group-head {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 2px;
+      }
+
+      .kb-group-head h2 {
+        flex: none;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 26px;
+        letter-spacing: -0.01em;
+      }
+
+      .kb-rule {
+        height: 0.5px;
+        flex: 1;
+        background: var(--v2-border-border-muted);
+      }
+
+      /* 列标题解释下面每一行的两个数字，所以它不是装饰。 */
+      .kb-cols {
+        display: flex;
+        flex: none;
+        width: 104px;
+        margin-right: 28px;
+        gap: 16px;
+        justify-content: flex-end;
+        color: var(--v2-text-text-faint);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .kb-cols span {
+        width: 44px;
+        text-align: right;
+      }
+
+      /* ---------- 目录行 ---------- */
+
+      /* 一列到底：页码列只在右缘出现一次，列标题与它严格对齐。 */
+      .kb-rows {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .kb-row {
+        position: relative;
+        display: grid;
+        height: 64px;
+        margin: 0 -10px;
+        padding: 0 10px;
+        grid-template-columns: 32px minmax(0, 1fr) 104px 16px;
+        align-items: center;
+        gap: 12px;
+        border-radius: 10px;
+        transition: background 130ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      /* 目录线从内容列左缘画到右缘，与分组标题同宽；hover 底色仍可外扩 10px。 */
+      .kb-row::after {
+        position: absolute;
+        right: 10px;
+        bottom: 0;
+        left: 10px;
+        height: 0.5px;
+        background: var(--v2-border-border-muted);
+        content: "";
+        pointer-events: none;
+      }
+
+      .kb-row:hover {
+        background: var(--v2-overlay-simple-overlay-hover);
+      }
+
+      .kb-row[data-hidden] {
+        display: none;
+      }
+
+      .kb-tile {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--v2-background-bg-layer-01);
+        box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+        color: var(--v2-icon-icon-muted);
+      }
+
+      .kb-copy {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .kb-name {
+        overflow: hidden;
+        color: var(--v2-text-text-base);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 22px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .kb-desc {
+        overflow: hidden;
+        color: var(--v2-text-text-muted);
+        font-size: 13px;
+        line-height: 20px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* 页码列：唯一贯穿整页的视觉装置，两个数字右对齐，与列标题同宽。 */
+      .kb-index {
+        display: flex;
+        gap: 16px;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .kb-index span {
+        width: 44px;
+        text-align: right;
+      }
+
+      .kb-row:hover .kb-index {
+        color: var(--v2-text-text-muted);
+      }
+
+      .kb-go {
+        width: 16px;
+        color: var(--v2-text-text-faint);
+        opacity: 0;
+        transition:
+          opacity 130ms cubic-bezier(0.22, 1, 0.36, 1),
+          transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-row:hover .kb-go {
+        opacity: 1;
+        transform: translateX(2px);
+      }
+
+      /* 最近打开：比目录更轻的一档，右侧只放时间。 */
+      .kb-row[data-kind="recent"] {
+        height: 48px;
+        grid-template-columns: 24px minmax(0, 1fr) auto;
+        gap: 10px;
+      }
+
+      .kb-row[data-kind="recent"] .kb-tile {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: none;
+        color: var(--v2-icon-icon-faint);
+      }
+
+      .kb-row[data-kind="recent"] .ico {
+        width: 18px;
+        height: 18px;
+      }
+
+      .kb-row[data-kind="recent"]::after {
+        display: none;
+      }
+
+      .kb-row[data-kind="recent"] .kb-copy {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .kb-row[data-kind="recent"] .kb-name {
+        font-size: 13px;
+        line-height: 20px;
+        flex: none;
+      }
+
+      .kb-row[data-kind="recent"] .kb-desc {
+        font-size: 12px;
+        line-height: 18px;
+        min-width: 0;
+      }
+
+      .kb-row-flag {
+        display: grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        color: var(--v2-icon-icon-accent);
+      }
+
+      .kb-when {
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      /* 回收站行：行内直接给两个动作，没有第二个层级。 */
+      .kb-row[data-kind="trash"] {
+        height: 60px;
+        grid-template-columns: 32px minmax(0, 1fr) 104px auto;
+        gap: 12px;
+      }
+
+      .kb-row[data-kind="trash"] .kb-index {
+        justify-content: flex-end;
+      }
+
+      .kb-row-actions {
+        display: flex;
+        gap: 2px;
+        opacity: 0;
+        transition: opacity 130ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-row:hover .kb-row-actions,
+      .kb-row:focus-within .kb-row-actions {
+        opacity: 1;
+      }
+
+      .kb-row-link {
+        height: 26px;
+        padding: 0 8px;
+        border-radius: 7px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 20px;
+      }
+
+      .kb-row-link:hover {
+        background: var(--v2-background-bg-layer-02);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-row-link[data-danger] {
+        color: var(--v2-state-fg-danger);
+      }
+
+      .kb-row-link[data-danger]:hover {
+        background: var(--v2-state-bg-danger);
+      }
+
+      .kb-foot {
+        margin-top: 28px;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .kb-empty-hint {
+        padding: 40px 0;
+        color: var(--v2-text-text-muted);
+        font-size: 13px;
+        line-height: 20px;
+        text-align: center;
+      }
+
+      .kb-group[data-hidden] {
+        display: none;
+      }
+
+      /* ---------- 库内页 ---------- */
+
+      .kb-back {
+        display: inline-flex;
+        height: 24px;
+        align-items: center;
+        gap: 4px;
+        margin: 0 0 6px -4px;
+        padding: 0 4px;
+        border-radius: 6px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .kb-back:hover {
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 12px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 18px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 状态构成条：真实比例，不是装饰；下方图例就是筛选。 */
+      .kb-breakdown {
+        margin-top: 22px;
+      }
+
+      .kb-meter {
+        display: flex;
+        height: 3px;
+        gap: 2px;
+        overflow: hidden;
+        border-radius: 999px;
+      }
+
+      .kb-meter i {
+        display: block;
+        border-radius: 999px;
+      }
+
+      .kb-meter i[data-tone="ready"] {
+        background: var(--v2-background-bg-layer-04);
+      }
+
+      .kb-meter i[data-tone="busy"] {
+        background: var(--v2-state-border-warning);
+      }
+
+      .kb-meter i[data-tone="flag"] {
+        background: var(--v2-state-border-danger);
+      }
+
+      .kb-filters {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .kb-segments {
+        display: flex;
+        height: 28px;
+        align-items: center;
+        gap: 2px;
+        padding: 2px;
+        border-radius: 999px;
+        background: var(--v2-background-bg-layer-02);
+      }
+
+      .kb-segments button {
+        display: inline-flex;
+        height: 24px;
+        align-items: center;
+        gap: 6px;
+        padding: 0 10px;
+        border-radius: 999px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 18px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .kb-segments button:hover {
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-segments button[aria-pressed="true"] {
+        background: var(--v2-background-bg-base);
+        box-shadow: var(--v2-elevation-button-neutral);
+        color: var(--v2-text-text-base);
+        font-weight: 500;
+      }
+
+      .kb-segments .n {
+        color: var(--v2-text-text-faint);
+      }
+
+      .kb-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .kb-segments button[data-tone="busy"] .kb-dot {
+        background: var(--v2-state-fg-warning);
+      }
+
+      .kb-segments button[data-tone="flag"] .kb-dot {
+        background: var(--v2-state-fg-danger);
+      }
+
+      .kb-sort {
+        margin-left: auto;
+        display: inline-flex;
+        height: 28px;
+        align-items: center;
+        gap: 4px;
+        padding: 0 8px 0 10px;
+        border-radius: 8px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .kb-sort:hover {
+        background: var(--v2-overlay-simple-overlay-hover);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-files {
+        margin-top: 14px;
+      }
+
+      .kb-file {
+        position: relative;
+        display: grid;
+        height: 52px;
+        margin: 0 -10px;
+        padding: 0 10px;
+        grid-template-columns: minmax(0, 1fr) 118px 90px 26px;
+        align-items: center;
+        gap: 12px;
+        border-radius: 10px;
+        transition: background 120ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-file::after {
+        position: absolute;
+        right: 10px;
+        bottom: 0;
+        left: 10px;
+        height: 0.5px;
+        background: var(--v2-border-border-muted);
+        content: "";
+        pointer-events: none;
+      }
+
+      .kb-file:hover {
+        background: var(--v2-overlay-simple-overlay-hover);
+      }
+
+      .kb-file[data-hidden] {
+        display: none;
+      }
+
+
+      .kb-file-main {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .kb-file-name {
+        overflow: hidden;
+        color: var(--v2-text-text-base);
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 20px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .kb-file-sub {
+        overflow: hidden;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 状态：一个点和一句话，不用彩色药丸。 */
+      .kb-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--v2-text-text-muted);
+        font-size: 12px;
+        line-height: 18px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .kb-status .kb-dot {
+        background: var(--v2-state-fg-success);
+      }
+
+      .kb-status[data-state="ready"] .kb-dot {
+        background: var(--v2-icon-icon-faint);
+      }
+
+      .kb-status[data-state="busy"] .kb-dot {
+        background: var(--v2-state-fg-warning);
+      }
+
+      .kb-status[data-state="flag"] {
+        color: var(--v2-state-fg-danger);
+      }
+
+      .kb-status[data-state="flag"] .kb-dot {
+        background: var(--v2-state-fg-danger);
+      }
+
+      .kb-time {
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        text-align: right;
+      }
+
+      .kb-file-more {
+        display: grid;
+        width: 26px;
+        height: 26px;
+        place-items: center;
+        border-radius: 999px;
+        color: var(--v2-icon-icon-faint);
+        opacity: 0;
+        transition:
+          opacity 120ms cubic-bezier(0.22, 1, 0.36, 1),
+          color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-file:hover .kb-file-more,
+      .kb-file:focus-within .kb-file-more {
+        opacity: 1;
+      }
+
+      .kb-file-more:hover {
+        background: var(--v2-background-bg-layer-02);
+        color: var(--v2-text-text-base);
+      }
+
+      /* ---------- 空状态 ---------- */
+
+      .kb-empty {
+        display: none;
+        min-height: calc(100vh - 200px);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        text-align: center;
+      }
+
+      .kb[data-empty="on"] .kb-empty {
+        display: flex;
+      }
+
+      .kb[data-empty="on"] .kb-catalog,
+      .kb[data-empty="on"] .kb-files,
+      .kb[data-empty="on"] .kb-breakdown,
+      .kb[data-empty="on"] .kb-filters,
+      .kb[data-empty="on"] .kb-foot,
+      .kb[data-empty="on"] .kb-meta,
+      .kb[data-empty="on"] .kb-tabs,
+      .kb[data-empty="on"] .kb-tools {
+        display: none;
+      }
+
+      .kb-empty-glyph {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        margin-bottom: 8px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--v2-background-bg-layer-02);
+        color: var(--v2-text-text-faint);
+      }
+
+      .kb-empty-glyph .ico {
+        width: 24px;
+        height: 24px;
+      }
+
+      .kb-empty h2 {
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 26px;
+      }
+
+      .kb-empty p {
+        max-width: 360px;
+        color: var(--v2-text-text-muted);
+        font-size: 14px;
+        line-height: 22px;
+      }
+
+      .kb-empty .kb-primary {
+        margin-top: 12px;
+      }
+
+      /* ---------- 文档抽屉 ---------- */
+
+      .kb-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: var(--v2-overlay-simple-overlay-scrim);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-scrim[data-open] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .kb-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 41;
+        display: flex;
+        width: min(460px, 100vw - 64px);
+        flex-direction: column;
+        overflow: hidden;
+        border-top-left-radius: var(--radius-xl);
+        border-bottom-left-radius: var(--radius-xl);
+        background: var(--v2-material-surface-strong);
+        box-shadow: var(--v2-elevation-floating);
+        backdrop-filter: var(--v2-material-blur-thick);
+        transform: translateX(100%);
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-drawer[data-open] {
+        transform: none;
+      }
+
+      .kb-drawer-head {
+        display: flex;
+        flex: none;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 20px 20px 14px 24px;
+        box-shadow: inset 0 -0.5px 0 var(--v2-border-border-muted);
+      }
+
+      .kb-drawer-title {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .kb-drawer-title h2 {
+        overflow: hidden;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 26px;
+        letter-spacing: -0.01em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .kb-drawer-title p {
+        margin-top: 4px;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .kb-drawer-body {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 24px 32px;
+      }
+
+      .kb-callout {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--v2-state-bg-warning);
+        box-shadow: inset 0 0 0 0.5px var(--v2-state-border-warning);
+        color: var(--v2-text-text-base);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .kb-callout .ico {
+        margin-top: 2px;
+        color: var(--v2-state-fg-warning);
+      }
+
+      .kb-article {
+        max-width: 62ch;
+        color: var(--v2-text-text-base);
+        font-size: 16px;
+        line-height: 26px;
+      }
+
+      .kb-article p + p {
+        margin-top: 16px;
+      }
+
+      .kb-article h3 {
+        margin: 24px 0 8px;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 22px;
+      }
+
+      .kb-article code {
+        padding: 1px 4px;
+        border-radius: 5px;
+        background: var(--v2-background-bg-layer-02);
+        font-family: var(--font-family-mono);
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .kb-article pre {
+        margin: 12px 0;
+        padding: 12px 14px;
+        overflow-x: auto;
+        border-radius: 10px;
+        background: var(--v2-background-bg-layer-01);
+        box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
+        font-family: var(--font-family-mono);
+        font-size: 13px;
+        line-height: 20px;
+        white-space: pre;
+      }
+
+      .kb-article pre code {
+        padding: 0;
+        background: none;
+      }
+
+      .kb-drawer-foot {
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        box-shadow: inset 0 0.5px 0 var(--v2-border-border-muted);
+      }
+
+      .kb-drawer-foot .kb-foot-note {
+        flex: 1;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+      }
+
+      /* ---------- 搜索浮层：与三个模块页同一块玻璃 ---------- */
+
+      .kb-search-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: grid;
+        place-items: start center;
+        padding-top: 12vh;
+        background: var(--v2-overlay-simple-overlay-scrim);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 140ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .kb-search-scrim[data-open] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .kb-search-panel {
+        display: flex;
+        width: min(640px, calc(100vw - 48px));
+        max-height: min(480px, calc(100vh - 160px));
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 12px;
+        background: var(--v2-material-surface-strong);
+        box-shadow: var(--v2-elevation-floating);
+        backdrop-filter: var(--v2-material-blur-thick);
+      }
+
+      .kb-search-field {
+        display: flex;
+        height: 44px;
+        flex: none;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px;
+        box-shadow: inset 0 -0.5px 0 var(--v2-border-border-muted);
+      }
+
+      .kb-search-field .ico {
+        color: var(--v2-text-text-faint);
+      }
+
+      .kb-search-field input {
+        min-width: 0;
+        flex: 1;
+        border: 0;
+        background: none;
+        outline: none;
+        color: var(--v2-text-text-base);
+        font-size: 14px;
+        line-height: 22px;
+      }
+
+      .kb-search-results {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        gap: 1px;
+        overflow-y: auto;
+        padding: 8px;
+      }
+
+      .kb-search-hint {
+        padding: 4px 8px;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        line-height: 16px;
+      }
+
+      .kb-search-hit {
+        display: flex;
+        height: 36px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        border-radius: 8px;
+        color: var(--v2-text-text-muted);
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .kb-search-hit:hover,
+      .kb-search-hit[data-active] {
+        background: var(--v2-overlay-simple-overlay-hover);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-search-hit .ico {
+        color: var(--v2-text-text-faint);
+      }
+
+      .kb-search-hit span {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .kb-search-hit em {
+        flex: none;
+        color: var(--v2-text-text-faint);
+        font-size: 11px;
+        font-style: normal;
+        line-height: 16px;
+      }
+
+      /* ---------- demo 控制条（不是界面的一部分） ---------- */
+
+      .kb-demo {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        opacity: 0.7;
+        transition: opacity 140ms cubic-bezier(0.22, 1, 0.36, 1);
+        z-index: 90;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 4px;
+        border-radius: 12px;
+        background: var(--v2-material-surface-strong);
+        box-shadow: var(--v2-elevation-overlay);
+        backdrop-filter: var(--v2-material-blur-regular);
+        font-size: 11px;
+        line-height: 16px;
+      }
+
+      .kb-demo:hover,
+      .kb-demo:focus-within {
+        opacity: 1;
+      }
+
+      .kb-demo button {
+        height: 24px;
+        padding: 0 8px;
+        border-radius: 7px;
+        color: var(--v2-text-text-muted);
+      }
+
+      .kb-demo button:hover {
+        background: var(--v2-overlay-simple-overlay-hover);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-demo button[aria-pressed="true"] {
+        background: var(--v2-background-bg-layer-02);
+        color: var(--v2-text-text-base);
+      }
+
+      .kb-demo .divider {
+        width: 0.5px;
+        height: 16px;
+        margin: 0 2px;
+        background: var(--v2-border-border-muted);
+      }
+
+      /* ---------- 视图切换 ---------- */
+
+      .kb-view {
+        display: none;
+      }
+
+      .kb-view[data-active] {
+        display: block;
+        animation: kb-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      @keyframes kb-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* ---------- 响应式 ---------- */
+
+      @media (max-width: 900px) {
+        .kb-head {
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .kb-tools {
+          width: 100%;
+          padding-top: 0;
+        }
+
+        .kb-search {
+          width: auto;
+          min-width: 150px;
+          flex: 1;
+        }
+
+        .kb-head h1 {
+          font-size: 24px;
+          line-height: 32px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .kb-page {
+          padding: 20px 16px 80px;
+        }
+
+        .kb-rows {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .kb-cols,
+        .kb-index {
+          display: none;
+        }
+
+        .kb-row {
+          grid-template-columns: 32px minmax(0, 1fr) 16px;
+        }
+
+        .kb-file {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .kb-time,
+        .kb-file-more {
+          display: none;
+        }
+
+        .kb-filters {
+          flex-wrap: wrap;
+        }
+
+        .kb-segments {
+          overflow-x: auto;
+          max-width: 100%;
+        }
+
+        .kb-drawer {
+          width: 100vw;
+          border-radius: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 1ms !important;
+          transition-duration: 1ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 图标集：与 app 的线性图标同一套描边规格 -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M16 16l4.5 4.5" />
+        </symbol>
+        <symbol id="i-import" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.5v10" />
+          <path d="M8.25 9.75L12 13.5l3.75-3.75" />
+          <path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M12 5.5v13M5.5 12h13" />
+        </symbol>
+        <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="6" cy="12" r="1.4" />
+          <circle cx="12" cy="12" r="1.4" />
+          <circle cx="18" cy="12" r="1.4" />
+        </symbol>
+        <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6.5 3.5h7l4 4v13a1.5 1.5 0 0 1-1.5 1.5h-9.5A1.5 1.5 0 0 1 5 20.5v-15a2 2 0 0 1 1.5-2Z" />
+          <path d="M13 3.5V8h4.5" />
+        </symbol>
+        <symbol id="i-library" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="3.75" y="5.5" width="4.5" height="13.5" rx="1.25" />
+          <rect x="9.75" y="3.75" width="4.5" height="15.25" rx="1.25" />
+          <path d="M17 6.5l2.6 11.2" stroke-linecap="round" />
+        </symbol>
+        <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 6l6 6-6 6" />
+        </symbol>
+        <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9.5l6 6 6-6" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+        </symbol>
+        <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 5.5L7.5 12l6.5 6.5" />
+        </symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.5v5.5" />
+          <path d="M9 9h6l1 5H8l1-5Z" />
+          <path d="M12 14v6.5" />
+        </symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4.5 6.75h15" />
+          <path d="M9.25 6.75V4.5h5.5v2.25" />
+          <path d="M6.75 6.75l.9 12.4a1.5 1.5 0 0 0 1.5 1.35h5.7a1.5 1.5 0 0 0 1.5-1.35l.9-12.4" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 12a8 8 0 1 1-2.4-5.7" />
+          <path d="M20 4v4.5h-4.5" />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2h7.4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z" />
+        </symbol>
+        <symbol id="i-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 4.5l8.5 15h-17Z" />
+          <path d="M12 10v4M12 17h.01" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="kb" id="kb" data-empty="off">
+      <div class="kb-scroll" data-scrollable>
+        <div class="kb-page">
+          <!-- ================= 首页：目录 ================= -->
+          <section class="kb-view" id="view-home" data-view="home" data-active>
+            <header class="kb-head">
+              <div>
+                <h1>知识库</h1>
+                <p>本地文档的检索索引。导入后，会话可以引用其中的片段。</p>
+              </div>
+              <div class="kb-tools">
+                <label class="kb-search">
+                  <svg class="ico ico-sm"><use href="#i-search" /></svg>
+                  <input
+                    type="search"
+                    id="home-search"
+                    placeholder="搜索文档与知识库"
+                    aria-label="搜索文档与知识库"
+                    autocomplete="off"
+                  />
+                </label>
+                <button class="kb-icon-btn" type="button" aria-label="导入文件">
+                  <svg class="ico"><use href="#i-import" /></svg>
+                </button>
+                <button class="kb-primary" type="button">
+                  <svg class="ico ico-sm"><use href="#i-plus" /></svg>
+                  新建知识库
+                </button>
+              </div>
+            </header>
+
+            <div class="kb-tabs" role="tablist" aria-label="集合">
+              <button type="button" role="tab" aria-selected="true" data-panel="all">
+                全部 <span class="n">6</span>
+              </button>
+              <button type="button" role="tab" aria-selected="false" data-panel="favorites">
+                收藏 <span class="n">4</span>
+              </button>
+              <button type="button" role="tab" aria-selected="false" data-panel="trash">
+                回收站 <span class="n">3</span>
+              </button>
+            </div>
+
+            <div class="kb-catalog" id="catalog">
+              <!-- 全部 -->
+              <div data-panel-body="all">
+                <section class="kb-group">
+                  <div class="kb-group-head">
+                    <h2>知识库</h2>
+                    <span class="kb-rule" aria-hidden="true"></span>
+                    <span class="kb-cols" aria-hidden="true"><span>文档</span><span>片段</span></span>
+                  </div>
+                  <div class="kb-rows">
+                    <div
+                      class="kb-row"
+                      role="button"
+                      tabindex="0"
+                      data-open-library
+                      data-search="产品文档 接口规范 发布说明 接入指南"
+                    >
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">产品文档</span>
+                        <span class="kb-desc">接口规范、发布说明与接入指南。</span>
+                      </span>
+                      <span class="kb-index"><span>126</span><span>1.8k</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+
+                    <div
+                      class="kb-row"
+                      role="button"
+                      tabindex="0"
+                      data-open-library
+                      data-search="设计规范 版式 色彩 组件约定"
+                    >
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">设计规范</span>
+                        <span class="kb-desc">桌面客户端的版式、色彩与组件约定。</span>
+                      </span>
+                      <span class="kb-index"><span>64</span><span>940</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+
+                    <div
+                      class="kb-row"
+                      role="button"
+                      tabindex="0"
+                      data-open-library
+                      data-search="客户访谈 第二季度 访谈记录"
+                    >
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">客户访谈</span>
+                        <span class="kb-desc">2026 年第二季度的 28 场访谈记录。</span>
+                      </span>
+                      <span class="kb-index"><span>28</span><span>312</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+
+                    <div
+                      class="kb-row"
+                      role="button"
+                      tabindex="0"
+                      data-open-library
+                      data-search="运维手册 故障处置 复盘"
+                    >
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">运维手册</span>
+                        <span class="kb-desc">故障处置流程与历史复盘。</span>
+                      </span>
+                      <span class="kb-index"><span>41</span><span>560</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+
+                    <div
+                      class="kb-row"
+                      role="button"
+                      tabindex="0"
+                      data-open-library
+                      data-search="合同与法务 采购 续约 数据处理协议"
+                    >
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">合同与法务</span>
+                        <span class="kb-desc">采购、续约与数据处理协议。</span>
+                      </span>
+                      <span class="kb-index"><span>19</span><span>176</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+
+                    <div
+                      class="kb-row"
+                      role="button"
+                      tabindex="0"
+                      data-open-library
+                      data-search="品牌素材说明 品牌规范 字体 用图限制"
+                    >
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">品牌素材说明</span>
+                        <span class="kb-desc">品牌规范、字体与用图限制。</span>
+                      </span>
+                      <span class="kb-index"><span>12</span><span>88</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="kb-group">
+                  <div class="kb-group-head">
+                    <h2>最近打开</h2>
+                    <span class="kb-rule" aria-hidden="true"></span>
+                  </div>
+                  <div class="kb-rows">
+                    <div class="kb-row" data-kind="recent" role="button" tabindex="0" data-open-doc>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">接入指南.md</span>
+                        <span class="kb-desc">产品文档 › 根目录</span>
+                      </span>
+                      <span class="kb-when">2 分钟前</span>
+                    </div>
+                    <div class="kb-row" data-kind="recent" role="button" tabindex="0" data-open-doc>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">组件规范.md</span>
+                        <span class="kb-desc">设计规范 › 组件</span>
+                      </span>
+                      <span class="kb-when">昨天</span>
+                    </div>
+                    <div class="kb-row" data-kind="recent" role="button" tabindex="0" data-open-doc>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">故障复盘-0812.md</span>
+                        <span class="kb-desc">运维手册 › 复盘</span>
+                      </span>
+                      <span class="kb-when">3 天前</span>
+                    </div>
+                  </div>
+                </section>
+
+                <p class="kb-foot">6 个知识库，290 份文档，3.9k 个片段</p>
+              </div>
+
+              <!-- 收藏 -->
+              <div data-panel-body="favorites" hidden>
+                <section class="kb-group">
+                  <div class="kb-group-head">
+                    <h2>收藏的知识库</h2>
+                    <span class="kb-rule" aria-hidden="true"></span>
+                    <span class="kb-cols" aria-hidden="true"><span>文档</span><span>片段</span></span>
+                  </div>
+                  <div class="kb-rows">
+                    <div class="kb-row" role="button" tabindex="0" data-open-library>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">产品文档</span>
+                        <span class="kb-desc">接口规范、发布说明与接入指南。</span>
+                      </span>
+                      <span class="kb-index"><span>126</span><span>1.8k</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+                    <div class="kb-row" role="button" tabindex="0" data-open-library>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-library" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">客户访谈</span>
+                        <span class="kb-desc">2026 年第二季度的 28 场访谈记录。</span>
+                      </span>
+                      <span class="kb-index"><span>28</span><span>312</span></span>
+                      <svg class="ico kb-go"><use href="#i-chevron-right" /></svg>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="kb-group">
+                  <div class="kb-group-head">
+                    <h2>收藏的文档</h2>
+                    <span class="kb-rule" aria-hidden="true"></span>
+                  </div>
+                  <div class="kb-rows">
+                    <div class="kb-row" data-kind="recent" role="button" tabindex="0" data-open-doc>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">术语表.md</span>
+                        <span class="kb-desc">产品文档 › 根目录</span>
+                      </span>
+                      <span class="kb-row-flag" aria-label="已收藏">
+                        <svg class="ico ico-sm"><use href="#i-pin" /></svg>
+                      </span>
+                    </div>
+                    <div class="kb-row" data-kind="recent" role="button" tabindex="0" data-open-doc>
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">组件规范.md</span>
+                        <span class="kb-desc">设计规范 › 组件</span>
+                      </span>
+                      <span class="kb-row-flag" aria-label="已收藏">
+                        <svg class="ico ico-sm"><use href="#i-pin" /></svg>
+                      </span>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <!-- 回收站 -->
+              <div data-panel-body="trash" hidden>
+                <section class="kb-group">
+                  <div class="kb-group-head">
+                    <h2>产品文档</h2>
+                    <span class="kb-rule" aria-hidden="true"></span>
+                    <span class="kb-cols" aria-hidden="true"><span>大小</span><span></span></span>
+                  </div>
+                  <div class="kb-rows">
+                    <div class="kb-row" data-kind="trash">
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">旧版接入指南.md</span>
+                        <span class="kb-desc">3.2 KB，7 天前删除</span>
+                      </span>
+                      <span class="kb-index"><span>3.2 KB</span></span>
+                      <span class="kb-row-actions">
+                        <button class="kb-row-link" type="button">恢复</button>
+                        <button class="kb-row-link" type="button" data-danger>彻底删除</button>
+                      </span>
+                    </div>
+                    <div class="kb-row" data-kind="trash">
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">废弃接口清单.md</span>
+                        <span class="kb-desc">6.8 KB，昨天删除</span>
+                      </span>
+                      <span class="kb-index"><span>6.8 KB</span></span>
+                      <span class="kb-row-actions">
+                        <button class="kb-row-link" type="button">恢复</button>
+                        <button class="kb-row-link" type="button" data-danger>彻底删除</button>
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="kb-group">
+                  <div class="kb-group-head">
+                    <h2>设计规范</h2>
+                    <span class="kb-rule" aria-hidden="true"></span>
+                    <span class="kb-cols" aria-hidden="true"><span>大小</span><span></span></span>
+                  </div>
+                  <div class="kb-rows">
+                    <div class="kb-row" data-kind="trash">
+                      <span class="kb-tile"><svg class="ico"><use href="#i-file" /></svg></span>
+                      <span class="kb-copy">
+                        <span class="kb-name">旧版色彩说明.md</span>
+                        <span class="kb-desc">4.1 KB，3 天前删除</span>
+                      </span>
+                      <span class="kb-index"><span>4.1 KB</span></span>
+                      <span class="kb-row-actions">
+                        <button class="kb-row-link" type="button">恢复</button>
+                        <button class="kb-row-link" type="button" data-danger>彻底删除</button>
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                <p class="kb-foot">回收站的文档不再参与检索，恢复后重新索引。</p>
+              </div>
+
+              <!-- 搜索无结果 -->
+              <p class="kb-empty-hint" id="catalog-empty" hidden>没有找到匹配的知识库或文档。</p>
+            </div>
+
+            <div class="kb-empty" id="home-empty">
+              <span class="kb-empty-glyph"><svg class="ico"><use href="#i-library" /></svg></span>
+              <h2>还没有知识库</h2>
+              <p>把一个文件夹拖进来，或新建知识库后再导入文档。</p>
+              <button class="kb-primary" type="button">
+                <svg class="ico ico-sm"><use href="#i-plus" /></svg>
+                新建知识库
+              </button>
+            </div>
+          </section>
+
+          <!-- ================= 库内页 ================= -->
+          <section class="kb-view" id="view-library" data-view="library">
+            <button class="kb-back" type="button" data-go="home">
+              <svg class="ico ico-sm"><use href="#i-arrow-left" /></svg>
+              知识库
+            </button>
+
+            <header class="kb-head">
+              <div>
+                <h1>产品文档</h1>
+                <p>接口规范、发布说明与接入指南。</p>
+              </div>
+              <div class="kb-tools">
+                <label class="kb-search">
+                  <svg class="ico ico-sm"><use href="#i-search" /></svg>
+                  <input
+                    type="search"
+                    id="library-search"
+                    placeholder="在这个知识库中搜索"
+                    aria-label="在这个知识库中搜索"
+                    autocomplete="off"
+                  />
+                </label>
+                <button class="kb-neutral" type="button">
+                  <svg class="ico ico-sm"><use href="#i-import" /></svg>
+                  导入文件
+                </button>
+                <button class="kb-icon-btn" type="button" aria-label="更多操作">
+                  <svg class="ico"><use href="#i-more" /></svg>
+                </button>
+              </div>
+            </header>
+
+            <p class="kb-meta">
+              <span>126 份文档</span>
+              <span>1,842 个片段</span>
+              <span>2 分钟前更新</span>
+            </p>
+
+            <div class="kb-breakdown">
+              <div class="kb-meter" role="img" aria-label="已就绪 118 份，处理中 6 份，可能无关 2 份">
+                <i data-tone="ready" style="flex: 118"></i>
+                <i data-tone="busy" style="flex: 6"></i>
+                <i data-tone="flag" style="flex: 2"></i>
+              </div>
+
+              <div class="kb-filters">
+                <div class="kb-segments" role="group" aria-label="按状态筛选">
+                  <button type="button" aria-pressed="true" data-filter="all">全部 <span class="n">126</span></button>
+                  <button type="button" aria-pressed="false" data-filter="ready">已就绪 <span class="n">118</span></button>
+                  <button type="button" aria-pressed="false" data-filter="busy" data-tone="busy">
+                    <span class="kb-dot" aria-hidden="true"></span>处理中 <span class="n">6</span>
+                  </button>
+                  <button type="button" aria-pressed="false" data-filter="flag" data-tone="flag">
+                    <span class="kb-dot" aria-hidden="true"></span>可能无关 <span class="n">2</span>
+                  </button>
+                </div>
+                <button class="kb-sort" type="button">
+                  按更新时间
+                  <svg class="ico ico-sm"><use href="#i-chevron-down" /></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="kb-files" id="files">
+              <div class="kb-file" data-status="ready" data-search="接入指南 md markdown">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">接入指南.md</span>
+                  <span class="kb-file-sub">Markdown，12.4 KB，45 个片段</span>
+                </button>
+                <span class="kb-status" data-state="ready"><span class="kb-dot"></span>已就绪</span>
+                <span class="kb-time">2 分钟前</span>
+                <button class="kb-file-more" type="button" aria-label="接入指南.md 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="ready" data-search="组件规范 md markdown">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">组件规范.md</span>
+                  <span class="kb-file-sub">Markdown，8.1 KB，32 个片段</span>
+                </button>
+                <span class="kb-status" data-state="ready"><span class="kb-dot"></span>已就绪</span>
+                <span class="kb-time">昨天</span>
+                <button class="kb-file-more" type="button" aria-label="组件规范.md 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="ready" data-search="api reference pdf 接口 参考">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">api-reference.pdf</span>
+                  <span class="kb-file-sub">PDF，2.1 MB，268 个片段</span>
+                </button>
+                <span class="kb-status" data-state="ready"><span class="kb-dot"></span>已就绪</span>
+                <span class="kb-time">昨天</span>
+                <button class="kb-file-more" type="button" aria-label="api-reference.pdf 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="busy" data-search="发布说明 4.2 md markdown">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">发布说明-4.2.md</span>
+                  <span class="kb-file-sub">Markdown，5.6 KB，解析到 42%</span>
+                </button>
+                <span class="kb-status" data-state="busy"><span class="kb-dot"></span>解析中 42%</span>
+                <span class="kb-time">刚刚</span>
+                <button class="kb-file-more" type="button" aria-label="发布说明-4.2.md 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="flag" data-search="旧版接入指南 md markdown">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">旧版接入指南.md</span>
+                  <span class="kb-file-sub">Markdown，3.2 KB，11 个片段</span>
+                </button>
+                <span class="kb-status" data-state="flag"><span class="kb-dot"></span>可能无关</span>
+                <span class="kb-time">7 天前</span>
+                <button class="kb-file-more" type="button" aria-label="旧版接入指南.md 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="ready" data-search="术语表 xlsx 表格">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">术语表.xlsx</span>
+                  <span class="kb-file-sub">表格，96 KB，24 个片段</span>
+                </button>
+                <span class="kb-status" data-state="ready"><span class="kb-dot"></span>已就绪</span>
+                <span class="kb-time">上周</span>
+                <button class="kb-file-more" type="button" aria-label="术语表.xlsx 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="busy" data-search="培训录屏 mp4 视频">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">培训录屏.mp4</span>
+                  <span class="kb-file-sub">视频，84 MB，等待转写</span>
+                </button>
+                <span class="kb-status" data-state="busy"><span class="kb-dot"></span>排队中</span>
+                <span class="kb-time">上周</span>
+                <button class="kb-file-more" type="button" aria-label="培训录屏.mp4 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <div class="kb-file" data-status="ready" data-search="部署 checklist md markdown">
+                <button class="kb-file-main" type="button" data-open-doc>
+                  <span class="kb-file-name">部署清单.md</span>
+                  <span class="kb-file-sub">Markdown，4.4 KB，18 个片段</span>
+                </button>
+                <span class="kb-status" data-state="ready"><span class="kb-dot"></span>已就绪</span>
+                <span class="kb-time">上周</span>
+                <button class="kb-file-more" type="button" aria-label="部署清单.md 的更多操作">
+                  <svg class="ico ico-sm"><use href="#i-more" /></svg>
+                </button>
+              </div>
+
+              <p class="kb-foot" id="files-empty" hidden>这个筛选下没有文档。</p>
+              <p class="kb-foot">显示 8 / 126 份文档</p>
+            </div>
+
+            <div class="kb-empty" id="library-empty">
+              <span class="kb-empty-glyph"><svg class="ico"><use href="#i-folder" /></svg></span>
+              <h2>这个知识库还是空的</h2>
+              <p>导入文档后，索引会在这里列出每个文件的状态。</p>
+              <button class="kb-primary" type="button">
+                <svg class="ico ico-sm"><use href="#i-import" /></svg>
+                导入文件
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 文档抽屉 ================= -->
+    <div class="kb-scrim" id="drawer-scrim" data-drawer-close></div>
+    <aside class="kb-drawer" id="drawer" role="dialog" aria-modal="true" aria-label="接入指南.md">
+      <header class="kb-drawer-head">
+        <div class="kb-drawer-title">
+          <h2>接入指南.md</h2>
+          <p>产品文档 › 根目录，Markdown，12.4 KB，45 个片段</p>
+        </div>
+        <button class="kb-icon-btn" type="button" aria-label="关闭" data-drawer-close>
+          <svg class="ico"><use href="#i-close" /></svg>
+        </button>
+      </header>
+
+      <div class="kb-drawer-body">
+        <article class="kb-article">
+          <p>
+            接入分为三步：先在项目里声明知识库，再把文档目录指向本地路径，最后在会话中引用。索引在后台完成，
+            不会阻塞会话的第一次回复。
+          </p>
+          <h3>声明知识库</h3>
+          <p>知识库属于项目，跟随项目一起打开。同一份文档可以被多个知识库引用，索引按文档内容去重。</p>
+          <pre><code>{
+  "knowledge": {
+    "libraries": [
+      { "id": "product", "path": "./docs", "include": ["**/*.md", "**/*.pdf"] }
+    ]
+  }
+}</code></pre>
+          <h3>索引状态</h3>
+          <p>
+            每个文件只有三种状态：已就绪、处理中、可能无关。可能无关的文件仍参与检索，但会在结果里标注，
+            由你决定保留还是移除。
+          </p>
+          <p>索引会在文件变更后两秒内开始重建，重建期间沿用上一版片段，检索不会中断。</p>
+        </article>
+      </div>
+
+      <footer class="kb-drawer-foot">
+        <span class="kb-foot-note">2 分钟前打开</span>
+        <button class="kb-icon-btn" type="button" aria-label="收藏这份文档">
+          <svg class="ico ico-sm"><use href="#i-pin" /></svg>
+        </button>
+        <button class="kb-neutral" type="button">在会话中引用</button>
+      </footer>
+    </aside>
+
+    <!-- ================= 搜索浮层 ================= -->
+    <div class="kb-search-scrim" id="search-scrim">
+      <div class="kb-search-panel" role="dialog" aria-modal="true" aria-label="搜索知识库">
+        <label class="kb-search-field">
+          <svg class="ico"><use href="#i-search" /></svg>
+          <input type="search" id="search-input" placeholder="搜索文档与知识库" aria-label="搜索文档与知识库" />
+        </label>
+        <div class="kb-search-results" id="search-results">
+          <span class="kb-search-hint">8 个结果</span>
+          <button class="kb-search-hit" type="button" data-open-doc>
+            <svg class="ico ico-sm"><use href="#i-file" /></svg>
+            <span>接入指南.md</span>
+            <em>产品文档 › 根目录</em>
+          </button>
+          <button class="kb-search-hit" type="button" data-open-library>
+            <svg class="ico ico-sm"><use href="#i-library" /></svg>
+            <span>产品文档</span>
+            <em>知识库</em>
+          </button>
+          <button class="kb-search-hit" type="button" data-open-doc>
+            <svg class="ico ico-sm"><use href="#i-file" /></svg>
+            <span>组件规范.md</span>
+            <em>设计规范 › 组件</em>
+          </button>
+          <button class="kb-search-hit" type="button" data-open-doc>
+            <svg class="ico ico-sm"><use href="#i-file" /></svg>
+            <span>api-reference.pdf</span>
+            <em>产品文档 › 接口</em>
+          </button>
+          <button class="kb-search-hit" type="button" data-open-library>
+            <svg class="ico ico-sm"><use href="#i-library" /></svg>
+            <span>设计规范</span>
+            <em>知识库</em>
+          </button>
+          <button class="kb-search-hit" type="button" data-open-doc>
+            <svg class="ico ico-sm"><use href="#i-file" /></svg>
+            <span>发布说明-4.2.md</span>
+            <em>产品文档 › 发布</em>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- demo 控制条 -->
+    <div class="kb-demo" role="group" aria-label="演示控制">
+      <button type="button" data-demo-theme="light" aria-pressed="true">浅色</button>
+      <button type="button" data-demo-theme="dark" aria-pressed="false">深色</button>
+      <span class="divider" aria-hidden="true"></span>
+      <button type="button" data-demo-view="home" aria-pressed="true">目录</button>
+      <button type="button" data-demo-view="library" aria-pressed="false">库内</button>
+      <button type="button" data-demo-view="doc" aria-pressed="false">文档</button>
+      <span class="divider" aria-hidden="true"></span>
+      <button type="button" data-demo-empty aria-pressed="false">空状态</button>
+    </div>
+
+    <script>
+      const kb = document.getElementById("kb")
+      const drawer = document.getElementById("drawer")
+      const drawerScrim = document.getElementById("drawer-scrim")
+      const searchScrim = document.getElementById("search-scrim")
+      const searchInput = document.getElementById("search-input")
+
+      /** 视图：目录 / 库内；文档是库内页上的抽屉。 */
+      function setView(name) {
+        document.querySelectorAll(".kb-view").forEach((section) => {
+          section.toggleAttribute("data-active", section.dataset.view === name)
+        })
+
+        document.querySelectorAll("[data-demo-view]").forEach((button) => {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.dataset.demoView === (name === "doc" ? "doc" : name)),
+          )
+        })
+
+        if (name === "doc") {
+          setView("library")
+          openDrawer()
+        }
+
+        if (name !== "doc") closeDrawer()
+        if (name === "home") closeSearch()
+      }
+
+      function openDrawer() {
+        drawer.setAttribute("data-open", "")
+        drawerScrim.setAttribute("data-open", "")
+      }
+
+      function closeDrawer() {
+        drawer.removeAttribute("data-open")
+        drawerScrim.removeAttribute("data-open")
+      }
+
+      function openSearch() {
+        searchScrim.setAttribute("data-open", "")
+        requestAnimationFrame(() => searchInput.focus())
+      }
+
+      function closeSearch() {
+        searchScrim.removeAttribute("data-open")
+      }
+
+      // 主题
+      document.querySelectorAll("[data-demo-theme]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.documentElement.dataset.theme = button.dataset.demoTheme
+          document.querySelectorAll("[data-demo-theme]").forEach((other) => {
+            other.setAttribute("aria-pressed", String(other === button))
+          })
+        })
+      })
+
+      // 视图
+      document.querySelectorAll("[data-demo-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const name = button.dataset.demoView
+          setView(name)
+          document.querySelectorAll("[data-demo-view]").forEach((other) => {
+            other.setAttribute("aria-pressed", String(other === button))
+          })
+        })
+      })
+
+      // 空状态
+      document.querySelector("[data-demo-empty]").addEventListener("click", (event) => {
+        const on = kb.dataset.empty !== "on"
+        kb.dataset.empty = on ? "on" : "off"
+        event.currentTarget.setAttribute("aria-pressed", String(on))
+      })
+
+      // 集合
+      function selectPanel(name) {
+        document.querySelectorAll("[data-panel]").forEach((other) => {
+          other.setAttribute("aria-selected", String(other.dataset.panel === name))
+        })
+        document.querySelectorAll("[data-panel-body]").forEach((body) => {
+          body.hidden = body.dataset.panelBody !== name
+        })
+        document.getElementById("catalog-empty").hidden = true
+      }
+
+      document.querySelectorAll("[data-panel]").forEach((button) => {
+        button.addEventListener("click", () => selectPanel(button.dataset.panel))
+      })
+
+      // 打开库 / 打开文档
+      document.addEventListener("click", (event) => {
+        const library = event.target.closest("[data-open-library]")
+        if (library) {
+          setView("library")
+          return
+        }
+
+        const doc = event.target.closest("[data-open-doc]")
+        if (doc) {
+          openDrawer()
+          return
+        }
+
+        if (event.target.closest("[data-drawer-close]")) closeDrawer()
+        if (event.target.closest('[data-go="home"]')) setView("home")
+      })
+
+      // 键盘：Enter / 空格打开行，Esc 关闭，⌘F 搜索
+      document.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+          event.preventDefault()
+          openSearch()
+          return
+        }
+
+        if (event.key === "Escape") {
+          closeSearch()
+          closeDrawer()
+          return
+        }
+
+        if (event.key !== "Enter" && event.key !== " ") return
+
+        const row = event.target.closest(".kb-row")
+        if (!row) return
+
+        event.preventDefault()
+        if (row.hasAttribute("data-open-library")) setView("library")
+        else if (row.hasAttribute("data-open-doc")) openDrawer()
+      })
+
+      // 库内筛选：分段与文件行状态
+      document.querySelectorAll("[data-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const filter = button.dataset.filter
+          document.querySelectorAll("[data-filter]").forEach((other) => {
+            other.setAttribute("aria-pressed", String(other === button))
+          })
+          let shown = 0
+          document.querySelectorAll("#files .kb-file").forEach((file) => {
+            const match = filter === "all" || file.dataset.status === filter
+            file.toggleAttribute("data-hidden", !match)
+            if (match) shown += 1
+          })
+          document.getElementById("files-empty").hidden = shown > 0
+        })
+      })
+
+      // 搜索浮层：输入即过滤，点击外部关闭
+      searchScrim.addEventListener("click", (event) => {
+        if (event.target === searchScrim) closeSearch()
+      })
+
+      searchInput.addEventListener("input", () => {
+        const needle = searchInput.value.trim().toLocaleLowerCase()
+        let shown = 0
+
+        document.querySelectorAll(".kb-search-hit").forEach((hit) => {
+          const match = hit.textContent.toLocaleLowerCase().includes(needle)
+          hit.hidden = !match
+          if (match) shown += 1
+        })
+
+        document.querySelector(".kb-search-hint").textContent = needle
+          ? shown
+            ? `${shown} 个结果`
+            : "没有找到匹配项"
+          : "8 个结果"
+      })
+
+      // 页头搜索框在页面上原地过滤；⌘F 才打开全局浮层，两种语义不抢同一个输入框。
+      function filterRows(root, needle, emptyHint) {
+        let shown = 0
+
+        root.querySelectorAll("[data-search]").forEach((row) => {
+          const match = !needle || row.dataset.search.toLocaleLowerCase().includes(needle)
+          row.toggleAttribute("data-hidden", !match)
+          if (match) shown += 1
+        })
+
+        // 一组全被筛掉时不留下孤立的组标题。
+        root.querySelectorAll(".kb-group").forEach((group) => {
+          group.toggleAttribute("data-hidden", Boolean(needle) && !group.querySelector("[data-search]:not([data-hidden])"))
+        })
+
+        if (emptyHint) emptyHint.hidden = shown > 0 || !needle
+        return shown
+      }
+
+      const homeSearch = document.getElementById("home-search")
+      homeSearch.addEventListener("input", () => {
+        if (homeSearch.value.trim()) selectPanel("all")
+        filterRows(
+          document.querySelector('[data-panel-body="all"]'),
+          homeSearch.value.trim().toLocaleLowerCase(),
+          document.getElementById("catalog-empty"),
+        )
+      })
+
+      const librarySearch = document.getElementById("library-search")
+      librarySearch.addEventListener("input", () => {
+        filterRows(
+          document.getElementById("files"),
+          librarySearch.value.trim().toLocaleLowerCase(),
+          document.getElementById("files-empty"),
+        )
+      })
+
+      // URL 参数：?theme=dark&view=library
+      const params = new URLSearchParams(location.search)
+      if (params.get("theme") === "dark") {
+        document.documentElement.dataset.theme = "dark"
+        document.querySelectorAll("[data-demo-theme]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.demoTheme === "dark"))
+        })
+      }
+      if (params.get("view")) setView(params.get("view"))
+
+      if (params.get("empty") === "1") {
+        kb.dataset.empty = "on"
+        document.querySelector("[data-demo-empty]").setAttribute("aria-pressed", "true")
+      }
+
+      if (params.get("search") === "1") openSearch()
+    </script>
+  </body>
+</html>

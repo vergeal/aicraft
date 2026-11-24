@@ -16,7 +16,8 @@ export function fileType(file: KnowledgeFile): FileTypeGroup {
 
   if (ext === "pdf") return "pdf"
 
-  if (ext === "doc" || ext === "docx" || ext === "xls" || ext === "xlsx" || ext === "ppt" || ext === "pptx") return "office"
+  if (ext === "doc" || ext === "docx" || ext === "xls" || ext === "xlsx" || ext === "ppt" || ext === "pptx")
+    return "office"
 
   if (ext === "html" || ext === "htm") return "html"
 
@@ -36,9 +37,9 @@ export function statusLabelKey(status: KnowledgeFileStatus) {
   return `knowledge.workspace.status.${status}` as const
 }
 
-/** The semantic tone a status dot carries: attention, progress or settled. */
+/** The three tones the prototype knows: settled, in progress, needs attention. */
 export function statusTone(status: KnowledgeFileStatus) {
-  if (status === "failed") return "failed"
+  if (status === "failed") return "flag"
 
   if (status === "ready") return "ready"
 

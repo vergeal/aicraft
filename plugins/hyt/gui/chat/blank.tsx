@@ -13,8 +13,16 @@ export function Blank(props: {
   ctx: Context
   phase: Phase
   detail: string
+  /** 后台静默登录的失败原因；空串时不显示。 */
+  authError: string
+  /** 凭据来源：决定动作区显示「登录」还是「退出登录」。 */
+  credential: "saved" | "client" | "missing"
   onRetry: () => void
   onSettings: () => void
+  /** 打开登录页，用账号密码登录。 */
+  onLogin: () => void
+  /** 重新登录入口：已保存凭据不可用（例如被服务器强制下线）时清掉凭据回到登录页。 */
+  onLogout?: () => void
 }) {
   const title = () => {
     if (props.phase === "no-account") return text(props.ctx, "hyt.chat.state.title.no-account")
@@ -65,25 +73,43 @@ export function Blank(props: {
         <div class="blank-inner">
           <h2 class="blank-title">{title()}</h2>
           <p class="blank-body">{body()}</p>
+          <Show when={props.authError.length > 0}>
+            <p class="login-error">{text(props.ctx, "hyt.chat.state.auth.failed", { message: props.authError })}</p>
+          </Show>
           <div class="blank-actions">
+            {/*
+              没有已保存凭据时，「登录」就是主按钮：靠客户端 login.db 里的旧账号登录失败、
+              或者刚装好还没登录，都从这里直接输入账号密码，不用先去找别处。
+            */}
             <Show
-              when={props.phase === "error"}
+              when={props.credential !== "saved"}
               fallback={
-                <button class="button" type="button" onClick={() => props.onSettings()}>
-                  {text(props.ctx, "hyt.chat.action.settings")}
-                </button>
+                <>
+                  <button class="button" type="button" onClick={() => props.onRetry()}>
+                    {text(props.ctx, props.phase === "error" ? "hyt.chat.action.retry" : "hyt.chat.action.detect")}
+                  </button>
+                  <button class="ghost" type="button" onClick={() => props.onLogin()}>
+                    {text(props.ctx, "hyt.chat.rail.login")}
+                  </button>
+                  <button class="ghost" type="button" onClick={() => props.onSettings()}>
+                    {text(props.ctx, "hyt.chat.action.settings")}
+                  </button>
+                  <Show when={props.onLogout !== undefined}>
+                    <button class="ghost" type="button" onClick={() => props.onLogout?.()}>
+                      {text(props.ctx, "hyt.chat.rail.logout")}
+                    </button>
+                  </Show>
+                </>
               }
             >
-              <button class="button" type="button" onClick={() => props.onRetry()}>
-                {text(props.ctx, "hyt.chat.action.retry")}
+              <button class="button" type="button" onClick={() => props.onLogin()}>
+                {text(props.ctx, "hyt.chat.rail.login")}
+              </button>
+              <button class="ghost" type="button" onClick={() => props.onRetry()}>
+                {text(props.ctx, "hyt.chat.action.detect")}
               </button>
               <button class="ghost" type="button" onClick={() => props.onSettings()}>
                 {text(props.ctx, "hyt.chat.action.settings")}
-              </button>
-            </Show>
-            <Show when={props.phase !== "error"}>
-              <button class="ghost" type="button" onClick={() => props.onRetry()}>
-                {text(props.ctx, "hyt.chat.action.detect")}
               </button>
             </Show>
           </div>

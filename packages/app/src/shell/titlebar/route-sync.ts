@@ -47,7 +47,8 @@ export function createRouteTabSync() {
     const direct = tabs.sessionTab(route.server, route.sessionId)
 
     if (direct) return direct
-    const parentID = session()?.parentID
+    // Only an internal child agent shows inside its owner's tab; a session made with `create` gets its own.
+    const parentID = session()?.subagent ? session()?.parentID : undefined
 
     if (!parentID) return
     const ancestor = global.serverCtx(route.server)?.data.session.root(route.sessionId)
@@ -119,17 +120,22 @@ export function createRouteTabSync() {
 
       if (!info) throw new Error("Session not found")
 
-      return rootSession(info, (sessionID) => {
+      // A session made with `create` is complete on its own, so it opens its own tab instead of its parent's.
+      if (!info.subagent) return info.id
+
+      const root = await rootSession(info, (sessionID) => {
         const cached = ctx.data.session.get(sessionID)
 
         return cached ? Promise.resolve(cached) : fetch(sessionID)
       })
+
+      return root.id
     }
 
     // A stale or aborted attempt's result is rejected by the machine.
     void lookup()
       .then(
-        (root) => ({ type: "resolve.succeeded", attempt, target, rootID: root.id }) as const,
+        (rootID) => ({ type: "resolve.succeeded", attempt, target, rootID }) as const,
         () => ({ type: "resolve.failed", attempt, target }) as const,
       )
       .then((event) => {
@@ -142,6 +148,17 @@ export function createRouteTabSync() {
   createEffect(() => {
     const route = layout.route()
     const ctx = route.type === "session" ? global.serverCtx(route.server) : undefined
+    // A session made with `create` is complete on its own, so its route opens its own tab. Only an internal child
+    // agent belongs in its owner's tab.
+    const routed = session()
+    const rootID =
+      route.type !== "session"
+        ? undefined
+        : preparing()
+          ? route.sessionId
+          : routed && !routed.subagent
+            ? route.sessionId
+            : ctx && cachedRootID(route.sessionId, (id) => ctx.data.session.get(id))
 
     dispatch({
       type: "sync",
@@ -152,13 +169,8 @@ export function createRouteTabSync() {
         preview: tabs.preview(),
         recentKey: tabs.recentKey(),
         pending: preparing(),
-        session: session(),
-        rootID:
-          route.type !== "session"
-            ? undefined
-            : preparing()
-              ? route.sessionId
-              : ctx && cachedRootID(route.sessionId, (id) => ctx.data.session.get(id)),
+        session: routed,
+        rootID,
         serverReady: !!ctx,
       },
     })

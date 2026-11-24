@@ -2,7 +2,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
 import { noticeNames, resolveGroupNames } from "../../src/chat/groups.js"
-import { kindOf, toMessage } from "../../src/chat/message.js"
+import { PRESENCE_MSGTYPE, kindOf, parseAppCard, toMessage } from "../../src/chat/message.js"
 import type { ChatRow } from "../../src/chat/message.js"
 import type { MessageRow, SessionRow } from "./contract.js"
 
@@ -63,6 +63,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
       `select Id, MsgType, Msg, Sender, SenderNick, Receiver, CreatedTime, FileName, SessionType, isAt
        from chatmsg where Id in (${aggregates.map(() => "?").join(",")})`,
       aggregates.map((item) => item.lastId),
+      true,
     ).flatMap((row) => {
       const detail = chatRow(row)
       return detail.Id === null ? [] : [{ ...detail, Id: detail.Id }]
@@ -75,20 +76,23 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
     })
     const unread = readUnread(db, account)
     const people = readPeople(root, account)
+    const appIdentities = readAppIdentities(db)
     const groupMembers = readGroupAvatarMembers(db, account, people)
     return aggregates.flatMap((item) => {
       const detail = byId.get(item.lastId)
       if (detail === undefined) return []
       const group = detail.SessionType === 1 || item.sessionId.startsWith("g")
       const person = people.get(item.sessionId)
+      const app = appIdentities.get(item.sessionId)
       const nick = detail.Sender === account ? "" : text(detail.SenderNick)
       const name = group
         ? (groups.get(item.sessionId) ?? "群聊")
         : (person?.remark || person?.name || nick || item.sessionId)
-      // 群头像按虹云通的规则拼成员；单聊只有对方一个人。
+      // 应用账号没有通讯录头像，用应用消息里的图标；群聊为空，界面用固定群头像。
+      const avatar = group ? "" : (app?.icon || person?.headPath || "")
       const members = group
         ? (groupMembers.get(item.sessionId) ?? [])
-        : [{ name: name.length > 0 ? name : item.sessionId, headPath: person?.headPath ?? "" }]
+        : [{ name: name.length > 0 ? name : item.sessionId, headPath: avatar }]
       return [
         {
           id: item.sessionId,
@@ -99,6 +103,7 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
           atMe: item.atMe === 1,
           group,
           online: group ? false : (person?.online ?? false),
+          avatar,
           members,
         },
       ]
@@ -106,6 +111,43 @@ export function readSessions(root: string, account: string, marked: ReadonlyMap<
   } finally {
     db.close()
   }
+}
+
+/**
+ * 应用会话的身份（图标与名字）。
+ *
+ * 观测服务这类账号不在通讯录里：它的头像与名字只存在于发出的应用消息 `UserData` 中。
+ * 会话列表、成员列表、资料卡都从这里取同一份，避免一处显示应用图标、另一处只剩名称首字。
+ */
+function appIdentityOf(userData: Cell, msg: Cell) {
+  const card = parseAppCard(text(userData), text(msg))
+  return { icon: card.icon, name: card.name }
+}
+
+function readAppIdentity(db: DatabaseSync, sessionId: string) {
+  const row = query(
+    db,
+    "select UserData, Msg from chatmsg where SessionId = ? and MsgType in (17, 150) order by Id desc limit 1",
+    [sessionId],
+  )[0]
+  return row === undefined ? { icon: "", name: "" } : appIdentityOf(row.UserData, row.Msg)
+}
+
+function readAppIdentities(db: DatabaseSync) {
+  const map = new Map<string, { readonly icon: string; readonly name: string }>()
+  for (const row of query(
+    db,
+    `select SessionId as sessionId, UserData as userData, Msg as msg from chatmsg
+     where Id in (select max(Id) from chatmsg where MsgType in (17, 150) group by SessionId)`,
+    [],
+  )) {
+    const sessionId = text(row.sessionId)
+    if (sessionId.length === 0) continue
+    const identity = appIdentityOf(row.userData, row.msg)
+    if (identity.icon.length === 0 && identity.name.length === 0) continue
+    map.set(sessionId, identity)
+  }
+  return map
 }
 
 /** 一页消息，旧→新；`hasMore` 表示这一页之前还有更早的。 */
@@ -123,19 +165,53 @@ export function readMessages(
     const rows = query(
       db,
       `select ${COLUMNS} from chatmsg
-       where SessionId = ? and (? is null or Id < ?)
+       where SessionId = ? and MsgType <> ${PRESENCE_MSGTYPE} and (? is null or Id < ?)
        order by Id desc limit ?`,
       [sessionId, beforeId ?? null, beforeId ?? null, limit + 1],
+      true,
     ).map(chatRow)
     const known = rows.filter((row): row is ChatRow & { Id: number } => row.Id !== null)
     const hasMore = known.length > limit
     const people = readPeople(root, account)
-    const page = (hasMore ? known.slice(0, limit) : known).map((row) => messageRow(row, account, people))
+    // 应用会话里发送者不在通讯录，头像统一用应用图标，与列表、资料卡保持一致。
+    const identity = readAppIdentity(db, sessionId)
+    const page = (hasMore ? known.slice(0, limit) : known).map((row) => messageRow(row, account, people, identity.icon))
     // 「以下为新消息」的分界：这一页里最早的未读消息。自己发的不算（撤回的消息 ReadStatus 也是 0）。
     const unreadIds = known
       .filter((row) => row.ReadStatus === 0 && text(row.Sender) !== account)
       .map((row) => row.Id)
     return { messages: page.reverse(), hasMore, firstUnreadId: unreadIds.length === 0 ? 0 : Math.min(...unreadIds) }
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * 对方是否正在输入。
+ *
+ * `MsgType 12` 是输入状态同步，不是消息：时间线是 0 → 1 → 对方文本 → 0。
+ * 只取这个会话最后一条：`Msg=1` 表示输入中，`Msg=0` 表示已停止；`at` 是它到达本机的时间，
+ * 界面据此做超时失效（对方中途关掉窗口时，库里可能永远等不到那条 0）。
+ */
+export function readTyping(
+  root: string,
+  account: string,
+  sessionId: string,
+): { active: boolean; at: number } {
+  if (sessionId.length === 0) return { active: false, at: 0 }
+  const path = chatDbPath(root, account)
+  if (!existsSync(path)) return { active: false, at: 0 }
+  const db = open(path)
+  try {
+    const row = query(
+      db,
+      `select Msg, CreatedTime from chatmsg
+       where SessionId = ? and MsgType = ${PRESENCE_MSGTYPE}
+       order by Id desc limit 1`,
+      [sessionId],
+    )[0]
+    if (row === undefined) return { active: false, at: 0 }
+    return { active: text(row.Msg) === "1", at: numberOf(row.CreatedTime) ?? 0 }
   } finally {
     db.close()
   }
@@ -158,7 +234,8 @@ export function searchMessages(
     return query(
       db,
       `select ${COLUMNS} from chatmsg
-       where (Msg like ? escape '\\' or SenderNick like ? escape '\\' or FileName like ? escape '\\')
+       where MsgType <> ${PRESENCE_MSGTYPE}
+         and (Msg like ? escape '\\' or SenderNick like ? escape '\\' or FileName like ? escape '\\')
        order by Id desc limit ?`,
       [pattern, pattern, pattern, limit],
     ).flatMap((raw) => {
@@ -191,17 +268,19 @@ export function readSessionMembers(
 
   const chat = open(chatPath)
   let order: string[] = []
+  let app = { icon: "", name: "" }
   try {
     order = query(
       chat,
       `select Sender, max(CreatedTime) as last from chatmsg
-       where SessionId = ? and Sender is not null and Sender <> ''
+       where SessionId = ? and MsgType <> ${PRESENCE_MSGTYPE} and Sender is not null and Sender <> ''
        group by Sender order by last desc limit ?`,
       [sessionId, limit],
     ).flatMap((row) => {
       const id = text(row.Sender)
       return id.length === 0 || id === account ? [] : [id]
     })
+    app = readAppIdentity(chat, sessionId)
   } finally {
     chat.close()
   }
@@ -211,7 +290,7 @@ export function readSessionMembers(
   try {
     const rows = query(
       address,
-      `select Account, Name, Remark, DptFullName, LocalHeadUrl, OnLineState from Person
+      `select Account, Name, Remark, DptFullName, LocalHeadUrl, Url, OnLineState from Person
        where Account in (${order.map(() => "?").join(", ")})`,
       order,
     )
@@ -226,15 +305,25 @@ export function readSessionMembers(
               account: id,
               name: text(row.Remark) || text(row.Name) || id,
               department: text(row.DptFullName),
-              headPath: text(row.LocalHeadUrl),
+              headPath: localHeadFile(root, text(row.LocalHeadUrl), text(row.Url)),
               online: numberOf(row.OnLineState) === 1,
             } satisfies PersonView,
           ] as const,
         ]
       }),
     )
-    // 保持「最近发言在前」的顺序；通讯录里查不到的人仍占一行，用账号当名字。
-    return order.map((id) => known.get(id) ?? { account: id, name: id, department: "", headPath: "", online: false })
+    // 保持「最近发言在前」的顺序；通讯录里查不到的人仍占一行：
+    // 应用账号用应用消息里的名字与图标，其它人退回账号本身。
+    return order.map(
+      (id) =>
+        known.get(id) ?? {
+          account: id,
+          name: app.name.length > 0 ? app.name : id,
+          department: "",
+          headPath: app.icon,
+          online: false,
+        },
+    )
   } finally {
     address.close()
   }
@@ -255,14 +344,34 @@ export function countSessions(root: string, account: string) {
 }
 
 function open(path: string) {
-  return new DatabaseSync(path, { readOnly: true })
+  const db = new DatabaseSync(path, { readOnly: true })
+  // 客户端随时在写这张库：没有等待策略时，一次 checkpoint 就能让只读查询立刻 SQLITE_BUSY。
+  // 后果是「读不到」被当成「没有」，界面上就是整块消息突然变空。宁可等两秒，也不要空结果。
+  try {
+    db.exec("pragma busy_timeout = 2000")
+  } catch {
+    // 只读连接偶有不接受 pragma 的环境，读失败的语义由 strict 查询兜住。
+  }
+  return db
 }
 
-/** 读一行数据；查询失败返回空表，界面显示空态而不是崩掉。 */
-function query(db: DatabaseSync, sql: string, params: readonly (string | number | null)[]): Row[] {
+/**
+ * 读一行数据。
+ *
+ * 默认把查询失败当成「没有」：群名、通讯录这类附属信息缺失时界面降级即可。
+ * `strict` 用于「空结果会被当成事实」的主查询（会话聚合、当前会话消息）：失败必须抛出，
+ * 让调用方保留上一份数据，而不是推一份空列表把界面清空。
+ */
+function query(
+  db: DatabaseSync,
+  sql: string,
+  params: readonly (string | number | null)[],
+  strict = false,
+): Row[] {
   try {
     return db.prepare(sql).all(...params).flatMap(normalize)
-  } catch {
+  } catch (cause) {
+    if (strict) throw cause
     return []
   }
 }
@@ -278,7 +387,7 @@ function normalize(value: unknown): Row[] {
 }
 
 function readAggregates(db: DatabaseSync) {
-  return query(db, aggregatesSql(), [SESSION_LIMIT]).flatMap((row) => {
+  return query(db, aggregatesSql(), [SESSION_LIMIT], true).flatMap((row) => {
     const sessionId = text(row.sessionId)
     const lastId = numberOf(row.lastId)
     if (sessionId.length === 0 || lastId === null) return []
@@ -297,7 +406,7 @@ function readAggregates(db: DatabaseSync) {
 function aggregatesSql() {
   return `select SessionId as sessionId, max(Id) as lastId, count(*) as total,
                  max(isAt) as atMe, max(cast(CreatedTime as integer)) as lastAt
-          from chatmsg group by SessionId order by lastAt desc limit ?`
+          from chatmsg where MsgType <> ${PRESENCE_MSGTYPE} group by SessionId order by lastAt desc limit ?`
 }
 
 function readGroupNames(db: DatabaseSync) {
@@ -323,7 +432,7 @@ function readGroupMembers(db: DatabaseSync) {
     db,
     `select SessionId as sessionId, Sender as sender, SenderNick as nick, count(*) as total
      from chatmsg
-     where SessionType = 1 and Sender is not null and Sender <> ''
+     where SessionType = 1 and MsgType <> ${PRESENCE_MSGTYPE} and Sender is not null and Sender <> ''
        and SenderNick is not null and SenderNick <> ''
      group by SessionId, Sender, SenderNick
      order by SessionId, total desc, min(Id)`,
@@ -381,7 +490,7 @@ function readUnread(db: DatabaseSync, account: string) {
   const rows = query(
     db,
     `select SessionId, count(*) as total from chatmsg
-     where ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
+     where MsgType <> ${PRESENCE_MSGTYPE} and ReadStatus = 0 and (? = '' or Sender is null or Sender <> ?)
      group by SessionId`,
     [account, account],
   )
@@ -435,6 +544,11 @@ export function readPersonNames(root: string, account: string) {
   return new Map([...readPeople(root, account)].map(([key, person]) => [key, person.remark || person.name || key]))
 }
 
+/** 账号 → 头像路径；回执名单、成员列表与消息流共用这一份。 */
+export function readPersonHeads(root: string, account: string) {
+  return new Map([...readPeople(root, account)].map(([key, person]) => [key, person.headPath]))
+}
+
 /**
  * 本地头像文件。`LocalHeadUrl` 有文件就直接用；否则按 `Url` 最后一段首个 `.` 之前的部分去 `HeadFiles` 找。
  * 客户端下载头像时就是用这个文件名，所以远程地址与本地文件能对得上。
@@ -443,9 +557,14 @@ function localHeadFile(root: string, local: string, url: string) {
   if (local.length > 0 && existsSync(local)) return local
   const base = url.split("?")[0]?.split("/").pop() ?? ""
   const key = base.split(".")[0] ?? ""
-  if (key.length === 0) return ""
-  const path = join(root, "HeadFiles", key)
-  return existsSync(path) ? path : ""
+  if (key.length > 0) {
+    const path = join(root, "HeadFiles", key)
+    if (existsSync(path)) return path
+  }
+  // 本地还没缓存过这张头像：把远端地址交出去，主进程会下载一次并缓存，
+  // 界面看到的始终是 data URL。客户端里显示得出头像的人，这里也应当显示得出。
+  if (url.startsWith("http://") || url.startsWith("https://")) return url
+  return ""
 }
 
 /**
@@ -458,7 +577,7 @@ function readGroupAvatarMembers(db: DatabaseSync, account: string, people: Map<s
     db,
     `select SessionId as sessionId, Sender as sender, max(nullif(SenderNick, '')) as nick
      from chatmsg
-     where SessionType = 1 and Sender like 'cs%' and Sender <> ?
+     where SessionType = 1 and MsgType <> ${PRESENCE_MSGTYPE} and Sender like 'cs%' and Sender <> ?
      group by SessionId, Sender order by min(Id)`,
     [account],
   )) {
@@ -501,16 +620,20 @@ function chatRow(row: Row): ChatRow {
   }
 }
 
-function messageRow(row: ChatRow, account: string, people: Map<string, PersonEntry>): MessageRow {
+function messageRow(row: ChatRow, account: string, people: Map<string, PersonEntry>, fallbackHead = ""): MessageRow {
   const message = toMessage(row)
+  const person = people.get(message.sender)
+  const app = message.kind === "app" ? parseAppCard(row.UserData, message.text) : undefined
   return {
     id: message.id,
     msgId: message.msgId,
     kind: message.kind,
     text: message.text,
     sender: message.sender,
-    senderNick: message.senderNick,
-    senderHead: people.get(message.sender)?.headPath ?? "",
+    // 库里 SenderNick 常常是账号或很久以前的昵称，与头像（按账号取的通讯录头像）对不上；
+    // 通讯录里有名字就以它为准，库里的字段只作回退。
+    senderNick: person === undefined ? message.senderNick : person.remark || person.name || message.senderNick,
+    senderHead: people.get(message.sender)?.headPath || app?.icon || fallbackHead,
     outgoing: account.length > 0 && message.sender === account,
     createdAt: message.createdAt,
     atMe: message.isAt,
@@ -518,6 +641,7 @@ function messageRow(row: ChatRow, account: string, people: Map<string, PersonEnt
     fileName: message.fileName,
     fileSize: numberOf(row.FileSize) ?? 0,
     filePath: message.fileFullPath,
+    ...(app === undefined ? {} : { app }),
   }
 }
 
@@ -535,6 +659,7 @@ function previewOf(row: ChatRow) {
     call: "[通话]",
     notice: "[系统通知]",
     merge: "[合并转发]",
+    app: "[应用消息]",
     other: "[消息]",
   }
   return label[kind] ?? ""
@@ -600,6 +725,65 @@ export function appendOwnMessage(
     return { recorded: true, error: "" }
   } catch (cause) {
     return { recorded: false, error: cause instanceof Error ? cause.message : String(cause) }
+  } finally {
+    db?.close()
+  }
+}
+
+/** 服务端下载一条消息附件需要的最小信息：文件地址、文件名、消息时间。 */
+export interface FileSource {
+  readonly url: string
+  readonly fileName: string
+  readonly createdAt: number
+}
+
+/**
+ * 按 msgId 取附件的远端地址。
+ *
+ * 客户端在线时会自己下载并写 `FileFullPath`；不在线时这一列是空的，
+ * 界面只能拿着 `FileUrl` 去服务端要一次。
+ */
+export function readFileSource(root: string, account: string, msgId: string): FileSource | undefined {
+  const file = chatDbPath(root, account)
+  if (!existsSync(file) || msgId.length === 0) return undefined
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(file)
+    const row = db.prepare("select FileUrl, FileName, CreatedTime from chatmsg where MsgId = ? limit 1").get(msgId)
+    if (row === undefined) return undefined
+    const url = text((row as Row).FileUrl)
+    if (url.length === 0) return undefined
+    const created = Number.parseInt(text((row as Row).CreatedTime), 10)
+    return {
+      url,
+      fileName: text((row as Row).FileName),
+      createdAt: Number.isFinite(created) ? created : 0,
+    }
+  } catch {
+    return undefined
+  } finally {
+    db?.close()
+  }
+}
+
+/**
+ * 把补下载回来的文件路径记回本地库。
+ *
+ * 客户端在线时自己会写；插件补下载的图片只有这里能写，写完下次打开会话就是普通图片消息。
+ * 只填空值，不覆盖客户端已经写好的路径。
+ */
+export function recordMediaPath(root: string, account: string, msgId: string, path: string) {
+  const file = chatDbPath(root, account)
+  if (!existsSync(file) || msgId.length === 0 || path.length === 0) return
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(file)
+    db.exec("pragma busy_timeout = 3000")
+    db.prepare(
+      "update chatmsg set FileFullPath = ? where MsgId = ? and (FileFullPath is null or FileFullPath = '')",
+    ).run(path, msgId)
+  } catch {
+    // 写不进库不影响这一次显示：界面已经拿到 data URL，下次刷新会再试。
   } finally {
     db?.close()
   }

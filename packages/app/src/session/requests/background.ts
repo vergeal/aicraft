@@ -113,7 +113,7 @@ export function createSessionBackground(input: {
       item.id ? info.id === item.id : !!item.label && info.parentID === id && info.title === item.label
 
     const running = sessions.flatMap((info): Subagent[] => {
-      if (input.status(info.id) !== "running" || !descends(info.id)) return []
+      if (!info.subagent || input.status(info.id) !== "running" || !descends(info.id)) return []
       const latest = current.calls.get(info.id)
 
       return [

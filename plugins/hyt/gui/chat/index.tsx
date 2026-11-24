@@ -25,6 +25,10 @@ export function registerChat(ctx: Context) {
   const [dragWidth, setDragWidth] = createSignal<number>()
   const listWidth = () => dragWidth() ?? layout.value?.listWidth ?? RAIL_DEFAULT
 
+  // 整页视图（登录、空态、错误）铺的是纸张底色；窗口顶栏必须跟着换色，
+  // 否则顶栏是左栏的深灰、页面是纸色，看起来像两套界面拼在一起。
+  const [fullPage, setFullPage] = createSignal(false)
+
   ctx.add(MainSurface, {
     id: "chat",
     get title() {
@@ -35,12 +39,12 @@ export function registerChat(ctx: Context) {
     badge: () => client.state()?.unread ?? 0,
     // 顶栏整条与左栏同色：聊天区是一张浮在左栏底色上的圆角卡片，顶栏不再按栏分段。
     titlebar: () => {
-      const colors =
-        ctx.appearance.mode() === "dark"
-          ? { chrome: "#0d1013", ink: "#e3e8ed" }
-          : { chrome: "#f3f5f7", ink: "#1b2430" }
+      const dark = ctx.appearance.mode() === "dark"
+      // 整页视图没有左栏，顶栏换成页面的纸张色，读起来才是同一张纸。
+      const paper = dark ? "#1a1e23" : "#ffffff"
+      const chrome = dark ? "#0d1013" : "#f3f5f7"
 
-      return { background: colors.chrome, foreground: colors.ink }
+      return { background: fullPage() ? paper : chrome, foreground: dark ? "#e3e8ed" : "#1b2430" }
     },
     render: () => (
       <ChatPage
@@ -53,6 +57,7 @@ export function registerChat(ctx: Context) {
           setDragWidth(undefined)
           if (width !== undefined) layout.set({ listWidth: width })
         }}
+        onFullPage={(value) => setFullPage(value)}
       />
     ),
   })

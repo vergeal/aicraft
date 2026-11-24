@@ -23,6 +23,7 @@ export const MessageKind = Schema.Literals([
   "call",
   "notice",
   "merge",
+  "app",
   "other",
 ])
 
@@ -44,6 +45,11 @@ export const SessionRow = Schema.Struct({
   group: Schema.Boolean,
   /** 对方的在线快照（本地库 `OnLineState = 1`）；群聊恒为 false。 */
   online: Schema.Boolean,
+  /**
+   * 会话级头像。应用账号（观测服务等）不在通讯录里，头像只在它发的应用消息里；
+   * 单聊取对方头像；群聊为空，界面统一用固定群头像。
+   */
+  avatar: Schema.String,
   /** 头像成员：单聊就是对方，群聊是会话内出现过的成员（最多 9 个），窗口按虹云通的拼图规则渲染。 */
   members: Schema.Array(HeadMember),
 })
@@ -78,6 +84,19 @@ export const MessageRow = Schema.Struct({
   fileSize: Schema.Number,
   /** 本地绝对路径：图片读取、合并转发解码、打开文件都用它。 */
   filePath: Schema.String,
+  /** 应用消息的卡片：图标、应用名、标题与字段列表；普通消息没有这个字段。 */
+  app: Schema.optional(
+    Schema.Struct({
+      /** 应用图标地址（远端 URL），加载失败时头像退回应用名首字。 */
+      icon: Schema.String,
+      /** 应用名，例如「观测服务」。 */
+      name: Schema.String,
+      /** 卡片标题。 */
+      title: Schema.String,
+      /** 卡片字段，按服务端给定顺序。 */
+      fields: Schema.Array(Schema.Struct({ key: Schema.String, value: Schema.String })),
+    }),
+  ),
   /**
    * 自己发出的消息的已读回执摘要；别人发来的消息没有这个字段。
    * `unread` 为 -1 表示还没拿到群成员名单，此时界面只报「N 人已读」。
@@ -170,6 +189,8 @@ export const ReceiptPerson = Schema.Struct({
   account: Schema.String,
   /** 显示名；读不到时退回账号。 */
   name: Schema.String,
+  /** 头像路径或远端地址；与消息、会话同一个来源。 */
+  head: Schema.String,
   /** 已读时间 epoch 毫秒；未读为 0。 */
   at: Schema.Number,
 })
@@ -201,6 +222,12 @@ export const ChatStatus = Schema.Struct({
   displayName: Schema.String,
   /** 是否发现运行中的 bridge（Config/bridge.json）。 */
   bridge: Schema.Literals(["ready", "missing"]),
+  /** 登录凭据来源：插件里保存的、客户端 login.db 里的，或没有。 */
+  credential: Schema.Literals(["saved", "client", "missing"]),
+  /** 凭据对应的登录名；没有凭据时为空串。 */
+  credentialUser: Schema.String,
+  /** 最近一次静默登录失败的原因；空串表示没有失败。 */
+  authError: Schema.String,
   /** AI 托管是否开启（profile.capabilities.autopilot.enabled）。 */
   autopilot: Schema.Boolean,
   /** 合并后的发送白名单条目数。 */
@@ -248,6 +275,11 @@ export const ChatState = Schema.Struct({
   knowledge: Schema.Array(KnowledgeHit),
   /** 回执版本号：收到新回执时自增，窗口据此重新取弹窗名单。 */
   receiptsVersion: Schema.Number,
+  /**
+   * 当前单聊对方是否正在输入。`at` 是那条输入状态到达本机的时间，窗口据此超时隐藏；
+   * 群聊里同名状态会出现多次，不显示，恒为 `active: false`。
+   */
+  typing: Schema.Struct({ active: Schema.Boolean, at: Schema.Number }),
 })
 
 /** 聊天主界面的 Ipc。state 是每个窗口一份的快照，方法改完就推新的。 */
@@ -272,6 +304,15 @@ export const ChatIpc = Ipc.define({
       input: Schema.Struct({ sessionId: Schema.String, text: Schema.String, at: Schema.Array(Schema.String) }),
       output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
     },
+    /** 用账号密码登录消息通道，成功后把凭据存进插件数据目录。 */
+    login: {
+      input: Schema.Struct({ userName: Schema.String, password: Schema.String }),
+      output: Schema.Struct({ ok: Schema.Boolean, account: Schema.String, message: Schema.String }),
+    },
+    /** 退出消息通道并删掉插件保存的凭据；本地库与历史保留。 */
+    logout: {
+      output: Schema.Struct({ ok: Schema.Boolean, error: Schema.String }),
+    },
     /** 解开一条合并转发。 */
     merge: {
       input: Schema.Struct({ path: Schema.String }),
@@ -288,9 +329,12 @@ export const ChatIpc = Ipc.define({
       }),
       output: ReceiptView,
     },
-    /** 读一张图片，返回 data URL，供窗口内联显示。 */
+    /**
+     * 读一张图片，返回 data URL，供窗口内联显示。
+     * 本地没有副本时带上 `msgId`，主进程会让服务端补下载一次再读。
+     */
     media: {
-      input: Schema.Struct({ path: Schema.String }),
+      input: Schema.Struct({ path: Schema.String, msgId: Schema.optional(Schema.String) }),
       output: Schema.Struct({ dataUrl: Schema.String, error: Schema.String }),
     },
     /** 批量读头像，最多 200 张；按路径与 mtime 在主进程缓存。 */

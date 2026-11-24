@@ -56,6 +56,12 @@ export function WorkspaceScreen() {
         return
       }
 
+      if (ws.ui.store.docPath) {
+        ws.ui.closeDoc()
+
+        return
+      }
+
       if (ws.ui.drawer()) ws.ui.closeDrawer()
     }
 

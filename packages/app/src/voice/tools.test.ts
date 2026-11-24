@@ -74,12 +74,12 @@ function setup(
             return found
           },
           // Newest first, one page, like the server.
-          list: async (request: { search?: string; parentID?: null; limit?: number }) => ({
+          list: async (request: { search?: string; subagent?: false; limit?: number }) => ({
             data: sessions
               .filter(
                 (item) =>
                   !item.time.archived &&
-                  (request.parentID !== null || !item.parentID) &&
+                  (request.subagent !== false || !item.subagent) &&
                   (!request.search || item.title?.toLowerCase().includes(request.search.toLowerCase())),
               )
               .toSorted((a, b) => b.time.updated - a.time.updated)

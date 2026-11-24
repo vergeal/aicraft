@@ -1,9 +1,10 @@
 import type { Context } from "@aicraft/plugin/gui"
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import type { AppCardField } from "../../src/chat/message.js"
 import type { MergeItemRow, MessageRow, ReceiptPerson, ReceiptView } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
-import { Face } from "./avatar.js"
+import { Face, avatarOf } from "./avatar.js"
 import { CLAMP_AT, clockOf, dayLabel, sizeOf } from "./util.js"
 
 type Row =
@@ -11,6 +12,17 @@ type Row =
   | { kind: "system"; key: string; body: string }
   | { kind: "divider"; key: string; label: string }
   | { kind: "message"; key: string; message: MessageRow; grouped: boolean; self: boolean }
+
+/** 两行渲染出的内容是否相同；相同就让 `<For>` 继续沿用它上一轮的对象。 */
+function sameRow(left: Row, right: Row) {
+  if (left.kind !== right.kind) return false
+  if (left.kind === "message" && right.kind === "message")
+    return left.message === right.message && left.grouped === right.grouped && left.self === right.self
+  if (left.kind === "system" && right.kind === "system") return left.body === right.body
+  if (left.kind === "day" && right.kind === "day") return left.label === right.label
+  if (left.kind === "divider" && right.kind === "divider") return left.label === right.label
+  return false
+}
 
 /**
  * 消息流。
@@ -23,6 +35,8 @@ type Row =
 export function MessageStream(props: {
   ctx: Context
   messages: readonly MessageRow[]
+  /** 单聊对方正在输入；群聊恒为 false。 */
+  typing: boolean
   hasMore: boolean
   newMessageId: number
   loadingMore: boolean
@@ -36,7 +50,9 @@ export function MessageStream(props: {
   /** 回执版本号：收到新回执就变，弹窗据此重新取名单。 */
   receiptVersion: number
   onReceipts: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
-  onMedia: (path: string) => Promise<string>
+  /** 取头像并入共享表；回执名单按需补人。 */
+  onAvatars: (paths: readonly string[]) => void
+  onMedia: (path: string, msgId: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
@@ -85,6 +101,11 @@ export function MessageStream(props: {
     if (atBottom()) scrollToBottom()
   })
 
+  // 「正在输入」是流末尾临时长出来的一行：原本贴着底就跟着滚下去，否则会藏在视口下方看不到。
+  createEffect(() => {
+    if (props.typing && atBottom()) scrollToBottom()
+  })
+
   createEffect(() => {
     const id = props.focusId
     if (id === undefined) return
@@ -100,6 +121,19 @@ export function MessageStream(props: {
     props.onFocusDone()
   })
 
+  /**
+   * 行对象按 key 复用。
+   *
+   * `<For>` 按引用做 diff；每轮都新建行对象就等于每轮重建整片消息（图片重新解码、展开态丢失、滚动跳一截）。
+   * 内容没变的行沿用上一轮的对象，只有真正变化的那一行换新的。
+   */
+  const rowCache = new Map<string, Row>()
+  const cachedRow = (row: Row): Row => {
+    const old = rowCache.get(row.key)
+    if (old !== undefined && sameRow(old, row)) return old
+    rowCache.set(row.key, row)
+    return row
+  }
   const rows = createMemo(() => {
     const out: Row[] = []
     let lastDay = ""
@@ -107,23 +141,25 @@ export function MessageStream(props: {
     for (const message of props.messages) {
       const day = dayLabel(props.ctx, message.createdAt)
       if (day !== lastDay) {
-        out.push({ kind: "day", key: `day:${message.createdAt}`, label: day })
+        out.push(cachedRow({ kind: "day", key: `day:${message.createdAt}`, label: day }))
         lastDay = day
         previous = undefined
       }
 
       if (props.newMessageId > 0 && message.id === props.newMessageId) {
         const count = props.messages.filter((item) => item.id >= props.newMessageId).length
-        out.push({
-          kind: "divider",
-          key: `divider:${message.id}`,
-          label: text(props.ctx, "hyt.chat.messages.divider", { count }),
-        })
+        out.push(
+          cachedRow({
+            kind: "divider",
+            key: `divider:${message.id}`,
+            label: text(props.ctx, "hyt.chat.messages.divider", { count }),
+          }),
+        )
         previous = undefined
       }
 
       if (message.kind === "recall" || message.kind === "notice") {
-        out.push({ kind: "system", key: `sys:${message.id}`, body: systemLine(props.ctx, message) })
+        out.push(cachedRow({ kind: "system", key: `sys:${message.id}`, body: systemLine(props.ctx, message) }))
         previous = undefined
         continue
       }
@@ -133,9 +169,14 @@ export function MessageStream(props: {
         !message.outgoing &&
         previous.sender === message.sender &&
         message.createdAt - previous.createdAt <= 5 * 60_000
-      out.push({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing })
+      out.push(
+        cachedRow({ kind: "message", key: `msg:${message.id}`, message, grouped, self: message.outgoing }),
+      )
       previous = message
     }
+    // 翻页、切会话后，离开这一页的行不再需要缓存。
+    const keys = new Set(out.map((row) => row.key))
+    for (const key of rowCache.keys()) if (!keys.has(key)) rowCache.delete(key)
     return out
   })
 
@@ -187,6 +228,17 @@ export function MessageStream(props: {
                 )
               }}
             </For>
+
+            <Show when={props.typing}>
+              <p class="typing" role="status" aria-live="polite">
+                <span class="typing-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                {text(props.ctx, "hyt.chat.typing")}
+              </p>
+            </Show>
           </div>
         </div>
 
@@ -212,6 +264,8 @@ export function MessageStream(props: {
             message={message()}
             version={props.receiptVersion}
             onFetch={props.onReceipts}
+            avatars={props.avatars}
+            onAvatars={props.onAvatars}
             onClose={() => setReceiptOf(undefined)}
           />
         )}
@@ -227,7 +281,7 @@ function Message(props: {
   grouped: boolean
   self: boolean
   avatars: Record<string, string>
-  onMedia: (path: string) => Promise<string>
+  onMedia: (path: string, msgId: string) => Promise<string>
   onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
@@ -238,6 +292,8 @@ function Message(props: {
   onReceipt: () => void
 }) {
   const [expanded, setExpanded] = createSignal(false)
+  /** 应用卡片字段较多（告警常带十几项）：默认只列前几条，其余展开看。 */
+  const [cardOpen, setCardOpen] = createSignal(false)
   const [merge, setMerge] = createSignal<{ items: readonly MergeItemRow[]; error: string } | undefined>()
   const [merging, setMerging] = createSignal(false)
 
@@ -293,7 +349,8 @@ function Message(props: {
         >
           <Face
             class="msg-face"
-            name={props.message.senderNick || props.message.sender}
+            // 应用消息的「头像」就是应用自己的图标；没有图标时退回应用名首字。
+            name={props.message.app?.name || props.message.senderNick || props.message.sender}
             src={avatarOf(props.avatars, props.message.senderHead)}
           />
         </button>
@@ -337,6 +394,7 @@ function Message(props: {
               <Shot
                 ctx={props.ctx}
                 path={props.message.filePath}
+                msgId={props.message.msgId}
                 onMedia={props.onMedia}
                 onOpen={props.onOpenImage}
               />
@@ -359,6 +417,39 @@ function Message(props: {
               </span>
             </div>
           </div>
+        </Show>
+
+        <Show when={props.message.app}>
+          {(app) => (
+            <div class="app-card">
+              <div class="app-card-head">
+                <span class="app-card-name">{app().name || props.message.senderNick}</span>
+                <span class="app-card-tag">{text(props.ctx, "hyt.chat.msg.app.tag")}</span>
+              </div>
+              <Show when={app().title.length > 0}>
+                <p class="app-card-title">{app().title}</p>
+              </Show>
+              <Show when={app().fields.length > 0}>
+                <dl class="app-card-fields">
+                  <For each={cardFields(app().fields, cardOpen())}>
+                    {(field) => (
+                      <div class="app-card-field">
+                        <dt>{field.key}</dt>
+                        <dd>{field.value}</dd>
+                      </div>
+                    )}
+                  </For>
+                </dl>
+                <Show when={app().fields.length > CARD_FIELDS}>
+                  <button class="app-card-more" type="button" onClick={() => setCardOpen(!cardOpen())}>
+                    {cardOpen()
+                      ? text(props.ctx, "hyt.chat.msg.app.less")
+                      : text(props.ctx, "hyt.chat.msg.app.more", { count: app().fields.length - CARD_FIELDS })}
+                  </button>
+                </Show>
+              </Show>
+            </div>
+          )}
         </Show>
 
         <Show when={props.message.kind === "voice" || props.message.kind === "video" || props.message.kind === "call"}>
@@ -497,6 +588,8 @@ function ReceiptDialog(props: {
   /** 回执版本号：变一次就重新取一次名单。 */
   version: number
   onFetch: (input: { sessionId: string; msgId: string; createdAt: number; retry?: boolean }) => Promise<ReceiptView>
+  avatars: Record<string, string>
+  onAvatars: (paths: readonly string[]) => void
   onClose: () => void
 }) {
   const [data, setData] = createSignal<ReceiptView>()
@@ -508,6 +601,8 @@ function ReceiptDialog(props: {
   let opener: Element | null = null
 
   const apply = (next: ReceiptView) => {
+    // 名单里的头像与消息流、成员列表同一来源，先请求再渲染。
+    props.onAvatars([...next.read, ...next.unread].map((person) => person.head))
     const previous = data()
     if (previous === undefined) {
       setData(next)
@@ -570,7 +665,7 @@ function ReceiptDialog(props: {
       <For each={list}>
         {(person) => (
           <li data-unread={unread ? "true" : undefined}>
-            <Face class="pface" name={person.name} />
+            <Face class="pface" name={person.name} src={avatarOf(props.avatars, person.head)} />
             <span class="pname">{person.name}</span>
             <span class="pside">
               {unread ? text(props.ctx, "hyt.chat.receipt.unreadTag") : clockOf(person.at)}
@@ -718,10 +813,13 @@ function escapeRegExp(value: string) {
 function Shot(props: {
   ctx: Context
   path: string
-  onMedia: (path: string) => Promise<string>
+  /** 本地没有文件时主进程按它向服务端补下载。 */
+  msgId: string
+  onMedia: (path: string, msgId: string) => Promise<string>
   onOpen: (path: string) => void
 }) {
-  const [src] = createResource(() => props.path, props.onMedia)
+  // 键里带上消息 id：补下载完成后 path 会变，那时应当再读一次。
+  const [src] = createResource(() => `${props.msgId}\u0000${props.path}`, () => props.onMedia(props.path, props.msgId))
   /** 读到了地址但解码失败：一样退回色块，不要浏览器默认的破图图标。 */
   const [broken, setBroken] = createSignal(false)
   createEffect(() => {
@@ -745,11 +843,13 @@ function Shot(props: {
   )
 }
 
-function avatarOf(map: Record<string, string>, path: string) {
-  if (path.length === 0) return undefined
-  const value = map[path]
-  return value === undefined || value.length === 0 ? undefined : value
+/** 应用卡片折叠时最多显示的字段数。 */
+const CARD_FIELDS = 4
+
+function cardFields(fields: readonly AppCardField[], open: boolean) {
+  return open ? fields : fields.slice(0, CARD_FIELDS)
 }
+
 
 function fileMark(name: string) {
   const extension = name.includes(".") ? name.slice(name.lastIndexOf(".") + 1).toLowerCase() : ""

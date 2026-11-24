@@ -25,7 +25,7 @@ export const FontPicker: Component<{
   placeholder: string
   /** Code rows list monospace faces before the rest. */
   monospaceFirst?: boolean
-  /** Code and terminal rows use the system's monospace face for their System row, not the UI face. */
+  /** Code and terminal rows use a monospace stack for their System row, not the UI stack. */
   systemMonospace?: boolean
   onSelect: (family: string) => void
 }> = (props) => {

@@ -10,11 +10,13 @@ export const METHODS = {
   ping: "ping",
   info: "bridge.info",
   login: "auth.login",
+  logout: "auth.logout",
   state: "auth.state",
   sendMessage: "im.sendMessage",
   sessions: "im.sessions",
   members: "im.members",
   markRead: "im.markRead",
+  download: "im.download",
   call: "sdk.call",
 } as const
 
@@ -68,6 +70,26 @@ export function parseMembers(value: unknown): MembersResult {
 export function parseMarkRead(value: unknown, msgId: string): MarkReadResult {
   if (!isRecord(value)) return { ok: false, msgId, error: "bridge 没有返回已读上报结果" }
   return { ok: value.ok === true, msgId, error: typeof value.error === "string" ? value.error : "" }
+}
+
+/** 服务端文件下载结果。`pending` 表示下载已提交、回调还没回来，`path` 可能仍为空。 */
+export interface DownloadResult {
+  readonly ok: boolean
+  readonly pending: boolean
+  readonly msgId: string
+  readonly path: string
+  readonly error: string
+}
+
+export function parseDownload(value: unknown, msgId: string): DownloadResult {
+  if (!isRecord(value)) return { ok: false, pending: false, msgId, path: "", error: "bridge 没有返回下载结果" }
+  return {
+    ok: value.ok === true,
+    pending: value.pending === true,
+    msgId: typeof value.msgId === "string" && value.msgId.length > 0 ? value.msgId : msgId,
+    path: typeof value.path === "string" ? value.path : "",
+    error: typeof value.error === "string" ? value.error : "",
+  }
 }
 
 function number(value: unknown): number | undefined {
@@ -134,6 +156,8 @@ export interface SendParams {
 export interface SendResult {
   readonly ok: boolean
   readonly msgId?: string
+  /** 原生层给出的失败原因；成功时为空串。 */
+  readonly error: string
 }
 
 export interface SessionListResult {
@@ -174,11 +198,12 @@ export function parseEndpoint(value: unknown): Endpoint | undefined {
   }
 }
 
-/** im.sendMessage 的返回值在校验前是 unknown：只认 ok=true，msgId 有就用。 */
+/** im.sendMessage 的返回值在校验前是 unknown：只认 ok=true，msgId 有就用，失败原因原样带出。 */
 export function parseSendResult(value: unknown): SendResult {
-  if (!isRecord(value)) return { ok: false }
+  if (!isRecord(value)) return { ok: false, error: "bridge 没有返回发送结果" }
   const msgId = typeof value.msgId === "string" ? value.msgId : undefined
-  return { ok: value.ok === true, msgId }
+  const error = typeof value.error === "string" ? value.error : ""
+  return { ok: value.ok === true, ...(msgId === undefined ? {} : { msgId }), error }
 }
 
 /** 一行收进来的 JSON 要么是响应（有 id），要么是事件（有 method）。解析失败的行直接丢弃。 */

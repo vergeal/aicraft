@@ -30,12 +30,12 @@ export function DialogSessionSearch(props: { archived?: boolean }) {
       server: ServerConnection.key(conn),
       archived: props.archived,
       known: props.archived
-        ? () => ctx.data.session.list().filter((session) => !session.parentID)
+        ? () => ctx.data.session.list().filter((session) => !session.subagent)
         : createKnownServerSessions(() => ctx),
       apply: ctx.data.session.apply,
       projects: ctx.projects.list,
       load: (search, signal) =>
-        ctx.sdk.api.session.list({ parentID: null, search, archived: !!props.archived, limit: 50 }, { signal }),
+        ctx.sdk.api.session.list({ subagent: false, search, archived: !!props.archived, limit: 50 }, { signal }),
       get: (sessionID, signal) => ctx.sdk.api.session.get({ sessionID }, { signal }),
       untitled: () => language.t("command.session.new"),
       category: () => language.t(props.archived ? "sidebar.inbox.archived.title" : "command.category.session"),

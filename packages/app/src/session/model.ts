@@ -122,7 +122,7 @@ export function useSessionModel() {
       info,
       parent,
       parentID,
-      isChild: createMemo(() => !!parentID()),
+      isChild: createMemo(() => info()?.subagent === true),
       status,
       working: createMemo(() => {
         const id = sessionID()

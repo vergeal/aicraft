@@ -3,7 +3,7 @@ import { For, Show, createMemo } from "solid-js"
 import type { DraftRow, SearchHit, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
 import type { MenuTarget } from "./menu.js"
-import { Face } from "./avatar.js"
+import { Face, GroupFace, avatarOf } from "./avatar.js"
 import { dayLabel, rowTime } from "./util.js"
 
 /**
@@ -33,6 +33,14 @@ export function Rail(props: {
   onPersonMenu: (session: SessionRow, target: MenuTarget) => void
   /** 右键会话行：已读、复制、资料。 */
   onMenu: (session: SessionRow, target: MenuTarget) => void
+  /** 当前凭据来源；决定栏脚显示登录还是退出登录。 */
+  credential: "saved" | "client" | "missing"
+  /** 退出登录进行中，按钮不可重复点。 */
+  loggingOut: boolean
+  /** 打开登录页，用账号密码登录。 */
+  onLogin: () => void
+  /** 退出登录：断开消息通道并删掉插件保存的凭据。 */
+  onLogout: () => void
 }) {
   const searching = () => props.query.trim().length > 0
   const draftSessions = createMemo(() => new Set(props.drafts.map((draft) => draft.sessionId)))
@@ -176,10 +184,17 @@ export function Rail(props: {
                       props.onPersonMenu(row.session, event)
                     }}
                   >
-                    <Face
-                      name={row.session.members[0]?.name ?? row.session.name}
-                      src={avatarOf(props.avatars, row.session.members[0]?.headPath)}
-                    />
+                    <Show
+                      when={row.session.group}
+                      fallback={
+                        <Face
+                          name={row.session.members[0]?.name ?? row.session.name}
+                          src={avatarOf(props.avatars, row.session.avatar)}
+                        />
+                      }
+                    >
+                      <GroupFace />
+                    </Show>
                   </span>
                   <span class="entry-text">
                     <span class="entry-head">
@@ -221,16 +236,27 @@ export function Rail(props: {
           {" · "}
           <strong>{text(props.ctx, "hyt.chat.rail.drafts", { count: draftSessions().size })}</strong>
         </Show>
+        <Show
+          when={props.credential === "saved"}
+          fallback={
+            <>
+              {" · "}
+              <button type="button" onClick={() => props.onLogin()}>
+                {text(props.ctx, "hyt.chat.rail.login")}
+              </button>
+            </>
+          }
+        >
+          {" · "}
+          <button type="button" disabled={props.loggingOut} onClick={() => props.onLogout()}>
+            {text(props.ctx, "hyt.chat.rail.logout")}
+          </button>
+        </Show>
       </div>
     </aside>
   )
 }
 
-function avatarOf(map: Record<string, string>, path: string | undefined) {
-  if (path === undefined || path.length === 0) return undefined
-  const value = map[path]
-  return value === undefined || value.length === 0 ? undefined : value
-}
 
 /** 命中的一行：正文优先，附件退到文件名，再退到类型说明。 */
 function snippetOf(ctx: Context, hit: SearchHit) {
@@ -245,6 +271,7 @@ function snippetOf(ctx: Context, hit: SearchHit) {
     call: text(ctx, "hyt.chat.msg.call.short"),
     recall: text(ctx, "hyt.chat.msg.recall"),
     merge: text(ctx, "hyt.chat.msg.merge"),
+    app: text(ctx, "hyt.chat.msg.app.short"),
     notice: text(ctx, "hyt.chat.msg.notice"),
     other: text(ctx, "hyt.chat.msg.unsupported"),
     file: text(ctx, "hyt.chat.msg.file.short"),

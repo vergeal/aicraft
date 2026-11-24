@@ -127,7 +127,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
       enabled: item.ctx.sdk.connection.status() === "connected",
       queryFn: async ({ signal }: { signal: AbortSignal }) => {
         const response = await item.ctx.sdk.api.session.list(
-          { limit: INDEX_LIMIT, order: "desc", parentID: null, archived: false },
+          { limit: INDEX_LIMIT, order: "desc", subagent: false, archived: false },
           { signal },
         )
         setPaging("cursor", ServerConnection.key(item.conn), response.cursor?.next ?? undefined)
@@ -150,7 +150,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
       enabled: !!options.archived && item.ctx.sdk.connection.status() === "connected",
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         item.ctx.sdk.api.session
-          .list({ limit: ARCHIVED_LIMIT, order: "desc", parentID: null, archived: true }, { signal })
+          .list({ limit: ARCHIVED_LIMIT, order: "desc", subagent: false, archived: true }, { signal })
           .then((response) => response.data),
       retry: false,
       staleTime: 30_000,
@@ -208,7 +208,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
         )
 
         return data.session
-          .apply([...sessions.values()].filter((session) => !session.parentID))
+          .apply([...sessions.values()].filter((session) => !session.subagent))
           .map((session): InboxEntry => {
             const project = projectSettingsKey(item.ctx.sdk.scope, session.projectID)
             const requests = sessionRequests(item.ctx, session.id, true, settings.permissions.autoApproves(project))
@@ -377,7 +377,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
         setPaging("loading", key, true)
 
         const response = await item.ctx.sdk.api.session
-          .list({ limit: INDEX_LIMIT, order: "desc", parentID: null, cursor })
+          .list({ limit: INDEX_LIMIT, order: "desc", subagent: false, cursor })
           .catch(() => undefined)
 
         setPaging("loading", key, false)

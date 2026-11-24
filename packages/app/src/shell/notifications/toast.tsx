@@ -5,8 +5,11 @@ import { Predicate } from "effect"
 import { useLanguage } from "@/runtime/i18n/language"
 import { acknowledgeLocalStorageNotice, localStorageNoticePending } from "@/runtime/persistence/storage"
 
+/** An icon name from the app's catalog, or the plugin's own mark as an element. */
+type AppToastIcon = IconProps["name"] | JSX.Element | (() => JSX.Element)
+
 type AppToastOptions = Omit<ToastOptions, "icon"> & {
-  icon?: IconProps["name"]
+  icon?: AppToastIcon
 }
 
 export function ToastRegion() {
@@ -41,7 +44,10 @@ function showAppToast(options: AppToastOptions | string) {
 
 export { showAppToast as showToast }
 
-function resolveIcon(icon: IconProps["name"] | undefined, variant: ToastOptions["variant"]) {
+function resolveIcon(icon: AppToastIcon | undefined, variant: ToastOptions["variant"]) {
+  // A plugin's own mark arrives as an element; only a catalog name needs resolving.
+  if (icon !== undefined && !Predicate.isString(icon)) return icon
+
   const name = icon ?? (variant === "success" ? "check" : undefined)
 
   if (!name) return undefined

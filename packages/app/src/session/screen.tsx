@@ -289,7 +289,7 @@ function SessionScreenContent(props: {
 
       const actions = composer.actions.timeline({
         sessionID: source.identity.sessionID,
-        isChild: () => !!source.data.parentID(),
+        isChild: () => source.data.info()?.subagent === true,
       })
 
       return (

@@ -10,9 +10,10 @@ export const name = "create"
 
 export const description = [
   "Create a new session in this project and return its id. A session is a conversation, not a file.",
+  "The new session is complete on its own: it appears in the session list and takes messages like any other session. It is attached to this session for display only, not as a subagent.",
   "Use it when the work should continue in a fresh context instead of this session: a long task that would fill this one, or a task for a different agent.",
   "Pass `prompt` to start the new session immediately with the first message; omit it to leave the session idle and deliver to it later.",
-  "Creating a session only makes the session. This session does not see what happens inside it.",
+  "This session does not see what happens inside it. Address it with `deliver({ to, text })`, the same way as any other session.",
   "To start an agent that runs this task and reports back to you, use `subagent` instead.",
 ].join("\n")
 
@@ -61,6 +62,8 @@ export const Plugin = {
 
               const created = yield* ctx.session
                 .create({
+                  // The parent is display lineage, not subagent ownership: the new session appears in the session list
+                  // and is driven by `deliver`, while only `subagent` marks an internal child agent.
                   parentID: context.sessionID,
                   title: input.title,
                   metadata: { createdBy: { sessionID: context.sessionID } },

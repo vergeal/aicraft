@@ -259,10 +259,13 @@ export const Plugin = define({
       )
 
     // A subagent's executions carry its own Session ID, so a step anywhere below a waiting goal restarts its timer.
-    // Otherwise a healthy subagent working past WAIT_LIMIT would pause the goal it works for.
+    // Otherwise a healthy subagent working past WAIT_LIMIT would pause the goal it works for. A session made with
+    // `create` is a session of its own that reports by delivery, so its steps leave the goal alone.
     const touch = Effect.fn("GoalPlugin.touch")(function* (sessionID: Session.ID) {
       if ((yield* FiberMap.size(timers)) === 0) return
-      let current = (yield* ctx.session.get({ sessionID })).parentID
+      const session = yield* ctx.session.get({ sessionID })
+      if (!session.subagent) return
+      let current = session.parentID
       while (current !== undefined) {
         if (yield* FiberMap.has(timers, current)) return yield* watch(current)
         current = (yield* ctx.session.get({ sessionID: current })).parentID

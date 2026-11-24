@@ -4,11 +4,11 @@ import { join } from "node:path"
 import { accountDirectory, readCredentials, resolveChfileRoot } from "./account.js"
 import type { Credentials } from "./account.js"
 import type { BridgeClient } from "./bridge/client.js"
-import { sendMessage } from "./bridge/client.js"
-import { bridgeExecutable, ensureLogin } from "./bridge/native.js"
+import { bridgeExecutable, ensureLogin, sendTextEnsuringLogin } from "./bridge/native.js"
 import type { BridgeSupervisor, SupervisorStatus } from "./bridge/supervisor.js"
 import { createSupervisor } from "./bridge/supervisor.js"
 import { openReadonly, openWritable, appendOwnMessage } from "./chat/store.js"
+import { readSavedCredentials } from "./credentials.js"
 import type { Settings } from "./settings.js"
 import { readSettings } from "./settings.js"
 import { markSent } from "./style/sent.js"
@@ -78,10 +78,29 @@ export function createService(deps: RuntimeDeps): Service {
     return opened
   }
 
+  /**
+   * 插件自己保存的凭据优先，其次是客户端 login.db。
+   * 前者让没装或没登录过虹云通客户端的环境也能收发消息。
+   */
+  const credentialsOf = async (): Promise<Credentials | undefined> => {
+    const saved = await readSavedCredentials(deps.dataDir)
+    if (saved !== undefined)
+      return {
+        userName: saved.userName,
+        account: saved.account,
+        displayName: saved.displayName,
+        compId: saved.comId,
+        password: saved.password,
+        autoLogin: false,
+      }
+    const settings = await readCached()
+    return readCredentials(resolveChfileRoot(settings.chfileRoot), settings.account)
+  }
+
   const environment = async (): Promise<Environment | undefined> => {
     const settings = await readCached()
     const root = resolveChfileRoot(settings.chfileRoot)
-    const credentials = readCredentials(root, settings.account)
+    const credentials = await credentialsOf()
     if (credentials === undefined) return undefined
     const directory = accountDirectory(root, credentials.account)
     if (!existsSync(join(directory, "chatmsg.db"))) return undefined
@@ -97,7 +116,7 @@ export function createService(deps: RuntimeDeps): Service {
   const requireEnvironment = async () => {
     const current = await environment()
     if (current === undefined)
-      throw new Error("没有找到虹云通的本地数据：先打开虹云通客户端登录一次，或在插件设置里指定 chfileRoot 与 account。")
+      throw new Error("没有找到虹云通的本地数据：先在虹云通助手里登录，或在插件设置里指定 chfileRoot 与 account。")
     return current
   }
 
@@ -121,14 +140,14 @@ export function createService(deps: RuntimeDeps): Service {
   const client = async (): Promise<BridgeClient> => (await bridge()).client()
 
   /**
-   * 可用的消息通道：桥接进程按需拉起（已有实例则复用），未登录时用 login.db 里的凭据登录一次。
-   * 插件自带 SDK，不要求虹云通客户端在运行；客户端同时开着也能共用同一个桥接实例。
+   * 可用的消息通道：桥接进程按需拉起（已有实例则复用），未登录时用插件保存的凭据登录一次，
+   * 没有插件凭据再退回客户端 login.db。插件自带 SDK，不要求虹云通客户端在运行；
+   * 客户端同时开着也能共用同一个桥接实例。
    */
   const channel = async (): Promise<BridgeClient> => {
-    const settings = await readCached()
-    const credentials = readCredentials(resolveChfileRoot(settings.chfileRoot), settings.account)
+    const credentials = await credentialsOf()
     if (credentials === undefined)
-      throw new Error("没有找到虹云通的登录凭据：先打开虹云通客户端登录一次，或在插件设置里指定 chfileRoot 与 account。")
+      throw new Error("没有找到虹云通的登录凭据：先在虹云通助手里登录一次，或在插件设置里指定 chfileRoot 与 account。")
     const current = await client()
     await ensureLogin(current, credentials)
     return current
@@ -138,17 +157,14 @@ export function createService(deps: RuntimeDeps): Service {
     dataDir: deps.dataDir,
     settings: readCached,
     environment,
-    credentials: async () => {
-      const settings = await readCached()
-      return readCredentials(resolveChfileRoot(settings.chfileRoot), settings.account)
-    },
+    credentials: credentialsOf,
     chat,
     contacts,
     recvRoot: async () => join((await requireEnvironment()).directory, "RecvFiles"),
     warm: async () => {
       const settings = await readCached()
       if (!settings.autoStartBridge) return
-      if ((await environment()) === undefined) return
+      if ((await credentialsOf()) === undefined) return
       // 插件重载或另一个进程刚抢到端口时，第一次可能连到即将退出的实例；稍等再试一次即可自愈。
       try {
         await channel()
@@ -170,8 +186,11 @@ export function createService(deps: RuntimeDeps): Service {
       if (!isAllowed(settings.whitelist, sessionId, environment.account))
         throw new Error(`会话 ${sessionId} 不在白名单里，拒绝发送。`)
 
-      const result = await sendMessage(await channel(), { sessionId, text })
-      if (!result.ok) throw new Error("bridge 没有确认消息已发出。")
+      const credentials = await credentialsOf()
+      if (credentials === undefined)
+        throw new Error("没有找到虹云通的登录凭据：先在虹云通助手里登录一次，或在插件设置里指定 chfileRoot 与 account。")
+      const result = await sendTextEnsuringLogin(await channel(), credentials, { sessionId, text })
+      if (!result.ok) throw new Error(result.error.length > 0 ? result.error : "bridge 没有确认消息已发出。")
       const outcome = await recordOwnMessage({
         db: await chat(),
         dataDir: deps.dataDir,

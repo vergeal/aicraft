@@ -346,6 +346,20 @@ export const css = `
 
 .hyt-shell .rail-foot strong { color: var(--ink); font-weight: 500; }
 
+.hyt-shell .rail-foot button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hyt-shell .rail-foot button:hover { color: var(--ink); }
+.hyt-shell .rail-foot button:disabled { opacity: 0.45; cursor: not-allowed; }
+
 .hyt-shell .day {
   padding: 16px 8px 4px;
   color: var(--muted);
@@ -397,6 +411,11 @@ export const css = `
 }
 
 .hyt-shell .face[data-hue="a"] { background: var(--face-a-bg); color: var(--face-a-fg); }
+
+/* 群聊默认头像：24px 画布铺满头像框，不随成员变化。 */
+.hyt-shell .face--group { background: transparent; }
+.hyt-shell .face--group svg,
+.hyt-shell .head-face svg { display: block; width: 100%; height: 100%; }
 
 .hyt-shell .face--sm {
   width: 30px;
@@ -690,6 +709,39 @@ export const css = `
   color: var(--muted);
   font-size: 13px;
   text-align: center;
+}
+
+/* 「对方正在输入中」：挂在消息流末尾，与对方气泡左缘对齐（32px 头像 + 10px 间距）。
+   它不是一条消息，所以不占气泡位、不画底色，只有小字和三个呼吸点。 */
+.hyt-shell .typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0 42px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.hyt-shell .typing-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.hyt-shell .typing-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: hyt-typing 1.2s ease-in-out infinite;
+}
+
+.hyt-shell .typing-dots i:nth-child(2) { animation-delay: 0.16s; }
+.hyt-shell .typing-dots i:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes hyt-typing {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
 }
 
 .hyt-shell .system b { color: var(--ink); font-weight: 500; }
@@ -1118,6 +1170,80 @@ export const css = `
 
 .hyt-shell .merge-card:hover { background: var(--chrome); }
 
+/* ── 应用消息卡片 
+   外部系统（观测服务等）推送的告警/通知：纸色留白 + 细边框，
+   字段按登记单排成「标签 | 值」两列，长文本自然换行，不用气泡形状。 */
+.hyt-shell .app-card {
+  width: min(520px, 100%);
+  padding: 14px 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--tint);
+}
+
+.hyt-shell .app-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hyt-shell .app-card-name { color: var(--muted); font-size: 12px; }
+
+.hyt-shell .app-card-tag {
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.hyt-shell .app-card-title {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.hyt-shell .app-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.hyt-shell .app-card-field {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.hyt-shell .app-card-field dt { color: var(--muted); font-size: 12px; }
+
+.hyt-shell .app-card-field dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.hyt-shell .app-card-more {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hyt-shell .app-card-more:hover { text-decoration: underline; }
+
 .hyt-shell .merge-title { font-size: 13px; font-weight: 500; }
 .hyt-shell .merge-text {
   margin-top: 3px;
@@ -1437,6 +1563,117 @@ export const css = `
 
 .hyt-shell .blank-actions { display: flex; align-items: center; gap: 10px; }
 
+/* 登录页：一张值班登记单。整页纸色，内容靠左，装订线是一道封红。 */
+.hyt-shell .blank--auth {
+  place-items: center start;
+  padding: 0 clamp(32px, 11vw, 148px);
+}
+
+.hyt-shell .blank--auth .blank-inner { width: min(440px, 100%); }
+
+.hyt-shell .blank--auth .blank-title {
+  margin-bottom: 10px;
+  font-size: 24px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.hyt-shell .blank--auth .blank-body {
+  max-width: 46ch;
+  margin-bottom: 28px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* 表单按纸质登记单排：字段之间用留白分开，输入区只有一条下划线，聚焦时下划线变封红。 */
+.hyt-shell .login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.hyt-shell .login-field { display: flex; flex-direction: column; gap: 8px; }
+
+.hyt-shell .login-label { color: var(--muted); font-size: 12px; letter-spacing: 0.02em; }
+
+.hyt-shell .login-input {
+  width: 100%;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.hyt-shell .login-input::placeholder { color: var(--muted); opacity: 0.7; }
+
+.hyt-shell .login-input:focus {
+  border-bottom-color: var(--seal);
+  outline: none;
+}
+
+.hyt-shell .login-input:disabled { color: var(--muted); cursor: not-allowed; }
+
+.hyt-shell .button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* 失败原因按批注排：左侧一道封红，底色是淡淡的一层，不抢标题的位置。 */
+.hyt-shell .login-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 2px solid var(--seal);
+  border-radius: 0 var(--r-tip) var(--r-tip) 0;
+  background: var(--seal-bg);
+  color: var(--seal-ink);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* 排查信息默认收起，登录页只留账号、密码与登录。 */
+.hyt-shell .login-meta {
+  margin-top: 26px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.hyt-shell .login-meta summary { cursor: pointer; }
+
+.hyt-shell .login-meta p { margin: 8px 0 0; }
+
+.hyt-shell .login-meta code {
+  color: var(--ink);
+  font-family: inherit;
+  word-break: break-all;
+}
+
+/* 主界面顶部的「通道未登录」提示：不挡内容，只把失败原因和登录入口摆在眼前。 */
+.hyt-shell .auth-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--chrome);
+  color: var(--seal-ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.hyt-shell .auth-banner span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hyt-shell .auth-banner button { flex: 0 0 auto; }
+
 .hyt-shell .button {
   height: 34px;
   padding: 0 16px;
@@ -1582,7 +1819,7 @@ export const css = `
 
 .hyt-shell .mention-item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   width: 100%;
   padding: 6px 8px;

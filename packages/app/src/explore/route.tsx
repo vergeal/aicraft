@@ -298,23 +298,10 @@ function ExplorePage() {
   const installPlugin = () =>
     void dialog.show(() => <PluginInstallDialog onInstalled={() => void installed.refetchPlugins()} />)
 
-  const installSkill = () =>
-    void dialog.show(() => (
-      <InstallSkillDialog
-        directory={installed.directory()}
-        existing={installed.skills().map((skill) => skill.id)}
-        onInstalled={() => {
-          void syncSkills(installed.directory())
-          showToast({ variant: "success", title: language.t("explore.skills.install.success") })
-        }}
-      />
-    ))
-
   const installCatalogSkill = (entry: CatalogSkill) =>
     void dialog.show(() => (
       <InstallSkillDialog
         directory={installed.directory()}
-        existing={installed.skills().map((skill) => skill.id)}
         initial={{ id: entry.id, name: entry.title, description: entry.description, instructions: entry.instructions }}
         onInstalled={() => {
           void syncSkills(installed.directory())
@@ -595,7 +582,7 @@ function ExplorePage() {
         refreshing={syncing()}
         onRefresh={refresh}
         addLabel={language.t("explore.plugins.add")}
-        onAdd={section() === "plugins" ? installPlugin : installSkill}
+        onAdd={section() === "plugins" ? installPlugin : undefined}
         loading={loading()}
         groups={groups()}
         emptyTitle={language.t(section() === "plugins" ? "explore.market.empty.plugins" : "explore.market.empty.skills")}

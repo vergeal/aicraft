@@ -6,13 +6,11 @@ import {
   settingsSchema,
   settingsPersistence,
   defaultSettings,
-  monoDefault,
   monoDefaultFor,
   monoFontFamily,
   sansDefault,
   sansDefaultFor,
   sansFontFamily,
-  terminalDefault,
   terminalDefaultFor,
   terminalFontFamily,
 } from "./model"
@@ -210,82 +208,80 @@ describe("settings schema", () => {
   })
 })
 
-test("font defaults are the system UI face and IBM Plex Mono", () => {
+test("every font row defaults to System", () => {
   expect(sansDefault).toBe("system-ui")
-  expect(monoDefault).toBe("IBM Plex Mono")
-  expect(terminalDefault).toBe("IBM Plex Mono")
 
   expect(sansDefaultFor()).toBe("system-ui")
-
-  for (const fallback of [monoDefaultFor, terminalDefaultFor]) {
-    expect(fallback(true)).toBe("system-ui")
-    expect(fallback(false)).toBe("IBM Plex Mono")
-  }
+  expect(monoDefaultFor()).toBe("system-ui")
+  expect(terminalDefaultFor()).toBe("system-ui")
 })
 
-test("every font role starts from the system face on macOS", () => {
-  expect(sansFontFamily(undefined)).toStartWith("ui-sans-serif, ")
-  // Code and terminal use the system's monospace face; `system-ui` is proportional and would break alignment.
-  expect(monoFontFamily(undefined, true)).toStartWith("Menlo, ")
-  expect(terminalFontFamily(undefined, true)).toStartWith("Menlo, ")
-  expect(monoFontFamily("system-ui", true)).toStartWith("Menlo, ")
-  expect(monoFontFamily("Custom Mono", true)).toStartWith('"Custom Mono", Menlo, ')
-  expect(monoFontFamily(undefined, false)).toStartWith('"IBM Plex Mono", ')
+test("each font role starts from its own stack", () => {
+  expect(sansFontFamily(undefined)).toStartWith("-apple-system, ")
+  expect(monoFontFamily(undefined)).toStartWith('"JetBrains Mono", ')
+  expect(terminalFontFamily(undefined)).toStartWith('"SFMono-Regular", ')
+  expect(monoFontFamily("system-ui")).toStartWith('"JetBrains Mono", ')
+  expect(monoFontFamily("Custom Mono")).toStartWith('"Custom Mono", "JetBrains Mono", ')
 })
 
-test("System resolves to the system's monospace face for code and terminal, not IBM Plex Mono", () => {
-  for (const family of [monoFontFamily("system-ui", false), terminalFontFamily("system-ui", false)]) {
-    expect(family).toStartWith("ui-monospace, ")
-    expect(family).not.toContain("IBM Plex Mono")
-  }
+test("System resolves to each role's own stack", () => {
+  expect(sansFontFamily("system-ui")).toBe(
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+  )
+  expect(monoFontFamily("system-ui")).toBe(
+    '"JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace',
+  )
+  expect(terminalFontFamily("system-ui")).toBe(
+    '"SFMono-Regular", "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+  )
 })
 
 test.each([
-  { name: "sans", family: sansFontFamily, font: undefined, prefix: "ui-sans-serif, " },
-  { name: "sans", family: sansFontFamily, font: "", prefix: "ui-sans-serif, " },
-  { name: "sans", family: sansFontFamily, font: "   ", prefix: "ui-sans-serif, " },
-  { name: "sans", family: sansFontFamily, font: "Custom Sans", prefix: '"Custom Sans", ui-sans-serif, ' },
+  { name: "sans", family: sansFontFamily, font: undefined, prefix: "-apple-system, " },
+  { name: "sans", family: sansFontFamily, font: "", prefix: "-apple-system, " },
+  { name: "sans", family: sansFontFamily, font: "   ", prefix: "-apple-system, " },
+  { name: "sans", family: sansFontFamily, font: "Custom Sans", prefix: '"Custom Sans", -apple-system, ' },
   {
     name: "mono",
-    family: (font: string | undefined) => monoFontFamily(font, false),
+    family: (font: string | undefined) => monoFontFamily(font),
     font: undefined,
-    prefix: '"IBM Plex Mono", ',
+    prefix: '"JetBrains Mono", ',
   },
   {
     name: "mono",
-    family: (font: string | undefined) => monoFontFamily(font, false),
+    family: (font: string | undefined) => monoFontFamily(font),
     font: "",
-    prefix: '"IBM Plex Mono", ',
+    prefix: '"JetBrains Mono", ',
   },
   {
     name: "mono",
-    family: (font: string | undefined) => monoFontFamily(font, false),
+    family: (font: string | undefined) => monoFontFamily(font),
     font: "   ",
-    prefix: '"IBM Plex Mono", ',
+    prefix: '"JetBrains Mono", ',
   },
   {
     name: "mono",
-    family: (font: string | undefined) => monoFontFamily(font, false),
+    family: (font: string | undefined) => monoFontFamily(font),
     font: "Custom Mono",
-    prefix: '"Custom Mono", "IBM Plex Mono", ',
+    prefix: '"Custom Mono", "JetBrains Mono", ',
   },
   {
     name: "mono",
-    family: (font: string | undefined) => monoFontFamily(font, false),
+    family: (font: string | undefined) => monoFontFamily(font),
     font: "system-ui",
-    prefix: "ui-monospace, ",
+    prefix: '"JetBrains Mono", ',
   },
   {
     name: "terminal",
-    family: (font: string | undefined) => terminalFontFamily(font, false),
+    family: (font: string | undefined) => terminalFontFamily(font),
     font: undefined,
-    prefix: '"IBM Plex Mono", ',
+    prefix: '"SFMono-Regular", ',
   },
   {
     name: "terminal",
-    family: (font: string | undefined) => terminalFontFamily(font, false),
+    family: (font: string | undefined) => terminalFontFamily(font),
     font: "system-ui",
-    prefix: "ui-monospace, ",
+    prefix: '"SFMono-Regular", ',
   },
 ])("$name font family for $font starts with $prefix", ({ family, font, prefix }) => {
   expect(family(font)).toStartWith(prefix)

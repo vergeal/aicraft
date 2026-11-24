@@ -3,7 +3,7 @@ import type { SessionRequestModel } from "../requests/model"
 
 export function createSessionComposerRegionController(input: {
   state: SessionRequestModel
-  parentID: Accessor<string | undefined>
+  child: Accessor<boolean>
   centered: Accessor<boolean>
   onResponseSubmit: () => void
   openParent: () => void
@@ -19,9 +19,8 @@ export function createSessionComposerRegionController(input: {
     focusPrompt: input.focusPrompt,
     setPromptRef: input.setPromptRef,
     setDockRef: input.setDockRef,
-    parentID: input.parentID,
-    child: () => !!input.parentID(),
-    showComposer: () => !input.state.blocked() || !!input.parentID(),
+    child: input.child,
+    showComposer: () => !input.state.blocked() || input.child(),
   }
 }
 

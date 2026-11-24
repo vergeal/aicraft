@@ -1,6 +1,7 @@
 import type { IpcProvider } from "@aicraft/plugin/gui"
 import type { MainContext } from "@aicraft/plugin/gui/main"
 import { Schema } from "effect"
+import { readSavedCredentials } from "../../src/credentials.js"
 import { mergeProfile } from "../../src/profile/merge.js"
 import type { ProfilePatch } from "../../src/profile/merge.js"
 import { defaultProfile } from "../../src/profile/schema.js"
@@ -59,9 +60,20 @@ export function provideHytIpc(ctx: MainContext, options: HytIpcOptions = {}): Ip
     const chfileRoot = Data.resolveChfileRoot(settings.value.chfileRoot)
     const logins = Data.readLogins(chfileRoot)
     const lastUser = Data.readLastUser(chfileRoot)
+    // 与聊天页同一优先级：插件里保存的凭据优先，没有时才回退到 login.db。
+    const saved = await readSavedCredentials(dataDir)
     const fallback = Data.pickLogin(logins, "", lastUser)
-    const profile = await Data.readProfile(dataDir, fallback?.account ?? "")
-    const login = Data.pickLogin(logins, profile.account, lastUser) ?? null
+    const profile = await Data.readProfile(dataDir, saved?.account ?? fallback?.account ?? "")
+    const login =
+      saved === undefined
+        ? (Data.pickLogin(logins, profile.account, lastUser) ?? null)
+        : {
+            userName: saved.userName,
+            account: saved.account,
+            displayName: saved.displayName,
+            compId: saved.comId,
+            autoLogin: true,
+          }
     const account = login?.account ?? profile.account
     const knowledge = account.length === 0 ? { entries: 0, updatedAt: "" } : await Data.readKnowledge(dataDir)
     const style =

@@ -2,7 +2,7 @@ import type { Context } from "@aicraft/plugin/gui"
 import { For, Show, createMemo } from "solid-js"
 import type { MemberRow, MessageRow, SessionRow } from "./contract.js"
 import { text } from "./i18n.js"
-import { Face } from "./avatar.js"
+import { Face, GroupFace, avatarOf } from "./avatar.js"
 import { clockOf, sizeOf } from "./util.js"
 
 /**
@@ -63,12 +63,18 @@ export function InfoPanel(props: {
       <div class="panel-body">
         <Show when={props.session !== undefined}>
           <div class="subject">
-            <Face
-              name={members()[0]?.name ?? props.session!.name}
-              src={avatarOf(props.avatars, members()[0]?.headPath)}
-              size={44}
-              class="face"
-            />
+            <Show
+              when={props.session!.group}
+              fallback={
+                <Face
+                  name={members()[0]?.name ?? props.session!.name}
+                  src={avatarOf(props.avatars, props.session!.avatar)}
+                  size={44}
+                />
+              }
+            >
+              <GroupFace size={44} />
+            </Show>
             <div>
               <h3 class="subject-name">{props.session!.name}</h3>
               <div class="subject-meta">{meta()}</div>
@@ -134,11 +140,6 @@ export function InfoPanel(props: {
   )
 }
 
-function avatarOf(map: Record<string, string>, path: string | undefined) {
-  if (path === undefined || path.length === 0) return undefined
-  const value = map[path]
-  return value === undefined || value.length === 0 ? undefined : value
-}
 
 function fileMeta(ctx: Context, message: MessageRow) {
   const sender = message.outgoing ? text(ctx, "hyt.chat.msg.self") : message.senderNick

@@ -67,7 +67,10 @@ export default Plugin.define({
     const profile = await loadProfile(service.dataDir, defaultProfile(""))
     const sink = createAnalysisSink(ctx)
 
-    // 后台循环只负责「攒批次 + 投递」，模型判定在分析会话里完成；能力全关时连库都不读。
+    // 后台循环只负责「攒批次 + 投递」，模型判定在分析会话里完成。
+    // 默认档案七项能力全是关闭的，所以这一轮 tick 会在一开始就返回：不读聊天库、不取环境、不投递批次，
+    // 也就没有任何模型调用。能力可以在设置页随时打开，因此循环保持常驻，按每次 tick 的最新档案判断，
+    // 不在这里「全关就不注册定时器」——否则打开能力后还要重载插件才生效。
     const stopAnalysis = startAnalysisLoop({
       intervalMinutes: profile.cost.analysisIntervalMinutes,
       run: async () => {

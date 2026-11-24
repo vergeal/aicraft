@@ -1,7 +1,7 @@
 {
   "apiVersion": 1,
   "id": "changhong.aicraft.hyt",
-  "version": "0.6.7",
+  "version": "0.6.23",
   "requires": {
     "opencode": "^2.2.5"
   },
@@ -44,12 +44,12 @@
       "chfileRoot": {
         "type": "string",
         "default": "",
-        "description": "虹云通数据根目录（含 login.db 与各账号目录）。留空时 macOS/Linux 用 ~/Documents/CHFile，Windows 用 %USERPROFILE%\\Documents\\CHFile。"
+        "description": "虹云通数据根目录（含 login.db 与各账号目录）。留空时 macOS/Linux 用 ~/Documents/CHFile，Windows 用 %USERPROFILE%\\Documents\\CHFile。没装客户端也可以只在这里指定目录。"
       },
       "account": {
         "type": "string",
         "default": "",
-        "description": "要读取的账号，例如 csT1002173。留空时按 login.db 的上次登录用户推断。"
+        "description": "要读取的账号，例如 csT1002173。留空时按插件保存的登录凭据、再按 login.db 的上次登录用户推断。"
       },
       "autoStartBridge": {
         "type": "boolean",

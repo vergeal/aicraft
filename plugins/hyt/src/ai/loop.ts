@@ -293,6 +293,8 @@ export const MIN_INTERVAL_MINUTES = 5
 /**
  * 定时循环。首次触发延后一分钟，避开启动阶段的模型与会话初始化；同一时刻只跑一次，
  * 一次跑得比间隔久时下一次直接跳过，不排队堆积。间隔下限 5 分钟，防止把配置写成 1 分钟把成本打穿。
+ *
+ * `intervalMinutes <= 0` 表示显式关闭：连定时器都不注册，返回空的停止函数。
  */
 export function startAnalysisLoop(input: {
   readonly intervalMinutes: number
@@ -300,6 +302,7 @@ export function startAnalysisLoop(input: {
   readonly onError?: (error: unknown) => void
   readonly firstDelayMs?: number
 }) {
+  if (input.intervalMinutes <= 0) return () => {}
   const interval = Math.max(MIN_INTERVAL_MINUTES, Math.trunc(input.intervalMinutes)) * 60_000
   let running = false
   let stopped = false

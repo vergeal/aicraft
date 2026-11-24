@@ -81,8 +81,8 @@ export function ExploreMarket(props: {
   refreshLabel: string
   refreshing: boolean
   onRefresh: () => void
-  addLabel: string
-  onAdd: () => void
+  addLabel?: string
+  onAdd?: () => void
   loading: boolean
   groups: readonly MarketGroup[]
   emptyTitle: string
@@ -145,10 +145,12 @@ export function ExploreMarket(props: {
             <Icon name="refresh" size="small" />
           </button>
 
-          <button type="button" class="explore-market-add" onClick={() => props.onAdd()}>
-            {props.addLabel}
-            <Icon name="chevron-down" size="small" />
-          </button>
+          <Show when={props.onAdd}>
+            <button type="button" class="explore-market-add" onClick={() => props.onAdd?.()}>
+              {props.addLabel}
+              <Icon name="chevron-down" size="small" />
+            </button>
+          </Show>
         </div>
       </header>
 

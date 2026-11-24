@@ -40,6 +40,7 @@ import { SessionQueuePanel } from "./queue-panel"
 import { SessionGoLimitTray } from "./go-limit-tray"
 import { SessionActivityChips, type SessionActivityItem } from "./activity-chips"
 import { SessionComposerLane, useComposerLaneAlignment } from "./composer-lane"
+import { SessionComposerStatus } from "./session-status"
 import { SessionTodoPill } from "./todo-pill"
 import { sessionTodos, todoFinished } from "./todos"
 import { useOpenSessionRoute } from "../session-identity-header"
@@ -641,6 +642,7 @@ export function ActiveSessionComposerRegion(props: {
                   suggestionBoundary={props.suggestionBoundary}
                 />
               </VoiceComposer>
+              <SessionComposerStatus session={props.session} />
             </div>
           }
         >

@@ -928,6 +928,11 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   padding-bottom: 14px;
 }
 
+/* The composer face ends in the status line, which the design keeps 2px off the panel edge instead of the docks' 14px. */
+[data-slot="replica-main"] [data-component="session-composer-dock"][data-face="composer"] {
+  padding-bottom: 2px;
+}
+
 /* The v6 card is 82px tall: the editor holds a 38px input region and the toolbar keeps its own row. */
 [data-slot="replica-main"] [data-component="composer-editor"] {
   min-height: 38px;

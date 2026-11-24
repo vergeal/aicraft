@@ -1,0 +1,104 @@
+/*
+ * The token usage card: one headed total over the cache split, on the same quiet type scale as the status line that
+ * opens it. The popover's own padding is dropped so rows reach the card's inset like the timeline's menus do.
+ */
+[data-component="popover-content"].session-status-card {
+  width: 248px;
+  max-width: calc(100vw - 16px);
+
+  [data-slot="popover-body"] {
+    padding: 4px;
+  }
+}
+
+[data-slot="session-status-card-body"] {
+  display: flex;
+  flex-direction: column;
+}
+
+[data-slot="session-status-head"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 26px;
+  padding-inline: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--v2-text-text-base);
+  font-variant-numeric: tabular-nums;
+
+  > :first-child {
+    flex: 1;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: var(--font-weight-medium);
+  }
+}
+
+[data-slot="session-status-separator"] {
+  block-size: 1px;
+  margin: 2px 4px;
+  background: var(--v2-border-border-muted);
+  transform: scaleY(0.5);
+}
+
+[data-slot="session-status-row"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+  padding-inline: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+[data-slot="session-status-value"] {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  color: var(--v2-text-text-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The context card's composition bar: one segment per prompt part, sized by its estimated share of the window. */
+[data-slot="session-status-track"] {
+  display: flex;
+  block-size: 6px;
+  margin-block: 6px 2px;
+  margin-inline: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--v2-background-bg-layer-02);
+}
+
+[data-slot="session-status-fill"] {
+  display: flex;
+  block-size: 100%;
+  min-inline-size: 0;
+}
+
+[data-slot="session-status-track"] [data-part] {
+  display: block;
+  block-size: 100%;
+}
+
+[data-slot="session-status-row"] i[data-part] {
+  display: block;
+  inline-size: 7px;
+  block-size: 7px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+}
+
+[data-slot="session-status-card-body"] [data-part="system"] {
+  background: var(--v2-icon-icon-muted);
+}
+
+[data-slot="session-status-card-body"] [data-part="tools"] {
+  background: var(--v2-icon-icon-faint);
+}
+
+[data-slot="session-status-card-body"] [data-part="history"] {
+  background: var(--v2-background-bg-accent);
+}

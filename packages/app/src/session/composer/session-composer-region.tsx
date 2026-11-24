@@ -47,7 +47,9 @@ export function SessionComposerRegion(props: {
     <div
       ref={controller.setDockRef}
       data-component="session-composer-dock"
-      class="w-full shrink-0 flex flex-col justify-center items-center pb-3 pointer-events-none"
+      data-face={face().key}
+      class="w-full shrink-0 flex flex-col justify-center items-center pointer-events-none"
+      classList={{ "pb-3": !face().composer, "pb-0.5": face().composer }}
     >
       {/* Only the docks and composer take the pointer; the gaps beside them belong to the timeline underneath. */}
       <div

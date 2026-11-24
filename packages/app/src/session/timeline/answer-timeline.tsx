@@ -313,6 +313,17 @@ export function AnswerTimeline(props: {
     applyAnchoring()
   })
 
+  // The transcript's bottom fade ends where the composer region begins, so it fades out under the composer instead of
+  // being cut off by its opaque card. The length lives on the viewport itself: neither the property nor the mask
+  // inherits, and the mask's rule reads it there.
+  createRenderEffect(() => {
+    const inset = props.bottomInset
+
+    if (!viewport) return
+
+    viewport.style.setProperty("--session-timeline-inset", `${inset}px`)
+  })
+
   onCleanup(() => contentObserver?.disconnect())
   onCleanup(() => {
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
@@ -336,6 +347,7 @@ export function AnswerTimeline(props: {
         data-slot="session-timeline-scroll"
         viewportRef={(element) => {
           viewport = element
+          element.style.setProperty("--session-timeline-inset", `${props.bottomInset}px`)
           setViewportElement(element)
           props.setScrollRef(element)
           applyAnchoring()

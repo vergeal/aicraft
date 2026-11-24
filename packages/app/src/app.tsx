@@ -18,7 +18,8 @@ import { ServerConnection, ServersProvider } from "@/runtime/server/registry"
 import { SettingsProvider } from "@/settings/model"
 import { TabsProvider } from "@/shell/tabs/tabs"
 import { ErrorPage } from "@/shell/errors/error"
-import { AppRoutes, File, preloadRoute } from "@/shell/routes/routes"
+import { AppRoutes } from "@/shell/routes/routes"
+import { File, preloadRoute } from "@/shell/routes/preload"
 import { PluginRoot } from "@/runtime/plugin/root"
 
 export { preloadRoute }

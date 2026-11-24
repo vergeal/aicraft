@@ -12,26 +12,16 @@ import { SettingsSurfaceProvider } from "@/settings/surface"
 import Shell from "@/shell/shell"
 import { requireServerKey } from "./session"
 import { PluginAttachment } from "@/runtime/plugin/root"
-
-export const File = lazy(() => import("@aicraft/session-ui/file").then((module) => ({ default: module.File })))
-
-const loadSessionRoute = () => Promise.all([import("@/session/route"), File.preload()]).then(([module]) => module)
-
-const DraftRoute = lazy(() => import("@/new-session/route").then((module) => ({ default: module.DraftRoute })))
-
-const SettingsScreen = lazy(() => import("@/settings/shell").then((module) => ({ default: module.SettingsScreen })))
-
-const KnowledgeScreen = lazy(() => import("@/knowledge/route").then((module) => ({ default: module.KnowledgeScreen })))
-
-const ExploreScreen = lazy(() => import("@/explore/route").then((module) => ({ default: module.ExploreScreen })))
-
-const ScheduledScreen = lazy(() => import("@/scheduled/route").then((module) => ({ default: module.ScheduledScreen })))
-
-const InboxScreen = lazy(() => import("@/inbox/route").then((module) => ({ default: module.InboxScreen })))
-
-const PluginSurfaceScreen = lazy(() =>
-  import("@/shell/routes/plugin-surface").then((module) => ({ default: module.PluginSurfaceScreen })),
-)
+import {
+  DraftRoute,
+  ExploreScreen,
+  InboxScreen,
+  KnowledgeScreen,
+  PluginSurfaceScreen,
+  ScheduledScreen,
+  SettingsScreen,
+  TargetSessionRouteContent,
+} from "./preload"
 
 const ConnectServerScreen = lazy(() =>
   import("@/servers/connect/screen").then((module) => ({ default: module.ConnectServerScreen })),
@@ -43,33 +33,6 @@ const ComponentsLab =
   import.meta.env.DEV || import.meta.env.VITE_AICRAFT_CHANNEL === "beta"
     ? lazy(() => import("@/components-lab/lab"))
     : undefined
-
-const TargetSessionRouteContent = lazy(() =>
-  loadSessionRoute().then((module) => ({ default: module.TargetSessionRouteContent })),
-)
-
-export function preloadRoute(url: string) {
-  const pathname = url.split(/[?#]/, 1)[0]
-
-  if (pathname === "/new-session") return DraftRoute.preload().then(() => undefined)
-
-  if (pathname === "/settings") return SettingsScreen.preload().then(() => undefined)
-
-  if (pathname === "/knowledge") return KnowledgeScreen.preload().then(() => undefined)
-
-  if (pathname === "/explore" || pathname.startsWith("/explore/")) return ExploreScreen.preload().then(() => undefined)
-
-  if (pathname === "/scheduled") return ScheduledScreen.preload().then(() => undefined)
-
-  if (pathname === "/inbox") return InboxScreen.preload().then(() => undefined)
-
-  if (/^\/plugins\/[^/]+\/[^/]+$/.test(pathname)) return PluginSurfaceScreen.preload().then(() => undefined)
-
-  if (/^\/server\/[^/]+\/session\/[^/]+$/.test(pathname))
-    return TargetSessionRouteContent.preload().then(() => undefined)
-
-  return Promise.resolve()
-}
 
 export function AppRoutes() {
   return (

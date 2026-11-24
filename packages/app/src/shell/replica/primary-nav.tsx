@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js"
+import { createEffect, For, on, onCleanup, onMount, Show } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { Icon } from "@aicraft/ui/icon"
 import type { IconName } from "@aicraft/ui/icons/catalog"
@@ -10,6 +10,7 @@ import { usePluginHost } from "@/runtime/plugin/host"
 import { mainSurfaceEntries, mainSurfacePath } from "@/runtime/plugin/main-surface"
 import { useSettingsDialog } from "@/settings/command"
 import { preloadSettings } from "@/settings/preload"
+import { preloadRoute, preloadRoutes } from "@/shell/routes/preload"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
 import { createSessionInbox } from "@/shell/titlebar/inbox-model"
@@ -28,6 +29,13 @@ const DESTINATIONS: readonly Destination[] = [
   { id: "knowledge", icon: "rail-library", labelKey: "replica.rail.knowledge", path: "/knowledge" },
   { id: "explore", icon: "rail-compass", labelKey: "replica.rail.explore", path: "/explore" },
 ]
+
+/**
+ * How long after the rail mounts its destinations start warming. Until then the window is busy with the route it
+ * restored, the session list and the plugin bundles — pages the user is looking at, or waiting on. The rail's own
+ * pages come after them, one chunk at a time, in the order the rail lists them.
+ */
+const WARM_DELAY_MS = 1800
 
 const ROW =
   "flex h-8 w-full items-center gap-1.5 rounded-[var(--radius-row)] px-2 text-start text-[13px] leading-5 text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-primary)] data-[state=pressed]:bg-[var(--color-selected)] data-[state=pressed]:text-[var(--color-text-primary)]"
@@ -72,6 +80,28 @@ export function ReplicaPrimaryNav() {
 
   const surfaces = () => mainSurfaceEntries(host.items(MainSurface))
 
+  // Warming an already warm route is a cached promise, so the rows below can call this on every pointer entry.
+  const warm = (path: string) => void preloadRoute(path)
+
+  // The whole rail warms in the background too, so a page the user reaches for without ever hovering its row still
+  // opens on the click rather than on the download.
+  onMount(() => {
+    const timer = setTimeout(() => void preloadRoutes(DESTINATIONS.map((item) => item.path)), WARM_DELAY_MS)
+    onCleanup(() => clearTimeout(timer))
+  })
+
+  // A plugin row only exists once its bundle has activated, so the plugin's own code is already loaded. What is left
+  // is the shared surface screen, and the first row warms it for every one of them.
+  createEffect(
+    on(
+      () => surfaces()[0],
+      (first) => {
+        if (first) warm(mainSurfacePath(first.plugin, first.value.id))
+      },
+      { defer: true },
+    ),
+  )
+
   const active = (id: Destination["id"]) => layout.route().type === id
 
   const pluginActive = (plugin: string, id: string) => {
@@ -95,6 +125,8 @@ export function ReplicaPrimaryNav() {
             data-state={active(item.id) ? "pressed" : undefined}
             aria-current={active(item.id) ? "page" : undefined}
             class={ROW}
+            onPointerEnter={(event) => event.pointerType !== "touch" && warm(item.path)}
+            onFocus={() => warm(item.path)}
             onClick={() => navigate(item.path)}
           >
             <Icon name={item.icon} class="size-4 shrink-0" />
@@ -115,6 +147,10 @@ export function ReplicaPrimaryNav() {
             data-state={pluginActive(item.plugin, item.value.id) ? "pressed" : undefined}
             aria-current={pluginActive(item.plugin, item.value.id) ? "page" : undefined}
             class={ROW}
+            onPointerEnter={(event) =>
+              event.pointerType !== "touch" && warm(mainSurfacePath(item.plugin, item.value.id))
+            }
+            onFocus={() => warm(mainSurfacePath(item.plugin, item.value.id))}
             onClick={() => navigate(mainSurfacePath(item.plugin, item.value.id))}
           >
             <Icon name={item.value.icon} class="size-4 shrink-0" />

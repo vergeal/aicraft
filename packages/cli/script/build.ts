@@ -167,6 +167,9 @@ export default { path: file, version: ${JSON.stringify(aicraftPty.version)}, sha
   }
   const target = targetName(item)
   const name = target.replace(binary, "cli")
+  // Windows ships `aicraft.exe` (the release scripts, the updater and the desktop packager all look for that name);
+  // the other platforms keep the upstream binary name.
+  const executable = item.os === "win32" ? "aicraft" : binary
   const executablePath = await compileExecutable(item)
   console.log(`building ${name}`)
   const result = await Bun.build({
@@ -195,7 +198,7 @@ export default { path: file, version: ${JSON.stringify(aicraftPty.version)}, sha
       autoloadPackageJson: true,
       target: target.replace(binary, "bun") as Bun.Build.CompileTarget,
       ...(executablePath ? { executablePath } : {}),
-      outfile: path.join(outdir, name, "bin", binary),
+      outfile: path.join(outdir, name, "bin", executable),
       execArgv: [
         "--smol",
         `--user-agent=aicraft/${Script.channel}/${Script.version}/cli`,
@@ -223,7 +226,7 @@ export default { path: file, version: ${JSON.stringify(aicraftPty.version)}, sha
     process.exit(1)
   }
   verifySimulationGraph(simulationInputs)
-  await NativeArch.verify(path.join(outdir, name, "bin", item.os === "win32" ? `${binary}.exe` : binary), item.arch)
+  await NativeArch.verify(path.join(outdir, name, "bin", item.os === "win32" ? `${executable}.exe` : executable), item.arch)
 
   await Bun.write(
     path.join(outdir, name, "package.json"),

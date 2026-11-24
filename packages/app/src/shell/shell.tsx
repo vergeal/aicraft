@@ -1,4 +1,4 @@
-import { createEffect, createSignal, lazy, onCleanup, Show, Suspense, type ParentProps } from "solid-js"
+import { createEffect, createMemo, createSignal, lazy, onCleanup, Show, Suspense, untrack, type JSX, type ParentProps } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { ToastRegion } from "@/shell/notifications/toast"
@@ -13,7 +13,7 @@ import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
-import { useNavigate } from "@solidjs/router"
+import { useLocation, useNavigate } from "@solidjs/router"
 import { ResizeHandle } from "@opencode/ui/resize-handle"
 import { DestinationToggle } from "@/shell/titlebar/destination-toggle"
 import { createSessionInbox } from "@/shell/titlebar/inbox-model"
@@ -104,6 +104,27 @@ function ReplicaLayer(props: ParentProps) {
   const dialog = useDialog()
   const layout = useLayout()
   const navigate = useNavigate()
+  const location = useLocation()
+  /**
+   * The routed page, resolved once per URL.
+   *
+   * `props.children` is a getter: every read re-runs the route's JSX and hands back new nodes. `Suspense`
+   * reads that getter inside its own effect, so any signal the route touches — including a plugin pushing
+   * its own state while opening another conversation — made the boundary drop the current page, wait, and
+   * mount the new one: a visible blank frame on every switch. Resolving the nodes once and handing `Suspense`
+   * a plain reference keeps the page it already has, and the URL key still rebuilds it on real navigation.
+   */
+  let pageCache: { key: string; node: JSX.Element } | undefined
+  const page = createMemo(() => {
+    const key = `${location.pathname}${location.search}${location.hash}`
+
+    if (pageCache?.key === key) return pageCache.node
+
+    const content = untrack(() => props.children)
+    const node = <Suspense>{content}</Suspense>
+    pageCache = { key, node }
+    return node
+  })
   const mobile = createMediaQuery("(max-width: 767px)")
   const sessionInbox = createSessionInbox()
 
@@ -334,7 +355,7 @@ function ReplicaLayer(props: ParentProps) {
             when={welcome()}
             fallback={
               <PluginServerCover>
-                <Suspense>{props.children}</Suspense>
+                {page()}
               </PluginServerCover>
             }
           >

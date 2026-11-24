@@ -1,6 +1,7 @@
 import { Icon } from "@aicraft/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
+import { createEffect, createMemo, For, Show } from "solid-js"
 import { knowledgeImports } from "../import-status"
 import type { KnowledgeFileStatus } from "../store"
 import { FileStatus, View } from "./bits"

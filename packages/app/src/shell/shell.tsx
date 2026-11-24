@@ -1,4 +1,16 @@
-import { createEffect, createSignal, lazy, onCleanup, onMount, Show, Suspense, type ParentProps } from "solid-js"
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  lazy,
+  onCleanup,
+  onMount,
+  Show,
+  Suspense,
+  untrack,
+  type JSX,
+  type ParentProps,
+} from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { useDialog } from "@aicraft/ui/context/dialog"
 import { ToastRegion } from "@/shell/notifications/toast"
@@ -14,7 +26,7 @@ import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
-import { useNavigate } from "@solidjs/router"
+import { useLocation, useNavigate } from "@solidjs/router"
 import { ResizeHandle } from "@aicraft/ui/resize-handle"
 import { DestinationToggle } from "@/shell/titlebar/destination-toggle"
 import { createSessionInbox } from "@/shell/titlebar/inbox-model"

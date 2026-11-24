@@ -1,6 +1,5 @@
 import "@pierre/trees/web-components"
 import { FileTree, type FileTreeDirectoryHandle, type FileTreeItemHandle } from "@pierre/trees"
-import { getIcon } from "@aicraft/ui/icons/catalog"
 import { createMemo, createSignal, onCleanup, onMount } from "solid-js"
 import type { ChangeKind } from "@aicraft/plugin/gui/review"
 import { createKeyed, usePlugin, type FileNode, type MountedSession, type SessionScreen } from "@aicraft/plugin/gui"

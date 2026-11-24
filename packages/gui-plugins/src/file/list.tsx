@@ -6,6 +6,7 @@ import type { ChangeKind } from "@aicraft/plugin/gui/review"
 import { createKeyed, usePlugin, type MountedSession, type SessionScreen } from "@aicraft/plugin/gui"
 import { OpenInAppContextMenuV2, useOpenInApp } from "./open-in-app"
 import { resolveOpenInAppPath } from "./path"
+import { FILE_TREE_ICONS } from "./material-icons"
 import { FILE_TREE_ROW_HEIGHT, kindChange, normalizeFileTreeV2Path } from "./tree-model"
 
 const kindLabel = (kind: ChangeKind) => {

@@ -119,13 +119,22 @@ function inputChanged(
     ])
   }
 
-  // An open mention keeps single spaces so multi-word session titles stay searchable.
+  // An open mention keeps single spaces so multi-word session titles stay searchable. It reads the whole run after `@`
+  // and trims only its leading space, so a space an IME inserts before the name does not close the list while the
+  // filter still sees the name. A tab, a line break, or a run of two spaces ends the mention there.
+  const open = state.popover.type === "context"
   const context = value
     .slice(0, cursor ?? value.length)
-    .match(state.popover.type === "context" ? /(?:^|\s)@((?:[^\s@]+(?: [^\s@]+)* ?)?)$/ : /(?:^|\s)@([^\s@]*)$/)
+    .match(open ? /(?:^|\s)@([^@]*)$/ : /(?:^|\s)@([^\s@]*)$/)
 
   if (context) {
-    const query = context[1] ?? ""
+    const raw = context[1] ?? ""
+
+    if (open && /[^\S ]| {2,}/.test(raw)) {
+      return changed({ ...state, popover: { type: "closed" }, focus: "editor" }, setText)
+    }
+
+    const query = raw.trimStart()
 
     return changed({ ...state, popover: { type: "context", query }, focus: "editor" }, [
       ...setText,

@@ -15,12 +15,14 @@
 :root[data-color-scheme="dark"] [data-component="composer-editor"] {
   --composer-code-ink: #eeeeee;
   --composer-code-inline-ink: #eeeeee;
-  /* The card is `bg-layer-01`, so a chip has to step up from that layer, not from the page behind it: the fixed
-     `rgb(50, 50, 50)` sat four levels above the card and read as plain text. `bg-layer-02` keeps roughly the step
-     the light scheme has between the card and its chips, and it follows the translucent theme's own layer
-     mapping instead of pinning one grey. */
-  --composer-code-inline-surface: var(--v2-background-bg-layer-02);
-  --composer-code-block-surface: var(--v2-background-bg-layer-02);
+  /* The card is a fixed `rgb(50, 50, 50)` glass surface, so a solid layer token cannot be trusted to sit above
+     it: `bg-layer-02` resolves to `rgb(46, 46, 46)` in this scheme — four levels *below* the card — and the chip
+     vanished into it. A light alpha overlay steps up from whatever surface the draft really sits on, the same
+     fill `bg-button-neutral` and the palette rows take in the dark scheme. */
+  --composer-code-inline-surface: var(--v2-alpha-light-12);
+  /* The block is a surface of its own, not one more step of the card: it drops to black so the fenced draft reads
+     as the same inset layer a fenced block has in an answer, with the inline chip staying a shade above it. */
+  --composer-code-block-surface: rgb(0, 0, 0);
 }
 
 [data-component="composer-editor"]:empty::before {
@@ -288,9 +290,11 @@
 }
 
 /* Inline code renders as a chip over the text. The chip uses the same fixed surface and ink as a completed
-   answer, so the draft reads the same before and after sending. */
+   answer, so the draft reads the same before and after sending. The 2px below the baseline is the same
+   font-metric correction the answer's chip makes: an inline box is as tall as ascent plus descent, so
+   without it the tint sits high and the glyph looks off-centre in its own chip. */
 [data-component="composer-editor"] [data-md-code] {
-  padding-inline: 4px;
+  padding: 0 4px 2px;
   border-radius: var(--radius-md);
   background: var(--composer-code-inline-surface);
   color: var(--composer-code-inline-ink);
@@ -324,10 +328,12 @@
   tab-size: 2;
 }
 
-/* Inline code paints through the Highlight API as well as the chip span, so code the chip cannot wrap
-   (a range that crosses a mention chip) still reads as code. The custom properties may not reach a
-   highlight pseudo-element in every engine, so each value keeps its light fallback and the dark scheme
-   restates both. */
+/* Inline code also paints through the Highlight API, but only for the code the chip cannot wrap (a range
+   that crosses a mention chip) — see `paint` in code-decoration.ts. A highlight paints a square rect over the
+   element's own background, so painting a range the chip already holds filled the chip's rounded notch and
+   the tint read as two colours. The custom properties may not reach a highlight pseudo-element in every
+   engine, so each value keeps its light fallback and the dark scheme restates both; the dark fill uses the
+   theme's own layer token, because the chip steps with the theme and a pinned grey disagreed with it. */
 ::highlight(composer-md-code) {
   color: var(--composer-code-inline-ink, #3a3a3a);
   background-color: var(--composer-code-inline-surface, rgb(233, 234, 234));
@@ -335,7 +341,7 @@
 
 :root[data-color-scheme="dark"] ::highlight(composer-md-code) {
   color: #eeeeee;
-  background-color: #3a3a3a;
+  background-color: var(--v2-alpha-light-12, rgb(75, 75, 75));
 }
 
 [data-component="composer-editor"] [data-mention="session"] {

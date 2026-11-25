@@ -18,8 +18,9 @@ type Caret = { start: number; end: number; direction: "forward" | "backward" }
 /** One source-level undo step: the draft and caret as they were before an edit. */
 type Snapshot = { text: string; caret: Caret | undefined }
 
-/** The CSS Custom Highlight name for inline code. It still paints code the chip cannot wrap, for example a
- *  range that crosses a mention chip. */
+/** The CSS Custom Highlight name for inline code. It paints only what the chip cannot wrap, for example a
+ *  range that crosses a mention chip: a highlight rect is square and covers the element background, so
+ *  painting a range the chip holds would erase the chip's rounded ends. */
 const CODE_HIGHLIGHT = "composer-md-code"
 
 /** A typing pause renders the draft. Short enough to read as immediate, long enough not to churn the
@@ -54,7 +55,9 @@ export function createCodeDecoration(editor: HTMLElement) {
     for (const segment of segments) {
       if (segment.kind !== "code" || !segment.content) continue
       const range = toRange(nodes, segment.content.start, segment.content.end)
-      if (range) ranges.push(range)
+      // A chip already paints this range. A highlight paints a square rect over the element background and
+      // takes no radius, so registering both refills the chip's rounded notch and splits its tint in two.
+      if (range && !inChip(range)) ranges.push(range)
     }
 
     if (ranges.length === 0) return
@@ -1098,6 +1101,15 @@ function toRange(nodes: ReturnType<typeof textNodes>, start: number, end: number
   range.setEnd(entry.to.node, entry.to.offset)
 
   return range
+}
+
+/** Whether the range already sits inside an inline-code chip. Only the text the chip could not wrap — a run
+ *  broken by a mention — still needs the highlight to carry its tint. */
+function inChip(range: Range) {
+  const owner = (node: Node) => (node instanceof Element ? node : node.parentElement)?.closest("[data-md-code]")
+  const start = owner(range.startContainer)
+
+  return !!start && start === owner(range.endContainer)
 }
 
 /** Wraps exactly the located range. Partial text nodes are split by hand: `surroundContents` can pull the

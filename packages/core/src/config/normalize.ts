@@ -10,6 +10,7 @@ import { ConfigCompaction } from "@aicraft/schema/config/compaction"
 import { ConfigFormatter } from "@aicraft/schema/config/formatter"
 import { ConfigLSP } from "@aicraft/schema/config/lsp"
 import { ConfigMedia } from "@aicraft/schema/config/media"
+import { ConfigMemory } from "@aicraft/schema/config/memory"
 import { ConfigModel } from "@aicraft/schema/config/model"
 import { ConfigMCP } from "@aicraft/schema/config/mcp"
 import { ConfigPlugin } from "@aicraft/schema/config/plugin"
@@ -197,6 +198,7 @@ export function normalize(input: unknown): Result {
   normalizeWatcher(input, encoded, diagnostics)
   normalizeFormatter(input, encoded, diagnostics)
   normalizeLsp(input, encoded, diagnostics)
+  normalizeMemory(input, encoded, diagnostics)
 
   const model = own(input, "model")
     ? decodeValue(ConfigModel.Selection, input.model, ["model"], diagnostics)
@@ -591,6 +593,37 @@ function normalizeLsp(input: Record<string, unknown>, encoded: Record<string, un
   }
   const entries = decodeMap(input.lsp, ConfigLSP.Entry, ["lsp"], diagnostics, decodeEncoded)
   if (isRecord(input.lsp) && (!Object.keys(input.lsp).length || Object.keys(entries).length)) encoded.lsp = entries
+}
+
+function normalizeMemory(input: Record<string, unknown>, encoded: Record<string, unknown>, diagnostics: Diagnostic[]) {
+  if (!own(input, "memory")) return
+  if (!isRecord(input.memory)) {
+    invalid(["memory"], diagnostics)
+    return
+  }
+  const memory = input.memory
+  const result: Record<string, unknown> = {}
+  if (own(memory, "auto_inject")) {
+    if (typeof memory.auto_inject === "boolean") {
+      // The first kernel took a boolean for the every-step full-scan window; it maps onto the
+      // strongest channel rather than the removed mode, and onto off.
+      diagnostics.push({
+        kind: "unsupported",
+        path: ["memory", "auto_inject"],
+        message: "mapped legacy auto_inject boolean to an injection mode",
+      })
+      result.auto_inject = memory.auto_inject ? "vector" : "off"
+    } else {
+      const value = decodeEncoded(ConfigMemory.AutoInject, memory.auto_inject, ["memory", "auto_inject"], diagnostics)
+      if (value !== undefined) result.auto_inject = value
+    }
+  }
+  for (const key of ["max_injected_chars", "max_entries"] as const) {
+    if (!own(memory, key)) continue
+    const value = decodeEncoded(ConfigMemory.Info.fields[key], memory[key], ["memory", key], diagnostics)
+    if (value !== undefined) result[key] = value
+  }
+  if (Object.keys(result).length || !Object.keys(memory).length) encoded.memory = result
 }
 
 function migrateTools(value: unknown, diagnostics: Diagnostic[]) {

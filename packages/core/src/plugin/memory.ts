@@ -1,6 +1,6 @@
 export * as MemoryPlugin from "./memory.js"
 
-import type { MemoryRecord } from "@aicraft/memory"
+import { PROTOCOL_SHORT, type MemoryRecord } from "@aicraft/memory"
 import { SkillPackage } from "@aicraft/plugin/skill-package"
 import { define } from "@aicraft/plugin/effect/plugin"
 import { Memory as MemorySchema } from "@aicraft/schema/memory"
@@ -8,7 +8,7 @@ import { Session } from "@aicraft/schema/session"
 import { Skill } from "@aicraft/schema/skill"
 import { optional } from "@aicraft/schema/schema"
 import { Tool } from "@aicraft/schema/tool"
-import { Message, UserMessage } from "@aicraft/ai/effect"
+import { Message, SystemPart, UserMessage } from "@aicraft/ai/effect"
 import { Effect, Schema } from "effect"
 import { KV } from "../kv.js"
 import * as Memory from "../memory.js"
@@ -275,8 +275,13 @@ export const Plugin = define({
     // per turn: the step loop re-fires this hook with the same last message, and a byte-stable
     // block keeps the provider cache warm across steps. Failures only skip the block.
     const turns = new Map<string, { key: string; block: string }>()
+    const protocol = SystemPart.make(PROTOCOL_SHORT)
     yield* ctx.session.hook("context", (event) =>
       Effect.gen(function* () {
+        // Channel ①: the compact save-rules section rides the static system prefix. Its bytes are
+        // identical on every request, so it costs the provider cache nothing, and the rules stay
+        // visible even when retrieval injection is off — saving is always available.
+        if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) event.system.push(protocol)
         if (injectMode === "off") return
         const project = yield* projectID(event.sessionID)
         const last = findLastUser(event.messages)

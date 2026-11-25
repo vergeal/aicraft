@@ -8,10 +8,11 @@ import { KV } from "../kv.js"
 import { MAX_SCAN } from "../memory.js"
 
 /**
- * Imports the old kv-backed memory entries into the subsystem's tables, once, without deleting
- * the source rows. The running kv kernel stays authoritative until the turn pipeline switches
- * over; a half-applied import must therefore be re-runnable, which it is because the `mem_*` ids
- * carry over unchanged: `get(id)` already present means the row was imported before.
+ * Imports the old kv-backed memory entries into the subsystem's tables without deleting the
+ * source rows. SQL owns project and global memory since the cutover, but plugin namespaces still
+ * live in kv, so this runs every boot to catch up; a half-applied import must therefore be
+ * re-runnable, which it is because the `mem_*` ids carry over unchanged: `get(id)` already
+ * present means the row was imported before.
  *
  * Legacy entries have no type, and the old kernel injected everything. They all come in as
  * `convention` so nothing loses reachability at switch time; the settings page (and the

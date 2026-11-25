@@ -421,6 +421,8 @@ export type ConfigCompactionPercent = string
 
 export type ConfigWorktree = { directory: string }
 
+export type ConfigMemoryAutoInject = "off" | "trigger" | "vector"
+
 export type ConfigModelReasoning =
   | { supported: false }
   | { supported: true; toggle?: boolean; effort?: Array<string>; budget?: { min?: number; max?: number } }
@@ -2694,7 +2696,7 @@ export type ConfigEntry =
         websearch?: false | { provider: "random" | WebSearchID }
         plugins?: Array<string | { package: string; options?: { [x: string]: JsonValue } }>
         worktree?: ConfigWorktree
-        memory?: { auto_inject?: boolean; max_injected_chars?: number; max_entries?: number }
+        memory?: { auto_inject?: ConfigMemoryAutoInject; max_injected_chars?: number; max_entries?: number }
         warming?: boolean | { prompt?: string; interval?: "auto" | (string & {}); duration?: string }
         providers?: {
           [x: string]: {

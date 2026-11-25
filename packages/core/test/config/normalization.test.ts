@@ -787,4 +787,19 @@ describe("ConfigNormalize", () => {
     })
     expect(result.encoded.share).toBeUndefined()
   })
+
+  test("maps the legacy memory.auto_inject boolean onto an injection mode", () => {
+    expect(decoded({ memory: { auto_inject: true } }).memory?.auto_inject).toBe("vector")
+    expect(decoded({ memory: { auto_inject: false } }).memory?.auto_inject).toBe("off")
+    const result = normalized({ memory: { auto_inject: true, max_entries: 50 } })
+    expect(result.diagnostics.some((item) => item.path.join(".") === "memory.auto_inject")).toBe(true)
+    expect(result.encoded.memory).toEqual({ auto_inject: "vector", max_entries: 50 })
+  })
+
+  test("keeps native memory settings and drops one malformed value without losing the section", () => {
+    expect(decoded({ memory: { auto_inject: "trigger", max_injected_chars: 800 } }).memory?.auto_inject).toBe("trigger")
+    const result = normalized({ memory: { auto_inject: "sideways", max_entries: 50 } })
+    expect(result.diagnostics.some((item) => item.kind === "invalid")).toBe(true)
+    expect(result.encoded.memory).toEqual({ max_entries: 50 })
+  })
 })

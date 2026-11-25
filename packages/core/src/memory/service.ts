@@ -1,6 +1,7 @@
 export * as MemoryService from "./service.js"
 
 import { DEFAULT_SETTINGS, createSubsystem, resolveSettings, type Settings, type Store, type Subsystem, type TurnDecision } from "@aicraft/memory"
+import { ConfigMemory } from "@aicraft/schema/config/memory"
 import { Context, Effect, Layer, Scope } from "effect"
 import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Config } from "../config.js"
@@ -74,14 +75,16 @@ const layer = Layer.effect(
 export const node = makeLocationNode({ service: Service, layer, deps: [Database.node, KV.node, Config.node] })
 
 /**
- * Maps the user-facing config onto subsystem settings. `auto_inject` is still the boolean from
- * the old kernel until the tri-state lands with the contract batch: off means trigger-only
- * injection, never the removed per-step full window.
+ * Maps the user-facing config onto subsystem settings. The config's `vector` mode is the
+ * subsystem's `trigger+vector`: a semantic hit never rides a request without the exact-trigger
+ * channel that precedes it. `ConfigNormalize` has already turned a legacy boolean into one of
+ * the three modes by the time it reaches here.
  */
-function fromConfig(info: { auto_inject?: boolean; max_injected_chars?: number; max_entries?: number } | undefined): Settings {
+function fromConfig(info: ConfigMemory.Info | undefined): Settings {
   return resolveSettings({
     ...DEFAULT_SETTINGS,
-    inject: info?.auto_inject === false ? "off" : "trigger+vector",
+    inject:
+      info?.auto_inject === "off" ? "off" : info?.auto_inject === "trigger" ? "trigger" : "trigger+vector",
     maxInjectedChars: info?.max_injected_chars,
     maxEntries: info?.max_entries,
   })

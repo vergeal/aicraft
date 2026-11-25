@@ -1,4 +1,5 @@
 ﻿import { describe, expect } from "bun:test"
+import { PROTOCOL_SHORT } from "@aicraft/memory"
 import { SystemMessage, UserMessage } from "@aicraft/ai/effect"
 import { Agent } from "@aicraft/core/agent"
 import { Plugin } from "@aicraft/core/plugin"
@@ -127,18 +128,20 @@ describe("memory plugin injection", () => {
       const miss = yield* Effect.promise(() => service.subsystem.onTurn({ query: "今天天气怎么样", scopes: ["global"] }))
       expect(miss.entries).toHaveLength(0)
 
-      // Step one of the turn: the block reaches the request tail, never the system section.
+      // Step one of the turn: the block reaches the request tail, never the system section; the
+      // system carries only the byte-stable save-rules protocol (channel ①).
       const first = context(session.id)
       yield* hooks.trigger("session", "context", first)
       const block = injectedBlock(first)
       expect(block).toContain("用短横线分隔")
       expect(block).toContain("Relevant memory")
-      expect(first.system).toHaveLength(0)
+      expect(first.system.map((part) => part.text)).toEqual([PROTOCOL_SHORT])
 
       // Step two reuses the turn result: identical bytes, so the provider cache prefix holds.
       const second = context(session.id)
       yield* hooks.trigger("session", "context", second)
       expect(injectedBlock(second)).toBe(block)
+      expect(second.system).toHaveLength(1)
 
       // memory_log records the one real retrieval, not the cached step reuse.
       const { db } = yield* Database.Service

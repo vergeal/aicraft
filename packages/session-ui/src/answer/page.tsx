@@ -25,7 +25,7 @@ import { createImagePreview } from "../components/image-preview"
 import { localImagePath } from "../components/markdown-image"
 import { DataContext } from "../context/data"
 import { useMarkdown } from "../context/markdown"
-import { childrenOf, projectTimeline } from "./project"
+import { projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolImagePath, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
   createRestoreState,
@@ -40,6 +40,7 @@ import type {
   NodePayload,
   ProcessActivity,
   Snapshot,
+  TimelineChild,
   TimelineEntry,
   TimelineGroup,
   TimelineNode,
@@ -491,10 +492,22 @@ export function AnswerPage(props: AnswerPageProps) {
 
   // Turns are numbered by their position in the loaded window, so paging an older page in shifts every existing
   // number. The disclosure state has to be keyed by the row's own key, which survives that shift.
+  // The stretch a run is still working in is its turn's last fold: only that one carries the live status and the
+  // elapsed time. Earlier stretches were cut off by a steered prompt, so their work is already done.
   const foldKeys = createMemo(() => {
     const map = new Map<number, string>()
 
     for (const entry of entries()) if (entry.kind === "fold") map.set(entry.turn, entry.key)
+
+    return map
+  })
+
+  // A steered turn holds one fold per stretch of work, so which stretch a row belongs to, and what has to open to
+  // reveal it, comes from the stretches themselves rather than from the turn.
+  const foldOfChild = createMemo(() => {
+    const map = new Map<string, string>()
+
+    for (const entry of entries()) if (entry.kind === "fold") for (const child of entry.children) map.set(child.key, entry.key)
 
     return map
   })
@@ -511,6 +524,10 @@ export function AnswerPage(props: AnswerPageProps) {
     if (explicit !== undefined) return explicit
 
     if ((props.collapseTiming ?? "completion") === "next-input" && entry.turn === lastTurn()) return false
+
+    // A prompt the run took up mid-work splits that run. Folding those stretches away behind one header each, the
+    // moment the run finished, would hide the very stretch the reader asked for, so they stay open until folded by hand.
+    if (value.interleaved) return false
 
     return true
   }
@@ -790,10 +807,10 @@ export function AnswerPage(props: AnswerPageProps) {
       if (value.payload.kind !== "assistant") return value
 
       const owner = snapshot().turns.get(value.turn)
-      const folded = owner !== undefined && isFolded(foldKeys().get(owner.turn))
+      const folded = owner !== undefined && isFolded(foldOfChild().get(value.key))
 
-      // The turn's fold lays its children out in message order, so this standalone entry is needed only while
-      // a closed folded turn hides them; otherwise the fold renders the reply at its own position.
+      // The stretch lays its rows out in message order, so this standalone entry is needed only while a closed
+      // folded stretch hides them; otherwise the stretch renders the reply at its own position.
       if (!folded || owner.status !== "closed") return undefined
 
       if ((props.foldedReplies ?? "final") !== "final" || value.key === owner.answer) return value
@@ -805,6 +822,20 @@ export function AnswerPage(props: AnswerPageProps) {
       const value = entry()
 
       return value?.kind === "fold" ? snapshot().turns.get(value.turn) : undefined
+    })
+
+    // The stretch this fold lays out, and whether it is the one the run is still working in: a steered turn splits
+    // into several, and only the last still carries the turn's status and elapsed time.
+    const stretch = createMemo(() => {
+      const value = entry()
+
+      return value?.kind === "fold" ? value.children : []
+    })
+
+    const closing = createMemo(() => {
+      const value = entry()
+
+      return value?.kind === "fold" && foldKeys().get(value.turn) === value.key
     })
 
     // The gap is the row's own memos so a streamed row that grows re-runs only the row it belongs to. There is no
@@ -827,6 +858,8 @@ export function AnswerPage(props: AnswerPageProps) {
           {(value) => (
             <FoldRow
               turn={value()}
+              stretch={stretch()}
+              closing={closing()}
               open={!isFolded(key)}
               snapshot={snapshot()}
               view={view()}
@@ -855,13 +888,15 @@ export function AnswerPage(props: AnswerPageProps) {
 
     if (!node) return false
 
-    // A top-level row is its own entry; a step lives inside the fold entry of its turn.
-    const entry = keys().find((key) => key === `node:${node.key}`) ?? foldKeys().get(node.turn)
+    const group = [...snapshot().groups].find(([, value]) => value.members.includes(node.key))
+
+    // A top-level row is its own entry; a step lives in the fold that lays its stretch of the turn out, which a
+    // steered turn splits into several.
+    const entry =
+      keys().find((key) => key === `node:${node.key}`) ?? foldOfChild().get(group?.[0] ?? node.key) ?? foldKeys().get(node.turn)
 
     if (!entry) return false
     setFolded(entry, false)
-
-    const group = [...snapshot().groups].find(([, value]) => value.members.includes(node.key))
 
     if (group) setOpenGroups(group[0], true)
     setOpenRows(node.key, true)
@@ -1000,6 +1035,10 @@ function durationText(i18n: ReturnType<typeof useI18n>, ms: number) {
 
 function FoldRow(props: {
   turn: TimelineTurn
+  /** The rows of this stretch of the turn's process. A steered prompt splits a turn into several stretches. */
+  stretch: readonly TimelineChild[]
+  /** Whether this is the stretch the run works in: only it shows the turn's live status and its elapsed time. */
+  closing: boolean
   open: boolean
   snapshot: Snapshot
   view: TranscriptView
@@ -1013,36 +1052,36 @@ function FoldRow(props: {
   const expandable = () => props.turn.status === "closed" && grouping() !== "none"
   const open = () => (expandable() ? props.open : true)
 
-  // A fold hides the turn's rows; the reader's own disclosure state survives it, so reopening the
-  // turn shows the same rows they had opened.
+  // A stretch a steered prompt interrupted already did its work; what the run is doing now lives in the stretch below
+  // the bubble, so only that one speaks for the turn.
+  const state = (): "working" | "worked" | "stopped" | "failed" => (props.closing ? foldState(props.turn.status) : "worked")
 
   // Only the verbose mode lays the process rows flat. Every other mode keeps each step's own
   // disclosure, so a step opens itself while it runs and closes when it settles.
   const flat = () => grouping() === "none"
 
   const elapsedMs = () =>
-    props.turn.status === "open" ? runningElapsed(props.turn, props.now) : props.turn.elapsedMs
+    props.closing && props.turn.status === "open" ? runningElapsed(props.turn, props.now) : props.turn.elapsedMs
 
-  const children = createMemo(() => childrenOf(props.snapshot, props.turn.turn))
-  // `children()` returns new objects each projection. Key the rows by id so streamed updates reuse the
-  // group and row components instead of rebuilding them under the pointer.
-  const childKeys = createMemo(() => children().map((child) => child.key))
-  const childIndex = createMemo(() => new Map(children().map((child) => [child.key, child] as const)))
+  // `childKeys` reads the stretch by id so streamed updates reuse the group and row components instead of
+  // rebuilding them under the pointer: the projection hands out a fresh array on every run.
+  const childKeys = createMemo(() => props.stretch.map((child) => child.key))
+  const childIndex = createMemo(() => new Map(props.stretch.map((child) => [child.key, child] as const)))
 
   return (
     <section
       data-slot="answer-fold"
       data-turn={props.turn.turn}
-      data-state={foldState(props.turn.status)}
+      data-state={state()}
       class="flex flex-col"
     >
-      <Show when={props.turn.status === "open"}>
+      <Show when={props.closing && props.turn.status === "open"}>
         <RunningStatus elapsedMs={elapsedMs()} />
       </Show>
-      <Show when={props.turn.status !== "open"}>
+      <Show when={!props.closing || props.turn.status !== "open"}>
         <RunHeader
-          state={foldState(props.turn.status)}
-          elapsedMs={elapsedMs()}
+          state={state()}
+          elapsedMs={props.closing ? elapsedMs() : undefined}
           expandable={expandable()}
           open={open()}
           onToggle={props.onToggle}

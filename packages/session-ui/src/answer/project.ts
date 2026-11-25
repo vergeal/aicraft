@@ -204,6 +204,7 @@ function reuseTurn(previous: TimelineTurn | undefined, next: TimelineTurn): Time
     previous.hasProcess === next.hasProcess &&
     previous.processStart === next.processStart &&
     previous.foldable === next.foldable &&
+    previous.interleaved === next.interleaved &&
     previous.startedAt === next.startedAt &&
     previous.completedAt === next.completedAt &&
     previous.elapsedMs === next.elapsedMs
@@ -220,16 +221,13 @@ function reuseEntries(previous: readonly TimelineEntry[] | undefined, next: Time
 function sameEntry(left: TimelineEntry, right: TimelineEntry) {
   if (left.kind !== right.kind || left.key !== right.key) return false
 
-  return left.kind === "node" || right.kind === "node" || left.turn === right.turn
+  if (left.kind === "node" || right.kind === "node") return true
+
+  return left.turn === right.turn && sameChildren(left.children, right.children)
 }
 
-function reuseChildren(
-  previous: readonly TimelineChild[] | undefined,
-  next: TimelineChild[],
-): readonly TimelineChild[] {
-  if (!previous || previous.length !== next.length) return next
-
-  return previous.every((child, index) => sameChild(child, next[index]!)) ? previous : next
+function sameChildren(previous: readonly TimelineChild[], next: readonly TimelineChild[]) {
+  return previous.length === next.length && previous.every((child, index) => sameChild(child, next[index]!))
 }
 
 function sameChild(left: TimelineChild, right: TimelineChild) {
@@ -555,7 +553,6 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
   const groups = new Map<string, TimelineGroup>()
   const entries: TimelineEntry[] = []
-  const children = new Map<number, readonly TimelineChild[]>()
 
   for (const draft of drafts) {
     // The answer is the turn's last reply that was not a step still doing work, like DSH's turn tail picks
@@ -586,6 +583,10 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     const process = draft.nodes.filter((node) => node.groupTree === "process")
     const foldable = status === "closed" && answer !== undefined && process.length > 0
+    const inputs = draft.nodes.filter((node) => node.payload.kind === "input")
+    const firstInput = inputs[0]
+    // Where each steered prompt cuts the process: how many rows were already laid out above it.
+    const splits = new Map<string, number>()
     const turnChildren: TimelineChild[] = []
     const runs: { key: string; members: TimelineNode[]; notice: boolean }[] = []
     let run: TimelineNode[] = []
@@ -619,7 +620,16 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     let summarySeen = false
 
     for (const node of draft.nodes) {
-      if (node.payload.kind === "input") continue
+      if (node.payload.kind === "input") {
+        // A steered prompt cuts the process at this point: the work it set off belongs under the bubble, not above
+        // it, or the reader sees the run still busy with the old task after their own words.
+        if (node !== firstInput) {
+          flush()
+          splits.set(node.key, turnChildren.length)
+        }
+
+        continue
+      }
 
       // A step summary is a reply row of its own: everything before it is laid flat above it, and
       // everything after it opens a new group below it.
@@ -680,26 +690,30 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
       )
     }
 
-    children.set(draft.turn, reuseChildren(previous?.children.get(draft.turn), turnChildren))
+    if (firstInput) entries.push({ kind: "node", key: firstInput.key })
 
-    const inputs = draft.nodes.filter((node) => node.payload.kind === "input")
-
-    if (inputs[0]) entries.push({ kind: "node", key: inputs[0].key })
-
-    if (turnChildren.length > 0) entries.push({ kind: "fold", turn: draft.turn, key: `fold:${draft.nodes[0]!.key}` })
-
-    // A delivered steer sits between the work it interrupted and the reply that work went on to produce.
-    // One still waiting for delivery stays below the streaming text: the run has not taken it up yet.
+    // One fold per stretch of work, each steered prompt dropped between the stretch it interrupted and the stretch
+    // that answers it. A prompt the run has not taken up yet splits nothing: no work has come from it, so it stays
+    // past the streaming reply, below everything the run has done so far.
     const steers = inputs.slice(1)
-    const atAnswer = answer ? draft.nodes.indexOf(answer) : -1
-    const beforeAnswer = answer ? steers.filter((node) => draft.nodes.indexOf(node) < atAnswer) : steers
-    const afterAnswer = answer ? steers.filter((node) => draft.nodes.indexOf(node) >= atAnswer) : []
+    const atAnswer = answer === undefined ? draft.nodes.length : draft.nodes.indexOf(answer)
+    const taken = steers.filter((steer) => draft.nodes.indexOf(steer) < atAnswer)
+    const waiting = steers.filter((steer) => draft.nodes.indexOf(steer) >= atAnswer)
+    let laid = 0
 
-    for (const node of beforeAnswer) entries.push({ kind: "node", key: node.key })
+    for (const steer of taken) {
+      const at = splits.get(steer.key) ?? turnChildren.length
+
+      pushFold(entries, draft.turn, turnChildren.slice(laid, at))
+      entries.push({ kind: "node", key: steer.key })
+      laid = at
+    }
+
+    pushFold(entries, draft.turn, turnChildren.slice(laid))
 
     if (answer) entries.push({ kind: "node", key: answer.key })
 
-    for (const node of afterAnswer) entries.push({ kind: "node", key: node.key })
+    for (const steer of waiting) entries.push({ kind: "node", key: steer.key })
 
     for (const node of draft.nodes)
       if (node.payload.kind === "error" || node.payload.kind === "retry")
@@ -719,6 +733,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
         hasProcess: process.length > 0,
         processStart: process[0]?.key ?? null,
         foldable,
+        interleaved: inputs.length > 1,
         startedAt: draft.startedAt,
         completedAt: draft.completedAt,
         elapsedMs,
@@ -732,7 +747,6 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     nodes: new Map(nodes.map((node) => [node.key, node] as const)),
     groups,
     turns,
-    children,
     changes,
   }
 }
@@ -755,6 +769,13 @@ function tailReply(draft: TurnDraft) {
     .some((node) => node.payload.kind === "tool" || node.payload.kind === "reasoning" || node.payload.kind === "retry")
     ? undefined
     : tail
+}
+
+/** One stretch of a turn's process as its own fold. A steer leaves an empty stretch behind, which folds nothing. */
+function pushFold(entries: TimelineEntry[], turn: number, children: readonly TimelineChild[]) {
+  if (children.length === 0) return
+
+  entries.push({ kind: "fold", turn, key: `fold:${children[0]!.key}`, children })
 }
 
 /** One contiguous run's ranked categories and live activity. Only tools count as categories. */
@@ -924,12 +945,8 @@ function groupItems(groupKey: string, members: readonly TimelineNode[]): GroupIt
 }
 
 /** The first line of the newest reasoning paragraph, for the live activity detail. */
-function reasoningTail(text: string) {  const blocks = text.split(/\n\s*\n/).filter((block) => block.trim())
+function reasoningTail(text: string) {
+  const blocks = text.split(/\n\s*\n/).filter((block) => block.trim())
 
   return blocks.at(-1)?.split("\n").find((line) => line.trim())?.replace(/^#+\s*/, "").trim()
-}
-
-/** The ordered children of one turn: its process groups and phase replies. */
-export function childrenOf(snapshot: Snapshot, turn: number): readonly TimelineChild[] {
-  return snapshot.children.get(turn) ?? []
 }

@@ -1,6 +1,6 @@
 export { AnswerPage, type AnswerPageProps, type CollapseTiming, type FoldedReplies, type TranscriptView } from "./page"
 
-export { childrenOf, projectTimeline } from "./project"
+export { projectTimeline } from "./project"
 
 export type {
   ActivityCount,

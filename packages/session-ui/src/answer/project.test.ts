@@ -1,8 +1,13 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionMessageAssistant, SessionMessageInfo } from "@aicraft/client/promise"
 import { projectTimeline } from "./project"
+import type { Snapshot } from "./types"
 
 type Content = SessionMessageAssistant["content"][number]
+
+/** The rows the turn's folds lay out, in order. A prompt steered into a running turn splits it into stretches. */
+const childrenOf = (snapshot: Snapshot, turn: number) =>
+  snapshot.entries.flatMap((entry) => (entry.kind === "fold" && entry.turn === turn ? entry.children : []))
 
 const user = (id: string, text: string, created: number) =>
   ({ id, type: "user", text, time: { created } }) satisfies SessionMessageInfo
@@ -47,7 +52,7 @@ describe("answer projection", () => {
     ])
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.counts)).toEqual([[{ kind: "read", count: 1 }]])
 
     const turn = snapshot.turns.get(1)
@@ -87,7 +92,7 @@ describe("answer projection", () => {
       assistant("msg_3", 11, [text("answer")], 20),
     ])
 
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["node", "group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["node", "group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.counts)).toEqual([
       [
         { kind: "read", count: 1 },
@@ -105,7 +110,7 @@ describe("answer projection", () => {
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
     expect(snapshot.turns.get(1)?.status).toBe("open")
     expect(snapshot.turns.get(1)?.foldable).toBe(false)
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.members.length)).toEqual([1])
   })
 
@@ -125,6 +130,34 @@ describe("answer projection", () => {
 
     const nodes = snapshot.entries.filter((entry) => entry.kind === "node").map((entry) => entry.key)
     expect(nodes).toEqual(["input:msg_1", "input:msg_3", "assistant:msg_4:0"])
+  })
+
+  // What the reader reported: after a steer the run kept working above their own prompt, so it read as though the
+  // prompt had never landed. The prompt cuts the process, and the work it set off lies below it.
+  test("a steered prompt splits the work the run does after it", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [tool("tool_1")], 5),
+      user("msg_3", "steer", 6),
+      assistant("msg_4", 7, [tool("tool_2"), text("answer")], 10),
+    ])
+
+    expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node", "fold", "node"])
+    expect(snapshot.turns.get(1)?.interleaved).toBe(true)
+
+    const folds = snapshot.entries.flatMap((entry) => (entry.kind === "fold" ? [entry] : []))
+
+    // The messages each stretch lays out: the work the prompt set off belongs to the stretch below it.
+    const stretched = folds.map((fold) =>
+      fold.children.flatMap((child) =>
+        child.kind === "node"
+          ? [snapshot.nodes.get(child.key)?.messageID]
+          : (snapshot.groups.get(child.key)?.members ?? []).map((key) => snapshot.nodes.get(key)?.messageID),
+      ),
+    )
+
+    expect(folds.map((fold) => fold.turn)).toEqual([1, 1])
+    expect(stretched).toEqual([["msg_2"], ["msg_4", "msg_4"]])
   })
 
   test("an interrupted turn still settles on its last text, footer and all", () => {
@@ -173,6 +206,9 @@ describe("answer projection", () => {
 
     const nodes = snapshot.entries.filter((entry) => entry.kind === "node").map((entry) => entry.key)
     expect(nodes).toEqual(["input:msg_1", "assistant:msg_2:0", "input:msg_3"])
+
+    // Nothing answered it yet, so it splits no stretch of the process: one fold holds the work in flight.
+    expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node", "node"])
   })
 
   test("fold step summaries into their step group", () => {
@@ -182,7 +218,7 @@ describe("answer projection", () => {
     ])
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
     expect(snapshot.nodes.get("assistant:msg_2:0")?.payload).toMatchObject({ kind: "assistant", text: "phase reply" })
 
     const [first, second] = [...snapshot.groups.values()]
@@ -199,7 +235,7 @@ describe("answer projection", () => {
       assistant("msg_3", 6, [reasoning("second"), text("partial")]),
     ])
 
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.closed)).toEqual([true, false])
     expect([...snapshot.groups.values()].at(-1)?.running).toBe("thinking")
     expect(snapshot.turns.get(1)?.status).toBe("open")
@@ -220,7 +256,7 @@ describe("answer projection", () => {
       [],
       [{ kind: "read", count: 1 }],
     ])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group", "node", "group", "node"])
     expect(snapshot.nodes.get("assistant:msg_2:0")?.payload).toMatchObject({ kind: "assistant", text: "phase reply" })
 
     const first = [...snapshot.groups.values()][0]
@@ -281,7 +317,7 @@ describe("answer projection", () => {
       [{ kind: "read", count: 1 }],
       [{ kind: "search", count: 1 }],
     ])
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual([
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual([
       "group",
       "node",
       "group",
@@ -303,7 +339,7 @@ describe("answer projection", () => {
       assistant("msg_3", 10, [text("final answer")], 12),
     ])
 
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["node", "group", "node", "group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["node", "group", "node", "group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.members.length)).toEqual([1, 1])
   })
 
@@ -429,7 +465,7 @@ describe("answer projection", () => {
 
     expect(snapshot.entries.map((entry) => entry.kind)).toEqual(["node", "fold", "node"])
     expect(snapshot.nodes.get("notice:msg_3")?.payload).toEqual({ kind: "notice", text: "note" })
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group", "node"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group", "node"])
     expect([...snapshot.groups.values()].map((group) => group.counts)).toEqual([
       [
         { kind: "read", count: 1 },
@@ -470,7 +506,7 @@ describe("answer projection", () => {
         { key: "session", chars: 30, text: "会话说明" },
       ],
     })
-    expect(snapshot.children.get(1)?.map((child) => child.kind)).toEqual(["group"])
+    expect(childrenOf(snapshot, 1).map((child) => child.kind)).toEqual(["group"])
     expect([...snapshot.groups.values()][0]?.counts).toEqual([
       { kind: "context", count: 1 },
       { kind: "read", count: 1 },
@@ -539,7 +575,7 @@ describe("answer projection", () => {
       } satisfies SessionMessageInfo,
     ])
 
-    const children = snapshot.children.get(1) ?? []
+    const children = childrenOf(snapshot, 1)
     expect(children.map((child) => child.kind)).toEqual(["group"])
     const group = children[0]?.kind === "group" ? snapshot.groups.get(children[0].key) : undefined
     expect(group?.counts).toEqual([{ kind: "context", count: 2 }])

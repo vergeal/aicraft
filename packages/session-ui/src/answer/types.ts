@@ -130,7 +130,14 @@ export type TimelineEntry =
   | { readonly kind: "node"; readonly key: string }
   // The key is derived from the turn's first row, not its position: paging older messages in shifts every turn number,
   // which made a remembered fold key point at a different turn after activation and lost the reader's place.
-  | { readonly kind: "fold"; readonly turn: number; readonly key: string }
+  // A prompt steered into a running turn splits its process, so one turn can hold several folds: each carries the rows
+  // it lays out, and the bubble between them names where the run took the prompt up.
+  | {
+      readonly kind: "fold"
+      readonly turn: number
+      readonly key: string
+      readonly children: readonly TimelineChild[]
+    }
 
 /** What a turn renders, in order, between its input and its final answer. */
 export type TimelineChild = { readonly kind: "group"; readonly key: string } | { readonly kind: "node"; readonly key: string }
@@ -145,6 +152,8 @@ export interface TimelineTurn {
   readonly processStart: string | null
   /** A closed turn with an answer can fold its process. */
   readonly foldable: boolean
+  /** A prompt arrived while this turn was still working, splitting its process; such a turn never folds as a whole. */
+  readonly interleaved: boolean
   /** When the turn's prompt was created. */
   readonly startedAt?: number
   /** When its last step completed, once it has. */
@@ -165,7 +174,6 @@ export interface Snapshot {
   readonly nodes: ReadonlyMap<string, TimelineNode>
   readonly groups: ReadonlyMap<string, TimelineGroup>
   readonly turns: ReadonlyMap<number, TimelineTurn>
-  readonly children: ReadonlyMap<number, readonly TimelineChild[]>
   /** The files each turn changed, keyed by turn number. */
   readonly changes: ReadonlyMap<number, readonly ChangedFile[]>
 }

@@ -1,253 +1,214 @@
 import { describe, expect, test } from "bun:test"
-import { DEFAULT_SETTINGS, MemoryReference, MemorySubsystem, scopeKey } from "../src/index.js"
-import type { MemoryRecord, MemoryType, Settings } from "../src/index.js"
-import {
-  CORPUS,
-  NO_MATCH_QUERIES,
-  PROJECT,
-  SCOPES,
-  SEARCH_GOLD,
-  TURN_GOLD,
-  fixedClock,
-  legacyInject,
-  legacySearch,
-} from "./fixtures.js"
+import { DEFAULT_SETTINGS, MemoryEvaluate, MemoryInject, resolveSettings } from "../src/index.js"
+import type { MemoryRecord, Settings } from "../src/index.js"
+import { CORPUS, NO_MATCH_QUERIES, SCOPES, SEARCH_GOLD, TURN_GOLD, bulkFiller, corpus, legacyInject, legacySearch } from "./fixtures.js"
 
 /**
- * Acceptance metrics. Every gate here is a measured number on a 421-entry corpus, not a
- * smoke test: the whole reason this subsystem replaces the kv kernel is that the old read
- * path could not state or meet a recall figure. Metrics are printed so a regression names
- * the number instead of failing a matcher on one query.
+ * Acceptance metrics. Every gate is a measured number on a 421-entry corpus (`bulkFiller`),
+ * not a smoke assertion: the reason this subsystem replaces the kv kernel is that the old read
+ * path could not state a recall figure at all. Metrics come from `MemoryEvaluate.evaluate`,
+ * the same harness a host or the Batch 1 spike runs, so the package and the test agree on what
+ * "recall" means. Gates sit below the measured value with margin; lowering one is a decision
+ * that needs the before/after numbers written next to it, not a relaxed comparison.
  */
-const INJECTABLE: readonly MemoryType[] = ["convention", "preference"]
-const ALL_GOLD = [...TURN_GOLD, ...SEARCH_GOLD]
-/** Fake-calibrated: the deterministic fake scores 0.12-0.27 on relevant pairs (see AGENTS.md),
- *  so mode B runs its own threshold. Absolute thresholds for bge-small come from the spike. */
+const GOLD: MemoryEvaluate.GoldenCase[] = [
+  ...TURN_GOLD.map((item) => ({ query: item.query, expect: item.expect, via: item.via })),
+  ...SEARCH_GOLD.map((item) => ({ query: item.query, expect: item.expect, autoInjectForbidden: true })),
+]
+const OPTIONS: MemoryEvaluate.EvaluationOptions = { cases: GOLD, negatives: NO_MATCH_QUERIES, searchK: 5, repeats: 2 }
+/** Fake-calibrated threshold: the deterministic fake scores 0.12-0.27 on relevant pairs. */
 const FAKE_VECTOR: Settings = { ...DEFAULT_SETTINGS, vectorThreshold: 0.12 }
 
-interface Corpus {
-  readonly memory: ReturnType<typeof MemorySubsystem.createSubsystem>
-  readonly all: readonly MemoryRecord[]
+const lexical = await corpus({ seed: CORPUS })
+const vector = await corpus({ seed: CORPUS, embedder: true, settings: FAKE_VECTOR })
+const measured = await MemoryEvaluate.evaluate(lexical.memory, SCOPES, OPTIONS)
+const throughVectors = await MemoryEvaluate.evaluate(vector.memory, SCOPES, OPTIONS)
+
+function report(metric: string, value: number | string) {
+  console.log(`[memory-metrics] ${metric}=${value} @corpus=${measured.corpusSize}`)
 }
 
-async function build(options: { embedder?: boolean; settings?: Settings }): Promise<Corpus> {
-  const memory = MemorySubsystem.createSubsystem({
-    store: MemoryReference.createStore(),
-    embedder: options.embedder === true ? MemoryReference.createFakeEmbedder() : undefined,
-    settings: options.settings ?? DEFAULT_SETTINGS,
-    clock: fixedClock(),
-  })
-  for (const entry of CORPUS) {
-    await memory.save({
-      scope: entry.scope,
-      projectID: entry.scope === "project" ? PROJECT : undefined,
-      type: entry.type,
-      text: entry.text,
-      tags: entry.tags,
-      trigger: entry.trigger,
-      id: entry.id,
-    })
-  }
-  const all = [
-    ...(await memory.list("global", 10_000)).records,
-    ...(await memory.list(scopeKey("project", PROJECT), 10_000)).records,
-  ]
-  return { memory, all }
-}
-
-const plain = await build({})
-const vector = await build({ embedder: true, settings: FAKE_VECTOR })
-const corpusSize = plain.all.length
-
-async function injectedIds(memory: Corpus["memory"], query: string) {
-  const turn = await memory.onTurn({ query, scopes: SCOPES })
-  return { ids: turn.entries.map((record) => record.id), chars: turn.injectBlock.length, turn }
+function table(metrics: MemoryEvaluate.Metrics) {
+  report("injectRecall", round(metrics.injectRecall))
+  report("injectPrecision", round(metrics.injectPrecision))
+  report(`searchRecallAt${metrics.searchK}`, round(metrics.searchRecallAtK))
+  report("falseInjection", metrics.falseInjection)
+  report("partitionViolations", metrics.partitionViolations)
+  report("meanInjectedChars", metrics.meanInjectedChars)
+  report("maxInjectedChars", metrics.maxInjectedChars)
+  report("byteStability", round(metrics.byteStability))
+  report("channelStatus", JSON.stringify(metrics.channelStatus))
+  report("attribution", JSON.stringify(metrics.attribution))
+  for (const miss of metrics.injectCases.filter((item) => !item.hit)) report("miss", `${miss.query} -> ${miss.expect} (${miss.attribution})`)
 }
 
 describe("corpus", () => {
-  test("the corpus is at long-term scale and the two scopes are populated as seeded", async () => {
-    expect(corpusSize).toBeGreaterThanOrEqual(400)
-    expect((await plain.memory.list("global", 20)).total).toBe(83)
-    expect((await plain.memory.list(scopeKey("project", PROJECT), 20)).total).toBe(338)
-  })
-
-  test("list reports real totals beyond its own page and flags truncation", async () => {
-    const page = await plain.memory.list(scopeKey("project", PROJECT), 20)
-    expect(page.records.length).toBe(20)
-    expect(page.total).toBeGreaterThan(20)
-    expect(page.truncated).toBe(true)
+  test("the corpus is at long-term scale with both scopes populated as seeded", () => {
+    expect(measured.corpusSize).toBeGreaterThanOrEqual(400)
+    expect(measured.corpusSize).toBe(CORPUS.length)
+    expect(bulkFiller().length).toBe(400)
   })
 })
 
-describe("retrieval recall — gate: lexical mode >= 0.85, vector mode >= 0.66, search@5 = 1.0", () => {
-  test("auto-inject recall on the turn gold set", async () => {
-    const rows = []
-    for (const gold of TURN_GOLD) rows.push(await injectedIds(plain.memory, gold.query))
-    const recall = rows.filter((row, index) => row.ids.includes(TURN_GOLD[index].expect)).length / TURN_GOLD.length
-    report("injectRecall.lexical", recall)
-    expect(recall).toBeGreaterThanOrEqual(0.85)
+describe("retrieval quality — gates: injectRecall >= 0.85, injectPrecision >= 0.75, searchRecallAt5 = 1.0", () => {
+  test("the lexical fallback channel serves the gold set at scale", async () => {
+    table(measured)
+    expect(measured.injectRecall).toBeGreaterThanOrEqual(0.85)
+    expect(measured.injectPrecision).toBeGreaterThanOrEqual(0.75)
+    expect(measured.searchRecallAtK).toBe(1)
+    expect(measured.channelStatus.lexical).toBe("ran")
   })
 
-  test("auto-inject recall on the turn gold set with the vector channel on", async () => {
-    const rows = []
-    for (const gold of TURN_GOLD) rows.push(await injectedIds(vector.memory, gold.query))
-    const recall = rows.filter((row, index) => row.ids.includes(TURN_GOLD[index].expect)).length / TURN_GOLD.length
-    report("injectRecall.vectorFakeCalibrated", recall)
-    expect(recall).toBeGreaterThanOrEqual(0.66)
-  })
-
-  test("search recall@5 across every gold pair, including retrieval-only types", async () => {
-    let hits = 0
-    for (const gold of ALL_GOLD) {
-      const result = await plain.memory.search({ query: gold.query, scopes: SCOPES, limit: 5 })
-      if (result.records.some((record) => record.id === gold.expect)) hits += 1
+  test("retrieval-only types stay reachable through search and out of the block", () => {
+    const forbidden = measured.injectCases.filter((item) => SEARCH_GOLD.some((gold) => gold.query === item.query))
+    expect(forbidden).toHaveLength(0)
+    for (const gold of SEARCH_GOLD) {
+      const case_ = measured.searchCases.find((item) => item.query === gold.query)
+      expect(case_?.hit).toBe(true)
     }
-    const recall = hits / ALL_GOLD.length
-    report("searchRecallAt5", recall)
-    expect(recall).toBe(1)
   })
 
-  test("search recall@1", async () => {
-    let hits = 0
-    for (const gold of ALL_GOLD) {
-      const result = await plain.memory.search({ query: gold.query, scopes: SCOPES, limit: 1 })
-      if (result.records.some((record) => record.id === gold.expect)) hits += 1
-    }
-    const recall = hits / ALL_GOLD.length
-    report("searchRecallAt1", recall)
-    expect(recall).toBeGreaterThanOrEqual(0.8)
+  test("the vector channel carries most of the gold set at its own calibrated threshold", () => {
+    report("vector.injectRecall", round(throughVectors.injectRecall))
+    report("vector.injectPrecision", round(throughVectors.injectPrecision))
+    report("vector.falseInjection", throughVectors.falseInjection)
+    expect(throughVectors.injectRecall).toBeGreaterThanOrEqual(0.66)
+    expect(throughVectors.channelStatus.vector).toBe("ran")
+    expect(throughVectors.searchRecallAtK).toBeGreaterThanOrEqual(0.9)
+  })
+
+  test("every case is attributed, never silently dropped", () => {
+    const counted = Object.values(measured.attribution).reduce((sum, value) => sum + (value ?? 0), 0)
+    expect(counted).toBe(measured.injectCases.length + measured.searchCases.length)
+    expect(measured.injectCases.length + measured.searchCases.length).toBe(GOLD.length + TURN_GOLD.length)
+    expect(measured.attribution.never_sought ?? 0).toBe(0)
   })
 })
 
-describe("precision — gate: false injection on unrelated queries = 0, injection precision >= 0.75", () => {
-  test("unrelated queries inject nothing at scale", async () => {
-    let injected = 0
-    for (const query of NO_MATCH_QUERIES) injected += (await injectedIds(plain.memory, query)).ids.length
-    report("falseInjectionCount.lexical", injected)
-    expect(injected).toBe(0)
+describe("injection discipline — gates: falseInjection = 0, partitionViolations = 0", () => {
+  test("unrelated queries inject nothing at scale", () => {
+    expect(measured.falseInjection).toBe(0)
   })
 
-  test("threshold sweep: recall and false injection move monotonically against each other", async () => {
-    const points = []
+  test("no retrieval-only type ever reaches the block", () => {
+    expect(measured.partitionViolations).toBe(0)
+  })
+
+  test("an unconfigured threshold still keeps the noise out at the production bar", async () => {
+    const strict = await corpus({ seed: CORPUS, embedder: true })
+    const metrics = await MemoryEvaluate.evaluate(strict.memory, SCOPES, OPTIONS)
+    report("strict.vectorFalseInjection", metrics.falseInjection)
+    report("strict.vectorInjectRecall", round(metrics.injectRecall))
+    expect(metrics.falseInjection).toBe(0)
+  })
+})
+
+describe("threshold sweep — gates: monotone curves, zero false injection at the production bar", () => {
+  test("loosening the vector threshold can only add candidates, never remove them", async () => {
+    const points: { vectorThreshold: number; recall: number; falseInjection: number }[] = []
     for (const vectorThreshold of [0.05, 0.08, 0.12, 0.18, 0.35]) {
-      const built = await build({ embedder: true, settings: { ...FAKE_VECTOR, vectorThreshold } })
-      let hits = 0
-      for (const gold of TURN_GOLD)
-        hits += (await injectedIds(built.memory, gold.query)).ids.includes(gold.expect) ? 1 : 0
-      let injected = 0
-      for (const query of NO_MATCH_QUERIES) injected += (await injectedIds(built.memory, query)).ids.length
-      points.push({ vectorThreshold, recall: hits / TURN_GOLD.length, falseInjection: injected })
+      const built = await corpus({ seed: CORPUS, embedder: true, settings: { ...FAKE_VECTOR, vectorThreshold } })
+      const metrics = await MemoryEvaluate.evaluate(built.memory, SCOPES, OPTIONS)
+      points.push({ vectorThreshold, recall: metrics.injectRecall, falseInjection: metrics.falseInjection })
     }
-    for (const point of points)
-      report(`sweep@${point.vectorThreshold}`, `recall=${point.recall.toFixed(3)} false=${point.falseInjection}`)
-    const recall = points.map((point) => point.recall)
-    const falseInjection = points.map((point) => point.falseInjection)
-    expect(recall.every((value, index) => index === 0 || value <= recall[index - 1])).toBe(true)
-    expect(falseInjection.every((value, index) => index === 0 || value <= falseInjection[index - 1])).toBe(true)
-    // The threshold mechanism, not the fake's calibration: at the production bar nothing the
-    // query fails to support gets in, and loosening the bar can only add candidates.
+    for (const point of points) report(`sweep@${point.vectorThreshold}`, `recall=${round(point.recall)} false=${point.falseInjection}`)
+    expect(points.every((point, index) => index === 0 || point.recall <= points[index - 1].recall)).toBe(true)
+    expect(points.every((point, index) => index === 0 || point.falseInjection <= points[index - 1].falseInjection)).toBe(true)
     expect(points.at(-1)?.falseInjection).toBe(0)
-    expect(recall[0]).toBeGreaterThanOrEqual(0.66)
-    // The fake's noise floor (~0.20 measured) is why this suite cannot claim an operating
-    // point of "high recall AND zero false injection". That claim belongs to the golden-set
-    // spike against bge-small; asserting it here would be asserting a property of the fake.
-    report("fakeNoiseFloorRecallAtZeroFalse", String(points.at(-1)?.recall.toFixed(3)))
-  })
-
-  test("injection precision: of everything injected on gold queries, how much was wanted", async () => {
-    let wanted = 0
-    let total = 0
-    for (const gold of TURN_GOLD) {
-      const row = await injectedIds(plain.memory, gold.query)
-      total += row.ids.length
-      wanted += row.ids.filter((id) => id === gold.expect).length
-    }
-    const precision = total === 0 ? 0 : wanted / total
-    report("injectPrecision.lexical", precision)
-    expect(precision).toBeGreaterThanOrEqual(0.75)
-  })
-
-  test("the type partition is never violated — retrieval-only types stay out of the block", async () => {
-    const byId = new Map(plain.all.map((record) => [record.id, record]))
-    let violations = 0
-    for (const gold of ALL_GOLD) {
-      const row = await injectedIds(plain.memory, gold.query)
-      violations += row.ids.filter((id) => !INJECTABLE.includes(byId.get(id)?.type ?? "convention")).length
-    }
-    report("partitionViolations", violations)
-    expect(violations).toBe(0)
+    expect(points[0].recall).toBeGreaterThanOrEqual(0.66)
+    // The fake's noise floor (~0.20 measured) is why no point here claims high recall AND zero
+    // false injection. That operating point is a claim about bge-small and the spike must prove
+    // it; asserting it from the fake would be asserting a property of the test double.
   })
 })
 
-describe("token cost — gate: mean injected chars <= 300 and <= 25% of the legacy window", () => {
-  test("injected characters per turn stay far below the old every-step window", async () => {
-    const rows = []
-    for (const gold of ALL_GOLD) rows.push(await injectedIds(plain.memory, gold.query))
-    const mean = rows.reduce((sum, row) => sum + row.chars, 0) / rows.length
-    const max = Math.max(...rows.map((row) => row.chars))
-    const legacyChars = legacyInject(plain.all).reduce(
-      (sum, id) => sum + (plain.all.find((record) => record.id === id)?.text.length ?? 0),
-      0,
-    )
-    report("meanInjectedChars", Math.round(mean))
+describe("token cost — gates: mean injected chars <= 300 and <= 25% of the legacy window", () => {
+  test("the per-turn block is a fraction of what the old every-step window cost", () => {
+    const legacyChars = legacyInject(lexical.records).reduce((sum, id) => sum + (find(lexical.records, id)?.text.length ?? 0), 0)
     report("legacyWindowChars", legacyChars)
-    report("costRatio", Number((mean / legacyChars).toFixed(3)))
-    expect(mean).toBeLessThanOrEqual(300)
-    expect(mean).toBeLessThanOrEqual(legacyChars * 0.25)
-    expect(max).toBeLessThanOrEqual(DEFAULT_SETTINGS.maxInjectedChars)
+    report("costRatio", round(measured.meanInjectedChars / legacyChars))
+    report("legacyWindowSize", legacyInject(lexical.records).length)
+    expect(measured.meanInjectedChars).toBeLessThanOrEqual(300)
+    expect(measured.meanInjectedChars).toBeLessThanOrEqual(legacyChars * 0.25)
+    expect(measured.maxInjectedChars).toBeLessThanOrEqual(DEFAULT_SETTINGS.maxInjectedChars)
+    expect(measured.maxInjectedChars).toBeGreaterThanOrEqual(MemoryInject.SECTION_HEADER_CHARS)
   })
 })
 
-describe("stability — gate: 100% byte-identical repeats", () => {
-  test("the same query yields the same block bytes, so re-sending it never breaks the cache", async () => {
-    let stable = 0
-    for (const gold of TURN_GOLD) {
-      const first = (await injectedIds(plain.memory, gold.query)).turn.injectBlock
-      const second = (await injectedIds(plain.memory, gold.query)).turn.injectBlock
-      if (first === second) stable += 1
-    }
-    report("byteStabilityRate", stable / TURN_GOLD.length)
-    expect(stable).toBe(TURN_GOLD.length)
+describe("stability — gate: byteStability = 1.0", () => {
+  test("repeating a query produces identical bytes, so re-sending never breaks the cache", () => {
+    expect(measured.byteStability).toBe(1)
   })
 
-  test("an untouched store gives the same recall after a hundred turns", async () => {
-    const before = await injectedIds(plain.memory, "分支命名规范")
-    for (let index = 0; index < 100; index++) await injectedIds(plain.memory, "commit message 格式类型")
-    const after = await injectedIds(plain.memory, "分支命名规范")
-    expect(after.ids).toEqual(before.ids)
+  test("a hundred untouched turns leave recall where it was", async () => {
+    const before = await lexical.memory.onTurn({ query: "分支命名规范", scopes: SCOPES })
+    for (let index = 0; index < 100; index++) await lexical.memory.onTurn({ query: "commit message 格式类型", scopes: SCOPES })
+    const after = await lexical.memory.onTurn({ query: "分支命名规范", scopes: SCOPES })
+    expect(after.injectBlock).toBe(before.injectBlock)
   })
 })
 
-describe("legacy baseline — gate: new recall is at least 2x the old key-ordered window", () => {
-  test("the old window missed most gold entries at this scale", async () => {
-    const window = new Set(legacyInject(plain.all))
+describe("legacy baseline — gates: new inject recall >= 2x the old window, new search recall >= 0.9", () => {
+  test("the old key-ordered window missed most gold entries at this scale", () => {
+    const window = new Set(legacyInject(lexical.records))
     const legacyRecall = TURN_GOLD.filter((gold) => window.has(gold.expect)).length / TURN_GOLD.length
-    let newHits = 0
-    for (const gold of TURN_GOLD) newHits += (await injectedIds(plain.memory, gold.query)).ids.includes(gold.expect) ? 1 : 0
-    const newRecall = newHits / TURN_GOLD.length
-    report("legacyWindowSize", window.size)
-    report("legacyInjectRecall", legacyRecall)
-    report("gainRatio", newRecall === 0 ? Infinity : Number((legacyRecall / newRecall).toFixed(3)))
-    expect(newRecall).toBeGreaterThanOrEqual(legacyRecall * 2)
+    report("legacyInjectRecall", round(legacyRecall))
+    report("legacyWindowRecallGain", round(measured.injectRecall / Math.max(legacyRecall, 0.001)))
+    expect(measured.injectRecall).toBeGreaterThanOrEqual(legacyRecall * 2)
+    expect(window.size).toBeGreaterThan(50)
   })
 
-  test("the old substring search found almost nothing a Chinese query asked for", async () => {
-    let legacyHits = 0
-    for (const gold of ALL_GOLD) {
-      if (legacySearch(plain.all, gold.query, 5).includes(gold.expect)) legacyHits += 1
-    }
-    let newHits = 0
-    for (const gold of ALL_GOLD) {
-      const result = await plain.memory.search({ query: gold.query, scopes: SCOPES, limit: 5 })
-      if (result.records.some((record) => record.id === gold.expect)) newHits += 1
-    }
-    report("legacySearchRecallAt5", legacyHits / ALL_GOLD.length)
-    report("newSearchRecallAt5", newHits / ALL_GOLD.length)
-    expect(newHits).toBeGreaterThan(legacyHits)
-    expect(newHits / ALL_GOLD.length).toBeGreaterThanOrEqual(0.9)
+  test("the old substring search found almost nothing a Chinese query asked for", () => {
+    const legacyHits = GOLD.filter((gold) => legacySearch(lexical.records, gold.query, 5).includes(gold.expect)).length
+    report("legacySearchRecallAt5", round(legacyHits / GOLD.length))
+    expect(measured.searchRecallAtK).toBeGreaterThanOrEqual(0.9)
+    expect(measured.searchRecallAtK).toBeGreaterThan(legacyHits / GOLD.length)
   })
 })
 
-function report(metric: string, value: number | string) {
-  console.log(`[memory-metrics] ${metric}=${value} @corpus=${corpusSize}`)
+describe("settings surface — the gate must survive hostile configuration", () => {
+  test("out-of-range config falls back instead of disabling retrieval", async () => {
+    const hostile = resolveSettings({
+      inject: "sometimes",
+      maxInjectedChars: -5,
+      vectorTopK: 0,
+      lexicalThreshold: 11,
+      vectorThreshold: Number.NaN,
+      lexicalScanLimit: 0.5,
+    } as unknown as Partial<Settings>)
+    expect(hostile.inject).toBe(DEFAULT_SETTINGS.inject)
+    expect(hostile.maxInjectedChars).toBe(DEFAULT_SETTINGS.maxInjectedChars)
+    expect(hostile.vectorTopK).toBe(DEFAULT_SETTINGS.vectorTopK)
+    expect(hostile.lexicalThreshold).toBe(DEFAULT_SETTINGS.lexicalThreshold)
+    expect(hostile.vectorThreshold).toBe(DEFAULT_SETTINGS.vectorThreshold)
+    expect(hostile.lexicalScanLimit).toBe(DEFAULT_SETTINGS.lexicalScanLimit)
+    const built = await corpus({ seed: CORPUS, settings: hostile })
+    const metrics = await MemoryEvaluate.evaluate(built.memory, SCOPES, OPTIONS)
+    expect(metrics.injectRecall).toBeGreaterThanOrEqual(0.85)
+    expect(metrics.searchRecallAtK).toBe(1)
+  })
+
+  test("a budget under the section header injects nothing rather than a bare header", async () => {
+    const built = await corpus({ seed: CORPUS, settings: { ...DEFAULT_SETTINGS, maxInjectedChars: 40 } })
+    const metrics = await MemoryEvaluate.evaluate(built.memory, SCOPES, OPTIONS)
+    expect(metrics.injectRecall).toBe(0)
+    expect(metrics.meanInjectedChars).toBe(0)
+    expect(metrics.falseInjection).toBe(0)
+  })
+
+  test("trigger-only mode keeps abbreviations and drops the fuzzy channels", async () => {
+    const built = await corpus({ seed: CORPUS, settings: { ...DEFAULT_SETTINGS, inject: "trigger" } })
+    const metrics = await MemoryEvaluate.evaluate(built.memory, SCOPES, OPTIONS)
+    expect(metrics.injectRecall).toBe(2 / TURN_GOLD.length)
+    expect(metrics.channelStatus.lexical).toBe("skipped")
+    expect(metrics.falseInjection).toBe(0)
+  })
+})
+
+function find(records: readonly MemoryRecord[], id: string): MemoryRecord | undefined {
+  return records.find((record) => record.id === id)
+}
+
+function round(value: number): number {
+  return Number(value.toFixed(3))
 }

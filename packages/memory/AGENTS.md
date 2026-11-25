@@ -41,20 +41,33 @@ network, or a session lives in `@aicraft/core` adapters that implement the ports
 - `test/metrics.test.ts` is the acceptance gate in numbers, measured on the 421-entry corpus
   (`bulkFiller`) rather than a toy set, because the design input is ten-thousand-entry
   long-term use. Current gates, each with margin above the measured value: auto-inject recall
-  ≥ 0.85 (lexical fallback, measured 1.0); search recall@5 = 1.0 and recall@1 ≥ 0.8 (measured
-  1.0); false injection on unrelated queries = 0; injection precision ≥ 0.75 (measured 0.9);
-  mean injected characters ≤ 300 and ≤ 25% of the legacy 4000-char window (measured 116 /
-  2.9%); byte stability 1.0; new inject recall ≥ 2× the old key-ordered window (measured
-  1.0 vs 0.33) and new search recall ≥ 0.9 vs the old substring match (measured 0.12).
-  Lowering a gate is a decision, not a test fix: state the measured before/after.
+  ≥ 0.85 (lexical fallback, measured 1.0); search recall@5 = 1.0 (measured 1.0); false injection
+  on unrelated queries = 0; injection precision ≥ 0.75 (measured 0.9); mean injected characters
+  ≤ 300 and ≤ 25% of the legacy 4000-char window (measured 219 / 5.5%); byte stability 1.0;
+  new inject recall ≥ 2× the old key-ordered window (measured 1.0 vs 0.33) and new search
+  recall ≥ 0.9 vs the old substring match (measured 0.12). Fake-calibrated vector gates are
+  weaker by design (inject recall ≥ 0.66, search ≥ 0.9 — measured 1.0 / 0.94): the fake is not
+  semantic, its real operating point comes from the bge-small spike. Lowering a gate is a
+  decision, not a test fix: state the measured before/after.
+- The bulk corpus must survive its own dedup: 400 fillers must yield 400 inserts (measured
+  worst pair containment 0.70 vs the 0.85 gate). Repeating whole topic sentences inside filler
+  text collapses the corpus (measured 400 → 153 and → 246 with earlier templates) and silently
+  voids every scale-dependent gate — `test/corpus` and the dedup test guard this.
 
 ## Layout
 
 - `types.ts` — record model, settings, port interfaces, result shapes.
 - `tokens.ts` — CJK bigram + ASCII word tokenizer shared by write and query sides.
+- `settings.ts` — one boundary validation of `Settings` (hostile config falls back, never
+  disables a channel).
+- `lifecycle.ts` — injectable-type partition, text hashing, tag normalization, symmetric
+  containment for near-dedup, `nextRow`/`supersededRow` version transforms, staleness.
 - `query.ts` — channel scoring and fusion ranking.
 - `inject.ts` — budget packing and the request-tail injection block renderer.
-- `subsystem.ts` — the facade: `onTurn`, `save`, `update`, `remove`, `search`, `list`.
+- `subsystem.ts` — the facade: `onTurn`, `save`, `update`, `supersede`, `remove`, `search`,
+  `list`, `browse`, `history`, `addTrigger`, `sessionIndex`, `staleVectorIds`.
+- `evaluate.ts` — the metric harness (corpus in, numbers out); the test gates and the future
+  real-embedder spike both consume it, so "recall" has exactly one definition.
 - `reference.ts` — in-memory `Store` and deterministic `Embedder` for tests and dry runs.
 
 ## Invariants

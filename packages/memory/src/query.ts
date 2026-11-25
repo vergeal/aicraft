@@ -1,13 +1,14 @@
 export * as MemoryQuery from "./query.js"
 import { MemoryTokens } from "./tokens.js"
-import type { Embedder, MemoryRecord, Store } from "./types.js"
+import type { ChannelStatus, Embedder, Hit, Store } from "./types.js"
 
-export type Channel = "trigger" | "vector" | "lexical"
-
-export interface Hit {
-  readonly record: MemoryRecord
-  readonly score: number
-  readonly channel: Channel
+export interface Ranked {
+  /** Every scored candidate, best first, threshold not yet applied. */
+  readonly ranked: readonly Hit[]
+  /** Why a channel produced nothing: `failed` means the channel broke, `skipped` means policy
+   *  or configuration turned it off. `memory_log` attributes misses from this, so the
+   *  distinction between "looked and missed" and "could not look" has to survive. */
+  readonly status: ChannelStatus
 }
 
 export function cosine(a: readonly number[], b: readonly number[]): number {
@@ -39,17 +40,19 @@ export function applyThreshold(ranked: readonly Hit[], threshold: number, topK: 
 }
 
 /** Trigger-exact: query surface forms looked up against the trigger table by the store. */
-export async function triggerHits(store: Store, query: string, scopes: readonly string[]): Promise<Hit[]> {
+export async function triggerRank(store: Store, query: string, scopes: readonly string[]): Promise<Ranked> {
   const forms = [...new Set([MemoryTokens.normalize(query.trim()), ...MemoryTokens.tokenize(query)])]
-  const records = await store.findTriggers(forms, scopes)
-  return rank(records.map((record) => ({ record, score: 1, channel: "trigger" as const })))
+  const records = await lookup(() => store.findTriggers(forms, scopes))
+  if (records === undefined) return { ranked: [], status: "failed" }
+  return { ranked: rank(records.map((record) => ({ record, score: 1, channel: "trigger" as const }))), status: "ran" }
 }
 
 /**
- * Brute-force cosine over the scope's embedded records, fully ranked (no threshold here).
- * At the ten-thousand-entry scale the scan is single-digit milliseconds in process, so no
- * vector index or SQLite extension is needed — an index only matters at the million scale.
- * A failing embedder yields an empty list, never an error: the vector channel is optional.
+ * Brute-force cosine over the scope's current-version embeddings, fully ranked (no threshold
+ * here). At the ten-thousand-entry scale the scan is single-digit milliseconds in process, so
+ * no vector index or SQLite extension is needed — an index only matters at the million scale.
+ * Rows carrying another `embedVersion` are excluded by the store: they live in a different
+ * vector space and scoring them is a category error, not noise.
  */
 export async function vectorRank(
   store: Store,
@@ -57,15 +60,19 @@ export async function vectorRank(
   scanLimit: number,
   query: string,
   scopes: readonly string[],
-): Promise<Hit[]> {
-  const embedding = await embedder.embed(query).catch(() => undefined)
-  if (embedding === undefined) return []
-  const vectors = await Promise.all(scopes.map((scope) => store.vectorCandidates(scope, scanLimit)))
-  return rank(
-    vectors
-      .flat()
-      .map((record) => ({ record, score: cosine(embedding, record.embedding ?? []), channel: "vector" as const })),
-  )
+): Promise<Ranked> {
+  const embedding = await embedder.embed(query).then((value) => [value] as const, () => undefined)
+  if (embedding === undefined) return { ranked: [], status: "failed" }
+  const candidates = await lookup(() => Promise.all(scopes.map((scope) => store.vectorCandidates(scope, scanLimit, embedder.version))))
+  if (candidates === undefined) return { ranked: [], status: "failed" }
+  return {
+    ranked: rank(
+      candidates
+        .flat()
+        .map((record) => ({ record, score: cosine(embedding[0], record.embedding ?? []), channel: "vector" as const })),
+    ),
+    status: "ran",
+  }
 }
 
 /**
@@ -73,30 +80,29 @@ export async function vectorRank(
  * is the token index (`lexicalCandidates`), never a recency window: entries worth finding are
  * usually the oldest ones, and a window silently re-creates the kv kernel's newest-100 cap.
  */
-export async function lexicalRank(
-  store: Store,
-  scanLimit: number,
-  query: string,
-  scopes: readonly string[],
-): Promise<Hit[]> {
+export async function lexicalRank(store: Store, scanLimit: number, query: string, scopes: readonly string[]): Promise<Ranked> {
   const tokens = MemoryTokens.tokenize(query)
-  if (tokens.length === 0) return []
-  const candidates = await Promise.all(scopes.map((scope) => store.lexicalCandidates(tokens, scope, scanLimit)))
+  if (tokens.length === 0) return { ranked: [], status: "skipped" }
+  const candidates = await lookup(() => Promise.all(scopes.map((scope) => store.lexicalCandidates(tokens, scope, scanLimit))))
+  if (candidates === undefined) return { ranked: [], status: "failed" }
   const queryTokens = new Set(tokens)
-  return rank(
-    candidates
-      .flat()
-      .map((record) => ({
-        record,
-        score: MemoryTokens.tokenOverlap(queryTokens, record.tokens),
-        channel: "lexical" as const,
-      }))
-      .filter((hit) => hit.score > 0),
-  )
+  return {
+    ranked: rank(
+      candidates
+        .flat()
+        .map((record) => ({
+          record,
+          score: MemoryTokens.tokenOverlap(queryTokens, record.tokens),
+          channel: "lexical" as const,
+        }))
+        .filter((hit) => hit.score > 0),
+    ),
+    status: "ran",
+  }
 }
 
-/** Channel-priority dedup (trigger > vector > lexical) capped at `limit` total. */
-export function fuse(channels: readonly Hit[][], limit: number): Hit[] {
+/** Channel-priority dedup (trigger first, then vector, then lexical) capped at `limit`. */
+export function fuse(channels: readonly (readonly Hit[])[], limit: number): Hit[] {
   const seen = new Set<string>()
   const fused: Hit[] = []
   for (const channel of channels) {
@@ -108,4 +114,10 @@ export function fuse(channels: readonly Hit[][], limit: number): Hit[] {
     }
   }
   return fused
+}
+
+/** A store read that rejects is an infrastructure failure, and memory never gets to fail a
+ *  request: the channel reports `failed` and the others carry on. */
+function lookup<T>(read: () => Promise<T>): Promise<T | undefined> {
+  return read().catch(() => undefined)
 }

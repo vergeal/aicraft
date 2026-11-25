@@ -1,5 +1,5 @@
 import { MemoryReference, MemorySubsystem } from "../src/index.js"
-import type { MemoryRecord, MemoryType, Settings } from "../src/index.js"
+import type { MemoryRecord, MemoryType, Settings, Store } from "../src/index.js"
 
 export const PROJECT = "proj_alpha"
 export const SCOPES = ["global", `project:${PROJECT}`]
@@ -67,34 +67,31 @@ export const SEARCH_GOLD: ReadonlyArray<{ query: string; expect: string; autoInj
 
 export const NO_MATCH_QUERIES = ["今天天气怎么样", "帮我写一首诗", "推荐一家餐厅"]
 
-/** Filler topics deliberately avoid every token the gold queries use (no 字体/颜色/分支/命名/
- *  状态/工具/调用/重启/应用/记忆/向量/玻璃/渐变/设置/枚举/类型/格式/知识库/天气/归属/索引…) so
- *  that a filler entry stealing a slot is a real precision failure, not fixture noise. */
-const FILLER = [
-  "炖牛腩先焯水去沫，小火两小时后收汁，最后放土豆块和胡萝卜",
-  "线上集群扩容先加节点再调副本数，滚动重启期间把 PDB 放宽到二",
-  "慢查询先看执行计划，联合索引把高选择性字段放在最左边",
-  "手冲咖啡粉水比一点十五，水温八十八度，闷蒸三十秒再分三段注水",
-  "半马赛前一周只跑轻松配速，赛前三天完全不练，碳水加载两天",
-  "胶片冲洗用两显影液二十度，摇摆前三十秒后每分钟两次，停显两分钟",
-  "海水缸换水每周百分之十，盐度先调到千分之三十再缓慢下放生物",
-  "桌游聚会八人以上选可八人的策略向，一局不超过九十分钟",
-  "普洱熟茶洗茶两遍，第一泡十秒出汤，壶温高一点香气才开",
-  "吉他换弦一次只换一根，调音到标准音高后再拉申防止跑音",
-  "露营营地选背风处，地钉四十五度打入，天幕一侧留排水沟",
-  "猫咪软便先换单一蛋白粮观察两周，益生菌空腹喂",
-  "跑步膝痛先停坡道训练，做臀中肌强化每周三次，六周后再加量",
-  "烤箱预热到实际温度需要十五分钟，空烤放一块石板蓄热",
-  "家庭网络组网用有线回程，Mesh 节点放走廊中央而不是墙后",
-  "拍星轨用三十秒长曝光连拍两百张，堆栈时把噪点帧剔除",
-  "腌酸白菜要压重物隔绝空气，二十天后亚硝酸盐峰值才降下来",
-  "保险选医疗优先于意外，等待期内不做检查项目",
-  "房贷提前还款选缩短年限，等额本息比等额本金省的利息更多",
-  "阳台种番茄用二十加仑盆，开花期改高磷水溶肥一周一次",
-  "机械键盘润轴用二百二十克润滑脂，撤下弹簧逐条涂",
-  "长途自驾每两小时休息二十分钟，胎压按满载值打",
-  "鱼缸蛋白撇除油膜时要停喂一天，滤材分批清洗不要全换",
-  "滑雪换刃先练后刃推坡，重心压在前脚掌，缓坡滑到自如再上中坡",
+/** Three 20-phrase pools with offset strides. Phrases are 5-7 characters so a repeated
+ *  segment is a minority of the token bag: the worst pair (two segments equal) lands near
+ *  0.6 containment, clear of the 0.85 near-duplicate gate. The earlier designs collapsed
+ *  400 → 153 and → 246 in dedup: long repeated topic sentences dominate a bag, which
+ *  silently destroys the corpus scale the metrics depend on. Phrases avoid every gold query
+ *  token (字体/颜色/分支/命名/状态/工具/调用/重启/应用/记忆/向量/玻璃/渐变/设置/枚举/类型/
+ *  格式/归属/索引/天气/提交/评审/文案/硬编码/索引/缩写…) so a filler stealing a slot is a
+ *  real precision failure, and the NO_MATCH queries (天气/诗/餐厅) share nothing here. */
+const FILLER_A = [
+  "周末骑行环路", "手冲耶加雪菲", "堆肥桶翻堆", "黑胶唱机保养", "葡萄架搭修剪",
+  "潜水气瓶检测", "底片扫描仪校准", "路亚饵配重", "滴灌定时器编程", "露营炉具深度清洁",
+  "观鸟长焦参数", "鲁邦种喂养记录", "海钓潮汐记录", "攀岩绳结年检", "微缩模型分色",
+  "果蔬酵素排气", "温泉泳镜除雾", "皮筏漏气修补", "望远镜极轴对准", "木工榫卯试作",
+]
+const FILLER_B = [
+  "平均心率区间", "粉水比例微调", "碳氮比估算", "针压克数记录", "支架间距测量",
+  "气瓶余压读数", "扫描色彩配置", "饵重与水深", "单点出水量", "喷嘴堵塞排查",
+  "焦距与快门", "喂养间隔时间", "满潮高潮时刻", "绳结承重余量", "底漆分色边界",
+  "发酵天数温度", "视野清晰度", "粘合固化时长", "赤纬偏差修正", "缝隙公差控制",
+]
+const FILLER_C = [
+  "两周后复盘", "雨天顺延暂停", "低温环境加速", "分三批进行", "先拿小样试验",
+  "全程戴手套", "避光直立存放", "固定在晨间做", "每月校验一次", "先测数据再调",
+  "结果记入表格", "每个节点拍照", "对照组同步做", "剂量先减半", "分上午下午两段",
+  "密封静置一夜", "左右交替轮换", "需提前预约", "双人独立复核", "留一份样待查",
 ]
 
 const FILLER_TYPE: readonly MemoryType[] = [
@@ -112,21 +109,16 @@ const FILLER_TYPE: readonly MemoryType[] = [
 
 /**
  * A deterministic bulk corpus: the design input is ten-thousand-entry long-term use, not a
- * fresh install, so metrics that only hold at 21 entries would be worthless. Filler entries
- * carry numeric suffixes (never colliding with gold tokens) and cycle through types so about
- * a fifth of them are auto-injectable and can genuinely steal a slot.
+ * fresh install, so metrics that only hold at 21 entries would be worthless.
  */
 export function bulkFiller(count = 400): SeedInput[] {
-  return Array.from({ length: count }, (_, index) => {
-    const type = FILLER_TYPE[index % FILLER_TYPE.length]
-    return {
-      id: `mem_f_${index}`,
-      scope: index % 5 === 0 ? "global" : "project",
-      type,
-      text: `${FILLER[index % FILLER.length]}（第 ${index + 1} 次记录）`,
-      tags: ["filler"],
-    }
-  })
+  return Array.from({ length: count }, (_, index) => ({
+    id: `mem_f_${index}`,
+    scope: index % 5 === 0 ? "global" : "project",
+    type: FILLER_TYPE[index % FILLER_TYPE.length],
+    text: `${FILLER_A[index % 20]}，${FILLER_B[Math.floor(index / 20) % 20]}，${FILLER_C[Math.floor(index / 13) % 20]}，流水 ${index + 1} 核对 ${index + 4001}`,
+    tags: ["filler"],
+  }))
 }
 
 export const CORPUS: readonly SeedInput[] = [...SEED, ...bulkFiller()]
@@ -169,19 +161,27 @@ export function fixedClock(start = Date.UTC(2026, 10, 25, 0, 0, 0)): () => strin
 /** The harness every test uses: input → subsystem → output, no server, no database, no model.
  *  Default is the no-embedder configuration so the golden set asserts the lexical fallback —
  *  the fake embedder is a mechanics stand-in, never a semantic proxy (see AGENTS.md). */
-export async function seeded(options?: {
+export interface Harness {
+  readonly memory: ReturnType<typeof MemorySubsystem.createSubsystem>
+  readonly store: Store
+  readonly records: readonly MemoryRecord[]
+}
+
+export async function corpus(options?: {
   settings?: Settings
   embedder?: boolean
   seed?: readonly SeedInput[]
-}): Promise<ReturnType<typeof MemorySubsystem.createSubsystem>> {
-  const subsystem = MemorySubsystem.createSubsystem({
-    store: MemoryReference.createStore(),
+  store?: Store
+}): Promise<Harness> {
+  const store = options?.store ?? MemoryReference.createStore()
+  const memory = MemorySubsystem.createSubsystem({
+    store,
     embedder: options?.embedder === true ? MemoryReference.createFakeEmbedder() : undefined,
     settings: options?.settings,
     clock: fixedClock(),
   })
   for (const entry of options?.seed ?? SEED) {
-    await subsystem.save({
+    await memory.save({
       scope: entry.scope,
       projectID: entry.scope === "project" ? PROJECT : undefined,
       type: entry.type,
@@ -191,5 +191,15 @@ export async function seeded(options?: {
       id: entry.id,
     })
   }
-  return subsystem
+  const pages = await Promise.all(SCOPES.map((scope) => memory.list(scope, 10_000)))
+  return { memory, store, records: pages.flatMap((page) => page.records) }
+}
+
+export async function seeded(options?: {
+  settings?: Settings
+  embedder?: boolean
+  seed?: readonly SeedInput[]
+  store?: Store
+}): Promise<Harness["memory"]> {
+  return (await corpus(options)).memory
 }

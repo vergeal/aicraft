@@ -131,7 +131,10 @@ export default [
     },
   },
   ...tailwind,
-  solidPlugin(),
+  // `dev: false` keeps the dev server on the production Solid runtime: the DEV build wraps every props object and
+  // memo in debug tracking, which multiplied mount cost in the session timeline (a measured 60ms of the ~100ms
+  // activation task). Fast refresh comes from the compiler and the hmr flag, not from this option.
+  solidPlugin({ dev: false }),
 ]
 
 export function inlineThemePreload(html) {

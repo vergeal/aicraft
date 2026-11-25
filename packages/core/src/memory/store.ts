@@ -1,11 +1,11 @@
-export * as MemoryStore from "./store.js"
+﻿export * as MemoryStore from "./store.js"
 
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import { Effect } from "effect"
-import type { BrowseFilter, MemoryRecord, MemoryType, Scope, ScopeListing, Store } from "@aicraft/memory"
+import type { BrowseFilter, MemoryRecord, MemoryType, Scope, ScopeListing, Store, TurnDecision } from "@aicraft/memory"
 import { scopeKey } from "@aicraft/memory"
 import type { EffectDrizzleSqlite } from "../database/drizzle.js"
-import { MemorySourceTable, MemoryTable, MemoryTokenTable, MemoryTriggerTable } from "./sql.js"
+import { MemoryLogTable, MemorySourceTable, MemoryTable, MemoryTokenTable, MemoryTriggerTable } from "./sql.js"
 
 type Database = EffectDrizzleSqlite.EffectSQLiteDatabase
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
@@ -350,4 +350,32 @@ function encodeEmbedding(vector: readonly number[] | undefined): Buffer | null {
 function decodeEmbedding(blob: Buffer | null): readonly number[] | undefined {
   if (blob === null || blob.length === 0) return undefined
   return Array.from(new Float32Array(blob.buffer, blob.byteOffset, blob.byteLength / 4))
+}
+
+/**
+ * One tuning row per real retrieval (not for cached step reuse): aggregate this table to see
+ * what the channels and thresholds actually cost and hit in production. It stays outside the
+ * `Store` port because logging is an operational concern of this adapter, not a retrieval
+ * decision of the subsystem.
+ */
+export function insertTurnLog(db: Database, decision: TurnDecision, sessionID: string | undefined): Promise<void> {
+  return Effect.runPromise(
+    db
+      .transaction((tx) =>
+        tx.insert(MemoryLogTable).values({
+          session_id: sessionID ?? null,
+          scope: decision.scope,
+          query: decision.query,
+          mode: decision.mode,
+          channels: decision.channels,
+          trigger_hits: [...decision.triggerHits],
+          vector_hits: [...decision.vectorHits],
+          lexical_hits: [...decision.lexicalHits],
+          injected: [...decision.injected],
+          skipped: decision.skipped.map((entry) => ({ id: entry.id, reason: entry.reason })),
+          injected_chars: decision.injectedChars,
+        }),
+      )
+      .pipe(Effect.asVoid, Effect.orDie),
+  )
 }

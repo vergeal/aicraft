@@ -1,6 +1,6 @@
 export * as MemoryService from "./service.js"
 
-import { DEFAULT_SETTINGS, createSubsystem, resolveSettings, type Settings, type Store, type Subsystem } from "@aicraft/memory"
+import { DEFAULT_SETTINGS, createSubsystem, resolveSettings, type Settings, type Store, type Subsystem, type TurnDecision } from "@aicraft/memory"
 import { Context, Effect, Layer, Scope } from "effect"
 import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Config } from "../config.js"
@@ -8,7 +8,7 @@ import { Database } from "../database/database.js"
 import { KV } from "../kv.js"
 import { MemoryEmbedding } from "./embedding.js"
 import { migrateKv } from "./migrate.js"
-import { createSqlStore } from "./store.js"
+import { createSqlStore, insertTurnLog } from "./store.js"
 
 /**
  * The Effect service that wires the `@aicraft/memory` decision core to the host: the SQL store
@@ -22,6 +22,8 @@ export interface Interface {
   readonly settings: Settings
   /** Whether the vector channel booted; false means trigger + lexical only. */
   readonly vectorChannel: boolean
+  /** One `memory_log` row per real retrieval; never fails the caller. */
+  readonly logTurn: (decision: TurnDecision, sessionID: string | undefined) => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@aicraft/core/MemoryService") {}
@@ -56,7 +58,16 @@ const layer = Layer.effect(
       Effect.catchCause((cause) => Effect.logWarning("memory kv import failed", { cause })),
     )
 
-    return { subsystem, store, settings, vectorChannel: embedding !== undefined }
+    return {
+      subsystem,
+      store,
+      settings,
+      vectorChannel: embedding !== undefined,
+      logTurn: (decision, sessionID) =>
+        Effect.tryPromise(() => insertTurnLog(db, decision, sessionID)).pipe(
+          Effect.catch((cause) => Effect.logWarning("memory turn log failed", { cause })),
+        ),
+    }
   }),
 )
 

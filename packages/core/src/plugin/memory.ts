@@ -286,12 +286,16 @@ export const Plugin = define({
         const key = last.id ?? query
         const sessionKey = String(event.sessionID)
         const cached = turns.get(sessionKey)
-        const block =
-          cached !== undefined && cached.key === key
-            ? cached.block
-            : yield* Effect.promise(async () => (await memory.onTurn({ query, scopes: scopesFor(project) })).injectBlock)
-        if (turns.size > 200) turns.clear()
-        turns.set(sessionKey, { key, block })
+        let block: string
+        if (cached !== undefined && cached.key === key) {
+          block = cached.block
+        } else {
+          const turn = yield* Effect.promise(() => memory.onTurn({ query, scopes: scopesFor(project) }))
+          block = turn.injectBlock
+          yield* service.logTurn(turn.decision, sessionKey)
+          if (turns.size > 200) turns.clear()
+          turns.set(sessionKey, { key, block })
+        }
         if (block === "") return
         event.messages = event.messages.map((message) =>
           message === last && message.role === "user"

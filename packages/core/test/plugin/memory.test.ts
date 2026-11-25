@@ -7,6 +7,8 @@ import { PluginHost } from "@aicraft/core/plugin/host"
 import { MemoryPlugin } from "@aicraft/core/plugin/memory"
 import { Location } from "@aicraft/core/location"
 import { MemoryService } from "@aicraft/core/memory/service"
+import { MemoryLogTable } from "@aicraft/core/memory/sql"
+import { Database } from "@aicraft/core/database/database"
 import { Provider } from "@aicraft/core/provider"
 import { Rpc } from "@aicraft/core/rpc"
 import { Session } from "@aicraft/core/session"
@@ -137,6 +139,13 @@ describe("memory plugin injection", () => {
       const second = context(session.id)
       yield* hooks.trigger("session", "context", second)
       expect(injectedBlock(second)).toBe(block)
+
+      // memory_log records the one real retrieval, not the cached step reuse.
+      const { db } = yield* Database.Service
+      const rows = yield* db.select({ injected: MemoryLogTable.injected, mode: MemoryLogTable.mode }).from(MemoryLogTable).all()
+      expect(rows.length).toBe(1)
+      expect(rows[0]!.injected.length).toBeGreaterThan(0)
+      expect(rows[0]!.mode).toBe("trigger+vector")
 
       // An unrelated turn with no index hit injects nothing rather than a recency window.
       const quiet = context(session.id)

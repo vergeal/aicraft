@@ -3528,8 +3528,15 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
   flex: none;
 }
 
+/* The custom provider sheet takes more height than the shared large size gives: at 560px the model list is a two-row
+   strip under the form. The width stays the large size's 600px, so the field grid is untouched, and the cap keeps the
+   sheet inside a short window. */
+[data-component="dialog-v2"][data-variant="settings"] .settings-provider-custom-dialog[data-slot="dialog-container"] {
+  height: min(calc(100vh - 48px), 680px);
+}
+
 /* The custom provider sheet: one screen of details and models. The dialog's base size frames the sheet, the body
-   owns the scroll, and the model list scrolls inside its own 208px box, so the footer stays visible when the form
+   owns the scroll, and the model list scrolls inside its own box, so the footer stays visible when the form
    grows or a fetch fails. */
 [data-component="dialog-v2"][data-variant="settings"]
   .settings-provider-custom-dialog[data-slot="dialog-container"]
@@ -3608,6 +3615,10 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
    second section starts 16px below the first. */
 .settings-provider-custom-section {
   padding-top: 16px;
+  /* The body is a flex column that scrolls, and the model card's `overflow: hidden` drops its automatic minimum size,
+     so with the form above it the card was free to shrink: the fetched list collapsed to a row or two and the body
+     stopped scrolling altogether, hiding what was left. Sections keep their own height; the body does the scrolling. */
+  flex-shrink: 0;
 }
 
 .settings-provider-custom-section-head {
@@ -3764,6 +3775,15 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
   padding: 10px;
 }
 
+/* Select all acts on the rows below the toolbar, so it leads them. The compact control stack is 20px tall, so the
+   label matches that line height to keep mark and text centred on one line. */
+[data-component="dialog-v2"] .settings-provider-custom-select-all {
+  flex: none;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 20px;
+}
+
 /* The search and fetch controls sit one step below the form's 30px fields; 28px keeps the toolbar compact. */
 .settings-provider-custom-search {
   flex: 1;
@@ -3803,7 +3823,7 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
 }
 
 /* The list is the card's middle band, so it draws no border of its own; rows are separated by a hairline and only the
-   hovered row takes a fill. The viewport inside MenuScroll carries the 208px cap and the 6px inset. */
+   hovered row takes a fill. The viewport inside MenuScroll carries the 300px cap and the 6px inset. */
 .settings-provider-custom-model-list {
   display: flex;
   flex-direction: column;

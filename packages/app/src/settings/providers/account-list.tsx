@@ -165,7 +165,11 @@ export function ProviderAccountList(props: {
                       <span
                         data-slot="provider-account-key"
                         class="provider-account-key"
-                        title={state.revealed[account.id] ? undefined : language.t("dialog.provider.accounts.reveal")}
+                        title={
+                          state.revealed[account.id]
+                            ? secret()
+                            : language.t("dialog.provider.accounts.reveal")
+                        }
                       >
                         {state.revealed[account.id] ? secret() : maskSecret(secret())}
                       </span>

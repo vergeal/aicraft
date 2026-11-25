@@ -710,6 +710,7 @@ export const dict = {
   "settings.providers.custom.models.fetching": "正在获取…",
   "settings.providers.custom.models.refetch": "重新获取",
   "settings.providers.custom.models.search": "搜索模型",
+  "settings.providers.custom.models.selectAll": "全选",
   "settings.providers.custom.models.summary": "已选 {{selected}} / 共 {{total}} 个",
   "settings.providers.custom.models.noMatch": "没有匹配的模型。可以手动输入模型 ID。",
   "settings.providers.custom.models.hint": "勾选的模型会出现在模型选择器里。拉取失败也可以手动填写。",

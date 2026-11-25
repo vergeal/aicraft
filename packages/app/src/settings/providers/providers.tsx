@@ -542,7 +542,9 @@ export const SettingsProviders: Component<{
                 <ConfirmRemoval />
               </Show>
             </div>
-            <Show when={canStoreKey(row.item)}>
+            {/* A custom provider's accounts live in its own edit dialog, so the row prints none: the keys it stores
+                are configuration detail, not something to scan in the list. */}
+            <Show when={canStoreKey(row.item) && !customProvider(row.item.id)}>
               <div class="settings-provider-accounts">
                 <ProviderAccountList
                   accounts={accountList(row.item).items}
@@ -693,9 +695,9 @@ export const SettingsProviders: Component<{
     )
   }
 
-  // Every row offers exactly one menu, and that menu only holds what the row itself owns. Accounts are not in it: the
-  // list under the row already shows them, with their names and masked keys, so a second entry point would only hide
-  // them behind a menu.
+  // Every row offers exactly one menu, and that menu only holds what the row itself owns. Accounts are not in it: a
+  // bundled provider already shows them under the row with their names and masked keys, and a custom one manages them
+  // inside its edit dialog. Either way a menu entry would only be a second way to the same list.
   function RowMenu(menuProps: { item: ProviderItem; name: string }) {
     const custom = () => customProvider(menuProps.item.id)
     const disconnect = () => !custom() && canDisconnect(menuProps.item)

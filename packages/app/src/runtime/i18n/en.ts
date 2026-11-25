@@ -1584,6 +1584,7 @@ export const dict = {
   "settings.providers.custom.models.fetching": "Fetching…",
   "settings.providers.custom.models.refetch": "Fetch again",
   "settings.providers.custom.models.search": "Search models",
+  "settings.providers.custom.models.selectAll": "Select all",
   "settings.providers.custom.models.summary": "Selected {{selected}} of {{total}}",
   "settings.providers.custom.models.noMatch": "No matching models. Add an ID by hand.",
   "settings.providers.custom.models.hint":

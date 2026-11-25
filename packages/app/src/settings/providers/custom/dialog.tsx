@@ -237,6 +237,21 @@ export function DialogCustomProvider(props: {
     set({ models: checked ? [...value.models, id] : value.models.filter((item) => item !== id) })
   }
 
+  // Select all speaks about the list the user can see, so a search narrows what one click selects and a manual model
+  // that the endpoint never returned is never removed by it. Kobalte keeps the third state on its own prop.
+  const pickedVisible = createMemo(() => visible().filter((model) => models().includes(model.id)).length)
+  const allSelected = () => visible().length > 0 && pickedVisible() === visible().length
+  const someSelected = () => pickedVisible() > 0 && pickedVisible() < visible().length
+
+  const setAllModels = (checked: boolean) => {
+    const value = draft()
+    if (!value) return
+    const ids = visible().map((model) => model.id)
+    set({
+      models: checked ? [...new Set([...value.models, ...ids])] : value.models.filter((id) => !ids.includes(id)),
+    })
+  }
+
   const addManual = () => {
     const id = manual().trim()
     const value = draft()
@@ -425,6 +440,17 @@ export function DialogCustomProvider(props: {
                     </div>
                   </Show>
                   <div class="settings-provider-custom-toolbar">
+                    <Show when={visible().length > 0}>
+                      <Checkbox
+                        appearance="compact"
+                        class="settings-provider-custom-select-all"
+                        checked={allSelected()}
+                        indeterminate={someSelected()}
+                        onChange={setAllModels}
+                      >
+                        {language.t("settings.providers.custom.models.selectAll")}
+                      </Checkbox>
+                    </Show>
                     <div class="settings-provider-custom-search">
                       <TextField
                         hideLabel
@@ -465,7 +491,7 @@ export function DialogCustomProvider(props: {
                     </p>
                   </Show>
                   <Show when={visible().length > 0}>
-                    <MenuScroll class="settings-provider-custom-model-list" viewportClass="max-h-[208px] p-1.5">
+                    <MenuScroll class="settings-provider-custom-model-list" viewportClass="max-h-[300px] p-1.5">
                       <For each={visible()}>
                         {(model) => (
                           <Checkbox

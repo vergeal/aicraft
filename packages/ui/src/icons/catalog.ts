@@ -45,11 +45,12 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<path d="M5.118 5.686V10.314M5.118 5.686C5.97 5.686 6.661 4.995 6.661 4.143C6.661 3.291 5.97 2.6 5.118 2.6C4.266 2.6 3.575 3.291 3.575 4.143C3.575 4.995 4.266 5.686 5.118 5.686ZM5.118 10.314C4.266 10.314 3.575 11.005 3.575 11.857C3.575 12.709 4.266 13.4 5.118 13.4C5.97 13.4 6.661 12.709 6.661 11.857M5.118 10.314C5.97 10.314 6.661 11.005 6.661 11.857M10.882 5.686C11.734 5.686 12.425 4.995 12.425 4.143C12.425 3.291 11.734 2.6 10.882 2.6C10.03 2.6 9.339 3.291 9.339 4.143C9.339 4.995 10.03 5.686 10.882 5.686ZM10.882 5.686V9.457C10.882 10.783 9.807 11.857 8.482 11.857H6.661" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>`,
   },
-  // The status line's speed mark: a half dial with the needle resting at rest. Drawn with `outline16` so it weighs
-  // the same as the token and context marks beside it.
+  // The status line's speed mark: a dial open at the bottom, so the round body fills the 14px box instead of a
+  // half circle sitting on the baseline, which read as squashed. Drawn with `outline16` to weigh the same as the
+  // token and context marks beside it.
   gauge: {
     viewBox: "0 0 16 16",
-    body: `<g ${outline16}><path d="M2.2 11.9a5.8 5.8 0 0 1 11.6 0"/><path d="M8 10.15 10.55 6.9"/></g><circle cx="8" cy="10.15" r="1.05" fill="currentColor"/>`,
+    body: `<g ${outline16}><path d="M3.48 12.39a5.9 5.9 0 1 1 9.04 0"/><path d="M8 8.6 10.47 6.12"/></g><circle cx="8" cy="8.6" r="1.15" fill="currentColor"/>`,
   },
   // The token counter: a database cylinder, the stored-token mark beside the speed dial.
   database: {

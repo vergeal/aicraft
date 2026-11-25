@@ -24,6 +24,9 @@ await $`bun ./script/copy-metainfo.ts ${channel}`
 if (channel === "prod") await $`bun ./script/distribution.ts`
 else await rm("resources/distribution", { recursive: true, force: true })
 
+// The memory vector runtime (resources/embedding) is committed to the repo: packaging never
+// downloads it. script/embedding-assets.ts is a maintenance tool for model or llama upgrades.
+
 const built = await exists(path.join(cli, getCurrentCli().package.replace("@aicraft/", "")))
 
 if (channel === "prod" && !built)

@@ -84,6 +84,9 @@ const getBase = (appId: string): Configuration => {
       "resources/**/*",
       "!resources/distribution{,/**/*}",
       "!resources/opencode-cli*",
+      // The embedding runtime is ~70 MB of native binaries and model data; like the CLI it stays
+      // out of the asar and rides extraResources as plain files.
+      "!resources/embedding{,/**/*}",
       // Keep only the target platform's node-pty prebuild when cross-packaging with --cpu=*.
       ...CLI_BINARIES.filter((item) => item.os !== target.os || item.cpu !== target.cpu).map(
         (item) => `!**/node_modules/@lydell/node-pty-${item.os}-${item.cpu}{,/**/*}`,
@@ -113,6 +116,14 @@ const getBase = (appId: string): Configuration => {
       // without parsing the whole archive header. Only the prod channel prepares this directory.
       ...(existsSync(path.join(packageDir, "resources", "distribution"))
         ? [{ from: "resources/distribution", to: "distribution" }]
+        : []),
+      // Committed to the repo (script/embedding-assets.ts only regenerates it when the model or
+      // llama build changes). Windows-only: the runtime is a win64 build, and other platforms
+      // keep the designed trigger + lexical fallback. From the install directory the sidecar
+      // spawns llama-server in place; the update flow stops $INSTDIR processes first, which
+      // covers the bundled runtime's file handles.
+      ...(target.os === "win32" && existsSync(path.join(packageDir, "resources", "embedding"))
+        ? [{ from: "resources/embedding", to: "embedding" }]
         : []),
     ],
     afterPack: async (context) => {
@@ -161,6 +172,30 @@ const getBase = (appId: string): Configuration => {
 
             if (await NativeArch.isNative(file)) await NativeArch.verify(file, arch)
           }),
+      )
+
+      // Windows installers must carry the memory vector runtime; a silent miss would ship an app
+      // whose vector channel can never start and whose corpus has no way to notice.
+      const embedding = path.join(resources, "embedding")
+
+      if (!existsSync(embedding))
+        throw new Error(`Windows builds must bundle the memory embedding runtime (missing ${embedding}); run script/build.ts first`)
+
+      const server = path.join(embedding, "llama-server.exe")
+
+      if ((await stat(server)).size === 0) throw new Error(`Bundled embedding server must be a non-empty file: ${server}`)
+      await NativeArch.verify(server, arch)
+
+      const model = path.join(embedding, "bge-small-zh-v1.5-q8_0.gguf")
+
+      if ((await stat(model)).size === 0) throw new Error(`Bundled embedding model must be a non-empty file: ${model}`)
+
+      const runtime = await readdir(embedding, { withFileTypes: true })
+
+      await Promise.all(
+        runtime
+          .filter((entry) => entry.isFile() && /\.(dll|exe)$/.test(entry.name))
+          .map((entry) => NativeArch.verify(path.join(embedding, entry.name), arch)),
       )
     },
     mac: {

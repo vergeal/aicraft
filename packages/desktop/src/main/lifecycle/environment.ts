@@ -1,8 +1,10 @@
+import { existsSync } from "node:fs"
 import http from "node:http"
 import { getCACertificates, setDefaultCACertificates } from "node:tls"
 import { app } from "electron"
 import { Effect, Path } from "effect"
 import { DesktopPaths } from "../paths"
+import { bundledEmbeddingEnv } from "../service/embedding"
 import { getUserShell, loadShellEnv } from "../service/shell-env"
 import { registerRendererProtocol, setDockIcon, setProtocolReporter } from "../windows"
 import { scoped } from "../native/logging"
@@ -36,6 +38,18 @@ export const preferApplicationEnvironment = Effect.gen(function* () {
       AICRAFT_EXPERIMENTAL_FILEWATCHER: "true",
       AICRAFT_CLIENT: "desktop",
     })
+    // After the shell env merge, so a user's own pairing survives; before any sidecar spawn, so
+    // the inherited environment is already complete.
+    Object.assign(
+      process.env,
+      bundledEmbeddingEnv({
+        platform: process.platform,
+        packaged: app.isPackaged,
+        resourcesPath: process.resourcesPath,
+        exists: existsSync,
+        env: process.env,
+      }),
+    )
   })
 })
 

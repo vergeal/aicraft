@@ -5219,6 +5219,15 @@ export type ExperimentalConfigUpdateInput = {
         } | null
       }
     | undefined
+  readonly memory?:
+    | {
+        readonly auto_inject?: "off" | "trigger" | "vector"
+        readonly max_injected_chars?: number
+        readonly extract?: boolean
+        readonly max_entries?: number
+      }
+    | null
+    | undefined
 }
 
 export type ExperimentalConfigUpdateOutput = void

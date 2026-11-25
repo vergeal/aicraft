@@ -3100,6 +3100,15 @@ export type ExperimentalConfigUpdateInput = {
   readonly shell?: string | null | undefined
   readonly plugins?: ReadonlyArray<string> | undefined
   readonly providers?: { readonly [x: string]: Config.ProviderPatch | null } | undefined
+  readonly memory?:
+    | {
+        readonly auto_inject?: ("off" | "trigger" | "vector") | undefined
+        readonly max_injected_chars?: number | undefined
+        readonly extract?: boolean | undefined
+        readonly max_entries?: number | undefined
+      }
+    | null
+    | undefined
 }
 export type ExperimentalConfigUpdateOutput = void
 export type ExperimentalConfigUpdateOperation<E = never> = (

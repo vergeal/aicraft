@@ -47,6 +47,29 @@
   }
 }
 
+/* The strip is the part that changes size, so it is the part that moves: it opens from zero and the auto-height card
+   follows the same layout every frame, which is the only way picture, text and card stay in one motion. A height
+   tween on the card itself would be a second timeline and always disagree with the content it was measured from.
+   `interpolate-size: allow-keywords` on `:root` (packages/ui/src/styles/utilities.css) is what lets `auto` end the
+   keyframe, and the clip is only needed while the strip is shorter than its content. */
+@keyframes composer-strip-open {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+[data-component="composer-attachments"] {
+  overflow: hidden;
+  animation: composer-strip-open 200ms cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="composer-attachments"] {
+    animation: none;
+  }
+}
+
 /* One frame for every attachment, picture or file: a lone one reads as a preview at 200x136, and each extra one steps
    the frame down so four still sit in a single row. The corner and the icon scale with the frame, so a large chip does
    not look like a small one blown up. */

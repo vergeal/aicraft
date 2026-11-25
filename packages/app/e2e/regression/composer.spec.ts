@@ -936,33 +936,50 @@ test("keeps a line added at the end of a scrolling prompt clear of the bottom fa
     .toBe(0)
 })
 
-test("grows the card on a height tween when the draft gains a line", async ({ page }) => {
+test("keeps the card the same height as its draft as the draft grows and empties", async ({ page }) => {
   const { editor } = await openDraft(page, { name: "ComposerHeightTween", provider: NO_PROVIDER })
   await editor.click()
   await editor.pressSequentially("first line")
 
   const text = page.locator('[data-slot="composer-text"]')
-  const measured = () => text.evaluate((element) => element.getBoundingClientRect().height)
+  const heights = () =>
+    text.evaluate((element) => ({
+      card: Math.round(element.getBoundingClientRect().height),
+      // The draft is what the card is sized from; any height written by JS puts the two a frame apart, which is
+      // what reads as the text jumping up while the card catches up.
+      content: Math.round(element.firstElementChild?.getBoundingClientRect().height ?? 0),
+    }))
 
-  // The card must tween between line counts on the same curve the branch card's list uses, not snap. The
-  // height is the browser's own interpolation of `auto` (interpolate-size on :root), never a JS-measured
-  // value: a measured write lands a frame after the content moves, so the draft would lead the card.
-  await expect(text).toHaveCSS("transition-property", "height")
-  await expect(text).toHaveCSS("transition-duration", "0.2s")
-  await expect(text).toHaveCSS("transition-timing-function", "cubic-bezier(0.645, 0.045, 0.355, 1)")
-  await expect(text).toHaveCSS("interpolate-size", "allow-keywords")
-  await expect(text).toHaveCSS("height", /px$/)
-
-  // The card is bottom-anchored (13-motion.md §11), so the line under the caret stays readable while it grows
-  // and earlier lines are the ones pushed out of the clip.
+  // The card is bottom-anchored and clipped (13-motion.md §11): an over-long draft pushes earlier lines out of
+  // the clip instead of swallowing the line under the caret.
   await expect(text).toHaveCSS("justify-content", "flex-end")
+  await expect(text).toHaveCSS("overflow-y", "hidden")
 
-  const single = await measured()
+  // Motion lives in the attachment strip, which opens from zero into `auto`; the card follows it because
+  // `interpolate-size: allow-keywords` is on `:root` (packages/ui/src/styles/utilities.css).
+  await expect(text).toHaveCSS("interpolate-size", "allow-keywords")
+
+  // Nothing measures the card: a JS-pinned height is a second timeline that always trails its own content.
+  await expect(text).toHaveJSProperty("style.height", "")
+
+  const single = await heights()
+  expect(single.card).toBe(single.content)
 
   await editor.press("Shift+Enter")
   await editor.pressSequentially("second line")
   await expect.poll(() => editor.innerText()).toBe("first line\nsecond line")
-  await expect.poll(measured).toBeGreaterThan(single)
+
+  const grown = await heights()
+  expect(grown.card).toBe(grown.content)
+  expect(grown.card).toBeGreaterThan(single.card)
+
+  await editor.press(process.platform === "darwin" ? "Meta+A" : "Control+A")
+  await editor.press("Backspace")
+  await expect.poll(() => editor.innerText()).toBe("")
+
+  const emptied = await heights()
+  expect(emptied.card).toBe(emptied.content)
+  await expect.poll(() => text.evaluate((element) => Math.round(element.getBoundingClientRect().height))).toBe(single.card)
 })
 
 test("Enter that confirms an IME candidate never sends, even after Safari's early compositionend", async ({ page }) => {

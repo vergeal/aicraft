@@ -328,19 +328,16 @@ export function ComposerEditor(props: ComposerEditorProps) {
           style={{ "--composer-fade-bottom": `${fadeBottom()}px`, "--composer-fade-top": `${fadeTop()}px` }}
           onScroll={updateScroll}
         >
-          {/* Attachments and text share one box whose height the browser interpolates on its own:
-              `interpolate-size: allow-keywords` is set on `:root` (packages/ui/src/styles/utilities.css), so a
-              content-driven resize tweens on the same 200ms curve the branch card's list uses
-              (docs/standard/design/13-motion.md §11). Measuring the height in JS would write it a frame after
-              the attachment frames start their own transition, and the draft would lead the card. The card is
-              bottom-anchored and the line under the caret must stay readable, so the box pins its content to
-              the bottom edge — a growing draft pushes earlier lines out of the clip instead of swallowing the
-              line being typed. */}
-          <div
-            data-slot="composer-text"
-            class="flex flex-col justify-end overflow-hidden duration-[200ms] ease-[cubic-bezier(0.645,0.045,0.355,1)] motion-reduce:transition-none"
-            classList={{ "transition-[height]": historyLayout.height === undefined }}
-          >
+          {/* Nothing is measured or written here: the card is exactly as tall as the draft it holds, so the text
+              and the card cannot end up a frame apart. A height written from JS always trails the content it was
+              measured from — measured in the layout pass that already moved, then tweened toward a value the
+              content has left behind — which is what makes a new line read as the text jumping up while the card
+              catches up, and makes the answers above flicker as the viewport is resized frame after frame.
+              Motion therefore belongs to whatever changes size: the attachment strip opens and closes on the
+              200ms curve the branch card's list uses (docs/standard/design/13-motion.md §11, editor.css) and the
+              card follows it inside the same layout. Bottom-anchored and clipped, so an over-long draft pushes
+              earlier lines out of the clip instead of swallowing the line being typed. */}
+          <div data-slot="composer-text" class="flex flex-col justify-end overflow-hidden">
             <Show when={state.mode === "normal"}>
               <ComposerAttachments
                 attachments={props.controller.attachments()}

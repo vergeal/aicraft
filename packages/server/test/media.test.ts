@@ -75,7 +75,7 @@ const serve = (database: string, mediaBlob: boolean) =>
 const client = (handler: (request: Request) => Promise<Response>, capabilities?: string) =>
   Aicraft.make({
     baseUrl: "http://aicraft.local",
-    ...(capabilities === undefined ? {} : { headers: { "X-AI Craft-Capabilities": capabilities } }),
+    ...(capabilities === undefined ? {} : { headers: { "X-AICraft-Capabilities": capabilities } }),
     fetch: Object.assign((input: string | URL | Request, init?: RequestInit) => handler(new Request(input, init)), {
       preconnect: fetch.preconnect,
     }),

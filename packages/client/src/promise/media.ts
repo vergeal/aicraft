@@ -3,7 +3,7 @@ import type { MessageListInput, SessionInboxListInput, SessionMessageGetInput } 
 
 const MEDIA_URI_CAPABILITY = "experimental-media-uri"
 
-const CAPABILITIES_HEADER = "X-AI Craft-Capabilities"
+const CAPABILITIES_HEADER = "X-AICraft-Capabilities"
 
 const MEDIA_REF = /^media:([0-9a-f]{64})$/
 

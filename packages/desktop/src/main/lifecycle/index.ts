@@ -2,16 +2,20 @@ export * as ApplicationLifecycle from "./index"
 
 import { app, BrowserWindow } from "electron"
 import type { Event } from "electron"
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Path } from "effect"
 import { DeepLinks } from "../deep-links"
+import { DesktopPaths } from "../paths"
 import { DesktopLogging, scoped } from "../native/logging"
 import { DesktopStorage } from "../storage"
 import { safeWebContentsURL } from "../windows/state"
-import { getLastFocusedWindow, mainWindows, setAppQuitting, setRelaunchHandler } from "../windows"
+import { iconPath } from "../windows/appearance"
+import { createTray } from "../windows/tray"
+import { getLastFocusedWindow, mainWindows, onMainWindow, setAppQuitting, setRelaunchHandler } from "../windows"
 import type { Scope } from "@aicraft/plugin/gui/host"
 import { marks } from "./marks"
 import {
   createDriver,
+  hidesWindowOnClose,
   preventsQuit,
   quitsWhenAllWindowsClosed,
   restoresWindows,
@@ -147,6 +151,26 @@ const runtime = Layer.effect(
       if (BrowserWindow.getAllWindows().length === 0) restoreWindows()
     }
 
+    // Closing a window hides it instead of quitting: on Windows the app lives in the tray, and the tray menu is
+    // the only direct quit. Every other quit path clears `hidesWindowOnClose` before windows close for real.
+    const closeToTray = onMainWindow((win) => {
+      win.on("close", (event) => {
+        if (!hidesWindowOnClose(driver.state(), process.platform)) return
+
+        event.preventDefault()
+        win.hide()
+      })
+    })
+
+    const tray =
+      process.platform === "win32"
+        ? createTray({
+            iconPath: iconPath(yield* Path.Path, yield* DesktopPaths.resolve),
+            restore: () => focusWindow(getLastFocusedWindow()),
+            quit: () => app.quit(),
+          })
+        : undefined
+
     const resetRelaunchHandler = setRelaunchHandler(relaunch)
     let windowsWired = false
 
@@ -171,6 +195,8 @@ const runtime = Layer.effect(
         process.off("SIGINT", signal)
         process.off("SIGTERM", signal)
         resetRelaunchHandler()
+        closeToTray()
+        tray?.dispose()
         exits.forEach(clearImmediate)
         exits.clear()
       }),

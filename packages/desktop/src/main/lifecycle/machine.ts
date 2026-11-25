@@ -95,6 +95,14 @@ export const preventsQuit = (state: State) => state.status !== "handing-off" && 
 export const quitsWhenAllWindowsClosed = (state: State, platform: NodeJS.Platform) =>
   platform !== "darwin" || state.status === "stopping" || state.status === "quitting"
 
+/**
+ * Windows keeps the app alive in the tray: a close only hides the window until a quit starts, and every quit
+ * path — the tray menu, a signal, the updater — leaves `isQuitting` true before windows close for real.
+ * macOS and Linux keep Electron's default close.
+ */
+export const hidesWindowOnClose = (state: State, platform: NodeJS.Platform) =>
+  platform === "win32" && !isQuitting(state)
+
 function restartRequested(state: State, event: Extract<Event, { type: "restart.requested" }>): Transition {
   if (state.status === "running")
     return {

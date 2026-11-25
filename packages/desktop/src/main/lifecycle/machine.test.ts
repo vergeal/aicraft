@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { Scope } from "@aicraft/plugin/gui/host"
 import {
   initialState,
+  hidesWindowOnClose,
   isQuitting,
   keptScope,
   preventsQuit,
@@ -269,6 +270,41 @@ describe("app lifecycle machine", () => {
     (row) => {
       expect(quitsWhenAllWindowsClosed(row.state, "darwin")).toBe(row.darwin)
       expect(quitsWhenAllWindowsClosed(row.state, "win32")).toBe(row.win32)
+    },
+  )
+
+  test.each([
+    { phase: "running", events: [], win32: true, darwin: false },
+    {
+      phase: "resuming",
+      events: [
+        { type: "restart.requested", keep, handoff, reply: reply() },
+        { type: "plugins.stopped", attempt: 1 },
+        { type: "handoff.failed", attempt: 1, error: "failed" },
+      ],
+      win32: true,
+      darwin: false,
+    },
+    { phase: "suspending", events: [{ type: "restart.requested", keep, handoff, reply: reply() }], win32: false, darwin: false },
+    {
+      phase: "handing-off",
+      events: [
+        { type: "restart.requested", keep, handoff, reply: reply() },
+        { type: "plugins.stopped", attempt: 1 },
+      ],
+      win32: false,
+      darwin: false,
+    },
+    { phase: "stopping", events: [{ type: "before.quit" }], win32: false, darwin: false },
+    { phase: "quitting", events: [{ type: "will.quit" }], win32: false, darwin: false },
+  ] satisfies { phase: State["status"]; events: Event[]; win32: boolean; darwin: boolean }[])(
+    "a close hides the window to the tray on Windows only while the app keeps running ($phase)",
+    (row) => {
+      const state = replay(row.events).state
+
+      expect(state.status).toBe(row.phase)
+      expect(hidesWindowOnClose(state, "win32")).toBe(row.win32)
+      expect(hidesWindowOnClose(state, "darwin")).toBe(row.darwin)
     },
   )
 })

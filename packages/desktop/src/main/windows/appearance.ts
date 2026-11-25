@@ -189,7 +189,7 @@ function iconsDir(path: Path.Path, paths: DesktopPaths.Resolved) {
   return app.isPackaged ? path.join(process.resourcesPath, "icons") : path.join(paths.developmentResourcesRoot, "icons")
 }
 
-function iconPath(path: Path.Path, paths: DesktopPaths.Resolved) {
+export function iconPath(path: Path.Path, paths: DesktopPaths.Resolved) {
   return path.join(iconsDir(path, paths), `icon.${process.platform === "win32" ? "ico" : "png"}`)
 }
 

@@ -116,7 +116,12 @@ function runtimeOf(manifest: Manifest | undefined): Plugin.LocalEntry["runtime"]
   return Option.getOrUndefined(Schema.decodeUnknownOption(PluginManifest.Runtime)(manifest?.runtime))
 }
 
-function displayOf(manifest: Manifest | undefined): Plugin.Display | undefined {
+/**
+ * The browser card a manifest declares. Exported for the loader: an installed bundle whose module export
+ * projects fewer fields (older packs dropped `icon`) is filled from its own manifest, so the installed card
+ * matches the catalog card the user installed from.
+ */
+export function displayOf(manifest: { display?: unknown; skills?: unknown } | undefined): Plugin.Display | undefined {
   if (typeof manifest?.display !== "object" || manifest.display === null) return undefined
   const display = manifest.display as Partial<Plugin.Display>
   if (typeof display.name !== "string" || typeof display.description !== "string") return undefined

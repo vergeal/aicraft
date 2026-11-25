@@ -18,6 +18,7 @@ import { PluginPromise } from "./promise.js"
 import { Config } from "../config.js"
 import { ManagedPolicy } from "../managed-policy.js"
 import { PluginConfiguration } from "./configuration.js"
+import { PluginLocal } from "./local.js"
 import { Watcher } from "../filesystem/watcher.js"
 
 /** How long a plugin's package install and module import may take before the load fails like any other. */
@@ -281,9 +282,12 @@ const load = Effect.fn("PluginModule.load")(function* (
         ),
       )
     : {}
+  // A bundle's manifest is the card the catalog showed before install; an older bundle's module export may
+  // project fewer fields (the icon was easy to drop), so the manifest fills what the export omits.
+  const display = mergeDisplay(plugin.display, manifest?.display)
   return {
     id: plugin.id,
-    ...(plugin.display === undefined ? {} : { display: plugin.display }),
+    ...(display === undefined ? {} : { display }),
     features: {
       ...(prepared.entrypoint ? { server: true as const } : {}),
       ...(prepared.entrypoints.tui ? { tui: true as const } : {}),
@@ -366,13 +370,26 @@ function withDeadline<T>(work: Promise<T>, millis: number, timedOut: () => LoadE
   })
 }
 
-/** The manifest's configuration and runtime are optional. Its configuration is only validated strictly on install. */
+/** The manifest's configuration, runtime and display are optional. Its configuration is only validated strictly on install. */
 function readManifest(directory: string) {
   const file = path.join(directory, "METAINF")
   if (!existsSync(file)) return undefined
-  const parsed = JSON.parse(readFileSync(file, "utf8")) as { configuration?: unknown; runtime?: unknown }
+  const parsed = JSON.parse(readFileSync(file, "utf8")) as {
+    configuration?: unknown
+    runtime?: unknown
+    display?: unknown
+    skills?: unknown
+  }
   return {
     configuration: PluginConfiguration.isConfiguration(parsed.configuration) ? parsed.configuration : undefined,
     runtime: Option.getOrUndefined(Schema.decodeUnknownOption(PluginManifest.Runtime)(parsed.runtime)),
+    display: PluginLocal.displayOf(parsed),
   }
+}
+
+/** The plugin browser card: what the module declares wins, and the manifest fills the fields the export omits. */
+function mergeDisplay(plugin: Display | undefined, manifest: Display | undefined): Display | undefined {
+  if (manifest === undefined) return plugin
+  if (plugin === undefined) return manifest
+  return { ...manifest, ...plugin }
 }

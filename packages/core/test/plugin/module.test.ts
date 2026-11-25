@@ -550,6 +550,50 @@ it.live(
     }),
 )
 
+it.live("fills an installed bundle's card from its manifest when the module export omits fields", () =>
+  Effect.gen(function* () {
+    const directory = yield* tmpdirScoped()
+    const icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24"/></svg>'
+    yield* Effect.promise(() =>
+      writeFiles(directory.path, {
+        "with-card/METAINF": JSON.stringify({
+          apiVersion: 1,
+          id: "acme-card",
+          version: "1.0.0",
+          entry: { server: "server/main" },
+          display: { name: "Acme", description: "From the manifest", category: "automation", icon, tools: ["acme.*"] },
+        }),
+        // The regression: a bundle built before the icon reached the projection ships a card without it.
+        "with-card/server/main.ts":
+          'export default { id: "acme-card", display: { name: "Acme", description: "From the module" }, async setup() {} }',
+        "bare/METAINF": JSON.stringify({
+          apiVersion: 1,
+          id: "acme-bare",
+          version: "1.0.0",
+          entry: { server: "server/main" },
+          display: { name: "Acme Bare", description: "Manifest only" },
+        }),
+        "bare/server/main.ts": 'export default { id: "acme-bare", async setup() {} }',
+      }),
+    )
+    const modules = yield* PluginModule.make()
+
+    const card = yield* modules.load({ type: "add", target: path.join(directory.path, "with-card"), options: {} })
+    expect(card).toMatchObject({
+      display: {
+        name: "Acme",
+        description: "From the module",
+        category: "automation",
+        icon,
+        tools: ["acme.*"],
+      },
+    })
+
+    const bare = yield* modules.load({ type: "add", target: path.join(directory.path, "bare"), options: {} })
+    expect(bare).toMatchObject({ display: { name: "Acme Bare", description: "Manifest only" } })
+  }),
+)
+
 for (const target of ["policy-fixture@1.2.3", "@scope/policy-fixture@1.2.3"]) {
   it.live(`blocks versioned package ${target} before npm resolution or installation`, () =>
     Effect.gen(function* () {

@@ -1,4 +1,6 @@
 import { describe, expect } from "bun:test"
+import { existsSync } from "node:fs"
+import { rm } from "node:fs/promises"
 import path from "node:path"
 import { Deferred, Duration, Effect, Layer, LayerMap, Stream } from "effect"
 import { TestClock } from "effect/testing"
@@ -460,6 +462,56 @@ describe("PluginSupervisor", () => {
       )
     }),
     { timeout: 20_000 },
+  )
+
+  it.effect("reports a failed local plugin with the id its manifest declares", () =>
+    Effect.gen(function* () {
+      const directory = yield* tmpdirScoped()
+      // The install directory is named after the plugin, but the bundle's manifest is the authority on its id.
+      const root = path.join(directory.path, "installed", "webwright")
+      yield* Effect.promise(() => Bun.write(path.join(root, "METAINF"), JSON.stringify({ id: "changhong.webwright" })))
+      source.operations = [{ type: "add", target: root, options: {} }]
+      yield* Effect.addFinalizer(() => Effect.sync(() => (source.operations = [])))
+      const locations = yield* LocationServiceMap.Service
+      const inventory = yield* Effect.gen(function* () {
+        const plugins = yield* Plugin.Service
+        yield* plugins.awaitActivation
+        return yield* plugins.list()
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(directory.path) }))),
+      )
+      expect(inventory.find((plugin) => plugin.source.type === "local" && plugin.source.path === root)).toMatchObject({
+        id: "changhong.webwright",
+        state: { status: "failed" },
+      })
+    }),
+  )
+
+  it.live("removes an installed bundle whose code cannot load", () =>
+    Effect.gen(function* () {
+      // The install root belongs to the test home; a direct `bun test` run outside that fixture must not touch the
+      // developer's real `~/.aicraft`.
+      const home = process.env.AICRAFT_TEST_HOME
+      if (!home) return
+      const directory = yield* tmpdirScoped()
+      const root = path.join(home, ".aicraft", "exc", "changhong.webwright")
+      yield* Effect.promise(() => Bun.write(path.join(root, "METAINF"), JSON.stringify({ id: "changhong.webwright" })))
+      source.operations = [{ type: "add", target: root, options: {} }]
+      yield* Effect.addFinalizer(() => Effect.promise(() => rm(root, { recursive: true, force: true })))
+      const locations = yield* LocationServiceMap.Service
+      const inventory = yield* Effect.gen(function* () {
+        const plugins = yield* Plugin.Service
+        yield* plugins.awaitActivation
+        return yield* plugins.list()
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(directory.path) }))),
+      )
+      // It is not listed as a broken plugin, and its directory does not survive to fail again next boot.
+      expect(inventory.find((plugin) => plugin.source.type === "local" && plugin.source.path === root)).toBeUndefined()
+      yield* waitUntil(() => !existsSync(root))
+    }),
   )
 
   it.effect("backs off a failing package and forgets the backoff after a successful load", () =>

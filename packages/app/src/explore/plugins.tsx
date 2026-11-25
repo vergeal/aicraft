@@ -506,7 +506,15 @@ function PluginRuntimeRetry(props: { retry: () => Promise<void> }) {
   const name = () => pluginLabel(props.plugin)
 
   const submit = async () => {
-    if (state.busy || !props.plugin.id) return
+    if (state.busy) return
+
+    // A plugin that never loaded may have reported no id. Fail visibly instead of leaving the button inert.
+    if (!props.plugin.id) {
+      setState({ busy: false, error: language.t("explore.plugins.uninstall.unknownId") })
+
+      return
+    }
+
     setState({ busy: true, error: "" })
 
     try {

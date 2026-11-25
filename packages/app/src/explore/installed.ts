@@ -57,6 +57,10 @@ export function createExploreInstalled() {
       // therefore wants to appear as a capability bundle.
       if (plugin.source.type === "builtin") return plugin.display !== undefined
 
+      // A plugin that failed to load contributes nothing and cannot be used. The server removes the bundles it
+      // installed itself; anything left failed here (a configured source, a timeout) stays out of the browser too.
+      if (plugin.state.status === "failed") return false
+
       return true
     }),
   )

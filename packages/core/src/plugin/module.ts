@@ -2,14 +2,14 @@ export * as PluginModule from "./module.js"
 
 import type { Plugin } from "@aicraft/plugin/effect/plugin"
 import { Host } from "@aicraft/plugin/host"
-import { Display, GuiBundle, Reason, type Source } from "@aicraft/schema/plugin"
+import { Display, GuiBundle, ID, Reason, type Source } from "@aicraft/schema/plugin"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { createPluginSources } from "@aicraft/plugin/source"
 import { Hash } from "@aicraft/util/hash"
 import { Npm } from "@aicraft/util/npm"
 import { Deferred, Duration, Effect, FiberSet, Option, PubSub, Schema, Stream } from "effect"
 import path from "path"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { readFile, stat } from "node:fs/promises"
 import { fileURLToPath, pathToFileURL } from "url"
 import type { ConfigPluginSource } from "../config/plugin/source.js"
@@ -69,6 +69,43 @@ export const make = Effect.fn("PluginModule.make")(function* (settings?: { reado
 export function source(target: string, version?: string): Source {
   if (path.isAbsolute(target)) return { type: "local", path: target }
   return { type: "package", target, ...(version ? { version } : {}) }
+}
+
+/**
+ * The id a target reports before its module loads. The app lists, retries and uninstalls a plugin by id, so a target
+ * that failed to load still needs one: a bundle's manifest names it, and a plain plugin falls back to the directory or
+ * file name its module usually reports.
+ */
+export function identify(target: string): ID {
+  if (!path.isAbsolute(target)) {
+    // The same rule `load` uses: strip a trailing `@version`, but keep a scoped package's leading `@`.
+    const version = target.lastIndexOf("@")
+    return ID.make(version > 0 ? target.slice(0, version) : target)
+  }
+  const info = statFile(target)
+  const directory = info?.isFile() ? path.dirname(target) : target
+  const fallback = info?.isFile() ? path.basename(target, path.extname(target)) : path.basename(directory)
+  return ID.make(manifestID(directory) ?? fallback)
+}
+
+/** Best-effort reads on the failure path: a missing or damaged manifest must not replace the load error. */
+function manifestID(directory: string): string | undefined {
+  const file = path.join(directory, "METAINF")
+  if (!existsSync(file)) return undefined
+  try {
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as { id?: unknown }
+    return typeof parsed?.id === "string" ? parsed.id : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function statFile(target: string) {
+  try {
+    return statSync(target, { throwIfNoEntry: false })
+  } catch {
+    return undefined
+  }
 }
 
 // A missing dependency may have missing parents too. Watch the nearest existing

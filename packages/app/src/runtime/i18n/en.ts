@@ -1199,6 +1199,7 @@ export const dict = {
   "explore.plugins.uninstall": "Uninstall",
   "explore.plugins.uninstall.title": "Uninstall plugin",
   "explore.plugins.uninstall.description": "Remove {{name}}? Its tools and skills stop working right away.",
+  "explore.plugins.uninstall.unknownId": "This plugin has no usable identity, so it cannot be uninstalled from here.",
   "explore.plugins.uninstall.success": "{{name}} uninstalled",
   "explore.plugins.uninstall.failed": "Uninstall failed. Try again.",
   "explore.plugins.unsupported": "This build does not support plugin management yet. Update AI Craft, then try again.",

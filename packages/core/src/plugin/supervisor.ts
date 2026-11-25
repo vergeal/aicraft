@@ -2,12 +2,16 @@ export * as PluginSupervisor from "./supervisor.js"
 
 import { Event } from "@aicraft/schema/config"
 import { Cause, Clock, Context, Effect, Layer, Queue, Stream } from "effect"
+import { rm } from "node:fs/promises"
+import path from "node:path"
+import { Global } from "@aicraft/util/global"
 import { ConfigPluginSource } from "../config/plugin/source.js"
 import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Bus } from "../bus.js"
 import { Npm } from "@aicraft/util/npm"
 import { Plugin } from "../plugin.js"
 import { InstancePlugins } from "./instance.js"
+import { installRoot } from "./local.js"
 import { PluginInternal } from "./internal.js"
 import { PluginModule } from "./module.js"
 import { SdkPlugins } from "./sdk.js"
@@ -33,6 +37,7 @@ const resolve = Effect.fn("PluginSupervisor.resolve")(function* (
   install: boolean,
   running: ReadonlyMap<string, Plugin.Generation>,
   retries: Retries,
+  installed: string,
 ) {
   const matches = (selector: string, target: string) =>
     selector === "*" || (selector.endsWith(".*") ? target.startsWith(selector.slice(0, -1)) : selector === target)
@@ -45,6 +50,9 @@ const resolve = Effect.fn("PluginSupervisor.resolve")(function* (
   const packages = new Map<string, Plugin.Generation>()
   const pending = new Set<string>()
   const failures = new Map<string, Plugin.Failure>()
+  // Installed bundles that cannot load are junk the user never asked to see: remove their directories instead of
+  // listing them. A timeout stays, because a slow machine may load the same files on the next activation.
+  const prune: string[] = []
   const plugins = () => [...definitions, ...packages.values()]
   // One instant for the whole pass: every target's window is measured against the same clock the retry tests advance.
   const now = yield* Clock.currentTimeMillis
@@ -127,7 +135,20 @@ const resolve = Effect.fn("PluginSupervisor.resolve")(function* (
       continue
     }
     if ("error" in plugin) {
+      // Only bundles this app unpacked itself are safe to drop: a configured source may be the user's working tree.
+      if (junk(operation.target, plugin.reason, installed)) {
+        // It never becomes a generation: drop the target's bookkeeping so nothing stale survives the removal.
+        const previous = packages.get(operation.target)
+        if (previous) enabled.delete(previous.id)
+        packages.delete(operation.target)
+        failures.delete(operation.target)
+        prune.push(operation.target)
+        continue
+      }
       failures.set(operation.target, {
+        // A failed target never produced a generation, so its module never reported an id. Recover it from the target
+        // so the app can still name, retry and uninstall the plugin.
+        id: PluginModule.identify(operation.target),
         source: PluginModule.source(operation.target),
         state: { status: "failed", error: plugin.error, ref: plugin.ref, reason: plugin.reason },
         features: { server: true },
@@ -169,8 +190,17 @@ const resolve = Effect.fn("PluginSupervisor.resolve")(function* (
     // What a skipped target reuses on the next activation; duplicate failures have no target and are not retained.
     retained: failures,
     pending: [...pending],
+    prune,
   }
 })
+
+type FailureReason = Extract<Plugin.State, { readonly status: "failed" }>["reason"]
+
+/** A bundle the app unpacked into its own install root that failed for a reason another attempt cannot fix. */
+function junk(target: string, reason: FailureReason, installed: string) {
+  if (reason?.kind !== "load-failed" && reason?.kind !== "transform-failed") return false
+  return path.dirname(path.resolve(target)) === path.resolve(installed)
+}
 
 /** A retry request from the plugin browser: drop one target's backoff and ask for another activation. */
 export interface Interface {
@@ -208,12 +238,29 @@ export const layer = Layer.effect(
 
     const activate = Effect.fn("PluginSupervisor.activate")(function* () {
       const current = ++generation
+      const global = yield* Global.Service
+      const installed = installRoot(global.home)
       // Combine internal plugins with host-contributed plugins in boot order.
       // Instance-bound plugins come last: later activation can override earlier
       // container writes, so the instance's explicit choices win over globals.
       const pre = [...internal.pre, ...sdk.all(), ...instance.all()]
       const post = internal.post
       const operations = yield* sources.operations()
+      // Detach the removal from this activation: a large bundle (webwright ships a browser driver) must not hold the
+      // readiness latch. The directory watch then activates again without the dropped target.
+      const clean = (targets: readonly string[]) =>
+        targets.length === 0
+          ? Effect.void
+          : Effect.forEach(
+              targets,
+              (target) =>
+                Effect.promise(() => rm(target, { recursive: true, force: true })).pipe(
+                  Effect.catchCause((cause) =>
+                    Effect.logWarning("failed to remove an unusable plugin", { target, cause }),
+                  ),
+                ),
+              { discard: true },
+            ).pipe(Effect.forkScoped({ startImmediately: true }))
       const source = (source: Plugin.Source) =>
         source.type === "package"
           ? {
@@ -253,13 +300,19 @@ export const layer = Layer.effect(
         )
 
       // Activate everything available locally before waiting on missing package installs.
-      const immediate = yield* resolve(modules, pre, post, operations, false, running, {
-        retained,
-        attempts,
-        signatures,
-      })
+      const immediate = yield* resolve(
+        modules,
+        pre,
+        post,
+        operations,
+        false,
+        running,
+        { retained, attempts, signatures },
+        installed,
+      )
       retained = immediate.retained
       yield* apply(immediate)
+      yield* clean(immediate.prune)
       running = immediate.packages
       packages = targets(immediate)
       yield* check(current, immediate)
@@ -267,16 +320,22 @@ export const layer = Layer.effect(
       // Installing a package needs the network. Keep it off the activation path: local plugins are already serving, and
       // the install's result joins the registry only if no later activation superseded this one.
       yield* Effect.gen(function* () {
-        const resolved = yield* resolve(modules, pre, post, operations, true, running, {
-          retained,
-          attempts,
-          signatures,
-        })
+        const resolved = yield* resolve(
+          modules,
+          pre,
+          post,
+          operations,
+          true,
+          running,
+          { retained, attempts, signatures },
+          installed,
+        )
         if (current !== generation) return
         retained = resolved.retained
         running = resolved.packages
         packages = targets(resolved)
         yield* apply(resolved)
+        yield* clean(resolved.prune)
         yield* check(current, resolved)
       }).pipe(Effect.forkScoped({ startImmediately: true }))
     })
@@ -352,6 +411,7 @@ const nodeDeps = [
   Bus.node,
   Npm.node,
   Watcher.node,
+  Global.node,
   PluginInternal.requirements,
 ] as const
 

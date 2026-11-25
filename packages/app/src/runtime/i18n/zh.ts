@@ -1014,6 +1014,7 @@ export const dict = {
   "explore.plugins.uninstall": "卸载",
   "explore.plugins.uninstall.title": "卸载插件",
   "explore.plugins.uninstall.description": "要卸载 {{name}} 吗？它提供的工具和技能会立刻不可用。",
+  "explore.plugins.uninstall.unknownId": "这个插件缺少可用的标识，无法在这里卸载。",
   "explore.plugins.uninstall.success": "{{name}} 已卸载",
   "explore.plugins.uninstall.failed": "卸载失败，请重试。",
   "explore.plugins.unsupported": "当前版本还不支持插件管理，请更新 AI Craft 后重试。",

@@ -268,7 +268,7 @@ export default Plugin.define({
 - `display.name` / `display.description` 是用户看到的文案，必须是面向用户的语言，不要写包名和内部术语。
 - `display.skills` 必须与插件实际通过 `skill.transform` 注册的技能一致；`display.tools` 写工具名前缀或完整名。
 - `display.skills[].icon` 是技能自己的内联 SVG 图标，规则同 `display.icon`；省略时探索页按技能标题与说明生成彩色图标。技能在 `SKILL.md` 里声明 `icon` 时，运行时的 `Skill.Info.icon` 优先于这里。
-- `display.skills` 是插件详情页 Skills 分区的兜底：运行时按 `skill.plugin === plugin.id` 取到的技能优先，插件尚未注册任何技能（例如加载失败）时才回退到清单声明。
+- `display.skills` 是插件详情页 Skills 分区的兜底：运行时按 `skill.plugin === plugin.id` 取到的技能优先，插件尚未注册任何技能时回退到清单声明。加载失败的插件不会出现在探索页（见下方安装语义）。
 - 只有**产品级**内部插件才声明 `display`。负责系统装配的内置插件（模型、权限、MCP 配置等）保持不声明，避免探索页被内部实现淹没。
 - 没有 `display` 的插件在探索页的「已安装」里不出现，但仍然参与插件加载。
 - 外部 npm 插件同样可以声明 `display`；它和内部插件走同一条 `Plugin.Info.display` 通道。
@@ -296,6 +296,8 @@ export default Plugin.define({
 5. `plugin.updated` 与 `skill.updated` 推送，探索页刷新。
 
 `.exc` 是例外：它不写 `plugins`，而是解包到 `~/.aicraft/exc/<id>/`，由目录自动发现生效，见 3.7。
+
+托管安装目录里的插件如果因入口损坏、导入失败或代码错误（`load-failed` / `transform-failed`）而加载失败，服务端会自动删除该目录，不再把它列给用户；这等同于自动卸载，原始 `.exc` 仍保留在 `~/.distribution/plugins/` 下供重新安装。加载超时与激活超时可能是临时情况（例如机器繁忙），保留目录但不列在探索页。配置里手工指定的本地插件目录、npm 包和内置插件不会被自动删除，避免误删用户的源码或配置。
 
 技能注册必须绑定在插件的 activation scope 上（`ctx.skill.transform` 天然如此），插件卸载或重载时自动移除。插件加载失败时不得留下任何能力注册。
 

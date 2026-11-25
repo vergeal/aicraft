@@ -32,7 +32,7 @@ for (const entry of await readdir(path.join(repo, "plugins"), { withFileTypes: t
   const target = path.join(out, "plugins", manifest.id, manifest.version)
 
   await mkdir(target, { recursive: true })
-  await $`bun run pack`.cwd(folder).env({ ...process.env, EXC_OUT: target })
+  await $`bun run pack`.cwd(folder).env({ ...process.env, AIX_OUT: target })
   console.log(`bundled ${manifest.id}@${manifest.version}`)
 }
 

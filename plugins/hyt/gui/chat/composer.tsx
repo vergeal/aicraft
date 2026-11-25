@@ -1,4 +1,4 @@
-import type { Context } from "@aicraft/plugin/gui"
+import type { Context } from "@aicraft/aix/gui"
 import { For, Show, createEffect, createMemo, createSignal, onMount } from "solid-js"
 import { Face, avatarOf } from "./avatar.js"
 import type { DraftRow, MemberRow, SendState } from "./contract.js"

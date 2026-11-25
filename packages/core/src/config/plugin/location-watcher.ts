@@ -1,6 +1,6 @@
 export * as ConfigLocationWatcherPlugin from "./location-watcher.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect } from "effect"
 import { Config } from "../../config.js"
 import { LocationWatcherPolicy } from "../../filesystem/location-watcher-policy.js"

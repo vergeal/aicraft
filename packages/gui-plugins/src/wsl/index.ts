@@ -1,5 +1,5 @@
-import { builtinCatalog } from "@aicraft/plugin/gui/builtin"
-import { Plugin } from "@aicraft/plugin/gui"
+import { builtinCatalog } from "@aicraft/aix/gui/builtin"
+import { Plugin } from "@aicraft/aix/gui"
 import en from "./i18n/en"
 
 export default Plugin.define({

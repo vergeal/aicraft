@@ -7,7 +7,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3ToolResultPart,
 } from "@ai-sdk/provider"
-import type { SessionRequestKind } from "@aicraft/plugin/effect/session"
+import type { SessionRequestKind } from "@aicraft/aix/effect/session"
 import { Effect } from "effect"
 import type { ClaudeAgentLanguageModel } from "@aicraft/core/plugin/provider/claude-agent/language-model/claude-agent-language-model"
 import { RequestKind } from "@aicraft/core/plugin/provider/claude-agent/language-model/request-kind"

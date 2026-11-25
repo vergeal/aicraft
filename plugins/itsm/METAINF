@@ -11,7 +11,7 @@
   },
   "externals": [
     "effect",
-    "@aicraft/plugin",
+    "@aicraft/aix",
     "@aicraft/schema"
   ],
   "display": {

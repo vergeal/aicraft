@@ -26,7 +26,7 @@ if (!build.success) {
   process.exit(1)
 }
 
-// The GUI bundle runs in the desktop app's main process and in every window; the host resolves `@aicraft/plugin/gui`
+// The GUI bundle runs in the desktop app's main process and in every window; the host resolves `@aicraft/aix/gui`
 // to the main SDK in one and to the window SDK in the other. A CommonJS file is what a manifest's gui entry accepts.
 await mkdir(join(dist, "gui"), { recursive: true })
 const gui = await Bun.build({
@@ -39,9 +39,9 @@ const gui = await Bun.build({
   external: [
     "effect",
     "@aicraft/schema/rpc",
-    "@aicraft/plugin/gui",
-    "@aicraft/plugin/gui/main",
-    "@aicraft/plugin",
+    "@aicraft/aix/gui",
+    "@aicraft/aix/gui/main",
+    "@aicraft/aix",
     "solid-js",
     "solid-js/web",
     "solid-js/store",
@@ -118,7 +118,7 @@ console.log(`built ${manifest.id} ${manifest.version} into ${dist}`)
 
 /**
  * 把 `native/prebuilt/<platform>-<arch>/` 里的可执行文件逐个搬进产物，并补上运行库。
- * 一个 `.exc` 因此可以同时带 macOS 与 Windows 的桥接，安装时按运行时平台取用。
+ * 一个 `.aix` 因此可以同时带 macOS 与 Windows 的桥接，安装时按运行时平台取用。
  */
 async function shipNative(target: string) {
   const prebuilt = join(root, "native", "prebuilt")
@@ -183,7 +183,7 @@ async function shipMacFramework(executable: string) {
   }
 
   await cp(source, join(dist, "native", "Frameworks", "ECMediaSDK.framework"), { recursive: true })
-  // 打包可以在别的平台进行（一个 .exc 同时带 macOS 与 Windows 桥接），但 rpath 只能由 macOS 的
+  // 打包可以在别的平台进行（一个 .aix 同时带 macOS 与 Windows 桥接），但 rpath 只能由 macOS 的
   // install_name_tool / otool 修改；其他平台上复制完 framework 就结束。
   if (process.platform !== "darwin") return
   // native/<platform-arch>/../Frameworks

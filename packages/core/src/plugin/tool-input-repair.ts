@@ -1,7 +1,7 @@
 export * as ToolInputRepairPlugin from "./tool-input-repair.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect, JsonSchema, Option, Predicate, Schema } from "effect"
 import { definition, normalizeContent } from "../tool/runtime.js"
 

@@ -6,7 +6,7 @@ import type {
   AttentionNotifySkipReason,
   AttentionWhen,
   AttentionSoundName,
-} from "@aicraft/plugin/tui/context"
+} from "@aicraft/aix/tui/context"
 import { Config } from "./config"
 import { Schema } from "effect"
 import stripAnsi from "strip-ansi"

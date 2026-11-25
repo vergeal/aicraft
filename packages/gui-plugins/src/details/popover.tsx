@@ -4,7 +4,7 @@ import { IconButton } from "@aicraft/ui/icon-button"
 import { Keybind } from "@aicraft/ui/keybind"
 import { Tooltip } from "@aicraft/ui/tooltip"
 import { onCleanup, Show, Suspense, type Component, type ParentProps } from "solid-js"
-import { Command, createVisitState, usePlugin, type MountedSession } from "@aicraft/plugin/gui"
+import { Command, createVisitState, usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import type { DetailsPanelProps } from "./panel"
 
 /** Every mounted details popover, so a shortcut finds the one on screen. */

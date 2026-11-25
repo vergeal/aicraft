@@ -5,7 +5,7 @@ import { showToast } from "@aicraft/ui/toast"
 import { comparablePath, containsDirectory, getFilename, sameDirectory } from "@aicraft/util/path"
 import { createStore } from "solid-js/store"
 import { For, onCleanup, Show, type ComponentProps, type JSX } from "solid-js"
-import { createKeyed, usePlugin, type Project, type MountedSession } from "@aicraft/plugin/gui"
+import { createKeyed, usePlugin, type Project, type MountedSession } from "@aicraft/aix/gui"
 import { workspaceDirectories } from "./paths"
 
 export function SessionWorkspaceMenu(props: {

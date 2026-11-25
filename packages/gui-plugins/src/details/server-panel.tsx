@@ -27,9 +27,9 @@ import {
   type JSX,
 } from "solid-js"
 import { createStore } from "solid-js/store"
-import { createKeyed, useDrawer, usePlugin, type MountedSession } from "@aicraft/plugin/gui"
+import { createKeyed, useDrawer, usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import { globalConfigDirectory, serviceConfigFile } from "./config-file"
-import { builtinContext } from "@aicraft/plugin/gui/builtin"
+import { builtinContext } from "@aicraft/aix/gui/builtin"
 import { createFlyoutMotion } from "./flyout-motion"
 
 const services = [

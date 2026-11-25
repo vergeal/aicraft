@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 import { createLatexCodeBlockRenderer } from "./markdown"
 
 export default Plugin.define({

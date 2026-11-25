@@ -1,7 +1,7 @@
 export * as RecallTool from "./recall.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { SessionMessage } from "@aicraft/schema/session-message"
 import type { SessionInbox } from "@aicraft/schema/session-inbox"
 import { Effect, Schema } from "effect"

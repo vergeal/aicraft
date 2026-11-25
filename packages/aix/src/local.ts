@@ -9,20 +9,20 @@ import path from "node:path"
 
 /**
  * The local discover directory mirrors what a registry would publish: one folder per plugin id, one folder per
- * version inside it, and the `.exc` bundle in that version folder. The app lists it as the catalog, so this
+ * version inside it, and the `.aix` bundle in that version folder. The app lists it as the catalog, so this
  * machine can try the full install flow before a registry exists. Plugins and skills share one distribution root.
  */
 export const root = (home: string) => path.join(home, ".distribution", "plugins")
 
 /** Where installed bundles are unpacked, one directory per plugin id. */
-export const installRoot = (home: string) => path.join(home, ".aicraft", "exc")
+export const installRoot = (home: string) => path.join(home, ".aicraft", "aix")
 
 /**
  * Where an unpack stays until it is complete enough to move into the install root. It must stay outside that root:
  * discovery watches the root, and on Windows a watcher or loader that opens a file inside a half-unpacked staging
  * holds a handle that makes the final rename fail with EPERM. Same volume as the install root, so the rename holds.
  */
-export const stagingRoot = (home: string) => path.join(home, ".aicraft", "exc-staging")
+export const stagingRoot = (home: string) => path.join(home, ".aicraft", "aix-staging")
 
 type Manifest = {
   id?: unknown
@@ -80,7 +80,7 @@ async function read(directory: string, id: string): Promise<Plugin.LocalEntry | 
 async function readVersion(directory: string, version: string): Promise<Found | undefined> {
   const folder = path.join(directory, version)
   const files = await readdir(folder).catch(() => [])
-  const file = files.find((name) => name.endsWith(".exc"))
+  const file = files.find((name) => name.endsWith(".aix"))
   if (!file) return undefined
   const manifest = await readManifest(path.join(folder, file))
   // A bundle naming a category the client does not ship has no shelf to land on, so it is not discoverable either.
@@ -96,7 +96,7 @@ function hasKnownCategory(manifest: Manifest | undefined) {
 
 /**
  * The manifest travels inside the archive, so listing a version opens it. A bundle is self-contained on purpose:
- * the version directory holds one `.exc` and nothing else. Opening a large bundle (webwright ships its Playwright
+ * the version directory holds one `.aix` and nothing else. Opening a large bundle (webwright ships its Playwright
  * driver) is the accepted cost of keeping the distribution directory clean.
  */
 async function readManifest(file: string): Promise<Manifest | undefined> {

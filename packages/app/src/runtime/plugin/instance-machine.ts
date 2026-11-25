@@ -1,5 +1,5 @@
-import type { Cleanup, Messages } from "@aicraft/plugin/gui"
-import type { Entry } from "@aicraft/plugin/gui/host"
+import type { Cleanup, Messages } from "@aicraft/aix/gui"
+import type { Entry } from "@aicraft/aix/gui/host"
 
 export type PluginStatus = "loading" | "active" | "failed" | "disabled"
 

@@ -1,4 +1,4 @@
-import type { ServerRef } from "@aicraft/plugin/gui"
+import type { ServerRef } from "@aicraft/aix/gui"
 import type { TerminalModel } from "./model"
 import type { TerminalQuoteTarget } from "./quote"
 

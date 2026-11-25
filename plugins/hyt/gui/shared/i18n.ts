@@ -1,4 +1,4 @@
-import type { Catalog } from "@aicraft/plugin/gui"
+import type { Catalog } from "@aicraft/aix/gui"
 
 /**
  * 插件的中文文案。

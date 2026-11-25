@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { Scope } from "@aicraft/plugin/gui/host"
+import { Scope } from "@aicraft/aix/gui/host"
 import {
   initialState,
   hidesWindowOnClose,

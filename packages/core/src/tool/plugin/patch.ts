@@ -1,7 +1,7 @@
 export * as PatchTool from "./patch.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import type { Context } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { ToolFailure } from "@aicraft/ai/effect"
 import { FileDiff } from "@aicraft/schema/file-diff"
 import { Effect, Result, Schema } from "effect"

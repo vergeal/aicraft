@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createEventListener } from "@solid-primitives/event-listener"
-import type { Panel, PanelProps, SessionRef } from "@aicraft/plugin/gui"
+import type { Panel, PanelProps, SessionRef } from "@aicraft/aix/gui"
 import { adjacentTabKey } from "@/shell/titlebar/tab-order"
 
 /** The most closed tabs a session keeps. */

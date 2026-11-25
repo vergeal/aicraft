@@ -1,7 +1,7 @@
 export * as EmbeddedHost from "./host"
 
 import { SdkPlugins } from "@aicraft/core/plugin/sdk"
-import type { Plugin } from "@aicraft/plugin/effect/plugin"
+import type { Plugin } from "@aicraft/aix/effect/plugin"
 import { SessionRestart } from "@aicraft/core/session/execution/restart"
 import { Session } from "@aicraft/core/session"
 import { Workspace } from "@aicraft/core/workspace"

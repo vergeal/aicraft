@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { ImageView, screen, type BrowserWindow, type WebContentsView } from "electron"
-import type { BridgeLayout } from "@aicraft/plugin/gui/host"
-import type { Embed } from "@aicraft/plugin/gui/main"
+import type { BridgeLayout } from "@aicraft/aix/gui/host"
+import type { Embed } from "@aicraft/aix/gui/main"
 import { createCornerImages } from "../native/corners"
 import type { Instance } from "./lifecycle"
 

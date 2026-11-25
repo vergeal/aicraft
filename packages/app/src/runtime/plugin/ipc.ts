@@ -1,8 +1,8 @@
 import { untrack } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { Exit, Schema } from "effect"
-import type { Ipc, IpcCallOptions, IpcClient, IpcSpec } from "@aicraft/plugin/gui"
-import type { Bridge } from "@aicraft/plugin/gui/host"
+import type { Ipc, IpcCallOptions, IpcClient, IpcSpec } from "@aicraft/aix/gui"
+import type { Bridge } from "@aicraft/aix/gui/host"
 import {
   createIpcState,
   selectIpcAvailable,

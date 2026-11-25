@@ -1,7 +1,7 @@
 export * as KnowledgeTools from "./knowledge.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Knowledge } from "@aicraft/schema/knowledge"
 import { Effect, Schema } from "effect"
 import { Knowledge as KnowledgeService } from "../../knowledge.js"

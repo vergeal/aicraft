@@ -134,7 +134,7 @@ export const LocalEntry = Schema.Struct({
   versions: Schema.Array(
     Schema.Struct({
       version: Schema.String,
-      /** The `.exc` file name inside the version's directory. */
+      /** The `.aix` file name inside the version's directory. */
       file: Schema.String,
     }),
   ),

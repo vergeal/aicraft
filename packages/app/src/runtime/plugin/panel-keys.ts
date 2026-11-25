@@ -1,4 +1,4 @@
-import type { BuiltinPanel } from "@aicraft/plugin/gui/builtin"
+import type { BuiltinPanel } from "@aicraft/aix/gui/builtin"
 
 /** The key the host stores a panel tab under. */
 export function panelKey(plugin: string, id: string) {

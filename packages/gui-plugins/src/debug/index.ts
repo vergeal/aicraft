@@ -1,6 +1,6 @@
-import { builtinCatalog } from "@aicraft/plugin/gui/builtin"
+import { builtinCatalog } from "@aicraft/aix/gui/builtin"
 import { Schema } from "effect"
-import { Plugin, Store } from "@aicraft/plugin/gui"
+import { Plugin, Store } from "@aicraft/aix/gui"
 import en from "./i18n/en"
 
 export default Plugin.define({

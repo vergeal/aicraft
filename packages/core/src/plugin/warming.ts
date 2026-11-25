@@ -1,7 +1,7 @@
 export * as WarmingPlugin from "./warming.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { define } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import type { Provider } from "@aicraft/schema/provider"
 import type { Session } from "@aicraft/schema/session"
 import { ConfigWarming } from "@aicraft/schema/config/warming"

@@ -100,7 +100,7 @@ export const PluginGroup = HttpApiGroup.make("server.plugin")
           identifier: "experimental.plugin.bundle",
           summary: "Install a plugin bundle",
           description:
-            "Experimental: may change without compatibility guarantees. Find a local .exc bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
+            "Experimental: may change without compatibility guarantees. Find a local .aix bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
         }),
       ),
   )
@@ -117,7 +117,7 @@ export const PluginGroup = HttpApiGroup.make("server.plugin")
           identifier: "experimental.plugin.uninstall",
           summary: "Uninstall a plugin bundle",
           description:
-            "Experimental: may change without compatibility guarantees. Remove an installed .exc bundle's directory so the host unloads it.",
+            "Experimental: may change without compatibility guarantees. Remove an installed .aix bundle's directory so the host unloads it.",
         }),
       ),
   )

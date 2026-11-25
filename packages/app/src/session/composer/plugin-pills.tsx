@@ -11,7 +11,7 @@ import {
   type IconName,
   type MountedSession,
   type SessionScreen,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { usePluginHost } from "@/runtime/plugin/host"
 import { Contribution } from "@/runtime/plugin/render"
 import { composerLanePlacement, type useComposerLaneAlignment } from "./composer-lane"

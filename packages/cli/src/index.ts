@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { ensurePluginRuntime } from "@aicraft/plugin/runtime"
+import { ensurePluginRuntime } from "@aicraft/aix/runtime"
 import { NodeRuntime, NodeServices } from "@effect/platform-node"
 import { Cause, Effect } from "effect"
 import { getErrorReported } from "effect/Runtime"

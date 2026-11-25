@@ -8,7 +8,7 @@ import {
   type BridgeMenubarItem,
   type Entry,
   type Scope,
-} from "@aicraft/plugin/gui/host"
+} from "@aicraft/aix/gui/host"
 import {
   MenubarItem,
   type Plugin,
@@ -32,8 +32,8 @@ import {
   type ServerEndpoint,
   type ServerEndpoints,
   type Windows,
-} from "@aicraft/plugin/gui/main"
-import type { BuiltinCatalog, BuiltinMainContext, Lifecycle } from "@aicraft/plugin/gui/builtin"
+} from "@aicraft/aix/gui/main"
+import type { BuiltinCatalog, BuiltinMainContext, Lifecycle } from "@aicraft/aix/gui/builtin"
 import type { AicraftClient, PluginGuiBundle } from "@aicraft/client"
 import { Exit, Match, Predicate, Schema } from "effect"
 import type { PluginEndpoint, PluginInstalled } from "../../shared/ipc-rpc/plugins"

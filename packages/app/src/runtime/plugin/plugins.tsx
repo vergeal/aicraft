@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js"
-import type { PluginOptions } from "@aicraft/plugin/gui"
-import type { Bridge, BridgePluginGui, BridgePluginGuis, Entry } from "@aicraft/plugin/gui/host"
+import type { PluginOptions } from "@aicraft/aix/gui"
+import type { Bridge, BridgePluginGui, BridgePluginGuis, Entry } from "@aicraft/aix/gui/host"
 import type { AicraftClient } from "@aicraft/client/promise"
 import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection } from "@/runtime/server/registry"

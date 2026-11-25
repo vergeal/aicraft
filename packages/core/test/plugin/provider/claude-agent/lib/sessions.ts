@@ -1,7 +1,7 @@
 export * as TestSessions from "./sessions"
 
 import type { LanguageModelV3Prompt, LanguageModelV3StreamPart } from "@ai-sdk/provider"
-import type { SessionRequestKind } from "@aicraft/plugin/effect/session"
+import type { SessionRequestKind } from "@aicraft/aix/effect/session"
 import { Effect } from "effect"
 import { ClaudeSessions } from "@aicraft/core/plugin/provider/claude-agent/claude/sessions"
 import { ClaudeStatus } from "@aicraft/core/plugin/provider/claude-agent/claude/status"

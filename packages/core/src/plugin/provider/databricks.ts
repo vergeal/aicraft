@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 
 export const DatabricksPlugin = define({
   id: "aicraft.provider.databricks",

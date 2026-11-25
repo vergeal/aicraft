@@ -1,21 +1,22 @@
 import {
   evaluatePluginBundle,
   inertModule,
+  legacyPluginModule,
   mainOnlyModule,
   type PluginModule,
   type Entry,
-} from "@aicraft/plugin/gui/host"
+} from "@aicraft/aix/gui/host"
 
 // Plugin bundles share the host's module instances, so tokens, contexts and schemas they import are the same objects
 // the host checks against. In a window, the main SDK's name resolves to the window SDK.
 const modules = {
   effect: () => import("effect"),
-  "@aicraft/plugin/gui": () => import("@aicraft/plugin/gui"),
-  "@aicraft/plugin/gui/main": () => import("@aicraft/plugin/gui"),
-  "@aicraft/plugin/gui/file": () => import("@aicraft/plugin/gui/file"),
-  "@aicraft/plugin/gui/review": () => import("@aicraft/plugin/gui/review"),
-  "@aicraft/plugin/gui/browser": () => import("@aicraft/plugin/gui/browser"),
-  "@aicraft/plugin/rpc": () => import("@aicraft/plugin/rpc"),
+  "@aicraft/aix/gui": () => import("@aicraft/aix/gui"),
+  "@aicraft/aix/gui/main": () => import("@aicraft/aix/gui"),
+  "@aicraft/aix/gui/file": () => import("@aicraft/aix/gui/file"),
+  "@aicraft/aix/gui/review": () => import("@aicraft/aix/gui/review"),
+  "@aicraft/aix/gui/browser": () => import("@aicraft/aix/gui/browser"),
+  "@aicraft/aix/rpc": () => import("@aicraft/aix/rpc"),
   "@aicraft/schema/rpc": () => import("@aicraft/schema/rpc"),
   "@aicraft/client": () => import("@aicraft/client"),
   "@aicraft/client/effect": () => import("@aicraft/client/effect"),
@@ -41,7 +42,7 @@ export async function pluginDefinition(id: string, code: string): Promise<Entry>
     evaluatePluginBundle(code, {
       process: "window",
       require: (name) => {
-        const module = loaded.get(name)
+        const module = loaded.get(legacyPluginModule(name))
 
         if (module) return module
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // The GUI plugin SDK is learned from editor hovers and the guide, so both are checked. Fails, naming each file and
-// line, when in `packages/plugin/src/gui`:
+// line, when in `packages/aix/src/gui`:
 // - an exported declaration, an interface member, a field of an object type (an option, a result, a union member), or
 //   a member of an exported object such as `Store.global` has no doc comment;
 // - a documented function or method leaves a parameter without `@param`, or names one it does not have.
@@ -15,7 +15,7 @@ import ts from "typescript"
 
 const root = path.resolve(import.meta.dir, "..")
 const pkg = path.join(root, "packages/gui-plugins")
-const sdk = path.join(root, "packages/plugin/src/gui")
+const sdk = path.join(root, "packages/aix/src/gui")
 
 const problems: string[] = []
 const counts = { declarations: 0, members: 0, parameters: 0, blocks: 0 }

@@ -1,6 +1,6 @@
 export * as SdkPlugins from "./sdk.js"
 
-import type { Plugin } from "@aicraft/plugin/effect/plugin"
+import type { Plugin } from "@aicraft/aix/effect/plugin"
 import { Context, Effect, Layer } from "effect"
 import { makeGlobalNode } from "@aicraft/util/effect/app-node"
 import { Bus } from "../bus.js"

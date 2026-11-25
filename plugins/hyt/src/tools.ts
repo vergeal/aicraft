@@ -1,6 +1,6 @@
 export * as HytTools from "./tools.js"
 
-import type { ToolEditor } from "@aicraft/plugin/promise/tool"
+import type { ToolEditor } from "@aicraft/aix/promise/tool"
 import { optional } from "@aicraft/schema/schema"
 import { Tool } from "@aicraft/schema/tool"
 import { Schema } from "effect"

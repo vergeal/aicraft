@@ -3,7 +3,7 @@ import { useDialog } from "@aicraft/ui/context/dialog"
 import { Icon } from "@aicraft/ui/icon"
 import { Loader } from "@aicraft/ui/loader"
 import { Show } from "solid-js"
-import { createKeyed, usePlugin } from "@aicraft/plugin/gui"
+import { createKeyed, usePlugin } from "@aicraft/aix/gui"
 import { sshName } from "./name"
 import type { SshController } from "./state"
 

@@ -1,7 +1,7 @@
 export * as WebSearchTool from "./websearch.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import type { Context } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { ToolFailure } from "@aicraft/ai/effect"
 import { Effect, Schema, Semaphore } from "effect"
 import { HttpClientError } from "effect/http"

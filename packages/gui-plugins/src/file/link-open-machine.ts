@@ -1,4 +1,4 @@
-import type { LineRange } from "@aicraft/plugin/gui"
+import type { LineRange } from "@aicraft/aix/gui"
 
 /** How long one link click may resolve and load before it gives up with an error. */
 export const LINK_OPEN_TIMEOUT_MS = 30_000

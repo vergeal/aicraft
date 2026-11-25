@@ -1,4 +1,4 @@
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Integration } from "@aicraft/schema/integration"
 import { Provider } from "@aicraft/schema/provider"
 import { Effect, Stream } from "effect"

@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 import type { Manifest } from "@aicraft/schema/plugin-manifest"
 import { AbsolutePath } from "@aicraft/schema/schema"
 import { Skill } from "@aicraft/schema/skill"

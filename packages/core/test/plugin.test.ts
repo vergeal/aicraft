@@ -16,7 +16,7 @@ import { PluginModule } from "@aicraft/core/plugin/module"
 import { Session } from "@aicraft/core/session"
 import { SessionSchema } from "@aicraft/core/session/schema"
 import { Watcher } from "@aicraft/core/filesystem/watcher"
-import { fromPromise } from "@aicraft/plugin/promise/adapter"
+import { fromPromise } from "@aicraft/aix/promise/adapter"
 import { testEffect } from "./lib/effect"
 import { PluginTestLayer } from "./plugin/fixture"
 

@@ -1,8 +1,8 @@
 export * as AicraftTools from "./aicraft.js"
 
 import { SystemPart, ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import type { Context } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { Model } from "@aicraft/schema/model"
 import { AbsolutePath } from "@aicraft/schema/schema"
 import { Session } from "@aicraft/schema/session"

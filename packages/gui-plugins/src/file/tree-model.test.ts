@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { FileNode } from "@aicraft/plugin/gui"
+import type { FileNode } from "@aicraft/aix/gui"
 import { buildAllowedTreeInput, buildGitStatusMap, buildLiveTreeInput, diffGitStatusPatch } from "./tree-model"
 
 describe("buildAllowedTreeInput", () => {

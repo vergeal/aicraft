@@ -2,8 +2,8 @@ import { Button } from "@aicraft/ui/button"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
 import { Icon } from "@aicraft/ui/icon"
 import { showToast, toaster } from "@aicraft/ui/toast"
-import type { DialogHandle, IpcClient, SetupContext } from "@aicraft/plugin/gui"
-import type { Updater } from "@aicraft/plugin/gui/updater"
+import type { DialogHandle, IpcClient, SetupContext } from "@aicraft/aix/gui"
+import type { Updater } from "@aicraft/aix/gui/updater"
 import type definition from "./index"
 
 type Client = IpcClient<typeof Updater.spec>

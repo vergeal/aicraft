@@ -1,5 +1,5 @@
-import { Plugin } from "@aicraft/plugin/effect"
-import type { IntegrationMethod } from "@aicraft/plugin/effect/integration"
+import { Plugin } from "@aicraft/aix/effect"
+import type { IntegrationMethod } from "@aicraft/aix/effect/integration"
 import { Agent } from "@aicraft/core/agent"
 import { Credential } from "@aicraft/core/credential"
 import { Integration } from "@aicraft/core/integration"

@@ -20,8 +20,8 @@ import type {
   SessionReviewFocus,
   SessionReviewLineComment,
 } from "@aicraft/session-ui/session-review"
-import { usePlugin, usePanel, type MountedSession, type PanelSidebar, type SessionScreen } from "@aicraft/plugin/gui"
-import { FileTree, OpenInApp } from "@aicraft/plugin/gui/file"
+import { usePlugin, usePanel, type MountedSession, type PanelSidebar, type SessionScreen } from "@aicraft/aix/gui"
+import { FileTree, OpenInApp } from "@aicraft/aix/gui/file"
 import type Review from "./index"
 import {
   applyFileListKeyDown,

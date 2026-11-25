@@ -1,7 +1,7 @@
 export * as PlanPlugin from "./plan.js"
 
 import { Message, ToolFailure } from "@aicraft/ai/effect"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Agent } from "@aicraft/schema/agent"
 import type { SessionEvent } from "@aicraft/schema/session-event"
 import { Global } from "@aicraft/util/global"

@@ -2,9 +2,9 @@ import { DiffChanges } from "@aicraft/ui/diff-changes"
 import { Icon } from "@aicraft/ui/icon"
 import { Menu } from "@aicraft/ui/menu"
 import { createMemo, onCleanup, Show } from "solid-js"
-import { createKeyed, usePlugin, type MountedSession, type SessionScreen } from "@aicraft/plugin/gui"
+import { createKeyed, usePlugin, type MountedSession, type SessionScreen } from "@aicraft/aix/gui"
 import type Details from "./index"
-import { Changes } from "@aicraft/plugin/gui/review"
+import { Changes } from "@aicraft/aix/gui/review"
 
 export default function SessionLocationMenu(props: { session: MountedSession; screen: SessionScreen; shown: boolean }) {
   const ctx = usePlugin<typeof Details>()

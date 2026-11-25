@@ -2,9 +2,9 @@ import { createMemo, lazy, onCleanup, Show, Suspense } from "solid-js"
 import { turnMessages, turnSources } from "@aicraft/session-ui/sources"
 import { sourcesExperiment } from "@aicraft/session-ui/sources/experiment"
 import { SourcesTitle } from "@aicraft/session-ui/sources/title"
-import { createKeyed, LinkHandler, Panel, type MountedSession, type PanelTab, type Plugin } from "@aicraft/plugin/gui"
+import { createKeyed, LinkHandler, Panel, type MountedSession, type PanelTab, type Plugin } from "@aicraft/aix/gui"
 import type Sources from "./index"
-import { onIdle } from "@aicraft/plugin/gui/builtin"
+import { onIdle } from "@aicraft/aix/gui/builtin"
 
 /**
  * The Sources experiment's side panel: one transient tab per turn, keyed by the user message that opened it. The

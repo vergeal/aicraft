@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect"
-import { builtinMainContext } from "@aicraft/plugin/gui/builtin"
-import type { Plugin } from "@aicraft/plugin/gui/main"
+import { builtinMainContext } from "@aicraft/aix/gui/builtin"
+import type { Plugin } from "@aicraft/aix/gui/main"
 import { Wsl } from "./contract"
 import { createWslRuntime } from "./runtime"
 import { createWslServersController, wslServerIdForDistro } from "./servers"

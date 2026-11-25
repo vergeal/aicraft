@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/effect"
+import { Plugin } from "@aicraft/aix/effect"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Effect } from "effect"
 import { join } from "node:path"

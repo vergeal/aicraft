@@ -33,8 +33,8 @@ import {
   type Storage,
   type StorageScope,
   type Tabs,
-} from "@aicraft/plugin/gui"
-import { BuiltinPanel, type BuiltinStoreFrom, type BuiltinStoreOptions } from "@aicraft/plugin/gui/builtin"
+} from "@aicraft/aix/gui"
+import { BuiltinPanel, type BuiltinStoreFrom, type BuiltinStoreOptions } from "@aicraft/aix/gui/builtin"
 import { usePlatform } from "@/runtime/platform/platform"
 import { same } from "@/runtime/persistence/equality"
 import { Persist, persisted, removePersisted } from "@/runtime/persistence/storage"

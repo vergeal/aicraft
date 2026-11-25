@@ -2,7 +2,7 @@ import { isBuiltin } from "node:module"
 import path from "node:path"
 import type { Plugin } from "vite"
 import solid from "vite-plugin-solid"
-import { pluginSharedModules, pluginWindowModules } from "./modules.js"
+import { legacyPluginModule, pluginSharedModules, pluginWindowModules } from "./modules.js"
 
 /** Where `gui()` reads a plugin's GUI and writes its CommonJS bundle. */
 export interface GuiOptions {
@@ -51,7 +51,9 @@ export function gui(options: GuiOptions = {}): Plugin[] {
         },
       }),
       resolveId(source) {
-        if (provided.has(source) || source === "electron" || isBuiltin(source)) return { id: source, external: true }
+        const moduleName = legacyPluginModule(source)
+
+        if (provided.has(moduleName) || source === "electron" || isBuiltin(source)) return { id: moduleName, external: true }
 
         if (/^(effect|solid-js|@aicraft)\//.test(source))
           this.error(`${source} is not a module the AI Craft app provides to plugin GUIs: ${[...provided].join(", ")}`)

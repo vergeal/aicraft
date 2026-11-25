@@ -9,7 +9,7 @@
     "server": "server/main",
     "gui": "gui/main"
   },
-  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema"],
+  "externals": ["effect", "@aicraft/aix", "@aicraft/schema"],
   "display": {
     "name": "Orchestrator",
     "description": "把任务图变成自动推进的状态机：记台账、按依赖派发、收回结构化结果、跑机械核对，不做任何判断。",

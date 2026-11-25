@@ -1,5 +1,5 @@
-import type { IntegrationOAuthMethodRegistration } from "@aicraft/plugin/effect/integration"
-import { define } from "@aicraft/plugin/effect/plugin"
+import type { IntegrationOAuthMethodRegistration } from "@aicraft/aix/effect/integration"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Clock, Effect, Option, Schema } from "effect"
 import { App } from "../../app.js"
 import { Credential } from "../../credential.js"

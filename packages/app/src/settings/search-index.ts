@@ -1,4 +1,4 @@
-import type { SettingsPage } from "@aicraft/plugin/gui"
+import type { SettingsPage } from "@aicraft/aix/gui"
 import type { useLanguage } from "@/runtime/i18n/language"
 import type { LocalProject } from "@/shell/state/layout"
 import { displayName } from "@aicraft/ui/project-avatar"

@@ -50,7 +50,7 @@ export function bridgeExecutable(pluginRoot: string, configured = "") {
 }
 
 /**
- * `.exc` 是 tar 包，安装后的文件不一定带执行位。桥接要能被 spawn 拉起，所以找到后补一次 0755；
+ * `.aix` 是 tar 包，安装后的文件不一定带执行位。桥接要能被 spawn 拉起，所以找到后补一次 0755；
  * Windows 没有执行位，直接跳过；只读安装位置改不动时保持原样，spawn 失败会带出明确原因。
  */
 function ensureExecutable(file: string) {

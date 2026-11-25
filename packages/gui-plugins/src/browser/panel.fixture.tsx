@@ -21,7 +21,7 @@ import {
   type Bridge,
   type BridgeLayout,
   type Entry,
-} from "@aicraft/plugin/gui/host"
+} from "@aicraft/aix/gui/host"
 import {
   type Appearance,
   type App,
@@ -44,7 +44,7 @@ import {
   type SetupContext,
   type Storage,
   type Workspaces,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import barStyles from "./bar.css?inline"
 import type { History } from "./history"
 import browserEn from "./i18n/en"
@@ -54,7 +54,7 @@ import SessionBrowserPane from "./panel"
 import { BrowserPane, type PaneEvent } from "./ipc"
 import { pageShortcut } from "./keys"
 import { refusal } from "./policy"
-import { type BuiltinLayout } from "@aicraft/plugin/gui/builtin"
+import { type BuiltinLayout } from "@aicraft/aix/gui/builtin"
 
 /** The renderer host pieces the pane runs on, passed in by `packages/app/component-tests/browser-pane.spec.ts`. */
 type PaneHost = {

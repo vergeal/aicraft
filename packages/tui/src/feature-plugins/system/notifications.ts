@@ -1,5 +1,5 @@
-import { Plugin } from "@aicraft/plugin/tui"
-import type { AttentionSoundName } from "@aicraft/plugin/tui/context"
+import { Plugin } from "@aicraft/aix/tui"
+import type { AttentionSoundName } from "@aicraft/aix/tui/context"
 
 function notify(
   context: Plugin.Context,

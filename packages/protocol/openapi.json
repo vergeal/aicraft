@@ -1047,7 +1047,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Find a local .exc bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
+        "description": "Experimental: may change without compatibility guarantees. Find a local .aix bundle for this plugin id, verify its checksums, unpack it into the config plugins directory, and load it.",
         "summary": "Install a plugin bundle",
         "requestBody": {
           "content": {
@@ -1170,7 +1170,7 @@
             }
           }
         },
-        "description": "Experimental: may change without compatibility guarantees. Remove an installed .exc bundle's directory so the host unloads it.",
+        "description": "Experimental: may change without compatibility guarantees. Remove an installed .aix bundle's directory so the host unloads it.",
         "summary": "Uninstall a plugin bundle",
         "requestBody": {
           "content": {

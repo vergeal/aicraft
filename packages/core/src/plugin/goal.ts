@@ -1,8 +1,8 @@
 export * as GoalPlugin from "./goal.js"
 
 import { isContextOverflowFailure, Message } from "@aicraft/ai/effect"
-import { define } from "@aicraft/plugin/effect/plugin"
-import type { SessionIdleBackground } from "@aicraft/plugin/effect/session"
+import { define } from "@aicraft/aix/effect/plugin"
+import type { SessionIdleBackground } from "@aicraft/aix/effect/session"
 import { Goal } from "@aicraft/schema/goal"
 import { Session } from "@aicraft/schema/session"
 import { isExactRootFallback } from "@aicraft/util/session-title-fallback"

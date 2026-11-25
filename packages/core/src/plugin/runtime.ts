@@ -8,8 +8,8 @@ import { inflateRawSync } from "node:zlib"
 import type { Plugin } from "@aicraft/schema/plugin"
 import type { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Effect } from "effect"
-import { compareVersions } from "./local.js"
-import { PluginPaths } from "./paths.js"
+import { compareVersions } from "@aicraft/aix/local"
+import { PluginPaths } from "@aicraft/aix/paths"
 
 /**
  * The uv release the host downloads when the machine has none. Pinned so one code revision prepares one environment;

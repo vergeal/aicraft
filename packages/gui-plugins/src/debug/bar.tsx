@@ -2,11 +2,11 @@ import { createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { Icon } from "@aicraft/ui/icon"
 import { IconButton } from "@aicraft/ui/icon-button"
 import { Tooltip } from "@aicraft/ui/tooltip"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import { motionGlobals, motionTuning } from "@aicraft/ui/motion-tuning"
 import { duration } from "@aicraft/util/duration"
 import { SessionTurn } from "@aicraft/util/session-turn"
-import { builtinContext } from "@aicraft/plugin/gui/builtin"
+import { builtinContext } from "@aicraft/aix/gui/builtin"
 
 const fixed = (n?: number, digits = 0) => {
   if (n === undefined || Number.isNaN(n)) return

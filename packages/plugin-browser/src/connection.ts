@@ -1,7 +1,7 @@
 export * as BrowserConnection from "./connection.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
-import type { RpcRegistration } from "@aicraft/plugin/effect/rpc"
+import type { Context } from "@aicraft/aix/effect/plugin"
+import type { RpcRegistration } from "@aicraft/aix/effect/rpc"
 import type { Session } from "@aicraft/schema/session"
 import { Tool } from "@aicraft/schema/tool"
 import { Deferred, Effect, Schema, Stream } from "effect"

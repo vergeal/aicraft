@@ -1,4 +1,4 @@
-import { Ipc } from "@aicraft/plugin/gui"
+import { Ipc } from "@aicraft/aix/gui"
 import { Schema } from "effect"
 
 /**

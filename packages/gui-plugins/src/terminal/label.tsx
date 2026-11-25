@@ -1,7 +1,7 @@
 import { Show, type JSX } from "solid-js"
 import { Icon } from "@aicraft/ui/icon"
 import { Menu } from "@aicraft/ui/menu"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import { createInlineRename } from "./inline-rename"
 
 /**

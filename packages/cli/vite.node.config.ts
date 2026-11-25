@@ -169,12 +169,12 @@ const __filename = import.meta.filename
 const __dirname = import.meta.dirname
 const require = __cjs_mod__.createRequire(import.meta.url)
 const __ocPluginModules = ${JSON.stringify({
-    "@aicraft/plugin": "aicraft:plugin-v2",
-    "@aicraft/plugin/promise/plugin": "aicraft:plugin-promise-plugin",
-    "@aicraft/plugin/promise/tool": "aicraft:plugin-promise-tool",
-    "@aicraft/plugin/effect": "aicraft:plugin-v2-effect",
-    "@aicraft/plugin/effect/plugin": "aicraft:plugin-v2-effect-plugin",
-    "@aicraft/plugin/effect/tool": "aicraft:plugin-v2-effect-tool",
+    "@aicraft/aix": "aicraft:plugin-v2",
+    "@aicraft/aix/promise/plugin": "aicraft:plugin-promise-plugin",
+    "@aicraft/aix/promise/tool": "aicraft:plugin-promise-tool",
+    "@aicraft/aix/effect": "aicraft:plugin-v2-effect",
+    "@aicraft/aix/effect/plugin": "aicraft:plugin-v2-effect-plugin",
+    "@aicraft/aix/effect/tool": "aicraft:plugin-v2-effect-tool",
   })}
 const __ocPluginSources = ${JSON.stringify({
     "aicraft:plugin-v2": promiseModule,

@@ -11,7 +11,7 @@ import {
   type PanelTab,
   type Plugin,
   type SessionRef,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import type Terminal from "./index"
 import { terminalToggleCommand } from "./index"
 import { createTerminalModel, type TerminalSession } from "./model"
@@ -19,7 +19,7 @@ import { tabHidden, tabTargetable } from "./machine"
 import { terminalTabLabel } from "./title"
 import { TerminalTabLabel } from "./label"
 import quoteStyles from "./quote.css?inline"
-import { onIdle, BuiltinCommand, BuiltinSlot } from "@aicraft/plugin/gui/builtin"
+import { onIdle, BuiltinCommand, BuiltinSlot } from "@aicraft/aix/gui/builtin"
 
 const setup: Plugin.Setup<typeof Terminal> = (ctx) => {
   const sessions = ctx.sessions

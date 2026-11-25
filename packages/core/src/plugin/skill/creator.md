@@ -1,7 +1,7 @@
 ---
 name: 插件创造
 category: developer-tools
-description: "当用户要新建、修改或打包一个 AI Craft 插件（.exc）时使用。覆盖工程骨架、METAINF 清单、服务端与界面入口、随包技能、构建与打包脚本，以及按设计规范生成插件图标。"
+description: "当用户要新建、修改或打包一个 AI Craft 插件（.aix）时使用。覆盖工程骨架、METAINF 清单、服务端与界面入口、随包技能、构建与打包脚本，以及按设计规范生成插件图标。"
 icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#6d4fd6"/><rect x="7.8" y="5.8" width="3.6" height="3.4" rx="1.5" fill="#e6dcff" stroke="#3d2790" stroke-width="1.2" stroke-linejoin="round"/><rect x="12.6" y="5.8" width="3.6" height="3.4" rx="1.5" fill="#e6dcff" stroke="#3d2790" stroke-width="1.2" stroke-linejoin="round"/><rect x="5.6" y="9.2" width="12.8" height="9" rx="2.2" fill="#f4efff" stroke="#3d2790" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.2 11.8c1-.6 2.3-.8 3.4-.5" stroke="#c9b8ff" stroke-width="1.1" stroke-linecap="round" fill="none"/></svg>'
 ---
 
@@ -12,9 +12,9 @@ icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="
 
 # 创建 AI Craft 插件
 
-当用户要求新建一个 AI Craft 插件，或把一组能力打包成可安装的 `.exc` 时使用本技能。你的产出是一个能构建、能打包、能装进客户端的完整工程，而不是几段示例代码。
+当用户要求新建一个 AI Craft 插件，或把一组能力打包成可安装的 `.aix` 时使用本技能。你的产出是一个能构建、能打包、能装进客户端的完整工程，而不是几段示例代码。
 
-仓库里的 `docs/exc-dev/index.html` 是 `.exc` 格式（`apiVersion: 1`）的权威手册。本技能覆盖从零到可安装的主路径；遇到本技能没写到的细节，先查那份手册，不要凭猜测补字段。
+仓库里的 `docs/aix-dev/index.html` 是 `.aix` 格式（`apiVersion: 1`）的权威手册。本技能覆盖从零到可安装的主路径；遇到本技能没写到的细节，先查那份手册，不要凭猜测补字段。
 
 ## 工作流
 
@@ -23,7 +23,7 @@ icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="
 3. 按「工程骨架」创建文件，写清单与服务端入口。
 4. 按「图标」一节生成 `display.icon`。
 5. 安装依赖并构建：`bun install`，再 `bun run build`。
-6. 打包：`bun run pack`，得到 `~/.distribution/plugins/<id>/<version>/<id>-<version>.exc`。
+6. 打包：`bun run pack`，得到 `~/.distribution/plugins/<id>/<version>/<id>-<version>.aix`。
 7. 交付前跑「自检清单」，逐项确认。
 
 默认把工程建在用户指定目录；没有指定时，在当前工作区下建一个与插件 id 同名的目录。不要改动仓库里的其它插件。
@@ -64,12 +64,12 @@ icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="
   "apiVersion": 1,
   "id": "acme.notes",
   "version": "0.1.0",
-  "requires": { "opencode": "^2.2.0" },
+  "requires": { "aicraft": "^2.2.0" },
   "entry": {
     "server": "server/main",
     "gui": "gui/main"
   },
-  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema", "@aicraft/schema/plugin-manifest"],
+  "externals": ["effect", "@aicraft/aix", "@aicraft/schema", "@aicraft/schema/plugin-manifest"],
   "display": {
     "name": "Acme Notes",
     "description": "把项目笔记收进一个可搜索的面板。",
@@ -95,7 +95,7 @@ icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="
 - `id` 同时是安装目录名。不能与内置插件 id 相同或前缀交叉。
 - `requires.aicraft` 只做最低版本判断：`^2.2.0` 等价于 `>= 2.2.0`，没有上界。
 - `entry.server` 必需。只有声明了 `entry.gui`，界面才会被加载。
-- `externals` 由宿主提供、不被打进产物；安装时软链到插件的 `node_modules`。服务端入口至少列 `effect`、`@aicraft/plugin`、`@aicraft/schema`，用到清单校验再列 `@aicraft/schema/plugin-manifest`。
+- `externals` 由宿主提供、不被打进产物；安装时软链到插件的 `node_modules`。服务端入口至少列 `effect`、`@aicraft/aix`、`@aicraft/schema`，用到清单校验再列 `@aicraft/schema/plugin-manifest`。
 - `display.name` 与 `display.description` 必填（安装时会校验）。
 - `display.tools` 是展示用的工具名前缀，如 `acme.notes.*`。
 - `display.icon` 是可选的内联 SVG 字符串，规则见「图标」。
@@ -113,7 +113,7 @@ Python 运行时用 `runtime` 字段（本技能默认不生成）：
 默认导出 `Plugin.define`，`id` 必须与清单一致。`activate` 在每次加载时执行。
 
 ```ts
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Schema } from "effect"
 
@@ -216,7 +216,7 @@ await ctx.skill.transform((skills) =>
 `gui/main.tsx` 默认导出 GUI 的 `Plugin.define`。`setup` 必须是同步函数。
 
 ```tsx
-import { Command, Plugin, Slot } from "@aicraft/plugin/gui"
+import { Command, Plugin, Slot } from "@aicraft/aix/gui"
 
 export default Plugin.define({
   setup(ctx) {
@@ -237,7 +237,7 @@ export default Plugin.define({
 
 ```ts
 import { defineConfig } from "vite"
-import { gui } from "@aicraft/plugin/gui/vite"
+import { gui } from "@aicraft/aix/gui/vite"
 
 export default defineConfig({ plugins: [gui()] })
 ```
@@ -246,7 +246,7 @@ export default defineConfig({ plugins: [gui()] })
 
 - 构建产物必须是 CommonJS：`dist/gui/main.cjs`，不含 `import` / `export` 语句。
 - 第三方界面只在桌面端加载，Web 端不加载。
-- 界面 bundle 只能引用白名单模块：`effect`、`@aicraft/plugin/gui`、`@aicraft/plugin/gui/main`、`@aicraft/plugin/rpc`、`@aicraft/schema/rpc`、`@aicraft/client`、`@aicraft/client/effect`、`solid-js` 家族、`@aicraft/client/solid`、`@aicraft/plugin/gui/{file,review,browser}`。其余会被构建器拒绝。
+- 界面 bundle 只能引用白名单模块：`effect`、`@aicraft/aix/gui`、`@aicraft/aix/gui/main`、`@aicraft/aix/rpc`、`@aicraft/schema/rpc`、`@aicraft/client`、`@aicraft/client/effect`、`solid-js` 家族、`@aicraft/client/solid`、`@aicraft/aix/gui/{file,review,browser}`。其余会被构建器拒绝。
 - 不能替换内置组件的渲染逻辑；可以新增注册表条目、插槽内容、CSS 与主题。
 - 与内置插件同 id 会被判定冲突，界面不加载。
 
@@ -348,7 +348,7 @@ files["METAINF"] = new TextEncoder().encode(
 const out = join(homedir(), ".distribution", "plugins", manifest.id, manifest.version)
 await mkdir(out, { recursive: true })
 
-const archive = join(out, `${manifest.id}-${manifest.version}.exc`)
+const archive = join(out, `${manifest.id}-${manifest.version}.aix`)
 await Bun.Archive.write(archive, files, { compress: "gzip", level: 9 })
 
 console.log(`packed ${archive}`)
@@ -365,10 +365,10 @@ console.log(`packed ${archive}`)
 
 打包规则：
 
-- `.exc` 是 gzip 压缩的 tar 包，根目录必须有 `METAINF`。
+- `.aix` 是 gzip 压缩的 tar 包，根目录必须有 `METAINF`。
 - 清单里的 `files` 由打包脚本重写，包含每个文件的 sha256；`METAINF` 自己不列入。
-- 每个版本目录只留一个 `.exc`。
-- 输出位置：`~/.distribution/plugins/<id>/<version>/<id>-<version>.exc`。
+- 每个版本目录只留一个 `.aix`。
+- 输出位置：`~/.distribution/plugins/<id>/<version>/<id>-<version>.aix`。
 - 安装器只做 sha256 完整性校验，没有签名与来源验证。
 
 ## 图标
@@ -415,13 +415,13 @@ console.log(`packed ${archive}`)
 
 - [ ] `METAINF` 的 `id` 与 `server/main.ts` 的 `id` 一致。
 - [ ] `entry.server` 是 `server/main`，`entry.gui`（如有）是 `gui/main`。
-- [ ] `externals` 含 `effect`、`@aicraft/plugin`、`@aicraft/schema`。
+- [ ] `externals` 含 `effect`、`@aicraft/aix`、`@aicraft/schema`。
 - [ ] `display.name` 与 `display.description` 非空。
 - [ ] `skills[].path` 指向真实存在的文件，且 `activate` 里注册了对应技能。
 - [ ] `bun install` 成功，`bun run build` 产出 `dist/server/main.js`。
 - [ ] 有界面时，`dist/gui/main.cjs` 是 CommonJS，没有 `import` / `export`。
-- [ ] `bun run pack` 产出 `~/.distribution/plugins/<id>/<version>/<id>-<version>.exc`。
-- [ ] `.exc` 里 `METAINF` 带 `files[].sha256`，每个文件都能对上。
+- [ ] `bun run pack` 产出 `~/.distribution/plugins/<id>/<version>/<id>-<version>.aix`。
+- [ ] `.aix` 里 `METAINF` 带 `files[].sha256`，每个文件都能对上。
 - [ ] 图标满足「图标自检」。
 
 ## 常见错误
@@ -444,13 +444,13 @@ console.log(`packed ${archive}`)
 
 | 路径 | 作用 |
 | --- | --- |
-| `~/.aicraft/exc/<id>/` | 已安装插件，放入即加载 |
+| `~/.aicraft/aix/<id>/` | 已安装插件，放入即加载 |
 | `~/.aicraft/plugin-data/<id>/` | `ctx.paths.data`，卸载后保留 |
 | `~/.aicraft/plugin-cache/<id>/` | `ctx.paths.cache`，卸载时删除 |
 | `~/.aicraft/logs/plugin/<id>.log` | `ctx.paths.log`，卸载后保留 |
 | `~/.distribution/plugins/<id>/<version>/` | 本地发现目录，Explore 从这里列出可安装版本 |
 
-热更新不生效时，确认覆盖的是 `~/.aicraft/exc/<id>/` 而不是工程里的 `dist/`；改完文件后触碰目录触发重载。插件进入加载失败退避后，用 `POST /api/experimental/plugin/reload` 或详情页的「重试」立即恢复。
+热更新不生效时，确认覆盖的是 `~/.aicraft/aix/<id>/` 而不是工程里的 `dist/`；改完文件后触碰目录触发重载。插件进入加载失败退避后，用 `POST /api/experimental/plugin/reload` 或详情页的「重试」立即恢复。
 
 ## 能力边界
 

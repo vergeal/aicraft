@@ -20,8 +20,8 @@ import {
   type Selection,
   type SelectionLimits,
 } from "@betteroffice/xlsx/headless"
-import { createKeyed, createLatest, usePlugin } from "@aicraft/plugin/gui"
-import type { FileViewerProps } from "@aicraft/plugin/gui/file"
+import { createKeyed, createLatest, usePlugin } from "@aicraft/aix/gui"
+import type { FileViewerProps } from "@aicraft/aix/gui/file"
 import { externalUrl } from "./links"
 import { paper } from "./paper"
 import { columnName, contains, coverMerges, hiddenAt, lastCell, settleMerges, skipHidden } from "./sheet-cells"

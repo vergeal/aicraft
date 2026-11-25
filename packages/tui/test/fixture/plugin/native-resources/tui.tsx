@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 import { SyntaxStyle, Yoga, type BoxRenderable } from "@opentui/core"
 import { createSignal, onMount } from "solid-js"
 

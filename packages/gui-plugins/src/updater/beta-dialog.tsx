@@ -4,7 +4,7 @@ import { Option } from "effect"
 import { Button } from "@aicraft/ui/button"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
 import { prefersReducedMotion } from "@aicraft/ui/motion"
-import { usePlugin, type DialogHandle, type SetupContext } from "@aicraft/plugin/gui"
+import { usePlugin, type DialogHandle, type SetupContext } from "@aicraft/aix/gui"
 import {
   betaBuild,
   decodeEmbeddedNotes,

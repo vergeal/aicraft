@@ -107,7 +107,7 @@ export const run: Run = Effect.fn("Tui.vite")(function* (input: Parameters<Run>[
                 "@opentui/solid",
                 "@opentui/keymap",
                 /^@solid-primitives\//,
-                "@aicraft/plugin",
+                "@aicraft/aix",
                 "@aicraft/client",
                 "@aicraft/latex",
                 "@aicraft/merman",

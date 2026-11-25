@@ -1,5 +1,5 @@
 import { base64ToBytes } from "@aicraft/util/base64"
-import type { FileContent } from "@aicraft/plugin/gui"
+import type { FileContent } from "@aicraft/aix/gui"
 
 /** Approximate on-disk size of loaded content. */
 export function contentBytes(content: FileContent) {

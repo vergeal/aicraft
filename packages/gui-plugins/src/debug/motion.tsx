@@ -18,7 +18,7 @@ import {
   type MotionFeature,
 } from "@aicraft/ui/motion-tuning-features"
 import { applyMotion } from "@aicraft/ui/motion-tuning-fields"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 
 // Where the panel was dragged to, as an offset from its bottom-right home, its width, and the feature it last showed;
 // kept per device.

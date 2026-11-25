@@ -1,6 +1,6 @@
 ---
 title: "TUI"
-description: "Build the TUI part of an AI Craft plugin for the terminal UI using @aicraft/plugin/tui."
+description: "Build the TUI part of an AI Craft plugin for the terminal UI using @aicraft/aix/tui."
 ---
 
 TUI plugins extend the terminal UI with commands, routes, slots, Markdown renderers, notifications, and local state. A
@@ -8,7 +8,7 @@ TUI plugin is the `./tui` part of a [plugin package](/build/plugins), usually be
 part](/build/plugins/server).
 
 ```ts title="src/tui.tsx"
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 
 export default Plugin.define({
   id: "acme.cli",
@@ -18,7 +18,7 @@ export default Plugin.define({
 })
 ```
 
-Import `@aicraft/plugin/tui` directly. AI Craft resolves this import at runtime, so local TUI plugins do not need an
+Import `@aicraft/aix/tui` directly. AI Craft resolves this import at runtime, so local TUI plugins do not need an
 absolute path to an AI Craft checkout.
 
 ## Context
@@ -261,7 +261,7 @@ The [OpenTUI 0.6.0 release notes](https://opentui.com/docs/releases/0.6.0) list 
 Use `usePlugin` to access the current context inside JSX rendered by a route, dialog, or slot.
 
 ```tsx
-import { usePlugin } from "@aicraft/plugin/tui"
+import { usePlugin } from "@aicraft/aix/tui"
 
 function Status() {
   const context = usePlugin()
@@ -595,8 +595,8 @@ The slot receives reactive `name`, `sessionID`, `width`, `presentation`, and `fo
 until there is enough room for a side panel.
 
 ```tsx
-import type { PanelInput } from "@aicraft/plugin/tui/context"
-import { usePlugin } from "@aicraft/plugin/tui"
+import type { PanelInput } from "@aicraft/aix/tui/context"
+import { usePlugin } from "@aicraft/aix/tui"
 
 function ReviewPanel(props: { panel: PanelInput }) {
   const context = usePlugin()
@@ -643,7 +643,7 @@ Expose the TUI plugin through `./tui`; add OpenTUI peers when the plugin renders
     "./tui": "./src/tui.tsx"
   },
   "dependencies": {
-    "@aicraft/plugin": "latest"
+    "@aicraft/aix": "latest"
   },
   "peerDependencies": {
     "@opentui/core": ">=0.6.6",
@@ -656,7 +656,7 @@ Expose the TUI plugin through `./tui`; add OpenTUI peers when the plugin renders
 Export `./tui` beside a [server part](/build/plugins/server) or [GUI part](/build/plugins/gui) for automatic loading.
 
 ```ts title="src/index.ts"
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 
 export default Plugin.define({
   id: "acme.server",

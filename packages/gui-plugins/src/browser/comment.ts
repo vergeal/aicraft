@@ -1,7 +1,7 @@
 import { Browser } from "@aicraft/plugin-browser/rpc"
 import { uuid } from "@aicraft/util/uuid"
 import { Schema } from "effect"
-import type { ComposerNote } from "@aicraft/plugin/gui"
+import type { ComposerNote } from "@aicraft/aix/gui"
 import type { PaneElement } from "./ipc"
 
 /** A comment on a picked element. The ref is absent once the page navigated. */

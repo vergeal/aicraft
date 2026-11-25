@@ -108,7 +108,7 @@
     "@opencode/pty": "0.4.0",
     "@aicraft/ai": "workspace:*",
     "@aicraft/codemode": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/plugin-browser": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/util": "workspace:*",

@@ -1,6 +1,6 @@
 import { Browser } from "@aicraft/plugin-browser/rpc"
 import { Schema } from "effect"
-import type { BuiltinMainStorage, MainStoreFrom } from "@aicraft/plugin/gui/builtin"
+import type { BuiltinMainStorage, MainStoreFrom } from "@aicraft/aix/gui/builtin"
 
 const Stored = Schema.Struct({
   tabs: Schema.Array(Schema.Struct({ id: Browser.TabID, url: Browser.Tab.fields.url })),

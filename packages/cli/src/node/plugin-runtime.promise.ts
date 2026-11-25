@@ -9,7 +9,7 @@ import {
   Provider,
   Reference,
   Skill,
-} from "@aicraft/plugin"
+} from "@aicraft/aix"
 
 const key = Symbol.for("aicraft.plugin.v2.promise")
 ;(globalThis as typeof globalThis & { [key]?: unknown })[key] = {

@@ -1,6 +1,6 @@
 export * as InstancePlugins from "./instance.js"
 
-import type { Plugin } from "@aicraft/plugin/effect/plugin"
+import type { Plugin } from "@aicraft/aix/effect/plugin"
 import { Context, Layer } from "effect"
 import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import type { Generation } from "../plugin.js"

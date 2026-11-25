@@ -127,7 +127,7 @@
     "turbo": "2.10.2"
   },
   "dependencies": {
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/script": "workspace:*",
     "typescript": "catalog:"
   },

@@ -1,7 +1,7 @@
 import { createContext, useContext, type Accessor } from "solid-js"
-import type { Browser } from "@aicraft/plugin/gui/browser"
-import type { Changes } from "@aicraft/plugin/gui/review"
-import type { LineRange, Live, MountedSession, OpenOptions } from "@aicraft/plugin/gui"
+import type { Browser } from "@aicraft/aix/gui/browser"
+import type { Changes } from "@aicraft/aix/gui/review"
+import type { LineRange, Live, MountedSession, OpenOptions } from "@aicraft/aix/gui"
 import type { OpenApp } from "./apps"
 import type { PickerView } from "./picker-machine"
 

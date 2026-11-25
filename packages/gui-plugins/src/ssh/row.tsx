@@ -4,7 +4,7 @@ import { IconButton } from "@aicraft/ui/icon-button"
 import { Menu } from "@aicraft/ui/menu"
 import { Loader } from "@aicraft/ui/loader"
 import { Show } from "solid-js"
-import { usePlugin, type ServerRow } from "@aicraft/plugin/gui"
+import { usePlugin, type ServerRow } from "@aicraft/aix/gui"
 import { sshName } from "./name"
 import type { SshController } from "./state"
 

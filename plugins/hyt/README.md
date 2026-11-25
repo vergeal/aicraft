@@ -94,7 +94,7 @@ skills/hyt-assistant/SKILL.md
 bun run typecheck          # 服务端与 src
 bun run typecheck:gui      # gui 入口
 bun run build              # dist/server、dist/gui、技能与标准文档
-bun run pack               # 生成 .exc
+bun run pack               # 生成 .aix
 bun test test/xxx.test.ts  # 单个测试文件
 ```
 

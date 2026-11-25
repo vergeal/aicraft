@@ -1,7 +1,7 @@
 export * as SessionsTool from "./sessions.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { DateTime, Effect, Schema } from "effect"
 import { Git } from "../../git.js"
 import { AbsolutePath } from "../../schema.js"

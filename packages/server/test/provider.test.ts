@@ -1,6 +1,6 @@
 import { expect } from "bun:test"
 import { SdkPlugins } from "@aicraft/core/plugin/sdk"
-import { Plugin } from "@aicraft/plugin/effect"
+import { Plugin } from "@aicraft/aix/effect"
 import { Context, Deferred, Effect, Fiber, Layer } from "effect"
 import { HttpEffect, HttpRouter, HttpServer } from "effect/http"
 import { tmpdirScoped } from "../../core/test/fixture/tmpdir"

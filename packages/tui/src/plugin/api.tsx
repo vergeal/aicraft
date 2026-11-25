@@ -1,4 +1,4 @@
-import { PluginContextProvider } from "@aicraft/plugin/tui"
+import { PluginContextProvider } from "@aicraft/aix/tui"
 import { createRoot, createUniqueId, getOwner, onCleanup, runWithOwner, untrack, type JSX } from "solid-js"
 import type {
   Context,
@@ -9,7 +9,7 @@ import type {
   SlotMap,
   SlotPath,
   Toast,
-} from "@aicraft/plugin/tui/context"
+} from "@aicraft/aix/tui/context"
 import type { Placement, PlacementKind } from "./structure"
 import { infoStringToFiletype, type MarkdownCodeBlockRenderer } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"

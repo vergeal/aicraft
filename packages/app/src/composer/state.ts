@@ -1,5 +1,5 @@
 import { batch, untrack, type Accessor } from "solid-js"
-import type { ComposerQuoteAnchor } from "@aicraft/plugin/gui"
+import type { ComposerQuoteAnchor } from "@aicraft/aix/gui"
 import { createStore, type SetStoreFunction } from "solid-js/store"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { ServerScope } from "@/runtime/server/scope"

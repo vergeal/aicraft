@@ -1,7 +1,7 @@
 export * as ScheduleTools from "./schedule.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { optional } from "@aicraft/schema/schema"
 import type { Session } from "@aicraft/schema/session"
 import { DateTime, Effect, Option, Schema } from "effect"

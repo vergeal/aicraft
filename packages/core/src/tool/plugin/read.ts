@@ -1,6 +1,6 @@
 export * as ReadTool from "./read.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { basename, dirname, join } from "path"
 import { ToolFailure } from "@aicraft/ai/effect"
 import { Effect, Schema } from "effect"

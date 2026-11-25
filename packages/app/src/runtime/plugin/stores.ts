@@ -11,8 +11,8 @@ import {
 } from "solid-js"
 import { produce, reconcile, type SetStoreFunction } from "solid-js/store"
 import { Predicate } from "effect"
-import type { Mutable, Persisted, SessionRef } from "@aicraft/plugin/gui"
-import type { BuiltinStoreFrom } from "@aicraft/plugin/gui/builtin"
+import type { Mutable, Persisted, SessionRef } from "@aicraft/aix/gui"
+import type { BuiltinStoreFrom } from "@aicraft/aix/gui/builtin"
 import { Persist, type persisted } from "@/runtime/persistence/storage"
 import type { SessionStateKey } from "@/runtime/server/scope"
 

@@ -2,7 +2,7 @@
 
 本文件定义 AI Craft 如何发现并加载技能（Skill）与插件（Plugin），以及在本仓库内编写它们时必须遵守的约定。
 
-- 适用范围：`packages/core`（加载器）、`packages/schema`（数据结构）、`packages/plugin`（入口解析）、`.aicraft/**` 与用户全局配置目录下的技能、插件。
+- 适用范围：`packages/core`（加载器）、`packages/schema`（数据结构）、`packages/aix`（入口解析）、`.aicraft/**` 与用户全局配置目录下的技能、插件。
 - 唯一事实来源是代码，本文件描述的是代码当前的加载契约。行为变更时必须同步修改本文。
 - 术语：**配置目录**指项目里向上查找到的 `.aicraft/`，或全局的 `~/.config/aicraft/`（macOS 受管环境还可能是系统目录）。
 
@@ -148,7 +148,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 | ------------ | -------------------------------------------------------------------- |
 | 项目配置目录 | `<project>/.aicraft/plugin/`、`<project>/.aicraft/plugins/`        |
 | 全局配置目录 | `~/.config/aicraft/plugin/`、`~/.config/aicraft/plugins/`          |
-| 已安装组合包 | `~/.aicraft/exc/<id>/`（每个子目录是一个插件）                |
+| 已安装组合包 | `~/.aicraft/aix/<id>/`（每个子目录是一个插件）                |
 | 配置字段     | `aicraft.json(c)` 的 `plugins: (string \| { package, options? })[]` |
 
 - `plugin/` 与 `plugins/` 两个目录名都会被扫描，二者等价。
@@ -243,7 +243,7 @@ frontmatter 使用 YAML（经 `gray-matter` 解析，兼容未加引号的值里
 内部插件默认**不**出现在探索页。要让用户看见它、并能查看它带了哪些能力，在 `Plugin.define` 里声明 `display`：
 
 ```ts
-import { Plugin } from "@aicraft/plugin/effect"
+import { Plugin } from "@aicraft/aix/effect"
 
 export default Plugin.define({
   id: "aicraft.example",
@@ -261,7 +261,7 @@ export default Plugin.define({
 })
 ```
 
-产品能力不要为此新增内置插件：浏览器能力现在就是一个 `.exc`（第三章），`display` 由包内 `METAINF` 派生，安装与否都与 Core 解耦。
+产品能力不要为此新增内置插件：浏览器能力现在就是一个 `.aix`（第三章），`display` 由包内 `METAINF` 派生，安装与否都与 Core 解耦。
 
 规则：
 
@@ -295,9 +295,9 @@ export default Plugin.define({
 4. 插件加载，执行入口里的 `tool.transform` / `skill.transform` / `mcp.transform`；
 5. `plugin.updated` 与 `skill.updated` 推送，探索页刷新。
 
-`.exc` 是例外：它不写 `plugins`，而是解包到 `~/.aicraft/exc/<id>/`，由目录自动发现生效，见 3.7。
+`.aix` 是例外：它不写 `plugins`，而是解包到 `~/.aicraft/aix/<id>/`，由目录自动发现生效，见 3.7。
 
-托管安装目录里的插件如果因入口损坏、导入失败或代码错误（`load-failed` / `transform-failed`）而加载失败，服务端会自动删除该目录，不再把它列给用户；这等同于自动卸载，原始 `.exc` 仍保留在 `~/.distribution/plugins/` 下供重新安装。加载超时与激活超时可能是临时情况（例如机器繁忙），保留目录但不列在探索页。配置里手工指定的本地插件目录、npm 包和内置插件不会被自动删除，避免误删用户的源码或配置。
+托管安装目录里的插件如果因入口损坏、导入失败或代码错误（`load-failed` / `transform-failed`）而加载失败，服务端会自动删除该目录，不再把它列给用户；这等同于自动卸载，原始 `.aix` 仍保留在 `~/.distribution/plugins/` 下供重新安装。加载超时与激活超时可能是临时情况（例如机器繁忙），保留目录但不列在探索页。配置里手工指定的本地插件目录、npm 包和内置插件不会被自动删除，避免误删用户的源码或配置。
 
 技能注册必须绑定在插件的 activation scope 上（`ctx.skill.transform` 天然如此），插件卸载或重载时自动移除。插件加载失败时不得留下任何能力注册。
 
@@ -322,21 +322,21 @@ export default Plugin.define({
 #### 现有案例
 
 - `packages/plugin-browser`：桌面浏览器插件，通过 CDP/proxy 控制浏览器，作为内置插件编译进 Core，注册 `browser.*` 工具与 `browser` 技能。
-- `plugins/webwright`（`aicraft.webwright`）：独立的 `.exc` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
+- `plugins/webwright`（`aicraft.webwright`）：独立的 `.aix` 组合包，用 Playwright 驱动专用浏览器（默认系统 Chrome + 专属 profile），注册 `webwright.*` 工具与 `webwright` 技能；Playwright 驱动作为包内资源放在 `assets/playwright-core`，不随 Core 编译。
 
 ---
 
-## 三、插件组合包（`.exc`）
+## 三、插件组合包（`.aix`）
 
 **Status: 规范已定义，实现进行中。** 本章是组合包格式与安装契约的权威定义；标注「待实现」的条目尚未落到代码。
 
 ### 3.1 定位
 
-`.exc` 是一个**单文件、离线可安装、自包含**的插件组合包：
+`.aix` 是一个**单文件、离线可安装、自包含**的插件组合包：
 
 - 一个文件就是完整插件：入口、技能、图标、资源全在里面，不依赖 npm 下载，不执行安装脚本。
 - 解包后就是一个**标准插件目录**，第二节的入口解析、`display`、`skills` 注册规则全部照常适用。宿主因此不需要新的插件运行时。
-- 与内部插件（`packages/plugin-*`，编译进 Core）的区别只有分发方式：`.exc` 是可移动的独立产物，安装不改 `plugins` 配置，删除即卸载。
+- 与内部插件（`packages/plugin-*`，编译进 Core）的区别只有分发方式：`.aix` 是可移动的独立产物，安装不改 `plugins` 配置，删除即卸载。
 
 ### 3.2 容器格式
 
@@ -344,7 +344,7 @@ export default Plugin.define({
 | --------- | ----------------------------------------------------------------------- |
 | 容器      | tar                                                                     |
 | 压缩      | gzip                                                                    |
-| 扩展名    | `.exc`                                                                  |
+| 扩展名    | `.aix`                                                                  |
 | 打包/解包 | `Bun.Archive`（运行时原生，零额外依赖）                                 |
 | 路径字符  | UTF-8，统一用 `/` 分隔，不得以 `/` 开头                                 |
 | 禁止项    | 绝对路径、`..`、符号链接、设备与管道文件、`node_modules/`、安装脚本字段 |
@@ -382,7 +382,7 @@ README.md                # 可选
   "version": "2.2.5",
   "requires": { "opencode": "^2.2.5" },
   "entry": { "server": "server/index.js" },
-  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema", "@aicraft/util"],
+  "externals": ["effect", "@aicraft/aix", "@aicraft/schema", "@aicraft/util"],
   "display": {
     "name": "Webwright",
     "description": "让 AI 直接操作浏览器……",
@@ -434,13 +434,13 @@ README.md                # 可选
 - 包内也不放 `node_modules/`。安装器负责让 `externals` 可解析：在 `<插件目录>/node_modules/` 下生成**纯文件 shim**（不依赖符号链接权限），内容指向宿主实际入口：
 
   ```json
-  // <插件目录>/node_modules/@aicraft/plugin/package.json
-  { "name": "@aicraft/plugin", "exports": "./index.js" }
+  // <插件目录>/node_modules/@aicraft/aix/package.json
+  { "name": "@aicraft/aix", "exports": "./index.js" }
   ```
 
   ```js
-  // <插件目录>/node_modules/@aicraft/plugin/index.js
-  export * from "file:///…/node_modules/@aicraft/plugin/dist/index.js"
+  // <插件目录>/node_modules/@aicraft/aix/index.js
+  export * from "file:///…/node_modules/@aicraft/aix/dist/index.js"
   ```
 
   宿主在自己的进程里能解析到这些模块，安装器因此可以复制它实际加载的那份入口 URL，保证版本一致。
@@ -453,7 +453,7 @@ README.md                # 可选
 建议在包内提供两个脚本：
 
 1. `build`：`bun build <入口> --target=bun --format=esm --outfile dist/server/index.js`，`--external` 取 `METAINF` 的 `externals` 与 `node:*`；原样拷贝 `skills/`、`assets/`、`README.md`、`package.json`、`METAINF` 到 `dist/`。
-2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.exc`；清单随包内的 `METAINF` 分发，不另写侧车文件，如声明 `files`，先算 sha256 再写入。发布构建可用 `OCPLUGIN_OUT` 直接指定输出目录。
+2. `pack`：读取 `dist/`，按 3.2 生成可重复的 tar+gzip 到本机发现目录的 `~/.distribution/plugins/<id>/<version>/<id>-<version>.aix`；清单随包内的 `METAINF` 分发，不另写侧车文件，如声明 `files`，先算 sha256 再写入。发布构建可用 `AIX_OUT` 直接指定输出目录。
 
 产物即分发单元，不再走 npm 发布，也不进 `packages/*/dist/npm`。
 
@@ -463,24 +463,24 @@ README.md                # 可选
 ~/.distribution/plugins/
   <id>/
     <version>/
-      <id>-<version>.exc        # 插件包，清单在包内
+      <id>-<version>.aix        # 插件包，清单在包内
 ```
 
 - 探索页按 `id` 聚合、按版本从新到旧列出；同一个插件的多个版本并存，安装时可选择版本。
-- 列举要打开每个版本的包读 `METAINF`，不再有侧车文件可跳过解压；大包（如 `webwright`）首次列举会稍慢，这是保持版本目录只有一个 `.exc` 的代价。
+- 列举要打开每个版本的包读 `METAINF`，不再有侧车文件可跳过解压；大包（如 `webwright`）首次列举会稍慢，这是保持版本目录只有一个 `.aix` 的代价。
 - 安装器优先在这里按 `id` + 版本取包，找不到时才回退到桌面、下载目录、当前工作目录。
-- 安装后的插件解包到 `~/.aicraft/exc/<id>/`；该目录是插件自动发现根，放入或删除目录即生效，不需要重启。
+- 安装后的插件解包到 `~/.aicraft/aix/<id>/`；该目录是插件自动发现根，放入或删除目录即生效，不需要重启。
 
 ### 3.7 安装与卸载（宿主契约）
 
-安装位置：`~/.aicraft/exc/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
+安装位置：`~/.aicraft/aix/<id>/`。该目录已在自动发现范围内（与配置目录下的 `plugins/` 并列），因此：
 
 - **安装 = 解包到插件目录**，不写 `plugins` 配置。
 - **卸载 = 删除目录**；临时禁用可在配置里写 `-aicraft.webwright`（见 2.1 顺序规则）。
 
 安装步骤（原子、可回滚）：
 
-1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.exc`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.aicraft`、`entry` 是否存在且位于包内。
+1. 在 `~/.distribution/plugins/<id>/<version>/` 取请求版本的 `.aix`；未指定版本时取最新，找不到时回退到桌面、下载目录、当前工作目录与配置目录下的 `plugins/`。读取归档，校验 `apiVersion`、`id`、`version`、`requires.aicraft`、`entry` 是否存在且位于包内。
 2. 拒绝路径穿越、绝对路径、符号链接、超大文件；校验 `files` 中的 sha256（若声明）。
 3. 解包到同级的临时目录 `.<id>.tmp-<random>`。
 4. 按 3.5 生成 `externals` shim。
@@ -520,9 +520,9 @@ README.md                # 可选
 ## 六、当前缺口
 
 - 没有 CLI 子命令用于校验技能/插件目录或列出已加载插件，只能看服务端接口与日志。
-- `.exc` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
+- `.aix` 的安装器（校验、解包、`externals` shim、原子替换）尚未实现，见 3.7；因此组合包目前只能由作者在本地手工解包。
 - 插件包内的 `skills/` 目录不会被自动发现；组合包里的技能必须由入口代码注册，`display.skills` 只是展示。
-- 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.exc` 通过包内 `METAINF` 解决了这一点（3.8），但要等安装器与探索页接线。
+- 安装前看不到 npm 插件的能力清单：包未安装时读不到它的 `skills/` 或 `display`，探索页的「发现」仍依赖客户端静态目录。`.aix` 通过包内 `METAINF` 解决了这一点（3.8），但要等安装器与探索页接线。
 
 ## 七、事实来源
 
@@ -536,8 +536,8 @@ README.md                # 可选
 - `packages/core/src/plugin/internal.ts`：内置插件列表。
 - `packages/core/src/plugin/module.ts`：插件加载、入口解析后的能力与 `display` 透传。
 - `packages/core/src/plugin.ts`：`Plugin.Info` 快照与激活 scope。
-- `packages/plugin/src/host.ts`：插件入口解析与 id 规则。
-- `packages/plugin/src/effect/plugin.ts`：Effect 插件 Context 与 `display` 声明。
+- `packages/aix/src/host.ts`：插件入口解析与 id 规则。
+- `packages/aix/src/effect/plugin.ts`：Effect 插件 Context 与 `display` 声明。
 - `plugins/webwright/METAINF`：组合包声明与内联图标，`plugins/webwright/src/skill.ts` 演示从 manifest 与 `SKILL.md` 加载技能，`script/pack.ts` 演示可重复打包。
 - `packages/schema/src/config.ts`：`skills`、`plugins` 字段定义。
 - `packages/schema/src/plugin.ts`：`Plugin.Info` 与 `Plugin.Display` 契约。

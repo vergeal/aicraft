@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/gui"
+import { Plugin } from "@aicraft/aix/gui"
 import { definition } from "./definition.js"
 import { main } from "./main-process.js"
 import { setup } from "./setup.js"

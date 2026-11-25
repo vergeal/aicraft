@@ -28,7 +28,7 @@
         "packages/app/**",
         "packages/desktop/**",
         "packages/gui-plugins/**",
-        "packages/plugin/src/gui/**",
+        "packages/aix/src/gui/**",
         "packages/ui/**",
         "packages/session-ui/**"
       ],
@@ -59,7 +59,7 @@
         "packages/app/**",
         "packages/desktop/**",
         "packages/gui-plugins/**",
-        "packages/plugin/src/gui/**",
+        "packages/aix/src/gui/**",
         "packages/session-ui/**"
       ],
       "rules": {
@@ -123,7 +123,7 @@
       }
     },
     {
-      "files": ["packages/plugin/src/gui/**"],
+      "files": ["packages/aix/src/gui/**"],
       "rules": {
         "no-restricted-imports": [
           "error",

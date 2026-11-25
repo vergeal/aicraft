@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
-import { Ipc } from "@aicraft/plugin/gui"
+import { Ipc } from "@aicraft/aix/gui"
 import { Schema } from "effect"
-import type { Bridge, BridgeMessage } from "@aicraft/plugin/gui/host"
+import type { Bridge, BridgeMessage } from "@aicraft/aix/gui/host"
 import { createIpcClients } from "./ipc"
 
 const token: Ipc = { kind: "ipc", id: "fixture", spec: { id: "fixture", methods: {} } }

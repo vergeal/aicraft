@@ -1,5 +1,5 @@
 import { For } from "solid-js"
-import type { TitlebarItem } from "@aicraft/plugin/gui"
+import type { TitlebarItem } from "@aicraft/aix/gui"
 import { TitlebarItems } from "./titlebar-items"
 
 const catalogs = import.meta.glob<{ default: Record<string, string> }>(

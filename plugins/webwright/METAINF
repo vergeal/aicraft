@@ -8,7 +8,7 @@
   "entry": {
     "server": "server/main"
   },
-  "externals": ["effect", "@aicraft/plugin", "@aicraft/schema", "@aicraft/util"],
+  "externals": ["effect", "@aicraft/aix", "@aicraft/schema", "@aicraft/util"],
   "display": {
     "name": "Webwright",
     "description": "让 AI 直接操作浏览器：打开网页、点击、填表和抓取内容，不需要安装扩展。",

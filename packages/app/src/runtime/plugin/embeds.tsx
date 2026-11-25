@@ -3,8 +3,8 @@ import { createStore } from "solid-js/store"
 import { createEventListener } from "@solid-primitives/event-listener"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { prefersReducedMotion } from "@aicraft/ui/motion"
-import type { EmbedProps, Embeds } from "@aicraft/plugin/gui"
-import type { Bridge } from "@aicraft/plugin/gui/host"
+import type { EmbedProps, Embeds } from "@aicraft/aix/gui"
+import type { Bridge } from "@aicraft/aix/gui/host"
 
 const geometry =
   /^(inset|left|right|top|bottom|translate|transform|scale|rotate|margin|padding|flex|grid|gap|row-gap|column-gap)|(^|-)(width|height)$/

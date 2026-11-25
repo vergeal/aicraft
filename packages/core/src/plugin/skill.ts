@@ -2,8 +2,8 @@
 
 export * as SkillPlugin from "./skill.js"
 
-import { SkillPackage } from "@aicraft/plugin/skill-package"
-import { define, type Context } from "@aicraft/plugin/effect/plugin"
+import { SkillPackage } from "@aicraft/aix/skill-package"
+import { define, type Context } from "@aicraft/aix/effect/plugin"
 import { Document } from "@aicraft/schema/config"
 import { Effect } from "effect"
 import { Config } from "../config.js"

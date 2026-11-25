@@ -1,7 +1,7 @@
-import { builtinCatalog } from "@aicraft/plugin/gui/builtin"
+import { builtinCatalog } from "@aicraft/aix/gui/builtin"
 import { Schema } from "effect"
-import { Plugin } from "@aicraft/plugin/gui"
-import { BuiltinStore } from "@aicraft/plugin/gui/builtin"
+import { Plugin } from "@aicraft/aix/gui"
+import { BuiltinStore } from "@aicraft/aix/gui/builtin"
 import en from "./i18n/en"
 
 const DiffState = Schema.Struct({ diffStyle: Schema.Literals(["unified", "split"]) })

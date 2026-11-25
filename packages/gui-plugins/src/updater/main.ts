@@ -1,8 +1,8 @@
 import { dialog } from "electron"
 import { Effect, Exit, Schema, Scope } from "effect"
-import { builtinMainContext } from "@aicraft/plugin/gui/builtin"
-import { MenubarItem, type Plugin } from "@aicraft/plugin/gui/main"
-import { Updater } from "@aicraft/plugin/gui/updater"
+import { builtinMainContext } from "@aicraft/aix/gui/builtin"
+import { MenubarItem, type Plugin } from "@aicraft/aix/gui/main"
+import { Updater } from "@aicraft/aix/gui/updater"
 import { logContext } from "./log"
 import { make } from "./machine"
 

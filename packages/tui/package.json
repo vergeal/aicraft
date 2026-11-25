@@ -53,7 +53,7 @@
     "@aicraft/core": "workspace:*",
     "@aicraft/latex": "workspace:*",
     "@aicraft/merman": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/simulation": "workspace:*",
     "@aicraft/theme": "workspace:*",

@@ -15,7 +15,7 @@ import {
   type Usage,
 } from "@aicraft/ai/effect"
 import type { StreamOptions } from "@aicraft/ai/route"
-import type { SessionCompactionResult } from "@aicraft/plugin/effect/session"
+import type { SessionCompactionResult } from "@aicraft/aix/effect/session"
 import type { SessionError } from "@aicraft/schema/session-error"
 import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { Clock, Context, DateTime, Effect, Exit, Fiber, Layer, Result, Scope, Stream } from "effect"

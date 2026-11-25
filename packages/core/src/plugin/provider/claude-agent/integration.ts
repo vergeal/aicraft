@@ -1,6 +1,6 @@
 export * as ClaudeIntegration from "./integration.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Effect, Stream, SubscriptionRef } from "effect"
 import type { IntegrationConnection } from "../../../integration/connection.js"
 import { ProviderRefresh } from "../refresh.js"

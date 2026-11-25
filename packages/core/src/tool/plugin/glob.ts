@@ -1,7 +1,7 @@
 export * as GlobTool from "./glob.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Effect, Schema } from "effect"
 import path from "path"
 import { toolFailure } from "../runtime.js"

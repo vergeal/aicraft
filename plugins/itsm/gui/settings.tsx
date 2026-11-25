@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from "solid-js"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import type { Account, Settings } from "../src/contract.js"
 import type { Definition } from "./definition.js"
 

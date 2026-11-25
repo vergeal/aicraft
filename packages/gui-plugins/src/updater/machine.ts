@@ -1,5 +1,5 @@
 import { Deferred, Effect, Exit, Fiber, Match } from "effect"
-import type { UpdaterState } from "@aicraft/plugin/gui/updater"
+import type { UpdaterState } from "@aicraft/aix/gui/updater"
 
 type UpdateTarget =
   | { readonly mode: "restart"; readonly version: string }

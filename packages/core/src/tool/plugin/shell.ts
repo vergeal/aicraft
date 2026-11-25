@@ -1,9 +1,9 @@
 export * as ShellTool from "./shell.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
-import type { ShellCreateBefore } from "@aicraft/plugin/effect/shell"
+import type { Context } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
+import type { ShellCreateBefore } from "@aicraft/aix/effect/shell"
 import type { Tool } from "@aicraft/schema/tool"
 import { Deferred, Effect, Schema, Scope } from "effect"
 import { Environment } from "../../environment/index.js"

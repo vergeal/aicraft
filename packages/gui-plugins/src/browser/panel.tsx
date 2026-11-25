@@ -22,7 +22,7 @@ import {
   type PanelTab,
   type MountedSession,
   type SessionScreen,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { addressParts, connection, loopback, resolveAddress, searches } from "./address"
 import { commentNote, pageNote } from "./comment"
 import { bare, completes, highlight, suggest, type Visit } from "./history"

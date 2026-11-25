@@ -1,6 +1,6 @@
 export * as ConfigCommandPlugin from "./command.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import type { Entry } from "@aicraft/schema/config"
 import { ConfigCommand } from "@aicraft/schema/config/command"
 import { AppProcess } from "@aicraft/util/process"

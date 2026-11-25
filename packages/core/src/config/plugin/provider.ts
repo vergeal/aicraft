@@ -1,8 +1,8 @@
 export * as ConfigProviderPlugin from "./provider.js"
 
-import type { ModelEditor } from "@aicraft/plugin/effect/model"
-import type { ProviderEditor } from "@aicraft/plugin/effect/provider"
-import { define } from "@aicraft/plugin/effect/plugin"
+import type { ModelEditor } from "@aicraft/aix/effect/model"
+import type { ProviderEditor } from "@aicraft/aix/effect/provider"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Document, type Entry } from "@aicraft/schema/config"
 import { ConfigProvider } from "@aicraft/schema/config/provider"
 import { Money } from "@aicraft/schema/money"

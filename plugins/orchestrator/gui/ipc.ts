@@ -1,4 +1,4 @@
-import { Ipc } from "@aicraft/plugin/gui/main"
+import { Ipc } from "@aicraft/aix/gui/main"
 import { Schema } from "effect"
 import { Contract } from "../src/contract.js"
 

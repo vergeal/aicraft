@@ -31,10 +31,10 @@ export type CatalogPlugin = {
    */
   integrated?: boolean
   /**
-   * A single-file `.exc` bundle. There is no package to fetch and no config entry to write: the host unpacks the
-   * file into `~/.aicraft/exc/<id>/`, so the card shows the bundle instead of offering a package install.
+   * A single-file `.aix` bundle. There is no package to fetch and no config entry to write: the host unpacks the
+   * file into `~/.aicraft/aix/<id>/`, so the card shows the bundle instead of offering a package install.
    */
-  bundle?: { file: string; format: "exc" }
+  bundle?: { file: string; format: "aix" }
   /** The version shown on the install card. */
   version?: string
   /** Every version available in the local discover directory, newest first. */
@@ -129,7 +129,7 @@ export function loadLocalCatalog(server: {
         description: display?.description ?? "",
         package: entry.id,
         repository: "",
-        bundle: { file: newest?.file ?? `${entry.id}.exc`, format: "exc" },
+        bundle: { file: newest?.file ?? `${entry.id}.aix`, format: "aix" },
         versions: entry.versions,
       }
 

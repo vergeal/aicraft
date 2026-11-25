@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js"
-import { usePlugin } from "@aicraft/plugin/gui"
-import type { IpcClient } from "@aicraft/plugin/gui/main"
+import { usePlugin } from "@aicraft/aix/gui"
+import type { IpcClient } from "@aicraft/aix/gui/main"
 import { uuid } from "@aicraft/util/uuid"
 import type {
   Account,

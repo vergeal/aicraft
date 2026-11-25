@@ -8,7 +8,7 @@ import { PluginHost } from "@aicraft/core/plugin/host"
 import { VerbosityPlugin } from "@aicraft/core/plugin/verbosity"
 import { Provider } from "@aicraft/core/provider"
 import { Session } from "@aicraft/core/session"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 

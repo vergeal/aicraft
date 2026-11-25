@@ -1,6 +1,6 @@
 export * as ClaudeAISDK from "./aisdk.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Effect } from "effect"
 import { ClaudeQueryOptions } from "./claude/query-options.js"
 import type { ClaudeSessions } from "./claude/sessions.js"

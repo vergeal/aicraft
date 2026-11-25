@@ -9,7 +9,7 @@ import {
   Provider,
   Reference,
   Skill,
-} from "@aicraft/plugin/effect"
+} from "@aicraft/aix/effect"
 import { Tool } from "@aicraft/schema/tool"
 
 const key = Symbol.for("aicraft.plugin.v2.effect")

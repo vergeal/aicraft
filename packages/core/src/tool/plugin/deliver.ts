@@ -1,7 +1,7 @@
 export * as DeliverTool from "./deliver.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { SessionMessage } from "@aicraft/schema/session-message"
 import { FSUtil } from "@aicraft/util/fs-util"
 import { getFilename } from "@aicraft/util/path"

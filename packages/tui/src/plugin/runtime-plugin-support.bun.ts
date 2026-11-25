@@ -1,11 +1,11 @@
-import { ensurePluginRuntime, provides } from "@aicraft/plugin/runtime"
-import { Plugin, PluginContextProvider, usePlugin } from "@aicraft/plugin/tui"
+import { ensurePluginRuntime, provides } from "@aicraft/aix/runtime"
+import { Plugin, PluginContextProvider, usePlugin } from "@aicraft/aix/tui"
 import { ensureRuntimePluginSupport } from "@opentui/solid/runtime-plugin-support/configure"
 
 ensurePluginRuntime()
 ensureRuntimePluginSupport({
   additional: {
-    "@aicraft/plugin/tui": { Plugin, PluginContextProvider, usePlugin },
+    "@aicraft/aix/tui": { Plugin, PluginContextProvider, usePlugin },
   },
   preserve: provides,
 })

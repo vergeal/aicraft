@@ -1,6 +1,6 @@
 export * as ConfigSkillPlugin from "./skill.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import type { Entry } from "@aicraft/schema/config"
 import { FSUtil } from "@aicraft/util/fs-util"
 import { Global } from "@aicraft/util/global"

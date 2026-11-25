@@ -20,7 +20,7 @@ import type {
   ServerRef,
   MountedSession,
   SessionScreen,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { useComments } from "@/composer/comments"
 import { createComposerEditorActions } from "@/composer/editor/actions"
 import { useComposerState } from "@/composer/persistence"

@@ -1,5 +1,5 @@
 import { makeEventListener } from "@solid-primitives/event-listener"
-import type { Entry } from "@aicraft/plugin/gui/host"
+import type { Entry } from "@aicraft/aix/gui/host"
 import { BUILTINS_UPDATED } from "./builtins"
 import { usePluginHost } from "./host"
 

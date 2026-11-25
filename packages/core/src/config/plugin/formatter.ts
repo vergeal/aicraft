@@ -1,6 +1,6 @@
 export * as ConfigFormatterPlugin from "./formatter.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import type { Entry } from "@aicraft/schema/config"
 import type { ConfigFormatter } from "@aicraft/schema/config/formatter"
 import { FSUtil } from "@aicraft/util/fs-util"

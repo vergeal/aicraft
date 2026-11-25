@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { join } from "node:path"
 

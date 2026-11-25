@@ -1,4 +1,4 @@
-import type { FileContent } from "@aicraft/plugin/gui"
+import type { FileContent } from "@aicraft/aix/gui"
 
 const MAX_FILE_CONTENT_ENTRIES = 40
 

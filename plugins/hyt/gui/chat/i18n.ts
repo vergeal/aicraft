@@ -1,4 +1,4 @@
-import type { Catalog } from "@aicraft/plugin/gui"
+import type { Catalog } from "@aicraft/aix/gui"
 
 /**
  * 聊天主界面的中文文案。

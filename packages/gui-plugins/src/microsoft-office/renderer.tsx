@@ -1,8 +1,8 @@
 import { lazy, Suspense, type Component } from "solid-js"
 import { Loader } from "@aicraft/ui/loader"
 import type { ArtifactKind } from "@aicraft/util/artifact"
-import { FileViewer, type FileViewerProps } from "@aicraft/plugin/gui/file"
-import { bindPlugin, type Plugin } from "@aicraft/plugin/gui"
+import { FileViewer, type FileViewerProps } from "@aicraft/aix/gui/file"
+import { bindPlugin, type Plugin } from "@aicraft/aix/gui"
 import type MicrosoftOffice from "./index"
 
 /** Every Office Open XML file is a zip archive. */

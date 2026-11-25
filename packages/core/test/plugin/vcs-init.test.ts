@@ -1,6 +1,6 @@
 import { expect } from "bun:test"
-import { Plugin } from "@aicraft/plugin"
-import type { VcsDefinition } from "@aicraft/plugin/effect/vcs"
+import { Plugin } from "@aicraft/aix"
+import type { VcsDefinition } from "@aicraft/aix/effect/vcs"
 import { PluginPromise } from "@aicraft/core/plugin/promise"
 import { State } from "@aicraft/core/state"
 import { Effect } from "effect"

@@ -1,8 +1,8 @@
 export * as IdentityPlugin from "./identity.js"
 
 import { SystemPart } from "@aicraft/ai/effect"
-import { define } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { define } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { Model } from "@aicraft/schema/model"
 import { Effect } from "effect"
 import { OptimizePlugin } from "./optimize.js"

@@ -3,7 +3,7 @@ import type { AsyncStorage, SyncStorage } from "@solid-primitives/storage"
 import type { Accessor } from "solid-js"
 import type { DesktopMenuAction, DesktopZoomLevel } from "@/shell/commands/desktop-menu"
 import type { DraftStore } from "@/runtime/persistence/drafts"
-import type { Bridge } from "@aicraft/plugin/gui/host"
+import type { Bridge } from "@aicraft/aix/gui/host"
 
 type PickerPaths = string | string[] | null
 

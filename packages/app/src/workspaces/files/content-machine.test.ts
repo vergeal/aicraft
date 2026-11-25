@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { FileContent } from "@aicraft/plugin/gui"
+import type { FileContent } from "@aicraft/aix/gui"
 import {
   createFileContentState,
   selectFileLoading,

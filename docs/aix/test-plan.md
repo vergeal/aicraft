@@ -7,8 +7,8 @@
 | # | 用例 | 方式 | 落点 |
 | --- | --- | --- | --- |
 | A1 | `script/pack.ts` 产出 `<id>-<version>.aix`，路径排序、mtime 归零，两次打包字节一致 | 改现有 + 人工跑 `bun run pack` | `plugins/webwright/script/pack.ts`（其余 4 个插件同款抽查 itsm） |
-| A2 | 发现目录版本文件只认 `.aix`：版本目录里只有 `.exc` 时该版本不可见、不可安装 | 新增 | `packages/aix/test/bundle.test.ts` |
-| A3 | `find` 回退目录（Desktop/Downloads/cwd/config plugins）只匹配 `.aix` 后缀 | 改现有 | `packages/aix/test/bundle.test.ts` |
+| A2 | 发现目录版本文件只认 `.aix`：版本目录里只有 `.exc` 时该版本不可见、不可安装 | 新增 | `packages/core/test/plugin/bundle.test.ts`（被测代码在 aix，测试 fixture 在 core） |
+| A3 | `find` 回退目录（Desktop/Downloads/cwd/config plugins）只匹配 `.aix` 后缀 | 改现有 | `packages/core/test/plugin/bundle.test.ts` |
 | A4 | 安装根为 `~/.aicraft/aix`、暂存根为 `~/.aicraft/aix-staging`，卸载删 `~/.aicraft/aix/<id>` 且触发热更新 | 改现有 | `packages/server/test/plugin-bundle.test.ts`、`plugin-uninstall.test.ts` |
 | A5 | 成功安装后暂存根为空（原子 rename 后进安装根） | 改现有 | `packages/server/test/plugin-bundle.test.ts` |
 
@@ -16,18 +16,18 @@
 
 | # | 用例 | 方式 | 落点 |
 | --- | --- | --- | --- |
-| B1 | apiVersion/id/version/`files[].sha256` 校验与拒绝文案（文案中 bundle 称谓同步） | 改现有 | `packages/core/test/plugin/bundle.test.ts` → 迁至 `packages/aix/test/bundle.test.ts` |
+| B1 | apiVersion/id/version/`files[].sha256` 校验与拒绝文案（文案中 bundle 称谓同步） | 改现有 | `packages/core/test/plugin/bundle.test.ts`（留在 core，import 指向 `@aicraft/aix/bundle`） |
 | B2 | `requires.aicraft` 最低版本判定不受改名影响 | 改现有 | 同上 |
 | B3 | entry 旧路径回退（`server/index` 等）仍照常加载并警告 | 改现有 | `packages/core/test/plugin/module.test.ts`（不动语义，仅 import 来源指向 aix） |
-| B4 | **externals 旧名映射**：清单声明 `@aicraft/plugin` 时软链指向 `@aicraft/aix` 包目录，并出现 deprecation 警告 | 新增 | `packages/aix/test/bundle.test.ts` |
-| B5 | externals 声明 `@aicraft/aix` / `@aicraft/schema` / `effect` 时直接解析成功 | 改现有 | `packages/aix/test/bundle.test.ts` |
+| B4 | **externals 旧名映射**：清单声明 `@aicraft/plugin` 时软链指向 `@aicraft/aix` 包目录，并出现 deprecation 警告 | 新增 | `packages/core/test/plugin/bundle.test.ts` |
+| B5 | externals 声明 `@aicraft/aix` / `@aicraft/schema` / `effect` 时直接解析成功 | 改现有 | `packages/core/test/plugin/bundle.test.ts` |
 | B6 | Windows：已加载插件的文件无法 rename 时安装报显式错误（不静默旧版本） | 改现有 | 保持 `bundle.test.ts` 现有用例 |
 
 ## C. SDK 包 `@aicraft/aix`
 
 | # | 用例 | 方式 | 落点 |
 | --- | --- | --- | --- |
-| C1 | `exports` 子路径集合与旧 `@aicraft/plugin` 完全同构（`.`/`effect`/`tui`/`gui*`/`host`/`runtime`/`rpc`/`options`/`skill-package`/`storage`/`worktree`/`permission`/`app`/`./*`） | 新增（断言 package.json） | `packages/aix/test/exports.test.ts` |
+| C1 | `exports` 子路径集合与旧 `@aicraft/plugin` 完全同构（16 键金标内联在测试里，源为基线 8b3ec8016f） | 新增（断言 package.json） | `packages/aix/test/exports.test.ts` |
 | C2 | `gui/host`、`gui/builtin`、`gui/updater` 不进 `dist`（`tsconfig.build.json` + `script/pack.ts` 为 null） | 改现有 | `packages/aix/script/pack.ts` 人工核对 + `bun run build` 产物清单 |
 | C3 | CLI 打包不含 `gui/`（`runtime-modules` 跳过） | 改现有 | `packages/cli/script/build.ts` 相关既有测试 |
 | C4 | `bun install` 后 workspace 内无 `@aicraft/plugin` 依赖残留（bun.lock 中仅产物 npm 名 `@aicraft/plugin-*`） | 人工 | `git grep '@aicraft/plugin"' -- bun.lock` 为空 |
@@ -81,4 +81,5 @@ git grep -nI '@aicraft/plugin[/" ]' -- ':!CHANGELOG.md' ':!bun.lock'
 
 - `bun typecheck`：`aix`、`core`、`server`、`protocol`、`client`、`app`、`desktop`、`cli`、`sdk`、`gui-plugins`、`plugin-browser`、`tui`、`web`（若引用）
 - `bun run lint:changed`（仓库根）
-- `packages/plugin/test`（现 `packages/aix/test`）既有 suite 全绿；`packages/core/test/plugin/` 全绿；`packages/server/test/plugin-*.test.ts` 全绿。
+- `packages/aix/test` 既有 suite 全绿；`packages/core/test/plugin/` 全绿；`packages/server/test/plugin-*.test.ts` 全绿。
+- 已知例外（基线即失败，非本任务引入，已用 detach 到 `8b3ec8016f` 的对照 worktree 实测确认）：`packages/aix/test/paths.test.ts` 两条 POSIX 断言在 Windows 本机失败（平台相关）；core `provider-opencode.test.ts`（导入不存在的 `provider/aicraft`）、`supervisor.test.ts` 两条 policy 用例，以及 sdk/server/cli 的 Effect layer 推断 typecheck 错误均为基线预存在。

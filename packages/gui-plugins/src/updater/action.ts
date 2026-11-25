@@ -1,4 +1,4 @@
-import type { UpdaterState } from "@aicraft/plugin/gui/updater"
+import type { UpdaterState } from "@aicraft/aix/gui/updater"
 
 /** The one update action the settings row and the titlebar pill offer for a state. */
 export function updaterAction(state: UpdaterState | undefined) {

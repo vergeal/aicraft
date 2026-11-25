@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { Ipc } from "@aicraft/plugin/gui"
+import { Ipc } from "@aicraft/aix/gui"
 
 /**
  * Captures memory for debugging leaks. Heap snapshots of the main process and every app window can only be taken

@@ -1,4 +1,4 @@
-import type { Context } from "@aicraft/plugin/gui"
+import type { Context } from "@aicraft/aix/gui"
 import { Show } from "solid-js"
 import type { Phase } from "./contract.js"
 import { text } from "./i18n.js"

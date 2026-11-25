@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import type { BuiltinCommand } from "@aicraft/plugin/gui/builtin"
+import type { BuiltinCommand } from "@aicraft/aix/gui/builtin"
 import { pluginCommandItems } from "./commands"
 import type { Item } from "./host"
 

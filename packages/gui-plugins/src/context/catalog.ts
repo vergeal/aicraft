@@ -1,5 +1,5 @@
 import { createMemo, type Accessor } from "solid-js"
-import { createKeyed, type MountedSession } from "@aicraft/plugin/gui"
+import { createKeyed, type MountedSession } from "@aicraft/aix/gui"
 
 const location = (session: MountedSession) => (session.directory ? { directory: session.directory } : undefined)
 

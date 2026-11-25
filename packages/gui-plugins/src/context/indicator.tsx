@@ -5,7 +5,7 @@ import { Menu } from "@aicraft/ui/menu"
 import { Tooltip } from "@aicraft/ui/tooltip"
 import { useI18n } from "@aicraft/ui/context/i18n"
 import { lastAssistantWithUsage } from "@aicraft/client/solid"
-import { usePlugin, type MountedSession } from "@aicraft/plugin/gui"
+import { usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import { catalogModel, syncCatalog } from "./catalog"
 import { createCNY, flashCostBreakdown } from "./cost"
 

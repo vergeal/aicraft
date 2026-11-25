@@ -1,5 +1,5 @@
 import { builtins } from "@aicraft/gui-plugins/renderer"
-import type { Entry } from "@aicraft/plugin/gui/host"
+import type { Entry } from "@aicraft/aix/gui/host"
 
 export { builtins }
 

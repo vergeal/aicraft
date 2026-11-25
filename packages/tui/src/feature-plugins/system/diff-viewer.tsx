@@ -1,8 +1,8 @@
 /** @jsxImportSource @opentui/solid */
 import type { FileDiffInfo, LocationRef } from "@aicraft/client"
 import type { Vcs } from "@aicraft/schema/vcs"
-import { Plugin } from "@aicraft/plugin/tui"
-import type { KeymapCommand, PanelInput, Route } from "@aicraft/plugin/tui/context"
+import { Plugin } from "@aicraft/aix/tui"
+import type { KeymapCommand, PanelInput, Route } from "@aicraft/aix/tui/context"
 import {
   MouseButton,
   TextAttributes,

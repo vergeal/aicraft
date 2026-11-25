@@ -11,7 +11,7 @@ import { safeWebContentsURL } from "../windows/state"
 import { iconPath } from "../windows/appearance"
 import { createTray } from "../windows/tray"
 import { getLastFocusedWindow, mainWindows, onMainWindow, setAppQuitting, setRelaunchHandler } from "../windows"
-import type { Scope } from "@aicraft/plugin/gui/host"
+import type { Scope } from "@aicraft/aix/gui/host"
 import { marks } from "./marks"
 import {
   createDriver,

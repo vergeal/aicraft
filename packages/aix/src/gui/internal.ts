@@ -1,5 +1,5 @@
 // The window host's internals that the public SDK's helpers read. `gui/host` re-exports them for the hosts; the
-// public `@aicraft/plugin/gui` does not.
+// public `@aicraft/aix/gui` does not.
 
 import { createContext, type Accessor, type JSX } from "solid-js"
 import type { Context } from "./context.js"

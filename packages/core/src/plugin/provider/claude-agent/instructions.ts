@@ -1,7 +1,7 @@
 export * as ClaudeInstructions from "./instructions.js"
 
 import type { SystemPart } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Effect, Option, Schema } from "effect"
 import { ClaudeSystemPrompt } from "./language-model/system-prompt.js"
 import { ClaudeProvider } from "./provider.js"

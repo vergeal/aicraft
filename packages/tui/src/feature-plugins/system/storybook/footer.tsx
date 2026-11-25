@@ -1,4 +1,4 @@
-import type { Plugin } from "@aicraft/plugin/tui"
+import type { Plugin } from "@aicraft/aix/tui"
 import { For, Show } from "solid-js"
 
 export type StoryFooterControl = {

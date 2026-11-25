@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { Model } from "../../model.js"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 
 export const OpenRouterPlugin = define({
   id: "aicraft.provider.openrouter",

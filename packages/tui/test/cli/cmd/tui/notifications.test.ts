@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import Notifications from "../../../../src/feature-plugins/system/notifications"
 import type { AicraftEvent, PermissionAsked } from "@aicraft/client"
-import type { AttentionNotifyOptions, Context, Route, ToastOptions } from "@aicraft/plugin/tui/context"
+import type { AttentionNotifyOptions, Context, Route, ToastOptions } from "@aicraft/aix/tui/context"
 
 type Session = { id: string; title: string; parentID?: string }
 

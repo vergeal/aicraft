@@ -1,4 +1,4 @@
-import { Plugin, Worktree } from "@aicraft/plugin"
+import { Plugin, Worktree } from "@aicraft/aix"
 
 export default Plugin.define({
   id: "test.worktree",

@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process"
 import { powerSaveBlocker } from "electron"
 import { Schema } from "effect"
-import { builtinMainContext } from "@aicraft/plugin/gui/builtin"
-import type { Plugin } from "@aicraft/plugin/gui/main"
+import { builtinMainContext } from "@aicraft/aix/gui/builtin"
+import type { Plugin } from "@aicraft/aix/gui/main"
 import { Pairing } from "./contract"
 
 /** The display sleep blocker this instance holds, if any. */

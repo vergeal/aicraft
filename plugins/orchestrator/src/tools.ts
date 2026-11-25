@@ -1,6 +1,6 @@
 export * as Tools from "./tools.js"
 
-import type { ToolEditor } from "@aicraft/plugin/promise/tool"
+import type { ToolEditor } from "@aicraft/aix/promise/tool"
 import { Tool } from "@aicraft/schema/tool"
 import { optional } from "@aicraft/schema/schema"
 import { Schema } from "effect"

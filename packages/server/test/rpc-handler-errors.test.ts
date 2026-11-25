@@ -1,6 +1,6 @@
 import { expect } from "bun:test"
 import { SdkPlugins } from "@aicraft/core/plugin/sdk"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Rpc } from "@aicraft/schema/rpc"
 import { Context, Effect, Layer, Schema } from "effect"
 import { HttpEffect, HttpRouter, HttpServer } from "effect/http"

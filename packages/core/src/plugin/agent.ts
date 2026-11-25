@@ -1,6 +1,6 @@
 export * as AgentPlugin from "./agent.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect } from "effect"
 import { Agent } from "../agent.js"
 

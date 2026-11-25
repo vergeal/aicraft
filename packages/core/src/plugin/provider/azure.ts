@@ -1,7 +1,7 @@
 import { Clock, Effect, Equal, FiberHandle, Option, Schema, Semaphore, Stream } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { ChildProcess } from "effect/process"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Form } from "@aicraft/schema/form"
 import { AppProcess } from "@aicraft/util/process"
 import { App } from "../../app.js"

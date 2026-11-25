@@ -1,4 +1,4 @@
-import type { Attention } from "@aicraft/plugin/tui/context"
+import type { Attention } from "@aicraft/aix/tui/context"
 import { useRenderer } from "@opentui/solid"
 import { createContext, onCleanup, useContext, type ParentProps } from "solid-js"
 import { createTuiAttention } from "../attention"

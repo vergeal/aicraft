@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { Info, ToolContext, ToolEditor } from "@aicraft/plugin/promise/tool"
+import type { Info, ToolContext, ToolEditor } from "@aicraft/aix/promise/tool"
 import { Tool } from "@aicraft/schema/tool"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"

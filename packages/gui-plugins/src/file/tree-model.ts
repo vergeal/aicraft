@@ -1,5 +1,5 @@
-import type { ChangeKind } from "@aicraft/plugin/gui/review"
-import type { FileNode } from "@aicraft/plugin/gui"
+import type { ChangeKind } from "@aicraft/aix/gui/review"
+import type { FileNode } from "@aicraft/aix/gui"
 
 export type TreeGitStatus = "added" | "deleted" | "modified" | "ignored"
 

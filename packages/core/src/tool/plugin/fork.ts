@@ -1,7 +1,7 @@
 export * as ForkTool from "./fork.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { SessionFork } from "@aicraft/schema/session-fork"
 import { SessionMessage } from "@aicraft/schema/session-message"
 import { DateTime, Effect, Schema } from "effect"

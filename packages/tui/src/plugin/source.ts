@@ -1,1 +1,1 @@
-export { createPluginSources } from "@aicraft/plugin/source"
+export { createPluginSources } from "@aicraft/aix/source"

@@ -1,5 +1,5 @@
 import type { FileDiffInfo } from "@aicraft/client/promise"
-import type { ChangeKind } from "@aicraft/plugin/gui/review"
+import type { ChangeKind } from "@aicraft/aix/gui/review"
 import { Match, Predicate } from "effect"
 
 export type RenderDiff = FileDiffInfo

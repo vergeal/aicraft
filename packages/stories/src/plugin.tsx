@@ -1,5 +1,5 @@
 import { createResource, onCleanup, type JSX } from "solid-js"
-import type { Entry } from "@aicraft/plugin/gui/host"
+import type { Entry } from "@aicraft/aix/gui/host"
 import { pluralCategory } from "@aicraft/ui/context/i18n"
 import { useTheme } from "@aicraft/ui/theme/context"
 import { toaster } from "@aicraft/ui/toast"

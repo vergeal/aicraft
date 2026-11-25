@@ -63,7 +63,7 @@
     "@aicraft/diagnostics": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/gui-plugins": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/session-ui": "workspace:*",
     "@aicraft/ui": "workspace:*",
     "@aicraft/util": "workspace:*",

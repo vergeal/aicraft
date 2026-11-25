@@ -8,8 +8,8 @@ import {
   type Context,
   type Persisted,
   type SessionRef,
-} from "@aicraft/plugin/gui"
-import { liveAccessor, PluginContext } from "@aicraft/plugin/gui/host"
+} from "@aicraft/aix/gui"
+import { liveAccessor, PluginContext } from "@aicraft/aix/gui/host"
 import type { Platform } from "@/runtime/platform/platform"
 import { flushPersisted } from "@/runtime/persistence/persist"
 import { Persist, persisted, removePersisted } from "@/runtime/persistence/storage"

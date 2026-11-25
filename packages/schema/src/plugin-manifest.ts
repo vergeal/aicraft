@@ -2,7 +2,7 @@ export * as PluginManifest from "./plugin-manifest.js"
 
 /**
  * The manifest fields that decide where a plugin's code starts. They are the wire-level half of the entry standard:
- * `packages/plugin/src/host.ts` resolves files through them, and `packages/core/src/plugin/bundle.ts` refuses a bundle
+ * `packages/aix/src/host.ts` resolves files through them, and `packages/core/src/plugin/bundle.ts` refuses a bundle
  * whose declared entries are missing. A scaffolding tool can validate the manifest it writes with the same schema.
  */
 

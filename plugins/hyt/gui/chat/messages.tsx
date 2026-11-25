@@ -1,4 +1,4 @@
-import type { Context } from "@aicraft/plugin/gui"
+import type { Context } from "@aicraft/aix/gui"
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import type { AppCardField } from "../../src/chat/message.js"
 import type { MergeItemRow, MessageRow, ReceiptPerson, ReceiptView } from "./contract.js"

@@ -40,7 +40,7 @@ const sample: CatalogPlugin[] = [
   },
 ]
 
-/** A discoverable bundle: it ships as one `.exc` file, so the row offers the bundle instead of a package. */
+/** A discoverable bundle: it ships as one `.aix` file, so the row offers the bundle instead of a package. */
 export const webwrightCatalog: CatalogPlugin[] = [
   {
     id: "changhong.aicraft.webwright",
@@ -50,7 +50,7 @@ export const webwrightCatalog: CatalogPlugin[] = [
     description: "让 AI 直接操作浏览器：打开网页、点击、填表、抓取内容。",
     package: "changhong.aicraft.webwright",
     repository: "https://github.com/anomalyco/opencode/tree/dev/plugins/webwright",
-    bundle: { file: "changhong.aicraft.webwright-2.3.1.exc", format: "exc" },
+    bundle: { file: "changhong.aicraft.webwright-2.3.1.aix", format: "aix" },
     skills: [{ name: "Webwright", description: "用 webwright.* 工具操作专用浏览器。" }],
   },
 ]

@@ -1,6 +1,6 @@
 export * as ConfigWorktreePlugin from "./worktree.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect } from "effect"
 import path from "path"
 import { Config } from "../../config.js"

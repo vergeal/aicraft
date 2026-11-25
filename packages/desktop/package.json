@@ -34,7 +34,7 @@
     "@lydell/node-pty": "catalog:",
     "@aicraft/app": "workspace:*",
     "@aicraft/gui-plugins": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/client": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/ui": "workspace:*",

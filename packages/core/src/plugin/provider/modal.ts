@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { HttpClient } from "effect/http"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { IntegrationConnection } from "../../integration/connection.js"
 import { ModalModels } from "../../modal/models.js"
 import { Provider } from "../../provider.js"

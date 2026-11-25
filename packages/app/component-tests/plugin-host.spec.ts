@@ -9,9 +9,9 @@ import type {
   Live,
   SessionRef,
   SessionScreen,
-} from "@aicraft/plugin/gui"
-import type { BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
-import type { Bridge, BridgeMessage, EnableState, Installed } from "@aicraft/plugin/gui/host"
+} from "@aicraft/aix/gui"
+import type { BuiltinPanelTab } from "@aicraft/aix/gui/builtin"
+import type { Bridge, BridgeMessage, EnableState, Installed } from "@aicraft/aix/gui/host"
 import type { mountCodeBlocks } from "./plugin-host.fixture"
 import { expect, sourceURL, story } from "../../stories/playwright/story"
 

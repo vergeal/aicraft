@@ -1,6 +1,6 @@
 export * as ConfigAgentPlugin from "./agent.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Document, Info, type Entry } from "@aicraft/schema/config"
 import { ConfigAgent } from "@aicraft/schema/config/agent"
 import path from "path"

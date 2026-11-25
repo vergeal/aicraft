@@ -1,6 +1,6 @@
 export * as ConfigReferencePlugin from "./reference.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Document } from "@aicraft/schema/config"
 import { ConfigReference } from "@aicraft/schema/config/reference"
 import path from "path"

@@ -14,7 +14,7 @@ import {
   type OS,
   type MountedSession,
   type SessionScreen,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import type { OpenApp } from "./apps"
 import { useShared, type OpenRequest } from "./context"
 import { openInAppParentPath } from "./path"

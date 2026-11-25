@@ -80,7 +80,7 @@ dist/native/Frameworks/ECMediaSDK.framework       # 仅 macOS
 ```
 
 `prebuilt/` 里的二进制让克隆仓库后直接 `bun run build` 就能打出可用插件包，不需要 cmake；
-本机重新编译且比入库产物新时会覆盖它。同一个 `.exc` 同时带上两个平台的产物，安装后按运行时平台取用。
+本机重新编译且比入库产物新时会覆盖它。同一个 `.aix` 同时带上两个平台的产物，安装后按运行时平台取用。
 
 macOS 的二进制带一条 `@executable_path/../Frameworks`，只解析包内 framework；
 Windows 的 DLL 复制到 exe 旁边，由系统优先加载。

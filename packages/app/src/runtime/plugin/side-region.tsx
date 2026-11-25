@@ -16,7 +16,7 @@ import {
   type SessionScreen,
   type PanelSidebar,
   type SessionPanelMenuItem,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { useCommand } from "@/shell/commands/command"
 import { guardClosingFocus, panelsMoving, setPanelResizing } from "@/shell/panel-motion"
 import { useLanguage } from "@/runtime/i18n/language"

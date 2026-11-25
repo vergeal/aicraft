@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 import { createMermaidCodeBlockRenderer } from "./markdown.js"
 import { resolveAicraftDiagramPalette } from "./palette.js"
 

@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { AbsolutePath } from "@aicraft/schema/schema"
 import { Session } from "@aicraft/schema/session"

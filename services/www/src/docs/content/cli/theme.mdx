@@ -59,7 +59,7 @@ AI Craft reads `.json` files only. A theme closer to the current directory repla
 [TUI plugins](/build/plugins/cli) read resolved colors through `context.theme` and the active mode through `context.themeMode`. Use semantic tokens so your plugin follows the selected theme:
 
 ```tsx title="Inside a TUI plugin component"
-import { usePlugin } from "@aicraft/plugin/tui"
+import { usePlugin } from "@aicraft/aix/tui"
 
 function Status() {
   const context = usePlugin()

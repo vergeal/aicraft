@@ -48,5 +48,5 @@ test("the preset fails the build on an Aicraft, Effect or Solid module the app d
     "gui/main.tsx": 'import { Schema } from "effect/Schema"\nexport default { id: "acme", Schema }',
   })
 
-  await expect(bundle(root)).rejects.toThrow("effect/Schema is not a module the Aicraft app provides")
+  await expect(bundle(root)).rejects.toThrow("effect/Schema is not a module the AI Craft app provides")
 }, 60_000)

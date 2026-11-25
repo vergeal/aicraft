@@ -8,7 +8,7 @@ import { SessionFilePanelV2, SessionFilePanelV2Empty } from "@aicraft/session-ui
 import { SessionReviewV2Sidebar, SessionReviewV2SidebarToggle } from "@aicraft/session-ui/v2/session-review-v2"
 import { getFilename } from "@aicraft/util/path"
 import { artifactKind } from "@aicraft/util/artifact"
-import type { ChangeKind } from "@aicraft/plugin/gui/review"
+import type { ChangeKind } from "@aicraft/aix/gui/review"
 import {
   createKeyed,
   usePlugin,
@@ -17,7 +17,7 @@ import {
   type PanelSidebar,
   type PanelTab,
   type SessionScreen,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { current, useShared } from "./context"
 import SessionFileList, { applyFileListKeyDown } from "./list"
 import { fileTabPath, isFileTab } from "./path"

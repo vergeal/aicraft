@@ -1,6 +1,6 @@
 export * as ConfigEntryObserver from "./entry-observer.js"
 
-import type { EventDomain } from "@aicraft/plugin/effect/event"
+import type { EventDomain } from "@aicraft/aix/effect/event"
 import type { Entry } from "@aicraft/schema/config"
 import { FSUtil } from "@aicraft/util/fs-util"
 import { Effect, PubSub, Stream } from "effect"

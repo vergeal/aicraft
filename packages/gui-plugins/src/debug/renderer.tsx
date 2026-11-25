@@ -1,6 +1,6 @@
 import { showToast, toaster } from "@aicraft/ui/toast"
 import { lazy, Show, Suspense } from "solid-js"
-import { createKeyed, Command, Slot, type Plugin } from "@aicraft/plugin/gui"
+import { createKeyed, Command, Slot, type Plugin } from "@aicraft/aix/gui"
 import type Debug from "./index"
 import { HeapSnapshots, MemoryDiagnostics } from "./contract"
 

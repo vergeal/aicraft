@@ -1,6 +1,6 @@
 export * as ConfigMcpPlugin from "./mcp.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Document } from "@aicraft/schema/config"
 import type { ServerConfig } from "@aicraft/schema/mcp"
 import { Effect, Stream } from "effect"

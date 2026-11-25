@@ -23,7 +23,7 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { uuid } from "@aicraft/util/uuid"
 import { contextItemKey } from "@/composer/schema"
 import type { QuoteSource } from "@/composer/quote-source"
-import type { ComposerQuoteAnchor } from "@aicraft/plugin/gui"
+import type { ComposerQuoteAnchor } from "@aicraft/aix/gui"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { requireServerKey, sessionHref } from "@/shell/routes/session"
 import { useComposerCommands } from "@/composer/commands"
@@ -53,7 +53,7 @@ import type { Region } from "@/runtime/plugin/panels"
 import { SessionLocationMissing } from "./location-missing"
 import { SessionPluginPills } from "./plugin-pills"
 import { createTimelineActions, type TimelineActionsView, type TimelinePendingActions } from "./timeline-actions"
-import type { MountedSession, SessionScreen } from "@aicraft/plugin/gui"
+import type { MountedSession, SessionScreen } from "@aicraft/aix/gui"
 
 export function createActiveSessionRegion(input: {
   session: SessionModel

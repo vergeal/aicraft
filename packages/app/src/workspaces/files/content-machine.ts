@@ -1,4 +1,4 @@
-import type { FileContent } from "@aicraft/plugin/gui"
+import type { FileContent } from "@aicraft/aix/gui"
 import { getFilename } from "@aicraft/util/path"
 import type { FileState } from "./types"
 

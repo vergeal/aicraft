@@ -1,4 +1,4 @@
-import { compose, type Entry } from "@aicraft/plugin/gui/host"
+import { compose, type Entry } from "@aicraft/aix/gui/host"
 import context from "./context"
 import contextRenderer from "./context/renderer"
 import btw from "./btw"

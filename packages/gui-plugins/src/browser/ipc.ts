@@ -1,6 +1,6 @@
 import { Browser } from "@aicraft/plugin-browser/rpc"
 import { Schema } from "effect"
-import { Ipc } from "@aicraft/plugin/gui"
+import { Ipc } from "@aicraft/aix/gui"
 
 const text = (maximum: number) => Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(maximum))
 

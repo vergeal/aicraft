@@ -2,7 +2,7 @@ export * as ImageGenerateTool from "./image-generate.js"
 
 import path from "path"
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import type { Document, Entry } from "@aicraft/schema/config"
 import { Identifier } from "@aicraft/schema/identifier"
 import { Global } from "@aicraft/util/global"

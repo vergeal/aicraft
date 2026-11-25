@@ -25,7 +25,7 @@ import type {
   SessionRequest,
   SessionRequestKind,
   SessionTitle,
-} from "@aicraft/plugin/effect/session"
+} from "@aicraft/aix/effect/session"
 import type { Agent } from "@aicraft/schema/agent"
 import type { Model } from "@aicraft/schema/model"
 import type { Content } from "@aicraft/schema/tool"

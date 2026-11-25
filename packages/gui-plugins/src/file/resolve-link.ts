@@ -1,5 +1,5 @@
 import { parsePathLineSuffix } from "@aicraft/util/path"
-import type { Files, LineRange } from "@aicraft/plugin/gui"
+import type { Files, LineRange } from "@aicraft/aix/gui"
 
 export type ParsedFileLink = {
   /** The normalized path: absolute, or relative with any leading `../` kept. */

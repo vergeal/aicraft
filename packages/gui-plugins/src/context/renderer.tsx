@@ -1,6 +1,6 @@
 import { lazy, onCleanup, Show, Suspense } from "solid-js"
-import { Slot, usePanel, type Plugin } from "@aicraft/plugin/gui"
-import { BuiltinPanel, onIdle, type BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
+import { Slot, usePanel, type Plugin } from "@aicraft/aix/gui"
+import { BuiltinPanel, onIdle, type BuiltinPanelTab } from "@aicraft/aix/gui/builtin"
 import type definition from "./index"
 import { SessionContextUsage } from "./indicator"
 

@@ -6,7 +6,7 @@
  */
 export * as EditTool from "./edit.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { ToolFailure } from "@aicraft/ai/effect"
 import { FileDiff } from "@aicraft/schema/file-diff"
 import { Effect, Schema } from "effect"

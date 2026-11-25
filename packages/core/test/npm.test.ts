@@ -144,7 +144,7 @@ describe("Npm.isInstallablePackage", () => {
     expect(await Npm.isInstallablePackage("git@github.com:acme/plugin.git")).toBe(true)
     expect(
       await Npm.isInstallablePackage(
-        "git+https://github.com/acme/plugins.git#0123456789abcdef0123456789abcdef01234567::path:packages/plugin",
+        "git+https://github.com/acme/plugins.git#0123456789abcdef0123456789abcdef01234567::path:packages/aix",
       ),
     ).toBe(true)
     expect(await Npm.isInstallablePackage("./plugin")).toBe(false)

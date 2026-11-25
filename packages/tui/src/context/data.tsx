@@ -1,6 +1,6 @@
 import { createData } from "@aicraft/client/solid"
 import { withMediaRefs, type LocationRef } from "@aicraft/client"
-import type { Plugin } from "@aicraft/plugin/tui"
+import type { Plugin } from "@aicraft/aix/tui"
 import { createStore } from "solid-js/store"
 import { createSimpleContext } from "./helper"
 import { useClient } from "./client"

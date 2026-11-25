@@ -1,7 +1,7 @@
 import { batch, createMemo, createSignal, Index, onCleanup, onMount, Show, type JSX } from "solid-js"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { createStore } from "solid-js/store"
-import { createKeyed } from "@aicraft/plugin/gui"
+import { createKeyed } from "@aicraft/aix/gui"
 import { PreviewControls } from "@aicraft/ui/preview-controls"
 import { DocumentSurface } from "@aicraft/ui/document-surface"
 import { paper } from "./paper"

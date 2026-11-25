@@ -2,10 +2,11 @@ import { createRequire, isBuiltin } from "node:module"
 import {
   evaluatePluginBundle,
   inertModule,
+  legacyPluginModule,
   pluginWindowModules,
   type pluginSharedModules,
-} from "@aicraft/plugin/gui/host"
-import type { Plugin } from "@aicraft/plugin/gui/main"
+} from "@aicraft/aix/gui/host"
+import type { Plugin } from "@aicraft/aix/gui/main"
 
 const native = createRequire(import.meta.url)
 
@@ -13,9 +14,9 @@ const native = createRequire(import.meta.url)
 // checks against. In main, the window SDK's name resolves to the main SDK.
 const shared = {
   effect: () => import("effect"),
-  "@aicraft/plugin/gui": () => import("@aicraft/plugin/gui/main"),
-  "@aicraft/plugin/gui/main": () => import("@aicraft/plugin/gui/main"),
-  "@aicraft/plugin/rpc": () => import("@aicraft/plugin/rpc"),
+  "@aicraft/aix/gui": () => import("@aicraft/aix/gui/main"),
+  "@aicraft/aix/gui/main": () => import("@aicraft/aix/gui/main"),
+  "@aicraft/aix/rpc": () => import("@aicraft/aix/rpc"),
   "@aicraft/schema/rpc": () => import("@aicraft/schema/rpc"),
   "@aicraft/client": () => import("@aicraft/client"),
   "@aicraft/client/effect": () => import("@aicraft/client/effect"),
@@ -36,7 +37,7 @@ export async function evaluateMain(code: string) {
   const bundle = evaluatePluginBundle(code, {
     process: "main",
     require: (name) => {
-      const loaded = modules.get(name)
+      const loaded = modules.get(legacyPluginModule(name))
 
       if (loaded) return loaded
 

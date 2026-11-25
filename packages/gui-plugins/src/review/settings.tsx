@@ -1,4 +1,4 @@
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import type Review from "./index"
 
 /** The narrow-screen diff wrap row of the host's General settings section. */

@@ -20,7 +20,7 @@ const packages = [
   "packages/app/",
   "packages/desktop/",
   "packages/gui-plugins/",
-  "packages/plugin/src/gui/",
+  "packages/aix/src/gui/",
   "packages/ui/",
   "packages/session-ui/",
 ]

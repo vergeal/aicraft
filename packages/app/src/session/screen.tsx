@@ -15,7 +15,7 @@ import {
 } from "solid-js"
 import { createStore } from "solid-js/store"
 import { ResizeHandle } from "@aicraft/ui/resize-handle"
-import type { BackgroundTask, MountedSession, SessionScreen } from "@aicraft/plugin/gui"
+import type { BackgroundTask, MountedSession, SessionScreen } from "@aicraft/aix/gui"
 import { MessageTimeline } from "@/session/timeline/message-timeline"
 import { ComposerDropzone } from "@/composer/dropzone"
 import { useSettings } from "@/settings/model"

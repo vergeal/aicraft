@@ -1,4 +1,4 @@
-import type { MainSurface } from "@aicraft/plugin/gui"
+import type { MainSurface } from "@aicraft/aix/gui"
 
 /** One contributed main surface, with the plugin that contributed it. */
 export type MainSurfaceEntry = {

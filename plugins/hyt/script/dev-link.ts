@@ -19,8 +19,8 @@ import { join } from "node:path"
  * 安装目录改名或换数据目录时用 `HYT_INSTALL_DIR` 覆盖。
  */
 const plugin = join(import.meta.dir, "..")
-const target = process.env.HYT_INSTALL_DIR ?? join(homedir(), ".aicraft", "exc", "changhong.hyt")
-const dependencies = ["@aicraft/plugin", "@aicraft/schema", "effect"]
+const target = process.env.HYT_INSTALL_DIR ?? join(homedir(), ".aicraft", "aix", "changhong.hyt")
+const dependencies = ["@aicraft/aix", "@aicraft/schema", "effect"]
 
 const build = await Bun.spawn(["bun", "run", "script/build.ts"], { cwd: plugin, stdout: "inherit" }).exited
 if (build !== 0) process.exit(build)

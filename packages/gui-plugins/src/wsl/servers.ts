@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import type { MainContext } from "@aicraft/plugin/gui/main"
+import type { MainContext } from "@aicraft/aix/gui/main"
 import type { WslAicraftCheck, WslServerConfig } from "./contract"
 import {
   createWslMachineState,

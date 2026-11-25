@@ -1,5 +1,5 @@
 import { artifactKind, artifactMime, type ArtifactKind } from "@aicraft/util/artifact"
-import type { FileContent } from "@aicraft/plugin/gui"
+import type { FileContent } from "@aicraft/aix/gui"
 
 /** Kinds whose raw bytes are kept so media elements and binary viewers can read them without a text round trip. */
 const binaryKinds = new Set<ArtifactKind>([

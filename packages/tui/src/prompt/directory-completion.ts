@@ -1,4 +1,4 @@
-import type { KeymapCommand } from "@aicraft/plugin/tui/context"
+import type { KeymapCommand } from "@aicraft/aix/tui/context"
 import type { AicraftClient } from "@aicraft/client"
 import { measureEditText, type WidthMethod } from "@opentui/core"
 import path from "path"

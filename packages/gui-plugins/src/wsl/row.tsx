@@ -3,7 +3,7 @@ import { Icon } from "@aicraft/ui/icon"
 import { IconButton } from "@aicraft/ui/icon-button"
 import { Menu } from "@aicraft/ui/menu"
 import { createMemo, Show } from "solid-js"
-import { usePlugin, type IpcClient, type ServerRow } from "@aicraft/plugin/gui"
+import { usePlugin, type IpcClient, type ServerRow } from "@aicraft/aix/gui"
 import type { Wsl, WslServersState } from "./contract"
 import { wslRowView } from "./row-view"
 

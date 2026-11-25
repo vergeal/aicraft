@@ -1,15 +1,15 @@
-# `@aicraft/plugin`
+# `@aicraft/aix`
 
 Authoring interfaces and runtime loader support for AI Craft V2 plugins:
 
-- `@aicraft/plugin` — [Promise plugin API](./src/README.md)
-- `@aicraft/plugin/effect` — [Effect plugin API](./src/effect/README.md)
-- `@aicraft/plugin/rpc` — portable RPC contract definitions
-- `@aicraft/plugin/tui` — terminal UI plugin API
+- `@aicraft/aix` — [Promise plugin API](./src/README.md)
+- `@aicraft/aix/effect` — [Effect plugin API](./src/effect/README.md)
+- `@aicraft/aix/rpc` — portable RPC contract definitions
+- `@aicraft/aix/tui` — terminal UI plugin API
 
 ## Packaging And Runtime `effect`
 
-When the AI Craft CLI loads server or TUI plugins, it resolves imports of `effect`, exported `effect/*` subpaths, and `@aicraft/plugin` entrypoints (including imports from dependencies inside a plugin's `node_modules`) to the host's runtime module instances so fibers, loggers, and `Schema` parsers share one copy.
+When the AI Craft CLI loads server or TUI plugins, it resolves imports of `effect`, exported `effect/*` subpaths, and `@aicraft/aix` entrypoints (including imports from dependencies inside a plugin's `node_modules`) to the host's runtime module instances so fibers, loggers, and `Schema` parsers share one copy.
 
 - Declare `"effect": "^4.0.0"` as a `peerDependency` (and `devDependency` for local type-checking and testing) rather than a bundled runtime dependency.
 - Do not bundle `effect` into published plugin files; if you build with a bundler, keep `effect` and `effect/*` external. Two copies of `effect` do not share fiber, logger, or `Schema` internals.

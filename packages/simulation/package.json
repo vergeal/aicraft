@@ -33,7 +33,7 @@
   "dependencies": {
     "@aicraft/core": "workspace:*",
     "@aicraft/ai": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/protocol": "workspace:*",
     "@aicraft/util": "workspace:*",
     "@opentui/core": "catalog:",

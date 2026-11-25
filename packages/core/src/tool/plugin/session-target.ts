@@ -1,7 +1,7 @@
 export * as SessionTarget from "./session-target.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import type { SessionInbox } from "@aicraft/schema/session-inbox"
 import { parseSessionMention } from "@aicraft/util/session-mention"
 import { Effect } from "effect"

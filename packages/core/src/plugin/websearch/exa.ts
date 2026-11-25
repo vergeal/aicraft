@@ -1,6 +1,6 @@
 export * as WebSearchExa from "./exa.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect, Schema, Scope } from "effect"
 import { HttpClient } from "effect/http"
 import { WebSearchMcp } from "./mcp.js"

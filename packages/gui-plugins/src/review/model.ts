@@ -16,7 +16,7 @@ import {
   type MountedSession,
   type SessionScreen,
   type SetupContext,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import type Review from "./index"
 import {
   expandReviewFolders,

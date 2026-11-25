@@ -50,7 +50,7 @@ export interface Deprecation {
  * The fallback may be removed only when all four hold:
  * 1. every built-in plugin under `plugins/*` declares `main` entries in `METAINF` and its source layout
  *    matches the standard (directory name = entry name);
- * 2. `docs/exc-dev/index.html` no longer shows a legacy path (`entry.server: "server/index.js"`, `"src/index"`,
+ * 2. `docs/aix-dev/index.html` no longer shows a legacy path (`entry.server: "server/index.js"`, `"src/index"`,
  *    ...) and the 2.0 "current behavior" and migration tables are gone;
  * 3. at least one minor release has passed with the deprecation recorded in `CHANGELOG.md`;
  * 4. no plugin triggers a fallback warning on a real load path.

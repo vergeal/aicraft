@@ -1,4 +1,4 @@
-import type { MountedSession } from "@aicraft/plugin/gui"
+import type { MountedSession } from "@aicraft/aix/gui"
 import { SessionServerPanel } from "./server-panel"
 
 export type DetailsPanelProps = {

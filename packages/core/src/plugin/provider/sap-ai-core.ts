@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Npm } from "@aicraft/util/npm"
 import { Provider } from "../../provider.js"
 import { loadSDKFactory } from "./sdk-factory.js"

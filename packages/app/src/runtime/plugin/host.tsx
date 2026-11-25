@@ -22,8 +22,8 @@ import {
   type ParentProps,
 } from "solid-js"
 import { createStore } from "solid-js/store"
-import { LifetimeContext, liveAccessor, PluginContext, type Bridge, type Entry } from "@aicraft/plugin/gui/host"
-import type { BuiltinCatalog, BuiltinContext } from "@aicraft/plugin/gui/builtin"
+import { LifetimeContext, liveAccessor, PluginContext, type Bridge, type Entry } from "@aicraft/aix/gui/host"
+import type { BuiltinCatalog, BuiltinContext } from "@aicraft/aix/gui/builtin"
 import { Predicate } from "effect"
 import { useDialog } from "@aicraft/ui/context/dialog"
 import { pluralCategory, resolveTemplate } from "@aicraft/ui/context/i18n"
@@ -49,7 +49,7 @@ import {
   type SessionRef,
   type SetupContext,
   type Token,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { Aicraft, type AicraftClient } from "@aicraft/client/promise"
 import { useLanguage } from "@/runtime/i18n/language"
 import {

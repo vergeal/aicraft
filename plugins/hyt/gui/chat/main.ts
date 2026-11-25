@@ -1,4 +1,4 @@
-import type { IpcImpl, IpcProvider, MainContext } from "@aicraft/plugin/gui/main"
+import type { IpcImpl, IpcProvider, MainContext } from "@aicraft/aix/gui/main"
 import { Schema } from "effect"
 import { createHash } from "node:crypto"
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
@@ -106,7 +106,7 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     initial: { chfileRoot: "", bridgePath: "" },
   })
   // 插件自带的桥接安装在 exc 下；打包布局与版本无关，路径固定。
-  const pluginRoot = join(homedir(), ".aicraft", "exc", "changhong.aicraft.hyt")
+  const pluginRoot = join(homedir(), ".aicraft", "aix", "changhong.aicraft.hyt")
 
   let current = emptyState("loading")
   let selected = ""

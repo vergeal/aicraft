@@ -32,7 +32,7 @@
     "@clack/prompts": "1.0.0-alpha.1",
     "@effect/platform-node": "catalog:",
     "@aicraft/client": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@opencode/pty": "0.4.0",
     "@aicraft/schema": "workspace:*",
     "@aicraft/server": "workspace:*",

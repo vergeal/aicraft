@@ -100,7 +100,7 @@ export function pluginEnabled(
   return state.find((item) => item.id === plugin.id)?.enabled ?? true
 }
 
-export { pluginSharedModules, pluginWindowModules, type PluginModule } from "./modules.js"
+export { legacyPluginModule, pluginSharedModules, pluginWindowModules, type PluginModule } from "./modules.js"
 
 // Node's `builtinModules`, which a window cannot import; bundles may name them with or without `node:`.
 const nodeBuiltins = new Set([
@@ -258,7 +258,7 @@ export function evaluatePluginBundle(code: string, host: PluginBundleHost): Plug
     const problem = Exit.isFailure(decoded) ? Cause.pretty(decoded.cause) : "it does not match"
 
     throw new Error(
-      `A plugin's ./gui-experimental bundle must default-export a \`Plugin.define\` from \`@aicraft/plugin/gui\`: ${problem}`,
+      `A plugin's ./gui-experimental bundle must default-export a \`Plugin.define\` from \`@aicraft/aix/gui\`: ${problem}`,
     )
   }
 
@@ -315,7 +315,7 @@ const matchesPlugin = Schema.is(BundleDefinition)
  * @returns True when no built-in claims the id.
  */
 export function pluginIdAvailable(id: string, builtins: readonly Pick<Entry, "id">[]) {
-  return [{ id: "opencode" }, ...builtins].every(
+  return [{ id: "opencode" }, { id: "aicraft" }, ...builtins].every(
     (taken) => id !== taken.id && !id.startsWith(`${taken.id}.`) && !taken.id.startsWith(`${id}.`),
   )
 }

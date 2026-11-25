@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { createMemo, createSignal, Show } from "solid-js"

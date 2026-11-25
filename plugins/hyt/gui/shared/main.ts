@@ -1,5 +1,5 @@
-import type { IpcProvider } from "@aicraft/plugin/gui"
-import type { MainContext } from "@aicraft/plugin/gui/main"
+import type { IpcProvider } from "@aicraft/aix/gui"
+import type { MainContext } from "@aicraft/aix/gui/main"
 import { Schema } from "effect"
 import { readSavedCredentials } from "../../src/credentials.js"
 import { mergeProfile } from "../../src/profile/merge.js"

@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { Ipc } from "@aicraft/plugin/gui"
+import { Ipc } from "@aicraft/aix/gui"
 
 export const WslServerConfig = Schema.Struct({ id: Schema.String, distro: Schema.String })
 

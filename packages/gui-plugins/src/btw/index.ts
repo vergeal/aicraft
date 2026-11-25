@@ -1,6 +1,6 @@
 import { Schema } from "effect"
-import { builtinCatalog } from "@aicraft/plugin/gui/builtin"
-import { Plugin, Store } from "@aicraft/plugin/gui"
+import { builtinCatalog } from "@aicraft/aix/gui/builtin"
+import { Plugin, Store } from "@aicraft/aix/gui"
 import en from "./i18n/en"
 
 const ChatModel = Schema.Struct({

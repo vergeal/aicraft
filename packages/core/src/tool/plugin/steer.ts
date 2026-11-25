@@ -1,7 +1,7 @@
 export * as SteerTool from "./steer.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { SessionMessage } from "@aicraft/schema/session-message"
 import { getFilename } from "@aicraft/util/path"
 import { Clock, Effect, Schema } from "effect"

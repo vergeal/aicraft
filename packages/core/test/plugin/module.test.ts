@@ -29,12 +29,12 @@ import { Tool } from "@aicraft/core/tool"
 import { execute } from "@aicraft/core/tool/runtime"
 import { Global } from "@aicraft/util/global"
 import { Npm } from "@aicraft/util/npm"
-import { createForeignPackageFilter, ensurePluginRuntime } from "@aicraft/plugin/runtime"
+import { createForeignPackageFilter, ensurePluginRuntime } from "@aicraft/aix/runtime"
 import {
   createLoader,
   discoverPluginRuntimeSpecifiers,
   pluginRuntimeLoaderCode,
-} from "@aicraft/plugin/runtime-modules"
+} from "@aicraft/aix/runtime-modules"
 import { tempGlobalLayer } from "../fixture/global"
 import { setOrganizationPolicy } from "../fixture/policy"
 import { tmpdirScoped } from "../fixture/tmpdir"
@@ -172,7 +172,7 @@ it.live("interrupts pending watcher setup when the loader scope closes during mo
 )
 
 it.live(
-  "loads plugins and their transitive dependencies against the host's Effect and @aicraft/plugin instances",
+  "loads plugins and their transitive dependencies against the host's Effect and @aicraft/aix instances",
   () =>
     Effect.gen(function* () {
       const directory = yield* tmpdirScoped()
@@ -221,12 +221,12 @@ export const depToolInput = Schema.Struct({
   code: Schema.Trim.check(Schema.isPattern(/^v[0-9]+$/)),
 })
 export const depCaptured = { Effect, Schema, some }`,
-          "node_modules/@aicraft/plugin/package.json":
-            '{"name":"@aicraft/plugin","type":"module","exports":{"./effect":"./effect.js","./rpc":"./rpc.js"}}',
-          "node_modules/@aicraft/plugin/effect.js": "export const Plugin = { define: (p) => p }",
-          "node_modules/@aicraft/plugin/rpc.js": "export const Rpc = { define: (d) => d }",
-          "index.ts": `import { Plugin } from "@aicraft/plugin/effect"
-import { Rpc } from "@aicraft/plugin/rpc"
+          "node_modules/@aicraft/aix/package.json":
+            '{"name":"@aicraft/aix","type":"module","exports":{"./effect":"./effect.js","./rpc":"./rpc.js"}}',
+          "node_modules/@aicraft/aix/effect.js": "export const Plugin = { define: (p) => p }",
+          "node_modules/@aicraft/aix/rpc.js": "export const Rpc = { define: (d) => d }",
+          "index.ts": `import { Plugin } from "@aicraft/aix/effect"
+import { Rpc } from "@aicraft/aix/rpc"
 import { Effect, Schema } from "effect"
 import { some } from "effect/Option"
 import { nominal } from "effect/Brand"
@@ -400,8 +400,8 @@ it.live(
 
       yield* Effect.promise(() =>
         writeFiles(directory.path, {
-          "consumer/node_modules/@aicraft/plugin/package.json": JSON.stringify({
-            name: "@aicraft/plugin",
+          "consumer/node_modules/@aicraft/aix/package.json": JSON.stringify({
+            name: "@aicraft/aix",
             type: "module",
             exports: {
               ".": "./src/promise/index.ts",
@@ -410,25 +410,25 @@ it.live(
               "./gui/*": "./src/gui/*.ts",
             },
           }),
-          "consumer/node_modules/@aicraft/plugin/src/promise/index.ts": "export const root = 'src'",
-          "consumer/node_modules/@aicraft/plugin/src/effect/index.ts": "export * as plugin from './plugin.ts'",
-          "consumer/node_modules/@aicraft/plugin/src/effect/plugin.ts": "export const leaf = 'src'",
-          "consumer/node_modules/@aicraft/plugin/src/unexported.ts": "export const secret = true",
-          "consumer/node_modules/@aicraft/plugin/src/gui/sdk/index.ts": "export const window = true",
-          "consumer/node_modules/@aicraft/plugin/dist/promise/index.js": "export const root = 'dist'",
-          "consumer/node_modules/@aicraft/plugin/dist/effect/index.js": "export const index = 'dist'",
-          "consumer/node_modules/@aicraft/plugin/dist/effect/plugin.js": "export const leaf = 'dist'",
+          "consumer/node_modules/@aicraft/aix/src/promise/index.ts": "export const root = 'src'",
+          "consumer/node_modules/@aicraft/aix/src/effect/index.ts": "export * as plugin from './plugin.ts'",
+          "consumer/node_modules/@aicraft/aix/src/effect/plugin.ts": "export const leaf = 'src'",
+          "consumer/node_modules/@aicraft/aix/src/unexported.ts": "export const secret = true",
+          "consumer/node_modules/@aicraft/aix/src/gui/sdk/index.ts": "export const window = true",
+          "consumer/node_modules/@aicraft/aix/dist/promise/index.js": "export const root = 'dist'",
+          "consumer/node_modules/@aicraft/aix/dist/effect/index.js": "export const index = 'dist'",
+          "consumer/node_modules/@aicraft/aix/dist/effect/plugin.js": "export const leaf = 'dist'",
           "async-mod.ts": "await new Promise((r) => setTimeout(r, 20)); export const nonce = Math.random()",
         }),
       )
 
-      const discovered = discoverPluginRuntimeSpecifiers(consumerDir, ["@aicraft/plugin"])
-      expect(discovered.get("@aicraft/plugin")?.replaceAll("\\", "/")).toEndWith("src/promise/index.ts")
-      expect(discovered.get("@aicraft/plugin/effect")?.replaceAll("\\", "/")).toEndWith("src/effect/index.ts")
-      expect(discovered.get("@aicraft/plugin/effect/plugin")?.replaceAll("\\", "/")).toEndWith("src/effect/plugin.ts")
-      expect(discovered.has("@aicraft/plugin/unexported")).toBe(false)
+      const discovered = discoverPluginRuntimeSpecifiers(consumerDir, ["@aicraft/aix"])
+      expect(discovered.get("@aicraft/aix")?.replaceAll("\\", "/")).toEndWith("src/promise/index.ts")
+      expect(discovered.get("@aicraft/aix/effect")?.replaceAll("\\", "/")).toEndWith("src/effect/index.ts")
+      expect(discovered.get("@aicraft/aix/effect/plugin")?.replaceAll("\\", "/")).toEndWith("src/effect/plugin.ts")
+      expect(discovered.has("@aicraft/aix/unexported")).toBe(false)
       // The GUI SDK runs in the app; the server and TUI runtime never load it.
-      expect([...discovered.keys()].filter((specifier) => specifier.startsWith("@aicraft/plugin/gui"))).toEqual([])
+      expect([...discovered.keys()].filter((specifier) => specifier.startsWith("@aicraft/aix/gui"))).toEqual([])
 
       const hostDiscovered = discoverPluginRuntimeSpecifiers()
       expect(hostDiscovered.has("effect/schema/SchemaJITCompiler")).toBe(true)

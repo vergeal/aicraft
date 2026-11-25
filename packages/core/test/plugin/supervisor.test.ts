@@ -5,7 +5,7 @@ import path from "node:path"
 import { Deferred, Duration, Effect, Layer, LayerMap, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import type { LanguageModelV3 } from "@ai-sdk/provider"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
 import { LayerNode } from "@aicraft/util/effect/layer-node"
 import { Global } from "@aicraft/util/global"
@@ -495,7 +495,7 @@ describe("PluginSupervisor", () => {
       const home = process.env.AICRAFT_TEST_HOME
       if (!home) return
       const directory = yield* tmpdirScoped()
-      const root = path.join(home, ".aicraft", "exc", "changhong.webwright")
+      const root = path.join(home, ".aicraft", "aix", "changhong.webwright")
       yield* Effect.promise(() => Bun.write(path.join(root, "METAINF"), JSON.stringify({ id: "changhong.webwright" })))
       source.operations = [{ type: "add", target: root, options: {} }]
       yield* Effect.addFinalizer(() => Effect.promise(() => rm(root, { recursive: true, force: true })))

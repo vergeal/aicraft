@@ -25,7 +25,7 @@
     "@effect/platform-node": "catalog:",
     "@kobalte/core": "catalog:",
     "@aicraft/client": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/plugin-browser": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/session-ui": "workspace:*",

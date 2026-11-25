@@ -1,6 +1,6 @@
 export * as ConfigCompatibilityPlugin from "./compatibility.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { FSUtil } from "@aicraft/util/fs-util"
 import path from "path"
 import { Effect, FiberMap, PubSub, Semaphore, Stream } from "effect"

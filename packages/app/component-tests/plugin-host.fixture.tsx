@@ -18,8 +18,8 @@ import {
   type Storage,
   type StoreOptions,
   type Workspaces,
-} from "@aicraft/plugin/gui"
-import type { BuiltinLayout, BuiltinLocale } from "@aicraft/plugin/gui/builtin"
+} from "@aicraft/aix/gui"
+import type { BuiltinLayout, BuiltinLocale } from "@aicraft/aix/gui/builtin"
 import {
   createComponent,
   createMemo,
@@ -40,7 +40,7 @@ import { Persist, persisted } from "@/runtime/persistence/storage"
 import { ServerScope } from "@/runtime/server/scope"
 import { PluginHostProvider, usePluginHost, type HostApiFactories, type PluginInput } from "../src/runtime/plugin/host"
 import { createHostApis } from "../src/runtime/plugin/host-apis"
-import type { Bridge, Entry } from "@aicraft/plugin/gui/host"
+import type { Bridge, Entry } from "@aicraft/aix/gui/host"
 import { createRegion, RegionContent } from "../src/runtime/plugin/panels"
 import { createSessionScreenLayout } from "../src/session/screen-layout"
 import type { SessionModel } from "../src/session/model"
@@ -67,7 +67,7 @@ export {
   Slot,
   Store,
   Theme,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 
 export { Schema }
 

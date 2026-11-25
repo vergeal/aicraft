@@ -1,5 +1,5 @@
 import type { Browser } from "@aicraft/plugin-browser/rpc"
-import type { IpcClient } from "@aicraft/plugin/gui"
+import type { IpcClient } from "@aicraft/aix/gui"
 import { uuid } from "@aicraft/util/uuid"
 import type { BrowserPane, PaneEvent } from "./ipc"
 

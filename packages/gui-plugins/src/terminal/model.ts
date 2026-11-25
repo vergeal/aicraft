@@ -15,7 +15,7 @@ import {
   type SessionRef,
   type Storage,
   type Toasts,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { defaultTitle, titleNumber } from "./title"
 import {
   initialState,

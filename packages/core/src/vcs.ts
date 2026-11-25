@@ -2,7 +2,7 @@ export * as Vcs from "./vcs.js"
 
 import path from "path"
 import { Cause, Context, Effect, FiberSet, Layer, Schema, Semaphore, Stream } from "effect"
-import type { VcsDefinition, VcsEditor } from "@aicraft/plugin/effect/vcs"
+import type { VcsDefinition, VcsEditor } from "@aicraft/aix/effect/vcs"
 import { FileDiff } from "@aicraft/schema/file-diff"
 import { FileSystem } from "@aicraft/schema/filesystem"
 import { Base, BranchList, FileStatus, Info, Mode, Untracked } from "@aicraft/schema/vcs"

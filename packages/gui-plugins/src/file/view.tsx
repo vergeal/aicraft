@@ -9,7 +9,7 @@ import { createLineCommentControllerV2 } from "@aicraft/session-ui/v2/line-comme
 import { sampledChecksum } from "@aicraft/util/encode"
 import { LineCommentOverflowIcon } from "@aicraft/ui/line-comment"
 import { Menu } from "@aicraft/ui/menu"
-import { createKeyed, usePlugin, type LineRange, type MountedSession, type SessionScreen } from "@aicraft/plugin/gui"
+import { createKeyed, usePlugin, type LineRange, type MountedSession, type SessionScreen } from "@aicraft/aix/gui"
 import { artifactKind } from "@aicraft/util/artifact"
 import ArtifactView from "./artifact-view"
 import { ArtifactToolbar } from "./artifact-toolbar"

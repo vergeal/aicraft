@@ -1,8 +1,8 @@
 import { showToast } from "@aicraft/ui/toast"
 import { lazy, onCleanup, Suspense } from "solid-js"
-import { Command, SettingsPage, TitlebarItem, type SetupContext, type Plugin } from "@aicraft/plugin/gui"
-import { onIdle } from "@aicraft/plugin/gui/builtin"
-import { Updater } from "@aicraft/plugin/gui/updater"
+import { Command, SettingsPage, TitlebarItem, type SetupContext, type Plugin } from "@aicraft/aix/gui"
+import { onIdle } from "@aicraft/aix/gui/builtin"
+import { Updater } from "@aicraft/aix/gui/updater"
 import { updaterAction } from "./action"
 import type definition from "./index"
 

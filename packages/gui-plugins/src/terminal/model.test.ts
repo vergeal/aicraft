@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { createStore, produce } from "solid-js/store"
 import { ClientError, type PersistentPtyInfo } from "@aicraft/client"
-import type { Layout, ServerRef, SessionRef, Storage, ToastOptions } from "@aicraft/plugin/gui"
+import type { Layout, ServerRef, SessionRef, Storage, ToastOptions } from "@aicraft/aix/gui"
 import { PtyFeatureUnsupportedError, ServiceUnavailableError } from "@aicraft/protocol/errors"
 import { createTerminalModel } from "./model"
 

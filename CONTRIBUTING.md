@@ -57,7 +57,7 @@ bun run dev:www
 - `packages/tui`: terminal interface
 - `packages/app`: shared web interface
 - `packages/desktop`: Electron desktop application
-- `packages/plugin`: plugin API
+- `packages/aix`: plugin API
 
 ### Verification
 

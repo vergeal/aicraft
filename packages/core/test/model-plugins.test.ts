@@ -8,7 +8,7 @@ import { Model } from "@aicraft/core/model"
 import { Plugin } from "@aicraft/core/plugin"
 import { Provider } from "@aicraft/core/provider"
 import { State } from "@aicraft/core/state"
-import { fromPromise } from "@aicraft/plugin/promise/adapter"
+import { fromPromise } from "@aicraft/aix/promise/adapter"
 import { testEffect } from "./lib/effect"
 import { PluginTestLayer } from "./plugin/fixture"
 

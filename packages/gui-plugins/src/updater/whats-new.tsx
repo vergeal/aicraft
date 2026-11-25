@@ -2,7 +2,7 @@ import { createSignal, Index, Show } from "solid-js"
 import { Effect, Option, Predicate, Schema } from "effect"
 import { Button } from "@aicraft/ui/button"
 import { Dialog } from "@aicraft/ui/dialog"
-import { usePlugin, type DialogHandle, type SetupContext } from "@aicraft/plugin/gui"
+import { usePlugin, type DialogHandle, type SetupContext } from "@aicraft/aix/gui"
 import type definition from "./index"
 
 const CHANGELOG_URL = "https://opencode.ai/changelog.json"

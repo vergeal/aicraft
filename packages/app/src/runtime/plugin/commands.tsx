@@ -1,5 +1,5 @@
 import { createMemo } from "solid-js"
-import { BuiltinCommand } from "@aicraft/plugin/gui/builtin"
+import { BuiltinCommand } from "@aicraft/aix/gui/builtin"
 import { useCommand, type CommandSource } from "@/shell/commands/command"
 import { useSettings } from "@/settings/model"
 import { migrateKeybinds } from "@/settings/keybinds/migration"

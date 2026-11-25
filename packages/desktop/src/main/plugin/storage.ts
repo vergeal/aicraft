@@ -1,5 +1,5 @@
-import type { BuiltinMainStorage, MainStoreFrom } from "@aicraft/plugin/gui/builtin"
-import type { Mutable } from "@aicraft/plugin/gui/main"
+import type { BuiltinMainStorage, MainStoreFrom } from "@aicraft/aix/gui/builtin"
+import type { Mutable } from "@aicraft/aix/gui/main"
 import { Option, Schema } from "effect"
 import type { StateStore } from "../storage/state"
 import type { SettingsStore } from "../storage/store"

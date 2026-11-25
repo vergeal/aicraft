@@ -1,5 +1,5 @@
 import { createEffect, createSignal, Show } from "solid-js"
-import { Command, MainSurface, Plugin, SettingsPage, Style } from "@aicraft/plugin/gui"
+import { Command, MainSurface, Plugin, SettingsPage, Style } from "@aicraft/aix/gui"
 import { uuid } from "@aicraft/util/uuid"
 import { ItsmContract } from "../src/contract.js"
 import type { Account, AnswerValue, Run, ServiceCatalog, Settings, Snapshot, Template } from "../src/contract.js"

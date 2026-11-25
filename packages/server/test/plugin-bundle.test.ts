@@ -58,7 +58,7 @@ it.live(
           METAINF: JSON.stringify({ apiVersion: 1, id, version: "1.0.0", entry: { server: "server/main" } }),
           "server/main.js": `export default { id: ${JSON.stringify(id)}, setup() {} }`,
         })
-        await Bun.write(path.join(directory, "bundle.exc"), await archive.bytes())
+        await Bun.write(path.join(directory, "bundle.aix"), await archive.bytes())
       })
       // The real watcher, like the desktop app: the install must settle through the same event feed a reload uses.
       const request = yield* server({ filewatcher: true })
@@ -74,8 +74,8 @@ it.live(
       }
       expect(installed.data).toMatchObject({ id, version: "1.0.0" })
       // The watched root holds only the finished plugin; staging lived beside it and kept nothing behind.
-      expect(yield* Effect.promise(() => readdir(path.join(home, ".aicraft", "exc")))).toEqual([id])
-      expect(yield* Effect.promise(() => readdir(path.join(home, ".aicraft", "exc-staging")))).toEqual([])
+      expect(yield* Effect.promise(() => readdir(path.join(home, ".aicraft", "aix")))).toEqual([id])
+      expect(yield* Effect.promise(() => readdir(path.join(home, ".aicraft", "aix-staging")))).toEqual([])
       // Install settles with the plugin activated, so the same response already shows in the inventory.
       expect(yield* listedIds(request)).toContain(id)
     }),
@@ -85,7 +85,7 @@ it.live(
 it.live("skips dot-prefixed directories left under the install root", () =>
   Effect.gen(function* () {
     const home = yield* isolatedHome()
-    const exc = path.join(home, ".aicraft", "exc")
+    const exc = path.join(home, ".aicraft", "aix")
     // A staging-style leftover and a control plugin: discovery must list the control and never touch the dot entry.
     const write = async (directory: string, id: string) => {
       await mkdir(directory, { recursive: true })

@@ -1,5 +1,5 @@
 import { children, For, Show } from "solid-js"
-import type { Ui, UiMenuItem } from "@aicraft/plugin/gui"
+import type { Ui, UiMenuItem } from "@aicraft/aix/gui"
 import { Markdown } from "@aicraft/session-ui/markdown"
 import { MarkdownProvider } from "@aicraft/session-ui/context/markdown"
 import { Button } from "@aicraft/ui/button"

@@ -1,5 +1,5 @@
 import { createMemo } from "solid-js"
-import { SettingsPage } from "@aicraft/plugin/gui"
+import { SettingsPage } from "@aicraft/aix/gui"
 import { usePluginHost } from "./host"
 
 /** The settings pages plugins contribute. */

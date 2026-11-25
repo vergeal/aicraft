@@ -1,7 +1,7 @@
 import { createMemo, For, Show } from "solid-js"
 import { syncSpinPhase } from "@aicraft/ui/hooks"
 import { Icon } from "@aicraft/ui/icon"
-import { TitlebarItem } from "@aicraft/plugin/gui"
+import { TitlebarItem } from "@aicraft/aix/gui"
 import { usePluginHost } from "./host"
 import "./titlebar-items.css"
 

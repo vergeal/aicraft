@@ -1,6 +1,6 @@
 import type { WebContentsView } from "electron"
 import { WebContentsView as View, session as electronSession } from "electron"
-import type { Embed, IpcImpl, MainContext } from "@aicraft/plugin/gui/main"
+import type { Embed, IpcImpl, MainContext } from "@aicraft/aix/gui/main"
 import { ItsmBrowser } from "../src/ipc.js"
 import { importChromeCookies } from "./cookies.js"
 import { Cdp, probePage, timeoutOf } from "./cdp.js"

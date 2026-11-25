@@ -1,7 +1,7 @@
 export * as ClaudeSessionHooks from "./session.js"
 
 import { AssistantMessage, ToolMessage, type ToolResultPart } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Effect, Schema } from "effect"
 import { RequestKind } from "./language-model/request-kind.js"
 import { ClaudeProvider } from "./provider.js"

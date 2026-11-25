@@ -7,7 +7,7 @@ import { Button } from "@aicraft/ui/button"
 import { Keybind } from "@aicraft/ui/keybind"
 import { Tooltip } from "@aicraft/ui/tooltip"
 import type { Terminal as Term } from "ghostty-web"
-import { usePlugin, type ComposerQuoteAnchor } from "@aicraft/plugin/gui"
+import { usePlugin, type ComposerQuoteAnchor } from "@aicraft/aix/gui"
 
 const SETTLE_MS = 150
 

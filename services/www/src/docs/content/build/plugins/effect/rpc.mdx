@@ -11,7 +11,7 @@ Streams.
 Use `Rpc.define` with Effect Schema to define the RPC.
 
 ```ts title="src/rpc.ts"
-import { Rpc } from "@aicraft/plugin/rpc"
+import { Rpc } from "@aicraft/aix/rpc"
 import { Schema } from "effect"
 
 export const Acme = Rpc.define({
@@ -82,7 +82,7 @@ events: {
 Register the implementation from the plugin Effect:
 
 ```ts title="src/index.ts"
-import { Plugin } from "@aicraft/plugin/effect"
+import { Plugin } from "@aicraft/aix/effect"
 import { Effect } from "effect"
 import { Acme } from "./rpc.js"
 

@@ -6,7 +6,7 @@ import { Operations } from "../src/rpc.js"
 
 const manifest = PluginManifest.decode(await Bun.file(join(import.meta.dir, "..", "METAINF")).json())
 
-describe("exc manifest", () => {
+describe("aix manifest", () => {
   test("declares every operation once and reserves the webwright namespace", () => {
     const names = Operations.map((operation) => operation.name)
     expect(new Set(names).size).toBe(names.length)

@@ -1,4 +1,4 @@
-import type { Context } from "@aicraft/plugin/gui"
+import type { Context } from "@aicraft/aix/gui"
 import { Show, createSignal, onCleanup, onMount } from "solid-js"
 import { Face, GroupFace } from "./avatar.js"
 import { text } from "./i18n.js"

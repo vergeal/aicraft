@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { createRequire } from "node:module"
 import { mkdir, readdir, readFile, rename, rm, stat, symlink, utimes } from "node:fs/promises"
 import path from "node:path"
-import { Host } from "@aicraft/plugin/host"
+import { Host } from "@aicraft/aix/host"
 import { Catalog } from "@aicraft/schema/catalog"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Option, Schema } from "effect"
@@ -35,9 +35,9 @@ type Manifest = {
 }
 
 /**
- * Installs an `.exc` bundle that already exists on this machine, so the app can offer one button instead of
+ * Installs an `.aix` bundle that already exists on this machine, so the app can offer one button instead of
  * explaining the container format. Versions live under the local discover directory, and the chosen one is verified
- * and unpacked into `~/.aicraft/exc/<id>/`, where plugin discovery picks it up.
+ * and unpacked into `~/.aicraft/aix/<id>/`, where plugin discovery picks it up.
  */
 export async function install(input: {
   readonly id: string
@@ -127,7 +127,7 @@ async function find(input: { id: string; version?: string; config: string; cwd: 
   for (const folder of folders) {
     const names = await readdir(folder).catch(() => [])
     for (const name of names) {
-      if (!name.startsWith(input.id) || !name.endsWith(".exc")) continue
+      if (!name.startsWith(input.id) || !name.endsWith(".aix")) continue
       const info = await stat(path.join(folder, name)).catch(() => undefined)
       if (info?.isFile()) candidates.push({ file: path.join(folder, name), mtime: info.mtimeMs })
     }
@@ -150,7 +150,7 @@ async function findLocal(input: { id: string; version?: string; home: string }) 
   const version = input.version ?? names.at(-1)
   if (!version) return undefined
   const files = await readdir(path.join(directory, version)).catch(() => [])
-  const file = files.find((name) => name.endsWith(".exc"))
+  const file = files.find((name) => name.endsWith(".aix"))
   return file ? path.join(directory, version, file) : undefined
 }
 
@@ -321,7 +321,12 @@ async function linkExternals(directory: string, externals: readonly string[]) {
   if (externals.length === 0) return
   const require = createRequire(import.meta.url)
   for (const name of externals) {
-    const manifest = require.resolve(`${name}/package.json`)
+    // Bundles published before the AIX rename declare `@aicraft/plugin`; link that name to the renamed package so
+    // their imports keep resolving. Drop the alias once no shipped bundle uses it (docs/aix/spec.md §7).
+    const resolved = name === "@aicraft/plugin" ? "@aicraft/aix" : name
+    if (resolved !== name)
+      console.warn(`[aix] METAINF externals name "${name}" is deprecated; repack the bundle with "@aicraft/aix".`)
+    const manifest = require.resolve(`${resolved}/package.json`)
     const target = path.join(directory, "node_modules", ...name.split("/"))
     await mkdir(path.dirname(target), { recursive: true })
     await symlink(path.dirname(manifest), target, process.platform === "win32" ? "junction" : "dir")

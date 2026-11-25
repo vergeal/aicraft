@@ -1,5 +1,5 @@
 import type { PluginInfo } from "@aicraft/client"
-import type { Plugin } from "@aicraft/plugin/tui"
+import type { Plugin } from "@aicraft/aix/tui"
 import type { MarkdownCodeBlockRenderer, MarkdownOptions } from "@opentui/core"
 import {
   batch,
@@ -16,8 +16,8 @@ import {
 import path from "path"
 import { stat } from "fs/promises"
 import { fileURLToPath } from "url"
-import type { Page } from "@aicraft/plugin/tui/context"
-import { Host } from "@aicraft/plugin/host"
+import type { Page } from "@aicraft/aix/tui/context"
+import { Host } from "@aicraft/aix/host"
 import { resolveSlots, type Claim } from "./structure"
 import { createStore, produce, reconcile as reconcileStore, unwrap } from "solid-js/store"
 import { isDeepEqual } from "remeda"

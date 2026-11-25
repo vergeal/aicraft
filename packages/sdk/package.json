@@ -32,7 +32,7 @@
   "dependencies": {
     "@aicraft/client": "workspace:*",
     "@aicraft/core": "workspace:*",
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/server": "workspace:*",
     "@aicraft/util": "workspace:*",

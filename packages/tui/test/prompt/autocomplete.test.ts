@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { measureEditText } from "@opentui/core"
 import path from "path"
-import type { KeymapCommand } from "@aicraft/plugin/tui/context"
+import type { KeymapCommand } from "@aicraft/aix/tui/context"
 import {
   directoryAutocomplete,
   directoryAutocompleteExactValue,

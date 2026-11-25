@@ -1,6 +1,6 @@
 import { SdkPlugins } from "@aicraft/core/plugin/sdk"
 import { Tool } from "@aicraft/core/tool"
-import { Plugin } from "@aicraft/plugin/effect"
+import { Plugin } from "@aicraft/aix/effect"
 import { createHash } from "node:crypto"
 import {
   Cause,

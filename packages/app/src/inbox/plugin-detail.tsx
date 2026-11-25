@@ -1,4 +1,4 @@
-import { InboxContent, type InboxRecord } from "@aicraft/plugin/gui"
+import { InboxContent, type InboxRecord } from "@aicraft/aix/gui"
 import { Button } from "@aicraft/ui/button"
 import { createMemo, Show } from "solid-js"
 import { Icon } from "@aicraft/ui/icon"

@@ -1,5 +1,5 @@
 import { createMemo } from "solid-js"
-import { MenuItem, type SessionPanelMenuItem } from "@aicraft/plugin/gui"
+import { MenuItem, type SessionPanelMenuItem } from "@aicraft/aix/gui"
 import { usePluginHost } from "./host"
 
 export type SessionPanelMenuEntry = {

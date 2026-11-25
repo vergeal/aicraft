@@ -1,7 +1,7 @@
 export * as OptimizePlugin from "./optimize.js"
 
-import { define, type Context } from "@aicraft/plugin/effect/plugin"
-import type { SessionHooks } from "@aicraft/plugin/effect/session"
+import { define, type Context } from "@aicraft/aix/effect/plugin"
+import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { Model } from "@aicraft/schema/model"
 import { Effect } from "effect"
 import { SessionSystemPrompt } from "../session/system-prompt.js"

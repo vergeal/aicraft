@@ -1,7 +1,7 @@
 export * as PromiseSdk from "./promise"
 
 import { Aicraft, type AicraftClient } from "@aicraft/client"
-import type { Plugin } from "@aicraft/plugin"
+import type { Plugin } from "@aicraft/aix"
 import { Session } from "@aicraft/schema/session"
 import { Effect, Schema } from "effect"
 import { EmbeddedHost } from "./internal/host"

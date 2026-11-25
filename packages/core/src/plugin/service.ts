@@ -4,9 +4,9 @@ export * as Plugin from "./service.js"
 // importing the plugin host, which itself depends on Session.
 import { Plugin } from "@aicraft/schema/plugin"
 import type { PluginManifest } from "@aicraft/schema/plugin-manifest"
-import type { Plugin as PluginDefinition } from "@aicraft/plugin/effect/plugin"
+import type { Plugin as PluginDefinition } from "@aicraft/aix/effect/plugin"
 import { Context, type Effect, type Exit } from "effect"
-import type { Configuration } from "./configuration.js"
+import type { Configuration } from "@aicraft/aix/configuration"
 
 export interface Interface {
   readonly activate: (plugins: readonly Generation[], failures?: readonly Failure[]) => Effect.Effect<void>

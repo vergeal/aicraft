@@ -1,12 +1,12 @@
 # DBRO
 
-`@aicraft/plugin-dbro` 把 dbro 只读查询门面封装成 `.exc`，用一组方言感知的
+`@aicraft/plugin-dbro` 把 dbro 只读查询门面封装成 `.aix`，用一组方言感知的
 `dbro.*` 工具同时覆盖达梦 8、MySQL 和 PostgreSQL。
 
 查询脚本随包分发：`dbro.py` 和三个单库执行器都在 `assets/dbro` 内，安装后只读这个目录，不依赖任何本机工具目录。
 
 打出来的单文件在 `~/.distribution/plugins/changhong.aicraft.dbro/<version>/`，安装后解包到
-`~/.aicraft/exc/changhong.aicraft.dbro/`。包内包含服务端入口 `server/main.ts`（构建后是 `dist/server/main.js`）、`dbro` 技能，以及 `assets/dbro` 下的
+`~/.aicraft/aix/changhong.aicraft.dbro/`。包内包含服务端入口 `server/main.ts`（构建后是 `dist/server/main.js`）、`dbro` 技能，以及 `assets/dbro` 下的
 `dbro.py` 和三个单库执行器。
 
 ## 工具

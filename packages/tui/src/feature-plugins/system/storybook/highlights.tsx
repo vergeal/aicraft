@@ -1,4 +1,4 @@
-import type { Plugin } from "@aicraft/plugin/tui"
+import type { Plugin } from "@aicraft/aix/tui"
 import { useTerminalDimensions } from "@opentui/solid"
 import { onMount } from "solid-js"
 import { DialogHighlights } from "../../../component/dialog-highlights"

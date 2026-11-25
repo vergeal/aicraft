@@ -18,9 +18,9 @@ import {
   SESSION_REVIEW_V2_SIDEBAR_WIDTH_MAX,
   SESSION_REVIEW_V2_SIDEBAR_WIDTH_MIN,
 } from "@aicraft/session-ui/v2/session-review-v2"
-import type { PanelFrame, PanelSidebar, MountedSession, SessionScreen } from "@aicraft/plugin/gui"
-import { BuiltinPanel, type BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
-import { PanelContext } from "@aicraft/plugin/gui/host"
+import type { PanelFrame, PanelSidebar, MountedSession, SessionScreen } from "@aicraft/aix/gui"
+import { BuiltinPanel, type BuiltinPanelTab } from "@aicraft/aix/gui/builtin"
+import { PanelContext } from "@aicraft/aix/gui/host"
 import { same } from "@/runtime/persistence/equality"
 import { sessionTabPane, type SessionPane, type SessionTabs } from "@/shell/state/session-tabs"
 import { Persist, persisted } from "@/runtime/persistence/storage"

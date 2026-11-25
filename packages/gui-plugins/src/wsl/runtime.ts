@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-import type { MainContext } from "@aicraft/plugin/gui/main"
+import type { MainContext } from "@aicraft/aix/gui/main"
 import type { WslDistroProbe, WslInstalledDistro, WslOnlineDistro, WslRuntimeCheck } from "./contract"
 import { discoverScript, installScript, parseVersion, versionScript } from "./remote-cli"
 

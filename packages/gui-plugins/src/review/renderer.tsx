@@ -24,9 +24,9 @@ import {
   type MountedSession,
   type Plugin,
   type ClosedPanelTab,
-} from "@aicraft/plugin/gui"
-import { BuiltinPanel, onIdle, type BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
-import { Changes, type ChangeKind } from "@aicraft/plugin/gui/review"
+} from "@aicraft/aix/gui"
+import { BuiltinPanel, onIdle, type BuiltinPanelTab } from "@aicraft/aix/gui/builtin"
+import { Changes, type ChangeKind } from "@aicraft/aix/gui/review"
 import type Review from "./index"
 import { createReviewModel, type Demand, type ReviewModel } from "./model"
 import {

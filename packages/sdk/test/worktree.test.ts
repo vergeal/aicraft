@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { mkdir, rm } from "node:fs/promises"
 import { join } from "node:path"
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 import { initRepo } from "../../core/test/fixture/git"
 import { tmpdir } from "../../core/test/fixture/tmpdir"
 import { Aicraft } from "../src"

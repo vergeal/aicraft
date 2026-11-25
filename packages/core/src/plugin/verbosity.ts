@@ -1,7 +1,7 @@
 export * as VerbosityPlugin from "./verbosity.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
-import type { SessionRequest } from "@aicraft/plugin/effect/session"
+import { define } from "@aicraft/aix/effect/plugin"
+import type { SessionRequest } from "@aicraft/aix/effect/session"
 import { Effect } from "effect"
 import { Model } from "../model.js"
 import { Provider } from "../provider.js"

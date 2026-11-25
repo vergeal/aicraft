@@ -1,4 +1,4 @@
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect, Option, Stream } from "effect"
 import { ClaudeIO } from "./claude/io.js"
 import { ClaudeSessions } from "./claude/sessions.js"

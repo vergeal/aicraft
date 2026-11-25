@@ -1,5 +1,5 @@
 import type { SessionInfo } from "@aicraft/client/promise"
-import type { MountedSession, SessionScreen } from "@aicraft/plugin/gui"
+import type { MountedSession, SessionScreen } from "@aicraft/aix/gui"
 import { Icon } from "@aicraft/ui/icon"
 import { Menu } from "@aicraft/ui/menu"
 import { Tooltip } from "@aicraft/ui/tooltip"

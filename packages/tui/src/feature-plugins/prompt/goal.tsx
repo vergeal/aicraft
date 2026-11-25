@@ -1,4 +1,4 @@
-import type { Plugin } from "@aicraft/plugin/tui"
+import type { Plugin } from "@aicraft/aix/tui"
 import { Goal } from "@aicraft/schema/goal"
 import { createEffect, createMemo, createSignal, on, onCleanup, Show, type Accessor } from "solid-js"
 import { Keymap } from "../../context/keymap"

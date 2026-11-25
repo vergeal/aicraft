@@ -1,4 +1,4 @@
-import type { MainContext } from "@aicraft/plugin/gui/main"
+import type { MainContext } from "@aicraft/aix/gui/main"
 import { ItsmBrowser } from "../src/ipc.js"
 import { createHost } from "../native/main.js"
 

@@ -25,7 +25,7 @@ import { Markdown } from "@aicraft/session-ui/markdown"
 import { MarkdownProvider, useMarkdown } from "@aicraft/session-ui/context/markdown"
 import { artifactKind, type ArtifactKind } from "@aicraft/util/artifact"
 import { getDirectory, getFilename } from "@aicraft/util/path"
-import { createKeyed, usePlugin, type FileContent, type MountedSession, type SessionScreen } from "@aicraft/plugin/gui"
+import { createKeyed, usePlugin, type FileContent, type MountedSession, type SessionScreen } from "@aicraft/aix/gui"
 import {
   blobUrlFromContent,
   bytesFromContent,
@@ -35,7 +35,7 @@ import {
   splitFrontmatter,
   type FrontmatterProperty,
 } from "./artifact"
-import { FileViewer } from "@aicraft/plugin/gui/file"
+import { FileViewer } from "@aicraft/aix/gui/file"
 import { ArtifactToolbar } from "./artifact-toolbar"
 
 type ArtifactMode = "preview" | "source"

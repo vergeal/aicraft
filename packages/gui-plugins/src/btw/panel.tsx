@@ -8,7 +8,7 @@ import { TextShimmer } from "@aicraft/ui/text-shimmer"
 import { Tooltip } from "@aicraft/ui/tooltip"
 import { showToast } from "@aicraft/ui/toast"
 import { Markdown } from "@aicraft/session-ui/markdown"
-import { usePlugin, type MountedSession } from "@aicraft/plugin/gui"
+import { usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import type { BtwModel } from "./model"
 
 export default function SessionBtwPanel(props: { btw: BtwModel; session: MountedSession; id: string }) {

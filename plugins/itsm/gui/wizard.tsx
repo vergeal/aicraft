@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from "solid-js"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import type { AnswerValue, Question, Template } from "../src/contract.js"
 import { answerKey, isEmpty, mergeAnswers } from "../src/logic.js"
 import type { Definition } from "./definition.js"

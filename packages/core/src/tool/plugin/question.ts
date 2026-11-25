@@ -1,6 +1,6 @@
 export * as QuestionTool from "./question.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { ToolFailure } from "@aicraft/ai/effect"
 import { Effect, Schema } from "effect"
 import { Form } from "../../form.js"

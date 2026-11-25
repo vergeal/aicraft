@@ -2,7 +2,7 @@ import { expect, spyOn } from "bun:test"
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { Effect } from "effect"
-import { PluginBundle } from "@aicraft/core/plugin/bundle"
+import { PluginBundle } from "@aicraft/aix/bundle"
 import { testEffect } from "../lib/effect"
 import { tmpdirScoped } from "../fixture/tmpdir"
 import { PluginTestLayer } from "./fixture"
@@ -36,7 +36,7 @@ async function publish(input: {
     [input.entryFile ?? "server/main.js"]: "export default { id: 'test.bundle', effect: () => {} }",
     ...input.files,
   })
-  await writeFile(path.join(directory, "bundle.exc"), await archive.bytes())
+  await writeFile(path.join(directory, "bundle.aix"), await archive.bytes())
 }
 
 const install = (input: {
@@ -97,8 +97,8 @@ it.effect("stages the unpack outside the watched install root", () =>
 
     // Discovery watches the install root, so the unpack happens elsewhere: on Windows the handles a load opens
     // inside a half-unpacked staging directory make the install's final rename fail with EPERM.
-    expect(yield* Effect.promise(() => readdir(path.join(temp.path, ".aicraft", "exc")))).toEqual(["test.bundle"])
-    expect(yield* Effect.promise(() => readdir(path.join(temp.path, ".aicraft", "exc-staging")))).toEqual([])
+    expect(yield* Effect.promise(() => readdir(path.join(temp.path, ".aicraft", "aix")))).toEqual(["test.bundle"])
+    expect(yield* Effect.promise(() => readdir(path.join(temp.path, ".aicraft", "aix-staging")))).toEqual([])
   }),
 )
 
@@ -365,5 +365,55 @@ it.effect("installs a bundle that declares a Python runtime", () =>
 
     const installed = yield* Effect.promise(() => install({ home: temp.path, version: "1.0.0" }))
     expect(installed).toMatchObject({ id: "test.bundle", version: "1.0.0" })
+  }),
+)
+
+it.effect("ignores a bundle file named with the pre-rename .exc extension", () =>
+  Effect.gen(function* () {
+    const temp = yield* tmpdirScoped()
+    // The hard switch: a `.exc` file is no longer discovered, so its author has to repack it as `.aix`.
+    yield* Effect.promise(async () => {
+      const directory = path.join(temp.path, ".distribution", "plugins", "test.bundle", "1.0.0")
+      await mkdir(directory, { recursive: true })
+      const archive = new Bun.Archive({
+        METAINF: JSON.stringify(base),
+        "server/main.js": "export default { id: 'test.bundle', effect: () => {} }",
+      })
+      await writeFile(path.join(directory, "bundle.exc"), await archive.bytes())
+    })
+
+    const message = yield* Effect.promise(() =>
+      install({ home: temp.path, version: "1.0.0" }).then(
+        () => "installed",
+        (cause: unknown) => String(cause),
+      ),
+    )
+
+    expect(message).toContain("bundle was found")
+  }),
+)
+
+it.effect("links the deprecated @aicraft/plugin external to the renamed package", () =>
+  Effect.gen(function* () {
+    const warn = spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      const temp = yield* tmpdirScoped()
+      yield* Effect.promise(() => publish({ home: temp.path, manifest: { ...base, externals: ["@aicraft/plugin"] } }))
+
+      yield* Effect.promise(() => install({ home: temp.path, version: "1.0.0" }))
+
+      // The link keeps the name the old bundle imports, but resolves it to the renamed package.
+      const linked = yield* Effect.promise(() =>
+        readFile(
+          path.join(temp.path, ".aicraft", "aix", "test.bundle", "node_modules", "@aicraft", "plugin", "package.json"),
+          "utf8",
+        ),
+      )
+      expect(JSON.parse(linked).name).toBe("@aicraft/aix")
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(String(warn.mock.calls[0]?.[0])).toContain("@aicraft/plugin")
+    } finally {
+      warn.mockRestore()
+    }
   }),
 )

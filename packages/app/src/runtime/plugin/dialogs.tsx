@@ -1,7 +1,7 @@
 import { createMemo, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import fuzzysort from "fuzzysort"
-import type { AlertOptions, ConfirmOptions, PromptOptions, SelectOptions } from "@aicraft/plugin/gui"
+import type { AlertOptions, ConfirmOptions, PromptOptions, SelectOptions } from "@aicraft/aix/gui"
 import { Button } from "@aicraft/ui/button"
 import { ConfirmDialog } from "@aicraft/ui/confirm-dialog"
 import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle, DialogTitleGroup } from "@aicraft/ui/dialog"

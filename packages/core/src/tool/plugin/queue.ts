@@ -1,7 +1,7 @@
 export * as QueueTool from "./queue.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { SessionInbox } from "@aicraft/schema/session-inbox"
 import { SessionMessage } from "@aicraft/schema/session-message"
 import { DateTime, Effect, Schema } from "effect"

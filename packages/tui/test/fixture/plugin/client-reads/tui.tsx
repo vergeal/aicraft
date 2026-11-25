@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 
 // Reads messages through the plugin client, whose files must stay inline bytes.
 export default Plugin.define({

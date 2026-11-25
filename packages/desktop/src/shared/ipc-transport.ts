@@ -1,4 +1,4 @@
-import type { EnableState } from "@aicraft/plugin/gui/host"
+import type { EnableState } from "@aicraft/aix/gui/host"
 
 export const IpcTransportPort = "desktop-rpc-port"
 

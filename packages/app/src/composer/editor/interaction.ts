@@ -26,7 +26,7 @@ import {
 import { clonePrompt, isAttachment, promptLength } from "../prompt-parts"
 import type { ComposerDelivery, ComposerQueue } from "../adapter"
 import { isCommentItem } from "../state"
-import type { ComposerQuoteAnchor } from "@aicraft/plugin/gui"
+import type { ComposerQuoteAnchor } from "@aicraft/aix/gui"
 
 export type ComposerSelectControl = {
   options: Accessor<ComposerOption[]>

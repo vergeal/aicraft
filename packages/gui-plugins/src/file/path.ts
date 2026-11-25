@@ -1,5 +1,5 @@
 import { encodeFilePath } from "@aicraft/util/path"
-import type { Files } from "@aicraft/plugin/gui"
+import type { Files } from "@aicraft/aix/gui"
 
 export function pathToFileUrl(filepath: string): string {
   return `file://${encodeFilePath(filepath)}`

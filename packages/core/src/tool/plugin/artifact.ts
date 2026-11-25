@@ -1,7 +1,7 @@
 export * as ArtifactTools from "./artifact.js"
 
 import { ToolFailure } from "@aicraft/ai/effect"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { optional } from "@aicraft/schema/schema"
 import { Effect, Schema, Stream } from "effect"
 import { Artifact } from "../../artifact.js"

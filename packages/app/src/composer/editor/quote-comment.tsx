@@ -6,7 +6,7 @@ import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { LineCommentEditor } from "@aicraft/ui/line-comment"
 import { MenuScroll } from "@aicraft/ui/menu-scroll"
 import { useLanguage } from "@/runtime/i18n/language"
-import type { ComposerQuoteAnchor } from "@aicraft/plugin/gui"
+import type { ComposerQuoteAnchor } from "@aicraft/aix/gui"
 import type { ComposerDelivery } from "../adapter"
 
 const IS_MAC = /(Mac|iPod|iPhone|iPad)/.test(navigator.platform)

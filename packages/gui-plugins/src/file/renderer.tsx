@@ -30,7 +30,7 @@ import {
   type SessionScreen,
   type ServerRef,
   type Plugin,
-} from "@aicraft/plugin/gui"
+} from "@aicraft/aix/gui"
 import { artifactKind } from "@aicraft/util/artifact"
 import { uuid } from "@aicraft/util/uuid"
 import { resolveArtifactPath } from "./artifact"
@@ -42,7 +42,7 @@ import {
   type FileListProps,
   type FileTreeProps,
   type OpenInAppProps,
-} from "@aicraft/plugin/gui/file"
+} from "@aicraft/aix/gui/file"
 import type File from "./index"
 import { FileVisual } from "./label"
 import {
@@ -70,9 +70,9 @@ import {
   type PickerEvent,
 } from "./picker-machine"
 import tabStyles from "./tabs.css?inline"
-import { onIdle, BuiltinPanel, BuiltinSlot, type BuiltinPanelTab } from "@aicraft/plugin/gui/builtin"
-import { Browser } from "@aicraft/plugin/gui/browser"
-import { Changes } from "@aicraft/plugin/gui/review"
+import { onIdle, BuiltinPanel, BuiltinSlot, type BuiltinPanelTab } from "@aicraft/aix/gui/builtin"
+import { Browser } from "@aicraft/aix/gui/browser"
+import { Changes } from "@aicraft/aix/gui/review"
 
 const OPEN = "open"
 

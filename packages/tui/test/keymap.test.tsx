@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import type { KeymapCommand } from "@aicraft/plugin/tui/context"
+import type { KeymapCommand } from "@aicraft/aix/tui/context"
 import { useKeymap } from "@opentui/keymap/solid"
 import { testRender } from "@opentui/solid"
 import { expect, test } from "bun:test"

@@ -1,7 +1,7 @@
 // Fails the typecheck when the GUI SDK's icon names drift from the app's icon catalog. Nothing imports this file. Run
-// `bun run generate` in packages/plugin to update them.
+// `bun run generate` in packages/aix to update them.
 
-import type { IconName } from "@aicraft/plugin/gui"
+import type { IconName } from "@aicraft/aix/gui"
 import type { iconNames } from "@aicraft/ui/icons/catalog"
 
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false

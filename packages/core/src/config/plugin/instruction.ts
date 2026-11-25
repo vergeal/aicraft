@@ -1,6 +1,6 @@
 export * as ConfigInstructionPlugin from "./instruction.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { FSUtil } from "@aicraft/util/fs-util"
 import { Global } from "@aicraft/util/global"
 import { sameDirectory } from "@aicraft/util/path"

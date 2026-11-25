@@ -2,7 +2,7 @@ export * as Rpc from "./rpc.js"
 export { define } from "@aicraft/schema/rpc"
 export type { Definition, EventPayload, Failure } from "@aicraft/schema/rpc"
 
-import type { RpcClient, RpcDomain, RpcHandlers } from "@aicraft/plugin/effect/rpc"
+import type { RpcClient, RpcDomain, RpcHandlers } from "@aicraft/aix/effect/rpc"
 import type { Rpc } from "@aicraft/schema/rpc"
 import { Event } from "@aicraft/schema/event"
 import type { Tool } from "@aicraft/schema/tool"

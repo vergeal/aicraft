@@ -21,7 +21,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "effect": "catalog:"
   },

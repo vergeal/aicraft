@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import type { Installed } from "@aicraft/plugin/gui/host"
+import type { Installed } from "@aicraft/aix/gui/host"
 import {
   createStartupGateState,
   selectDisabled,

@@ -1,5 +1,5 @@
-import { builtinCatalog } from "@aicraft/plugin/gui/builtin"
-import { Plugin, Store } from "@aicraft/plugin/gui"
+import { builtinCatalog } from "@aicraft/aix/gui/builtin"
+import { Plugin, Store } from "@aicraft/aix/gui"
 import { History } from "./history"
 import en from "./i18n/en"
 

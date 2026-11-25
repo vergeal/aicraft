@@ -16,7 +16,7 @@
     "typecheck:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@aicraft/plugin": "workspace:*",
+    "@aicraft/aix": "workspace:*",
     "@opentui/core": "catalog:",
     "entities": "7.0.1",
     "string-width": "catalog:"

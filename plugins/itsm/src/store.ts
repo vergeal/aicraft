@@ -1,6 +1,6 @@
 export * as ItsmStore from "./store.js"
 
-import type { StorageDomain } from "@aicraft/plugin/promise/storage"
+import type { StorageDomain } from "@aicraft/aix/promise/storage"
 import { Option, Schema } from "effect"
 import {
   Account,

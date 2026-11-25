@@ -1,6 +1,6 @@
 export * as WebSearchProvider from "./provider.js"
 
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import type { Credential } from "@aicraft/schema/credential"
 import type { WebSearch } from "@aicraft/schema/websearch"
 import { Effect } from "effect"

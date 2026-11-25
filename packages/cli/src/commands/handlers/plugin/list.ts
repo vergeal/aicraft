@@ -9,7 +9,7 @@ import { ServerConnection } from "../../../services/server-connection"
 import { Config } from "../../../config"
 import { Global } from "@aicraft/util/global"
 import { Npm } from "@aicraft/util/npm"
-import { Host } from "@aicraft/plugin/host"
+import { Host } from "@aicraft/aix/host"
 import { fileURLToPath } from "node:url"
 import { discoverPluginTargets, localPluginDirectories, localSource } from "@aicraft/tui/plugin/discovery"
 

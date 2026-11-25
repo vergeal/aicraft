@@ -32,9 +32,9 @@ import {
   Theme,
   type CodeBlockProps,
   type MountedSession,
-} from "@aicraft/plugin/gui"
-import { BuiltinSlot, type BuiltinSlotMap } from "@aicraft/plugin/gui/builtin"
-import { PluginContext } from "@aicraft/plugin/gui/host"
+} from "@aicraft/aix/gui"
+import { BuiltinSlot, type BuiltinSlotMap } from "@aicraft/aix/gui/builtin"
+import { PluginContext } from "@aicraft/aix/gui/host"
 import { usePluginHost, type Item } from "./host"
 import { createLinkCheck } from "./link-check"
 

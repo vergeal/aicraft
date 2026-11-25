@@ -1,5 +1,5 @@
-import { Slot, Style } from "@aicraft/plugin/gui"
-import type { Context } from "@aicraft/plugin/gui"
+import { Slot, Style } from "@aicraft/aix/gui"
+import type { Context } from "@aicraft/aix/gui"
 import { optional } from "@aicraft/schema/schema"
 import { Schema } from "effect"
 import { For, Show, createSignal } from "solid-js"

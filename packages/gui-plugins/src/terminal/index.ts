@@ -1,5 +1,5 @@
-import { builtinCatalog } from "@aicraft/plugin/gui/builtin"
-import { Plugin } from "@aicraft/plugin/gui"
+import { builtinCatalog } from "@aicraft/aix/gui/builtin"
+import { Plugin } from "@aicraft/aix/gui"
 import en from "./i18n/en"
 
 /** Published as `terminal.toggle`; the desktop menu names it. */

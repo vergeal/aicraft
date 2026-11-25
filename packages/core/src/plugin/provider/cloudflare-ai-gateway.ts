@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { isArrayNonEmpty } from "effect/Array"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Form } from "@aicraft/schema/form"
 import { Provider } from "../../provider.js"
 import { configuredSettings } from "./configured.js"

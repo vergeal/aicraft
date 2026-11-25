@@ -22,7 +22,7 @@ if (!build.success) {
   process.exit(1)
 }
 
-// The GUI bundle runs in the desktop app's main process and in every window; the host resolves `@aicraft/plugin/gui`
+// The GUI bundle runs in the desktop app's main process and in every window; the host resolves `@aicraft/aix/gui`
 // to the main SDK in one and to the window SDK in the other. A CommonJS file is what a manifest's gui entry accepts.
 await mkdir(join(dist, "gui"), { recursive: true })
 const gui = await Bun.build({
@@ -36,9 +36,9 @@ const gui = await Bun.build({
   naming: "main.js",
   external: [
     "effect",
-    "@aicraft/plugin/gui",
-    "@aicraft/plugin/gui/main",
-    "@aicraft/plugin",
+    "@aicraft/aix/gui",
+    "@aicraft/aix/gui/main",
+    "@aicraft/aix",
     "solid-js",
     "solid-js/web",
     "solid-js/store",

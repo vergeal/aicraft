@@ -1,7 +1,7 @@
 import { createMemo } from "solid-js"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import { updaterAction } from "./action"
-import type { UpdaterState } from "@aicraft/plugin/gui/updater"
+import type { UpdaterState } from "@aicraft/aix/gui/updater"
 import type definition from "./index"
 
 export default function UpdatesSection(props: { state: () => UpdaterState | undefined; run: () => void }) {

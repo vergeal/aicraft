@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Craft .exc 插件开发手册</title>
+    <title>AI Craft .aix 插件开发手册</title>
     <style>
       * {
         box-sizing: border-box;
@@ -384,7 +384,7 @@
               <li><a href="#s2-9">2.9 gui/main.tsx（界面）</a></li>
               <li><a href="#s2-10">2.10 skills/</a></li>
               <li><a href="#s2-11">2.11 script/build.ts</a></li>
-              <li><a href="#s2-12">2.12 create-exc 脚手架</a></li>
+              <li><a href="#s2-12">2.12 create-aix 脚手架（计划中）</a></li>
             </ol>
           </li>
           <li>
@@ -429,7 +429,7 @@
       </nav>
       <main class="page">
       <header class="masthead">
-        <h1>.exc 插件开发手册</h1>
+        <h1>.aix 插件开发手册</h1>
         <p class="subtitle">从空白目录到可安装的单文件插件</p>
         <p class="meta">
           适用于 AI Craft 2.2.x · 桌面版 · Bun 1.3 以上 &nbsp;|&nbsp; 本文档为纯静态 HTML，无脚本、无外部资源
@@ -441,7 +441,7 @@
       <h2 id="s1">1. 简介与名词</h2>
 
       <p>
-        <b>.exc</b> 是 AI Craft 的单文件插件格式。一个文件里包含服务端入口、可选的界面入口、技能正文和随包数据。
+        <b>.aix</b> 是 AI Craft 的单文件插件格式。一个文件里包含服务端入口、可选的界面入口、技能正文和随包数据。
         用户安装后，它被解包成普通插件目录，由宿主自动发现、加载和热更新。
       </p>
 
@@ -468,7 +468,7 @@
         </tr>
         <tr>
           <td>安装目录</td>
-          <td><code>~/.aicraft/exc/&lt;id&gt;/</code>，宿主监听此目录，放入即加载。</td>
+          <td><code>~/.aicraft/aix/&lt;id&gt;/</code>，宿主监听此目录，放入即加载。</td>
         </tr>
       </table>
 
@@ -559,7 +559,7 @@
         加载路径（<code>packages/core/src/plugin/module.ts</code>）记一条<b>结构化日志</b>，不是拼接字符串：
       </p>
       <pre><span class="path">服务端日志</span><code>msg:      "plugin uses a legacy entry"
-target:   "/Users/…/exc/aicraft.webwright"   # 插件目标或 id
+target:   "/Users/…/.aicraft/aix/aicraft.webwright"   # 插件目标或 id
 kind:     "server"
 found:    "server/index"                            # 实际命中的旧路径
 expected: "server/main"                             # 应该改成的路径</code></pre>
@@ -714,7 +714,7 @@ expected: "server/main"                             # 应该改成的路径</cod
       <p>
         判定条件是 <b><code>D:\</code> 存在且可写</b>（<code>accessSync("D:\\", W_OK)</code>）：只读盘、光驱不会被采用。
         非 Windows 平台不看这个条件，四个目录都在 <code>~/.aicraft</code> 下，行为与之前完全相同。
-        <code>~/.aicraft/exc</code>、<code>~/.distribution/plugins</code>、<code>secrets/</code>、
+        <code>~/.aicraft/aix</code>、<code>~/.distribution/plugins</code>、<code>secrets/</code>、
         <code>secrets.key</code> 的位置也没有变化。
       </p>
       <p><b>换盘之后</b></p>
@@ -956,7 +956,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         <tr>
           <td><code>script/pack.ts</code></td>
           <td>开发者</td>
-          <td>把 <code>dist/</code> 打成 <code>.exc</code>，写入校验和。</td>
+          <td>把 <code>dist/</code> 打成 <code>.aix</code>，写入校验和。</td>
         </tr>
         <tr>
           <td><code>dist/</code></td>
@@ -971,14 +971,14 @@ expected: "server/main"                             # 应该改成的路径</cod
   "apiVersion": 1,
   "id": "aicraft.echo",
   "version": "0.1.0",
-  "requires": { "opencode": "^2.2.0" },
+  "requires": { "aicraft": "^2.2.0" },
   "entry": {
     "server": "server/main",
     "gui": "gui/main"
   },
   "externals": [
     "effect",
-    "@aicraft/plugin",
+    "@aicraft/aix",
     "@aicraft/schema"
   ],
   "display": {
@@ -1190,7 +1190,7 @@ expected: "server/main"                             # 应该改成的路径</cod
     "pack": "bun run script/pack.ts"
   },
   "dependencies": {
-    "@aicraft/plugin": "^2.2.0",
+    "@aicraft/aix": "^2.2.0",
     "@aicraft/schema": "^2.2.0",
     "effect": "^4.0.0"
   },
@@ -1226,7 +1226,7 @@ expected: "server/main"                             # 应该改成的路径</cod
         （旧名 <code>setup</code> 仍可用，等价于 <code>activate</code>，下一个 minor 移除）。
       </p>
 
-      <pre><span class="path">echo-plugin/server/main.ts</span><code>import { Plugin } from "@aicraft/plugin"
+      <pre><span class="path">echo-plugin/server/main.ts</span><code>import { Plugin } from "@aicraft/aix"
 import { Schema } from "effect"
 
 export default Plugin.define({
@@ -1248,7 +1248,7 @@ export default Plugin.define({
 
       <h3 id="s2-9">2.9 gui/main.tsx（界面入口）</h3>
 
-      <pre><span class="path">echo-plugin/gui/main.tsx</span><code>import { Command, Plugin, Slot } from "@aicraft/plugin/gui"
+      <pre><span class="path">echo-plugin/gui/main.tsx</span><code>import { Command, Plugin, Slot } from "@aicraft/aix/gui"
 import { createSignal } from "solid-js"
 
 export default Plugin.define({
@@ -1282,7 +1282,7 @@ function Pet() {
       <p>构建界面需要 <code>vite.config.ts</code>：</p>
 
       <pre><span class="path">echo-plugin/vite.config.ts</span><code>import { defineConfig } from "vite"
-import { gui } from "@aicraft/plugin/gui/vite"
+import { gui } from "@aicraft/aix/gui/vite"
 
 export default defineConfig({
   plugins: [gui()],
@@ -1377,13 +1377,18 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
         产物里的 <code>METAINF</code> 不需要改：<code>entry.server</code> 仍是 <code>server/main</code>，扩展名由宿主补。
       </div>
 
-      <h3 id="s2-12">2.12 create-exc 脚手架</h3>
+      <h3 id="s2-12">2.12 create-aix 脚手架（计划中）</h3>
+
+      <p>
+        <b>当前仓库没有可运行的脚手架。</b>下面的命令是规划中的入口，先以「插件创造」技能（<code>packages/core/src/plugin/skill/creator.md</code>）
+        生成的工程骨架为准；本节描述脚手架就绪后的行为。
+      </p>
 
       <p>
         不想手写目录与清单时，用仓库内的脚手架生成一个符合 <a href="#s2-0">2.0</a> 的工程骨架。
       </p>
 
-      <pre><span class="path">shell</span><code>bun packages/create-exc/src/cli.ts &lt;directory&gt; [-t server|gui|tui] [-n "显示名"]</code></pre>
+      <pre><span class="path">shell</span><code>bun packages/create-aix/src/cli.ts &lt;directory&gt; [-t server|gui|tui] [-n "显示名"]</code></pre>
 
       <table>
         <tr><th>选项</th><th>说明</th></tr>
@@ -1404,7 +1409,7 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
 
       <p>
         生成的 <code>METAINF</code> 直接符合入口标准：<code>server/main</code>，gui / tui 各写
-        <code>gui/main</code>、<code>tui/main</code>，<code>externals</code> 含 <code>@aicraft/plugin</code>。
+        <code>gui/main</code>、<code>tui/main</code>，<code>externals</code> 含 <code>@aicraft/aix</code>。
         它<b>不生成</b> <code>runtime</code> 字段——需要 Python 就自己加，见 <a href="#s2-1">2.1</a>。
       </p>
       <pre><span class="path">生成后</span><code>packages/plugins/my-plugin/
@@ -1421,7 +1426,7 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
       </div>
 
       <p>
-        GUI 模板的 <code>vite.config.ts</code> 用 <code>@aicraft/plugin/gui/vite</code> 的 <code>gui()</code>，
+        GUI 模板的 <code>vite.config.ts</code> 用 <code>@aicraft/aix/gui/vite</code> 的 <code>gui()</code>，
         构建输出 <code>dist/gui/main.cjs</code>——就是宿主用 <code>eval</code> 执行的那个 CommonJS bundle。
       </p>
 
@@ -1430,12 +1435,12 @@ console.log(`built ${manifest.id} ${manifest.version} -&gt; ${dist}`)</code></pr
       <h3 id="s3-1">3.1 包格式</h3>
 
       <p>
-        <code>.exc</code> 是 gzip 压缩的 tar 包。根目录必须有 <code>METAINF</code>，且清单里带
-        <code>files</code> 校验和。宿主<b>只认 <code>.exc</code></b>：发现目录与安装查找都按这个扩展名，
+        <code>.aix</code> 是 gzip 压缩的 tar 包。根目录必须有 <code>METAINF</code>，且清单里带
+        <code>files</code> 校验和。宿主<b>只认 <code>.aix</code></b>：发现目录与安装查找都按这个扩展名，
         没有旧扩展名回退，旧包需要重新打包。
       </p>
 
-      <pre>aicraft.echo-0.1.0.exc  (gzip tar)
+      <pre>aicraft.echo-0.1.0.aix  (gzip tar)
 ├── METAINF     &lt;- 带 files[].sha256
 ├── package.json
 ├── server/main.js
@@ -1485,7 +1490,7 @@ files["METAINF"] = new TextEncoder().encode(
 const out = join(homedir(), ".distribution", "plugins", manifest.id, manifest.version)
 await mkdir(out, { recursive: true })
 
-const archive = join(out, `${manifest.id}-${manifest.version}.exc`)
+const archive = join(out, `${manifest.id}-${manifest.version}.aix`)
 await Bun.Archive.write(archive, files, { compress: "gzip", level: 9 })
 
 console.log(`packed ${archive}`)</code></pre>
@@ -1514,11 +1519,11 @@ console.log(`packed ${archive}`)</code></pre>
         </tr>
         <tr>
           <td>输出位置</td>
-          <td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.exc</code>。</td>
+          <td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/&lt;id&gt;-&lt;version&gt;.aix</code>。</td>
         </tr>
         <tr>
           <td>单文件</td>
-          <td>每个版本目录只留一个 <code>.exc</code>，清单随包内的 <code>METAINF</code> 分发，不另写侧车文件。</td>
+          <td>每个版本目录只留一个 <code>.aix</code>，清单随包内的 <code>METAINF</code> 分发，不另写侧车文件。</td>
         </tr>
         <tr>
           <td>列举代价</td>
@@ -1542,7 +1547,7 @@ console.log(`packed ${archive}`)</code></pre>
       <ol class="steps">
         <li>
           <h3>放入待安装目录</h3>
-          <p>把 <code>.exc</code> 放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>。</p>
+          <p>把 <code>.aix</code> 放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>。</p>
         </li>
         <li>
           <h3>在应用中安装</h3>
@@ -1560,7 +1565,7 @@ console.log(`packed ${archive}`)</code></pre>
         <li>
           <h3>解包</h3>
           <p>
-            解包到 <code>~/.aicraft/exc/&lt;id&gt;/</code>，并按 <code>externals</code> 把宿主模块软链进插件的
+            解包到 <code>~/.aicraft/aix/&lt;id&gt;/</code>，并按 <code>externals</code> 把宿主模块软链进插件的
             <code>node_modules</code>。
           </p>
         </li>
@@ -1715,12 +1720,12 @@ Content-Type: application/json
         </tr>
         <tr>
           <td>单文件</td>
-          <td>把 <code>.exc</code> 发给对方，放进 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code> 后安装。</td>
+          <td>把 <code>.aix</code> 发给对方，放进 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code> 后安装。</td>
           <td>手动试用、离线环境</td>
         </tr>
         <tr>
           <td>目录</td>
-          <td>直接把 <code>dist/</code> 拷到 <code>~/.aicraft/exc/&lt;id&gt;/</code>，无需打包。</td>
+          <td>直接把 <code>dist/</code> 拷到 <code>~/.aicraft/aix/&lt;id&gt;/</code>，无需打包。</td>
           <td>本地开发</td>
         </tr>
         <tr>
@@ -1737,7 +1742,7 @@ Content-Type: application/json
 
       <div class="warn">
         <b>安全提示：</b>安装器只做 sha256 完整性校验，没有签名与来源验证。不要把来源不明的
-        <code>.exc</code> 放进安装目录——它会在服务进程和桌面窗口里执行任意代码。
+        <code>.aix</code> 放进安装目录——它会在服务进程和桌面窗口里执行任意代码。
       </div>
 
       <h2 id="s4">4. API 参考</h2>
@@ -1808,7 +1813,7 @@ Content-Type: application/json
         <code>tags</code> 里的空串和重复项会被丢弃，最多保留 8 个、每个 30 字。<code>MemoryEntry</code> 的形状是
         <code>{ id, text, tags, createdAt, updatedAt }</code>，两个时间都是 ISO 字符串。
       </p>
-      <pre><span class="path">acme-plugin/server/main.ts</span><code>import { Plugin } from "@aicraft/plugin"
+      <pre><span class="path">acme-plugin/server/main.ts</span><code>import { Plugin } from "@aicraft/aix"
 
 export default Plugin.define({
   id: "acme.notes",
@@ -2557,9 +2562,9 @@ task.done()</code></pre>
       <h4>两个进程共享</h4>
       <ul>
         <li><code>effect</code></li>
-        <li><code>@aicraft/plugin/gui</code></li>
-        <li><code>@aicraft/plugin/gui/main</code></li>
-        <li><code>@aicraft/plugin/rpc</code></li>
+        <li><code>@aicraft/aix/gui</code></li>
+        <li><code>@aicraft/aix/gui/main</code></li>
+        <li><code>@aicraft/aix/rpc</code></li>
         <li><code>@aicraft/schema/rpc</code></li>
         <li><code>@aicraft/client</code></li>
         <li><code>@aicraft/client/effect</code></li>
@@ -2569,9 +2574,9 @@ task.done()</code></pre>
       <ul>
         <li><code>solid-js</code>、<code>solid-js/web</code>、<code>solid-js/store</code></li>
         <li><code>@aicraft/client/solid</code></li>
-        <li><code>@aicraft/plugin/gui/file</code></li>
-        <li><code>@aicraft/plugin/gui/review</code></li>
-        <li><code>@aicraft/plugin/gui/browser</code></li>
+        <li><code>@aicraft/aix/gui/file</code></li>
+        <li><code>@aicraft/aix/gui/review</code></li>
+        <li><code>@aicraft/aix/gui/browser</code></li>
       </ul>
 
       <p>构建时另可用 <code>electron</code> 与 Node 内置模块（只在主进程入口有效）。</p>
@@ -2885,12 +2890,12 @@ task.done()</code></pre>
       <h3 id="s4-16">4.16 RPC（服务端）</h3>
 
       <p>
-        <code>ctx.rpc</code> 是服务端侧的 <code>RpcDomain</code>：用 <code>@aicraft/plugin/rpc</code> 的
+        <code>ctx.rpc</code> 是服务端侧的 <code>RpcDomain</code>：用 <code>@aicraft/aix/rpc</code> 的
         <code>Rpc.define</code> 定义契约，走服务端的 RPC 端点，可以被其他插件与界面调用。
       </p>
 
       <h4>调用方</h4>
-      <pre><span class="path">契约</span><code>import { Rpc } from "@aicraft/plugin/rpc"
+      <pre><span class="path">契约</span><code>import { Rpc } from "@aicraft/aix/rpc"
 import { Schema } from "effect"
 
 export const Acme = Rpc.define({
@@ -2904,7 +2909,7 @@ export const Acme = Rpc.define({
 })</code></pre>
 
       <pre><span class="path">调用</span><code>const client = ctx.rpc(Acme)
-const { hits } = await client.search({ query: "exc" })
+const { hits } = await client.search({ query: "acme" })
 const stop = client.on("indexed", (data) =&gt; { ... })</code></pre>
 
       <h4>提供方</h4>
@@ -2951,7 +2956,7 @@ await registration.events.emit("indexed", { count: 3 })</code></pre>
       </table>
 
       <h4>Ipc 定义</h4>
-      <pre><span class="path">契约</span><code>import { Ipc } from "@aicraft/plugin/gui"
+      <pre><span class="path">契约</span><code>import { Ipc } from "@aicraft/aix/gui"
 import { Schema } from "effect"
 
 export const Pairing = Ipc.define({
@@ -3037,7 +3042,7 @@ ctx.inbox.onSeen((ids) =&gt; {                // 用户把本插件的消息标�
       </table>
 
       <h4>类型</h4>
-      <pre><span class="path">@aicraft/plugin</span><code>type InboxStatus = "pending" | "done" | "failed"
+      <pre><span class="path">@aicraft/aix</span><code>type InboxStatus = "pending" | "done" | "failed"
 
 type InboxMessage = {
   externalID: string        // 同插件内重复投递按更新处理
@@ -3207,7 +3212,7 @@ Content-Type: application/json
         导航区（侧边栏列表、过滤、搜索、未读点与排序）由宿主渲染，插件不能改。插件能自定义的是<b>单条消息的内容页</b>，
         而且只对自己的消息生效。
       </p>
-      <pre><span class="path">gui</span><code>import { InboxContent } from "@aicraft/plugin/gui"
+      <pre><span class="path">gui</span><code>import { InboxContent } from "@aicraft/aix/gui"
 
 ctx.add(InboxContent, {
   render: (record) =&gt; &lt;MailMessage id={record.id} payload={record.payload} /&gt;,
@@ -3284,9 +3289,9 @@ ctx.add(InboxContent, {
 
       <h3>5.4 热更新不生效</h3>
       <ol>
-        <li>确认覆盖的是 <code>~/.aicraft/exc/&lt;id&gt;/</code>，不是项目里的 <code>dist/</code>。</li>
+        <li>确认覆盖的是 <code>~/.aicraft/aix/&lt;id&gt;/</code>，不是项目里的 <code>dist/</code>。</li>
         <li>确认构建产物时间戳已更新。</li>
-        <li>手动触碰目录：<code>touch ~/.aicraft/exc/&lt;id&gt;</code>。</li>
+        <li>手动触碰目录：<code>touch ~/.aicraft/aix/&lt;id&gt;</code>。</li>
       </ol>
       <p>
         如果插件已经进入加载失败后的退避窗口，改文件不会立刻重试：见
@@ -3318,7 +3323,7 @@ ctx.add(InboxContent, {
         <tr><td>This bundle is damaged: &lt;path&gt; does not match its checksum.</td><td>打包后文件被改动，或校验和生成有误。重新打包。</td></tr>
         <tr><td>This bundle is &lt;id&gt;, not &lt;requested id&gt;.</td><td>清单 id 与安装请求不一致。</td></tr>
         <tr><td>This bundle is version X, not Y.</td><td>清单版本与请求版本不一致。</td></tr>
-        <tr><td>No &lt;id&gt; bundle was found in ...</td><td>没有放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>，或那里的文件不是 <code>.exc</code>。</td></tr>
+        <tr><td>No &lt;id&gt; bundle was found in ...</td><td>没有放到 <code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code>，或那里的文件不是 <code>.aix</code>。</td></tr>
         <tr><td>This plugin bundle has an invalid runtime: python must be a version constraint and dependencies a list of package specs.</td><td><code>runtime</code> 结构不对：<code>python</code> 必须是版本约束字符串，<code>dependencies</code> 必须是字符串数组。见 <a href="#s2-1">2.1</a>。</td></tr>
         <tr><td>Plugin entrypoint not found: &lt;target&gt;</td><td>解包目录缺少可用入口。先看 <code>METAINF</code> 的 <code>entry</code>，再确认对应文件按 <a href="#s2-0">2.0</a> 的扩展名顺序确实存在。</td></tr>
         <tr><td>A plugin's ./gui-experimental bundle must default-export a Plugin.define</td><td>界面入口没有默认导出 <code>Plugin.define</code>。</td></tr>
@@ -3331,7 +3336,7 @@ ctx.add(InboxContent, {
 
       <table>
         <tr><th>路径</th><th>作用</th></tr>
-        <tr><td><code>~/.aicraft/exc/&lt;id&gt;/</code></td><td>已安装插件；自动扫描、监听，放入即加载。</td></tr>
+        <tr><td><code>~/.aicraft/aix/&lt;id&gt;/</code></td><td>已安装插件；自动扫描、监听，放入即加载。</td></tr>
         <tr><td><code>~/.aicraft/plugin-data/&lt;id&gt;/</code></td><td>插件数据目录（<code>ctx.paths.data</code>），卸载后保留；<code>config.json</code> 也在这里。</td></tr>
         <tr><td><code>~/.aicraft/plugin-cache/&lt;id&gt;/</code></td><td>插件缓存目录（<code>ctx.paths.cache</code>），卸载时整个删除。Windows 上默认在 <code>D:\.aicraft\plugin-cache\&lt;id&gt;\</code>，见 <a href="#s2-1-dirs">2.1</a>。</td></tr>
         <tr><td><code>~/.aicraft/plugin-runtime/&lt;id&gt;/</code></td><td>Python 运行时环境（<a href="#s2-1">2.1</a>），id 里的 <code>/</code> 换成 <code>+</code>；卸载时删除，可按清单重建。Windows 上默认在 <code>D:\.aicraft\plugin-runtime\&lt;id&gt;\</code>。</td></tr>
@@ -3339,7 +3344,7 @@ ctx.add(InboxContent, {
         <tr><td><code>~/.aicraft/logs/plugin/&lt;id&gt;.log</code></td><td>插件日志（<code>ctx.paths.log</code>），卸载后保留。</td></tr>
         <tr><td><code>~/.aicraft/secrets.key</code></td><td>加密凭据的主密钥，首次使用生成，权限 <code>0600</code>。</td></tr>
         <tr><td><code>~/.aicraft/secrets/&lt;id&gt;.json</code></td><td>加密后的凭据密文，权限 <code>0600</code>。</td></tr>
-        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：每个版本只有一个 <code>&lt;id&gt;-&lt;version&gt;.exc</code>（清单在包内）；探索页从这里列出可安装版本。</td></tr>
+        <tr><td><code>~/.distribution/plugins/&lt;id&gt;/&lt;version&gt;/</code></td><td>本地发现目录：每个版本只有一个 <code>&lt;id&gt;-&lt;version&gt;.aix</code>（清单在包内）；探索页从这里列出可安装版本。</td></tr>
         <tr><td><code>&lt;project&gt;/.aicraft/plugins/</code></td><td>项目级插件目录。</td></tr>
         <tr><td><code>aicraft.json</code> 的 <code>plugins</code></td><td>显式声明插件包或本地目录。</td></tr>
         <tr><td><code>~/.config/aicraft/aicraft.json</code></td><td>全局配置，可写插件 options。</td></tr>
@@ -3494,9 +3499,9 @@ ctx.add(InboxContent, {
       </p>
 
       <p class="footer">
-        本文档描述 <code>.exc</code> 格式 <code>apiVersion 1</code>。实现依据：
+        本文档描述 <code>.aix</code> 格式 <code>apiVersion 1</code>。实现依据：
         <code>packages/core/src/plugin/{bundle,local,module}.ts</code>、
-        <code>packages/plugin/src/{host,gui/*,promise/*,effect/*}.ts</code>、
+        <code>packages/aix/src/{host,gui/*,promise/*,effect/*}.ts</code>、
         <code>packages/schema/src/{session-event,session-status-event,event-manifest}.ts</code>、
         <code>packages/client/src/shared-events.ts</code>、<code>packages/plugins/webwright</code>。
         <br />

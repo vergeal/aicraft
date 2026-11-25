@@ -19,7 +19,7 @@ import { permissionLayer } from "./lib/permission"
 import { toolIdentity, executeTool, registerToolPlugin, toolDefinitions } from "./lib/tool"
 import { webSearchHost } from "./plugin/host"
 import { TestWebSearch } from "./lib/websearch"
-import type { SessionContext } from "@aicraft/plugin/effect/session"
+import type { SessionContext } from "@aicraft/aix/effect/session"
 
 // The plugin's `context` hook, which edits the tools offered to the model.
 const contextHooks: ((event: SessionContext) => Effect.Effect<void>)[] = []

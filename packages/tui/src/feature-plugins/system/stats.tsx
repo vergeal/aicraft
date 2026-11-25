@@ -1,5 +1,5 @@
 import type { SessionStatsInfo } from "@aicraft/client"
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 import { activityCalendar } from "@aicraft/util/activity-calendar"
 import { TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"

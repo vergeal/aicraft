@@ -1,4 +1,4 @@
-import type { Plugin } from "@aicraft/plugin/tui"
+import type { Plugin } from "@aicraft/aix/tui"
 import type { SessionMessageAssistant, SessionMessageAssistantText } from "@aicraft/client"
 import { useTerminalDimensions } from "@opentui/solid"
 import { createSignal } from "solid-js"

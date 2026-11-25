@@ -1,7 +1,7 @@
 export * as PluginInternal from "./internal.js"
 
 import { LLMClient } from "@aicraft/ai/effect"
-import type { Plugin } from "@aicraft/plugin/effect/plugin"
+import type { Plugin } from "@aicraft/aix/effect/plugin"
 import { LayerNode } from "@aicraft/util/effect/layer-node"
 import type { Generation } from "./service.js"
 import { httpClient, httpFetch } from "@aicraft/util/effect/app-node-platform"

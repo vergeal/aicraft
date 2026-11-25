@@ -1,6 +1,6 @@
 export * as ConfigSnapshotPlugin from "./snapshot.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect } from "effect"
 import { Config } from "../../config.js"
 import { Snapshot } from "../../snapshot.js"

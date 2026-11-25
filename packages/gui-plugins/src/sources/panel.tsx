@@ -2,9 +2,9 @@ import { createMemo } from "solid-js"
 import { turnMessages, turnSources } from "@aicraft/session-ui/sources"
 import { sourcesExperiment } from "@aicraft/session-ui/sources/experiment"
 import { SourcesPanel } from "@aicraft/session-ui/sources/panel"
-import { usePlugin, type MountedSession } from "@aicraft/plugin/gui"
+import { usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import type Sources from "./index"
-import { Browser } from "@aicraft/plugin/gui/browser"
+import { Browser } from "@aicraft/aix/gui/browser"
 
 export default function SourcesTab(props: { session: MountedSession; from: string }) {
   const ctx = usePlugin<typeof Sources>()

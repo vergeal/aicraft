@@ -1,5 +1,5 @@
 import { Predicate } from "effect"
-import type { Bridge, BridgeMessage } from "@aicraft/plugin/gui/host"
+import type { Bridge, BridgeMessage } from "@aicraft/aix/gui/host"
 import type { PluginFailure } from "../shared/ipc-rpc/plugins"
 import { api } from "./api"
 import { cancellable, invoke, listen, send } from "./ipc-client"

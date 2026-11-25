@@ -3,7 +3,7 @@ import { SessionReviewEmptyChangesV2 } from "@aicraft/session-ui/v2/session-revi
 import { SessionReviewEmptyNoGitV2 } from "@aicraft/session-ui/v2/session-review-empty-no-git-v2"
 import { Button } from "@aicraft/ui/button"
 import { Select } from "@aicraft/ui/select"
-import { usePlugin } from "@aicraft/plugin/gui"
+import { usePlugin } from "@aicraft/aix/gui"
 import type Review from "./index"
 import type { ChangeMode, ReviewModel } from "./model"
 

@@ -11,7 +11,7 @@ called by other plugins or clients.
 Use `Rpc.define` to list the RPC's methods, errors, and events.
 
 ```ts title="src/rpc.ts"
-import { Rpc } from "@aicraft/plugin/rpc"
+import { Rpc } from "@aicraft/aix/rpc"
 
 export const Acme = Rpc.define({
   id: "acme",
@@ -130,7 +130,7 @@ Scalars, arrays, `null`, and `undefined` are not valid event data.
 Register the implementation inside `setup`:
 
 ```ts title="src/index.ts"
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 import { Acme } from "./rpc.js"
 
 export default Plugin.define({
@@ -187,7 +187,7 @@ Plugins already have an AI Craft client. For example, a TUI plugin can create
 the same RPC subclient from `context.client`:
 
 ```ts title="src/tui.ts"
-import { Plugin } from "@aicraft/plugin/tui"
+import { Plugin } from "@aicraft/aix/tui"
 import { Acme } from "aicraft-acme-plugin/rpc"
 
 export default Plugin.define({
@@ -203,7 +203,7 @@ export default Plugin.define({
 A [GUI plugin](/build/plugins/gui) reads the client of the desktop app's own server from `ctx.client`:
 
 ```tsx title="src/gui.tsx"
-import { Command, Plugin } from "@aicraft/plugin/gui"
+import { Command, Plugin } from "@aicraft/aix/gui"
 import { Acme } from "aicraft-acme-plugin/rpc"
 
 export default Plugin.define({

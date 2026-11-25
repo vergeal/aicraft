@@ -2,7 +2,7 @@ import { batch, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { showToast } from "@aicraft/ui/toast"
 import { uuid } from "@aicraft/util/uuid"
-import type { MountedSession, SetupContext } from "@aicraft/plugin/gui"
+import type { MountedSession, SetupContext } from "@aicraft/aix/gui"
 import type Btw from "./index"
 
 const instructions = [

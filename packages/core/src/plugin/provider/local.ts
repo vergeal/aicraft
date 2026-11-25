@@ -1,4 +1,4 @@
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import type { Entry } from "@aicraft/schema/config"
 import { Duration, Effect, Option, Schedule, type Schema, Semaphore, Stream } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"

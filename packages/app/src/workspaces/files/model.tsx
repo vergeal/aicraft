@@ -1,6 +1,6 @@
 import { batch, createComputed, createEffect, createMemo, on, onCleanup, untrack } from "solid-js"
 import { createStore, produce, reconcile, unwrap } from "solid-js/store"
-import type { FileContent } from "@aicraft/plugin/gui"
+import type { FileContent } from "@aicraft/aix/gui"
 import { abort } from "@aicraft/util/abort"
 import { isFileNotFoundError } from "@aicraft/client/promise"
 import { createSimpleContext } from "@aicraft/ui/context"

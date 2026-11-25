@@ -4,7 +4,7 @@ export { Event, GuiBundle, ID, Info, Source, State } from "@aicraft/schema/plugi
 import { mkdir, readFile, rm } from "node:fs/promises"
 import path from "node:path"
 import { Global } from "@aicraft/util/global"
-import { PluginPaths } from "./plugin/paths.js"
+import { PluginPaths } from "@aicraft/aix/paths"
 import { fileURLToPath } from "node:url"
 import { Plugin } from "@aicraft/schema/plugin"
 import { Node } from "@aicraft/util/effect/app-node"

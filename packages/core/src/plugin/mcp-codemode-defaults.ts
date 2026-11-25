@@ -1,6 +1,6 @@
 export * as McpCodeModeDefaultsPlugin from "./mcp-codemode-defaults.js"
 
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Effect } from "effect"
 
 // Defaults that make known MCP servers work well with AI Craft Code Mode, so a server's own Code Mode never ends up

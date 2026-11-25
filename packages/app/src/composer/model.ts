@@ -1,7 +1,7 @@
 import { ImagePreview } from "@aicraft/ui/image-preview"
 import { useDialog } from "@aicraft/ui/context/dialog"
 import type { ReferenceInfo } from "@aicraft/client/promise"
-import type { Links, MountedSession } from "@aicraft/plugin/gui"
+import type { Links, MountedSession } from "@aicraft/aix/gui"
 import { createComponent, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { Predicate } from "effect"
 import type { ComposerSuggestion } from "./types"

@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { define } from "@aicraft/aix/effect/plugin"
 
 // Chat-completions `prompt_cache_key` body support for catalog providers
 // without a dedicated AI package. Audited per provider (docs + OpenAPI +

@@ -1,4 +1,4 @@
-import { Plugin } from "@aicraft/plugin"
+import { Plugin } from "@aicraft/aix"
 
 export default Plugin.define({
   id: "greeting",

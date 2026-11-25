@@ -1177,7 +1177,7 @@ export const dict = {
   "explore.plugins.empty.description": "Plugins add tools, commands, and interface to AI Craft",
   "explore.plugins.install.manual": "Plugins are configured in aicraft.json or added to a plugin folder",
   "explore.plugins.install.bundle.note":
-    "Installing takes the bundle from the local discover folder and unpacks it into ~/.aicraft/exc",
+    "Installing takes the bundle from the local discover folder and unpacks it into ~/.aicraft/aix",
   "explore.plugins.source.builtin": "Built-in",
   "explore.plugins.source.package": "Package",
   "explore.plugins.source.local": "Local",

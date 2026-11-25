@@ -1,5 +1,5 @@
 import { expect, sourceURL, story } from "../../stories/playwright/story"
-import type { Entry } from "@aicraft/plugin/gui/host"
+import type { Entry } from "@aicraft/aix/gui/host"
 
 const source = (path: string) => sourceURL(new URL(path, import.meta.url))
 

@@ -1,6 +1,6 @@
 export * as BrowserSkill from "./skill.js"
 
-import { SkillPackage } from "@aicraft/plugin/skill-package"
+import { SkillPackage } from "@aicraft/aix/skill-package"
 import { Skill } from "@aicraft/schema/skill"
 import { Browser } from "./rpc.js"
 

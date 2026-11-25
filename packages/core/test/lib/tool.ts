@@ -5,7 +5,7 @@ import { SessionMessage } from "@aicraft/core/session/message"
 import { toSessionError } from "@aicraft/core/session/to-session-error"
 import type { SessionError } from "@aicraft/schema/session-error"
 import { Tool } from "@aicraft/core/tool"
-import type { Context } from "@aicraft/plugin/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import { Effect, type Scope } from "effect"
 import { host } from "../plugin/host"
 

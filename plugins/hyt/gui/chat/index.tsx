@@ -1,5 +1,5 @@
-import { MainSurface, Style } from "@aicraft/plugin/gui"
-import type { Context } from "@aicraft/plugin/gui"
+import { MainSurface, Style } from "@aicraft/aix/gui"
+import type { Context } from "@aicraft/aix/gui"
 import { Schema } from "effect"
 import { createSignal } from "solid-js"
 import { ChatIpc } from "./contract.js"

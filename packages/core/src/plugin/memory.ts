@@ -1,7 +1,7 @@
 export * as MemoryPlugin from "./memory.js"
 
-import { SkillPackage } from "@aicraft/plugin/skill-package"
-import { define } from "@aicraft/plugin/effect/plugin"
+import { SkillPackage } from "@aicraft/aix/skill-package"
+import { define } from "@aicraft/aix/effect/plugin"
 import { Memory as MemorySchema } from "@aicraft/schema/memory"
 import { Session } from "@aicraft/schema/session"
 import { Skill } from "@aicraft/schema/skill"

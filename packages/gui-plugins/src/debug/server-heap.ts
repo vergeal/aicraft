@@ -1,7 +1,7 @@
 import { ClientError, Aicraft } from "@aicraft/client/promise"
 import { Predicate } from "effect"
 import path from "node:path"
-import type { ServerEndpoint } from "@aicraft/plugin/gui/main"
+import type { ServerEndpoint } from "@aicraft/aix/gui/main"
 
 type Memory = Readonly<Record<"rss" | "heapTotal" | "heapUsed" | "external" | "arrayBuffers", number>>
 

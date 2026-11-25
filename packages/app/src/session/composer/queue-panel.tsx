@@ -18,8 +18,9 @@ import "./queue-panel.css"
 type QueueRow = ReturnType<SessionQueueView["rows"]>[number]
 
 // Pullout above the composer listing the prompts queued behind the current
-// turn. The panel slides under the composer card (negative margin, opaque
-// composer background) so the two read as one attached surface.
+// turn. The panel is a sheet parked behind the input: narrower than the
+// composer card, one fill step deeper, and its bottom tucks under it so the
+// two stay attached.
 export function SessionQueuePanel(props: { queue: SessionQueueView; hidden?: boolean }) {
   const language = useLanguage()
   // A removed prompt stays drawn in its slot while it closes; the last prompts stay while the emptied panel closes.
@@ -83,10 +84,13 @@ export function SessionQueuePanel(props: { queue: SessionQueueView; hidden?: boo
 
   return (
     <Grow when={open()} fade class="relative z-0" onClosed={() => setShown(props.queue.rows())}>
+      {/* A sheet parked behind the input: one step narrower than the composer on both sides, one step deeper in fill,
+          and its own card corner instead of the composer's, so the two read as stacked surfaces rather than one capsule.
+          The bottom still tucks under the composer card so the pair stays attached. */}
       <div
         data-component="session-queue-panel"
         inert={!open()}
-        class="relative z-0 -mb-3 rounded-[12px] bg-v2-background-bg-base px-1.5 pt-2 pb-3 shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]"
+        class="relative z-0 -mb-3 mx-4 rounded-[12px] bg-v2-background-bg-layer-01 px-1.5 pt-2 pb-3 shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)]"
       >
         <Grow when={count() > 3} fade>
           <div

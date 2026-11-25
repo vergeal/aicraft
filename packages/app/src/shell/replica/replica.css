@@ -961,8 +961,7 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
 
 @media (prefers-reduced-motion: reduce) {
   [data-replica] [data-ui="composer"],
-  [data-replica] [data-slot="replica-compose-card"],
-  [data-replica] [data-component="session-queue-panel"] {
+  [data-replica] [data-slot="replica-compose-card"] {
     transition: none;
   }
 }
@@ -993,21 +992,8 @@ html[data-os="macos"] [data-slot="replica-titlebar-side"][data-collapsed] + [dat
   background: var(--replica-composer-fill);
 }
 
-/* The queue tray is the top of the composer card rather than a second card behind it: it takes the card's fill, its
-   corners and its hairline, so the two read as one surface with a single drop shadow under the input. */
-[data-replica] [data-component="session-queue-panel"] {
-  background: var(--replica-composer-fill);
-  border-radius: var(--radius-composer);
-  box-shadow: var(--shadow-composer-edge);
-  transition: border-radius 160ms ease;
-}
-
-/* A single-line composer is a capsule, so the tray above it takes the capsule's corners too. */
-[data-replica]
-  [data-component="session-composer-dock"]:has([data-component="composer-editor"][data-lines="single"])
-  [data-component="session-queue-panel"] {
-  border-radius: var(--radius-composer-single-line);
-}
+/* The queue sheet is not the top of the composer card: it keeps its own 12px corner, its deeper fill and its 16px
+   inset on both sides from the shared panel, so only the composer carries the capsule shape. */
 
 /* The model chip is a quiet label, not a form control: no blue focus ring when it opens its menu. */
 [data-replica] [data-action="composer-model"]:is(:focus-visible, [data-state="focus"]) {

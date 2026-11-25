@@ -160,6 +160,35 @@ describe("answer projection", () => {
     expect(stretched).toEqual([["msg_2"], ["msg_4", "msg_4"]])
   })
 
+  // What the reader reported: the run took a steered prompt up with work before it said anything, and that work
+  // stayed in the stretch above the bubble until the step's first words landed.
+  test("a steered prompt splits work that has no reply text yet", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("progress"), tool("tool_1")], 5),
+      user("msg_3", "steer", 6),
+      assistant("msg_4", 7, [tool("tool_2")], 8),
+    ])
+
+    const stretched = (from: number) =>
+      snapshot.entries.slice(from).flatMap((entry) =>
+        entry.kind === "fold"
+          ? entry.children.flatMap((child) =>
+              child.kind === "node"
+                ? [snapshot.nodes.get(child.key)?.messageID]
+                : (snapshot.groups.get(child.key)?.members ?? []).map((key) => snapshot.nodes.get(key)?.messageID),
+            )
+          : [],
+      )
+
+    const steer = snapshot.entries.findIndex((entry) => entry.kind === "node" && entry.key === "input:msg_3")
+
+    // The step the prompt set off belongs below it, and the stretch above keeps only the work before it.
+    expect(steer).toBeGreaterThanOrEqual(0)
+    expect(stretched(steer + 1)).toEqual(["msg_4"])
+    expect(stretched(0).slice(0, -1)).toContain("msg_2")
+  })
+
   test("an interrupted turn still settles on its last text, footer and all", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),

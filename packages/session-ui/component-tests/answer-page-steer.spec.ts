@@ -26,6 +26,19 @@ story("a steered run in progress offers no reply footer at all", async ({ mount 
   await expect(stretches(root)).resolves.toEqual([["msg_steer_step"], ["msg_steer_answer"]])
 })
 
+// What the reader reported: the run had taken the prompt up with work, but the work kept reading as the task
+// before the prompt until the step's first words landed.
+story("a steered prompt splits work that has no reply text yet", async ({ mount }) => {
+  const root = await mount("answer-page--steer-work")
+
+  await expect(root.locator('[data-slot="user-message-body"]')).toHaveCount(2)
+  // Nothing has answered the prompt in words yet, so no reply offers copy / fork / model.
+  await expect(root.locator('[data-slot="answer-reply-footer"]')).toHaveCount(0)
+
+  // The step the prompt set off lies in the stretch below it, not above it.
+  await expect(stretches(root)).resolves.toEqual([["msg_steer_step"], ["msg_steer_work"]])
+})
+
 story("a run stopped inside a tool call names no closing reply", async ({ mount }) => {
   const root = await mount("answer-page--stopped-mid-tool")
 

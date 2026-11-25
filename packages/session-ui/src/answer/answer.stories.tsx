@@ -241,6 +241,31 @@ export const SteerRunning = {
   ),
 }
 
+// What the reader reported: the run took the steered prompt up with work before it said anything about it.
+const steerWork: SessionMessageInfo[] = [
+  { id: "msg_user_steer", type: "user", text: "把投影的 turn 边界改成 idle 标记。", time: { created: TIME } },
+  assistant(
+    "msg_steer_step",
+    [{ type: "text", text: "先看当前的切分逻辑。" }, tool("tool_steer", "grep", { pattern: "drafts" }, "completed")],
+    TIME + 1_000,
+    TIME + 3_000,
+  ),
+  { id: "msg_user_steer_2", type: "user", text: "顺便补一条回归测试。", time: { created: TIME + 4_000 } },
+  assistant(
+    "msg_steer_work",
+    [reasoning("按新的边界写回归。"), tool("tool_steer_test", "edit", { filePath: "project.test.ts" }, "completed")],
+    TIME + 5_000,
+  ),
+]
+
+export const SteerWork = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => steerWork} />
+    </div>
+  ),
+}
+
 // A pending retry keeps the provider's reason behind a button instead of trailing it on the row.
 const retrying: SessionMessageInfo[] = [
   { id: "msg_user_retry", type: "user", text: "再跑一次。", time: { created: TIME } },

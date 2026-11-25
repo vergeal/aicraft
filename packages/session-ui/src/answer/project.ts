@@ -695,10 +695,12 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     // One fold per stretch of work, each steered prompt dropped between the stretch it interrupted and the stretch
     // that answers it. A prompt the run has not taken up yet splits nothing: no work has come from it, so it stays
     // past the streaming reply, below everything the run has done so far.
+    // The run takes a prompt up as soon as a row of its own follows it, reply text or not: waiting for the first
+    // words would leave the work it set off reading as the task before the prompt.
     const steers = inputs.slice(1)
-    const atAnswer = answer === undefined ? draft.nodes.length : draft.nodes.indexOf(answer)
-    const taken = steers.filter((steer) => draft.nodes.indexOf(steer) < atAnswer)
-    const waiting = steers.filter((steer) => draft.nodes.indexOf(steer) >= atAnswer)
+    const lastWork = draft.nodes.findLastIndex((node) => node.payload.kind !== "input")
+    const taken = steers.filter((steer) => draft.nodes.indexOf(steer) < lastWork)
+    const waiting = steers.filter((steer) => draft.nodes.indexOf(steer) >= lastWork)
     let laid = 0
 
     for (const steer of taken) {

@@ -319,6 +319,61 @@ describe("answer projection", () => {
     expect(afterFinal.turns.get(1)?.status).toBe("open")
   })
 
+  // The idle marker closes a busy period, not the turn: a doorbell successor (a background job settling,
+  // a subagent report, a moved or compacted continuation) keeps working with no input row in between.
+  test("a successor step after the idle marker reopens the turn", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 5),
+      { id: "msg_idle_1", type: "idle", outcome: "succeeded", time: { created: 6 } } satisfies SessionMessageInfo,
+      assistant("msg_3", 7, [tool("tool_1")]),
+    ])
+
+    expect(snapshot.turns.size).toBe(1)
+    expect(snapshot.turns.get(1)?.status).toBe("open")
+  })
+
+  test("the successor's own marker closes the turn again", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 5),
+      { id: "msg_idle_1", type: "idle", outcome: "succeeded", time: { created: 6 } } satisfies SessionMessageInfo,
+      assistant("msg_3", 7, [text("follow-up")], 9),
+      { id: "msg_idle_2", type: "idle", outcome: "succeeded", time: { created: 10 } } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.turns.size).toBe(1)
+    expect(snapshot.turns.get(1)?.status).toBe("closed")
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_3:0")
+  })
+
+  test("an execution-level failed marker reads as a failed turn", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [tool("tool_1")], 5),
+      {
+        id: "msg_idle",
+        type: "idle",
+        outcome: "failed",
+        error: { type: "exhausted", message: "Execution was interrupted repeatedly and will not be resumed." },
+        time: { created: 6 },
+      } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.turns.get(1)?.status).toBe("failed")
+    expect(snapshot.nodes.get("error:msg_idle")?.payload.kind).toBe("error")
+  })
+
+  test("an interrupted marker with no step error reads as stopped", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("cut short")], 5),
+      { id: "msg_idle", type: "idle", outcome: "interrupted", time: { created: 6 } } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.turns.get(1)?.status).toBe("stopped")
+  })
+
   test("splits one message into a group per thought and summary", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),

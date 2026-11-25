@@ -90,6 +90,24 @@ export type CreateDataInput = {
 }
 
 const messagePageLimit = 20
+
+// The server's list cursor is a base64url JSON boundary ({ id, order, direction }, see the server message
+// handler's cursor.encode): "previous" fetches the page before the id, always excluding the anchor itself.
+function encodeListCursor(messageID: string, order: "asc" | "desc", direction: "previous" | "next") {
+  const bytes = new TextEncoder().encode(JSON.stringify({ id: messageID, order, direction }))
+  let binary = ""
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+}
+
+// A page fetched around a remembered row joins the transcript at its own place: message IDs are time-ordered,
+// so the merge sorts instead of assuming the page lands below (or above) everything already loaded.
+function mergeAround(existing: SessionMessageInfo[], fetched: SessionMessageInfo[]) {
+  const ids = new Set(existing.map((item) => item.id))
+  const fresh = fetched.filter((item) => !ids.has(item.id))
+  if (fresh.length === 0) return existing
+  return [...existing, ...fresh].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+}
 // Trailing window for event bursts that each ask for the same refetch.
 export const settleMs = 150
 
@@ -1872,6 +1890,8 @@ export function createData(config: CreateDataInput) {
           options?: {
             all?: boolean
             signal?: AbortSignal
+            /** Rows per read for the serial history walk; defaults to the standard page. */
+            limit?: number
             /** Runs synchronously inside the store-publication batch. */
             beforePublish?: () => void
           },
@@ -1903,7 +1923,7 @@ export function createData(config: CreateDataInput) {
               const response = await api().message.list(
                 {
                   sessionID,
-                  limit: options?.all ? 200 : messagePageLimit,
+                  limit: options?.all ? 200 : (options?.limit ?? messagePageLimit),
                   cursor: next,
                 },
                 { signal },
@@ -1931,6 +1951,59 @@ export function createData(config: CreateDataInput) {
             .finally(() => setStore("session", "messageLoading", sessionID, false))
           track(messageLoads, sessionID, request)
           await request
+        },
+        // Fetches the transcript window around a remembered row so an activation can land on it without a jump.
+        // The result tells the host what it may settle on: "loaded" means the row is in the store now, "head"
+        // means the row opens the transcript (the landing is the top), "missing" means the server no longer has
+        // it (the landing is the newest content). Other request failures throw: the page's watchdog then judges
+        // the miss, so a hung fetch cannot strand the gate.
+        async loadAround(
+          sessionID: string,
+          messageID: string,
+          options?: { signal?: AbortSignal },
+        ): Promise<"loaded" | "head" | "missing" | "aborted"> {
+          const signal = options?.signal
+          if (signal?.aborted) return "aborted"
+          if ((store.session.message[sessionID] ?? []).some((item) => item.id === messageID)) return "loaded"
+          while (messageLoads.has(sessionID)) {
+            const pending = messageLoads.get(sessionID)
+            if (!signal) await pending?.catch(() => {})
+            else {
+              const aborted = Promise.withResolvers<void>()
+              const cancel = () => aborted.resolve()
+              signal.addEventListener("abort", cancel, { once: true })
+              await Promise.race([pending, aborted.promise]).catch(() => {})
+              signal.removeEventListener("abort", cancel)
+            }
+            if (signal?.aborted) return "aborted"
+          }
+          setStore("session", "messageLoading", sessionID, true)
+          const request = (async (): Promise<"loaded" | "head" | "missing" | "aborted"> => {
+            const anchor = await api()
+              .session.message.get({ sessionID, messageID }, { signal })
+              .catch((error) => {
+                if (isMessageNotFoundError(error)) return undefined
+                throw error
+              })
+            if (signal?.aborted) return "aborted"
+            if (!anchor) return "missing"
+            const page = await api()
+              .message.list(
+                { sessionID, limit: messagePageLimit, cursor: encodeListCursor(messageID, "asc", "previous") },
+                { signal },
+              )
+              .catch(evictMissing)
+            if (signal?.aborted) return "aborted"
+            const messages = mergeAround(store.session.message[sessionID] ?? [], [...page.data.map(stored), stored(anchor)])
+            batch(() => {
+              messageIndex.set(sessionID, new Map(messages.map((item, position) => [item.id, position])))
+              setStore("session", "message", sessionID, reconcile(messages))
+            })
+            // An empty page before an existing anchor means the remembered row opens the transcript.
+            return page.data.length === 0 ? "head" : "loaded"
+          })().finally(() => setStore("session", "messageLoading", sessionID, false))
+          track(messageLoads, sessionID, request)
+          return request
         },
         invalidate(sessionID: string) {
           sync.invalidate(`session.message:${sessionID}`)

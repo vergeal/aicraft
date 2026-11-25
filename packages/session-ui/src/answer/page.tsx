@@ -107,6 +107,28 @@ export interface AnswerPageProps {
    * top of the transcript.
    */
   readonly onRestoreMiss?: () => void
+  /**
+   * The host's restore gate is up and owns the visible offset. While a gate may still be opening, a page-in must
+   * not place the remembered row: that write would paint before the activation hides it and read as a jump.
+   */
+  readonly restorePending?: () => boolean
+  /**
+   * The host is fetching the page that holds the remembered row: the miss watchdog waits for that result instead of
+   * judging the row lost while an anchor request is still in flight.
+   */
+  readonly restoreSeeking?: () => boolean
+  /**
+   * Bumped by the host on every content-height change while this activation still owes its placement: the offset
+   * the transcript cannot reach is a not-yet, and the attempt re-measures with the growth under the host's gate.
+   */
+  readonly restoreTick?: () => number
+  /**
+   * The host has already decided this activation's landing (miss settled, first row, or a placement that revealed).
+   * The page must not place the remembered row anymore, so a late-arriving row cannot move a revealed view.
+   */
+  readonly restoreSettled?: () => boolean
+  /** The remembered row was placed and measured; the host lifts the restore gate once heights stop moving. */
+  readonly onRestorePlaced?: () => void
   /** Reports the row under the top edge, so the host can remember where the reader stopped. */
   readonly onPositionChange?: (position: { readonly key: string; readonly offset: number }) => void
   /**
@@ -549,15 +571,22 @@ export function AnswerPage(props: AnswerPageProps) {
   // One scroll per attempt: it brings the remembered row into reach, and the retry after it places the row exactly.
   let restoreScrolled = false
   const [restoreState, setRestoreState] = createSignal<RestoreState>(createRestoreState())
-  // How long a restore waits for the transcript to page in the remembered row before it gives up and lands at the
-  // end. The first page of a session is smaller than the transcript, so a row the reader left is routinely absent on
-  // the activation frame; treating that as a miss dropped them at the newest content and then left them there.
+  // How long a restore waits for the transcript to hold the remembered row before it gives up and lands at the end.
+  // The host fetches the row's page on activation, so this is now a watchdog for a hung fetch rather than the judge of
+  // the miss; while a fetch is still in flight the check defers by one poll (see `decideMiss`).
   const RESTORE_LOAD_MS = 1500
+  // The transcript grows under a pending attempt (async row render, a folding turn). The miss decides once the
+  // height has been quiet this long, re-armed by every content tick, still bounded by the hung-fetch watchdog.
+  const RESTORE_QUIET_MS = 350
+  // The poll the miss check uses while the host's anchor request is still in flight.
+  const RESTORE_SEEK_POLL_MS = 250
   let missTimer: ReturnType<typeof setTimeout> | undefined
+  let missDue: number | undefined
 
   const cancelMiss = () => {
     if (missTimer !== undefined) clearTimeout(missTimer)
     missTimer = undefined
+    missDue = undefined
   }
 
   const dispatchRestore = (event: RestoreEvent) => {
@@ -595,6 +624,9 @@ export function AnswerPage(props: AnswerPageProps) {
 
     if (restoreState() !== "idle") return
 
+    // The host settled this activation's landing without a row placement; writing now would jump a revealed view.
+    if (props.restoreSettled?.()) return
+
     const target = pendingRestore
 
     if (!target) {
@@ -605,6 +637,10 @@ export function AnswerPage(props: AnswerPageProps) {
 
       return
     }
+
+    // Gate ownership: until the host raises its gate this activation's landing has no cover, so writing the row's
+    // offset here would be a visible jump the placement then moves again. The pending effect retries on gate-up.
+    if (props.restorePending && !props.restorePending()) return
 
     // Every row renders its real content, so a row that exists already has its final box. An offset the current height
     // cannot reach means the transcript is still missing height (a folded row, an older page), so scroll to the row's
@@ -620,9 +656,10 @@ export function AnswerPage(props: AnswerPageProps) {
       const next = Math.min(Math.max(wanted, 0), Math.max(0, root.scrollHeight - root.clientHeight))
 
       if (Math.abs(next - root.scrollTop) > 1) root.scrollTop = next
-      requestAnimationFrame(() => {
+      // Timer rather than rAF: a backgrounded window freezes rAF and strands the attempt mid-placement.
+      setTimeout(() => {
         if (restoreState() === "idle") attemptRestore()
-      })
+      }, 16)
 
       return
     }
@@ -631,16 +668,19 @@ export function AnswerPage(props: AnswerPageProps) {
     // both wait for the transcript to grow enough. Writing the clamped offset instead would record the top of the
     // shortened transcript as the reader's place, so every later activation opened at the first row.
     if (!placed?.reachable) {
-      missTimer ??= setTimeout(() => {
+      // Decide the miss on a quiet height, not on a fixed sleep: the first unreachable schedules the hung-fetch
+      // watchdog, and every content tick re-arms it to a short quiet window, so a transcript that settles lands
+      // early while one that never arrives stays bounded by the watchdog.
+      const now = performance.now()
+      const due = missDue === undefined ? now + RESTORE_LOAD_MS : Math.min(missDue, now + RESTORE_QUIET_MS)
+
+      missDue = due
+      if (missTimer !== undefined) clearTimeout(missTimer)
+      missTimer = setTimeout(() => {
         missTimer = undefined
-
-        if (restoreState() !== "idle") return
-        const current = props.viewport?.()
-
-        if (current && placement(current, target)?.reachable) return attemptRestore()
-
-        dispatchRestore({ type: "miss" })
-      }, RESTORE_LOAD_MS)
+        missDue = undefined
+        decideMiss(target)
+      }, Math.max(0, due - now))
 
       return
     }
@@ -651,7 +691,44 @@ export function AnswerPage(props: AnswerPageProps) {
 
     // Record the row the reader was put back on, so the next activation restores the same place.
     props.onPositionChange?.(target)
+    props.onRestorePlaced?.()
   }
+
+  // The deadline only judges while nobody is fetching: the host's anchor request can still land the row, so the
+  // check defers by one poll until it clears. Reaching the end of a fetch without a row is the real miss.
+  function decideMiss(target: { key: string; offset: number }) {
+    if (restoreState() !== "idle" || props.restoreSettled?.()) return
+
+    if (props.restoreSeeking?.()) {
+      missTimer = setTimeout(() => {
+        missTimer = undefined
+        decideMiss(target)
+      }, RESTORE_SEEK_POLL_MS)
+
+      return
+    }
+
+    const current = props.viewport?.()
+
+    if (current && placement(current, target)?.reachable) return attemptRestore()
+
+    dispatchRestore({ type: "miss" })
+  }
+
+  // Height under a pending restore is still moving (async row render, a finished turn folding): re-measure with it.
+  // The host bumps the tick on every content resize while its gate hides the transcript, so an offset that becomes
+  // reachable lands in the same activation instead of idling on the miss watchdog.
+  createEffect(
+    on(
+      () => props.restoreTick?.() ?? 0,
+      (tick) => {
+        if (tick === 0) return
+
+        if (restoreState() !== "idle" || !pendingRestore || props.restoreSettled?.()) return
+        untrack(attemptRestore)
+      },
+    ),
+  )
 
   createRenderEffect(
     on(
@@ -714,6 +791,12 @@ export function AnswerPage(props: AnswerPageProps) {
   createEffect(() => {
     keys()
     untrack(attemptRestore)
+  })
+
+  // The host raising its gate is another reason to retry: the activation pass may have run before the gate existed
+  // and been skipped by the ownership guard in `attemptRestore`.
+  createEffect(() => {
+    if (props.restorePending?.()) untrack(attemptRestore)
   })
 
   createEffect(() => {

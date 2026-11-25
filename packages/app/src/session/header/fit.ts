@@ -80,7 +80,7 @@ export function createSessionHeaderFit() {
       })
     }
 
-    const resize = new ResizeObserver(fit)
+    const resize = new ResizeObserver(queueFit)
 
     const observe = () => {
       resize.disconnect()
@@ -93,8 +93,32 @@ export function createSessionHeaderFit() {
       fit()
     }
 
+    // Header churn (conditional controls mounting, a switch reinserting the whole subtree) reports many mutation
+    // batches in a row; a full fit costs several synchronous layout reads, so one coalesced pass per task is enough.
+    let fitQueued = false
+
+    function queueFit() {
+      if (fitQueued) return
+      fitQueued = true
+      queueMicrotask(() => {
+        fitQueued = false
+        fit()
+      })
+    }
+
+    let observeQueued = false
+
+    function queueObserve() {
+      if (observeQueued) return
+      observeQueued = true
+      queueMicrotask(() => {
+        observeQueued = false
+        observe()
+      })
+    }
+
     // Conditional controls and the rename field can mount without resizing the container itself.
-    const mutation = new MutationObserver(observe)
+    const mutation = new MutationObserver(queueObserve)
     mutation.observe(root, { childList: true, subtree: true })
     observe()
     onCleanup(() => {

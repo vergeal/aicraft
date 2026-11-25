@@ -7,17 +7,45 @@ import type { SessionUserActions } from "@aicraft/session-ui/actions"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePluginHost } from "@/runtime/plugin/host"
 import { usePluginAttachment } from "@/runtime/plugin/host-apis"
+import { useData } from "@/runtime/server/current"
 import { revealInTimeline } from "./answer-reveal"
 import type { TimelineFollow } from "./follow"
 import { END_EPSILON, MIN_OVERFLOW, ZOOM_SLACK, needsEndProbe } from "./machine"
-import { probeLanding } from "./landing-probe"
 import { readPosition, writePosition, type SavedPosition } from "./position"
 
 const SAVE_DELAY = 200
 
+// The remembered row's key carries its message id; the anchor page is fetched by that id.
+const anchorMessageID = (key: string) => key.match(/msg_[0-9A-Za-z]+/)?.[0]
+
 // A scroll has come to rest once no new offset arrives for this long. The follow machine only probes a zoomed end
 // from a settled scroll, so this is the timer that lets a detached view resume following by reaching the end.
 const SCROLL_SETTLE_DELAY = 120
+
+// Rows still settle after a placement lands (markdown, fold metrics); reveal only once the height stops moving.
+const RESTORE_SETTLE_MS = 60
+
+// The fade that carries the rows back in when the restore gate lifts.
+const RESTORE_REVEAL_MS = 200
+
+// The gate's final write needs two paint frames before the reveal. Timers, not rAF: a hidden window freezes rAF and
+// would strand the gate; two timer frames cover the same write-then-paint order when the window is visible.
+const RESTORE_GATE_FRAME_MS = 16
+
+// A stream that never rests must not strand the gate: this watchdog settles the attempt whatever else is pending.
+const RESTORE_HARD_MS = 3000
+
+// A hot session places from rows already in the transcript, so the reveal waits only one render frame instead of
+// the settle window: the activation must read as instant, not as a load.
+const RESTORE_LOCAL_SETTLE_MS = 8
+
+// A streaming session grows the height forever, so a placed restore reveals by this deadline even while the height
+// still moves. The settle window only wins while the growth stays quiet.
+const RESTORE_REVEAL_MAX_MS = 600
+
+// The serial leading-turn enrich loop pauses between wide page reads; a row count changed inside this window
+// means another page is about to publish, so the reveal must not open on the gap.
+const LEADING_PAGE_GAP = 150
 
 /** The conversation column: the session header, the answer area, and the composer's bottom lane. */
 export function AnswerTimeline(props: {
@@ -58,6 +86,7 @@ export function AnswerTimeline(props: {
   const language = useLanguage()
   const links = usePluginHost().links
   const attachment = usePluginAttachment()
+  const data = useData()
   const [visible, setVisible] = createSignal<HTMLDivElement>()
   const [viewportElement, setViewportElement] = createSignal<HTMLDivElement>()
   let viewport: HTMLDivElement | undefined
@@ -69,6 +98,41 @@ export function AnswerTimeline(props: {
   // A restore that could not find its row leaves the view at the newest content, not where the reader stopped. Hold the
   // saved record until the reader's own gesture moves, or a failed restore would erase the anchor worth paging back to.
   let holdPosition = false
+  // The activation gate: while a remembered mid-transcript row is being fetched and placed, the transcript rows stay
+  // hidden (layout intact, so measurement works) and no host write is visible. The reader sees exactly one position
+  // per activation: whichever place the attempt settles on when the gate lifts.
+  const [restorePending, setRestorePending] = createSignal(false)
+  // The anchor page request is in flight; the page's miss watchdog waits for this to clear.
+  const [restoreSeeking, setRestoreSeeking] = createSignal(false)
+  // Bumped on every content-height change while a restore still owes its placement: an offset the transcript cannot
+  // reach yet is a not-yet, and the page re-measures with the growth instead of idling on the miss watchdog.
+  const [restoreTick, setRestoreTick] = createSignal(0)
+  // The landing is decided: no page-side placement attempt may write anymore, even if its watchdog fires late.
+  const [restoreSettled, setRestoreSettled] = createSignal(false)
+  // A short fade carries the rows back in, so the reveal does not read as a hard cut.
+  const [restoreReveal, setRestoreReveal] = createSignal(false)
+  let restorePlaced = false
+  let restorePlacedAt = 0
+  let lastRowsChange = 0
+
+  createRenderEffect(
+    on(
+      () => props.messages().length,
+      () => {
+        lastRowsChange = performance.now()
+      },
+      { defer: true },
+    ),
+  )
+  let restoreLocal = false
+  let restoreLanding = false
+  let revealTop = 0
+  let restoreGeneration = 0
+  let seekController: AbortController | undefined
+  let settleTimer: ReturnType<typeof setTimeout> | undefined
+  let gateTimer: ReturnType<typeof setTimeout> | undefined
+  let revealTimer: ReturnType<typeof setTimeout> | undefined
+  let restoreTimer: ReturnType<typeof setTimeout> | undefined
   // A landing owes exactly one write. The intent itself lives in the follow machine's `landing` state; this timer only
   // expires it, so a scrollbar drag (which never reaches the viewport's pointer handlers) is not pulled back forever.
   const LAND_WINDOW = 3000
@@ -82,6 +146,7 @@ export function AnswerTimeline(props: {
   // The page's own reveal, which can mount a row outside the window before scrolling to it.
   let pageReveal: ((id: string, partID?: string) => boolean) | undefined
   let contentObserver: ResizeObserver | undefined
+  let contentWatcher: MutationObserver | undefined
 
   const following = () => props.follow.following()
 
@@ -89,7 +154,9 @@ export function AnswerTimeline(props: {
   // correction to the same container, and the two together move the rows the reader is watching (a 0.28 layout shift in
   // the captured session). A detached reader keeps the browser's anchoring: nothing writes their offset then.
   const applyAnchoring = () => {
-    if (viewport) viewport.style.overflowAnchor = following() ? "none" : "auto"
+    // The gate also owns the offset: while it is up, the browser's anchoring must not "helpfully" correct the
+    // placement writes it cannot see.
+    if (viewport) viewport.style.overflowAnchor = following() || restorePending() ? "none" : "auto"
   }
 
   // Where the reader left the transcript is a fact about the viewport, not the follow intent. The machine can still
@@ -97,6 +164,7 @@ export function AnswerTimeline(props: {
   // reader who sits mid-transcript. Saving that true makes the next activation skip the restore and land on the end.
   const atEnd = () => {
     if (!viewport) return false
+
     // A session that has not loaded its rows yet has scrollHeight === clientHeight, where "at the end" is trivially
     // true. Recording that would mark a reader who never moved as having left at the bottom, and the next activation
     // would skip the restore and land on the end.
@@ -142,13 +210,18 @@ export function AnswerTimeline(props: {
   // The end is one value and one write: every path that goes there uses this, so no two callers can disagree about what
   // "the end" is. A smooth scroll would aim at the height it started from, and a growing reply outruns it.
   const stickToEnd = () => {
-    if (viewport) viewport.scrollTop = viewport.scrollHeight
+    if (!viewport) return
+    // History pages above keep the offset anchored at the end, so a viewport that is already there owes no write:
+    // re-assigning the clamped end would be a redundant visible write on every later growth.
+    if (viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 0) return
+    viewport.scrollTop = viewport.scrollHeight
   }
 
   // A landing write reports back so the machine can stop owing it, and clears the deadline that would otherwise expire
   // an already-satisfied intent three seconds later.
   const settleLanding = () => {
     props.follow.dispatch({ type: "landed" })
+
     if (landingTimer !== undefined) clearTimeout(landingTimer)
     landingTimer = undefined
   }
@@ -164,6 +237,8 @@ export function AnswerTimeline(props: {
   }
 
   const jumpToLatest = () => {
+    // A reader who asks for the newest content ends the activation's attempt on the spot, under the same gate.
+    settleRestore("end")
     props.follow.dispatch({ type: "follow" })
     stickToEnd()
   }
@@ -185,6 +260,7 @@ export function AnswerTimeline(props: {
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
     scrollSettleTimer = setTimeout(() => {
       scrollSettleTimer = undefined
+
       if (!viewport) return
 
       // Under page zoom the furthest offset Chrome reaches can sit a few pixels short of the visual end, so the probe
@@ -198,16 +274,210 @@ export function AnswerTimeline(props: {
     }, SCROLL_SETTLE_DELAY)
   }
 
-  // The remembered row is in an older page that is not loaded yet, so there is nothing to measure here. Landing on
-  // the end throws the reader across the transcript (18k-22k px in the capture) and away from where they stopped, so
-  // hold the current position instead and let a later page-in land the restore once the row appears.
+  // An activation with a remembered mid-transcript row opens the gate and asks the store for the row's page. The
+  // page places the row as soon as its message lands; these helpers only decide what happens when placement cannot
+  // happen (first row, deleted row, failed fetch) and when the view may be revealed.
+  // Both gated paths (a remembered-row restore and a plain landing) share one hard deadline, so no path can leave
+  // the view hidden if placement, reveal scheduling or a fetch goes missing.
+  const armRestoreDeadline = () => {
+    if (restoreTimer !== undefined) clearTimeout(restoreTimer)
+
+    restoreTimer = setTimeout(() => {
+      restoreTimer = undefined
+      if (!restorePending() || restoreSettled()) return
+
+      if (restorePlaced) finishRestore()
+      else settleRestore("end")
+    }, RESTORE_HARD_MS)
+  }
+
+  const beginRestore = (saved: SavedPosition) => {
+    restorePlaced = false
+    restorePlacedAt = 0
+    restoreLocal = false
+    restoreLanding = false
+    setRestorePending(true)
+    setRestoreSettled(false)
+
+    // Whatever the page and the fetch decide downstream, the gate opens by this deadline: a placed attempt reveals,
+    // an undecided one lands at the newest content. The view is never left hidden.
+    armRestoreDeadline()
+
+    const sessionID = props.sessionID?.()
+    const messageID = anchorMessageID(saved.key)
+
+    if (!sessionID || !messageID) return
+    // The anchor row is in the transcript already (a hot session): the page places it without waiting on anything,
+    // so skip the fetch and let the reveal take the short settle instead of the quiet window.
+    restoreLocal = props.messages().some((item) => item.id === messageID)
+    if (restoreLocal) return
+    const controller = new AbortController()
+    const generation = restoreGeneration
+    seekController = controller
+    setRestoreSeeking(true)
+    void data.session.message.loadAround(sessionID, messageID, { signal: controller.signal }).then(
+      (result) => {
+        if (generation !== restoreGeneration || seekController !== controller) return
+        seekController = undefined
+        setRestoreSeeking(false)
+
+        // "loaded" means the row is in the transcript now: the page's rows effect places it under the gate.
+        if (result === "head") settleRestore("top")
+        else if (result === "missing") settleRestore("end")
+      },
+      () => {
+        if (generation !== restoreGeneration || seekController !== controller) return
+        // The fetch failed; clearing `seeking` lets the page's watchdog decide the miss.
+        seekController = undefined
+        setRestoreSeeking(false)
+      },
+    )
+  }
+
+  const abortSeek = () => {
+    seekController?.abort()
+    seekController = undefined
+    setRestoreSeeking(false)
+  }
+
+  // Two frames after the final write: the placement paints once while still hidden, then the reveal shows a single
+  // position with a short fade. The generation check drops a close whose activation has already been superseded.
+  // Timers rather than rAF: a backgrounded window freezes rAF, which would strand the gate shut forever.
+  const closeRestoreGate = () => {
+    const generation = restoreGeneration
+    // The frame the reveal waits for is also the last recheck: async rendering (highlighting, images) can grow the
+    // transcript inside it, and revealing mid-growth would hand the reader the following stickToEnd writes as jumps.
+    const gateHeight = viewport?.scrollHeight ?? 0
+
+    const step = () => {
+      if (generation !== restoreGeneration) return
+
+      if (restoreLanding && viewport && viewport.scrollHeight !== gateHeight) {
+        setRestoreSettled(false)
+        scheduleReveal()
+
+        return
+      }
+
+      setRestorePending(false)
+      setRestoreReveal(true)
+
+      if (revealTimer !== undefined) clearTimeout(revealTimer)
+
+      revealTimer = setTimeout(() => {
+        revealTimer = undefined
+        setRestoreReveal(false)
+      }, RESTORE_REVEAL_MS)
+    }
+    if (settleTimer !== undefined) clearTimeout(settleTimer)
+    // One frame while still hidden paints the final offset, then the reveal shows a single position with a fade.
+    // The close runs on its own timer: heights still moving after the settle must not clear this timeout and
+    // strand the gate open forever.
+    if (gateTimer !== undefined) clearTimeout(gateTimer)
+
+    gateTimer = setTimeout(step, RESTORE_GATE_FRAME_MS)
+  }
+
+  // A landing decided without row placement. Ending the page's attempt first stops its watchdog and page-in retries
+  // from writing after this decision, so the gate release shows exactly one position.
+  const settleRestore = (mode: "top" | "end") => {
+    if (!restorePending() || restoreSettled()) return
+    abortSeek()
+    setRestoreSettled(true)
+    restoreLanding = false
+
+    if (mode === "top" && viewport) viewport.scrollTop = 0
+
+    if (mode === "end" && viewport) {
+      props.follow.dispatch({ type: "follow" })
+      stickToEnd()
+      revealTop = viewport.scrollTop
+    }
+
+    closeRestoreGate()
+  }
+
+  // The page placed the remembered row and the heights have stopped moving: reveal the settled transcript.
+  const finishRestore = () => {
+    if (!restorePending() || restoreSettled()) return
+    abortSeek()
+    setRestoreSettled(true)
+    closeRestoreGate()
+  }
+
+  // Rows still land after a placement (markdown, fold metrics), but the landing is the offset, not the height:
+  // reveal once the offset has stopped being pushed around (and a plain landing has actually reached the end).
+  // Growth below the reader's row must not delay the reveal, so a chain already in flight is never restarted;
+  // the tick itself re-arms when the offset turns out to have moved. A deadline keeps a streamed session from
+  // holding the gate shut forever.
+  // A cold transcript keeps growing while history pages in: a load is in flight, or the row count changed so
+  // recently that the serial leading-turn enrich loop is almost certainly between pages. Revealing mid-claim
+  // shows the reader the following page pulls as jumps, so those keep the gate shut.
+  const growthClaimed = () => {
+    const landingSession = props.sessionID?.()
+
+    return (
+      (landingSession !== undefined && data.session.message.loading(landingSession)) ||
+      performance.now() - lastRowsChange < LEADING_PAGE_GAP
+    )
+  }
+
+  const scheduleReveal = () => {
+    if (restoreSettled() || settleTimer !== undefined) return
+    const quiet = restoreLocal
+      ? RESTORE_LOCAL_SETTLE_MS
+      : restoreLanding && growthClaimed()
+        ? RESTORE_GATE_FRAME_MS
+        : performance.now() - restorePlacedAt >= RESTORE_REVEAL_MAX_MS
+          ? 0
+          : RESTORE_SETTLE_MS
+    // The tick compares against this snapshot, not against values the ResizeObserver keeps refreshing: growth
+    // between the schedule and the tick must re-arm the window instead of looking quiet.
+    const snapshot = viewport ? { height: viewport.scrollHeight, rows: props.messages().length } : undefined
+
+    settleTimer = setTimeout(() => {
+      settleTimer = undefined
+
+      if (!viewport || !restorePending()) return
+
+      if (restoreLanding) {
+        // A landing shows the newest content, so it releases once nothing moves anymore: no page in flight (the
+        // enrich loop included), no taller transcript, no new rows. The gate hides the chasing; a release
+        // mid-climb would show it.
+        if (growthClaimed()) {
+          scheduleReveal()
+
+          return
+        }
+
+        if (snapshot && (viewport.scrollHeight !== snapshot.height || props.messages().length !== snapshot.rows)) {
+          scheduleReveal()
+
+          return
+        }
+
+        if (!atEnd()) landOnEnd()
+        finishRestore()
+
+        return
+      }
+
+      // Growth below the reader's row is not a move: the offset itself must stop changing before the reveal.
+      if (Math.abs(viewport.scrollTop - revealTop) > 1) {
+        revealTop = viewport.scrollTop
+        scheduleReveal()
+
+        return
+      }
+      finishRestore()
+    }, quiet)
+  }
+
+  // The remembered row will not arrive: it is gone or the transcript never had it. Settle at the newest content
+  // under the gate, so the activation still paints one position. The record is held for a later manual page-in.
   const restoreMissed = () => {
     holdPosition = true
-    props.follow.dispatch({ type: "follow" })
-    probeLanding("restore-missed", viewport)
-    // Settle at the newest content. A view left at its clamped offset reads as a jump to the first message, so the
-    // miss ends with the end in view while the saved record stays held for a later page-in.
-    stickToEnd()
+    settleRestore("end")
     props.onRestoreMiss?.()
   }
 
@@ -219,26 +489,46 @@ export function AnswerTimeline(props: {
       (isActive) => {
         if (!isActive) return
 
+        // Open the gate synchronously for a remembered mid-transcript row: the reinsertion must never paint a frame
+        // at the clamped offset while the microtask below is still queued.
+        const armed = savedPosition()
+
+        if (armed && !armed.bottom) setRestorePending(true)
+
         // Same timing as the page's restore: decide the landing after the DOM insert, before the reinsertion's scroll
         // event reaches the machine.
         queueMicrotask(() => {
           const saved = savedPosition()
+          // A new activation supersedes any attempt still in flight from the last one.
+          restoreGeneration += 1
+          abortSeek()
+
+          if (settleTimer !== undefined) clearTimeout(settleTimer)
+
           if (viewport) lastContentHeight = viewport.scrollHeight
-          probeLanding("activate", viewport, {
-            saved: saved ? { offset: Math.round(saved.offset), bottom: saved.bottom } : null,
-            rows: props.messages.length,
-          })
 
           if (!saved || saved.bottom) {
+            // The landing is gated too: the reader meets the transcript once, already at the end, instead of
+            // watching it climb while the window pages in. The reveal follows the same quiet-height rule.
+            restorePlaced = false
+            restorePlacedAt = performance.now()
+            restoreLocal = false
+            restoreLanding = true
+            setRestorePending(true)
+            setRestoreSettled(false)
+            armRestoreDeadline()
             startLanding()
+            revealTop = viewport?.scrollTop ?? 0
+            scheduleReveal()
 
             return
           }
 
           // A remembered mid-transcript row is the reader's own intent: the host releases follow and restores it, so
-          // this activation does not owe a landing.
+          // this activation does not owe a landing. The gate keeps the transcript hidden until one place settles.
           props.follow.dispatch({ type: "landing.cancel" })
           props.onRestore?.()
+          beginRestore(saved)
         })
       },
       { defer: false },
@@ -249,6 +539,9 @@ export function AnswerTimeline(props: {
     props.setRevealMessage?.(reveal)
     props.setRevealPart?.(revealTarget)
     props.setScrollToEnd?.((_behavior) => {
+      // While the gate is up the activation owns the position; a dock resize must not fight it. The observer
+      // re-runs this once the inset has settled and the gate is gone.
+      if (restorePending()) return
       props.follow.dispatch({ type: "follow" })
       stickToEnd()
     })
@@ -283,15 +576,37 @@ export function AnswerTimeline(props: {
       contentObserver = new ResizeObserver(() => {
         if (!viewport) return
 
-        const state = props.follow.peek()
-        if (state.type === "anchored") return
-        // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click lands on
-        // whatever moved under the pointer instead.
-        if (state.type !== "landing" && state.gesture === "pointer") return
-
         const height = viewport.scrollHeight
         const delta = height - lastContentHeight
         lastContentHeight = height
+
+        // Before a placement, height changes are the transcript still settling (async render, a finished turn
+        // folding). Hand them to the page as re-measure retries under the same gate that owns the visible offset.
+        if (restorePending() && !restorePlaced && !restoreLanding) setRestoreTick((tick) => tick + 1)
+
+        // The gate: nothing may pull the rows while the activation is still deciding its landing. A placed row
+        // reveals once the height stops moving; growth before placement just keeps the gate shut. A landing is the
+        // exception it owns: while hidden it keeps chasing the moving end, so the reveal shows a final position.
+        if (restorePending()) {
+          if (restoreLanding) {
+            if (following()) stickToEnd()
+            scheduleReveal()
+
+            return
+          }
+
+          if (restorePlaced) scheduleReveal()
+
+          return
+        }
+
+        const state = props.follow.peek()
+
+        if (state.type === "anchored") return
+
+        // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click lands on
+        // whatever moved under the pointer instead.
+        if (state.type !== "landing" && state.gesture === "pointer") return
 
         // Small back-and-forth changes are renderer noise: following those would drag the viewport up and down every
         // frame. A large shrink, such as a thinking block collapsing when it finishes, still follows, or the reader is
@@ -303,12 +618,23 @@ export function AnswerTimeline(props: {
         // and hide the position they scrolled to. Reaching the end again re-follows through the scroll event.
         if (following()) {
           stickToEnd()
+
           // A landing settles on its first write, whether that write came from the activation frame or from here.
           if (props.follow.peek().type === "landing") settleLanding()
         }
       })
 
-      for (const child of Array.from(viewport.children)) contentObserver.observe(child)
+      // Rows remount on activation and on every page-in, and the resize observer keeps no reference to replaced
+      // children: a child-list watcher re-syncs the observed set, or growth after a remount reports to nobody.
+      const root = viewport
+      const syncObserved = () => {
+        contentObserver?.disconnect()
+
+        for (const child of Array.from(root.children)) contentObserver?.observe(child)
+      }
+      syncObserved()
+      contentWatcher = new MutationObserver(syncObserved)
+      contentWatcher.observe(root, { childList: true })
     })
   })
 
@@ -316,6 +642,7 @@ export function AnswerTimeline(props: {
   // so all of them run with the browser's anchoring off.
   createRenderEffect(() => {
     following()
+    restorePending()
     applyAnchoring()
   })
 
@@ -331,9 +658,20 @@ export function AnswerTimeline(props: {
   })
 
   onCleanup(() => contentObserver?.disconnect())
+  onCleanup(() => contentWatcher?.disconnect())
   onCleanup(() => {
     if (scrollSettleTimer !== undefined) clearTimeout(scrollSettleTimer)
+
     if (landingTimer !== undefined) clearTimeout(landingTimer)
+
+    if (settleTimer !== undefined) clearTimeout(settleTimer)
+
+    if (gateTimer !== undefined) clearTimeout(gateTimer)
+
+    if (revealTimer !== undefined) clearTimeout(revealTimer)
+
+    if (restoreTimer !== undefined) clearTimeout(restoreTimer)
+    abortSeek()
   })
 
   onCleanup(() => {
@@ -360,6 +698,8 @@ export function AnswerTimeline(props: {
     >
       <ScrollView
         data-slot="session-timeline-scroll"
+        data-restore-pending={restorePending() ? "true" : undefined}
+        data-restore-reveal={restoreReveal() ? "true" : undefined}
         viewportRef={(element) => {
           viewport = element
           element.style.setProperty("--session-timeline-inset", `${props.bottomInset}px`)
@@ -374,6 +714,18 @@ export function AnswerTimeline(props: {
           if (!viewport) return
           const top = viewport.scrollTop
           const max = viewport.scrollHeight - viewport.clientHeight
+
+          // Under the gate the follow machine must not react: the offsets moving are the activation's own writes,
+          // not the reader. History paging and row tracking keep running so the placement can reach its row.
+          if (restorePending()) {
+            lastScrollTop = top
+            lastMaxScroll = max
+            props.onContentResize()
+            props.onHistoryScroll()
+
+            return
+          }
+
           // The machine gets the geometry this event already read, plus the previous range so it can tell a growing
           // content from the reader moving. It is the only place that decides whether the view still follows.
           props.follow.dispatch({
@@ -442,6 +794,20 @@ export function AnswerTimeline(props: {
             const saved = savedPosition()
 
             return saved?.bottom ? undefined : saved
+          }}
+          restorePending={restorePending}
+          restoreSeeking={restoreSeeking}
+          restoreSettled={restoreSettled}
+          restoreTick={restoreTick}
+          onRestorePlaced={() => {
+            restorePlaced = true
+            restorePlacedAt = performance.now()
+            revealTop = viewport?.scrollTop ?? 0
+            // The reader is back at a remembered mid position, not at the newest content. The machine may still
+            // carry following from before the switch, and the gate hides scroll events that would correct it:
+            // detach now, or the first growth after the reveal would stickToEnd on stale intent.
+            props.follow.dispatch({ type: "detach" })
+            scheduleReveal()
           }}
           onRestoreMiss={restoreMissed}
           onPositionChange={rememberPosition}

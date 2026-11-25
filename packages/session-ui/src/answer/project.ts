@@ -26,6 +26,7 @@ type TurnDraft = {
   completedAt?: number
   failure?: "stopped" | "failed"
   streaming?: boolean
+  /** Whether the turn's last settled word was the server's idle marker; work arriving after one reopens it. */
   idle?: boolean
   /** Kept so a later step can replace the failure or retry notice of the step it continues. */
   errorNode?: TimelineNode
@@ -39,26 +40,25 @@ const decodeNotice = Schema.decodeUnknownOption(
   }),
 )
 
+const contextItem = Schema.Struct({
+  name: Schema.String,
+  chars: Schema.Number,
+  text: Schema.optionalKey(Schema.String),
+})
+
+const contextSource = Schema.Struct({
+  key: Schema.String,
+  chars: Schema.Number,
+  text: Schema.optionalKey(Schema.String),
+  items: Schema.optionalKey(Schema.Array(contextItem)),
+})
+
+type ContextSource = Schema.Schema.Type<typeof contextSource>
+type ContextItem = Schema.Schema.Type<typeof contextItem>
+
 const decodeContext = Schema.decodeUnknownOption(
   Schema.Struct({
-    metadata: Schema.Struct({
-      context: Schema.Array(
-        Schema.Struct({
-          key: Schema.String,
-          chars: Schema.Number,
-          text: Schema.optionalKey(Schema.String),
-          items: Schema.optionalKey(
-            Schema.Array(
-              Schema.Struct({
-                name: Schema.String,
-                chars: Schema.Number,
-                text: Schema.optionalKey(Schema.String),
-              }),
-            ),
-          ),
-        }),
-      ),
-    }),
+    metadata: Schema.Struct({ context: Schema.Array(contextSource) }),
   }),
 )
 
@@ -67,6 +67,19 @@ function injectedContext(message: SessionMessageInfo) {
   const sources = Option.getOrUndefined(decodeContext(message))?.metadata.context
 
   return sources && sources.length > 0 ? sources : undefined
+}
+
+function sameContextSource(a: ContextSource | undefined, b: ContextSource) {
+  if (!a) return false
+  if (a.key !== b.key || a.chars !== b.chars || a.text !== b.text) return false
+  const left = a.items ?? []
+  const right = b.items ?? []
+
+  return left.length === right.length && left.every((item, index) => sameContextItem(item, right[index]!))
+}
+
+function sameContextItem(a: ContextItem, b: ContextItem) {
+  return a.name === b.name && a.chars === b.chars && a.text === b.text
 }
 
 /**
@@ -349,7 +362,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
   const nodes: TimelineNode[] = []
   let current: TurnDraft | undefined
   /** What the previous step injected, so an unchanged baseline is not reported as a new event. */
-  let injected: Map<string, string> | undefined
+  let injected: Map<string, ContextSource> | undefined
 
   const openTurn = (startedAt?: number): TurnDraft => {
     if (current) return current
@@ -401,6 +414,11 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     draft.errorNode = undefined
     draft.retryNode = undefined
     draft.failure = undefined
+
+    // The idle marker closes a busy period, not the turn: a doorbell successor (a background job, a
+    // subagent report, a moved or compacted continuation) keeps working in the same turn with no input
+    // row between. Its step reopens the turn, so the reader never watches a "completed" answer grow.
+    draft.idle = false
   }
 
   for (const message of messages) {
@@ -434,6 +452,9 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     const draft = openTurn(message.time.created)
 
     if (message.type === "shell") {
+      // A shell row after a marker is a successor's work (a background command settling), not a
+      // settled turn's detail: the run is going again, so the marker no longer ends the turn.
+      draft.idle = false
       push(draft, { kind: "notice", text: message.command }, `shell:${message.id}`, message.id, "turn")
 
       continue
@@ -445,6 +466,22 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
       // A settled turn cannot still be waiting to retry; a late label must not outlive the execution.
       if (draft.retryNode) drop(draft, draft.retryNode)
       draft.retryNode = undefined
+
+      // An execution can also end failed or stopped with the reason recorded only on the marker: a turn
+      // whose last step never wrote its own error would otherwise read as a plain completed answer.
+      if (message.outcome !== "succeeded" && draft.failure === undefined)
+        if (message.outcome === "failed") {
+          draft.failure = "failed"
+
+          if (message.error && !draft.errorNode)
+            draft.errorNode = push(
+              draft,
+              { kind: "error", text: message.error.message },
+              `error:${message.id}`,
+              message.id,
+              "turn",
+            )
+        } else draft.failure = "stopped"
 
       continue
     }
@@ -468,8 +505,9 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     if (context) {
       // Every step resends the same system prefix; only the sources that changed since the previous step are an event.
-      const signatures = new Map(context.map((source) => [source.key, JSON.stringify(source)]))
-      const changed = context.filter((source) => injected?.get(source.key) !== signatures.get(source.key))
+      // Field equality keeps the unchanged bodies from being serialized on every re-projection of the history.
+      const incoming = new Map(context.map((source) => [source.key, source]))
+      const changed = context.filter((source) => !sameContextSource(injected?.get(source.key), source))
 
       if (changed.length > 0) {
         push(
@@ -484,7 +522,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
           message.id,
           "turn",
         )
-        injected = signatures
+        injected = incoming
       }
     }
 
@@ -575,9 +613,10 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     const lastTurn = draft === drafts[drafts.length - 1]
 
     // Historical turns are always closed; only the tail turn can still be running.
-    // Only the server's idle message closes the last turn. A step finishing mid-stream is not the end
-    // of the turn: closing it for one frame collapses the transcript and the next step expands it
-    // again, which the reader sees as the content jumping. Historical turns are always closed.
+    // The last turn closes only while the idle marker is its last settled word: a step finishing
+    // mid-stream is not the end (closing it for one frame collapses the transcript and the next step
+    // expands it again, which the reader sees as the content jumping), and neither is a marker the
+    // run already worked past — a doorbell successor reopens the turn until its own marker settles.
     const status: TimelineTurn["status"] =
       draft.failure ?? (!lastTurn || draft.idle === true ? "closed" : "open")
 

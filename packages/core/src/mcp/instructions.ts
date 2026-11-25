@@ -64,7 +64,7 @@ export const layer = Layer.effect(
             render: {
               initial: render,
               changed: update,
-              removed: () => "MCP 服务器说明已不可用。",
+              removed: () => "MCP server instructions are no longer available.",
             },
           })
         const [instructions, tools] = yield* Effect.all([mcp.instructions(), mcp.tools()], {
@@ -79,8 +79,7 @@ export const layer = Layer.effect(
             const codemode = canExecute && owned[0]?.codemode !== false
             if (
               !owned.some(
-                (tool) =>
-                  Permission.evaluate(McpTool.name(tool.server, tool.name), "*", permissions).effect !== "deny",
+                (tool) => Permission.evaluate(McpTool.name(tool.server, tool.name), "*", permissions).effect !== "deny",
               )
             )
               return []

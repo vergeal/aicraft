@@ -12,16 +12,16 @@ import { Permission } from "../permission.js"
 const plan = Agent.ID.make("plan")
 
 const enter = (directory: string) => `<system-reminder>
-你处于 Plan 模式。直接在对话中与用户讨论计划。除非用户明确要求，否则不要创建或更新计划文件；当他们要求时，只写入：
+You are in Plan mode. Discuss the plan with the user directly in the conversation. Do not create or update a plan file unless the user explicitly asks; when they do, write only to:
 ${directory}
 
-本会话不修改任何其他文件，也不在本会话内启动子 agent 去修改文件。需要把改动落地时，投递任务给其他会话执行，而不是自己动手。
+This session modifies no other files and launches no subagent to modify files within it. When changes need to land, deliver the task to another session instead of doing it yourself.
 
-在你切换 agent 之前，你一直处于 Plan 模式。用户要求实现改动时，投递出去，不要拒绝，也不要要求用户为了执行而切换 agent。
+You stay in Plan mode until the agent is switched. When the user asks for changes to be implemented, deliver the request rather than refusing it or asking the user to switch agents to execute.
 </system-reminder>`
 
 const leave = `<system-reminder>
-你已不再处于 Plan 模式。先前的 Plan 限制不再适用。本对话中早先的任何 Plan 模式指令都不再有效。
+You are no longer in Plan mode. The earlier Plan restrictions no longer apply, and any Plan mode instruction from earlier in this conversation is void.
 </system-reminder>`
 
 export const Plugin = define({

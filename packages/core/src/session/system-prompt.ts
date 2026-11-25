@@ -10,16 +10,18 @@ export function render(prompt: string, tools: string[]) {
   const instructions: string[] = []
   if (tools.includes("shell")) {
     instructions.push(
-      "- 优先使用专用工具而不是 shell 命令；当某个工具无法完成所需操作时，再退回到 shell。",
-      "- 不要用 `echo \"====\";` 或 `printf '---'` 这类分隔符串联 shell 命令；输出会变得杂乱，让用户侧的对话体验变差。",
+      "- Prefer the dedicated tools over shell commands; fall back to shell only when a tool cannot do what is needed.",
+      "- Do not join shell commands with separators such as `echo \"====\";` or `printf '---'`; the output gets cluttered and the conversation reads worse on the user side.",
     )
   }
   if (tools.includes("write")) {
-    instructions.push("- 使用 write 工具创建文件或完全替换其内容。局部改动优先使用 edit 工具。")
+    instructions.push(
+      "- Use the write tool to create a file or replace its contents entirely. Prefer the edit tool for partial changes.",
+    )
   }
   if (tools.includes("edit")) {
     instructions.push(
-      "- 使用 edit 工具对现有文本文件做局部改动。它把 `oldString` 中的确切文本替换为 `newString`，且两者的值必须不同。默认情况下，`oldString` 必须只出现一次。如果出现多次，请包含更多上下文使其唯一，或设置 `replaceAll` 为 true 以替换每一处。",
+      "- Use the edit tool for partial changes to existing text files. It replaces the exact text in `oldString` with `newString`, and the two values must differ. By default, `oldString` must match exactly once. If there are multiple matches, add more surrounding context to make it unique, or set `replaceAll` to true to replace every occurrence.",
     )
   }
   return prompt.replace("${AICRAFT_TOOL_GUIDANCE}", instructions.join("\n"))

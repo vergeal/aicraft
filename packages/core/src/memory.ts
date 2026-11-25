@@ -102,8 +102,7 @@ export const list = (kv: KV.Interface, projectID: string, lookup: Lookup, limit:
     const scopes: readonly Scope[] = lookup === "all" ? ["project", "global"] : [lookup]
     const groups = yield* Effect.forEach(
       scopes,
-      (scope) =>
-        readScope(kv, prefixFor(scope, projectID), limit).pipe(Effect.map((entries) => ({ scope, entries }))),
+      (scope) => readScope(kv, prefixFor(scope, projectID), limit).pipe(Effect.map((entries) => ({ scope, entries }))),
       { concurrency: "unbounded" },
     )
     return groups
@@ -116,13 +115,16 @@ export const list = (kv: KV.Interface, projectID: string, lookup: Lookup, limit:
  * Writes a memory, merging tags into an entry with the same text instead of storing a second copy. A duplicate keeps
  * the original ID so references already handed to the model stay valid.
  */
-export const save = (kv: KV.Interface, input: {
-  readonly scope: Scope
-  readonly projectID: string
-  readonly text: string
-  readonly tags: readonly string[] | undefined
-  readonly now: string
-}) => saveAt(kv, prefixFor(input.scope, input.projectID), input)
+export const save = (
+  kv: KV.Interface,
+  input: {
+    readonly scope: Scope
+    readonly projectID: string
+    readonly text: string
+    readonly tags: readonly string[] | undefined
+    readonly now: string
+  },
+) => saveAt(kv, prefixFor(input.scope, input.projectID), input)
 
 /** A plugin's own memories live in one prefix per plugin, so two plugins can never read each other's. */
 export const savePlugin = (
@@ -148,14 +150,17 @@ const saveAt = (
     return { entry, duplicate: duplicate !== undefined }
   })
 
-export const update = (kv: KV.Interface, input: {
-  readonly scope: Scope
-  readonly projectID: string
-  readonly id: string
-  readonly text: string
-  readonly tags: readonly string[]
-  readonly now: string
-}) => updateAt(kv, keyFor(input.scope, input.projectID, input.id), input)
+export const update = (
+  kv: KV.Interface,
+  input: {
+    readonly scope: Scope
+    readonly projectID: string
+    readonly id: string
+    readonly text: string
+    readonly tags: readonly string[]
+    readonly now: string
+  },
+) => updateAt(kv, keyFor(input.scope, input.projectID, input.id), input)
 
 export const updatePlugin = (
   kv: KV.Interface,
@@ -182,11 +187,12 @@ const updateAt = (
     return entry
   })
 
-export const remove = (kv: KV.Interface, input: { readonly scope: Scope; readonly projectID: string; readonly id: string }) =>
-  kv.remove(keyFor(input.scope, input.projectID, input.id))
+export const remove = (
+  kv: KV.Interface,
+  input: { readonly scope: Scope; readonly projectID: string; readonly id: string },
+) => kv.remove(keyFor(input.scope, input.projectID, input.id))
 
-export const removePlugin = (kv: KV.Interface, pluginID: string, id: string) =>
-  kv.remove(pluginPrefix(pluginID) + id)
+export const removePlugin = (kv: KV.Interface, pluginID: string, id: string) => kv.remove(pluginPrefix(pluginID) + id)
 
 /** One scope's entry, located by id without assuming which scope holds it. */
 export function findPluginEntry(kv: KV.Interface, pluginID: string, id: string) {
@@ -246,7 +252,7 @@ const MAX_ENTRY_CHARS = 400
 
 function line(entry: Entry) {
   const text = entry.text.length > MAX_ENTRY_CHARS ? `${entry.text.slice(0, MAX_ENTRY_CHARS - 1)}…` : entry.text
-  return entry.tags.length > 0 ? `- ${text}（标签：${entry.tags.join("、")}）` : `- ${text}`
+  return entry.tags.length > 0 ? `- ${text} (tags: ${entry.tags.join(", ")})` : `- ${text}`
 }
 
 function pack(entries: readonly Entry[], budget: number) {
@@ -274,17 +280,18 @@ export interface RenderInput {
  * with the model — these are semantic checks, not phrases to match.
  */
 const PROTOCOL = [
-  "## 记忆协议",
-  "每次回复前判断本轮用户消息，任一项成立就先调用 memory.save 再回答：",
-  "1. 纠正了你的做法，且这个纠正以后还会适用；",
-  "2. 说出了自己的习惯、偏好或工作方式；",
-  "3. 要求你长期遵守某个约定；",
-  "4. 告诉你一个下次还会用到的重要事实。",
-  "判断靠语义而不是措辞：用户不一定说「记住」，一句看似普通的纠正也可能需要保存。跨项目的个人习惯用 scope=global，其余默认当前项目。",
-  "已有记忆过时或被纠正时用 memory.update 改写，不要保留矛盾条目；用户要求忘掉时用 memory.forget。密钥、口令和一次性信息不要保存。",
+  "## Memory protocol",
+  "Before each reply, judge the current user message and call memory.save first if any of these hold:",
+  "1. it corrects your approach, and the correction will apply again;",
+  "2. it states a habit, preference, or way of working;",
+  "3. it asks you to follow a convention long term;",
+  "4. it tells you an important fact you will need again.",
+  'Judge by meaning, not wording: the user need not say "remember", and a plain-looking correction may still belong in memory. Use scope=global for personal habits that span projects; otherwise save to the current project.',
+  "When a stored memory goes stale or gets corrected, rewrite it with memory.update rather than keeping contradictory entries; use memory.forget when the user asks you to forget. Never save secrets, credentials, or one-off details.",
 ].join("\n")
 
-const HEADER = "## 长期记忆\n以下内容由之前的会话保存，可能已经过时。与用户当前的要求冲突时，以当前要求为准。"
+const HEADER =
+  "## Long-term memory\nThe following was saved by earlier sessions and may be out of date. Where it conflicts with the user's current request, the current request wins."
 
 /**
  * Builds the system section injected before every request, including the empty case so a fresh Project still learns the
@@ -305,10 +312,11 @@ export function render(input: RenderInput) {
   const packedGlobal = pack(global, available - packedProject.used)
 
   const sections: string[] = []
-  if (packedProject.lines.length > 0) sections.push(["### 项目记忆", ...packedProject.lines].join("\n"))
-  if (packedGlobal.lines.length > 0) sections.push(["### 全局记忆", ...packedGlobal.lines].join("\n"))
+  if (packedProject.lines.length > 0) sections.push(["### Project memory", ...packedProject.lines].join("\n"))
+  if (packedGlobal.lines.length > 0) sections.push(["### Global memory", ...packedGlobal.lines].join("\n"))
   const omitted = packedProject.omitted + packedGlobal.omitted
-  if (omitted > 0) sections.push(`另有 ${omitted} 条记忆未注入，需要时用 memory.search 检索。`)
+  if (omitted > 0)
+    sections.push(`${omitted} more memories were not injected; retrieve them with memory.search when you need them.`)
   if (sections.length === 0) return PROTOCOL
   return [PROTOCOL, HEADER, ...sections].join("\n\n")
 }
@@ -356,9 +364,9 @@ export const migrate = (kv: KV.Interface) =>
         page.entries,
         (item) => {
           const key = ROOT + item.key.slice(LEGACY_ROOT.length)
-          return kv.get(key).pipe(
-            Effect.flatMap((existing) => (existing === undefined ? kv.set(key, item.value) : Effect.void)),
-          )
+          return kv
+            .get(key)
+            .pipe(Effect.flatMap((existing) => (existing === undefined ? kv.set(key, item.value) : Effect.void)))
         },
         { discard: true },
       )

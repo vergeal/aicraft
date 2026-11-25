@@ -124,8 +124,8 @@ const seedSynthetic = (sessionID: Session.ID, paths: string[]) =>
     const bus = yield* Bus.Service
     yield* bus.publish(SessionEvent.Synthetic, {
       sessionID,
-      text: `来自以下文件的指令：${paths[0]}\nprior`,
-      description: `已加载 ${paths[0]}`,
+      text: `Instructions from the following file: ${paths[0]}\nprior`,
+      description: `Loaded ${paths[0]}`,
       metadata: { instruction: { paths } },
     })
   })
@@ -159,10 +159,10 @@ describe("SessionInstructions", () => {
       const firstInjected = yield* synthetics(sessionID)
       expect(firstInjected).toHaveLength(1)
       expect(firstInjected[0]!.text).toBe(
-        `来自以下文件的指令：${deepPath}\ndeep-instructions\n\n来自以下文件的指令：${subPath}\nsub-instructions`,
+        `Instructions from the following file: ${deepPath}\ndeep-instructions\n\nInstructions from the following file: ${subPath}\nsub-instructions`,
       )
       expect(firstInjected[0]!.description).toBe(
-        `已加载 ${path.relative(dir, deepPath)}、${path.relative(dir, subPath)}`,
+        `Loaded ${path.relative(dir, deepPath)}, ${path.relative(dir, subPath)}`,
       )
       // The synthetic's metadata carries the durable dedup ledger.
       expect(firstInjected[0]!.metadata).toEqual({ instruction: { paths: [deepPath, subPath] } })
@@ -184,8 +184,8 @@ describe("SessionInstructions", () => {
 
       const secondInjected = yield* synthetics(sessionID)
       expect(secondInjected).toHaveLength(2)
-      expect(secondInjected[1]!.text).toBe(`来自以下文件的指令：${otherPath}\nother-instructions\nmore rules`)
-      expect(secondInjected[1]!.description).toBe(`已加载 ${path.relative(dir, otherPath)}`)
+      expect(secondInjected[1]!.text).toBe(`Instructions from the following file: ${otherPath}\nother-instructions\nmore rules`)
+      expect(secondInjected[1]!.description).toBe(`Loaded ${path.relative(dir, otherPath)}`)
       expect(secondInjected[1]!.metadata).toEqual({ instruction: { paths: [otherPath] } })
       expect(secondInjected.some((message) => message.text.includes("root-instructions"))).toBe(false)
     }),
@@ -241,8 +241,8 @@ describe("SessionInstructions", () => {
 
         const firstInjected = yield* synthetics(sessionID)
         expect(firstInjected).toHaveLength(1)
-        expect(firstInjected[0]!.text).toBe(`来自以下文件的指令：${pkgPath}\npkg-instructions`)
-        expect(firstInjected[0]!.description).toBe(`已加载 ${path.relative(dir, pkgPath)}`)
+        expect(firstInjected[0]!.text).toBe(`Instructions from the following file: ${pkgPath}\npkg-instructions`)
+        expect(firstInjected[0]!.description).toBe(`Loaded ${path.relative(dir, pkgPath)}`)
         expect(firstInjected[0]!.metadata).toEqual({ instruction: { paths: [pkgPath] } })
         expect(firstInjected[0]!.text).not.toContain("root-instructions")
 
@@ -323,8 +323,8 @@ describe("SessionInstructions", () => {
 
       const injected = yield* synthetics(sessionID)
       expect(injected).toHaveLength(1)
-      expect(injected[0]!.text).toBe(`来自以下文件的指令：${subPath}\nsub-instructions`)
-      expect(injected[0]!.description).toBe(`已加载 ${path.relative(dir, subPath)}`)
+      expect(injected[0]!.text).toBe(`Instructions from the following file: ${subPath}\nsub-instructions`)
+      expect(injected[0]!.description).toBe(`Loaded ${path.relative(dir, subPath)}`)
       expect(injected[0]!.metadata).toEqual({ instruction: { paths: [subPath] } })
     }),
   )
@@ -335,15 +335,15 @@ describe("SessionInstructions", () => {
     const synthetic = SessionMessage.Synthetic.make({
       id: SessionMessage.ID.make("msg_synthetic"),
       type: "synthetic",
-      text: "来自以下文件的指令：/repo/sub/AGENTS.md\ncontent",
-      description: "已加载 /repo/sub/AGENTS.md",
+      text: "Instructions from the following file: /repo/sub/AGENTS.md\ncontent",
+      description: "Loaded /repo/sub/AGENTS.md",
       metadata: { instruction: { paths: ["/repo/sub/AGENTS.md"] } },
       time: { created },
     })
     const messages = toLLMMessages([synthetic], model)
     expect(messages).toHaveLength(1)
     expect(messages[0]!.role).toBe("user")
-    expect(messages[0]!.content).toEqual([{ type: "text", text: "来自以下文件的指令：/repo/sub/AGENTS.md\ncontent" }])
+    expect(messages[0]!.content).toEqual([{ type: "text", text: "Instructions from the following file: /repo/sub/AGENTS.md\ncontent" }])
   })
 
   test("toLLMMessages turns an addressed agent mention into a delegation instruction", () => {
@@ -359,7 +359,7 @@ describe("SessionInstructions", () => {
     const messages = toLLMMessages([user], model)
     expect(messages[0]!.content[0]).toEqual({
       type: "text",
-      text: '用户把这条请求交给了 "general" 子 agent。请调用 subagent 工具，agent 参数传 "general"，prompt 传用户的请求。',
+      text: 'The user handed this request to the "general" subagent. Call the subagent tool with agent set to "general" and prompt set to the user\'s request.',
     })
     expect(messages[0]!.content[1]).toEqual({ type: "text", text: "@general find the auth code" })
   })

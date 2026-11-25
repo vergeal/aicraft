@@ -210,7 +210,7 @@ export const Plugin = {
                   sessionID: child.id,
                   text:
                     existing === undefined
-                      ? ["你是由另一个会话创建的子 agent。", input.prompt].join("\n")
+                      ? ["You are a subagent created by another session.", input.prompt].join("\n")
                       : input.prompt,
                   ...(background && existing === undefined ? { resume: false } : {}),
                 })

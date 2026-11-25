@@ -18,13 +18,17 @@ export const description = [
 ].join("\n")
 
 export const Input = Schema.Struct({
-  title: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1)).annotate({
-    description: "The session title. Defaults to the title the server picks.",
-  })),
-  prompt: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1)).annotate({
-    description:
-      "The first message for the new session. Write it as a complete, self-contained request: the new session cannot see this one's history.",
-  })),
+  title: Schema.optionalKey(
+    Schema.String.check(Schema.isMinLength(1)).annotate({
+      description: "The session title. Defaults to the title the server picks.",
+    }),
+  ),
+  prompt: Schema.optionalKey(
+    Schema.String.check(Schema.isMinLength(1)).annotate({
+      description:
+        "The first message for the new session. Write it as a complete, self-contained request: the new session cannot see this one's history.",
+    }),
+  ),
 })
 
 export const Output = Schema.Struct({
@@ -55,9 +59,7 @@ export const Plugin = {
                   ...Permission.invocation(context),
                 })
                 .pipe(
-                  Effect.mapError(
-                    (error) => new ToolFailure({ message: "Creating a session was not allowed", error }),
-                  ),
+                  Effect.mapError((error) => new ToolFailure({ message: "Creating a session was not allowed", error })),
                 )
 
               const parent = yield* ctx.session
@@ -68,12 +70,12 @@ export const Plugin = {
               // This is its own system prompt, not a message: it stays in context for every request.
               const purpose = (input.prompt ?? input.title)?.replaceAll(/\s+/g, " ").trim().slice(0, 240)
               const instructions = [
-                "你是由另一个会话通过 create 工具创建的独立会话，不是子代理（subagent）。",
-                "你可以像任何会话一样接收用户和其他会话的消息，并保留自己的完整历史。",
-                `创建你的会话是「${parent?.title?.trim() || context.sessionID}」（${context.sessionID}）。`,
-                input.title ? `创建时给你的标题是「${input.title}」。` : undefined,
-                purpose ? `创建者说明的用途是：${purpose}` : "创建者没有说明具体用途。",
-                "创建者看不到你的执行过程；它只会用 deliver 把后续消息发给你，并在需要时主动询问结果。",
+                "You are a standalone session created by another session through the create tool, not a subagent.",
+                "Like any session, you can receive messages from the user and from other sessions, and you keep your own full history.",
+                `The session that created you is "${parent?.title?.trim() || context.sessionID}" (${context.sessionID}).`,
+                input.title ? `You were given the title "${input.title}" at creation.` : undefined,
+                purpose ? `The creator stated this purpose: ${purpose}` : "The creator stated no specific purpose.",
+                "The creator cannot see how you work; it only sends you later messages with deliver and asks for your result when it needs one.",
               ]
                 .filter((line): line is string => line !== undefined)
                 .join("\n")
@@ -109,7 +111,9 @@ export const Plugin = {
                 output: { sessionID: created.id },
                 content: [
                   `Created session @${title} (${created.id}).`,
-                  input.prompt ? "It starts on the message you passed." : "It is idle until something is delivered to it.",
+                  input.prompt
+                    ? "It starts on the message you passed."
+                    : "It is idle until something is delivered to it.",
                   `Address it later with deliver({ to: "${created.id}", text: "..." }).`,
                 ].join("\n"),
                 metadata: { sessionID: created.id },

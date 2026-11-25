@@ -39,16 +39,16 @@ const reportContentWithDiagnostics = Effect.fn("SkillPlugin.reportContentWithDia
   return [
     ReportContent,
     "",
-    "## 运行时诊断快照",
+    "## Runtime diagnostics snapshot",
     "",
-    "这些值在注册内置 report 技能时采集。发布之前请先核实。",
+    "These values were captured while registering the built-in report skill. Verify them before filing.",
     "",
     `- AI Craft version: ${app.version}`,
     `- install/channel: ${app.channel}`,
     `- OS: ${os.type()} ${os.release()} (${os.platform()} ${os.arch()}${emulated ? ", emulated on ARM64" : ""})`,
     `- Terminal: ${terminal()}`,
     `- Shell: ${shell()}`,
-    `- Active plugins: ${plugins.length === 0 ? "配置中未发现" : plugins.join(", ")}`,
+    `- Active plugins: ${plugins.length === 0 ? "none found in configuration" : plugins.join(", ")}`,
   ].join("\n")
 })
 
@@ -69,10 +69,15 @@ function terminal() {
       process.env.COLORTERM ? `COLORTERM=${process.env.COLORTERM}` : undefined,
     ]
       .filter((item): item is string => item !== undefined)
-      .join(", ") || "Unavailable: 终端环境变量未设置"
+      .join(", ") || "Unavailable: the terminal environment variable is not set"
   )
 }
 
 function shell() {
-  return process.env.SHELL ?? process.env.ComSpec ?? process.env.COMSPEC ?? "Unavailable: shell 环境变量未设置"
+  return (
+    process.env.SHELL ??
+    process.env.ComSpec ??
+    process.env.COMSPEC ??
+    "Unavailable: the shell environment variable is not set"
+  )
 }

@@ -88,7 +88,7 @@ describe("SessionCreateTool", () => {
         metadata: { createdBy: { sessionID: parentID } },
       })
       expect(creates[0]).not.toHaveProperty("subagent")
-      expect(creates[0]?.prompt).toContain("不是子代理")
+      expect(creates[0]?.prompt).toContain("not a subagent")
       expect(creates[0]?.prompt).toContain(parentID)
       expect(creates[0]?.prompt).toContain("Parent session")
     }),

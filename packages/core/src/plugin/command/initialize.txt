@@ -1,65 +1,65 @@
-为这个仓库创建或更新 `AGENTS.md`。
+Create or update `AGENTS.md` for this repository.
 
-目标是得到一个紧凑的指令文件，帮助未来的 AI Craft 会话避免错误并快速上手。每一行都应回答：「agent 在没有帮助时是否很可能错过这一点？」如果答案是否，就不要写。
+The goal is a compact instruction file that helps future AI Craft sessions avoid mistakes and get productive quickly. Every line should answer: "would an agent very likely miss this without help?" If the answer is no, do not write it.
 
-用户提供的关注点或约束（务必遵守）：
+Concerns or constraints the user provided (always honour them):
 $ARGUMENTS
 
-## 如何调查
+## How to investigate
 
-先读价值最高的来源：
-- `README*`、根清单文件、工作区配置、锁文件
-- 构建、测试、lint、格式化、类型检查和代码生成配置
-- CI 工作流与 pre-commit / 任务运行器配置
-- 已有的指令文件（`AGENTS.md`、`CLAUDE.md`、`.cursor/rules/`、`.cursorrules`、`.github/copilot-instructions.md`）
-- 仓库本地的 AI Craft 配置，例如 `aicraft.json`
+Read the highest-value sources first:
+- `README*`, root manifests, workspace configuration, lockfiles
+- build, test, lint, format, typecheck, and code-generation configuration
+- CI workflows and pre-commit / task runner configuration
+- existing instruction files (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, `.cursorrules`, `.github/copilot-instructions.md`)
+- repository-local AI Craft configuration such as `aicraft.json`
 
-如果读完配置和文档后架构仍不清晰，检查少量有代表性的代码文件，找出真正的入口、包边界和执行流。优先读那些说明系统如何连接起来的文件，而不是随机的叶子文件。
+If the architecture is still unclear after reading configuration and docs, inspect a few representative code files to find the real entry points, package boundaries, and execution flows. Prefer files that show how the system connects over random leaf files.
 
-优先相信可执行的真相来源，而不是散文描述。如果文档与配置或脚本冲突，相信可执行的来源，只保留你能验证的内容。
+Trust executable sources of truth over prose. Where documentation conflicts with configuration or scripts, believe the executable source and keep only what you can verify.
 
-## 要提取什么
+## What to extract
 
-寻找对这个仓库里工作的 agent 最有价值的事实：
-- 确切的开发者命令，尤其是那些不显然的
-- 如何运行单个测试、单个包或聚焦的验证步骤
-- 重要时所需的命令顺序，例如 `lint -> typecheck -> test`
-- monorepo 或多包边界、主要目录的归属，以及真正的应用/库入口
-- 框架或工具链的特殊之处：生成代码、迁移、代码生成、构建产物、特殊的环境加载、开发服务器、基础设施部署流程
-- 测试的特殊之处：fixture、集成测试前置条件、快照工作流、所需服务、不稳定或昂贵的测试套件
-- 现有指令文件中值得保留的重要约束
+Look for the facts most valuable to an agent working in this repository:
+- exact developer commands, especially the non-obvious ones
+- how to run a single test, a single package, or a focused verification step
+- command ordering when it matters, for example `lint -> typecheck -> test`
+- monorepo or multi-package boundaries, ownership of the main directories, and the real app/library entry points
+- framework or toolchain quirks: generated code, migrations, codegen, build artifacts, special environment loading, dev servers, infrastructure deployment flows
+- testing quirks: fixtures, integration test prerequisites, snapshot workflows, required services, flaky or expensive suites
+- important constraints worth keeping from existing instruction files
 
-好的 `AGENTS.md` 内容通常是需要阅读多个文件才能推断出的、来之不易的上下文。
+Good `AGENTS.md` content is hard-won context that would take reading several files to infer.
 
-## 提问
+## Asking questions
 
-只有当仓库无法回答某个重要问题时才向用户提问。最多用 `question` 工具问一小批问题。
+Ask the user only when the repository cannot answer an important question. Ask at most a small batch of questions with the `question` tool.
 
-好的问题：
-- 未文档化的团队约定
-- 分支 / PR / 发布方面的预期
-- 已知但未写下的缺失设置或测试前置条件
+Good questions:
+- undocumented team conventions
+- expectations around branches / PRs / releases
+- known but unwritten missing setup or test prerequisites
 
-不要问仓库已经说清楚的事情。
+Do not ask anything the repository already states.
 
-## 写作规则
+## Writing rules
 
-只包含高价值、仓库特定的指导，例如：
-- agent 否则会猜错的确切命令和快捷方式
-- 无法从文件名看出的架构说明
-- 与语言或框架默认值不同的约定
-- 设置要求、环境的特殊之处和操作陷阱
-- 对重要现有指令来源的引用
+Include only high-value, repository-specific guidance, such as:
+- exact commands and shortcuts an agent would otherwise guess wrong
+- architecture notes that cannot be inferred from file names
+- conventions that differ from language or framework defaults
+- setup requirements, environment quirks, and operational gotchas
+- references to important existing instruction sources
 
-排除：
-- 通用的软件建议
-- 冗长的教程或详尽的文件树
-- 显而易见语言约定
-- 推测性的说法或任何你无法验证的内容
-- 更适合存放在另一个文件并通过 `aicraft.json` 的 `instructions` 引用的内容
+Exclude:
+- generic software advice
+- long tutorials or exhaustive file trees
+- obvious language conventions
+- speculative claims or anything you cannot verify
+- content better kept in another file and referenced through `instructions` in `aicraft.json`
 
-有疑问时就省略。
+When in doubt, leave it out.
 
-优先使用短小节和要点。如果仓库很简单，就让文件保持简单。如果仓库很大，就总结少数真正会改变 agent 工作方式的结构性事实。
+Prefer short sections and bullets. Keep the file simple if the repository is simple. If the repository is large, summarise the few structural facts that genuinely change how an agent works.
 
-如果 `${path}` 处已存在 `AGENTS.md`，就地改进它，而不是盲目重写。保留经过验证的有用指导，删除空话或过时的说法，并与当前代码库核对一致。
+If an `AGENTS.md` already exists at `${path}`, improve it in place rather than rewriting blindly. Keep verified, useful guidance; delete filler and stale claims; and reconcile it with the current codebase.

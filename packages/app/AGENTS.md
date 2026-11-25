@@ -1,7 +1,7 @@
 ## Priorities
 
 - Prioritise, in this order: stability, simplicity, performance.
-- 界面与组件的视觉规则以仓库根的 `docs/standard/design/` 设计规范为准（根 `AGENTS.md` 的「客户端界面」）。本文件下面的 Typography、Fonts、Scrolling 是实现层约束，与设计规范冲突时以设计规范为准。
+- Visual rules for screens and components follow `docs/standard/design/` at the repository root (see Client UI in the root `AGENTS.md`). The Typography, Fonts, and Scrolling sections below are implementation-level constraints; where they conflict with the design spec, the design spec wins.
 - Before changing session or timeline code, benchmark it against `origin/master` with strobe (`packages/app/perf/README.md`): `strobe bench packages/app/perf/<area>.bench.ts --base origin/master --head .`.
 
 ## Debugging
@@ -10,9 +10,9 @@
 
 ## Local Dev
 
-- 主开发目标是 Electron 客户端：仓库根目录 `bun run dev:desktop`。界面与交互改动都在这里验收，不要在 TUI 或纯 Web 下确认后就交付。
+- The primary development target is the Electron client: `bun run dev:desktop` at the repository root. Accept UI and interaction changes there; do not deliver after confirming only in the TUI or the plain Web build.
 - `aicraft dev web` proxies `https://app.opencode.ai`, so local UI/CSS changes will not show there.
-- 只有在排查 Web 专属问题（LAN、浏览器兼容、非安全上下文）时才起 Web 双服务：后端用 `bun dev serve --port 4096`（仓库根目录），app 用 `bun dev -- --port 4444`（`packages/app`），然后打开 `http://localhost:4444`。
+- Start the split Web services only when debugging a Web-only problem (LAN, browser compatibility, non-secure context): the backend with `bun dev serve --port 4096` at the repository root, the app with `bun dev -- --port 4444` in `packages/app`, then open `http://localhost:4444`.
 
 ## Insecure Origins (HTTP LAN)
 

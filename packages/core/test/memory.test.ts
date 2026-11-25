@@ -150,7 +150,7 @@ describe("Memory", () => {
   )
 
   test("renders the protocol even with no memories", () => {
-    expect(Memory.render({ project: [], global: [], budget: 4_000 })).toContain("## 记忆协议")
+    expect(Memory.render({ project: [], global: [], budget: 4_000 })).toContain("## Memory protocol")
   })
 
   test("renders both scopes within the budget", () => {
@@ -160,8 +160,8 @@ describe("Memory", () => {
       global: [entry("b", "全局偏好")],
       budget: 4_000,
     })
-    expect(text).toContain("### 项目记忆")
-    expect(text).toContain("### 全局记忆")
+    expect(text).toContain("### Project memory")
+    expect(text).toContain("### Global memory")
     expect(text).toContain("- 项目约定")
     expect(text).toContain("- 全局偏好")
   })

@@ -110,14 +110,14 @@ export const Plugin = define({
         objective: escape(goal.objective),
         background:
           shells.length === 0
-            ? "没有后台 shell 在运行。"
+            ? "No background shells are running."
             : [
-                "仍在运行的后台 shell：",
+                "Background shells still running:",
                 ...shells.map((command) => `- ${command}`),
                 "",
-                '只有当目标需要其中某个 shell 的结果时才回答 "wait"。绝不要等待长时间运行的服务器，例如开发服务器。',
+                'Answer "wait" only when the objective needs the result of one of these shells. Never wait on a long-running server, such as a dev server.',
               ].join("\n"),
-        wait: shells.length === 0 ? "" : '{"verdict":"wait","reason":"<目标所需的正在运行的 shell>"}\n',
+        wait: shells.length === 0 ? "" : '{"verdict":"wait","reason":"<the running shell the objective needs>"}\n',
       })
       const attempt = ctx.session.generate({ sessionID, prompt }).pipe(
         Effect.map((result) => {
@@ -196,7 +196,7 @@ export const Plugin = define({
       // No description: timelines hide the continuation, and the pinned goal shows that the loop is still running.
       yield* ctx.session.synthetic({
         sessionID,
-        text: continuation(next, [verdict.reason, verdict.next_step && `下一步：${verdict.next_step}`]),
+        text: continuation(next, [verdict.reason, verdict.next_step && `Next step: ${verdict.next_step}`]),
         metadata: { source: "goal", goalID: next.id },
       })
     })

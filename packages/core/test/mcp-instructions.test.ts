@@ -187,7 +187,7 @@ describe("McpInstructions", () => {
 
       catalog = []
       expect((yield* readUpdate(yield* service.load([]), removed)).text).toBe(
-        "MCP 服务器说明已不可用。",
+        "MCP server instructions are no longer available.",
       )
     }).pipe(
       Effect.provide(

@@ -53,7 +53,7 @@ const INPUT_FAILURES = {
   length: {
     type: "tool.input-incomplete",
     message:
-      "工具调用没有执行，因为在参数补全之前就达到了输出长度上限（停止原因：length）。把大参数拆成更小的工具调用，并用完整参数重新发起调用。",
+      "The tool call did not execute because the output length limit (stop reason: length) was reached before its arguments were complete. Split large arguments into smaller tool calls and re-issue the call with complete arguments.",
   },
   incomplete: {
     type: "tool.input-incomplete",

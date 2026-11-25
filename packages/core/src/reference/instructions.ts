@@ -71,7 +71,7 @@ const layer = Layer.effect(
             initial: render,
             changed: update,
             removed: () =>
-              "项目引用说明已不可用。不要再使用之前列出的引用。",
+              "Project reference instructions are no longer available. Do not use previously listed references.",
           },
         })
       }),

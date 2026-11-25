@@ -288,6 +288,7 @@ const PROTOCOL = [
   "4. it tells you an important fact you will need again.",
   'Judge by meaning, not wording: the user need not say "remember", and a plain-looking correction may still belong in memory. Use scope=global for personal habits that span projects; otherwise save to the current project.',
   "When a stored memory goes stale or gets corrected, rewrite it with memory.update rather than keeping contradictory entries; use memory.forget when the user asks you to forget. Never save secrets, credentials, or one-off details.",
+  "When a user message is terse, ambiguous, or uses shorthand you cannot resolve, call memory.search before asking for clarification: the injection budget may have left a saved preference out of this conversation.",
 ].join("\n")
 
 const HEADER =
@@ -296,7 +297,8 @@ const HEADER =
 /**
  * Builds the system section injected before every request, including the empty case so a fresh Project still learns the
  * protocol. The budget is shared in proportion to each scope's own size, so a short global list does not reserve space
- * the project list needs, and vice versa.
+ * the project list needs, and vice versa. Global entries keep a guaranteed floor: they are cross-project habits — few,
+ * short, and the ones the model needs most often — and a large project list must not crowd them out entirely.
  */
 export function render(input: RenderInput) {
   const project = sortRecent(input.project)
@@ -307,8 +309,8 @@ export function render(input: RenderInput) {
   const projectLength = project.reduce((sum, entry) => sum + line(entry).length + 1, 0)
   const globalLength = global.reduce((sum, entry) => sum + line(entry).length + 1, 0)
   const total = projectLength + globalLength
-  const projectBudget = total <= available ? available : Math.floor((available * projectLength) / total)
-  const packedProject = pack(project, projectBudget)
+  const globalFloor = total <= available ? 0 : Math.min(globalLength, Math.floor(available / 4))
+  const packedProject = pack(project, available - globalFloor)
   const packedGlobal = pack(global, available - packedProject.used)
 
   const sections: string[] = []

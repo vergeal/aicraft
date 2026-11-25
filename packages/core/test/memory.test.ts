@@ -165,4 +165,16 @@ describe("Memory", () => {
     expect(text).toContain("- 项目约定")
     expect(text).toContain("- 全局偏好")
   })
+
+  test("keeps global habits when a crowded project list spends the budget", () => {
+    const entry = (id: string, text: string, at: string) => ({ id, text, tags: [], createdAt: at, updatedAt: at })
+    const long = "x".repeat(390)
+    const project = Array.from({ length: 30 }, (_, index) => entry(`p${index}`, `#${index} ${long}`, "2026-06-01T00:00:00.000Z"))
+    const global = [
+      entry("g1", "g1 ".padEnd(210, "近"), "2026-06-02T00:00:00.000Z"),
+      entry("g2", "用户说「pp」意思是 push code", "2026-01-01T00:00:00.000Z"),
+    ]
+    const text = Memory.render({ project, global, budget: 4_000 })
+    expect(text).toContain("用户说「pp」意思是 push code")
+  })
 })

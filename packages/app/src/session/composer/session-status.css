@@ -75,12 +75,15 @@
 [data-slot="session-status-fill"] {
   display: flex;
   block-size: 100%;
-  min-inline-size: 0;
+  /* Sized by the used share the caller puts on it; the track must never shrink it away. */
+  flex-shrink: 0;
 }
 
 [data-slot="session-status-track"] [data-part] {
   display: block;
   block-size: 100%;
+  /* A part with a sliver of the window would otherwise vanish; the larger parts absorb the overshoot. */
+  min-inline-size: 4px;
 }
 
 [data-slot="session-status-row"] i[data-part] {
@@ -91,12 +94,15 @@
   border-radius: var(--radius-xs);
 }
 
+/* The three parts of the prompt are categories, not statuses, so they take existing semantic hues rather than the
+   state palette: a light grey ground for the fixed system prompt, violet for tool output, accent blue for the talk.
+   Each resolves in both colour schemes; the violet is the one token that lightens in dark. */
 [data-slot="session-status-card-body"] [data-part="system"] {
   background: var(--v2-icon-icon-muted);
 }
 
 [data-slot="session-status-card-body"] [data-part="tools"] {
-  background: var(--v2-icon-icon-faint);
+  background: var(--v2-agent-writer-solid);
 }
 
 [data-slot="session-status-card-body"] [data-part="history"] {

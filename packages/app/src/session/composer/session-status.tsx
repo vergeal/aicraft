@@ -321,7 +321,9 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
                 })}
               />
               <div data-slot="session-status-track" aria-hidden="true">
-                <div data-slot="session-status-fill">
+                {/* The track is the whole window and the fill its used share: the segments' widths are percentages of
+                    the fill, so the fill has to carry the share itself or it collapses to its content's 0 intrinsic. */}
+                <div data-slot="session-status-fill" style={{ width: `${Math.min(100, value().percent)}%` }}>
                   <For each={value().parts}>
                     {(part) => <span data-part={part.key} style={{ width: `${part.share}%` }} />}
                   </For>

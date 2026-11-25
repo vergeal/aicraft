@@ -391,8 +391,11 @@ export function createHomeSessionsController(home: HomeController) {
           archive: (sessionID) => ctx.sdk.api.session.update({ sessionID, archived: true }),
           remove() {
             const rows = homeRowTops()
-            // The index leaves archived sessions out, but the cached page and the live store still hold this
-            // one, so drop both now instead of waiting for the refetch that follows the archive event.
+
+            // The archive event prunes Home's index as soon as the response lands (`inbox-model.ts` invalidates this
+            // query), so anything that waits for the fade is cut short by that refetch. Dropping the row in the same
+            // frame the neighbours are measured is what deleting does, and it survives the event: by the time the
+            // index refetches, the layout has already closed over the gap.
             queryClient.setQueryData<SessionInfo[]>(["home-sessions", conn], (current) =>
               current?.filter((item) => item.id !== session.id),
             )

@@ -127,6 +127,10 @@ export function AnswerTimeline(props: {
   let restoreLocal = false
   let restoreLanding = false
   let revealTop = 0
+  // The placed row's screen position for this activation's landing: the machine's `anchored` state holds the key,
+  // this holds the top edge as the placement write left it. Every height change is corrected back to it in the
+  // observer frame that measures it, so the reveal shows one position and no later restream visibly moves it.
+  let placedAnchor: { top: number } | undefined
   let restoreGeneration = 0
   let seekController: AbortController | undefined
   let settleTimer: ReturnType<typeof setTimeout> | undefined
@@ -156,7 +160,9 @@ export function AnswerTimeline(props: {
   const applyAnchoring = () => {
     // The gate also owns the offset: while it is up, the browser's anchoring must not "helpfully" correct the
     // placement writes it cannot see.
-    if (viewport) viewport.style.overflowAnchor = following() || restorePending() ? "none" : "auto"
+    if (viewport)
+      viewport.style.overflowAnchor =
+        following() || restorePending() || props.follow.anchor() !== undefined ? "none" : "auto"
   }
 
   // Where the reader left the transcript is a fact about the viewport, not the follow intent. The machine can still
@@ -243,6 +249,21 @@ export function AnswerTimeline(props: {
     stickToEnd()
   }
 
+  // After a placement the landing is the row's screen position, not the offset number: re-measure the placed row
+  // inside the observer frame that saw the height change, and give the offset back the difference. The write runs
+  // before paint, so no visible position is ever added; the reveal shows the same single place the page wrote.
+  const correctPlacedAnchor = (key: string) => {
+    if (!placedAnchor || !viewport) return
+
+    const row = viewport.querySelector<HTMLElement>(`[data-answer-key="${CSS.escape(key)}"]`)
+
+    if (!row) return
+
+    const delta = row.getBoundingClientRect().top - viewport.getBoundingClientRect().top - placedAnchor.top
+
+    if (Math.abs(delta) > 1) viewport.scrollTop += delta
+  }
+
   // This activation owes the view a landing. The intent lives in the follow machine's `landing` state, so the clamp a
   // reinsert produces cannot be mistaken for the reader leaving the end. The timer only expires the intent, which keeps
   // a scrollbar drag (which never reaches the viewport's pointer handlers) from being pulled back forever.
@@ -296,6 +317,7 @@ export function AnswerTimeline(props: {
     restorePlacedAt = 0
     restoreLocal = false
     restoreLanding = false
+    placedAnchor = undefined
     setRestorePending(true)
     setRestoreSettled(false)
 
@@ -514,6 +536,7 @@ export function AnswerTimeline(props: {
             restorePlacedAt = performance.now()
             restoreLocal = false
             restoreLanding = true
+            placedAnchor = undefined
             setRestorePending(true)
             setRestoreSettled(false)
             armRestoreDeadline()
@@ -595,14 +618,25 @@ export function AnswerTimeline(props: {
             return
           }
 
-          if (restorePlaced) scheduleReveal()
+          if (restorePlaced) {
+            const anchored = props.follow.peek()
+
+            if (anchored.type === "anchored") correctPlacedAnchor(anchored.anchor.key)
+          }
 
           return
         }
 
         const state = props.follow.peek()
 
-        if (state.type === "anchored") return
+        // The landing's anchor outlives the gate: a row that measures a different height later, above the placed
+        // one, would otherwise drag the reader's place along with it. The write lands in this observer frame,
+        // before paint, and the placed row's screen position holds through it.
+        if (state.type === "anchored") {
+          correctPlacedAnchor(state.anchor.key)
+
+          return
+        }
 
         // A press pauses the landing: the rows must hold still between pointerdown and pointerup, or the click lands on
         // whatever moved under the pointer instead.
@@ -626,15 +660,41 @@ export function AnswerTimeline(props: {
 
       // Rows remount on activation and on every page-in, and the resize observer keeps no reference to replaced
       // children: a child-list watcher re-syncs the observed set, or growth after a remount reports to nobody.
+      // The sync is incremental on purpose. Disconnecting and re-observing the whole list drops the entries the
+      // browser had already collected for this frame and re-seeds each child with its current size, so a height
+      // change that arrived in the same batch as a remount is never reported - and the anchor correction for it
+      // slips a frame or disappears.
       const root = viewport
+      const observed = new Set<Element>()
       const syncObserved = () => {
-        contentObserver?.disconnect()
+        const next = new Set(Array.from(root.children))
 
-        for (const child of Array.from(root.children)) contentObserver?.observe(child)
+        for (const node of Array.from(observed)) {
+          if (next.has(node)) continue
+          observed.delete(node)
+          contentObserver?.unobserve(node)
+        }
+
+        for (const node of next) {
+          if (observed.has(node)) continue
+          observed.add(node)
+          contentObserver?.observe(node)
+        }
       }
       syncObserved()
-      contentWatcher = new MutationObserver(syncObserved)
-      contentWatcher.observe(root, { childList: true })
+      contentWatcher = new MutationObserver(() => {
+        syncObserved()
+
+        // Rows a page-in mounts are nested children of the transcript container: no viewport-direct child list
+        // changes, and no already-observed box changes size, so the resize observer first hears of the shift from
+        // the newcomers' own initial delivery, a frame late - and the pushed-down position paints displaced. A
+        // subtree mutation callback runs in the inserting task's microtask, pre-paint, so holding the anchor row
+        // here corrects in the frame that moved it.
+        const anchored = props.follow.peek()
+
+        if (placedAnchor && anchored.type === "anchored") correctPlacedAnchor(anchored.anchor.key)
+      })
+      contentWatcher.observe(root, { childList: true, subtree: true })
     })
   })
 
@@ -643,6 +703,7 @@ export function AnswerTimeline(props: {
   createRenderEffect(() => {
     following()
     restorePending()
+    props.follow.anchor()
     applyAnchoring()
   })
 
@@ -799,15 +860,21 @@ export function AnswerTimeline(props: {
           restoreSeeking={restoreSeeking}
           restoreSettled={restoreSettled}
           restoreTick={restoreTick}
-          onRestorePlaced={() => {
+          onRestorePlaced={(target) => {
             restorePlaced = true
             restorePlacedAt = performance.now()
             revealTop = viewport?.scrollTop ?? 0
             // The reader is back at a remembered mid position, not at the newest content. The machine may still
             // carry following from before the switch, and the gate hides scroll events that would correct it:
-            // detach now, or the first growth after the reveal would stickToEnd on stale intent.
-            props.follow.dispatch({ type: "detach" })
-            scheduleReveal()
+            // anchor now, or the first growth after the reveal would stickToEnd on stale intent. The anchor holds
+            // the placed row until the reader's own input lets it go.
+            props.follow.dispatch({ type: "anchor", anchor: { key: target.key } })
+            // Record the row's top edge as the placement write left it; the observer frames correct back to it.
+            const row = viewport?.querySelector<HTMLElement>(`[data-answer-key="${CSS.escape(target.key)}"]`)
+            placedAnchor = row && viewport
+              ? { top: row.getBoundingClientRect().top - viewport.getBoundingClientRect().top }
+              : undefined
+            finishRestore()
           }}
           onRestoreMiss={restoreMissed}
           onPositionChange={rememberPosition}

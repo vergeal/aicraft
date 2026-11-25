@@ -128,7 +128,7 @@ export interface AnswerPageProps {
    */
   readonly restoreSettled?: () => boolean
   /** The remembered row was placed and measured; the host lifts the restore gate once heights stop moving. */
-  readonly onRestorePlaced?: () => void
+  readonly onRestorePlaced?: (target: { readonly key: string; readonly offset: number }) => void
   /** Reports the row under the top edge, so the host can remember where the reader stopped. */
   readonly onPositionChange?: (position: { readonly key: string; readonly offset: number }) => void
   /**
@@ -568,25 +568,18 @@ export function AnswerPage(props: AnswerPageProps) {
 
   // A restore attempt belongs to one activation: it waits for the DOM insert, then places the remembered row once.
   let pendingRestore: { key: string; offset: number } | undefined
-  // One scroll per attempt: it brings the remembered row into reach, and the retry after it places the row exactly.
-  let restoreScrolled = false
   const [restoreState, setRestoreState] = createSignal<RestoreState>(createRestoreState())
-  // How long a restore waits for the transcript to hold the remembered row before it gives up and lands at the end.
-  // The host fetches the row's page on activation, so this is now a watchdog for a hung fetch rather than the judge of
-  // the miss; while a fetch is still in flight the check defers by one poll (see `decideMiss`).
+  // How long a restore waits for the remembered row to appear before it gives up and lands at the end. A row already
+  // in the DOM never comes here: it lands at once, clamped or not, and the host holds its screen position through
+  // every later height change. The watchdog only bounds a hung anchor fetch or a row that never arrived.
   const RESTORE_LOAD_MS = 1500
-  // The transcript grows under a pending attempt (async row render, a folding turn). The miss decides once the
-  // height has been quiet this long, re-armed by every content tick, still bounded by the hung-fetch watchdog.
-  const RESTORE_QUIET_MS = 350
   // The poll the miss check uses while the host's anchor request is still in flight.
   const RESTORE_SEEK_POLL_MS = 250
   let missTimer: ReturnType<typeof setTimeout> | undefined
-  let missDue: number | undefined
 
   const cancelMiss = () => {
     if (missTimer !== undefined) clearTimeout(missTimer)
     missTimer = undefined
-    missDue = undefined
   }
 
   const dispatchRestore = (event: RestoreEvent) => {
@@ -599,28 +592,36 @@ export function AnswerPage(props: AnswerPageProps) {
     if (next === "missed") props.onRestoreMiss?.()
   }
 
-  // Where the remembered row would put the top edge, and whether the loaded height can scroll that far. A row can be
-  // present while its offset is not: a folded process row, markdown still rendering, or a page that changed the height
-  // above it. Writing such an offset only clamps, parking the reader at the top of a shorter transcript.
+  // Where the remembered row's box puts the top edge, clamped into the range the loaded height can scroll. A clamp
+  // is accepted only when it is final: a box that cannot scroll at all (an attaching view, a spacer still to come)
+  // has not been measured yet, and placing from it would park the reader above content that is about to arrive.
+  // Once the box scrolls, the closest position is the real landing and the host's anchor correction holds it.
   const placement = (root: HTMLDivElement, target: { key: string; offset: number }) => {
     const row = findRow(root, target.key)
 
     if (!row) return undefined
 
     const wanted = root.scrollTop + row.getBoundingClientRect().top - root.getBoundingClientRect().top + target.offset
-    const scrollTop = Math.min(Math.max(wanted, 0), Math.max(0, root.scrollHeight - root.clientHeight))
+    const max = Math.max(0, root.scrollHeight - root.clientHeight)
 
-    // A target above the top edge is the closest the loaded height gets, not a shorter transcript; only a target past
-    // the last offset means the content above or below the row is not there to scroll through.
-    return { scrollTop, reachable: wanted <= 0 || Math.abs(wanted - scrollTop) <= 1 }
+    if (wanted > max && max === 0) return undefined
+
+    return Math.min(Math.max(wanted, 0), max)
   }
 
-  // Every loaded row is in the DOM, so the remembered row is placed from its own measured box in one write. Nothing
-  // above it is an estimate that will later change, so the write is final and needs no pin.
+  // One write per activation, the moment the remembered row is in the DOM. Whether the loaded height can reach the
+  // remembered offset is not the page's question: the row is placed at its closest position and the host's anchor
+  // correction holds that screen position while anything above it keeps settling. Waiting for quiet height is what
+  // made a short transcript idle on the watchdog and a folding one on the settle window.
   const attemptRestore = () => {
     const root = props.viewport?.()
 
-    if (!root || keys().length === 0) return
+    // A cached view reinserted for activation is not attached while the first attempt runs, and detached rows
+    // measure zero: any placement decided from that geometry is a lie. The observer frame that attaches the view
+    // bumps the tick and retries; the host deadline bounds the wait and still reveals.
+    if (!root || !root.isConnected || root.scrollHeight === 0) return
+
+    if (keys().length === 0) return
 
     if (restoreState() !== "idle") return
 
@@ -642,56 +643,27 @@ export function AnswerPage(props: AnswerPageProps) {
     // offset here would be a visible jump the placement then moves again. The pending effect retries on gate-up.
     if (props.restorePending && !props.restorePending()) return
 
-    // Every row renders its real content, so a row that exists already has its final box. An offset the current height
-    // cannot reach means the transcript is still missing height (a folded row, an older page), so scroll to the row's
-    // box once and place again next frame, when the remaining layout has landed.
-    const row = findRow(root, target.key)
     const placed = placement(root, target)
 
-    if (row && !placed?.reachable && !restoreScrolled) {
-      const wanted = root.scrollTop + row.getBoundingClientRect().top - root.getBoundingClientRect().top + target.offset
-
-      restoreScrolled = true
-
-      const next = Math.min(Math.max(wanted, 0), Math.max(0, root.scrollHeight - root.clientHeight))
-
-      if (Math.abs(next - root.scrollTop) > 1) root.scrollTop = next
-      // Timer rather than rAF: a backgrounded window freezes rAF and strands the attempt mid-placement.
-      setTimeout(() => {
-        if (restoreState() === "idle") attemptRestore()
-      }, 16)
-
-      return
-    }
-
-    // A missing row (an older page) and an offset the current height cannot reach (a folded or still-rendering row)
-    // both wait for the transcript to grow enough. Writing the clamped offset instead would record the top of the
-    // shortened transcript as the reader's place, so every later activation opened at the first row.
-    if (!placed?.reachable) {
-      // Decide the miss on a quiet height, not on a fixed sleep: the first unreachable schedules the hung-fetch
-      // watchdog, and every content tick re-arms it to a short quiet window, so a transcript that settles lands
-      // early while one that never arrives stays bounded by the watchdog.
-      const now = performance.now()
-      const due = missDue === undefined ? now + RESTORE_LOAD_MS : Math.min(missDue, now + RESTORE_QUIET_MS)
-
-      missDue = due
-      if (missTimer !== undefined) clearTimeout(missTimer)
-      missTimer = setTimeout(() => {
+    // The row is on an older page the host is fetching (or will page in by hand), or the box has not been laid out
+    // yet and any placement would be a guess: only here does the miss get a chance to decide, bounded by the watchdog
+    // and closed by `decideMiss` when the row is in view but nothing can scroll.
+    if (placed === undefined) {
+      missTimer ??= setTimeout(() => {
         missTimer = undefined
-        missDue = undefined
         decideMiss(target)
-      }, Math.max(0, due - now))
+      }, RESTORE_LOAD_MS)
 
       return
     }
 
     dispatchRestore({ type: "activate" })
 
-    if (Math.abs(placed.scrollTop - root.scrollTop) > 1) root.scrollTop = placed.scrollTop
+    if (Math.abs(placed - root.scrollTop) > 1) root.scrollTop = placed
 
     // Record the row the reader was put back on, so the next activation restores the same place.
     props.onPositionChange?.(target)
-    props.onRestorePlaced?.()
+    props.onRestorePlaced?.(target)
   }
 
   // The deadline only judges while nobody is fetching: the host's anchor request can still land the row, so the
@@ -710,14 +682,25 @@ export function AnswerPage(props: AnswerPageProps) {
 
     const current = props.viewport?.()
 
-    if (current && placement(current, target)?.reachable) return attemptRestore()
+    if (current && findRow(current, target.key)) {
+      // The row is here but its box still cannot scroll: a transcript that fits its window holds every row in view,
+      // so the closest position to the reader's memory is what the screen already shows. Land on it without a write
+      // (the re-check through `attemptRestore` still prefers a real placement if one became possible).
+      if (placement(current, target) !== undefined) return attemptRestore()
+
+      dispatchRestore({ type: "activate" })
+      props.onPositionChange?.(target)
+      props.onRestorePlaced?.(target)
+
+      return
+    }
 
     dispatchRestore({ type: "miss" })
   }
 
-  // Height under a pending restore is still moving (async row render, a finished turn folding): re-measure with it.
-  // The host bumps the tick on every content resize while its gate hides the transcript, so an offset that becomes
-  // reachable lands in the same activation instead of idling on the miss watchdog.
+  // The host bumps the tick on every content resize while its gate hides the transcript: a remembered row that only
+  // just made it into the DOM lands on this activation instead of idling on the watchdog. A placed row needs no
+  // re-judgement; the host corrects its screen position, and the attempt is over.
   createEffect(
     on(
       () => props.restoreTick?.() ?? 0,
@@ -740,7 +723,6 @@ export function AnswerPage(props: AnswerPageProps) {
         cancelMiss()
         dispatchRestore({ type: "reset" })
         pendingRestore = props.restore?.()
-        restoreScrolled = false
         // Run after the DOM insert this activation triggers but before the browser paints and dispatches the scroll
         // event the reinsertion causes. That event reports the clamped offset as "arrived at the end", which would
         // otherwise pull a restored middle row back to the bottom.

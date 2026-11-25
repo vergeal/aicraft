@@ -9,8 +9,11 @@ export const ZOOM_SLACK = 4
 // A scroll range at or below this does not overflow.
 export const MIN_OVERFLOW = 1
 
-/** A revealed tool call, whose top edge stays put until the reader scrolls. */
-export type FollowAnchor = { readonly key: string; readonly partID: string }
+/**
+ * The row whose top edge stays put until the reader scrolls: a revealed tool call (with its `partID`) or the row a
+ * restore placed (key only).
+ */
+export type FollowAnchor = { readonly key: string; readonly partID?: string }
 
 /**
  * The reader's contact with the timeline. A held pointer or touch is what separates the reader's own upward scroll

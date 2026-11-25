@@ -95,7 +95,11 @@ export const DEFAULT_SETTINGS: Settings = {
   lexicalScanLimit: 500,
   maxEntries: 200,
   vectorTopK: 3,
-  vectorThreshold: 0.35,
+  // Calibrated 2026-11-26 by `spike/real-vector.ts` on the 421-entry golden corpus with the
+  // real bge-small-zh-v1.5: gold query/entry pairs score 0.449-0.769, best unrelated pairs
+  // 0.379-0.553, and no unrelated query injects anything at this cut (recall 1.0, false
+  // injection 0, mean 264 chars). Raising it to 0.45 already loses a gold pair.
+  vectorThreshold: 0.4,
   vectorScanLimit: 10_000,
   sessionIndex: "off",
   nearDuplicateThreshold: 0.85,

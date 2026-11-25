@@ -23,12 +23,10 @@ network, or a session lives in `@aicraft/core` adapters that implement the ports
   unstable renderer silently invalidates the whole cached prefix and multiplies cost.
 - Thresholds are per-embedder configuration, not universal constants. Measured 2026-11 with
   the fake: relevant query/entry pairs score 0.12-0.27 and the unrelated noise floor reaches
-  ~0.20 on a bulk corpus, while a real sentence-embedding model scores the same pairs much
-  higher (and its scores depend on whether it needs a retrieval instruction prefix). Never
-  "fix" a test by moving `DEFAULT_SETTINGS` toward the fake's range — override `settings`
-  locally instead, as `test/vector.test.ts` and the `test/metrics.test.ts` sweep do. The real
-  operating point (threshold, top-k, recall/false-injection trade-off) comes from the
-  golden-set spike against the actual model, not from this package.
+  ~0.20 on a bulk corpus. Never "fix" a test by moving `DEFAULT_SETTINGS` toward the fake's
+  range — override `settings` locally instead, as `test/vector.test.ts` and the `test/metrics.test.ts`
+  sweep do. The real operating point is calibrated: `spike/real-vector.ts` against bge-small-zh-v1.5
+  (llama-server) sets `vectorThreshold: 0.4` (see `DEFAULT_SETTINGS`).
 
 ## Acceptance Gate
 
@@ -47,7 +45,10 @@ network, or a session lives in `@aicraft/core` adapters that implement the ports
   new inject recall ≥ 2× the old key-ordered window (measured 1.0 vs 0.33) and new search
   recall ≥ 0.9 vs the old substring match (measured 0.12). Fake-calibrated vector gates are
   weaker by design (inject recall ≥ 0.66, search ≥ 0.9 — measured 1.0 / 0.94): the fake is not
-  semantic, its real operating point comes from the bge-small spike. Lowering a gate is a
+  semantic. The real operating point was measured 2026-11-26 with `spike/real-vector.ts` (needs a
+  running `llama-server --embedding`, not part of `bun test`): recall 1.0, search@5 1.0, false
+  injection 0, mean 264 chars, byte stability 1.0 at threshold 0.4 — every gate holds on the real
+  model, and `DEFAULT_SETTINGS.vectorThreshold` encodes that operating point. Lowering a gate is a
   decision, not a test fix: state the measured before/after.
 - The bulk corpus must survive its own dedup: 400 fillers must yield 400 inserts (measured
   worst pair containment 0.70 vs the 0.85 gate). Repeating whole topic sentences inside filler
@@ -82,10 +83,10 @@ network, or a session lives in `@aicraft/core` adapters that implement the ports
   Measured 2026-11: sourcing lexical candidates from a recency window scored 0.22 recall on
   the 421-entry corpus because the entries worth retrieving are the oldest ones — the quieter
   twin of the kv kernel's newest-100 cap.
-- Open spike question, not a policy change: with a real embedder, injection is trigger ∪
-  vector only, so literal matches the vector channel scores under the threshold never reach
-  the request. On the fake that costs 0.78 recall versus 1.0 for the lexical fallback. Whether
-  the turn block should fuse vector AND lexical at the real model's threshold is a golden-set
-  spike decision — do not silently add the lexical channel to `onTurn`.
+- Resolved by the 2026-11-26 golden-set spike (`spike/real-vector.ts`): with the real
+  bge-small-zh-v1.5 at threshold 0.4, trigger ∪ vector alone carries the whole gold set
+  (recall 1.0, false injection 0, mean 264 chars) — the turn block does NOT fuse the lexical
+  channel. Lexical stays a search-only channel; do not add it to `onTurn` without a new
+  spike measurement.
 - Embedding failure degrades the vector channel silently; trigger and lexical channels must
   keep working without any embedder present.

@@ -12,10 +12,47 @@ import { SessionExecution } from "@aicraft/core/session/execution"
 import { SessionProjector } from "@aicraft/core/session/projector"
 import { SessionStore } from "@aicraft/core/session/store"
 import { LayerNode } from "@aicraft/util/effect/layer-node"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import { eq } from "drizzle-orm"
+import { SessionModelTransport } from "@aicraft/core/session/model-transport"
 import { testEffect } from "./lib/effect"
 import { globalProjectNode } from "./lib/project"
+
+const running = new Set<Session.ID>()
+const interrupted: Array<{ sessionID: Session.ID; resume?: boolean }> = []
+const idled: Session.ID[] = []
+// Archive must stop the run without asking for it back: `resume` is what the Stop button sets, and a sealed session
+// has to stay sealed.
+const execution = Layer.succeed(
+  SessionExecution.Service,
+  SessionExecution.Service.of({
+    active: Effect.sync(() => new Set(running)),
+    isActive: (sessionID) => Effect.sync(() => running.has(sessionID)),
+    resume: (sessionID) =>
+      Effect.sync(() => {
+        running.add(sessionID)
+      }),
+    interrupt: (sessionID, options) =>
+      Effect.sync(() => {
+        interrupted.push({ sessionID, resume: options?.resume })
+        return running.delete(sessionID)
+      }),
+    wake: (sessionID) =>
+      Effect.sync(() => {
+        running.add(sessionID)
+      }),
+    awaitIdle: (sessionID) => Effect.sync(() => idled.push(sessionID)),
+  }),
+)
+const closed: Session.ID[] = []
+const transport = Layer.succeed(
+  SessionModelTransport.Service,
+  SessionModelTransport.Service.of({
+    bind: () => ({ execute: () => Effect.die("Unexpected WebSocket execution") }),
+    close: (sessionID) => Effect.sync(() => closed.push(sessionID)),
+    closeAll: Effect.void,
+  }),
+)
 
 const it = testEffect(
   AppNodeBuilder.build(
@@ -23,7 +60,8 @@ const it = testEffect(
     [
       Bus.node.replace(Bus.configured({ persist: true })),
       Project.node.replace(globalProjectNode),
-      SessionExecution.node.replace(SessionExecution.noopLayer),
+      SessionExecution.node.replace(execution),
+      SessionModelTransport.node.replace(transport),
     ],
   ),
 )
@@ -67,6 +105,25 @@ describe("Session.archive", () => {
       expect(yield* ids()).toEqual([active.id, archived.id].toSorted())
       expect(yield* ids({ archived: false })).toEqual([active.id])
       expect(yield* ids({ archived: true })).toEqual([archived.id])
+    }),
+  )
+
+  it.effect("interrupts the running call and seals the session against new input", () =>
+    Effect.gen(function* () {
+      const session = yield* Session.Service
+      const created = yield* session.create({ location })
+      interrupted.length = 0
+      idled.length = 0
+      closed.length = 0
+
+      yield* session.archive(created.id)
+
+      expect(interrupted).toEqual([{ sessionID: created.id, resume: undefined }])
+      expect(idled).toEqual([created.id])
+      expect(closed).toEqual([created.id])
+      expect(yield* Effect.flip(session.prompt({ sessionID: created.id, text: "sealed", resume: false }))).toEqual(
+        new Session.ArchivedError({ sessionID: created.id }),
+      )
     }),
   )
 

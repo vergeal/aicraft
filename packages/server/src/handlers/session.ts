@@ -53,9 +53,17 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
         sessionID: error.sessionID,
         message: `Session is busy: ${error.sessionID}`,
       })
-    const pendingMutation = (effect: ReturnType<typeof session.cancelInbox>, conflict: string) =>
+    // An archived session is sealed against new work; that reads as a conflict with its archived state, not a
+    // missing session, so the caller can tell the two apart.
+    const archivedSession = (error: Session.ArchivedError) =>
+      Effect.fail(new ConflictError({ resource: error.sessionID, message: error.message }))
+    const pendingMutation = (effect: ReturnType<typeof session.steerInbox>, conflict: string) =>
       effect.pipe(
         Effect.catchTag("Session.NotFoundError", missingSession),
+        // Steering a queued item into an archived session would wake it, which the seal forbids.
+        Effect.catchTag("Session.ArchivedError", (error) =>
+          Effect.fail(new ConflictError({ resource: error.sessionID, message: error.message })),
+        ),
         Effect.catchTag(
           "Session.InboxConflictError",
           (error) => new ConflictError({ resource: error.inboxID, message: `${conflict}: ${error.inboxID}` }),
@@ -312,6 +320,7 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
               })
               .pipe(
                 Effect.catchTag("Session.NotFoundError", missingSession),
+                Effect.catchTag("Session.ArchivedError", archivedSession),
                 Effect.catchTag("Session.PromptConflictError", (error) =>
                   Effect.fail(
                     new ConflictError({
@@ -378,6 +387,7 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
             })
             .pipe(
               Effect.catchTag("Session.NotFoundError", missingSession),
+              Effect.catchTag("Session.ArchivedError", archivedSession),
               Effect.catchTag("Session.SkillNotFoundError", (error) =>
                 Effect.fail(new SkillNotFoundError({ skill: error.skill, message: `Skill not found: ${error.skill}` })),
               ),
@@ -401,6 +411,7 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
             })
             .pipe(
               Effect.catchTag("Session.NotFoundError", missingSession),
+              Effect.catchTag("Session.ArchivedError", archivedSession),
               Effect.catchTag("Session.SyntheticConflictError", (error) =>
                 Effect.fail(
                   new ConflictError({
@@ -418,7 +429,10 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
         Effect.fn(function* (ctx) {
           yield* session
             .shell({ sessionID: ctx.params.sessionID, id: ctx.payload.id, command: ctx.payload.command })
-            .pipe(Effect.catchTag("Session.NotFoundError", missingSession))
+            .pipe(
+              Effect.catchTag("Session.NotFoundError", missingSession),
+              Effect.catchTag("Session.ArchivedError", archivedSession),
+            )
           return HttpApiSchema.NoContent.make()
         }),
       )
@@ -430,6 +444,7 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
               .compact({ sessionID: ctx.params.sessionID, id: ctx.payload.id, delivery: ctx.payload.delivery })
               .pipe(
                 Effect.catchTag("Session.NotFoundError", missingSession),
+                Effect.catchTag("Session.ArchivedError", archivedSession),
                 Effect.catchTag("Session.CompactionConflictError", (error) =>
                   Effect.fail(
                     new ConflictError({

@@ -11,6 +11,19 @@ export class NotFoundError extends Schema.TaggedError<NotFoundError>()("Session.
   sessionID: SessionSchema.ID,
 }) {}
 
+/**
+ * An archived session is sealed: it takes no new work, so admitting a prompt, a synthetic delivery, a shell
+ * command, a skill or a compaction into one fails with this. Restoring it with `Session.unarchive` is what makes it
+ * usable again.
+ */
+export class ArchivedError extends Schema.TaggedError<ArchivedError>()("Session.ArchivedError", {
+  sessionID: SessionSchema.ID,
+}) {
+  override get message() {
+    return `Session is archived: ${this.sessionID}`
+  }
+}
+
 export class InvalidListCursorError extends Schema.TaggedError<InvalidListCursorError>()(
   "Session.InvalidListCursorError",
   {},

@@ -181,6 +181,12 @@ export const Plugin = {
               if (target.id === from.id)
                 return yield* new ToolFailure({ message: "Cannot deliver a message to the current session." })
 
+              // An archived session is sealed: nothing queues into it until the user restores it.
+              if (target.time?.archived)
+                return yield* new ToolFailure({
+                  message: `Session ${target.id} is archived and takes no work. Ask the user to restore it, then deliver again.`,
+                })
+
               const intent = input.intent ?? "request"
               if (intent === "reply" && input.replyTo === undefined)
                 return yield* new ToolFailure({

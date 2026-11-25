@@ -28,6 +28,7 @@ import { SessionRunner } from "./session/runner/index.js"
 import { SessionStore } from "./session/store.js"
 import { SessionExecution } from "./session/execution.js"
 import {
+  ArchivedError,
   AttachmentError,
   BusyError,
   CompactionConflictError,
@@ -107,6 +108,7 @@ type ForkInput = {
 }
 
 export {
+  ArchivedError,
   AttachmentError,
   BusyError,
   CompactionConflictError,
@@ -188,7 +190,7 @@ export interface Interface {
   /** Experimental: {@link Interface.inbox} with files stored in `blob` left as `media:` refs when the session's location enables `experimental.media_blob`. */
   readonly inboxWithRefs: (sessionID: SessionSchema.ID) => Effect.Effect<SessionInbox.MediaInfo[], NotFoundError>
   readonly cancelInbox: (input: InboxItemRef) => Effect.Effect<void, NotFoundError | InboxConflictError>
-  readonly steerInbox: (input: InboxItemRef) => Effect.Effect<void, NotFoundError | InboxConflictError>
+  readonly steerInbox: (input: InboxItemRef) => Effect.Effect<void, NotFoundError | InboxConflictError | ArchivedError>
   readonly queueInbox: (input: InboxItemRef) => Effect.Effect<void, NotFoundError | InboxConflictError>
   /**
    * Durable, ordered session log read. Replays durable session bus after
@@ -248,7 +250,7 @@ export interface Interface {
   ) => ReturnType<Session.Handle["skill"]>
   readonly compact: (
     input: CompactInput,
-  ) => Effect.Effect<SessionInbox.Compaction, NotFoundError | CompactionConflictError>
+  ) => Effect.Effect<SessionInbox.Compaction, NotFoundError | CompactionConflictError | ArchivedError>
   readonly wait: (id: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
   readonly active: Effect.Effect<ReadonlySet<SessionSchema.ID>>
   readonly background: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
@@ -515,7 +517,14 @@ const layer = Layer.effect(
       switchAgent: (input) => sessions.forSession(input.sessionID).switchAgent(input),
       switchModel: (input) => sessions.forSession(input.sessionID).switchModel(input),
       rename: (input) => sessions.forSession(input.sessionID).rename(input),
-      archive: (sessionID) => sessions.forSession(sessionID).archive(),
+      archive: (sessionID) =>
+        Effect.gen(function* () {
+          yield* sessions.forSession(sessionID).archive()
+          // An archived session keeps its history but stops taking work: cancel the blocking jobs it started and
+          // close its provider stream, the same teardown `remove` does before deleting.
+          yield* jobs.cancelSession(sessionID)
+          yield* transport.close(sessionID)
+        }),
       unarchive: (sessionID) => sessions.forSession(sessionID).unarchive(),
       pin: (sessionID) => sessions.forSession(sessionID).pin(),
       unpin: (sessionID) => sessions.forSession(sessionID).unpin(),
@@ -542,7 +551,11 @@ const layer = Layer.effect(
               "The backgrounded work is still unfinished. Move on to other work if you can. If there is nothing else useful to do, finish your response. Do not wait, sleep, poll, or report the backgrounded work as complete until a later completion notification is added to the conversation.",
             ].join("\n"),
           })
-          .pipe(Effect.catchTag("Session.SyntheticConflictError", Effect.die))
+          .pipe(
+            Effect.catchTag("Session.SyntheticConflictError", Effect.die),
+            // An archived session has nowhere to record the notice and takes no work to background anyway.
+            Effect.catchTag("Session.ArchivedError", () => Effect.void),
+          )
       }),
       resume: (sessionID) => sessions.forSession(sessionID).resume(),
       synthetic: (input) => sessions.forSession(input.sessionID).synthetic(input),

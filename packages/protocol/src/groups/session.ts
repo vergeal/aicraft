@@ -310,7 +310,7 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
           }),
           archived: Schema.Boolean.pipe(Schema.optional).annotate({
             description:
-              "Archive the session with true or restore it with false. Repeating the current state is a no-op.",
+              "Archive the session with true or restore it with false. Archiving interrupts any running model call, cancels the session's blocking jobs and seals it: later input, deliveries and shell commands fail with a conflict until it is restored. Repeating the current state is a no-op.",
           }),
           pinned: Schema.Boolean.pipe(Schema.optional).annotate({
             description:
@@ -391,14 +391,15 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
           resume: Schema.Boolean.pipe(Schema.optional),
         }),
         success: HttpApiSchema.NoContent,
-        error: [SessionNotFoundError, SkillNotFoundError],
+        error: [ConflictError, SessionNotFoundError, SkillNotFoundError],
       })
         .middleware(sessionLocationMiddleware)
         .annotateMerge(
           OpenApi.annotations({
             identifier: "experimental.session.skill",
             summary: "Activate skill",
-            description: "Activate a skill for a session by appending a skill message and resuming execution.",
+            description:
+              "Activate a skill for a session by appending a skill message and resuming execution. An archived session refuses it with a conflict until it is restored.",
           }),
         ),
     )
@@ -431,7 +432,7 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
           command: Schema.String,
         }),
         success: HttpApiSchema.NoContent,
-        error: SessionNotFoundError,
+        error: [ConflictError, SessionNotFoundError],
       })
         .middleware(sessionLocationMiddleware)
         .annotateMerge(
@@ -439,7 +440,7 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
             identifier: "session.shell",
             summary: "Run shell command",
             description:
-              "Execute one shell command in the session's working directory. Emits a shell.started event before execution and a shell.ended event with the merged output after.",
+              "Execute one shell command in the session's working directory. Emits a shell.started event before execution and a shell.ended event with the merged output after. An archived session refuses it with a conflict.",
           }),
         ),
     )

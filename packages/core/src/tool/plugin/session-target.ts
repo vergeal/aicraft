@@ -10,10 +10,21 @@ import { SessionSchema } from "../../session/schema.js"
 /**
  * Resolves a session address the way `deliver` does: a session ID, an `@session:` mention, or an exact
  * title that matches exactly one session in this project. Anything ambiguous fails with the candidates so
- * the caller can ask instead of guessing.
+ * the caller can ask instead of guessing. An archived session fails too: it is sealed and takes no work.
  */
 export const resolve = (ctx: Context, to: string) =>
   Effect.gen(function* () {
+    const found = yield* resolveAny(ctx, to)
+    if (found.time?.archived)
+      return yield* new ToolFailure({
+        message: `Session ${found.id} is archived and takes no work. Ask the user to restore it, then send again.`,
+      })
+
+    return found
+  })
+
+function resolveAny(ctx: Context, to: string) {
+  return Effect.gen(function* () {
     const mention = parseSessionMention(to)
     if (mention)
       return yield* ctx.session
@@ -38,6 +49,7 @@ export const resolve = (ctx: Context, to: string) =>
       ].join("\n"),
     })
   })
+}
 
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)

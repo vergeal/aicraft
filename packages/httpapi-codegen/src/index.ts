@@ -445,7 +445,7 @@ export function emitPromise(
       {
         path: "index.ts",
         content:
-          'export { ClientError, type ClientErrorReason } from "./client-error.js"\nexport * as AI Craft from "./client.js"\nexport * from "./types.js"\n',
+          'export { ClientError, type ClientErrorReason } from "./client-error.js"\nexport * as Aicraft from "./client.js"\nexport * from "./types.js"\n',
       },
     ],
   }
@@ -789,7 +789,7 @@ function renderEffectFiles(groups: ReadonlyArray<Group>, aliases: ReadonlyArray<
     { path: "client.ts", content: renderClient(groups, aliases) },
     {
       path: "index.ts",
-      content: 'export { ClientError } from "./client-error.js"\nexport * as AI Craft from "./client.js"\n',
+      content: 'export { ClientError } from "./client-error.js"\nexport * as Aicraft from "./client.js"\n',
     },
   ]
 }
@@ -925,7 +925,7 @@ function renderImportedEffectFiles(
     { path: "client.ts", content: client },
     {
       path: "index.ts",
-      content: 'export { ClientError } from "./client-error.js"\nexport * as AI Craft from "./client.js"\n',
+      content: 'export { ClientError } from "./client-error.js"\nexport * as Aicraft from "./client.js"\n',
     },
   ]
 }

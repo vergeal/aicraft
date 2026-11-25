@@ -12,6 +12,7 @@ import { Instance } from "../instance/service.js"
 import { ShellResult } from "../shell/result.js"
 import type { Skill } from "../skill.js"
 import {
+  ArchivedError,
   BusyError,
   CompactionConflictError,
   InboxConflictError,
@@ -54,6 +55,15 @@ export const make = Effect.fn("Session.make")(function* () {
     if (!session) return yield* new NotFoundError({ sessionID })
     return session
   })
+  /**
+   * The session for anything that would run the model or write history. Archiving seals a session, so these all go
+   * through here instead of `get`, which only proves the session exists.
+   */
+  const getOpen = Effect.fn("Session.getOpen")(function* (sessionID: SessionSchema.ID) {
+    const session = yield* get(sessionID)
+    if (session.time.archived) return yield* new ArchivedError({ sessionID })
+    return session
+  })
   const message = Effect.fn("Session.message")(function* (sessionID: SessionSchema.ID, messageID: SessionMessage.ID) {
     const stored = yield* store.message(messageID)
     return stored?.sessionID === sessionID ? stored.message : undefined
@@ -75,6 +85,14 @@ export const make = Effect.fn("Session.make")(function* () {
   const archive = Effect.fn("Session.archive")(function* (sessionID: SessionSchema.ID) {
     const session = yield* get(sessionID)
     if (session.time.archived) return
+    // Stop the session before sealing it, in the order `remove` uses. No `resume` option here: unlike the Stop
+    // button, an archived session must not pick its work back up.
+    yield* Effect.uninterruptible(
+      Effect.gen(function* () {
+        yield* execution.interrupt(sessionID)
+        yield* execution.awaitIdle(sessionID)
+      }),
+    )
     yield* bus.publish(SessionEvent.Archived, { sessionID })
   })
   const unarchive = Effect.fn("Session.unarchive")(function* (sessionID: SessionSchema.ID) {
@@ -160,6 +178,8 @@ export const make = Effect.fn("Session.make")(function* () {
     sessionID: SessionSchema.ID,
     inboxID: SessionMessage.ID,
   ) {
+    // Steering promotes queued work into the running step, so an archived session refuses it: it must not wake.
+    yield* getOpen(sessionID)
     yield* mutatePending(sessionID, inboxID, admission.steer)
     yield* execution.wake(sessionID)
   }, Effect.uninterruptible)
@@ -170,7 +190,7 @@ export const make = Effect.fn("Session.make")(function* () {
   const prompt = Effect.fn("Session.prompt")((sessionID: SessionSchema.ID, input: PromptRequest) =>
     Effect.uninterruptibleMask((restore) =>
       Effect.gen(function* () {
-        const session = yield* get(sessionID)
+        const session = yield* getOpen(sessionID)
         const messageID = input.id ?? SessionMessage.ID.create()
         const admitted = yield* Effect.gen(function* () {
           const existing = yield* admission.reconcile({
@@ -208,7 +228,7 @@ export const make = Effect.fn("Session.make")(function* () {
     sessionID: SessionSchema.ID,
     input: { id?: SessionMessage.ID; command: string },
   ) {
-    const session = yield* get(sessionID)
+    const session = yield* getOpen(sessionID)
     // The server owns completion recording even if the submitting client disconnects.
     const running = yield* Effect.gen(function* () {
       const started = yield* SessionShell.start({ session, command: input.command }).pipe(
@@ -242,7 +262,8 @@ export const make = Effect.fn("Session.make")(function* () {
         ...ShellResult.userNotification(terminal),
         resume: false,
       }).pipe(
-        Effect.catchTag("Session.NotFoundError", () => Effect.void),
+        // Archiving during the command leaves its notification nowhere to go; the command already finished.
+        Effect.catchTags({ "Session.NotFoundError": () => Effect.void, "Session.ArchivedError": () => Effect.void }),
         Effect.orDie,
       )
     }).pipe(Effect.forkIn(scope, { startImmediately: true }))
@@ -252,7 +273,7 @@ export const make = Effect.fn("Session.make")(function* () {
     sessionID: SessionSchema.ID,
     input: { messageID?: SessionMessage.ID; skill: Skill.ID; resume?: boolean },
   ) {
-    const session = yield* get(sessionID)
+    const session = yield* getOpen(sessionID)
     const skill = yield* SessionSkill.get({ session, skill: input.skill }).pipe(
       Effect.provideService(Instance.Service, instances),
     )
@@ -275,7 +296,7 @@ export const make = Effect.fn("Session.make")(function* () {
     sessionID: SessionSchema.ID,
     input: { id?: SessionMessage.ID; delivery?: SessionInbox.Delivery },
   ) {
-    const session = yield* get(sessionID)
+    const session = yield* getOpen(sessionID)
     if (session.revert) yield* SessionRevert.commit(bus, session)
     const inputID = input.id ?? SessionMessage.ID.create()
     const admitted = yield* admission
@@ -312,7 +333,7 @@ export const make = Effect.fn("Session.make")(function* () {
     ) =>
       Effect.uninterruptible(
         Effect.gen(function* () {
-          yield* get(sessionID)
+          yield* getOpen(sessionID)
           const inputID = input.id ?? SessionMessage.ID.create()
           const admittedInput = {
             type: "synthetic",

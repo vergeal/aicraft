@@ -24,6 +24,7 @@ const selfID = id("self")
 const targetID = id("target")
 const duplicateID = id("duplicate")
 const uniqueID = id("unique")
+const sealedID = id("sealed")
 const deliveredID = SessionMessage.ID.make("msg_deliver_sent")
 const at = DateTime.makeUnsafe(0)
 
@@ -34,13 +35,13 @@ const it = testEffect(
   ]),
 )
 
-const session = (id: Session.ID, title: string, directory = "/project") =>
+const session = (id: Session.ID, title: string, directory = "/project", archived = false) =>
   SessionSchema.Info.make({
     id,
     projectID: Project.ID.make("prj_deliver"),
     cost: Money.USD.zero,
     tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
-    time: { created: at, updated: at },
+    time: archived ? { created: at, updated: at, archived: at } : { created: at, updated: at },
     title,
     location: { directory: AbsolutePath.make(directory) },
   })
@@ -57,7 +58,12 @@ const setup = (directory = "/project") =>
       resume?: boolean
     }> = []
     const asserts: unknown[] = []
-    const sessions = [session(targetID, "Reviewer"), session(duplicateID, "Reviewer"), session(uniqueID, "Docs")]
+    const sessions = [
+      session(targetID, "Reviewer"),
+      session(duplicateID, "Reviewer"),
+      session(uniqueID, "Docs"),
+      session(sealedID, "Sealed", "/project", true),
+    ]
     const self = session(selfID, "Build", directory)
 
     yield* registerToolPlugin(DeliverTool.Plugin, {
@@ -168,6 +174,17 @@ describe("DeliverTool", () => {
       expect(yield* call(registry, { to: targetID, intent: "reply", text: "Done." })).toMatchObject({
         status: "error",
       })
+      expect(prompts).toHaveLength(0)
+    }),
+  )
+
+  it.effect("refuses an archived target and queues nothing", () =>
+    Effect.gen(function* () {
+      const { registry, prompts } = yield* setup()
+
+      const sealed = yield* call(registry, { to: sealedID, text: "Wake up." })
+      expect(sealed.status).toBe("error")
+      expect(sealed.error?.message).toContain("is archived and takes no work")
       expect(prompts).toHaveLength(0)
     }),
   )

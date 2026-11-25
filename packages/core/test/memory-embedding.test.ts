@@ -1,85 +1,94 @@
 import { expect, test } from "bun:test"
-import { readFile } from "node:fs/promises"
 import { MemoryEmbedding } from "#memory-embedding"
 
 /**
- * Protocol tests for the llama-embedding adapter with an injected runner: argv assembly, the
- * temp-file batch encoding (separator, query prefix, separator scrubbing), output parsing and
- * failure propagation. Real-model behavior is gated by the golden-set spike, not here.
+ * Protocol tests for the llama-server embedding adapter with an injected fetch: batching, the
+ * BGE query prefix, response validation and failure propagation. Real-model quality is gated
+ * by `packages/memory/spike/real-vector.ts`, not here.
  */
-const options = { binary: "llama-embedding", model: "bge.gguf" }
-const vectors = (count: number) =>
-  JSON.stringify(Array.from({ length: count }, (_, batch) => Array.from({ length: 512 }, (_, i) => (batch * 512 + i) / 1_000_000)))
+const ok = (vectors: number[][]) => async () => ({
+  status: 200,
+  text: async () => "",
+  json: async () => ({ data: vectors.map((embedding) => ({ embedding })) }),
+})
+const dim = (seed: number) => Array.from({ length: 512 }, (_, i) => (seed * 512 + i) / 1_000_000)
+const options = { baseUrl: "http://127.0.0.1:18080" }
 
-test("embedAll writes the batch to the temp file split by the separator and parses array output", async () => {
-  const calls: { args: readonly string[]; written: string }[] = []
-  const embedder = MemoryEmbedding.createLlamaEmbedder(options, async (args, file) => {
-    calls.push({ args, written: await readFile(file, "utf8") })
-    return { stdout: vectors(3), stderr: "", exit: 0 }
+test("embedAll batches inputs and keeps vector order", async () => {
+  const calls: { url: string; body: { input: string[] } }[] = []
+  const embedder = MemoryEmbedding.createServerEmbedder(options, async (url, init) => {
+    const body = JSON.parse(init.body) as { input: string[] }
+    calls.push({ url, body })
+    return {
+      status: 200,
+      text: async () => "",
+      json: async () => ({ data: body.input.map((_, i) => ({ embedding: dim(i) })) }),
+    } as never
   })
-  const result = await embedder.embedAll(["甲", "乙", "丙"])
-  expect(result.map((vector) => vector.length)).toEqual([512, 512, 512])
+  const texts = Array.from({ length: 20 }, (_, index) => `条目 ${index}`)
+  const result = await embedder.embedAll(texts)
   expect(embedder.version).toBe(MemoryEmbedding.RECIPE)
   expect(embedder.dimensions).toBe(512)
-  expect(calls[0]!.written.split(MemoryEmbedding.SEPARATOR)).toEqual(["甲", "乙", "丙"])
-  expect(calls[0]!.args).toEqual(MemoryEmbedding.buildArgs(options, calls[0]!.args[4]!))
-  expect(calls[0]!.args).toContain("--embd-output-format")
+  expect(result.length).toBe(20)
+  expect(calls.length).toBe(2)
+  expect(calls[0]!.url).toBe("http://127.0.0.1:18080/v1/embeddings")
+  expect(calls[0]!.body.input.length).toBe(16)
+  expect(calls[1]!.body.input.length).toBe(4)
+  expect(calls[1]!.body.input[0]).toBe("条目 16")
 })
 
 test("embed carries the BGE query prefix; embedAll leaves passages bare", async () => {
-  const written: string[] = []
-  const embedder = MemoryEmbedding.createLlamaEmbedder(options, async (_args, file) => {
-    written.push(await readFile(file, "utf8"))
-    return { stdout: vectors(1), stderr: "", exit: 0 }
+  const inputs: string[] = []
+  const embedder = MemoryEmbedding.createServerEmbedder(options, async (_url, init) => {
+    inputs.push(...(JSON.parse(init.body).input as string[]))
+    return { status: 200, text: async () => "", json: async () => ({ data: [{ embedding: dim(1) }] }) } as never
   })
   await embedder.embed("分支怎么命名")
   await embedder.embedAll(["分支怎么命名"])
-  expect(written[0]).toBe(MemoryEmbedding.QUERY_PREFIX + "分支怎么命名")
-  expect(written[1]).toBe("分支怎么命名")
+  expect(inputs[0]).toBe(MemoryEmbedding.QUERY_PREFIX + "分支怎么命名")
+  expect(inputs[1]).toBe("分支怎么命名")
 })
 
-test("a separator embedded in user text is scrubbed so the batch cannot split itself", async () => {
-  const written: string[] = []
-  const embedder = MemoryEmbedding.createLlamaEmbedder(options, async (_args, file) => {
-    written.push(await readFile(file, "utf8"))
-    return { stdout: vectors(1), stderr: "", exit: 0 }
-  })
-  await embedder.embedAll([`前${MemoryEmbedding.SEPARATOR}后`])
-  expect(written[0]).toBe("前后")
+test("count, shape and status failures reject — the caller degrades the vector channel", async () => {
+  const short = MemoryEmbedding.createServerEmbedder(options, async () => ({
+    status: 200,
+    text: async () => "",
+    json: async () => ({ data: [{ embedding: dim(1) }] }),
+  }))
+  await expect(short.embedAll(["一", "二"])).rejects.toThrow("1 vectors for 2 texts")
+
+  const wrongDims = MemoryEmbedding.createServerEmbedder(options, ok([[1, 2, 3]]))
+  await expect(wrongDims.embed("x")).rejects.toThrow("is not 512 numbers")
+
+  const broken = MemoryEmbedding.createServerEmbedder(options, async () => ({
+    status: 503,
+    text: async () => "model load failed",
+    json: async () => ({}),
+  }))
+  await expect(broken.embed("x")).rejects.toThrow("responded 503: model load failed")
 })
 
-test("non-zero exit and malformed output reject — the caller degrades the vector channel", async () => {
-  const failing = MemoryEmbedding.createLlamaEmbedder(options, async () => ({ stdout: "", stderr: "model load failed", exit: 1 }))
-  await expect(failing.embed("x")).rejects.toThrow("llama-embedding exited 1: model load failed")
-
-  const short = MemoryEmbedding.createLlamaEmbedder(options, async () => ({ stdout: vectors(2), stderr: "", exit: 0 }))
-  await expect(short.embedAll(["一", "二", "三"])).rejects.toThrow("2 vectors for 3 texts")
-
-  const malformed = MemoryEmbedding.createLlamaEmbedder(options, async () => ({ stdout: "not json", stderr: "", exit: 0 }))
-  await expect(malformed.embedAll(["一"])).rejects.toThrow()
+test("buildServerArgs carries the exact spike recipe: cls pooling, L2 normalization, quiet logs", () => {
+  const args = MemoryEmbedding.buildServerArgs({ binary: "llama-server", model: "bge.gguf", port: 18081 })
+  expect(args).toEqual(["llama-server", "-m", "bge.gguf", "--embedding", "--pooling", "cls", "--embd-normalize", "2", "--port", "18081", "--log-disable"])
 })
 
-test("the empty batch never spawns", async () => {
-  let spawned = 0
-  const embedder = MemoryEmbedding.createLlamaEmbedder(options, async () => {
-    spawned += 1
-    return { stdout: "[]", stderr: "", exit: 0 }
-  })
-  expect(await embedder.embedAll([])).toEqual([])
-  expect(spawned).toBe(0)
-})
-
-test("resolveLlama reads env overrides and otherwise reports the channel absent", () => {
+test("resolveEmbedding prefers a running server, then env-managed launch, else absent", () => {
   const previous = { ...process.env }
   try {
-    delete process.env.AICRAFT_LLAMA_EMBEDDING
+    delete process.env.AICRAFT_EMBEDDING_URL
+    delete process.env.AICRAFT_LLAMA_SERVER
     delete process.env.AICRAFT_EMBED_MODEL
-    delete process.env.AICRAFT_BIN_DIR
-    expect(MemoryEmbedding.resolveLlama()).toBeUndefined()
-    process.env.AICRAFT_LLAMA_EMBEDDING = "C:\\tools\\llama-embedding.exe"
-    expect(MemoryEmbedding.resolveLlama()).toBeUndefined()
-    process.env.AICRAFT_EMBED_MODEL = "C:\\models\\bge.gguf"
-    expect(MemoryEmbedding.resolveLlama()).toEqual({ binary: "C:\\tools\\llama-embedding.exe", model: "C:\\models\\bge.gguf" })
+    delete process.env.AICRAFT_EMBED_PORT
+    expect(MemoryEmbedding.resolveEmbedding()).toBeUndefined()
+    process.env.AICRAFT_EMBEDDING_URL = "http://127.0.0.1:19999"
+    expect(MemoryEmbedding.resolveEmbedding()).toEqual({ baseUrl: "http://127.0.0.1:19999" })
+    delete process.env.AICRAFT_EMBEDDING_URL
+    process.env.AICRAFT_LLAMA_SERVER = "C:\\bin\\llama-server.exe"
+    expect(MemoryEmbedding.resolveEmbedding()).toBeUndefined()
+    process.env.AICRAFT_EMBED_MODEL = "C:\\bin\\bge.gguf"
+    process.env.AICRAFT_EMBED_PORT = "19123"
+    expect(MemoryEmbedding.resolveEmbedding()).toEqual({ binary: "C:\\bin\\llama-server.exe", model: "C:\\bin\\bge.gguf", port: 19123 })
   } finally {
     process.env = previous
   }

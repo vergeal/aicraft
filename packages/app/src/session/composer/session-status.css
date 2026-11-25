@@ -61,50 +61,91 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The context card's composition bar: one segment per prompt part, sized by its estimated share of the window. */
-[data-slot="session-status-track"] {
+[data-slot="session-status-budget"] {
   display: flex;
-  block-size: 6px;
-  margin-block: 6px 2px;
-  margin-inline: 8px;
+  flex-direction: column;
+  padding: 8px;
+}
+
+[data-slot="session-status-budget-head"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--v2-text-text-muted);
+}
+
+[data-slot="session-status-budget-total"] {
+  margin-inline-start: auto;
+  color: var(--v2-text-text-base);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The track is the whole window and every part a share of it, so the widths add up to 100%. */
+[data-slot="session-status-budget-track"] {
+  display: flex;
+  gap: 2px;
+  block-size: 8px;
+  margin-block: 8px 4px;
   overflow: hidden;
-  border-radius: var(--radius-xs);
-  background: var(--v2-background-bg-layer-02);
+  border-radius: 999px;
 }
 
-[data-slot="session-status-fill"] {
-  display: flex;
-  block-size: 100%;
-  /* Sized by the used share the caller puts on it; the track must never shrink it away. */
-  flex-shrink: 0;
-}
-
-[data-slot="session-status-track"] [data-part] {
+[data-slot="session-status-budget-track"] [data-part] {
   display: block;
   block-size: 100%;
-  /* A part with a sliver of the window would otherwise vanish; the larger parts absorb the overshoot. */
-  min-inline-size: 4px;
 }
 
-[data-slot="session-status-row"] i[data-part] {
+[data-slot="session-status-budget-row"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: 24px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--v2-text-text-muted);
+}
+
+[data-slot="session-status-budget-label"] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-slot="session-status-budget-label"] i[data-part] {
   display: block;
   inline-size: 7px;
   block-size: 7px;
   flex-shrink: 0;
-  border-radius: var(--radius-xs);
+  border-radius: 999px;
 }
 
-/* The three parts of the prompt are categories, not statuses, so they take existing semantic hues rather than the
-   state palette: a light grey ground for the fixed system prompt, violet for tool output, accent blue for the talk.
-   Each resolves in both colour schemes; the violet is the one token that lightens in dark. */
-[data-slot="session-status-card-body"] [data-part="system"] {
-  background: var(--v2-icon-icon-muted);
+[data-slot="session-status-budget-percent"] {
+  margin-inline-start: auto;
+  color: var(--v2-text-text-base);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
 }
 
-[data-slot="session-status-card-body"] [data-part="tools"] {
-  background: var(--v2-agent-writer-solid);
+/* The five parts are categories, so their hues stay theme-stable like a chart palette (design spec §18). */
+[data-slot="session-status-budget"] [data-part="system"] {
+  background: var(--v2-blue-600);
 }
 
-[data-slot="session-status-card-body"] [data-part="history"] {
-  background: var(--v2-background-bg-accent);
+[data-slot="session-status-budget"] [data-part="history"] {
+  background: color-mix(in oklab, var(--v2-green-600) 55%, var(--v2-cyan-700));
+}
+
+[data-slot="session-status-budget"] [data-part="toolResults"] {
+  background: var(--v2-orange-500);
+}
+
+[data-slot="session-status-budget"] [data-part="output"] {
+  background: var(--v2-purple-500);
+}
+
+[data-slot="session-status-budget"] [data-part="safety"] {
+  background: var(--v2-grey-700);
 }

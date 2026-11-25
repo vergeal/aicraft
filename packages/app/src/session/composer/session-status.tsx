@@ -1,3 +1,4 @@
+import { Option, Schema } from "effect"
 import { lastAssistantWithUsage } from "@aicraft/client/solid"
 import type { SessionMessageInfo } from "@aicraft/client/promise"
 import { TokenUsage } from "@aicraft/schema/token-usage"
@@ -19,7 +20,7 @@ type Summary = {
 }
 
 /** Character weight per part of the prompt; the share is applied to the prompt token count when a card asks for it. */
-type Split = { system: number; tools: number; history: number }
+type Split = { system: number; history: number; toolResults: number }
 
 type Fold = { signature: string; summary?: Summary; split?: Split }
 
@@ -183,11 +184,31 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
 
         cached.split = weight
 
+        // The window is a budget, not just the used share: the prompt takes what it takes, the reply keeps room for
+        // the model's output, and everything left is the buffer the request stays under.
+        const prompt = Math.min(used, limit)
+        const output = Math.min(model?.limit.output ?? 0, limit - prompt)
+        const safety = limit - prompt - output
+        const tokens = composition(weight, prompt)
+
+        const entries = [
+          { key: "system" as const, tokens: tokens.system },
+          { key: "history" as const, tokens: tokens.history },
+          { key: "toolResults" as const, tokens: tokens.toolResults },
+          { key: "output" as const, tokens: output },
+          { key: "safety" as const, tokens: safety },
+        ]
+
+        const percents = percentages(entries, limit)
+
         return {
-          used,
           limit,
           percent: Math.round((used / limit) * 100),
-          parts: composition(weight, used),
+          parts: entries.map((part, index) => ({
+            ...part,
+            share: (part.tokens / limit) * 100,
+            percent: percents[index],
+          })),
         }
       }),
     ),
@@ -312,36 +333,31 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
             openLabel={language.t("session.status.context.open")}
             label={`${value().percent}%`}
           >
-            <div data-slot="session-status-card-body" aria-label={language.t("session.status.context.open")}>
-              <Head
-                title={language.t("session.status.context", { percent: String(value().percent) })}
-                value={language.t("session.status.context.window", {
-                  used: compact().format(value().used),
-                  limit: compact().format(value().limit),
-                })}
-              />
-              <div data-slot="session-status-track" aria-hidden="true">
-                {/* The track is the whole window and the fill its used share: the segments' widths are percentages of
-                    the fill, so the fill has to carry the share itself or it collapses to its content's 0 intrinsic. */}
-                <div data-slot="session-status-fill" style={{ width: `${Math.min(100, value().percent)}%` }}>
+            <div data-slot="session-status-card-body" aria-label={language.t("session.status.context.windowLabel")}>
+              <div data-slot="session-status-budget">
+                <div data-slot="session-status-budget-head">
+                  <span>{language.t("session.status.context.windowLabel")}</span>
+                  <span data-slot="session-status-budget-total">
+                    {language.t("session.status.context.windowTokens", { tokens: number().format(value().limit) })}
+                  </span>
+                </div>
+                <div data-slot="session-status-budget-track" aria-hidden="true">
                   <For each={value().parts}>
                     {(part) => <span data-part={part.key} style={{ width: `${part.share}%` }} />}
                   </For>
                 </div>
+                <For each={value().parts}>
+                  {(part) => (
+                    <div data-slot="session-status-budget-row">
+                      <span data-slot="session-status-budget-label">
+                        <i data-part={part.key} />
+                        {language.t(contextPartLabels[part.key])}
+                      </span>
+                      <span data-slot="session-status-budget-percent">{part.percent}%</span>
+                    </div>
+                  )}
+                </For>
               </div>
-              <For each={value().parts}>
-                {(part) => (
-                  <div data-slot="session-status-row">
-                    <span class="flex items-center gap-1.5 text-v2-text-text-muted">
-                      <i data-part={part.key} />
-                      {language.t(contextPartLabels[part.key])}
-                    </span>
-                    <span data-slot="session-status-value">
-                      {language.t("session.status.tokens", { tokens: compact().format(part.tokens) })}
-                    </span>
-                  </div>
-                )}
-              </For>
             </div>
           </StatusButton>
         )}
@@ -351,9 +367,11 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
 }
 
 const contextPartLabels = {
-  system: "session.status.context.system",
-  tools: "session.status.context.tools",
+  system: "session.status.context.systemTools",
   history: "session.status.context.history",
+  toolResults: "session.status.context.toolResults",
+  output: "session.status.context.output",
+  safety: "session.status.context.safety",
 } as const
 
 /** The composer line's trigger: the mark and its value, opening a card shaped like the other composer popovers. */
@@ -427,31 +445,55 @@ function endIndex(list: ReadonlyArray<SessionMessageInfo>, boundary: string | un
 function split(list: ReadonlyArray<SessionMessageInfo>, last: SessionMessageInfo) {
   const index = list.findIndex((message) => message.id === last.id)
   const upTo = index === -1 ? list : list.slice(0, index + 1)
-  const weight: Split = { system: 0, tools: 0, history: 0 }
+  const weight: Split = { system: 0, history: 0, toolResults: 0 }
 
   for (const message of upTo) {
     if (message.type === "system") weight.system += message.text.length
     else if (message.type === "user" || message.type === "skill") weight.history += message.text.length
     else if (message.type === "shell")
-      weight.tools += message.command.length + (message.output?.output.length ?? 0)
+      weight.toolResults += message.command.length + (message.output?.output.length ?? 0)
     else if (message.type === "assistant")
       for (const part of message.content) {
         if (part.type === "text" || part.type === "reasoning") weight.history += part.text.length
-        else if (part.type === "tool") weight.tools += JSON.stringify(part.state).length
+        else if (part.type === "tool") weight.toolResults += JSON.stringify(part.state).length
       }
   }
+
+  // The loaded transcript page often starts after the system messages, so their text is missing here. Every
+  // assistant step echoes the system prompt it sent, and that size is what the window actually holds.
+  const sent = systemChars(last)
+
+  if (sent > 0) weight.system = sent
 
   return weight
 }
 
-function composition(weight: Split, used: number): Array<{ key: keyof typeof contextPartLabels; tokens: number; share: number }> {
-  const total = weight.system + weight.tools + weight.history
+/** The system prompt size the provider saw on this step, from the sources the step echoed. */
+function systemChars(message: SessionMessageInfo) {
+  const sources = Option.getOrUndefined(decodeContextSources(message.metadata?.context))
 
-  if (total <= 0) return []
+  return sources?.reduce((sum, source) => sum + source.chars, 0) ?? 0
+}
 
-  return [
-    { key: "system" as const, tokens: Math.round((weight.system / total) * used), share: (weight.system / total) * 100 },
-    { key: "tools" as const, tokens: Math.round((weight.tools / total) * used), share: (weight.tools / total) * 100 },
-    { key: "history" as const, tokens: Math.round((weight.history / total) * used), share: (weight.history / total) * 100 },
-  ].filter((part) => part.tokens > 0)
+const decodeContextSources = Schema.decodeUnknownOption(Schema.Array(Schema.Struct({ chars: Schema.Number })))
+
+/** Split the measured prompt by each part's character share; the last part takes the rounding remainder. */
+function composition(weight: Split, prompt: number) {
+  const total = weight.system + weight.history + weight.toolResults
+
+  if (total <= 0) return { system: prompt, history: 0, toolResults: 0 }
+  const system = Math.round((weight.system / total) * prompt)
+  const history = Math.round((weight.history / total) * prompt)
+
+  return { system, history, toolResults: Math.max(0, prompt - system - history) }
+}
+
+/** Round shares that add up to `total` to whole percents without drifting away from 100. */
+function percentages(parts: ReadonlyArray<{ tokens: number }>, total: number) {
+  const values = parts.map((part) => Math.round((part.tokens / total) * 100))
+  const drift = 100 - values.reduce((sum, value) => sum + value, 0)
+
+  if (drift !== 0) values[values.indexOf(Math.max(...values))] += drift
+
+  return values
 }

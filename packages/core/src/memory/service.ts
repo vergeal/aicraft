@@ -8,8 +8,9 @@ import { Config } from "../config.js"
 import { Database } from "../database/database.js"
 import { KV } from "../kv.js"
 import { MemoryEmbedding } from "./embedding.js"
+import { MemoryExtract } from "./extract.js"
 import { migrateKv } from "./migrate.js"
-import { createSqlStore, insertTurnLog } from "./store.js"
+import { createSqlStore, insertExtractLog, insertTurnLog } from "./store.js"
 
 /**
  * The Effect service that wires the `@aicraft/memory` decision core to the host: the SQL store
@@ -25,6 +26,8 @@ export interface Interface {
   readonly vectorChannel: boolean
   /** One `memory_log` row per real retrieval; never fails the caller. */
   readonly logTurn: (decision: TurnDecision, sessionID: string | undefined) => Effect.Effect<void>
+  /** One `memory_extract_log` row per extraction attempt; never fails the caller. */
+  readonly logExtraction: (row: MemoryExtract.ExtractLogRecord) => Effect.Effect<void>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@aicraft/core/MemoryService") {}
@@ -68,6 +71,10 @@ const layer = Layer.effect(
         Effect.tryPromise(() => insertTurnLog(db, decision, sessionID)).pipe(
           Effect.catch((cause) => Effect.logWarning("memory turn log failed", { cause })),
         ),
+      logExtraction: (row) =>
+        Effect.tryPromise(() => insertExtractLog(db, row)).pipe(
+          Effect.catch((cause) => Effect.logWarning("memory extraction log failed", { cause })),
+        ),
     }
   }),
 )
@@ -87,5 +94,6 @@ function fromConfig(info: ConfigMemory.Info | undefined): Settings {
       info?.auto_inject === "off" ? "off" : info?.auto_inject === "trigger" ? "trigger" : "trigger+vector",
     maxInjectedChars: info?.max_injected_chars,
     maxEntries: info?.max_entries,
+    extract: info?.extract === false ? "off" : "on",
   })
 }

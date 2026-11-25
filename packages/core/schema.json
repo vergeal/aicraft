@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "f54d4bcd-4b59-42da-9cc5-b5052e11cdd0",
-  "prevIds": ["f5d98b1e-b0ec-446d-93ec-73ecbcf60771"],
+  "id": "06dd4756-7bf6-40a7-ac42-e0b76f7f63a0",
+  "prevIds": ["f54d4bcd-4b59-42da-9cc5-b5052e11cdd0"],
   "ddl": [
     {
       "name": "account_state",
@@ -50,6 +50,10 @@
     },
     {
       "name": "kv",
+      "entityType": "tables"
+    },
+    {
+      "name": "memory_extract_log",
       "entityType": "tables"
     },
     {
@@ -931,6 +935,116 @@
       "name": "time_updated",
       "entityType": "columns",
       "table": "kv"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "seq",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scope",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "outcome",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reply_chars",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "saved",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "merged",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "superseded",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "rejected",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "duration_ms",
+      "entityType": "columns",
+      "table": "memory_extract_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "memory_extract_log"
     },
     {
       "type": "integer",
@@ -3061,6 +3175,13 @@
     {
       "columns": ["seq"],
       "nameExplicit": false,
+      "name": "memory_extract_log_pk",
+      "table": "memory_extract_log",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["seq"],
+      "nameExplicit": false,
       "name": "memory_log_pk",
       "table": "memory_log",
       "entityType": "pks"
@@ -3230,6 +3351,34 @@
       "name": "knowledge_chunk_library_idx",
       "entityType": "indexes",
       "table": "knowledge_chunk"
+    },
+    {
+      "columns": [
+        {
+          "value": "time_created",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "memory_extract_log_time_idx",
+      "entityType": "indexes",
+      "table": "memory_extract_log"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "memory_extract_log_session_idx",
+      "entityType": "indexes",
+      "table": "memory_extract_log"
     },
     {
       "columns": [

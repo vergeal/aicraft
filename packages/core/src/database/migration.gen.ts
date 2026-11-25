@@ -65,6 +65,7 @@ import m62 from "./migration/20261123124837_gifted_skreet.js"
 import m63 from "./migration/20261124064714_session_subagent.js"
 import m64 from "./migration/20261124093000_session_subagent_creator_reset.js"
 import m65 from "./migration/20261125160339_memory_subsystem.js"
+import m66 from "./migration/20261125170739_memory_extract.js"
 
 export const migrations = [
   m00,
@@ -133,4 +134,5 @@ export const migrations = [
   m63,
   m64,
   m65,
+  m66,
 ] satisfies DatabaseMigration.Migration[]

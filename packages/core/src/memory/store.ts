@@ -5,7 +5,8 @@ import { Effect } from "effect"
 import type { BrowseFilter, MemoryRecord, MemoryType, Scope, ScopeListing, Store, TurnDecision } from "@aicraft/memory"
 import { scopeKey } from "@aicraft/memory"
 import type { EffectDrizzleSqlite } from "../database/drizzle.js"
-import { MemoryLogTable, MemorySourceTable, MemoryTable, MemoryTokenTable, MemoryTriggerTable } from "./sql.js"
+import { MemoryExtractLogTable, MemoryLogTable, MemorySourceTable, MemoryTable, MemoryTokenTable, MemoryTriggerTable } from "./sql.js"
+import type { ExtractLogRecord } from "./extract.js"
 
 type Database = EffectDrizzleSqlite.EffectSQLiteDatabase
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
@@ -376,6 +377,26 @@ export function insertTurnLog(db: Database, decision: TurnDecision, sessionID: s
           injected_chars: decision.injectedChars,
         }),
       )
+      .pipe(Effect.asVoid, Effect.orDie),
+  )
+}
+
+/** One audit row per extraction attempt (applied, malformed or failed), mirroring `insertTurnLog`. */
+export function insertExtractLog(db: Database, row: ExtractLogRecord): Promise<void> {
+  return Effect.runPromise(
+    db
+      .insert(MemoryExtractLogTable)
+      .values({
+        session_id: row.sessionID,
+        scope: row.scope,
+        outcome: row.outcome,
+        reply_chars: row.replyChars,
+        saved: [...row.saved],
+        merged: row.merged,
+        superseded: row.superseded.map((entry) => ({ id: entry.id, byID: entry.byID })),
+        rejected: row.rejected.map((entry) => ({ index: entry.index, reason: entry.reason })),
+        duration_ms: row.durationMs,
+      })
       .pipe(Effect.asVoid, Effect.orDie),
   )
 }

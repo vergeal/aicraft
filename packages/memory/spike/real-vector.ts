@@ -86,7 +86,7 @@ function withThreshold(vectorThreshold: number): Settings {
 async function rawScores() {
   const rows = (await Promise.all(SCOPES.map((scope) => store.vectorCandidates(scope, 10_000, RECIPE)))).flat()
   const byId = new Map(rows.map((row) => [row.id, row]))
-  const results: { query: string; gold: number; bestForeign: number; foreignId: string }[] = []
+  const results: { query: string; expect: string; gold: number; bestForeign: number; foreignId: string }[] = []
   for (const item of GOLD) {
     const query = await embedder.embed(item.query)
     const target = byId.get(item.expect)
@@ -101,7 +101,7 @@ async function rawScores() {
         foreignId = row.id
       }
     }
-    results.push({ query: item.query, gold: cosine(query, target.embedding), bestForeign, foreignId })
+    results.push({ query: item.query, expect: item.expect, gold: cosine(query, target.embedding), bestForeign, foreignId })
   }
   const negatives: number[] = []
   for (const query of NO_MATCH_QUERIES) {

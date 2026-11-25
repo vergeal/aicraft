@@ -7,11 +7,6 @@ export type ParsedFileLink = {
   readonly selection?: LineRange
 }
 
-/** What a relative path names in the workspace: one file, or several to pick from. */
-export type FileLinkTarget =
-  | { readonly kind: "file"; readonly path: string }
-  | { readonly kind: "picker"; readonly query: string }
-
 /**
  * Extracts a normalized file path and optional 1-based line range from a markdown link or inline-code token.
  * Supports `:line`, `:line:col`, `:start-end`, `#Lstart`, and `#Lstart-Lend`.
@@ -29,27 +24,30 @@ export function isAbsoluteLink(path: string) {
 }
 
 /**
- * The workspace files a relative path names: the literal path when it exists, else every file whose path ends with
- * it. One file opens; several open the picker.
+ * The one workspace file a relative path names: the literal path when it exists, else the file whose path ends with it
+ * with the fewest directories in front of the linked name. A link is written relative to the project root, so that
+ * shallowest match is the file it meant; clicking a link opens it instead of dropping the user in a file search.
  */
 export async function findFileLink(input: {
   readonly files: Pick<Files, "search">
   readonly path: string
   readonly signal: AbortSignal
-}): Promise<FileLinkTarget | undefined> {
+}): Promise<string | undefined> {
   const query = input.path.replace(/^(?:\.\.\/)+/, "")
 
   if (!query) return
 
   const results = await input.files.search(query, { limit: 200, signal: input.signal }).catch(() => [])
   const matches = [...new Set(results)].filter((file) => file === query || file.endsWith(`/${query}`))
-  const literal = matches.find((file) => file === query)
 
-  if (literal) return { kind: "file", path: literal }
+  return matches.sort(shallowest)[0]
+}
 
-  if (matches.length === 1 && matches[0]) return { kind: "file", path: matches[0] }
+/** Equal depth sorts by path, so the choice never depends on the order the search index returned its hits in. */
+function shallowest(a: string, b: string) {
+  const depth = a.split("/").length - b.split("/").length
 
-  if (matches.length > 1) return { kind: "picker", query }
+  return depth !== 0 ? depth : a < b ? -1 : a > b ? 1 : 0
 }
 
 /**

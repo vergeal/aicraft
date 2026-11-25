@@ -173,14 +173,7 @@ describe("transitionLinkOpen", () => {
     ])
   })
 
-  test("several matches open the picker, loadable HTML opens in the browser pane, and a shortcut click opens it outside", () => {
-    expect(
-      replay([click, { type: "link.resolved", attempt: 1, route: here, resolution: { kind: "picker", query: "a.ts" } }])
-        .effects,
-    ).toEqual([
-      { type: "abort", attempt: 1 },
-      { type: "open-picker", query: "a.ts", background: false },
-    ])
+  test("loadable HTML opens in the browser pane, and a shortcut click opens it outside", () => {
     expect(
       replay([
         click,

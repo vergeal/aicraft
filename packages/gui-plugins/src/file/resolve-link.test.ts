@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { checkFileLinkExists, findFileLink, parseFileLink, type FileLinkTarget } from "./resolve-link"
+import { checkFileLinkExists, findFileLink, parseFileLink } from "./resolve-link"
 
 const workspaceFiles = [
   "src/index.ts",
@@ -68,13 +68,14 @@ describe("parseFileLink", () => {
 })
 
 describe("findFileLink", () => {
-  test.each<[string, FileLinkTarget | undefined]>([
-    ["src/index.ts", { kind: "file", path: "src/index.ts" }],
-    ["session/timeline/interaction.ts", { kind: "file", path: "packages/app/src/session/timeline/interaction.ts" }],
-    ["../timeline/interaction.ts", { kind: "file", path: "packages/app/src/session/timeline/interaction.ts" }],
-    ["markdown.tsx", { kind: "file", path: "packages/session-ui/src/components/markdown.tsx" }],
-    ["index.ts", { kind: "picker", query: "index.ts" }],
-    ["util/path.ts", { kind: "file", path: "packages/tui/src/util/path.ts" }],
+  test.each<[string, string | undefined]>([
+    ["src/index.ts", "src/index.ts"],
+    ["session/timeline/interaction.ts", "packages/app/src/session/timeline/interaction.ts"],
+    ["../timeline/interaction.ts", "packages/app/src/session/timeline/interaction.ts"],
+    ["markdown.tsx", "packages/session-ui/src/components/markdown.tsx"],
+    // Several files end with the name: the shallowest is the one a root-relative link meant.
+    ["index.ts", "src/index.ts"],
+    ["util/path.ts", "packages/tui/src/util/path.ts"],
     ["console.log", undefined],
     ["session-ui/markdown.tsx", undefined],
   ])("%s", async (path, expected) => {

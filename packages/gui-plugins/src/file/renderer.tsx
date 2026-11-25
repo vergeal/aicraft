@@ -788,8 +788,6 @@ const setup: Plugin.Setup<typeof File> = (ctx) => {
 
     if (effect.type === "open-exact") return open(routed, effect.path, { background: effect.background })
 
-    if (effect.type === "open-picker") return openPicker(routed, effect.query, { background: effect.background })
-
     if (effect.type === "open-browser") {
       const pane = shared.browser()
 
@@ -840,10 +838,8 @@ const setup: Plugin.Setup<typeof File> = (ctx) => {
 
     const target = await findFileLink({ files: screen.file, path: parsed.path, signal })
 
-    if (target?.kind === "picker") return { kind: "picker", query: target.query }
-
     // With no match, the literal path still covers files the search index skips, such as an ignored `.env`.
-    return fileOrPage(screen, target?.path ?? direct, parsed.selection, link.alternate)
+    return fileOrPage(screen, target ?? direct, parsed.selection, link.alternate)
   }
 
   // The browser pane shows HTML it can load. While it is pending or off, the file opens as a tab instead.

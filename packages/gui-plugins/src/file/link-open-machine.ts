@@ -7,8 +7,6 @@ export const LINK_OPEN_TIMEOUT_MS = 30_000
 export type LinkResolution =
   /** The link resolves to no path. */
   | { readonly kind: "missing" }
-  /** Several workspace files end with the link's path. */
-  | { readonly kind: "picker"; readonly query: string }
   /** An HTML file the browser pane can load. */
   | { readonly kind: "browser"; readonly url: string }
   /** An HTML file the system's own Chrome opens in its own window. `path` is absolute. */
@@ -109,7 +107,6 @@ export type LinkOpenEffect =
       readonly selection?: LineRange
       readonly background: boolean
     }
-  | { readonly type: "open-picker"; readonly query: string; readonly background: boolean }
   | { readonly type: "open-browser"; readonly url: string }
   | { readonly type: "open-external"; readonly path: string }
   | { readonly type: "toast-failed"; readonly path: string; readonly error?: string }
@@ -209,9 +206,6 @@ export function transitionLinkOpen(state: LinkOpenState, event: LinkOpenEvent): 
 
 function resolved(state: Extract<LinkOpenState, { status: "resolving" }>, resolution: LinkResolution) {
   if (resolution.kind === "missing") return finish(state, [{ type: "toast-failed", path: state.href }])
-
-  if (resolution.kind === "picker")
-    return finish(state, [{ type: "open-picker", query: resolution.query, background: state.background }])
 
   if (resolution.kind === "browser") return finish(state, [{ type: "open-browser", url: resolution.url }])
 

@@ -1096,7 +1096,7 @@ const flattenMessage = (message: Message, level: number) => {
           : typeof result.value === "string"
             ? result.value
             : (JSON.stringify(result.value) ?? "")
-      return [`[${label}]：${level >= OUTPUTS_CLIPPED ? clip(output) : output}`]
+      return [`[${label}]: ${level >= OUTPUTS_CLIPPED ? clip(output) : output}`]
     })
     .join("\n")
 }

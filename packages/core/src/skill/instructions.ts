@@ -28,7 +28,7 @@ const render = (skills: ReadonlyArray<Summary>) =>
     "Use the skill tool to load a skill when a task matches its description.",
     "The user may also invoke a skill directly. When that happens, its instructions appear in the conversation as a <skill_content> block, the same shape the skill tool returns. A skill that is already present this way does not need to be invoked again.",
     ...(skills.length === 0
-      ? ["There are no skills available."]
+      ? ["No skills are currently available."]
       : ["<available_skills>", ...entries(skills), "</available_skills>"]),
   ].join("\n")
 
@@ -38,7 +38,7 @@ const update = Instructions.listUpdate<Summary>({
   entries,
   render,
   text: {
-    replaced: "The available skills have changed. This list supersedes the previous list of available skills.",
+    replaced: "The available skills have changed. This list supersedes the previous available skills list.",
     added: "New skills are available in addition to those previously listed:",
     changed: "The following skills have changed. Each entry replaces the previously listed skill with the same ID:",
     removed: (ids) => `The following skill IDs are no longer available and must not be used: ${ids}.`,

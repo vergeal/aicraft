@@ -235,7 +235,7 @@ function toLLMMessage(message: SessionMessage.Info, model: Model.Ref, providerMe
         Message.make({
           id: message.id,
           role: "user",
-          content: `The working directory is now ${message.location.directory}。`,
+          content: `The working directory has been changed to ${message.location.directory}.`,
         }),
       ]
     case "user": {

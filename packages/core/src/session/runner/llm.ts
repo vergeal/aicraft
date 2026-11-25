@@ -37,10 +37,10 @@ import { PluginHooks } from "../../plugin/hooks.js"
 import { MAX_STEPS_PROMPT } from "./max-steps.js"
 
 const CONTINUE_AFTER_INCOMPLETE_STREAM =
-  "The previous reply was interrupted. Continue from where it stopped without repeating work that is already done."
+  "The previous response was interrupted. Continue from where you left off without repeating completed content."
 
 const CONTINUE_AFTER_OUTPUT_LIMIT =
-  "The previous reply hit the output length limit (stop reason: length). Do not apologize, restate, or repeat yourself. Break the remaining work into smaller steps."
+  "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces."
 
 type DrainInput = Parameters<Interface["drain"]>[0]
 

@@ -53,7 +53,7 @@ const INPUT_FAILURES = {
   length: {
     type: "tool.input-incomplete",
     message:
-      "The tool call did not execute because the output length limit (stop reason: length) was reached before its arguments were complete. Split large arguments into smaller tool calls and re-issue the call with complete arguments.",
+      "The tool call was not executed because the output token limit (stop reason: length) was reached before you could complete the arguments. Break large payloads into smaller tool calls and reissue the call with complete arguments.",
   },
   incomplete: {
     type: "tool.input-incomplete",

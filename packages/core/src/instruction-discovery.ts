@@ -85,7 +85,7 @@ export const layer = (options?: Options) =>
           render: {
             initial: render,
             changed: renderUpdate,
-            removed: () => "The instruction files loaded earlier no longer apply. Ignore them.",
+            removed: () => "Previously loaded instructions no longer apply.",
           },
           parts: (files) => files.map((file) => ({ name: fileName(file.path), text: file.content })),
         })
@@ -122,7 +122,7 @@ export function configured(options?: Options) {
 export const node = configured()
 
 function render(files: ReadonlyArray<File>) {
-  return files.map((file) => `Instructions from the following file: ${file.path}\n${file.content}`).join("\n\n")
+  return files.map((file) => `Instructions from: ${file.path}\n${file.content}`).join("\n\n")
 }
 
 /** The last path segment, so an instruction file is listed by its name in the transcript. */
@@ -143,17 +143,17 @@ function renderUpdate(previous: ReadonlyArray<File>, current: ReadonlyArray<File
     (before, after) => before.content !== after.content,
   )
   const parts = [
-    ...changes.removed.map((file) => `Instructions from ${file.path} no longer apply.`),
-    ...changes.added.map((file) => `New instructions take effect:\n${render([file])}`),
+    ...changes.removed.map((file) => `The instructions from ${file.path} no longer apply.`),
+    ...changes.added.map((file) => `New instructions apply from:\n${render([file])}`),
     ...changes.changed.map(({ previous: before, current: after }) => {
       const patch = createPatch(after.path, before.content, after.content, "", "", { context: 3 })
       const diff = [
-        `The instructions in ${after.path} changed. The diff follows:`,
+        `The instructions from ${after.path} changed. Here's the diff:`,
         "```diff",
         patch.slice(patch.indexOf("@@")).trimEnd(),
         "```",
       ].join("\n")
-      const replacement = `Instructions changed:\n${render([after])}`
+      const replacement = `The instructions changed:\n${render([after])}`
       return diff.length < replacement.length ? diff : replacement
     }),
   ]

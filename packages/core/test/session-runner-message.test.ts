@@ -162,7 +162,7 @@ describe("toLLMMessages", () => {
       Message.make({
         id: id("location"),
         role: "user",
-        content: "The working directory is now /destination。",
+        content: "The working directory has been changed to /destination.",
       }),
     )
     expect(messages[1]).toEqual(Message.system("Updated context\n\nOther context"))

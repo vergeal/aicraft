@@ -686,7 +686,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ཁ་ཕྱེ་ཡོད་པའི་ཐོན་ཁུངས་གསང་ཡིག་ལས་ཚབ་པ།",
   "settings.about.trademark": "AI Craft འདི་ Anomaly Innovations, Inc གི་ཐོ་བཀོད་ཚོང་རྟགས་ཅིག་ཨིན།",
-  "settings.about.typeset": "ཨིན་ཊར་དང་ཨའི་བི་ཨེམ་པེལེགསི་མོ་ནོ་ནང་ཡིག་དཔར་གཞི་སྒྲིག།",
   "settings.about.tagline": "ཁྱོད་མེད་པར་ AI གིས་མཉེན་ཆས་ལེགས་ཤོམ་བཟོ་མི་ཐུབ།",
   "settings.about.copyright": "© Anomaly གསར་གཏོད།",
   "project.settings.title": "ཞུན་དག་ལས་གཞི།",

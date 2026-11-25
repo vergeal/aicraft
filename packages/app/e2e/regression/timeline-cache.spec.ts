@@ -425,35 +425,6 @@ test("keeps the old workspace's shell on its own Location while destination hist
   }
 })
 
-test("loads the transcript code font before opening rich history", async ({ page }) => {
-  const font = page.waitForResponse((response) => /IBMPlexMono-Text[^/]*\.woff2/.test(response.url()))
-  await openTabs(page, {
-    pageMessages: () => ({
-      items: [{ id: "msg_font_source", type: "user", text: "A transcript with no code", time: { created: 1 } }],
-    }),
-  })
-  await page.goto(sessionHref(fixture.sourceID))
-  await expect(page.getByText("A transcript with no code", { exact: true })).toBeVisible()
-  expect((await font).ok()).toBe(true)
-  // Chromium recreates every @font-face as "unloaded", keeping its downloaded file, whenever a lazily loaded
-  // stylesheet with @layer rules activates ahead of one already applied, so the preloaded face's status alone is
-  // not stable. Once fonts settle, the first layout of new code must take that file at once, which marks the
-  // current face loaded; a face that still has to fetch its file reports "loading" here instead.
-  expect(
-    await page.evaluate(async () => {
-      await document.fonts.ready
-      const code = document.body.appendChild(document.createElement("code"))
-      code.style.font = "440 13px var(--font-family-mono)"
-      code.textContent = "code"
-      code.getBoundingClientRect()
-      const loaded = document.fonts.check('440 13px "IBM Plex Mono"')
-      code.remove()
-
-      return loaded
-    }),
-  ).toBe(true)
-})
-
 test("waits for the requested session's history before constructing its cold timeline", async ({ page }) => {
   const requested = Promise.withResolvers<void>()
   const release = Promise.withResolvers<void>()

@@ -728,7 +728,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft ，開源編碼代理",
   "settings.about.trademark": "AI Craft是Anomaly Innovations, Inc.的註冊商標。",
-  "settings.about.typeset": "Inter和IBM Plex Mono中的排版",
   "settings.about.tagline": "如果沒有您， AI就無法構建出色的軟件",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "編輯專案",

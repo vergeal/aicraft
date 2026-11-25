@@ -678,7 +678,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, нээлттэй эхийн кодчиллын агент",
   "settings.about.trademark": "AI Craft нь Anomaly Innovations, Inc.-ийн бүртгэлтэй барааны тэмдэг юм.",
-  "settings.about.typeset": "Inter болон IBM Plex Mono үсгийн хэвээр өрсөн",
   "settings.about.tagline": "Тангүйгээр AI гайхалтай програм хангамж бүтээж чадахгүй",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Төслийг засах",

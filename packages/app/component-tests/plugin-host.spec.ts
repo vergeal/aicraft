@@ -687,7 +687,8 @@ story(
 
       const read = () => ({
         state: reads.state?.(),
-        font: reads.font?.().startsWith('"JetBrainsMono Nerd Font Mono"') ? "default mono" : reads.font?.(),
+        // The default terminal stack is the built-in one; a chosen family would change the head of the list.
+        font: reads.font?.().endsWith(", monospace") ? "default mono" : reads.font?.(),
         prefs: reads.prefs?.value?.count,
         ready: reads.prefs?.ready(),
         writes: [...host.writes],

@@ -147,7 +147,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, kodningsagenten med öppen källkod",
   "settings.about.trademark": "AI Craft är ett registrerat varumärke som tillhör Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Satt med Inter och IBM Plex Mono",
   "settings.about.tagline": "AI kan inte bygga fantastisk programvara utan dig",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Redigera projekt",

@@ -700,7 +700,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, kódovací agent s otvoreným zdrojovým kódom",
   "settings.about.trademark": "AI Craft je registrovaná ochranná známka spoločnosti Anomaly Innovations, Inc.",
-  "settings.about.typeset": "typová súprava v Inter a IBM Plex Mono",
   "settings.about.tagline": "AI nedokáže vytvoriť skvelý softvér bez vás",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Upraviť projekt",

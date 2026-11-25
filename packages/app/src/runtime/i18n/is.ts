@@ -677,7 +677,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, opinn kóðunaraðili",
   "settings.about.trademark": "AI Craft er skráð vörumerki Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Tegund í Inter og IBM Plex Mono",
   "settings.about.tagline": "AI getur ekki smíðað frábæran hugbúnað án þín",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Breyta verkefni",

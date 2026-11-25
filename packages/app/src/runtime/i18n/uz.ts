@@ -678,7 +678,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ochiq manbali kodlash agenti",
   "settings.about.trademark": "AI Craft — Anomaly Innovations, Inc. kompaniyasining ro‘yxatdan o‘tgan savdo belgisi.",
-  "settings.about.typeset": "Inter va IBM Plex Mono shriftlarida terilgan",
   "settings.about.tagline": "Sizsiz AI ajoyib dasturiy ta’minot yarata olmaydi",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Loyihani tahrirlash",

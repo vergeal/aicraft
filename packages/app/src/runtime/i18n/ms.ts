@@ -678,7 +678,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ejen pengekodan sumber terbuka",
   "settings.about.trademark": "AI Craft ialah tanda dagangan berdaftar Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Set taip dalam Inter dan IBM Plex Mono",
   "settings.about.tagline": "AI tidak boleh membina perisian yang hebat, tanpa anda",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Edit projek",

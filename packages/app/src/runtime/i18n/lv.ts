@@ -680,7 +680,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, atvērtā koda kodēšanas aģents",
   "settings.about.trademark": "AI Craft ir Anomaly Innovations, Inc. reģistrēta preču zīme.",
-  "settings.about.typeset": "Salikums Inter un IBM Plex Mono",
   "settings.about.tagline": "AI nevar izveidot lielisku programmatūru bez jums",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Rediģēt projektu",

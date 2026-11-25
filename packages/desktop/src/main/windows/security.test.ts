@@ -107,6 +107,10 @@ test("retains permissions across all live windows on a shared session and revoke
   expect(shared.check(2, "clipboard-sanitized-write")).toBe(true)
   expect(shared.check(99, "clipboard-sanitized-write")).toBe(false)
 
+  // The Appearance font pickers read the installed families; only renderer windows may ask.
+  expect(await shared.ask(1, "local-fonts")).toBe(true)
+  expect(await shared.ask(99, "local-fonts")).toBe(false)
+
   expect(await shared.ask(1, "media", audioReq)).toBe(true)
   expect(shared.check(1, "media", audioCheck)).toBe(true)
 

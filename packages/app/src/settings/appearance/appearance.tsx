@@ -25,31 +25,26 @@ const fontSettings = {
     action: "settings-ui-font",
     title: "settings.general.row.uiFont.title",
     description: "settings.general.row.uiFont.description",
-    font: "ui",
-    input: "setUI",
   },
   code: {
     action: "settings-code-font",
     title: "settings.general.row.font.title",
     description: "settings.general.row.font.description",
-    font: "code",
-    input: "setCode",
   },
   terminal: {
     action: "settings-terminal-font",
     title: "settings.general.row.terminalFont.title",
     description: "settings.general.row.terminalFont.description",
-    font: "terminal",
-    input: "setTerminal",
   },
 } as const
 
 const FontSetting: Component<{
-  kind: "ui" | "code" | "terminal"
+  kind: keyof typeof fontSettings
   fonts: AppearanceSettingsController["fonts"]
 }> = (props) => {
   const language = useLanguage()
   const config = () => fontSettings[props.kind]
+  const field = () => props.fonts[props.kind]
 
   return (
     <SettingsRow title={language.t(config().title)} description={language.t(config().description)}>
@@ -57,12 +52,10 @@ const FontSetting: Component<{
         <FontPicker
           action={config().action}
           label={language.t(config().title)}
-          value={props.fonts[config().font]().value}
-          family={props.fonts[config().font]().family}
-          placeholder={props.fonts[config().font]().placeholder}
-          monospaceFirst={props.kind === "code"}
-          systemMonospace={props.kind !== "ui"}
-          onSelect={(family) => props.fonts[config().input](family)}
+          value={field().value()}
+          family={field().family()}
+          monospaceFirst={props.kind !== "ui"}
+          onSelect={(family) => field().set(family)}
         />
       </div>
     </SettingsRow>

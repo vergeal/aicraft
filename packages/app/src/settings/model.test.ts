@@ -6,12 +6,9 @@ import {
   settingsSchema,
   settingsPersistence,
   defaultSettings,
-  monoDefaultFor,
   monoFontFamily,
-  sansDefault,
-  sansDefaultFor,
+  normalizeFontFamily,
   sansFontFamily,
-  terminalDefaultFor,
   terminalFontFamily,
 } from "./model"
 
@@ -208,32 +205,39 @@ describe("settings schema", () => {
   })
 })
 
-test("every font row defaults to System", () => {
-  expect(sansDefault).toBe("system-ui")
-
-  expect(sansDefaultFor()).toBe("system-ui")
-  expect(monoDefaultFor()).toBe("system-ui")
-  expect(terminalDefaultFor()).toBe("system-ui")
+test.each([
+  { typed: "JetBrains Mono", stored: '"JetBrains Mono"' },
+  // Normalizing a stored list returns it unchanged, so reading and writing normalize twice is safe.
+  { typed: '"JetBrains Mono"', stored: '"JetBrains Mono"' },
+  { typed: "JetBrains Mono, Fira Code", stored: '"JetBrains Mono", "Fira Code"' },
+  // Generic keywords and system extensions stay unquoted.
+  { typed: "monospace, -apple-system, ui-monospace", stored: "monospace, -apple-system, ui-monospace" },
+  // Quotes, angle brackets and backslashes cannot survive into inline CSS or repeat per name.
+  { typed: 'Arial <button onload="x">, Fira\\Code\u0001', stored: '"Arial button onload=x", "FiraCode"' },
+  // Blank pieces drop, so trailing commas and stray spaces store a clean list.
+  { typed: " Mono , ,  ,", stored: '"Mono"' },
+  { typed: "   ", stored: "" },
+  { typed: "", stored: "" },
+])("normalizeFontFamily(%s)", ({ typed, stored }) => {
+  expect(normalizeFontFamily(typed)).toBe(stored)
 })
 
 test("each font role starts from its own stack", () => {
   expect(sansFontFamily(undefined)).toStartWith("-apple-system, ")
-  expect(monoFontFamily(undefined)).toStartWith('"JetBrains Mono", ')
-  expect(terminalFontFamily(undefined)).toStartWith('"SFMono-Regular", ')
-  expect(monoFontFamily("system-ui")).toStartWith('"JetBrains Mono", ')
-  expect(monoFontFamily("Custom Mono")).toStartWith('"Custom Mono", "JetBrains Mono", ')
+  expect(monoFontFamily(undefined)).toStartWith('"SF Mono", ')
+  expect(terminalFontFamily(undefined)).toStartWith("ui-monospace, ")
+  expect(monoFontFamily("system-ui")).toStartWith('"SF Mono", ')
+  expect(monoFontFamily("Custom Mono")).toStartWith('"Custom Mono", "SF Mono", ')
 })
 
 test("System resolves to each role's own stack", () => {
   expect(sansFontFamily("system-ui")).toBe(
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif',
   )
   expect(monoFontFamily("system-ui")).toBe(
-    '"JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace',
+    '"SF Mono", "JetBrains Mono", "Fira Code", Consolas, "Liberation Mono", Menlo, Courier, "PingFang SC", "Microsoft YaHei"',
   )
-  expect(terminalFontFamily("system-ui")).toBe(
-    '"SFMono-Regular", "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
-  )
+  expect(terminalFontFamily("system-ui")).toBe("ui-monospace, SFMono-Regular, Menlo, Consolas, monospace")
 })
 
 test.each([
@@ -245,43 +249,49 @@ test.each([
     name: "mono",
     family: (font: string | undefined) => monoFontFamily(font),
     font: undefined,
-    prefix: '"JetBrains Mono", ',
+    prefix: '"SF Mono", ',
   },
   {
     name: "mono",
     family: (font: string | undefined) => monoFontFamily(font),
     font: "",
-    prefix: '"JetBrains Mono", ',
+    prefix: '"SF Mono", ',
   },
   {
     name: "mono",
     family: (font: string | undefined) => monoFontFamily(font),
     font: "   ",
-    prefix: '"JetBrains Mono", ',
+    prefix: '"SF Mono", ',
   },
   {
     name: "mono",
     family: (font: string | undefined) => monoFontFamily(font),
     font: "Custom Mono",
-    prefix: '"Custom Mono", "JetBrains Mono", ',
+    prefix: '"Custom Mono", "SF Mono", ',
   },
   {
     name: "mono",
     family: (font: string | undefined) => monoFontFamily(font),
     font: "system-ui",
-    prefix: '"JetBrains Mono", ',
+    prefix: '"SF Mono", ',
   },
   {
     name: "terminal",
     family: (font: string | undefined) => terminalFontFamily(font),
     font: undefined,
-    prefix: '"SFMono-Regular", ',
+    prefix: "ui-monospace, ",
   },
   {
     name: "terminal",
     family: (font: string | undefined) => terminalFontFamily(font),
     font: "system-ui",
-    prefix: '"SFMono-Regular", ',
+    prefix: "ui-monospace, ",
+  },
+  {
+    name: "terminal",
+    family: (font: string | undefined) => terminalFontFamily(font),
+    font: "MesloLGS NF",
+    prefix: '"MesloLGS NF", ui-monospace, ',
   },
 ])("$name font family for $font starts with $prefix", ({ family, font, prefix }) => {
   expect(family(font)).toStartWith(prefix)

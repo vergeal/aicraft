@@ -687,7 +687,6 @@ export const dict = {
   "settings.about.website": "\u2068www.opencode.ai\u2069",
   "settings.about.description": "\u2068AI Craft\u2069، عامل کدنویسی متن‌باز",
   "settings.about.trademark": "\u2068AI Craft\u2069 علامت تجاری ثبت‌شدهٔ \u2068Anomaly Innovations, Inc.\u2069 است",
-  "settings.about.typeset": "حروف‌چینی با \u2068Inter\u2069 و \u2068IBM Plex Mono\u2069",
   "settings.about.tagline": "هوش مصنوعی بدون شما نمی‌تواند نرم‌افزار عالی بسازد",
   "settings.about.copyright": "© \u2068Anomaly Innovations, Inc.\u2069",
   "project.settings.title": "ویرایش پروژه",

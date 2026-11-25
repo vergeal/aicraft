@@ -2,16 +2,10 @@ import { createMemo, createResource, onMount, type Accessor } from "solid-js"
 import type { ColorScheme } from "@aicraft/ui/theme/context"
 import { useTheme } from "@aicraft/ui/theme/context"
 import {
-  monoDefaultFor,
   monoFontFamily,
-  monoInput,
-  sansDefaultFor,
   sansFontFamily,
-  sansInput,
-  type ReduceMotion,
-  terminalDefaultFor,
   terminalFontFamily,
-  terminalInput,
+  type ReduceMotion,
   useSettings,
 } from "@/settings/model"
 import { usePlatform } from "@/runtime/platform/platform"
@@ -93,6 +87,7 @@ export function createAppearanceSettingsController() {
         const variant = theme.themes()[id]?.[theme.mode()] ?? theme.themes()[id]?.light
 
         if (variant?.seeds) return [variant.seeds.neutral, variant.seeds.primary, variant.seeds.interactive]
+
         if (!variant?.palette) return undefined
 
         return [
@@ -125,25 +120,23 @@ export function createAppearanceSettingsController() {
       current: settings.appearance.fontSize,
       select: (value: number) => settings.appearance.setFontSize(value),
     },
+    // One picker per role: the stored family, the stack it resolves to, and its commit.
     fonts: {
-      ui: createMemo(() => ({
-        value: sansInput(settings.appearance.uiFont()),
-        family: sansFontFamily(settings.appearance.uiFont()),
-        placeholder: sansDefaultFor(),
-      })),
-      code: createMemo(() => ({
-        value: monoInput(settings.appearance.font()),
-        family: monoFontFamily(settings.appearance.font()),
-        placeholder: monoDefaultFor(),
-      })),
-      terminal: createMemo(() => ({
-        value: terminalInput(settings.appearance.terminalFont()),
-        family: terminalFontFamily(settings.appearance.terminalFont()),
-        placeholder: terminalDefaultFor(),
-      })),
-      setUI: (value: string) => settings.appearance.setUIFont(value),
-      setCode: (value: string) => settings.appearance.setFont(value),
-      setTerminal: (value: string) => settings.appearance.setTerminalFont(value),
+      ui: {
+        value: createMemo(() => settings.appearance.uiFont()),
+        family: createMemo(() => sansFontFamily(settings.appearance.uiFont())),
+        set: (value: string) => settings.appearance.setUIFont(value),
+      },
+      code: {
+        value: createMemo(() => settings.appearance.font()),
+        family: createMemo(() => monoFontFamily(settings.appearance.font())),
+        set: (value: string) => settings.appearance.setFont(value),
+      },
+      terminal: {
+        value: createMemo(() => settings.appearance.terminalFont()),
+        family: createMemo(() => terminalFontFamily(settings.appearance.terminalFont())),
+        set: (value: string) => settings.appearance.setTerminalFont(value),
+      },
     },
   }
 }

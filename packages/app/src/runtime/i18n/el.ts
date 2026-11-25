@@ -683,7 +683,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ο παράγοντας κωδικοποίησης ανοιχτού κώδικα",
   "settings.about.trademark": "Το AI Craft είναι σήμα κατατεθέν της Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Δακτυλογράφηση σε Inter και IBM Plex Mono",
   "settings.about.tagline": "Το AI δεν μπορεί να δημιουργήσει εξαιρετικό λογισμικό, χωρίς εσάς",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Επεξεργασία έργου",

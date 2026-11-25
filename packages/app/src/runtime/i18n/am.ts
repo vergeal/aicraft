@@ -662,7 +662,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft፣ ክፍት ምንጭ የኮድ ወኪል",
   "settings.about.trademark": "AI Craft የAnomaly Innovations, Inc. የተመዘገበ የንግድ ምልክት ነው።",
-  "settings.about.typeset": "በInter እና IBM Plex Mono ተሰድሯል",
   "settings.about.tagline": "ያለ እርስዎ AI ምርጥ ሶፍትዌር መገንባት አይችልም",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "ፕሮጀክት አርትዕ",

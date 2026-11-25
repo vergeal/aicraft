@@ -673,7 +673,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ღია კოდის მქონე კოდირების აგენტი",
   "settings.about.trademark": "AI Craft არის Anomaly Innovations, Inc.-ის რეგისტრირებული სავაჭრო ნიშანი.",
-  "settings.about.typeset": "აწყობილია Inter და IBM Plex Mono შრიფტებით",
   "settings.about.tagline": "AI ვერ შექმნის შესანიშნავ პროგრამულ უზრუნველყოფას თქვენ გარეშე",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "პროექტის რედაქტირება",

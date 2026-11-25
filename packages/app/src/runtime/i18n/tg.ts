@@ -677,7 +677,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, агенти рамзнависии манбаи кушода",
   "settings.about.trademark": "AI Craft тамғаи тиҷории бақайдгирифтаи Anomaly Innovations, Inc. мебошад.",
-  "settings.about.typeset": "Бо Inter ва IBM Plex Mono ҳуруфчинӣ шудааст",
   "settings.about.tagline": "AI бе шумо нармафзори олӣ сохта наметавонад",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Таҳрири лоиҳа",

@@ -1,9 +1,12 @@
 :root {
   --font-family-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-family-sans--font-feature-settings: normal;
+  /* No bare `monospace` tail: on Windows it resolves CJK to SimSun before the CJK faces below. */
   --font-family-mono:
-    "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+    "SF Mono", "JetBrains Mono", "Fira Code", Consolas, "Liberation Mono", Menlo, Courier,
+    "PingFang SC", "Microsoft YaHei";
   --font-family-mono--font-feature-settings: normal;
 
   /* Type scale follows docs/standard/design/03-typography: UI 14, meta 12, micro 11, small heading 18, section 20. */

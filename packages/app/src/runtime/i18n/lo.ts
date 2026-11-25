@@ -675,7 +675,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ຕົວແທນລະຫັດແຫຼ່ງເປີດ",
   "settings.about.trademark": "AI Craft ເປັນເຄື່ອງໝາຍການຄ້າທີ່ຈົດທະບຽນຂອງ Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Typeset ໃນ Inter ແລະ IBM Plex Mono",
   "settings.about.tagline": "AI ບໍ່ສາມາດສ້າງຊອບແວທີ່ດີໄດ້, ຖ້າບໍ່ມີທ່ານ",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "ແກ້ໄຂໂຄງການ",

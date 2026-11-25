@@ -688,7 +688,6 @@ export const dict = {
   "settings.about.website": "\u2068www.opencode.ai\u2069",
   "settings.about.description": "\u2068AI Craft\u2069, סוכן הקוד בקוד פתוח",
   "settings.about.trademark": "\u2068AI Craft\u2069 הוא סימן מסחרי רשום של \u2068Anomaly Innovations, Inc.\u2069",
-  "settings.about.typeset": "סודר בגופנים \u2068Inter\u2069 ו-\u2068IBM Plex Mono\u2069",
   "settings.about.tagline": "בינה מלאכותית לא יכולה לבנות תוכנה מעולה בלעדיך",
   "settings.about.copyright": "© \u2068Anomaly Innovations, Inc.\u2069",
   "project.settings.title": "ערוך פרויקט",

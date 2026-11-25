@@ -683,7 +683,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, a nyílt forráskódú kódoló ügynök",
   "settings.about.trademark": "A AI Craft a Anomaly Innovations, Inc. bejegyzett védjegye.",
-  "settings.about.typeset": "Betűkészlet Inter és IBM Plex Mono nyelven",
   "settings.about.tagline": "Az AI nem tud nagyszerű szoftvert készíteni nélküled",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Projekt szerkesztése",

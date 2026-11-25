@@ -670,7 +670,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, avatud lähtekoodiga kodeerimisagent",
   "settings.about.trademark": "AI Craft on ettevõtte Anomaly Innovations, Inc. registreeritud kaubamärk.",
-  "settings.about.typeset": "Sisestatud Inter ja IBM Plex Mono",
   "settings.about.tagline": "AI ei saa ilma sinuta suurepärast tarkvara luua",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Redigeeri projekti",

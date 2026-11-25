@@ -38,40 +38,57 @@ export function projectSettingsKey(scope: ServerScope, projectID: string | undef
   return projectID ? ScopedKey.from(scope, projectID) : undefined
 }
 
-// The UI role ships no font file, so it renders in the platform's own face from the first frame.
-export const sansDefault = "system-ui"
-
+// The app ships no font file: every role resolves to system-installed faces from the first frame.
 const uiFamily =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif'
 
-const codeFamily = '"JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
+// No bare `monospace` tail: on Windows it resolves CJK to SimSun before the CJK faces below.
+const codeFamily =
+  '"SF Mono", "JetBrains Mono", "Fira Code", Consolas, "Liberation Mono", Menlo, Courier, "PingFang SC", "Microsoft YaHei"'
 
-const terminalFamily = '"SFMono-Regular", "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace'
+// The terminal draws fixed cells itself, so a bare `monospace` tail is safe and keeps a usable face on every OS.
+const terminalFamily = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 
-function input(font: string | undefined) {
-  return font ?? ""
-}
+/** CSS Fonts generic and system family keywords, which must stay unquoted. */
+const genericFamilies = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "emoji",
+  "math",
+  "fangsong",
+  "-apple-system",
+  "blinkmacsystemfont",
+])
 
-function family(font: string) {
-  if (/^[\w-]+$/.test(font)) return font
-
-  return `"${font.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`
+/**
+ * Normalize user input into a CSS font-family list. Names are comma separated; quotes, backslashes, angle
+ * brackets, and control characters are dropped, and every non-generic name is double-quoted, so the result is
+ * always a valid list safe to embed in inline CSS. Normalizing a result returns it unchanged.
+ */
+export function normalizeFontFamily(value: string) {
+  return value
+    .split(",")
+    .map((name) => name.replace(/["'\\<>\u0000-\u001f\u007f]/gu, "").replace(/\s+/gu, " ").trim())
+    .filter((name) => name !== "")
+    .map((name) => (genericFamilies.has(name.toLowerCase()) ? name : `"${name}"`))
+    .join(", ")
 }
 
 function stack(font: string | undefined, base: string) {
-  const value = font?.trim() ?? ""
+  const list = normalizeFontFamily(font ?? "")
 
-  if (!value || value === "system-ui") return base
+  // `system-ui` was the picker's "System" sentinel: an empty override, not a requested face.
+  if (list === "" || list === "system-ui") return base
 
-  return `${family(value)}, ${base}`
-}
-
-export function monoInput(font: string | undefined) {
-  return input(font)
-}
-
-export function sansInput(font: string | undefined) {
-  return input(font)
+  return `${list}, ${base}`
 }
 
 export function monoFontFamily(font: string | undefined) {
@@ -84,23 +101,6 @@ export function sansFontFamily(font: string | undefined) {
 
 export function terminalFontFamily(font: string | undefined) {
   return stack(font, terminalFamily)
-}
-
-/** The family each Appearance row shows when the user has not chosen one; every role is System. */
-export function monoDefaultFor() {
-  return sansDefault
-}
-
-export function sansDefaultFor() {
-  return sansDefault
-}
-
-export function terminalDefaultFor() {
-  return sansDefault
-}
-
-export function terminalInput(font: string | undefined) {
-  return input(font)
 }
 
 const placementSchema = Schema.Literals(["separate", "grouped", "hidden"])
@@ -254,8 +254,10 @@ function legacyTimelineActivity(value: boolean | "hidden" | "compact" | "full" |
 }
 
 // Reduce motion used to store "on" and "off", which read as the opposite of what they did.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- a migration reads any persisted value; unrecognized ones pass through untouched
 function legacyReduceMotion(value: unknown) {
   if (value === "on") return "always"
+
   if (value === "off") return "never"
 
   return value
@@ -292,6 +294,7 @@ export const settingsPersistence = Persistence.migrate(
       decode: SchemaGetter.transform((value) => {
         const general = value.general
         const appearance = value.appearance
+
         const mapped = Predicate.isObject(appearance)
           ? {
               ...appearance,
@@ -300,6 +303,7 @@ export const settingsPersistence = Persistence.migrate(
               reduceMotion: legacyReduceMotion(appearance.reduceMotion),
             }
           : appearance
+
         const base = { ...value, appearance: mapped }
 
         if (!general || general.timelineDetail !== undefined) return base
@@ -382,8 +386,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
-      const mono = monoFontFamily(store.appearance?.mono)
-      root.style.setProperty("--font-family-mono", mono)
+      root.style.setProperty("--font-family-mono", monoFontFamily(store.appearance?.mono))
       root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
       // UI chrome keeps the design scale (14px) so menus, lists and controls stay stable;
       // only the conversation body follows the reader's size setting.
@@ -393,9 +396,6 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       root.style.setProperty("--font-size-large", "18px")
       root.style.setProperty("--font-size-x-large", "20px")
       root.style.setProperty("--content-font-size", px(14))
-      // Inline code can first appear during history backfill. Load its selected
-      // face with the shell so that font discovery does not resize that mount.
-      void document.fonts?.load(`400 13px ${mono}`).catch(() => undefined)
     })
 
     const newIcons = withFallback(() => store.general?.newIcons, defaultSettings.general.newIcons)
@@ -491,15 +491,15 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         },
         font: withFallback(() => store.appearance?.mono, defaultSettings.appearance.mono),
         setFont(value: string) {
-          setStore("appearance", "mono", value.trim() ? value : "")
+          setStore("appearance", "mono", value.trim())
         },
         uiFont: withFallback(() => store.appearance?.sans, defaultSettings.appearance.sans),
         setUIFont(value: string) {
-          setStore("appearance", "sans", value.trim() ? value : "")
+          setStore("appearance", "sans", value.trim())
         },
         terminalFont: withFallback(() => store.appearance?.terminal, defaultSettings.appearance.terminal),
         setTerminalFont(value: string) {
-          setStore("appearance", "terminal", value.trim() ? value : "")
+          setStore("appearance", "terminal", value.trim())
         },
         tabLayout: withFallback(() => store.appearance?.tabLayout, defaultSettings.appearance.tabLayout),
         sidebarOpen: withFallback(() => store.appearance?.sidebarOpen, true),

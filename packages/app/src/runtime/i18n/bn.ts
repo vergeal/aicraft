@@ -679,7 +679,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, ওপেন সোর্স কোডিং এজেন্ট",
   "settings.about.trademark": "AI Craft, Anomaly Innovations, Inc.-এর নিবন্ধিত ট্রেডমার্ক।",
-  "settings.about.typeset": "Inter এবং IBM Plex Mono-তে টাইপসেট",
   "settings.about.tagline": "আপনাকে ছাড়া AI দারুণ সফটওয়্যার তৈরি করতে পারে না",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "প্রকল্প সম্পাদনা করুন",

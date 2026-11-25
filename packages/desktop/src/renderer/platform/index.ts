@@ -6,6 +6,7 @@ import { windowFullscreen } from "../window/fullscreen"
 import { DragCancelEvent } from "../../shared/ipc-transport"
 import { createPluginBridge } from "../plugins"
 import { createDesktopFiles } from "./files"
+import { createDesktopFonts } from "./fonts"
 import { createDesktopMenuAction } from "./menu"
 import { createDesktopNotify } from "./notifications"
 import { createDesktopStorage } from "./storage"
@@ -32,6 +33,7 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
     version: windowState.version,
     windowID: windowState.id,
     ...createDesktopFiles(api, os),
+    ...createDesktopFonts(),
     ...createDesktopStorage(api),
     exportDebugLogs: () => api.exportDebugLogs(),
     writeDiagnostics: (input) => api.writeDiagnostics(input),

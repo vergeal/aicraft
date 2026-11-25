@@ -66,7 +66,6 @@
         "@dnd-kit/abstract": "0.5.0",
         "@dnd-kit/dom": "0.5.0",
         "@dnd-kit/solid": "0.5.0",
-        "@ibm/plex": "6.4.1",
         "@kobalte/core": "catalog:",
         "@pierre/highlights": "catalog:",
         "@pierre/trees": "1.0.0-beta.6",
@@ -1735,10 +1734,6 @@
     "@hona/strobe-win32-x64": ["@hona/strobe-win32-x64@0.7.0", "https://registry.npmmirror.com/@hona/strobe-win32-x64/-/strobe-win32-x64-0.7.0.tgz", { "os": "win32", "cpu": "x64" }, "sha512-k9cPXZCi4MMpgUETpWMZnZczbbqlTPLdyl5uhCgLRk3mA1p6BTGXy/DUaSGrZvlleUEJatNCPoBGL0iRNFoDCg=="],
 
     "@hono/node-server": ["@hono/node-server@2.1.5", "https://registry.npmmirror.com/@hono/node-server/-/node-server-2.1.5.tgz", { "peerDependencies": { "hono": "^4 || ^5.0.0-0" } }, "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q=="],
-
-    "@ibm/plex": ["@ibm/plex@6.4.1", "https://registry.npmmirror.com/@ibm/plex/-/plex-6.4.1.tgz", { "dependencies": { "@ibm/telemetry-js": "^1.5.1" } }, "sha512-fnsipQywHt3zWvsnlyYKMikcVI7E2fEwpiPnIHFqlbByXVfQfANAAeJk1IV4mNnxhppUIDlhU0TzwYwL++Rn2g=="],
-
-    "@ibm/telemetry-js": ["@ibm/telemetry-js@1.11.0", "https://registry.npmmirror.com/@ibm/telemetry-js/-/telemetry-js-1.11.0.tgz", { "bin": { "ibmtelemetry": "dist/collect.js" } }, "sha512-RO/9j+URJnSfseWg9ZkEX9p+a3Ousd33DBU7rOafoZB08RqdzxFVYJ2/iM50dkBuD0o7WX7GYt1sLbNgCoE+pA=="],
 
     "@img/colour": ["@img/colour@1.1.0", "https://registry.npmmirror.com/@img/colour/-/colour-1.1.0.tgz", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

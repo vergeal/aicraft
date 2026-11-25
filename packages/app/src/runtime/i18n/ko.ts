@@ -689,7 +689,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "오픈소스 코딩 에이전트 AI Craft",
   "settings.about.trademark": "AI Craft는 Anomaly Innovations, Inc.의 등록 상표입니다.",
-  "settings.about.typeset": "Inter 및 IBM Plex Mono의 조판",
   "settings.about.tagline": "AI는 당신 없이는 훌륭한 소프트웨어를 만들 수 없습니다",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "프로젝트 편집",

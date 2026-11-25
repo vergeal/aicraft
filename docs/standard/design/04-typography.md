@@ -4,8 +4,8 @@
 
 | 类别 | 令牌 | 字体栈 | 用于 |
 | --- | --- | --- | --- |
-| 界面与正文 | `--font-family-sans` | `ui-sans-serif` → `system-ui` → `-apple-system` → `PingFang SC` → `Microsoft YaHei` | 所有 UI 文字、对话正文 |
-| 等宽 | `--font-family-mono` | `IBM Plex Mono` → `ui-monospace` → `SFMono-Regular` → `Menlo` | 代码、路径、模型名、数字表格 |
+| 界面与正文 | `--font-family-sans` | `-apple-system` → `BlinkMacSystemFont` → `Segoe UI` → `PingFang SC` → `Hiragino Sans GB` → `Microsoft YaHei` | 所有 UI 文字、对话正文 |
+| 等宽 | `--font-family-mono` | `SF Mono` → `JetBrains Mono` → `Fira Code` → `Consolas` → `Liberation Mono` → `Menlo`（结尾无裸 `monospace`，避免 Windows 中文落宋体） | 代码、路径、模型名、数字表格 |
 
 规则：
 

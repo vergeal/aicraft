@@ -4,16 +4,42 @@ export type FontOption = {
   monospace: boolean
 }
 
+/** One installed face. The Local Font Access global is not in the DOM lib yet, so the window is declared here. */
+interface LocalFontData {
+  readonly family: string
+  readonly fullName: string
+  readonly postscriptName: string
+  readonly style: string
+}
+
+declare global {
+  interface Window {
+    queryLocalFonts?(): Promise<LocalFontData[]>
+  }
+}
+
 /**
- * The faces `../../index.css` ships. The picker offers these and the system stack instead of the system's font
- * list: the app then renders the same on every machine, and the list stays short instead of listing icon,
- * symbol and legacy bitmap faces the UI can never use.
+ * The families installed on this machine. The app ships no font file, so these are the picker's choices. The
+ * desktop platform enumerates them through Chromium's Local Font Access API (`local-fonts` permission, granted
+ * in the main process); the web build has no platform list and queries the API directly, which needs a secure
+ * context and can reject when the prompt is dismissed: an empty list lets the picker fall back to the default
+ * row alone.
  */
-export const bundledFonts = [
-  { family: "IBM Plex Mono", monospace: true },
-  { family: "JetBrains Mono", monospace: true },
-  { family: "JetBrainsMono Nerd Font Mono", monospace: true },
-] as const satisfies readonly FontOption[]
+export async function systemFontFamilies(listSystemFonts?: () => Promise<readonly string[]>) {
+  if (typeof window === "undefined") return []
+
+  const families = new Set<string>()
+
+  if (listSystemFonts) {
+    const names = await listSystemFonts().catch((): readonly string[] => [])
+
+    for (const family of names) families.add(family)
+  } else {
+    for (const face of (await window.queryLocalFonts?.().catch(() => [])) ?? []) families.add(face.family)
+  }
+
+  return [...families].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+}
 
 /** Whether a stored family outside {@link bundledFonts} advances narrow and wide glyphs by the same width. */
 export function isMonospace(family: string) {
@@ -37,6 +63,7 @@ function measureContext() {
   if (typeof document === "undefined") return (context = null)
 
   context = document.createElement("canvas").getContext("2d")
+
   return context
 }
 

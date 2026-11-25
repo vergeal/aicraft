@@ -27,8 +27,7 @@
   box-shadow: inset 0 0 0 1px var(--v2-border-border-strong);
 }
 
-/* The font trigger sizes to its label like the row's inline selects. Pinning the field and aligning its end keeps
-   every value on the same right edge, whichever face is selected. */
+/* Pinning the field and aligning its end keeps every font value on the same right edge, whatever list is typed. */
 .settings-font-field {
   display: flex;
   justify-content: flex-end;

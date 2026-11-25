@@ -95,8 +95,8 @@
 
 | 令牌 | 值 |
 | --- | --- |
-| `--font-family-sans` | `ui-sans-serif, system-ui, -apple-system, ...` |
-| `--font-family-mono` | `"IBM Plex Mono", ui-monospace, SFMono-Regular, ...` |
+| `--font-family-sans` | `-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", ...` |
+| `--font-family-mono` | `"SF Mono", "JetBrains Mono", "Fira Code", Consolas, ...`（无裸 `monospace` 兜底） |
 | `--font-size-xx-small` | 11px |
 | `--font-size-x-small` | 12px |
 | `--font-size-small` / `base` | 14px |

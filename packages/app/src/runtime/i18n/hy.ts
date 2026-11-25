@@ -674,7 +674,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft՝ բաց կոդով կոդավորման գործակալ",
   "settings.about.trademark": "AI Craft-ը Anomaly Innovations, Inc.-ի գրանցված ապրանքային նշանն է։",
-  "settings.about.typeset": "Շարված է Inter և IBM Plex Mono տառատեսակներով",
   "settings.about.tagline": "AI-ը չի կարող հիանալի ծրագրակազմ ստեղծել առանց ձեզ",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Խմբագրել նախագիծը",

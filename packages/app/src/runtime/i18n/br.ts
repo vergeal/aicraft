@@ -156,7 +156,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, o agente de programação de código aberto",
   "settings.about.trademark": "AI Craft é uma marca registrada da Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Composto em Inter e IBM Plex Mono",
   "settings.about.tagline": "A IA não consegue criar um ótimo software sem você",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Editar projeto",

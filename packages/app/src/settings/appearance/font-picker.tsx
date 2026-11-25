@@ -1,18 +1,22 @@
-import { For, Show, createEffect, createMemo, type Component } from "solid-js"
+import { For, Show, createEffect, createMemo, createSignal, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import { SelectionIndicator } from "@aicraft/ui/selection-indicator"
 import { useLanguage } from "@/runtime/i18n/language"
-import { bundledFonts, isMonospace, quoteFamily, type FontOption } from "@/runtime/platform/fonts"
+import { usePlatform } from "@/runtime/platform/platform"
+import { isMonospace, quoteFamily, systemFontFamilies, type FontOption } from "@/runtime/platform/fonts"
 import "./font-picker.css"
 
 let pickers = 0
 
-/**
- * Both Chromium and WebKit resolve `system-ui` to the platform's own UI face (SF Pro on macOS), which is
- * what "system font" means here. It is a keyword, not a family, so the picker adds it as a fixed row.
- */
-const SYSTEM_FAMILY = "system-ui"
+/** One shared query: three pickers open in the same settings page, and the API answers once per permission. */
+let families: Promise<string[]> | undefined
+
+const loadFamilies = (listSystemFonts?: () => Promise<readonly string[]>) =>
+  (families ??= systemFontFamilies(listSystemFonts))
+
+/** The first row: no family chosen, which resolves to the role's built-in stack. */
+const DEFAULT_FAMILY = ""
 
 type PickerOption = FontOption & { label?: string }
 
@@ -22,14 +26,15 @@ export const FontPicker: Component<{
   label: string
   value: string
   family: string
-  placeholder: string
   /** Code rows list monospace faces before the rest. */
   monospaceFirst?: boolean
-  /** Code and terminal rows use a monospace stack for their System row, not the UI stack. */
-  systemMonospace?: boolean
   onSelect: (family: string) => void
 }> = (props) => {
   const language = useLanguage()
+  const platform = usePlatform()
+
+  // SAFETY: the panel anchors one vertical edge at a time; place() writes a number to `top` or to `bottom` and
+  // resets the other to undefined.
   const [state, setState] = createStore({
     open: false,
     query: "",
@@ -40,35 +45,52 @@ export const FontPicker: Component<{
     width: 0,
     maxHeight: 320,
   })
+
+  const [installed, setInstalled] = createSignal<string[]>()
   const listID = `font-picker-${++pickers}`
   let trigger: HTMLButtonElement | undefined
   let panel: HTMLDivElement | undefined
   let list: HTMLDivElement | undefined
   let search: HTMLInputElement | undefined
+  let requested = false
 
-  const currentFamily = () => props.value.trim() || props.placeholder
+  // `system-ui` was the old picker's sentinel: the same "no family chosen" as an empty store.
+  const currentFamily = () => {
+    const value = props.value.trim()
+
+    return value === "" || value === "system-ui" ? DEFAULT_FAMILY : value
+  }
+
   const currentLabel = () =>
-    currentFamily() === SYSTEM_FAMILY ? language.t("settings.appearance.font.system") : currentFamily()
+    currentFamily() === DEFAULT_FAMILY ? language.t("settings.appearance.font.default") : currentFamily()
 
   const available = createMemo<PickerOption[]>(() => {
-    const family = currentFamily()
-    const known: PickerOption[] = bundledFonts.some((option) => option.family === family)
-      ? [...bundledFonts]
-      : [{ family, monospace: isMonospace(family) }, ...bundledFonts]
-    const system: PickerOption = {
-      family: SYSTEM_FAMILY,
-      monospace: props.systemMonospace ?? false,
-      label: language.t("settings.appearance.font.system"),
+    const selected = currentFamily()
+    const options: PickerOption[] = (installed() ?? []).map((family) => ({ family, monospace: isMonospace(family) }))
+
+    // A family chosen on another machine may not be installed here: keep it listed so it can be replaced.
+    if (selected !== DEFAULT_FAMILY && !options.some((option) => option.family === selected)) {
+      options.unshift({ family: selected, monospace: isMonospace(selected) })
     }
-    const options: PickerOption[] = [system, ...known.filter((option) => option.family !== SYSTEM_FAMILY)]
 
-    if (!props.monospaceFirst) return options
+    const ordered = props.monospaceFirst
+      ? [...options.filter((option) => option.monospace), ...options.filter((option) => !option.monospace)]
+      : options
 
-    return [
-      system,
-      ...options.slice(1).filter((option) => option.monospace),
-      ...options.slice(1).filter((option) => !option.monospace),
-    ]
+    const system: PickerOption = {
+      family: DEFAULT_FAMILY,
+      monospace: false,
+      label: language.t("settings.appearance.font.default"),
+    }
+
+    return [system, ...ordered]
+  })
+
+  createEffect(() => {
+    if (!state.open || installed() || requested) return
+
+    requested = true
+    loadFamilies(platform.listSystemFonts).then(setInstalled)
   })
 
   const options = createMemo(() => {
@@ -103,6 +125,7 @@ export const FontPicker: Component<{
         width,
         maxHeight: Math.min(320, above),
       })
+
       return
     }
 
@@ -127,6 +150,7 @@ export const FontPicker: Component<{
 
   const close = (focus = true) => {
     setState({ open: false, query: "" })
+
     if (focus) trigger?.focus()
   }
 
@@ -144,6 +168,7 @@ export const FontPicker: Component<{
       if (state.active !== index) return
 
       const option = list?.querySelector<HTMLElement>('[data-slot="font-picker-option"][data-active]')
+
       if (!option || !list) return
 
       const row = option.getBoundingClientRect()
@@ -162,12 +187,14 @@ export const FontPicker: Component<{
     window.addEventListener("resize", reposition)
     window.addEventListener("scroll", reposition, true)
     queueMicrotask(() => search?.focus())
+
     const dismiss = (event: PointerEvent) => {
       const target = event.target
 
       if (!(target instanceof Node) || trigger?.contains(target) || panel?.contains(target)) return
       close(false)
     }
+
     document.addEventListener("pointerdown", dismiss, true)
 
     return () => {
@@ -183,37 +210,44 @@ export const FontPicker: Component<{
     if (event.key === "ArrowDown") {
       event.preventDefault()
       setState("active", (index) => (items.length ? (index + 1) % items.length : 0))
+
       return
     }
 
     if (event.key === "ArrowUp") {
       event.preventDefault()
       setState("active", (index) => (items.length ? (index - 1 + items.length) % items.length : 0))
+
       return
     }
 
     if (event.key === "Home") {
       event.preventDefault()
       setState("active", 0)
+
       return
     }
 
     if (event.key === "End") {
       event.preventDefault()
       setState("active", Math.max(0, items.length - 1))
+
       return
     }
 
     if (event.key === "Enter") {
       event.preventDefault()
       const option = items[state.active]
+
       if (option) choose(option)
+
       return
     }
 
     if (event.key === "Escape") {
       event.preventDefault()
       close()
+
       return
     }
 
@@ -300,7 +334,7 @@ export const FontPicker: Component<{
                     data-active={state.active === index() ? "" : undefined}
                     data-current={option.family === currentFamily() ? "" : undefined}
                     data-monospace={option.monospace ? "" : undefined}
-                    style={{ "font-family": quoteFamily(option.family) }}
+                    style={{ "font-family": option.family === DEFAULT_FAMILY ? props.family : quoteFamily(option.family) }}
                     onPointerDown={(event) => {
                       event.preventDefault()
                       choose(option)

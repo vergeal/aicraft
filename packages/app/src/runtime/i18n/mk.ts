@@ -676,7 +676,6 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AI Craft, агент за кодирање со отворен код",
   "settings.about.trademark": "AI Craft е регистрирана трговска марка на Anomaly Innovations, Inc.",
-  "settings.about.typeset": "Типови во Inter и IBM Plex Mono",
   "settings.about.tagline": "AI не може да изгради одличен софтвер, без вас",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Уреди проект",

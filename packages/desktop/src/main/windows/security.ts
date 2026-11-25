@@ -3,7 +3,9 @@ import { SidecarCredentials } from "../service/sidecar-credentials"
 import { addRendererHeaders, hasHeader, upsertHeader } from "./headers"
 import { isRendererUrl } from "./scheme"
 
-const rendererPermissions = new Set(["clipboard-sanitized-write", "notifications"])
+// `local-fonts` powers the Appearance font pickers: the renderer lists the installed families through the
+// Local Font Access API. The list is metadata about the user's own machine, shown only to the user's window.
+const rendererPermissions = new Set(["clipboard-sanitized-write", "local-fonts", "notifications"])
 
 const allowedBySession = new WeakMap<Session, Set<number>>()
 

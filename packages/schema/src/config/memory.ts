@@ -22,6 +22,10 @@ export class Info extends Schema.Class<Info>("ConfigMemory.Info")({
   max_injected_chars: NonNegativeInt.pipe(optional).annotate({
     description: "Character budget for the per-turn retrieval block appended to the request. Defaults to 1500.",
   }),
+  extract: Schema.Boolean.pipe(optional).annotate({
+    description:
+      "Extract memories from finished conversations in the background when a session goes idle, through one model call per gated run. Defaults to true.",
+  }),
   max_entries: NonNegativeInt.pipe(optional).annotate({
     description: "How many memories each scope listing returns at most. Defaults to 200.",
   }),

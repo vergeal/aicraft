@@ -80,6 +80,16 @@ export interface Settings {
   /** The session index channel (one-time synthetic list of what this session saved). Off by
    *  default: the vector channel made it redundant, but the cost is per session, not per turn. */
   readonly sessionIndex: "off" | "on"
+  /** The background extraction job: on idle, one model pass turns finished conversations into
+   *  candidates. On by default — the model saves conventions while working, but only the
+   *  extractor reliably fills the decision/project_knowledge/historical types. */
+  readonly extract: "off" | "on"
+  /** New user turns a session must accumulate before an extraction run is worth its call. */
+  readonly extractMinUserTurns: number
+  /** Hard cap on candidates written per extraction run, newest contract first in reply order. */
+  readonly extractMaxCandidates: number
+  /** Minimum wall time between two extraction runs of one session. */
+  readonly extractCooldownMs: number
   /** Symmetric token-bag containment at which a save is treated as a near-duplicate instead
    *  of a new entry. Below exact-hash dedup, above it the corpus grows without gaining facts. */
   readonly nearDuplicateThreshold: number
@@ -102,6 +112,10 @@ export const DEFAULT_SETTINGS: Settings = {
   vectorThreshold: 0.4,
   vectorScanLimit: 10_000,
   sessionIndex: "off",
+  extract: "on",
+  extractMinUserTurns: 3,
+  extractMaxCandidates: 3,
+  extractCooldownMs: 600_000,
   nearDuplicateThreshold: 0.85,
   browseLimit: 50,
 }

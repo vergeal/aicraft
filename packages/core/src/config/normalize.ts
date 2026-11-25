@@ -618,7 +618,7 @@ function normalizeMemory(input: Record<string, unknown>, encoded: Record<string,
       if (value !== undefined) result.auto_inject = value
     }
   }
-  for (const key of ["max_injected_chars", "max_entries"] as const) {
+  for (const key of ["max_injected_chars", "max_entries", "extract"] as const) {
     if (!own(memory, key)) continue
     const value = decodeEncoded(ConfigMemory.Info.fields[key], memory[key], ["memory", key], diagnostics)
     if (value !== undefined) result[key] = value

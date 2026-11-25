@@ -1,6 +1,7 @@
 export * as MemorySubsystem from "./subsystem.js"
 import { MemoryInject } from "./inject.js"
 import { MemoryLifecycle } from "./lifecycle.js"
+import { MemoryExtraction } from "./extraction.js"
 import { MemoryQuery } from "./query.js"
 import { resolveSettings } from "./settings.js"
 import { MemoryTokens } from "./tokens.js"
@@ -87,6 +88,10 @@ export interface Subsystem {
   readonly sessionIndex: (input: { scope: string; sessionID: string }) => Promise<MemoryInject.RenderedBlock>
   /** ids whose stored vector came from another model or prefix recipe — the rebuild queue. */
   readonly staleVectorIds: (scopes: readonly string[]) => Promise<readonly string[]>
+  /** Turn an extraction model's reply into stored entries: parse, validate, then the same
+   *  lifecycle every save runs (dedup, triggers, supersede). The returned counts are what the
+   *  `memory_extract_log` row keeps, so "why was nothing extracted" stays answerable. */
+  readonly extract: (input: { reply: string; sessionID: string; projectID?: string }) => Promise<MemoryExtraction.ExtractionOutcome>
 }
 
 const NEAR_DUP_CANDIDATES = 20
@@ -225,6 +230,13 @@ export function createSubsystem(options: SubsystemOptions): Subsystem {
     return MemoryLifecycle.staleEmbeddings(records, options.embedder.version)
   }
 
+  const extract = async (input: { reply: string; sessionID: string; projectID?: string }) =>
+    MemoryExtraction.applyExtractions(
+      MemoryExtraction.parseExtraction(input.reply, settings.extractMaxCandidates),
+      { save, addTrigger, supersede, hasEntry: async (id) => (await store.get(id)) !== undefined },
+      { sessionID: input.sessionID, ...(input.projectID === undefined ? {} : { projectID: input.projectID }) },
+    )
+
   return {
     settings,
     onTurn,
@@ -239,6 +251,7 @@ export function createSubsystem(options: SubsystemOptions): Subsystem {
     addTrigger,
     sessionIndex,
     staleVectorIds,
+    extract,
   }
 
   async function supersede(id: string, byID: string) {

@@ -73,6 +73,29 @@
     );
   }
 
+  /* The restore gate: while an activation fetches and places its remembered row, the rows keep their layout for
+     measurement but paint nothing, so no intermediate position of the activation is ever visible. When the gate
+     lifts, the final placement fades in; the reduced-motion override below stops the animation entirely. */
+  [data-slot="session-timeline-scroll"][data-restore-pending="true"] .scroll-view__viewport [data-answer-key] {
+    visibility: hidden;
+  }
+
+  @keyframes timeline-restore-reveal {
+    from {
+      opacity: 0;
+    }
+  }
+
+  [data-slot="session-timeline-scroll"][data-restore-reveal="true"] .scroll-view__viewport [data-answer-key] {
+    animation: timeline-restore-reveal 200ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-slot="session-timeline-scroll"][data-restore-reveal="true"] .scroll-view__viewport [data-answer-key] {
+      animation: none;
+    }
+  }
+
   /* The review panel's visible width, which the header fade below tracks while the panel animates. Its fixed-width
      content holds nothing else that reads it. */
   #review-panel,

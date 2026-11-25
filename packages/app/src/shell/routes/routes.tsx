@@ -52,7 +52,9 @@ export function AppRoutes() {
           <SessionRouteFrame>
             <Suspense
               fallback={
-                <div class="flex min-h-0 flex-1 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
+                <div
+                  class="flex min-h-0 flex-1 ps-0 pe-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]"
+                >
                   <SessionPanelFrame raised />
                 </div>
               }
@@ -74,8 +76,21 @@ function TargetServerRoute(props: ParentProps) {
   const params = useParams<{ serverKey: string }>()
   const global = useGlobal()
 
-  const connection = createMemo(() =>
-    global.servers.list().find((item) => ServerConnection.key(item) === requireServerKey(params.serverKey)),
+  // The registry merges stored and provided connections into fresh objects whenever any of its inputs are written,
+  // including writes that leave this server's connection unchanged (a session switch touches the store). The keyed
+  // Show below remounts the whole routed subtree on an identity change, which would throw away the cached timelines,
+  // so the memo only moves on a content change.
+  const connection = createMemo(
+    () => global.servers.list().find((item) => ServerConnection.key(item) === requireServerKey(params.serverKey)),
+    undefined,
+    {
+      equals: (previous, next) =>
+        previous === next ||
+        (!!previous &&
+          !!next &&
+          ServerConnection.key(previous) === ServerConnection.key(next) &&
+          JSON.stringify(previous) === JSON.stringify(next)),
+    },
   )
 
   return (

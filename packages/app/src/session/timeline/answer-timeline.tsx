@@ -98,6 +98,7 @@ export function AnswerTimeline(props: {
   // A restore that could not find its row leaves the view at the newest content, not where the reader stopped. Hold the
   // saved record until the reader's own gesture moves, or a failed restore would erase the anchor worth paging back to.
   let holdPosition = false
+  let activationAnchor: SavedPosition | undefined
   // The activation gate: while a remembered mid-transcript row is being fetched and placed, the transcript rows stay
   // hidden (layout intact, so measurement works) and no host write is visible. The reader sees exactly one position
   // per activation: whichever place the attempt settles on when the gate lifts.
@@ -313,6 +314,7 @@ export function AnswerTimeline(props: {
   }
 
   const beginRestore = (saved: SavedPosition) => {
+    activationAnchor = saved
     restorePlaced = false
     restorePlacedAt = 0
     restoreLocal = false
@@ -332,7 +334,14 @@ export function AnswerTimeline(props: {
     // The anchor row is in the transcript already (a hot session): the page places it without waiting on anything,
     // so skip the fetch and let the reveal take the short settle instead of the quiet window.
     restoreLocal = props.messages().some((item) => item.id === messageID)
-    if (restoreLocal) return
+
+    if (restoreLocal) {
+      // The row is in this window already: nothing pages in, so a placement miss is decided at once. Undo a
+      // synchronous seek claim that raced a message write between the claim and here.
+      if (!seekController) setRestoreSeeking(false)
+
+      return
+    }
     const controller = new AbortController()
     const generation = restoreGeneration
     seekController = controller
@@ -345,7 +354,10 @@ export function AnswerTimeline(props: {
 
         // "loaded" means the row is in the transcript now: the page's rows effect places it under the gate.
         if (result === "head") settleRestore("top")
-        else if (result === "missing") settleRestore("end")
+        else if (result === "missing") {
+          settleRestore("end")
+          healStaleAnchor(saved, true)
+        }
       },
       () => {
         if (generation !== restoreGeneration || seekController !== controller) return
@@ -497,9 +509,30 @@ export function AnswerTimeline(props: {
 
   // The remembered row will not arrive: it is gone or the transcript never had it. Settle at the newest content
   // under the gate, so the activation still paints one position. The record is held for a later manual page-in.
+  // A remembered anchor that can never be placed again has to stop costing every activation: the message is loaded
+  // but its row is gone (a re-fold rewrote the fold key, or the answer was replaced), or the server reports the
+  // message missing. Mark the saved position as an end exit so the next activation takes the plain landing path;
+  // a failed fetch keeps the memory, the row may still exist.
+  const healStaleAnchor = (saved: SavedPosition | undefined, anchorGone: boolean) => {
+    if (!saved || saved.bottom || !viewport) return
+
+    const messageID = anchorMessageID(saved.key)
+
+    if (!messageID) return
+
+    const inWindow = props.messages().some((item) => item.id === messageID)
+    const rowMissing = !viewport.querySelector(`[data-answer-key="${CSS.escape(saved.key)}"]`)
+
+    if (anchorGone || (inWindow && rowMissing)) {
+      lastPosition = { ...saved, bottom: true }
+      flushPosition()
+    }
+  }
+
   const restoreMissed = () => {
     holdPosition = true
     settleRestore("end")
+    healStaleAnchor(activationAnchor ?? lastPosition, false)
     props.onRestoreMiss?.()
   }
 
@@ -515,7 +548,17 @@ export function AnswerTimeline(props: {
         // at the clamped offset while the microtask below is still queued.
         const armed = savedPosition()
 
-        if (armed && !armed.bottom) setRestorePending(true)
+        if (armed && !armed.bottom) {
+          setRestorePending(true)
+          activationAnchor = armed
+
+          // Claim the seek before any microtask runs: the page's first placement attempt lands with the mutation
+          // observer, ahead of the queued `beginRestore`, and an unclaimed fetch would read as "nobody is fetching",
+          // missing an anchor that the page-in is about to deliver.
+          const messageID = anchorMessageID(armed.key)
+
+          if (messageID && !props.messages().some((item) => item.id === messageID)) setRestoreSeeking(true)
+        }
 
         // Same timing as the page's restore: decide the landing after the DOM insert, before the reinsertion's scroll
         // event reaches the machine.

@@ -649,6 +649,15 @@ export function AnswerPage(props: AnswerPageProps) {
     // yet and any placement would be a guess: only here does the miss get a chance to decide, bounded by the watchdog
     // and closed by `decideMiss` when the row is in view but nothing can scroll.
     if (placed === undefined) {
+      // A row that is not in the document can only still arrive from a page the host is fetching; every loaded row
+      // renders its content, so with no fetch in flight the remembered anchor is gone for good (a re-fold rewrote
+      // its key, or the message was replaced). Deciding now skips the watchdog the landing would only repeat.
+      if (!findRow(root, target.key) && !props.restoreSeeking?.()) {
+        decideMiss(target)
+
+        return
+      }
+
       missTimer ??= setTimeout(() => {
         missTimer = undefined
         decideMiss(target)

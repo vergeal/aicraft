@@ -258,6 +258,26 @@
   border-radius: var(--prompt-picture-radius, 6px);
 }
 
+/* The loaded-skill caption an @skill mention earns: the server injects the skill body before the prompt text, and
+   without this row the load would leave no trace the reader can see. Same compact 13px register as the fold toggle. */
+.answer-scope [data-slot="user-message-skills"] {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: var(--line-height-compact, 20px);
+  color: var(--v2-text-text-muted);
+
+  [data-slot="icon-svg"] {
+    flex-shrink: 0;
+    color: var(--v2-icon-icon-muted);
+  }
+}
+
 /* A file the prompt carried joins its own text as a link: the bubble already wraps the copy, so the filename reads
    as the last line of what the writer said instead of a second, card-shaped block. */
 .answer-scope [data-slot="user-message-files"] {

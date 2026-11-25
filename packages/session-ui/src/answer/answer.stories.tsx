@@ -353,6 +353,35 @@ export const InjectedContextMultiple = {
   ),
 }
 
+// An @skill mention's body is injected into the prompt on the server; the bubble still names what was loaded so the
+// reader can tell a live mention from an "@word" the writer simply typed.
+const skillMention: SessionMessageInfo[] = [
+  {
+    id: "msg_user_skill",
+    type: "user",
+    text: "为它创建 @icon-design 图标，风格对齐现有图标。",
+    skills: [
+      {
+        id: "icon-design",
+        name: "图标设计",
+        text: '<skill_content name="图标设计"># Skill: 图标设计\n画布固定 viewBox=\"0 0 24 24\"…</skill_content>',
+        mention: { start: 5, end: 17, text: "@icon-design" },
+      },
+    ],
+    time: { created: TIME },
+  },
+  assistant("msg_assistant_skill", [{ type: "text", text: "先按 24px 画布与居中规范出图。" }], TIME + 1_000, TIME + 2_000),
+  idle("msg_idle_skill", TIME + 2_500),
+]
+
+export const SkillMention = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => skillMention} />
+    </div>
+  ),
+}
+
 // Every step resends the same system prefix; only the sources whose text changed are reported.
 const contextChanges: SessionMessageInfo[] = (() => {
   const step = (id: string, created: number, sources: { key: string; text: string }[]) => ({

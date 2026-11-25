@@ -1699,6 +1699,20 @@ function InputBubble(props: {
           <For each={pictures()}>{(file) => <PromptPicture file={file} />}</For>
         </div>
       </Show>
+      {/* An @skill mention is resolved on the server, which injects the full content before the prompt text. Without
+          this row the load leaves no trace in the timeline and reads as if the mention did nothing. */}
+      <Show when={skills().length > 0}>
+        <div data-slot="user-message-skills">
+          <Icon name="post-skill" size="small" />
+          <span>
+            {i18n.plural("ui.tool.loadedSkills", skills().length, {
+              name: skills()
+                .map((skill) => skill.name)
+                .join(", "),
+            })}
+          </span>
+        </div>
+      </Show>
       <Show when={hasText()}>
         <div
           dir="auto"

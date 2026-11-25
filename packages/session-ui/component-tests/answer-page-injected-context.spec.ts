@@ -1,5 +1,14 @@
 import { expect, story } from "../../stories/playwright/story"
 
+story("names the skills an @mention loaded above the prompt bubble", async ({ mount }) => {
+  const root = await mount("answer-page--skill-mention")
+
+  const row = root.locator('[data-slot="user-message-skills"]')
+  await expect(row).toHaveCount(1)
+  await expect(row).toContainText("Loaded 图标设计 skill")
+  await expect(row.locator('[data-slot="icon-svg"]')).toHaveCount(1)
+})
+
 story("expands the body of an injected context step", async ({ mount }) => {
   const root = await mount("answer-page--injected-context")
 

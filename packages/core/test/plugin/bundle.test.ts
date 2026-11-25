@@ -1,5 +1,5 @@
 import { expect, spyOn } from "bun:test"
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { Effect } from "effect"
 import { PluginBundle } from "@aicraft/core/plugin/bundle"
@@ -85,6 +85,20 @@ it.effect("accepts a bundle whose requirement is met", () =>
     )
 
     expect(installed).toMatchObject({ id: "test.bundle", version: "1.0.0" })
+  }),
+)
+
+it.effect("stages the unpack outside the watched install root", () =>
+  Effect.gen(function* () {
+    const temp = yield* tmpdirScoped()
+    yield* Effect.promise(() => publish({ home: temp.path, manifest: base }))
+
+    yield* Effect.promise(() => install({ home: temp.path, version: "1.0.0" }))
+
+    // Discovery watches the install root, so the unpack happens elsewhere: on Windows the handles a load opens
+    // inside a half-unpacked staging directory make the install's final rename fail with EPERM.
+    expect(yield* Effect.promise(() => readdir(path.join(temp.path, ".aicraft", "exc")))).toEqual(["test.bundle"])
+    expect(yield* Effect.promise(() => readdir(path.join(temp.path, ".aicraft", "exc-staging")))).toEqual([])
   }),
 )
 

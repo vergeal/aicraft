@@ -8,7 +8,7 @@ import { Host } from "@aicraft/plugin/host"
 import { Catalog } from "@aicraft/schema/catalog"
 import { PluginManifest } from "@aicraft/schema/plugin-manifest"
 import { Option, Schema } from "effect"
-import { compareVersions, installRoot, root as localRoot } from "./local.js"
+import { compareVersions, installRoot, root as localRoot, stagingRoot } from "./local.js"
 import { PluginConfiguration, type Configuration } from "./configuration.js"
 
 export type Result = { readonly id: string; readonly version: string; readonly path: string }
@@ -76,7 +76,11 @@ export async function install(input: {
     if (current === manifest.version) return { id: manifest.id, version: current, path: target }
     await rm(target, { recursive: true, force: true })
   }
-  const tmp = path.join(plugins, `.${manifest.id}.tmp-${random()}`)
+  // Unpack outside the watched install root, so a reload triggered by the unpack's own file events cannot load the
+  // staging copy and hold handles that fail the rename below on Windows.
+  const staging = stagingRoot(input.home)
+  await mkdir(staging, { recursive: true })
+  const tmp = path.join(staging, `${manifest.id}.tmp-${random()}`)
   await mkdir(tmp, { recursive: true })
   try {
     await archive.extract(tmp)

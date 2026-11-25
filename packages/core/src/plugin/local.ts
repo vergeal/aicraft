@@ -17,6 +17,13 @@ export const root = (home: string) => path.join(home, ".distribution", "plugins"
 /** Where installed bundles are unpacked, one directory per plugin id. */
 export const installRoot = (home: string) => path.join(home, ".aicraft", "exc")
 
+/**
+ * Where an unpack stays until it is complete enough to move into the install root. It must stay outside that root:
+ * discovery watches the root, and on Windows a watcher or loader that opens a file inside a half-unpacked staging
+ * holds a handle that makes the final rename fail with EPERM. Same volume as the install root, so the rename holds.
+ */
+export const stagingRoot = (home: string) => path.join(home, ".aicraft", "exc-staging")
+
 type Manifest = {
   id?: unknown
   version?: unknown

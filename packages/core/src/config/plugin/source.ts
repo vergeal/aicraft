@@ -145,12 +145,13 @@ const scan = Effect.fn("ConfigPluginSource.scan")(function* (
       ),
   ).pipe(Effect.map((items) => items.flat()))
   // Installed bundles are directories directly under the install root, not `plugin`/`plugins` children, so they are
-  // listed here instead of going through PluginSourceDirectory.discover.
+  // listed here instead of going through PluginSourceDirectory.discover. Dot-prefixed directories are staging or
+  // backup leftovers, never a plugin: loading one would watch files a later install renames out from under it.
   const unpacked = yield* fs.readDirectoryEntries(installed).pipe(
     Effect.orElseSucceed(() => []),
     Effect.map((items) =>
       items
-        .filter((entry) => entry.type === "Directory")
+        .filter((entry) => entry.type === "Directory" && !entry.name.startsWith("."))
         .map((entry): Operation => ({ type: "add", target: path.join(installed, entry.name), options: {} })),
     ),
   )

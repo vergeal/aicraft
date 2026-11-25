@@ -1779,15 +1779,9 @@ function PromptPicture(props: { file: PromptAttachment }) {
   const preview = createImagePreview()
   const image = useImageUrl(() => ({ uri: attachmentUri(props.file), mime: props.file.mime }))
   const name = () => props.file.name ?? i18n.t("ui.message.attachment.alt")
-  let root!: HTMLDivElement
-
-  createEffect(() => {
-    if (image.url()) preview(root)
-  })
 
   return (
     <div
-      ref={root}
       data-slot="user-message-attachment"
       data-state={image.broken() ? "broken" : image.url() ? "ready" : "loading"}
       class="relative shrink-0 overflow-hidden border-[0.5px] border-v2-border-border-base"
@@ -1796,6 +1790,9 @@ function PromptPicture(props: { file: PromptAttachment }) {
       <Show when={image.broken() ? undefined : image.url()}>
         {(src) => (
           <img
+            // Wired as it mounts: the url arrives after this wrapper rendered, so scanning the wrapper would miss an
+            // image the <Show> had not created yet and the thumbnail would never open.
+            ref={preview}
             data-slot="user-message-attachment-image"
             src={src()}
             alt={name()}
@@ -2632,18 +2629,12 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallba
   const i18n = useI18n()
   const preview = createImagePreview()
   const image = useImageUrl(() => ({ uri: props.image.uri, mime: props.image.mime, fallbackPath: props.fallbackPath }))
-  let root!: HTMLDivElement
 
   const name = () => props.image.name ?? i18n.t("ui.message.attachment.alt")
   const kind = () => i18n.t("ui.fileMedia.kind.image")
 
-  createEffect(() => {
-    if (image.url()) preview(root)
-  })
-
   return (
     <div
-      ref={root}
       data-slot="answer-tool-image"
       class="w-fit max-w-full overflow-hidden rounded-[12px] border-[0.5px] border-v2-border-border-muted"
       style={{ background: "var(--answer-surface)" }}
@@ -2664,6 +2655,9 @@ function ToolImage(props: { image: ReturnType<typeof toolImages>[number]; fallba
       >
         {(src) => (
           <img
+            // Wired as it mounts: the url arrives after this row rendered, so scanning the row would miss an image the
+            // <Show> had not created yet and the screenshot would never open.
+            ref={preview}
             data-slot="answer-tool-image-thumb"
             src={src()}
             alt={name()}

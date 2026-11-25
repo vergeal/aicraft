@@ -416,14 +416,16 @@ story("uses the DSH list rhythm inside the answer column", async ({ mount }) => 
   const list = root.locator(".answer-markdown ul").first()
 
   await expect(list).toHaveCSS("margin-top", "16px")
-  await expect(list).toHaveCSS("margin-bottom", "0px")
+  await expect(list).toHaveCSS("margin-bottom", "16px")
   await expect(list).toHaveCSS("padding-inline-start", "18px")
-  await expect(list.locator("li").first()).toHaveCSS("margin-bottom", "0px")
+  await expect(list.locator("li").first()).toHaveCSS("margin-bottom", "8px")
 
   const ordered = root.locator(".answer-markdown ol").first()
 
   await expect(ordered).toHaveCSS("margin-top", "16px")
   await expect(ordered).toHaveCSS("padding-inline-start", "18px")
+  // The list closes the answer, so its bottom edge is the tail: no gap left under it.
+  await expect(ordered).toHaveCSS("margin-bottom", "0px")
 })
 
 story("swaps the leading icon for a chevron on hover", async ({ mount }) => {

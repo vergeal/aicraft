@@ -29,14 +29,24 @@
   color: var(--answer-ink);
 }
 
-/* DSH list rhythm inside the answer column only; the shared markdown surface keeps its own spacing. */
+/* DSH list rhythm inside the answer column only; the shared markdown surface keeps its own spacing. The gap is
+   stated on both edges: a paragraph carries no top margin, so a list that closed with nothing left its next block
+   glued to the last item. The list ends flush at the answer's tail through the shared last-child reset. */
 .answer-scope .answer-markdown :is(ul, ol) {
   margin-top: 16px;
-  margin-bottom: 0;
+  margin-bottom: 16px;
   padding-inline-start: 18px;
 }
 
-.answer-scope .answer-markdown li {
+/* A nested list closes the item above it, so it keeps the shared tight seam instead of a full block gap. */
+.answer-scope .answer-markdown li > :is(ul, ol) {
+  margin-bottom: 0;
+}
+
+/* An answer that ends on a list keeps that gap inside the message, not under it: the shared last-child reset loses
+   to this scope's own list rule, so the tail is closed here. Only lists are named, so a trailing paragraph keeps the
+   spacing it always had. */
+.answer-scope .answer-markdown > [data-markdown-block]:last-child > :is(ul, ol):last-child {
   margin-bottom: 0;
 }
 

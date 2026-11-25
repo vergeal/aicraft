@@ -39,6 +39,27 @@ describe("Memory", () => {
     }),
   )
 
+  it.effect("returns the newest entries when the scope is larger than the window", () =>
+    Effect.gen(function* () {
+      // Regression for the kv sampling defect: keys are `mem_<uuid>`, so the old ascending
+      // key order gave a random subset; the newest entries must win regardless of key order.
+      const kv = yield* KV.Service
+      for (const index of Array.from({ length: 260 }, (_, i) => i))
+        yield* Memory.save(kv, {
+          scope: "global",
+          projectID: "",
+          text: `第 ${index + 1} 条独立事实，编号 ${index + 1}`,
+          tags: [],
+          now: new Date(Date.UTC(2026, 0, 1) + index * 1000).toISOString(),
+        })
+      const newest = yield* Memory.readScope(kv, Memory.globalPrefix, 50)
+      expect(newest).toHaveLength(50)
+      expect(newest[0]?.text).toBe("第 260 条独立事实，编号 260")
+      const times = newest.map((entry) => entry.updatedAt)
+      expect(times).toEqual([...times].sort().reverse())
+    }),
+  )
+
   it.effect("lists both scopes newest first and keeps projects apart", () =>
     Effect.gen(function* () {
       const kv = yield* KV.Service

@@ -44,17 +44,19 @@ export function newID() {
 export const MAX_SCAN = 2_000
 
 /**
- * Reads one scope, paging until `max` entries or the end. Undecodable values are skipped so one bad write cannot hide
- * the rest.
+ * Reads one scope and returns the newest `max` entries. Undecodable values are skipped so one bad write cannot hide
+ * the rest. Note the ordering trap: keys are `mem_<uuid>`, so kv's ascending key order is random order — taking the
+ * first `max` rows was a random sample, not the recent head (measured 2026-11: golden-set recall 0.33 at 400+
+ * entries). The whole scope must be paged before recency is meaningful.
  */
 export const readScope = (kv: KV.Interface, prefix: string, max: number) =>
   Effect.gen(function* () {
     const entries: Entry[] = []
     let after: string | undefined
-    while (entries.length < max) {
+    while (entries.length < MAX_SCAN) {
       const page = yield* kv.scan({
         prefix,
-        limit: Math.min(100, max - entries.length),
+        limit: Math.min(100, MAX_SCAN - entries.length),
         ...(after === undefined ? {} : { after }),
       })
       for (const item of page.entries) {
@@ -64,7 +66,7 @@ export const readScope = (kv: KV.Interface, prefix: string, max: number) =>
       if (page.next === undefined || page.next === after) break
       after = page.next
     }
-    return entries
+    return sortRecent(entries).slice(0, max)
   })
 
 export function sortRecent(entries: readonly Entry[]) {

@@ -13,7 +13,14 @@ export interface Interface {
 export class Service extends Context.Service<Service, Interface>()("@aicraft/InstructionBuiltIns") {}
 
 const languageInstruction =
-  "面向用户的内容默认使用中文：回答、标签、按钮、空状态、错误信息以及你编写的任何界面文案。代码、标识符、文件路径和命令名保持原样。只有当用户使用其他语言或明确要求时才换用那种语言。"
+  "Default to Chinese for user-facing content: replies, labels, buttons, empty states, error messages, and any UI copy you write. Keep code, identifiers, file paths, and command names as-is. Switch language only when the user writes in another language or explicitly asks for one."
+
+/**
+ * Cost discipline, not capability: every tool call re-sends the whole history, so the step count dominates
+ * spend. Static text, so it stays in the epoch baseline and never invalidates the prompt cache.
+ */
+const toolEconomyInstruction =
+  "Every tool call re-sends the full history, so the number of steps costs more than the size of any single result. Fire independent calls in the same step: reading several files, listing several directories, and running unrelated commands do not need to wait on each other. Merge unrelated probes into one command instead of a run of steps. Read a file in one pass rather than paging through it; when a file is large, locate the relevant region first. Do not re-run a command just to confirm an earlier edit landed — fold that check into the step that made the edit. Serialize only when one call's result decides how to ask for the next."
 
 const layer = Layer.effect(
   Service,
@@ -34,12 +41,21 @@ const layer = Layer.effect(
               },
             }),
             Instructions.make({
+              key: Instructions.Key.make("core/tool-economy"),
+              codec: Schema.toCodecJson(Schema.String),
+              read: Effect.succeed("on"),
+              render: {
+                initial: () => toolEconomyInstruction,
+                changed: () => toolEconomyInstruction,
+              },
+            }),
+            Instructions.make({
               key: Instructions.Key.make("core/date"),
               codec: Schema.toCodecJson(Schema.String),
               read: DateTime.nowAsDate.pipe(Effect.map((date) => date.toDateString())),
               render: {
-                initial: (date) => `今天的日期：${date}`,
-                changed: (_previous, date) => `今天的日期已变为：${date}`,
+                initial: (date) => `Today's date: ${date}`,
+                changed: (_previous, date) => `Today's date is now: ${date}`,
               },
             }),
             Instructions.make({
@@ -48,19 +64,18 @@ const layer = Layer.effect(
               read: Effect.sync(() =>
                 [
                   "<env>",
-                  `  工作目录：${location.directory}`,
-                  `  工作区根目录：${location.project.directory}`,
-                  `  是否为 git 仓库：${location.vcs?.type === "git" ? "是" : "否"}`,
-                  `  平台：${process.platform}`,
-                  `  临时目录优先使用 ${global.tmp}，而不是 /tmp 这类系统通用临时目录；它已预先创建并批准外部访问。`,
+                  `  Working directory: ${location.directory}`,
+                  `  Workspace root folder: ${location.project.directory}`,
+                  `  Is directory a git repo: ${location.vcs?.type === "git" ? "yes" : "no"}`,
+                  `  Platform: ${process.platform}`,
+                  `  Prefer ${global.tmp} over generic system temporary directories such as /tmp; it is pre-created and approved for external access.`,
                   "</env>",
                 ].join("\n"),
               ),
               render: {
                 initial: (environment) =>
-                  ["以下是关于你运行环境的有用信息：", environment].join("\n"),
-                changed: (_previous, environment) =>
-                  ["你运行的环境现在是：", environment].join("\n"),
+                  ["Here is some useful information about the environment you are running in:", environment].join("\n"),
+                changed: (_previous, environment) => ["You are running in a new environment:", environment].join("\n"),
               },
             }),
           ]),

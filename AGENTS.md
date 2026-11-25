@@ -2,12 +2,12 @@
 - Keep runtime dependencies directed from Schema to Core and Protocol, then from Core and Protocol to Server. Client runtime code may depend on Schema and Protocol but never Core or Server; `sdk` composes Client, Core, and Server.
 - This repository does not use Changesets. Do not add `.changeset` files; follow the existing release workflow instead.
 
-## 项目形态
+## Project Shape
 
-- 这是 AI Craft 的二次开发仓库（`vergeal/aicraft`），上游是 `anomalyco/opencode`。产品主线是 **Electron 桌面客户端**（`packages/desktop` + `packages/app`），不是 TUI。
-- 默认启动客户端：仓库根目录 `bun run dev:desktop`。只改客户端时不要动 TUI、CLI 交互或上游发布流程。
-- 上游 `dev` 只作为同步来源；本地 `dev` 已落后，不要以它为基线。开发基线是 `origin/master`，客户端功能分支从最新 `master` 切出（当前主线分支 `timeline-scroll`）。
-- 不向上游提 PR；提交在自己的 fork 上完成。diff 与 rebase 都以 `origin/master` 为准，不要使用 `origin/dev`。
+- This is a secondary-development fork of AI Craft (`vergeal/aicraft`); the upstream is `anomalyco/opencode`. The product is the **Electron desktop client** (`packages/desktop` + `packages/app`), not the TUI.
+- Start the client by default: `bun run dev:desktop` at the repository root. When changing only the client, leave the TUI, the CLI interaction, and the upstream release flow alone.
+- Upstream `dev` is only a sync source; the local `dev` is behind, so do not treat it as a baseline. The development baseline is `origin/master`, and client feature branches come off the latest `master` (current mainline branch `timeline-scroll`).
+- Do not open PRs upstream; work lands on the fork. Measure diffs and rebases against `origin/master`, never `origin/dev`.
 
 ## Live Desktop Diagnostics
 
@@ -15,15 +15,15 @@
 - Without `noDefaults`, Playwright applies light-mode media emulation during attachment. An app following the system theme then flashes light until the connection closes. The option also preserves the existing focus and other media preferences.
 - Do not emulate a color scheme or reduced-motion preference on the user's live window unless explicitly requested; use an isolated test context for those scenarios.
 
-## 客户端界面
+## Client UI
 
-- 所有界面与组件必须遵循 `docs/standard/design/` 的设计规范，它对本项目的优先级高于通用样式习惯。先读 `README.md` 与 `01-principles.md`，按改动面读对应篇目，交付前对照 `checklist.md`。
-- 视觉决策（颜色、字号、间距、圆角、阴影、动效、图标、密度、导航）以 `docs/standard/design` 为准；`packages/app/AGENTS.md` 的 Typography / Fonts / Scrolling 是实现层约束，冲突时以设计规范为准，并同步修正那份文件。
-- 禁止在组件里写死色值、字号、间距、圆角魔法数；优先使用产品已有的语义变量（`--v2-*`、`--font-*`、`--line-height-*`、`color-mix()` 等）。`docs/standard/design/tokens.css` 里的 `--p-*`、`--c-*`、`--density-*` 是设计侧的命名参考，落到产品代码时映射到已存在的变量，不要凭空引入未定义的 token。新增 token 必须通过 `19-governance.md` 的四问门槛。
-- 状态样式由语义属性驱动（`aria-*`、`data-state`），不要用 `.is-active` 这类与可访问状态无关的类名表达状态。
-- 用户可见文案一律走 i18n：新增 key 时同时写 `zh.ts` 的简体中文；不得硬编码英文。
-- 任何界面改动都要在 Electron 客户端里实际验证（根目录 `bun run dev:desktop`），不要只在 Web 或 TUI 下确认。
-- 本项目不开发 TUI：不要新增 TUI 功能、实验或故事，也不要为其录制测试。
+- Every screen and component must follow the design specification in `docs/standard/design/`, which outranks general styling habits in this project. Read `README.md` and `01-principles.md` first, then the sections that match the scope of the change, and check the result against `checklist.md` before delivering.
+- Visual decisions (color, font size, spacing, radius, shadow, motion, icons, density, navigation) follow `docs/standard/design`. The Typography / Fonts / Scrolling sections of `packages/app/AGENTS.md` are implementation-level constraints; when they conflict, the design spec wins, and that file gets corrected to match.
+- Never hard-code colors, font sizes, spacing, or magic radius numbers in a component. Use the semantic variables the product already has (`--v2-*`, `--font-*`, `--line-height-*`, `color-mix()`, …). The `--p-*`, `--c-*`, `--density-*` names in `docs/standard/design/tokens.css` are the design side's references: map them onto existing variables in product code instead of introducing undefined tokens. A new token must pass the four-question gate in `19-governance.md`.
+- Drive state styles from accessible state (`aria-*`, `data-state`); do not express state through class names like `.is-active` that have no relation to it.
+- All user-visible copy goes through i18n: when adding a key, also write its Simplified Chinese value in `zh.ts`; never hard-code English in the UI.
+- Verify every UI change in the Electron client (`bun run dev:desktop` at the repository root); confirming it only in the Web or TUI build is not enough.
+- This project does not develop the TUI: add no TUI features, experiments, or stories, and do not record tests for it.
 
 ## Branch Names
 
@@ -180,12 +180,12 @@ const table = sqliteTable("session", {
 - Avoid mocks as much as possible, you shouldn't be using globalThis.\* at all unless it's the only option.
 - Test actual implementation, do not duplicate logic into tests
 - Tests cannot run from repo root (guard: `do-not-run-tests-from-root`); run from package directories such as `packages/core`.
-- 不要跑全量测试：改了什么就测什么，从包目录跑单个文件（例如 `packages/core` 下 `bun test test/session-runner.test.ts`）。单条命令超时不超过 30s，尽量控制在 5s 内；超时后重跑检查，不要无限等待。
+- Do not run the full suite: test what changed, one file at a time from the package directory (for example `bun test test/session-runner.test.ts` in `packages/core`). Keep a single command's timeout at or under 30s and aim for 5s; after a timeout, re-run the check instead of waiting indefinitely.
 - Before writing or changing tests, read the `AGENTS.md` that owns the suite: `packages/app/e2e/AGENTS.md` (Playwright keeper suites in `regression/`), `packages/session-ui` (component tests in `component-tests/`), or `packages/desktop/AGENTS.md` (Electron main-process and IPC tests). `.aicraft/skills` holds project skills, not test skills.
 
 ## Checks
 
-- 迭代时只验证改动的包：在包目录跑 `bun typecheck`，并跑 `bun run lint:changed`。`bun run check`（全量 lint + typecheck）只作为提交前的最终验证，不要在每次小改动后反复跑。
+- While iterating, verify only the package you changed: run `bun typecheck` from the package directory and `bun run lint:changed`. `bun run check` (full lint + typecheck) is the final verification before committing, not something to repeat after every small change.
 - During focused iteration, run `bun typecheck` from the affected package directory (for example, `packages/core`). Never run `tsc` directly.
 - Local `typecheck` scripts use `bun check`. CI and package publishing run `typecheck:tsc`, which uses the official TypeScript compiler (`@typescript/native`). When the two disagree, `tsc` is the source of truth; reproduce with `bun run typecheck:tsc` from the package directory.
 - `bun check` aims to match TypeScript 7.1, not the `7.0.2` that `process.versions.typescript` reports (oven-sh/bun#46536). When `bun check` and `tsc` from the pinned `@typescript/native` report different errors, file a minimal, dependency-free repro at https://github.com/oven-sh/bun/issues, with the output of both. `bun check` writes no declaration files, so declaration-emit errors such as TS5088 or TS2883 are expected to appear only in `tsc`; do not report those.
@@ -202,3 +202,13 @@ const table = sqliteTable("session", {
 - Keep delivery vocabulary explicit. Prompts steer by default. At safe step boundaries, steered compaction takes priority up to the first steered move control; other steers retain enqueue order. At an idle boundary, steers take priority; otherwise exactly one queued item delivers before the runner reevaluates continuation. Inbox items may be cancelled or changed between queue and steer before delivery. Promoting new user input resets the selected agent's step allowance; a batch of steers resets it once.
 - One step is one logical LLM call; its durable record covers only the model-visible span. Do not write "provider turn", and do not use bare "turn" for a single call: "turn" is reserved for the future assistant-turn unit containing all steps from prompt promotion until the session would go idle.
 - Keep event replay ownership separate from clustered Session execution ownership.
+
+## Tool-Call Economy
+
+History is re-sent on every step, so **each extra step costs a full copy of the context** (measured in this project: ~100K tokens/step). Cut the number of steps first, not the size of each result — splitting one read into four chunks costs 3 extra contexts to save 1 payload, which is almost always a net loss.
+
+- Fire independent calls **in the same step**: reading several files, listing several directories, and running unrelated commands are independent whenever one does not inform the other's arguments. Send them together; do not wait for each result before issuing the next.
+- Gather in one shell call. Join unrelated probes with `;` on one line, and never separate a header from its data (`echo "====";`) — that is two tool results for one question.
+- Read a file in one pass; do not page through it with `limit` when it fits in a single read. For a large file, `grep` for the anchor first and read that region.
+- Do not re-run a command to "check the last edit landed". Fold the verification into the step that made the edit.
+- Report once. Collect everything needed to answer before replying, instead of asking the user to wait through several updates.

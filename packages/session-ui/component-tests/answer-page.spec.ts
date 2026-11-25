@@ -717,20 +717,12 @@ story("shows an edit as a diff instead of input and output", async ({ mount }) =
   await expect(root.locator('[data-slot="answer-diff"] [data-line] [style*="--syntax-"]')).not.toHaveCount(0)
 })
 
-story("keeps a turn open when the reader opened a step inside it", async ({ mount, page }) => {
+story("folds a settled turn even when the reader opened a step inside it", async ({ mount, page }) => {
   await page.setViewportSize({ width: 360, height: 420 })
   await mount("answer-page--reader-opened-step")
   const window = page.getByTestId("answer-window")
 
-  await window.evaluate((element) => {
-    element.scrollTop = element.scrollHeight
-  })
-  const running = window.locator('[data-slot="answer-running"]')
-  const top = await running.evaluate((element) => element.getBoundingClientRect().top)
-
-  // The reader scrolled into the steps, so the turn's own header is above the viewport.
-  expect(top).toBeLessThan(0)
-
+  // The reader is reading a step inside the running turn.
   const row = window.locator('[data-slot="answer-row"][data-kind="tool"] [data-disclosure-row]').last()
   await row.click()
   await expect(window.locator('[data-slot="answer-io-card"]')).toHaveCount(1)
@@ -739,10 +731,10 @@ story("keeps a turn open when the reader opened a step inside it", async ({ moun
     ;(globalThis as unknown as { __finishAnswerTurn?: () => void }).__finishAnswerTurn?.()
   })
 
-  // Settling the turn folds it by default, but the step the reader opened is still being read: the turn stays open.
+  // The answer closes every step it settled: the turn folds to its answer header, opened row included.
   const header = window.locator('[data-slot="answer-run-header"] button')
-  await expect(header).toHaveAttribute("aria-expanded", "true")
-  await expect(window.locator('[data-slot="answer-io-card"]')).toHaveCount(1)
+  await expect(header).toHaveAttribute("aria-expanded", "false")
+  await expect(window.locator('[data-slot="answer-io-card"]')).toHaveCount(0)
 })
 
 story("keeps the retry reason behind a button on the answer page", async ({ mount }) => {

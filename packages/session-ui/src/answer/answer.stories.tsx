@@ -890,8 +890,8 @@ export const WindowedRestoreUnreachable = {
   },
 }
 
-// A long running turn whose steps the reader can open while the turn is still working. Finishing the turn must not fold
-// the step the reader opened, even with the turn's header scrolled out of view.
+// A long running turn whose steps the reader can open while the turn is still working. Finishing the turn folds every
+// step it settled, even the one the reader opened and even with the turn's header scrolled out of view.
 const readingSteps: SessionMessageInfo[] = [
   { id: "msg_user_reading", type: "user", text: "把 24 个文件都读一遍。", time: { created: TIME } },
   assistant(

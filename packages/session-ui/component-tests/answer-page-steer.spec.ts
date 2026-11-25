@@ -35,7 +35,16 @@ story("a run stopped inside a tool call names no closing reply", async ({ mount 
 })
 
 /** The messages each stretch of the process lays out, in document order. */
-function stretches(root: Locator) {
+async function stretches(root: Locator) {
+  // A settled turn folds its stretches, so open each one to read the messages it lays out.
+  const headers = root.locator('[data-slot="answer-run-header"] button')
+
+  for (let index = 0; index < (await headers.count()); index++) {
+    const header = headers.nth(index)
+
+    if ((await header.getAttribute("aria-expanded")) === "false") await header.click()
+  }
+
   return root
     .locator('[data-slot="answer-fold"]')
     .evaluateAll((folds) =>

@@ -525,10 +525,6 @@ export function AnswerPage(props: AnswerPageProps) {
 
     if ((props.collapseTiming ?? "completion") === "next-input" && entry.turn === lastTurn()) return false
 
-    // A prompt the run took up mid-work splits that run. Folding those stretches away behind one header each, the
-    // moment the run finished, would hide the very stretch the reader asked for, so they stay open until folded by hand.
-    if (value.interleaved) return false
-
     return true
   }
 
@@ -545,55 +541,8 @@ export function AnswerPage(props: AnswerPageProps) {
   const findRow = (root: HTMLElement, key: string) =>
     [...root.querySelectorAll<HTMLElement>("[data-answer-key]")].find((node) => node.dataset.answerKey === key)
 
-  const rowInView = (root: HTMLElement, row: HTMLElement) => {
-    const frame = root.getBoundingClientRect()
-    const box = row.getBoundingClientRect()
-
-    // Only the fold's own header decides. An open process row can span several screens, so its box bottom stays
-    // inside the viewport while the header scrolls away; keeping the turn open then would fold nothing at all.
-    return box.top >= frame.top && box.top < frame.bottom
-  }
-
-  // A turn that finishes under the reader's eyes stays open: folding it takes the steps they are reading with it. The
-  // decision is made once, on the frame the turn closes, so scrolling later never reopens a turn already folded.
-  let lastRunning: number | undefined
-
-  // A step the reader opened inside a turn is what they are reading. It keeps the turn open when the turn settles,
-  // even with the turn's own header scrolled out of view, because folding it would take the opened step away.
-  const readerOpenedTurn = (turn: number) => {
-    const inTurn = (key: string) => snapshot().nodes.get(key)?.turn === turn
-    const groups = snapshot().groups
-    // A group's members all belong to one turn, so any member decides.
-    const inTurnGroup = (key: string) => groups.get(key)?.members.some(inTurn) ?? false
-
-    const inTurnRepeat = (key: string) =>
-      [...groups].some(([group, value]) => key.startsWith(`repeat:${group}:`) && value.members.some(inTurn))
-
-    return (
-      Object.entries(openGroups).some(([key, open]) => open === true && inTurnGroup(key)) ||
-      Object.entries(openRows).some(([key, open]) => open === true && (inTurn(key) || inTurnRepeat(key)))
-    )
-  }
-
-  createEffect(() => {
-    const open = running()
-    const finished = lastRunning
-
-    lastRunning = open?.turn
-
-    if (finished === undefined || finished === open?.turn) return
-    const key = foldKeys().get(finished)
-    const root = props.viewport?.()
-
-    if (!key || !root) return
-    const row = findRow(root, key)
-
-    if (!row) return
-
-    if (!rowInView(root, row) && !readerOpenedTurn(finished)) return
-
-    setFolded(key, false)
-  })
+  // A settle folds everything the turn did: no row in view and no step the reader opened keeps it open past the answer
+  // they were waiting for. The next input still opens the newest turn when the reader chose "on next message".
 
   // A restore attempt belongs to one activation: it waits for the DOM insert, then places the remembered row once.
   let pendingRestore: { key: string; offset: number } | undefined

@@ -89,10 +89,10 @@ function migrateLegacyData(appData: string) {
   ]
   const userData = path.join(appData, APP_ID)
   const pairs: [string, string][] = [
-    [path.join(home, ".aicraft"), path.join(home, ".aicraft")],
+    [path.join(home, ".opencode"), path.join(home, ".aicraft")],
     ...roots.map((root): [string, string] => [path.join(root, "opencode"), path.join(root, "aicraft")]),
     [path.join(appData, legacyAppIDs[CHANNEL] ?? legacyAppIDs.dev), userData],
-    [path.join(userData, "aicraft.settings"), path.join(userData, "aicraft.settings")],
+    [path.join(userData, "opencode.settings"), path.join(userData, "aicraft.settings")],
   ]
 
   for (const [from, to] of pairs) {
@@ -108,7 +108,7 @@ function migrateLegacyData(appData: string) {
   if (!existsSync(dataRoot)) return
 
   for (const name of readdirSync(dataRoot)) {
-    if (!/^aicraft.*\.db(?:-(?:wal|shm))?$/.test(name)) continue
+    if (!/^opencode.*\.db(?:-(?:wal|shm))?$/.test(name)) continue
     const next = `aicraft${name.slice("opencode".length)}`
     if (existsSync(path.join(dataRoot, next))) continue
     try {

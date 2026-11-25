@@ -192,21 +192,20 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
   box-shadow: none;
 }
 
-/* The heading paints the page fill so it matches the body it sits on; painting the workbench tint instead left a
-   band one step darker than the page. It stays opaque so sticky scrolling content cannot show through. */
+/* The heading sits on the lit end of the page, so it takes the canvas fall itself instead of one flat tone: a flat
+   base colour matched only the top edge and left the band a step lighter than the page just under it. Anchored to the
+   window, both boxes read one field, so no window height or scroll offset can reopen the seam. The shell titlebar
+   already joins its bar to the page the same way. The fill stays opaque so sticky content cannot show through. */
 [data-replica] .settings-screen .settings-tab-header {
-  background: var(--v2-background-bg-base);
+  background: var(--settings-canvas);
+  background-attachment: fixed;
 }
 
 /* Dark's deep step is the window bottom rather than a lit canvas, so the page keeps its own fill and eases into the
-   first raised step at the bottom. The header paints the canvas fill too, so the heading never draws a seam across
-   the top of the page. */
+   first raised step at the bottom. This overrides the canvas token, not the property, so the heading above takes the
+   same fall and never draws a seam across the top of the page. */
 [data-color-scheme="dark"] .settings-screen {
-  background: linear-gradient(
-    180deg,
-    var(--v2-background-bg-base) 0%,
-    var(--v2-background-bg-layer-01) 100%
-  );
+  --settings-canvas: linear-gradient(180deg, var(--v2-background-bg-base) 0%, var(--v2-background-bg-layer-01) 100%);
 }
 
 /* The navigation reads as part of the workbench: the same row colors as the conversation sidebar. */
@@ -2419,6 +2418,37 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
   }
 }
 
+/* On the settings page the fill belongs to the band, not to the trigger inside it. The trigger is a block inset by
+   the header's own 12px gutter, so the same tone read as a lit pill floating in the middle of the card while the
+   card's edges stayed dark. The reference is the connect dialog's provider list (`providers/connect/models.css`),
+   which paints `.provider-model-group-header` and covers the whole component. The header spans the card and already
+   carries its corners here: the top ones always, the bottom ones while collapsed (see the note above the radius
+   rules), so the fill cannot square off a rounded edge. Scoped to this page for that reason: the manage and connect
+   dialogs keep the trigger's own block, where the header does not take the card's bottom corners.
+   The trigger keeps its own fill: it is the same tone, so band and pill read as one surface.
+   The card has to be named in the selector. The sticky fill below (`.settings-tab-body.settings-models
+   [data-component="settings-models-provider"] > .settings-models-group-header`) ties on specificity and is later in
+   the file, so a bare class chain loses to it and the band never lights on hover. */
+@media (hover: hover) {
+  .settings-tab-body.settings-models
+    .settings-section[data-component="settings-models-provider"]
+    > .settings-models-group-header:hover,
+  .settings-tab-body.settings-models .provider-model-group-header:hover {
+    background-color: var(--v2-background-bg-layer-02);
+  }
+}
+
+/* Keyboard focus lights the same band, so the pointer and the tab order agree on what the chosen group is. The
+   trigger keeps its own ring, which is this page's focus convention (`base.css` silences button outlines). Scoped to
+   the same two headers as the hover rule above, so the Console section header is not lit by one and not the other. */
+.settings-tab-body.settings-models
+  .settings-section[data-component="settings-models-provider"]
+  > .settings-models-group-header:has(.settings-models-group-trigger:focus-visible),
+.settings-tab-body.settings-models
+  .provider-model-group-header:has(.provider-model-group-trigger:focus-visible) {
+  background-color: var(--v2-background-bg-layer-02);
+}
+
 .provider-model-group-trigger:disabled {
   cursor: default;
 }
@@ -4173,6 +4203,8 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
    - `[data-component="button-v2"]` — restores the same ring above, once.
    - `[data-slot="switch-input"]` — a hidden input; the visible control carries the switch's own ring.
    - `[data-slot="text-input-v2-input"]` — its `:focus-within` wrapper is the field's focus mark.
+   - `[data-slot="textarea-v2-textarea"]` — the same for `Textarea`: its `[data-component="textarea-v2"]` wrapper
+     states a `:focus-within` outline that follows the field's corners, so a second ring on the text itself is a box.
    - `[data-slot="input-input"]` — the same deal for `TextField`: its `[data-slot="input-wrapper"]` draws the ring on
      `:focus-within`, and the input itself states `outline: none`.
    - `.settings-workspaces-active` — a focusable span that keeps its own outline.
@@ -4202,6 +4234,7 @@ html:not([data-color-scheme="dark"]) :is(.settings-surface, .settings-screen) {
     [data-component="button-v2"],
     [data-slot="switch-input"],
     [data-slot="text-input-v2-input"],
+    [data-slot="textarea-v2-textarea"],
     [data-slot="input-input"],
     .settings-workspaces-active,
     .search-list-row,

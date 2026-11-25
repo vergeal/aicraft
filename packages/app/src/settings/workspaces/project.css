@@ -371,7 +371,7 @@
 }
 
 /* The field is a rounded surface with a hairline, not a raised input: depth belongs to overlays in this page. Focus
-   recolours that hairline and widens it by half a pixel, so the ring follows the corners instead of drawing a box. */
+   only steadies that stroke to a full pixel, so nothing draws a second frame around the editor. */
 .settings-project-page [data-component="text-input-v2"],
 .settings-project-page [data-component="textarea-v2"] {
   border-radius: var(--settings-radius-md);
@@ -393,10 +393,13 @@
   box-shadow: inset 0 0 0 1px var(--settings-card-border);
 }
 
+/* Focus keeps the neutral hairline: these editors fill the width of their card, so a blue ring around the box read as
+   a second frame rather than as focus. The caret and the field's own content say focus, and the invalid state below
+   still recolours the same stroke. */
 .settings-project-page [data-component="text-input-v2"]:where(:focus-within):not([data-disabled], [data-invalid]),
 .settings-project-page [data-component="textarea-v2"]:where(:focus-within):not([data-disabled], [data-invalid]) {
   outline: none;
-  box-shadow: inset 0 0 0 1px var(--v2-border-border-focus);
+  box-shadow: inset 0 0 0 1px var(--settings-card-border);
 }
 
 .settings-project-page [data-component="text-input-v2"]:where([data-invalid]):not([data-disabled]),

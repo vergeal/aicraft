@@ -407,8 +407,13 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
   for (const message of messages) {
     if (message.type === "user") {
-      current = { turn: drafts.length + 1, nodes: [], startedAt: message.time.created }
-      drafts.push(current)
+      // A steer joins the run it interrupts: the execution ends at the idle marker, not at the next
+      // input. Only an input that finds no live turn opens a turn of its own.
+      if (!current || current.idle) {
+        current = { turn: drafts.length + 1, nodes: [], startedAt: message.time.created }
+        drafts.push(current)
+      }
+
       push(
         current,
         {
@@ -678,13 +683,24 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     children.set(draft.turn, reuseChildren(previous?.children.get(draft.turn), turnChildren))
 
-    const input = draft.nodes.find((node) => node.payload.kind === "input")
+    const inputs = draft.nodes.filter((node) => node.payload.kind === "input")
 
-    if (input) entries.push({ kind: "node", key: input.key })
+    if (inputs[0]) entries.push({ kind: "node", key: inputs[0].key })
 
     if (turnChildren.length > 0) entries.push({ kind: "fold", turn: draft.turn, key: `fold:${draft.nodes[0]!.key}` })
 
+    // A delivered steer sits between the work it interrupted and the reply that work went on to produce.
+    // One still waiting for delivery stays below the streaming text: the run has not taken it up yet.
+    const steers = inputs.slice(1)
+    const atAnswer = answer ? draft.nodes.indexOf(answer) : -1
+    const beforeAnswer = answer ? steers.filter((node) => draft.nodes.indexOf(node) < atAnswer) : steers
+    const afterAnswer = answer ? steers.filter((node) => draft.nodes.indexOf(node) >= atAnswer) : []
+
+    for (const node of beforeAnswer) entries.push({ kind: "node", key: node.key })
+
     if (answer) entries.push({ kind: "node", key: answer.key })
+
+    for (const node of afterAnswer) entries.push({ kind: "node", key: node.key })
 
     for (const node of draft.nodes)
       if (node.payload.kind === "error" || node.payload.kind === "retry")

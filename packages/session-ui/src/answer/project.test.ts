@@ -109,6 +109,48 @@ describe("answer projection", () => {
     expect([...snapshot.groups.values()].map((group) => group.members.length)).toEqual([1])
   })
 
+  test("a delivered steer joins the running turn instead of settling the step it interrupts", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("progress")], 5),
+      user("msg_3", "steer", 6),
+      assistant("msg_4", 7, [text("answer")], 10),
+    ])
+
+    // The turn ends at the idle marker, so the stepped-in prompt never closes the work before it and
+    // the mid-run text never poses as the answer.
+    expect(snapshot.turns.size).toBe(1)
+    expect(snapshot.turns.get(1)?.status).toBe("open")
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_4:0")
+
+    const nodes = snapshot.entries.filter((entry) => entry.kind === "node").map((entry) => entry.key)
+    expect(nodes).toEqual(["input:msg_1", "input:msg_3", "assistant:msg_4:0"])
+  })
+
+  test("an interrupted turn still settles on its last text, footer and all", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      { ...assistant("msg_2", 2, [text("stopped mid-way")], 5), error: { type: "abort", message: "aborted" } },
+    ])
+
+    expect(snapshot.turns.get(1)?.status).toBe("stopped")
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
+  })
+
+  test("a steer still waiting for delivery sits below the streaming reply", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("streaming")]),
+      user("msg_3", "steer", 3),
+    ])
+
+    expect(snapshot.turns.size).toBe(1)
+    expect(snapshot.turns.get(1)?.status).toBe("open")
+
+    const nodes = snapshot.entries.filter((entry) => entry.kind === "node").map((entry) => entry.key)
+    expect(nodes).toEqual(["input:msg_1", "assistant:msg_2:0", "input:msg_3"])
+  })
+
   test("fold step summaries into their step group", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),

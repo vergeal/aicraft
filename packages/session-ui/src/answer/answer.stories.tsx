@@ -196,6 +196,51 @@ export const RunningPhase = {
   ),
 }
 
+// A steer joins the run it interrupts: the step before it never settles as its own turn, so only the
+// reply the steered run closes with carries the copy / fork / model footer.
+const steered: SessionMessageInfo[] = [
+  { id: "msg_user_steer", type: "user", text: "把投影的 turn 边界改成 idle 标记。", time: { created: TIME } },
+  assistant(
+    "msg_steer_step",
+    [{ type: "text", text: "先看当前的切分逻辑。" }, tool("tool_steer", "grep", { pattern: "drafts" }, "completed")],
+    TIME + 1_000,
+    TIME + 3_000,
+  ),
+  { id: "msg_user_steer_2", type: "user", text: "顺便补一条回归测试。", time: { created: TIME + 4_000 } },
+  assistant(
+    "msg_steer_answer",
+    [{ type: "text", text: "已按 idle 标记切分，回归测试也补上了。" }],
+    TIME + 5_000,
+    TIME + 8_000,
+  ),
+  idle("msg_steer_idle", TIME + 8_500),
+]
+
+export const Steered = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => steered} />
+    </div>
+  ),
+}
+
+// The same exchange while the steered run is still working: nothing has settled, so no reply offers its footer.
+const steerRunning: SessionMessageInfo[] = steered
+  .filter((message) => message.type !== "idle")
+  .map((message) =>
+    message.type === "assistant" && message.id === "msg_steer_answer"
+      ? { ...message, time: { created: message.time.created } }
+      : message,
+  )
+
+export const SteerRunning = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => steerRunning} />
+    </div>
+  ),
+}
+
 // A pending retry keeps the provider's reason behind a button instead of trailing it on the row.
 const retrying: SessionMessageInfo[] = [
   { id: "msg_user_retry", type: "user", text: "再跑一次。", time: { created: TIME } },

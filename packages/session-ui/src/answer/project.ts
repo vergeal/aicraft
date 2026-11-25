@@ -571,8 +571,7 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
           node.payload.kind === "assistant" &&
           node.payload.text.trim() !== "" &&
           !toolMessages.has(node.messageID),
-      ) ??
-      draft.nodes.findLast((node) => node.payload.kind === "assistant" && node.payload.text.trim() !== "")
+      ) ?? tailReply(draft)
 
     // A turn closes only when a closing answer exists; a step reply followed by work never closes it.
     // The server marks the end of a turn with an idle message; without one, a closing answer ends it.
@@ -736,6 +735,26 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     children,
     changes,
   }
+}
+
+/**
+ * The reply to fall back on when every text of the turn sat in a message that also called tools. A turn the
+ * reader stopped or that failed only answers with the text that really ended it: when the interrupt cut into a
+ * tool call, the last words were step commentary, and a footer there invites copying or forking from work that
+ * never landed. A turn that closed on its own keeps its last text as the reply, tools beside it or not.
+ */
+function tailReply(draft: TurnDraft) {
+  const tail = draft.nodes.findLast(
+    (node) => node.payload.kind === "assistant" && node.payload.text.trim() !== "",
+  )
+
+  if (!tail || draft.failure === undefined) return tail
+
+  return draft.nodes
+    .slice(draft.nodes.indexOf(tail) + 1)
+    .some((node) => node.payload.kind === "tool" || node.payload.kind === "reasoning" || node.payload.kind === "retry")
+    ? undefined
+    : tail
 }
 
 /** One contiguous run's ranked categories and live activity. Only tools count as categories. */

@@ -137,6 +137,30 @@ describe("answer projection", () => {
     expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
   })
 
+  // What the reader reported: a run stopped while it was reading images left its step commentary holding the footer.
+  test("a turn stopped inside a tool call has no closing reply to act on", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("渲染跑通了，两栏都没裁切。看实际画面。"), tool("tool_1")], 5),
+      { ...assistant("msg_3", 6, [tool("tool_2")], 8), error: { type: "abort", message: "aborted" } },
+    ])
+
+    expect(snapshot.turns.get(1)?.status).toBe("stopped")
+    expect(snapshot.turns.get(1)?.answer).toBeNull()
+  })
+
+  test("a closed turn keeps its last text as the reply when tools ran beside it", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("先看切分逻辑。"), tool("tool_1")], 4),
+      assistant("msg_3", 5, [text("改好了，回归测试也补上了。"), tool("tool_2")], 7),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 8 } } satisfies SessionMessageInfo,
+    ])
+
+    expect(snapshot.turns.get(1)?.status).toBe("closed")
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_3:0")
+  })
+
   test("a steer still waiting for delivery sits below the streaming reply", () => {
     const snapshot = projectTimeline([
       user("msg_1", "go", 1),

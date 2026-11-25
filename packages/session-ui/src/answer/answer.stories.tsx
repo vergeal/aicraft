@@ -1120,3 +1120,33 @@ export const ReadPictureRef = {
     </DataProvider>
   ),
 }
+
+// A run the reader stopped while it was still working: the last words were step commentary, not the reply, so
+// the page names no closing answer and offers nothing to copy, fork or read the model from.
+const stoppedMidTool: SessionMessageInfo[] = [
+  { id: "msg_user_stop", type: "user", text: "把弹窗渲染出来，看看两栏有没有裁切。", time: { created: TIME } },
+  {
+    ...assistant(
+      "msg_stop_step",
+      [
+        { type: "text", text: "渲染跑通了，弹窗 760×675、两栏都没裁切。看实际画面。" },
+        tool("tool_shot_1", "read", { filePath: "shots/screen-1.png" }, "completed"),
+      ],
+      TIME + 1_000,
+      TIME + 3_000,
+    ),
+    error: { type: "AbortError", message: "aborted" },
+  },
+  {
+    ...assistant("msg_stop_tool", [tool("tool_shot_2", "read", { filePath: "shots/screen-2.png" }, "completed")], TIME + 4_000),
+    error: { type: "AbortError", message: "aborted" },
+  },
+]
+
+export const StoppedMidTool = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => stoppedMidTool} />
+    </div>
+  ),
+}

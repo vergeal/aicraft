@@ -279,6 +279,36 @@ story("wraps a pasted fenced block inside the prompt bubble", async ({ mount }) 
   expect(geometry.docScroll).toBeLessThanOrEqual(geometry.viewport)
 })
 
+story("lifts a sent block and tick off the bubble that holds them", async ({ mount }) => {
+  const root = await mount("answer-page--code-prompt", { globals: { theme: "dark" } })
+  const bubble = root.locator('[data-slot="user-message-text"]').first()
+
+  // The block and the tick arrive in separate markdown passes, so both are waited for before measuring.
+  await expect(bubble.locator(".highlights")).toBeAttached()
+  await expect(bubble.locator(":not(pre) > code")).toBeAttached()
+
+  const surfaces = await bubble.evaluate((el) => {
+    const fill = (selector: string) => getComputedStyle(el.querySelector(selector) as Element).backgroundColor
+    return { bubble: getComputedStyle(el).backgroundColor, block: fill(".highlights"), tick: fill(":not(pre) > code") }
+  })
+
+  // A surface reads apart from the one behind it by composited grey levels, whether solid or an overlay.
+  const channels = (color: string) => {
+    const [red = 0, green = 0, blue = 0, alpha = 1] = color.match(/[\d.]+/g)!.map(Number)
+    return { rgb: [red, green, blue], alpha }
+  }
+  const stepOver = (front: string, back: string) => {
+    const top = channels(front)
+    const base = channels(back)
+    const mixed = top.rgb.map((level, index) => Math.round(level * top.alpha + base.rgb[index] * (1 - top.alpha)))
+    return Math.max(...mixed.map((level, index) => Math.abs(level - base.rgb[index])))
+  }
+
+  // Both shared code surfaces sat one level off the bubble's own fill, so a sent fence and tick looked unstyled.
+  expect(stepOver(surfaces.block, surfaces.bubble)).toBeGreaterThanOrEqual(20)
+  expect(stepOver(surfaces.tick, surfaces.bubble)).toBeGreaterThanOrEqual(20)
+})
+
 story("hides the settled reasoning preview in compact and keeps it in detailed", async ({ mount, page }) => {
   const compact = await mount("answer-page--compact")
 

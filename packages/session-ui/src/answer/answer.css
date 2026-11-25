@@ -154,6 +154,16 @@
   overflow-wrap: anywhere;
 }
 
+/* A sent block has to step away from the bubble it sits in, not from the page: the bubble is `bg-layer-02`
+   (`rgb(46, 46, 46)` in this scheme) while the shared code surface is `rgb(47, 47, 47)` — one level apart, so a
+   sent ``` block read as if it had no background at all. Inside the bubble the block drops to the deepest
+   surface and the inline chip takes a light overlay above it, which is also what the composer draft now paints,
+   so the draft and the sent message read the same. */
+:root[data-color-scheme="dark"] .answer-scope [data-slot="user-message-text"] .answer-input-markdown {
+  --markdown-code-block-surface: var(--v2-background-bg-deep);
+  --markdown-inline-code-surface: var(--v2-alpha-light-12);
+}
+
 /* A folded prompt is laid out whole and clipped, so copy, select-all and assistive tech still get all of it. Its
    last lines fade out into the toggle. Opening and closing are instant. */
 .answer-scope [data-slot="user-message-fold"] {

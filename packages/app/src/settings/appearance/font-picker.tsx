@@ -2,6 +2,7 @@ import { For, Show, createEffect, createMemo, createSignal, type Component } fro
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import { SelectionIndicator } from "@aicraft/ui/selection-indicator"
+import { MenuScroll } from "@aicraft/ui/menu-scroll"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { isMonospace, quoteFamily, systemFontFamilies, type FontOption } from "@/runtime/platform/fonts"
@@ -51,6 +52,7 @@ export const FontPicker: Component<{
   let trigger: HTMLButtonElement | undefined
   let panel: HTMLDivElement | undefined
   let list: HTMLDivElement | undefined
+  let scroller: HTMLDivElement | undefined
   let search: HTMLInputElement | undefined
   let requested = false
 
@@ -169,13 +171,13 @@ export const FontPicker: Component<{
 
       const option = list?.querySelector<HTMLElement>('[data-slot="font-picker-option"][data-active]')
 
-      if (!option || !list) return
+      if (!option || !scroller) return
 
       const row = option.getBoundingClientRect()
-      const viewport = list.getBoundingClientRect()
+      const viewport = scroller.getBoundingClientRect()
 
-      if (row.top < viewport.top) list.scrollTop -= viewport.top - row.top
-      else if (row.bottom > viewport.bottom) list.scrollTop += row.bottom - viewport.bottom
+      if (row.top < viewport.top) scroller.scrollTop -= viewport.top - row.top
+      else if (row.bottom > viewport.bottom) scroller.scrollTop += row.bottom - viewport.bottom
     })
   })
 
@@ -318,58 +320,62 @@ export const FontPicker: Component<{
               onKeyDown={keydown}
             />
 
-            <div ref={list} data-slot="font-picker-list" id={listID} role="listbox" aria-label={props.label}>
-              <SelectionIndicator
-                container={() => list}
-                selector={'[data-slot="font-picker-option"][data-active]'}
-                attribute="data-active"
-              />
-              <For each={options()}>
-                {(option, index) => (
-                  <div
-                    id={`${listID}-${index()}`}
-                    role="option"
-                    aria-selected={option.family === currentFamily()}
-                    data-slot="font-picker-option"
-                    data-active={state.active === index() ? "" : undefined}
-                    data-current={option.family === currentFamily() ? "" : undefined}
-                    data-monospace={option.monospace ? "" : undefined}
-                    style={{ "font-family": option.family === DEFAULT_FAMILY ? props.family : quoteFamily(option.family) }}
-                    onPointerDown={(event) => {
-                      event.preventDefault()
-                      choose(option)
-                    }}
-                    onPointerEnter={() => setState("active", index())}
-                  >
-                    <span data-slot="font-picker-option-name">{option.label ?? option.family}</span>
-                    <Show when={option.monospace}>
-                      <span data-slot="font-picker-badge">{language.t("settings.appearance.font.monospace")}</span>
-                    </Show>
-                    <Show when={option.family === currentFamily()}>
-                      <svg
-                        data-slot="font-picker-check"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M3.53564 8.17857L6.39279 11.75L12.4642 4.25"
-                          stroke="currentColor"
-                          stroke-width="1"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </Show>
-                  </div>
-                )}
-              </For>
-              <Show when={options().length === 0}>
-                <div data-slot="font-picker-empty">{language.t("palette.empty")}</div>
-              </Show>
-            </div>
+            <MenuScroll viewportRef={(element) => (scroller = element)}>
+              <div ref={list} data-slot="font-picker-list" id={listID} role="listbox" aria-label={props.label}>
+                <SelectionIndicator
+                  container={() => list}
+                  selector={'[data-slot="font-picker-option"][data-active]'}
+                  attribute="data-active"
+                />
+                <For each={options()}>
+                  {(option, index) => (
+                    <div
+                      id={`${listID}-${index()}`}
+                      role="option"
+                      aria-selected={option.family === currentFamily()}
+                      data-slot="font-picker-option"
+                      data-active={state.active === index() ? "" : undefined}
+                      data-current={option.family === currentFamily() ? "" : undefined}
+                      data-monospace={option.monospace ? "" : undefined}
+                      style={{
+                        "font-family": option.family === DEFAULT_FAMILY ? props.family : quoteFamily(option.family),
+                      }}
+                      onPointerDown={(event) => {
+                        event.preventDefault()
+                        choose(option)
+                      }}
+                      onPointerEnter={() => setState("active", index())}
+                    >
+                      <span data-slot="font-picker-option-name">{option.label ?? option.family}</span>
+                      <Show when={option.monospace}>
+                        <span data-slot="font-picker-badge">{language.t("settings.appearance.font.monospace")}</span>
+                      </Show>
+                      <Show when={option.family === currentFamily()}>
+                        <svg
+                          data-slot="font-picker-check"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3.53564 8.17857L6.39279 11.75L12.4642 4.25"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </Show>
+                    </div>
+                  )}
+                </For>
+                <Show when={options().length === 0}>
+                  <div data-slot="font-picker-empty">{language.t("palette.empty")}</div>
+                </Show>
+              </div>
+            </MenuScroll>
           </div>
         </Portal>
       </Show>

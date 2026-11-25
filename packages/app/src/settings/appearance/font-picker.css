@@ -100,13 +100,16 @@ button[data-component="font-picker"][data-expanded] svg {
   transition: none;
 }
 
+/* The rows scroll inside the MenuScroll viewport, not here: a native scrollbar on this box took 8px of layout from
+   the rows, so the highlight measured against a row that stopped short of the panel's end edge. */
 [data-slot="font-picker-list"] {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  min-height: 0;
-  overflow-y: auto;
+}
+
+[data-slot="font-picker-panel"] [data-slot="menu-scroll-viewport"] {
   overscroll-behavior: contain;
 }
 

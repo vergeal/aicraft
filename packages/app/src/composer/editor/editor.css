@@ -66,6 +66,31 @@
   max-width: var(--composer-attachment-width);
   max-height: var(--composer-attachment-height);
   flex: none;
+
+  /* The frame steps down as more attachments join the row, and the card grows and shrinks with it. Both ride one
+     200ms tween (docs/standard/design/13-motion.md §11): pictures that snap to their next size while the card
+     catches up a beat later read as two separate motions. */
+  --composer-attachment-motion: 200ms cubic-bezier(0.645, 0.045, 0.355, 1);
+  transition:
+    width var(--composer-attachment-motion),
+    height var(--composer-attachment-motion),
+    min-width var(--composer-attachment-motion),
+    min-height var(--composer-attachment-motion),
+    max-width var(--composer-attachment-motion),
+    max-height var(--composer-attachment-motion);
+}
+
+[data-slot="composer-attachment-frame"]
+  :is([data-component="tooltip-v2-trigger"], [data-slot="composer-attachment-file"], [data-slot="composer-attachment-outline"]) {
+  transition: border-radius var(--composer-attachment-motion);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="composer-attachment-frame"],
+  [data-slot="composer-attachment-frame"] *,
+  [data-slot="composer-attachment-file"] {
+    transition: none;
+  }
 }
 
 [data-slot="composer-attachment-frame"][data-frame="triple"] {
@@ -151,6 +176,11 @@
   color: var(--v2-text-text-muted);
   font-size: var(--composer-attachment-label-size);
   line-height: var(--composer-attachment-label-line);
+  transition:
+    gap var(--composer-attachment-motion),
+    border-radius var(--composer-attachment-motion),
+    font-size var(--composer-attachment-motion),
+    line-height var(--composer-attachment-motion);
 }
 
 [data-slot="composer-attachment-file"]
@@ -158,6 +188,9 @@
   width: var(--composer-attachment-icon);
   height: var(--composer-attachment-icon);
   flex: none;
+  transition:
+    width var(--composer-attachment-motion),
+    height var(--composer-attachment-motion);
 }
 
 [data-slot="composer-attachment-file-label"] {

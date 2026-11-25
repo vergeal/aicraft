@@ -180,6 +180,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
 
     if (editor) scrollObserver.observe(editor)
     if (content) scrollObserver.observe(content)
+
     markShape()
     onCleanup(() => {
       observer.disconnect()
@@ -327,197 +328,211 @@ export function ComposerEditor(props: ComposerEditorProps) {
           style={{ "--composer-fade-bottom": `${fadeBottom()}px`, "--composer-fade-top": `${fadeTop()}px` }}
           onScroll={updateScroll}
         >
-          <Show when={state.mode === "normal"}>
-            <ComposerAttachments
-              attachments={props.controller.attachments()}
-              uploads={props.controller.uploads()}
-              comments={props.controller.comments()}
-              files={props.controller.files()}
-              activeCommentID={state.activeContextID}
-              removeLabel={i18n.t("ui.promptInput.removeAttachment")}
-              onAttachmentClick={props.controller.openAttachment}
-              preview={props.controller.previewAttachment}
-              onAttachmentRemove={(attachment) => props.controller.removeAttachment(attachment.id)}
-              onUploadCancel={(upload) => {
-                // The cancel button unmounts with the upload, so hand focus back to the editor before it goes.
-                props.controller.restoreFocus()
-                props.controller.cancelUpload(upload.id)
-              }}
-              onCommentClick={(comment) => props.controller.toggleContext(comment.key)}
-              onCommentRemove={(comment) => props.controller.removeContext(comment.key)}
-              onFileRemove={(file) => props.controller.removeContext(file.key)}
-              editingQuote={props.controller.editingQuote()}
-              quoteAnchor={props.controller.quoteAnchor()}
-              onQuoteFocus={props.controller.focusQuotePrompt}
-              onEditQuote={props.controller.editQuote}
-              onQuoteComment={(quote, comment) => props.controller.commentQuote(quote.key, comment)}
-              quoteSubmit={view.submit.quote}
-              searchPaths={props.controller.searchPaths}
-            />
-          </Show>
-
+          {/* Attachments and text share one box whose height the browser interpolates on its own:
+              `interpolate-size: allow-keywords` is set on `:root` (packages/ui/src/styles/utilities.css), so a
+              content-driven resize tweens on the same 200ms curve the branch card's list uses
+              (docs/standard/design/13-motion.md §11). Measuring the height in JS would write it a frame after
+              the attachment frames start their own transition, and the draft would lead the card. The card is
+              bottom-anchored and the line under the caret must stay readable, so the box pins its content to
+              the bottom edge — a growing draft pushes earlier lines out of the clip instead of swallowing the
+              line being typed. */}
           <div
-            data-component="composer-scroll"
-            data-scrollable
-            class="relative overflow-y-auto"
-            classList={{ "max-h-[var(--composer-text-max-height)]": historyLayout.height === undefined }}
-            onScroll={updateScroll}
-            ref={viewport}
+            data-slot="composer-text"
+            class="flex flex-col justify-end overflow-hidden duration-[200ms] ease-[cubic-bezier(0.645,0.045,0.355,1)] motion-reduce:transition-none"
+            classList={{ "transition-[height]": historyLayout.height === undefined }}
           >
+            <Show when={state.mode === "normal"}>
+              <ComposerAttachments
+                attachments={props.controller.attachments()}
+                uploads={props.controller.uploads()}
+                comments={props.controller.comments()}
+                files={props.controller.files()}
+                activeCommentID={state.activeContextID}
+                removeLabel={i18n.t("ui.promptInput.removeAttachment")}
+                onAttachmentClick={props.controller.openAttachment}
+                preview={props.controller.previewAttachment}
+                onAttachmentRemove={(attachment) => props.controller.removeAttachment(attachment.id)}
+                onUploadCancel={(upload) => {
+                  // The cancel button unmounts with the upload, so hand focus back to the editor before it goes.
+                  props.controller.restoreFocus()
+                  props.controller.cancelUpload(upload.id)
+                }}
+                onCommentClick={(comment) => props.controller.toggleContext(comment.key)}
+                onCommentRemove={(comment) => props.controller.removeContext(comment.key)}
+                onFileRemove={(file) => props.controller.removeContext(file.key)}
+                editingQuote={props.controller.editingQuote()}
+                quoteAnchor={props.controller.quoteAnchor()}
+                onQuoteFocus={props.controller.focusQuotePrompt}
+                onEditQuote={props.controller.editQuote}
+                onQuoteComment={(quote, comment) => props.controller.commentQuote(quote.key, comment)}
+                quoteSubmit={view.submit.quote}
+                searchPaths={props.controller.searchPaths}
+              />
+            </Show>
+
             <div
-              ref={(element) => {
-                editor = element
-                props.controller.setEditor(element)
-                decoration?.dispose()
-                decoration = createCodeDecoration(element)
-              }}
-              data-component="composer-editor"
-              data-lines="single"
-              role="textbox"
-              aria-multiline="true"
-              aria-label={i18n.t("ui.promptInput.label")}
-              aria-controls={state.popover.type === "history" ? suggestionsID : undefined}
-              dir={state.mode === "normal" ? "auto" : "ltr"}
-              contenteditable={!props.disabled && !props.readOnly}
-              autocapitalize={state.mode === "normal" ? "sentences" : "off"}
-              autocorrect={state.mode === "normal" ? "on" : "off"}
-              enterkeyhint={touch() ? "enter" : undefined}
-              spellcheck={state.mode === "normal"}
-              // @ts-expect-error
-              autocomplete="off"
-              class="relative z-10 block w-full whitespace-pre-wrap bg-transparent ps-5 pe-[var(--composer-scroll-end)] pt-2.5 pb-1 text-[15px] font-[400] leading-[22px] text-v2-text-text-base focus:outline-none [&_[data-mention=file]]:text-syntax-property [&_[data-mention=agent]]:text-syntax-type [&_[data-mention=reference]]:text-syntax-primitive [&_[data-mention=skill]]:text-syntax-constant"
-              classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell", "opacity-50": props.disabled }}
-              style={{
-                "unicode-bidi": state.mode === "normal" ? "plaintext" : undefined,
-                "text-align": "start",
-              }}
-              onInput={(event) => {
-                const element = event.currentTarget
-                setEmpty(!element.textContent)
+              data-component="composer-scroll"
+              data-scrollable
+              class="relative overflow-y-auto"
+              classList={{ "max-h-[var(--composer-text-max-height)]": historyLayout.height === undefined }}
+              onScroll={updateScroll}
+              ref={viewport}
+            >
+              <div
+                ref={(element) => {
+                  editor = element
+                  props.controller.setEditor(element)
+                  decoration?.dispose()
+                  decoration = createCodeDecoration(element)
+                }}
+                data-component="composer-editor"
+                data-lines="single"
+                role="textbox"
+                aria-multiline="true"
+                aria-label={i18n.t("ui.promptInput.label")}
+                aria-controls={state.popover.type === "history" ? suggestionsID : undefined}
+                dir={state.mode === "normal" ? "auto" : "ltr"}
+                contenteditable={!props.disabled && !props.readOnly}
+                autocapitalize={state.mode === "normal" ? "sentences" : "off"}
+                autocorrect={state.mode === "normal" ? "on" : "off"}
+                enterkeyhint={touch() ? "enter" : undefined}
+                spellcheck={state.mode === "normal"}
+                // @ts-expect-error
+                autocomplete="off"
+                class="relative z-10 block w-full whitespace-pre-wrap bg-transparent ps-5 pe-[var(--composer-scroll-end)] pt-2.5 pb-1 text-[15px] font-[400] leading-[22px] text-v2-text-text-base focus:outline-none [&_[data-mention=file]]:text-syntax-property [&_[data-mention=agent]]:text-syntax-type [&_[data-mention=reference]]:text-syntax-primitive [&_[data-mention=skill]]:text-syntax-constant"
+                classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell", "opacity-50": props.disabled }}
+                style={{
+                  "unicode-bidi": state.mode === "normal" ? "plaintext" : undefined,
+                  "text-align": "start",
+                }}
+                onInput={(event) => {
+                  const element = event.currentTarget
+                  setEmpty(!element.textContent)
 
-                if (event instanceof InputEvent && event.isComposing) return
+                  if (event instanceof InputEvent && event.isComposing) return
 
-                sync(element, composerCursor(element))
-                keepCaretInView()
-              }}
-              // An IME reports its committed text in an input event that still carries `isComposing`, so the
-              // draft would keep whatever preceded the composition: the placeholder stays over the typed
-              // text and a send only carries the part typed before the IME started.
-              onCompositionEnd={(event) => {
-                const element = event.currentTarget
-                sync(element, composerCursor(element))
-              }}
-              onKeyDown={(event) => {
-                // A touch keyboard's Return only ever adds a line, even over suggestions; the touch bar sends. iOS
-                // also reports Shift on Return whenever autocapitalization arms it, which used to flip Return
-                // between sending and a newline. Only a hardware keyboard (an iPad's) has Cmd or Ctrl, and
-                // Cmd+Return sends there.
-                if (touch() && event.key === "Enter" && !event.metaKey && !event.ctrlKey) return
+                  sync(element, composerCursor(element))
+                  keepCaretInView()
+                }}
+                // An IME reports its committed text in an input event that still carries `isComposing`, so the
+                // draft would keep whatever preceded the composition: the placeholder stays over the typed
+                // text and a send only carries the part typed before the IME started.
+                onCompositionEnd={(event) => {
+                  const element = event.currentTarget
+                  sync(element, composerCursor(element))
+                }}
+                onKeyDown={(event) => {
+                  // A touch keyboard's Return only ever adds a line, even over suggestions; the touch bar sends. iOS
+                  // also reports Shift on Return whenever autocapitalization arms it, which used to flip Return
+                  // between sending and a newline. Only a hardware keyboard (an iPad's) has Cmd or Ctrl, and
+                  // Cmd+Return sends there.
+                  if (touch() && event.key === "Enter" && !event.metaKey && !event.ctrlKey) return
 
-                // Capture the opening footprint before the controller applies its first history preview.
-                const height =
-                  state.popover.type === "closed" && event.shiftKey && event.key === "ArrowUp"
-                    ? composer?.getBoundingClientRect().height
-                    : undefined
+                  // Capture the opening footprint before the controller applies its first history preview.
+                  const height =
+                    state.popover.type === "closed" && event.shiftKey && event.key === "ArrowUp"
+                      ? composer?.getBoundingClientRect().height
+                      : undefined
 
-                if (!view.draftOnly && props.controller.onKeyDown(event)) {
-                  if (height !== undefined && state.popover.type === "history") setHistoryLayout("height", height)
+                  if (!view.draftOnly && props.controller.onKeyDown(event)) {
+                    if (height !== undefined && state.popover.type === "history") setHistoryLayout("height", height)
 
-                  return
-                }
-
-                // Cmd on macOS, Ctrl elsewhere: no other modifier may switch to the alternate delivery.
-                const mod = IS_MAC ? event.metaKey : event.ctrlKey
-
-                if (mod && event.key === "ArrowUp" && !event.shiftKey && !event.altKey) {
-                  if (view.submit.queue?.editFirst()) event.preventDefault()
-
-                  return
-                }
-
-                // Committing a fence line is when a lone opening run becomes a whole block: expanding on the
-                // third tick swallowed a language tag and split a longer nested run.
-                if (event.key === "Enter" && event.shiftKey && !event.isComposing && event.keyCode !== 229) {
-                  const completed = completeCodeFence(event.currentTarget)
-
-                  if (completed !== undefined) {
-                    event.preventDefault()
-                    sync(event.currentTarget, completed)
-                    keepCaretInView()
+                    return
                   }
 
-                  return
-                }
+                  // Cmd on macOS, Ctrl elsewhere: no other modifier may switch to the alternate delivery.
+                  const mod = IS_MAC ? event.metaKey : event.ctrlKey
 
-                // Safari delivers the Enter that confirms an IME candidate after compositionend, so only its
-                // keyCode 229 shows it belongs to the composition.
-                if (event.key === "Enter" && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+                  if (mod && event.key === "ArrowUp" && !event.shiftKey && !event.altKey) {
+                    if (view.submit.queue?.editFirst()) event.preventDefault()
+
+                    return
+                  }
+
+                  // Committing a fence line is when a lone opening run becomes a whole block: expanding on the
+                  // third tick swallowed a language tag and split a longer nested run.
+                  if (event.key === "Enter" && event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+                    const completed = completeCodeFence(event.currentTarget)
+
+                    if (completed !== undefined) {
+                      event.preventDefault()
+                      sync(event.currentTarget, completed)
+                      keepCaretInView()
+                    }
+
+                    return
+                  }
+
+                  // Safari delivers the Enter that confirms an IME candidate after compositionend, so only its
+                  // keyCode 229 shows it belongs to the composition.
+                  if (event.key === "Enter" && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+                    event.preventDefault()
+
+                    if (event.repeat) return
+                    // On touch, Cmd+Return is the touch bar's primary action, since plain Return cannot send.
+                    props.controller.submit(mod && !event.altKey && !touch() ? { alternate: true } : undefined)
+                  }
+                }}
+                // The editor holds one flat run of text, mentions and <br>s. A touch keyboard's Return arrives as a
+                // paragraph, which would wrap the next line in a <div> the parser joins without a newline; replace it
+                // with the line break Shift+Enter inserts. Only beforeinput is cancelled, so iOS still applies its
+                // autocorrection and capitalization around the Return.
+                onBeforeInput={(event) => {
+                  if (event.inputType !== "insertParagraph") return
+
+                  const element = event.currentTarget
+                  const completed = completeCodeFence(element)
                   event.preventDefault()
 
-                  if (event.repeat) return
-                  // On touch, Cmd+Return is the touch bar's primary action, since plain Return cannot send.
-                  props.controller.submit(mod && !event.altKey && !touch() ? { alternate: true } : undefined)
-                }
-              }}
-              // The editor holds one flat run of text, mentions and <br>s. A touch keyboard's Return arrives as a
-              // paragraph, which would wrap the next line in a <div> the parser joins without a newline; replace it
-              // with the line break Shift+Enter inserts. Only beforeinput is cancelled, so iOS still applies its
-              // autocorrection and capitalization around the Return.
-              onBeforeInput={(event) => {
-                if (event.inputType !== "insertParagraph") return
+                  // The expansion wrote its own line break, so adding one here would leave a blank line.
+                  if (completed !== undefined) {
+                    sync(element, completed)
+                    keepCaretInView()
 
-                const element = event.currentTarget
-                const completed = completeCodeFence(element)
-                event.preventDefault()
+                    return
+                  }
 
-                // The expansion wrote its own line break, so adding one here would leave a blank line.
-                if (completed !== undefined) {
-                  sync(element, completed)
-                  keepCaretInView()
+                  document.execCommand("insertLineBreak")
+                }}
+                onKeyUp={updateCursor}
+                onPointerUp={updateCursor}
+                onPaste={(event) => {
+                  props.controller.onPaste(event)
+                  // Programmatic multiline insertion does not reliably reveal the caret.
+                  requestAnimationFrame(() => {
+                    const selection = window.getSelection()
 
-                  return
-                }
+                    if (!editor || !viewport || !selection?.isCollapsed || !selection.rangeCount) return
 
-                document.execCommand("insertLineBreak")
-              }}
-              onKeyUp={updateCursor}
-              onPointerUp={updateCursor}
-              onPaste={(event) => {
-                props.controller.onPaste(event)
-                // Programmatic multiline insertion does not reliably reveal the caret.
-                requestAnimationFrame(() => {
-                  const selection = window.getSelection()
+                    if (!editor.contains(selection.anchorNode)) return
+                    const caret = selection.getRangeAt(0).getBoundingClientRect()
 
-                  if (!editor || !viewport || !selection?.isCollapsed || !selection.rangeCount) return
+                    if (!caret.height) return
+                    const bounds = viewport.getBoundingClientRect()
 
-                  if (!editor.contains(selection.anchorNode)) return
-                  const caret = selection.getRangeAt(0).getBoundingClientRect()
+                    // Matches the viewport's 16px scroll-padding, which keeps the caret clear of the fades.
+                    if (caret.bottom > bounds.bottom - 16) viewport.scrollTop += caret.bottom - bounds.bottom + 16
 
-                  if (!caret.height) return
-                  const bounds = viewport.getBoundingClientRect()
-
-                  // Matches the viewport's 16px scroll-padding, which keeps the caret clear of the fades.
-                  if (caret.bottom > bounds.bottom - 16) viewport.scrollTop += caret.bottom - bounds.bottom + 16
-
-                  if (caret.top < bounds.top + 16) viewport.scrollTop += caret.top - bounds.top - 16
-                })
-              }}
-              onFocus={() => props.controller.dispatch({ type: "focus.editor" })}
-            />
-            <Show when={empty()}>
-              <div
-                data-slot="composer-placeholder"
-                dir={state.mode === "normal" ? "auto" : "ltr"}
-                class="pointer-events-none absolute inset-x-0 top-0 ps-5 pe-[var(--composer-scroll-end)] pt-2.5 text-[15px] font-[400] leading-[22px] text-v2-text-text-muted"
-                classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell" }}
-                style={{ "unicode-bidi": state.mode === "normal" ? "plaintext" : undefined, "text-align": "start" }}
-              >
-                {view.placeholder?.() ??
-                  (state.mode === "shell"
-                    ? i18n.t("ui.promptInput.placeholder.shell")
-                    : i18n.t("ui.promptInput.placeholder.normal", { slash: "/", at: "@" }))}
-              </div>
-            </Show>
+                    if (caret.top < bounds.top + 16) viewport.scrollTop += caret.top - bounds.top - 16
+                  })
+                }}
+                onFocus={() => props.controller.dispatch({ type: "focus.editor" })}
+              />
+              <Show when={empty()}>
+                <div
+                  data-slot="composer-placeholder"
+                  dir={state.mode === "normal" ? "auto" : "ltr"}
+                  class="pointer-events-none absolute inset-x-0 top-0 ps-5 pe-[var(--composer-scroll-end)] pt-2.5 text-[15px] font-[400] leading-[22px] text-v2-text-text-muted"
+                  classList={{ "font-mono! tracking-[-0.04px]": state.mode === "shell" }}
+                  style={{ "unicode-bidi": state.mode === "normal" ? "plaintext" : undefined, "text-align": "start" }}
+                >
+                  {view.placeholder?.() ??
+                    (state.mode === "shell"
+                      ? i18n.t("ui.promptInput.placeholder.shell")
+                      : i18n.t("ui.promptInput.placeholder.normal", { slash: "/", at: "@" }))}
+                </div>
+              </Show>
+            </div>
           </div>
         </div>
 

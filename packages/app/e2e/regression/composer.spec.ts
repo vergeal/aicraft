@@ -936,6 +936,35 @@ test("keeps a line added at the end of a scrolling prompt clear of the bottom fa
     .toBe(0)
 })
 
+test("grows the card on a height tween when the draft gains a line", async ({ page }) => {
+  const { editor } = await openDraft(page, { name: "ComposerHeightTween", provider: NO_PROVIDER })
+  await editor.click()
+  await editor.pressSequentially("first line")
+
+  const text = page.locator('[data-slot="composer-text"]')
+  const measured = () => text.evaluate((element) => element.getBoundingClientRect().height)
+
+  // The card must tween between line counts on the same curve the branch card's list uses, not snap. The
+  // height is the browser's own interpolation of `auto` (interpolate-size on :root), never a JS-measured
+  // value: a measured write lands a frame after the content moves, so the draft would lead the card.
+  await expect(text).toHaveCSS("transition-property", "height")
+  await expect(text).toHaveCSS("transition-duration", "0.2s")
+  await expect(text).toHaveCSS("transition-timing-function", "cubic-bezier(0.645, 0.045, 0.355, 1)")
+  await expect(text).toHaveCSS("interpolate-size", "allow-keywords")
+  await expect(text).toHaveCSS("height", /px$/)
+
+  // The card is bottom-anchored (13-motion.md §11), so the line under the caret stays readable while it grows
+  // and earlier lines are the ones pushed out of the clip.
+  await expect(text).toHaveCSS("justify-content", "flex-end")
+
+  const single = await measured()
+
+  await editor.press("Shift+Enter")
+  await editor.pressSequentially("second line")
+  await expect.poll(() => editor.innerText()).toBe("first line\nsecond line")
+  await expect.poll(measured).toBeGreaterThan(single)
+})
+
 test("Enter that confirms an IME candidate never sends, even after Safari's early compositionend", async ({ page }) => {
   const prompts: Parameters<NonNullable<MockServerConfig["onPrompt"]>>[0]["body"][] = []
   const view = await openSession(page, { name: "ComposerImeEnter", onPrompt: (input) => void prompts.push(input.body) })

@@ -178,7 +178,7 @@ export const Plugin = define({
           execute: (input, context) =>
             Effect.gen(function* () {
               const text = input.text.trim()
-              if (text.length === 0) return yield* new Tool.Error({ message: "Memory text must not be empty." })
+              if (text.length === 0) return yield* new Tool.Error({ message: "记忆内容不能为空。" })
               const result = yield* Memory.save(kv, {
                 scope: input.scope ?? "project",
                 projectID: yield* projectID(context.sessionID),
@@ -190,10 +190,10 @@ export const Plugin = define({
               return {
                 output: { entry: info(result.entry, scope), duplicate: result.duplicate },
                 content: result.duplicate
-                  ? `Updated an identical ${label(scope)} (id: ${result.entry.id}).`
-                  : `Saved to ${label(scope)} (id: ${result.entry.id}): ${text}`,
+                  ? `已更新同内容的${label(scope)}（id：${result.entry.id}）。`
+                  : `已保存到${label(scope)}（id：${result.entry.id}）：${text}`,
               }
-            }).pipe(Effect.mapError(toToolFailure("Failed to save memory"))),
+            }).pipe(Effect.mapError(toToolFailure("无法保存记忆"))),
         })
 
         editor.add({
@@ -225,7 +225,7 @@ export const Plugin = define({
           execute: (input, context) =>
             Effect.gen(function* () {
               const query = input.query.trim()
-              if (query.length === 0) return yield* new Tool.Error({ message: "Search keywords must not be empty." })
+              if (query.length === 0) return yield* new Tool.Error({ message: "检索关键词不能为空。" })
               const rows = yield* Memory.list(
                 kv,
                 yield* projectID(context.sessionID),
@@ -238,9 +238,9 @@ export const Plugin = define({
                 .map((row) => info(row.entry, row.scope))
               return {
                 output: { query, entries },
-                content: entries.length === 0 ? `No memories match "${query}".` : summarize(entries),
+                content: entries.length === 0 ? `没有匹配「${query}」的记忆。` : summarize(entries),
               }
-            }).pipe(Effect.mapError(toToolFailure("Failed to search memories"))),
+            }).pipe(Effect.mapError(toToolFailure("无法检索记忆"))),
         })
 
         editor.add({
@@ -254,11 +254,11 @@ export const Plugin = define({
               const located = yield* Memory.findEntry(kv, yield* projectID(context.sessionID), input.id)
               if (!located)
                 return yield* new Tool.Error({
-                  message: `No memory found with id ${input.id}. Confirm it first with memory.list or memory.search.`,
+                  message: `找不到 id 为 ${input.id} 的记忆。先用 memory.list 或 memory.search 确认。`,
                 })
               const text = input.text?.trim()
               if (text !== undefined && text.length === 0)
-                return yield* new Tool.Error({ message: "Memory text must not be empty." })
+                return yield* new Tool.Error({ message: "记忆内容不能为空。" })
               const entry: Memory.Entry = {
                 ...located.entry,
                 text: text ?? located.entry.text,
@@ -268,9 +268,9 @@ export const Plugin = define({
               yield* kv.set(located.key, entry)
               return {
                 output: { entry: info(entry, located.scope) },
-                content: `Updated ${label(located.scope)} (id: ${entry.id}): ${entry.text}`,
+                content: `已更新${label(located.scope)}（id：${entry.id}）：${entry.text}`,
               }
-            }).pipe(Effect.mapError(toToolFailure("Failed to update memory"))),
+            }).pipe(Effect.mapError(toToolFailure("无法修改记忆"))),
         })
 
         editor.add({
@@ -284,14 +284,14 @@ export const Plugin = define({
               const located = yield* Memory.findEntry(kv, yield* projectID(context.sessionID), input.id)
               if (!located)
                 return yield* new Tool.Error({
-                  message: `No memory found with id ${input.id}. Confirm it first with memory.list or memory.search.`,
+                  message: `找不到 id 为 ${input.id} 的记忆。先用 memory.list 或 memory.search 确认。`,
                 })
               yield* kv.remove(located.key)
               return {
                 output: { id: input.id, removed: true },
-                content: `Deleted ${label(located.scope)} (id: ${input.id}): ${located.entry.text}`,
+                content: `已删除${label(located.scope)}（id：${input.id}）：${located.entry.text}`,
               }
-            }).pipe(Effect.mapError(toToolFailure("Failed to delete memory"))),
+            }).pipe(Effect.mapError(toToolFailure("无法删除记忆"))),
         })
       })
       .pipe(Effect.orDie)
@@ -336,13 +336,13 @@ function info(entry: Memory.Entry, scope: Memory.Scope): EntryInfo {
 }
 
 function label(scope: Memory.Scope) {
-  return scope === "project" ? "project memory" : "global memory"
+  return scope === "project" ? "项目记忆" : "全局记忆"
 }
 
 function summarize(entries: readonly EntryInfo[]) {
-  if (entries.length === 0) return "No memories have been saved yet."
+  if (entries.length === 0) return "还没有保存任何记忆。"
   return entries
-    .map((entry) => `[${entry.scope === "project" ? "project" : "global"}] ${entry.text} (id: ${entry.id})`)
+    .map((entry) => `[${entry.scope === "project" ? "项目" : "全局"}] ${entry.text}（id：${entry.id}）`)
     .join("\n")
 }
 
@@ -353,7 +353,7 @@ function now() {
 /** A project-scoped write needs a Project; a global one stores under the empty prefix. */
 function projectFor(scope: Memory.Scope, projectID: string | null) {
   if (scope === "global") return ""
-  if (projectID === null) throw new Error("No project is open, so a project-scoped memory cannot be saved.")
+  if (projectID === null) throw new Error("没有打开的项目，无法保存项目记忆。")
   return projectID
 }
 

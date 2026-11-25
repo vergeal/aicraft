@@ -348,7 +348,16 @@ export function AnswerTimeline(props: {
   })
 
   return (
-    <div data-slot="answer-timeline" class="relative h-full w-full min-w-0" style={{ background: "rgb(20, 20, 20)" }}>
+    /* The timeline paints its own canvas because the dark replica sets `session-panel` transparent, and it has to
+       take the shell's canvas variable rather than a literal: the canvas is `#141414` in dark but `#ffffff` in light,
+       so a hardcoded dark grey turned the whole answer column black under the light scheme, with the answer's own
+       near-black ink on top of it. Outside the replica shell (web, stories) the variable is absent and the design
+       system's canvas stands in. */
+    <div
+      data-slot="answer-timeline"
+      class="relative h-full w-full min-w-0"
+      style={{ background: "var(--color-main, var(--v2-background-bg-base))" }}
+    >
       <ScrollView
         data-slot="session-timeline-scroll"
         viewportRef={(element) => {

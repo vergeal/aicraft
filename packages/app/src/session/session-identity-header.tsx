@@ -50,7 +50,7 @@ export function SessionTitleHeader(props: ParentProps) {
       <div data-session-title class="pointer-events-none sticky top-0 z-30 w-full pb-4">
         <div
           class="pointer-events-auto flex items-center border-b border-v2-border-border-muted pe-3 ps-2.5"
-          style={{ background: "rgb(20, 20, 20)" }}
+          style={{ background: "var(--color-main, var(--v2-background-bg-base))" }}
         >
           <CollapsedSidebarToggleSpace />
           <div class="min-w-0 flex-1">{props.children}</div>
@@ -60,7 +60,9 @@ export function SessionTitleHeader(props: ParentProps) {
       <div
         aria-hidden="true"
         class="session-header-fade pointer-events-none sticky z-[5] -mt-4 h-4 w-full"
-        style={{ background: "linear-gradient(to bottom, rgb(20, 20, 20), transparent)" }}
+        style={{
+          background: "linear-gradient(to bottom, var(--color-main, var(--v2-background-bg-base)), transparent)",
+        }}
       />
     </>
   )
@@ -149,7 +151,9 @@ export function SessionLocation(props: {
     props.directory ? server().ctx.data.location.vcs.info({ directory: props.directory })?.branch.current : undefined
 
   const baseBranch = () =>
-    props.project ? server().ctx.data.location.vcs.info({ directory: props.project.worktree })?.branch.current : undefined
+    props.project
+      ? server().ctx.data.location.vcs.info({ directory: props.project.worktree })?.branch.current
+      : undefined
 
   // Revealing a path only makes sense on the machine the app runs on.
   const canReveal = () =>
@@ -159,10 +163,14 @@ export function SessionLocation(props: {
     setStore("open", open)
 
     if (!open || !props.directory || !git()) return
-    void server().ctx.data.location.vcs.sync({ directory: props.directory }).catch(() => undefined)
+    void server()
+      .ctx.data.location.vcs.sync({ directory: props.directory })
+      .catch(() => undefined)
 
     if (props.project && props.project.worktree !== props.directory)
-      void server().ctx.data.location.vcs.sync({ directory: props.project.worktree }).catch(() => undefined)
+      void server()
+        .ctx.data.location.vcs.sync({ directory: props.project.worktree })
+        .catch(() => undefined)
   }
 
   const copyText = async (text: string) => {

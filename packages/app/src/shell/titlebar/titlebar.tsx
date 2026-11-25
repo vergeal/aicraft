@@ -173,7 +173,9 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
         "order-last": bottom(),
       }}
       style={{
-        background: "rgb(20, 20, 20)",
+        /* The titlebar belongs to the shell chrome, so it takes the chrome variable: `rgb(20 20 20 / 86%)` in dark,
+           the light rail colour in light. A literal dark grey here painted a black bar under the light scheme. */
+        background: "var(--color-titlebar, var(--v2-background-bg-deep))",
         height:
           platform.platform === "web"
             ? bottom()

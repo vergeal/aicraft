@@ -428,6 +428,16 @@
         "@typescript/native": "catalog:",
       },
     },
+    "packages/memory": {
+      "name": "@aicraft/memory",
+      "version": "2.2.5",
+      "devDependencies": {
+        "@tsconfig/bun": "catalog:",
+        "@types/bun": "catalog:",
+        "@typescript/native": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/merman": {
       "name": "@aicraft/merman",
       "version": "2.2.5",
@@ -1102,6 +1112,8 @@
     "@aicraft/httpapi-codegen": ["@aicraft/httpapi-codegen@workspace:packages/httpapi-codegen"],
 
     "@aicraft/latex": ["@aicraft/latex@workspace:packages/latex"],
+
+    "@aicraft/memory": ["@aicraft/memory@workspace:packages/memory"],
 
     "@aicraft/merman": ["@aicraft/merman@workspace:packages/merman"],
 

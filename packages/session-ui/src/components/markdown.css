@@ -514,14 +514,13 @@
     text-underline-offset: 2px;
   }
 
-  /* Tables: the Console's data table, a raised body inside a muted frame that also holds the header */
+  /* Tables: the Console's data table. The frame keeps the header's backing layer but stays unoutlined: no border, per design. */
   [data-component="markdown-table"] {
     margin: 16px 0;
     overflow-x: auto;
     padding: 2px;
     border-radius: 6px;
     background: var(--v2-background-bg-layer-01);
-    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-muted);
   }
 
   table {

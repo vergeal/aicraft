@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import { Predicate } from "effect"
-import type { SessionMessageAssistant, SessionMessageAssistantTool, SessionMessageInfo } from "@aicraft/client/promise"
+import type {
+  FileDiffSummary,
+  SessionMessageAssistant,
+  SessionMessageAssistantTool,
+  SessionMessageInfo,
+} from "@aicraft/client/promise"
 import { storyDocument, storyTool } from "../storybook/current-session-scenarios"
 import { timelinePresets } from "./detail"
 import { createTimelineProjection, Timeline, TimelineRow } from "./projection"
@@ -1832,14 +1837,14 @@ describe("current session timeline rows", () => {
   })
 
   test("summarizes a turn's changed files after the idle marker that ends it", () => {
-    const step = (id: string, files?: string[]) =>
+    const step = (id: string, files?: string[], stats?: FileDiffSummary[]) =>
       ({
         id,
         type: "assistant",
         agent: "build",
         model: { id: "model", providerID: "provider" },
         content: [{ type: "text", text: id }],
-        snapshot: files && { start: "tree_a", end: "tree_b", files },
+        snapshot: files && { start: "tree_a", end: "tree_b", files, stats },
         time: { created: 1, completed: 2 },
       }) satisfies SessionMessageAssistant
 
@@ -1850,9 +1855,12 @@ describe("current session timeline rows", () => {
       // A steered prompt joins the running turn; the summary diffs from its opening prompt and lists
       // every path its steps recorded once, sorted.
       user("msg_open"),
-      step("msg_edit", ["src/a.ts"]),
+      step("msg_edit", ["src/a.ts"], [{ file: "src/a.ts", status: "modified", additions: 3, deletions: 1 }]),
       user("msg_steer"),
-      step("msg_answer", ["src/c.ts", "src/a.ts"]),
+      step("msg_answer", ["src/c.ts", "src/a.ts"], [
+        { file: "src/a.ts", status: "modified", additions: 2, deletions: 5 },
+        { file: "src/c.ts", status: "added", additions: 4, deletions: 0, binary: true },
+      ]),
       idle("msg_idle_1"),
       // A turn that changed nothing gets no summary.
       user("msg_ask"),
@@ -1876,6 +1884,11 @@ describe("current session timeline rows", () => {
         messageID: "msg_idle_1",
         from: "msg_open",
         files: ["src/a.ts", "src/c.ts"],
+        // Counts sum across the turn's steps; the last step's status and binary flag settle the file.
+        stats: [
+          { file: "src/a.ts", status: "modified", additions: 5, deletions: 6 },
+          { file: "src/c.ts", status: "added", additions: 4, deletions: 0, binary: true },
+        ],
       }),
     ])
     expect(rows.map(TimelineRow.key).slice(0, 6)).toEqual([

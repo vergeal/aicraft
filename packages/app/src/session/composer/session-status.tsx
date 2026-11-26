@@ -5,7 +5,7 @@ import { TokenUsage } from "@aicraft/schema/token-usage"
 import { Icon } from "@aicraft/ui/icon"
 import { Popover } from "@aicraft/ui/popover"
 import { ProgressCircle } from "@aicraft/ui/progress-circle"
-import { createMemo, For, on, Show, untrack, type JSX } from "solid-js"
+import { createMemo, For, Show, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useData } from "@/runtime/server/current"
 import type { SessionModel } from "../model"
@@ -22,29 +22,10 @@ type Summary = {
 /** Character weight per part of the prompt; the share is applied to the prompt token count when a card asks for it. */
 type Split = { system: number; history: number; toolResults: number }
 
-type Fold = { signature: string; summary?: Summary; split?: Split }
-
-/**
- * The composer region is rebuilt for each session it routes to, so folding the whole transcript on mount would rerun
- * from the first message on every switch. One entry per session keeps the previous answer until that transcript's
- * shape or last recorded time changes, which is exactly what the signature reports.
- */
-const folds = new Map<string, Fold>()
-
-function fold(id: string, signature: string) {
-  const cached = folds.get(id)
-
-  if (cached?.signature === signature) return cached
-  const next: Fold = { signature }
-
-  folds.set(id, next)
-
-  return next
-}
-
 /**
  * The quiet line under the composer: the session's turns and steps with its average output speed, its token usage and
- * cache hit rate, and the context window share. Each mark opens its own breakdown card.
+ * cache hit rate, and the context window share. Each mark opens its own breakdown card. Every number arrives with the
+ * Session record, recorded as the run writes its events, so the line never folds the transcript to render.
  */
 export function SessionComposerStatus(props: { session: SessionModel }) {
   const data = useData()
@@ -67,69 +48,19 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
 
   const messages = () => props.session.history.messages()
 
-  // The transcript is read on every streamed delta; the line must not rescan it each time. This signature changes only
-  // when the transcript's shape or its last recorded time does, and the summaries below run from it alone.
-  const signature = () => {
-    const list = messages()
-    const last = list.at(-1)
-    const boundary = props.session.data.revertMessageID()
+  const summary = createMemo((): Summary | undefined => {
+    const stats = props.session.data.info()?.stats
 
-    return `${list.length}:${boundary ?? ""}:${last === undefined ? 0 : stamp(last)}`
-  }
+    if (!stats || (stats.turns === 0 && stats.steps === 0)) return
 
-  const summary = createMemo(
-    on(signature, (current) =>
-      untrack(() => {
-        const id = props.session.identity.sessionID()
-        const list = messages()
-        const end = endIndex(list, props.session.data.revertMessageID())
-
-        if (!id || end === undefined) return
-        const cached = fold(id, current)
-
-        if (cached.summary) return cached.summary
-        let turns = 0
-        let steps = 0
-        let output = 0
-        let modelTime = 0
-        let toolTime = 0
-
-        for (let index = 0; index < end; index++) {
-          const message = list[index]
-
-          if (message.type === "user") turns++
-
-          if (message.type !== "assistant") continue
-
-          steps++
-
-          if (message.tokens) output += message.tokens.output + message.tokens.reasoning
-
-          if (message.time.streamed !== undefined)
-            modelTime += Math.max(0, message.time.streamed - message.time.created)
-
-          for (const part of message.content) {
-            if (part.type !== "tool" || part.time.completed === undefined) continue
-            toolTime += Math.max(0, part.time.completed - (part.time.ran ?? part.time.created))
-          }
-        }
-
-        if (turns === 0 && steps === 0) return
-
-        const value = {
-          turns,
-          steps,
-          modelTime,
-          toolTime,
-          rate: modelTime > 0 ? (output / modelTime) * 1000 : undefined,
-        }
-
-        cached.summary = value
-
-        return value
-      }),
-    ),
-  )
+    return {
+      turns: stats.turns,
+      steps: stats.steps,
+      modelTime: stats.modelTime,
+      toolTime: stats.toolTime,
+      rate: stats.modelTime > 0 ? (stats.outputTokens / stats.modelTime) * 1000 : undefined,
+    }
+  })
 
   const usage = createMemo(() => {
     const tokens = props.session.data.info()?.tokens
@@ -150,69 +81,31 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
     }
   })
 
-  const context = createMemo(
-    on(signature, (current) =>
-      untrack(() => {
-        const id = props.session.identity.sessionID()
-        const list = messages()
-        const info = props.session.data.info()
+  const context = createMemo(() => {
+    const info = props.session.data.info()
+    const stats = info?.stats
 
-        if (!id || !info) return
-        const end = endIndex(list, info.revert?.messageID)
+    if (!info || !stats || stats.contextTokens === 0) return
 
-        if (end === undefined) return
-        const scoped = end === list.length ? list : list.slice(0, end)
-        const last = lastAssistantWithUsage(scoped)
-
-        if (!last) return
-        const used = last.tokens.input + last.tokens.cache.read + last.tokens.cache.write
-
-        const model = data.location.model
+    const model = info.model
+      ? data.location.model
           .list(info.location)
           ?.findLast(
             (item) =>
-              item.providerID === last.model.providerID &&
-              item.id === last.model.id &&
-              item.status !== "deprecated",
+              item.providerID === info.model!.providerID && item.id === info.model!.id && item.status !== "deprecated",
           )
+      : undefined
 
-        const limit = model?.limit.context
+    const limit = model?.limit.context
 
-        if (!limit) return
-        const cached = fold(id, current)
-        const weight = cached.split ?? split(scoped, last)
+    if (!limit) return
+    // The window is a budget, not just the used share: the prompt takes what it takes, the reply keeps room for
+    // the model's output, and everything left is the buffer the request stays under.
+    const prompt = Math.min(stats.contextTokens, limit)
+    const output = Math.min(model?.limit.output ?? 0, limit - prompt)
 
-        cached.split = weight
-
-        // The window is a budget, not just the used share: the prompt takes what it takes, the reply keeps room for
-        // the model's output, and everything left is the buffer the request stays under.
-        const prompt = Math.min(used, limit)
-        const output = Math.min(model?.limit.output ?? 0, limit - prompt)
-        const safety = limit - prompt - output
-        const tokens = composition(weight, prompt)
-
-        const entries = [
-          { key: "system" as const, tokens: tokens.system },
-          { key: "history" as const, tokens: tokens.history },
-          { key: "toolResults" as const, tokens: tokens.toolResults },
-          { key: "output" as const, tokens: output },
-          { key: "safety" as const, tokens: safety },
-        ]
-
-        const percents = percentages(entries, limit)
-
-        return {
-          limit,
-          percent: Math.round((used / limit) * 100),
-          parts: entries.map((part, index) => ({
-            ...part,
-            share: (part.tokens / limit) * 100,
-            percent: percents[index],
-          })),
-        }
-      }),
-    ),
-  )
+    return { limit, percent: Math.round((stats.contextTokens / limit) * 100), prompt, output, safety: limit - prompt - output }
+  })
 
   const formatDuration = (milliseconds: number) => {
     const seconds = Math.round(milliseconds / 100) / 10
@@ -333,35 +226,86 @@ export function SessionComposerStatus(props: { session: SessionModel }) {
             openLabel={language.t("session.status.context.open")}
             label={`${value().percent}%`}
           >
-            <div data-slot="session-status-card-body" aria-label={language.t("session.status.context.windowLabel")}>
-              <div data-slot="session-status-budget">
-                <div data-slot="session-status-budget-head">
-                  <span>{language.t("session.status.context.windowLabel")}</span>
-                  <span data-slot="session-status-budget-total">
-                    {language.t("session.status.context.windowTokens", { tokens: number().format(value().limit) })}
-                  </span>
-                </div>
-                <div data-slot="session-status-budget-track" aria-hidden="true">
-                  <For each={value().parts}>
-                    {(part) => <span data-part={part.key} style={{ width: `${part.share}%` }} />}
-                  </For>
-                </div>
-                <For each={value().parts}>
-                  {(part) => (
-                    <div data-slot="session-status-budget-row">
-                      <span data-slot="session-status-budget-label">
-                        <i data-part={part.key} />
-                        {language.t(contextPartLabels[part.key])}
-                      </span>
-                      <span data-slot="session-status-budget-percent">{part.percent}%</span>
-                    </div>
-                  )}
-                </For>
-              </div>
-            </div>
+            {/* The card body mounts only while the popover is open, so the character split stays off the rendered line. */}
+            <ContextBreakdown limit={value().limit} prompt={value().prompt} output={value().output} safety={value().safety} messages={messages} />
           </StatusButton>
         )}
       </Show>
+    </div>
+  )
+}
+
+/** The context card's budget rows: the recorded shares plus the prompt split estimated from the loaded transcript. */
+function ContextBreakdown(props: {
+  limit: number
+  prompt: number
+  output: number
+  safety: number
+  messages: () => SessionMessageInfo[]
+}) {
+  const language = useLanguage()
+
+  const number = createMemo(
+    () =>
+      new Intl.NumberFormat(language.intl(), {
+        maximumFractionDigits: 1,
+      }),
+  )
+
+  const parts = createMemo(() => {
+    const list = props.messages()
+    const last = lastAssistantWithUsage(list)
+    const weight: Split = { system: 0, history: 0, toolResults: 0 }
+
+    if (last) {
+      const split = splitPrompt(list, last)
+      const tokens = composition(split, props.prompt)
+      weight.system = tokens.system
+      weight.history = tokens.history
+      weight.toolResults = tokens.toolResults
+    }
+
+    const entries = [
+      { key: "system" as const, tokens: weight.system },
+      { key: "history" as const, tokens: weight.history },
+      { key: "toolResults" as const, tokens: weight.toolResults },
+      { key: "output" as const, tokens: props.output },
+      { key: "safety" as const, tokens: props.safety },
+    ]
+
+    const percents = percentages(entries, props.limit)
+
+    return entries.map((part, index) => ({
+      ...part,
+      share: (part.tokens / props.limit) * 100,
+      percent: percents[index],
+    }))
+  })
+
+  return (
+    <div data-slot="session-status-card-body" aria-label={language.t("session.status.context.windowLabel")}>
+      <div data-slot="session-status-budget">
+        <div data-slot="session-status-budget-head">
+          <span>{language.t("session.status.context.windowLabel")}</span>
+          <span data-slot="session-status-budget-total">
+            {language.t("session.status.windowTokens", { tokens: number().format(props.limit) })}
+          </span>
+        </div>
+        <div data-slot="session-status-budget-track" aria-hidden="true">
+          <For each={parts()}>{(part) => <span data-part={part.key} style={{ width: `${part.share}%` }} />}</For>
+        </div>
+        <For each={parts()}>
+          {(part) => (
+            <div data-slot="session-status-budget-row">
+              <span data-slot="session-status-budget-label">
+                <i data-part={part.key} />
+                {language.t(contextPartLabels[part.key])}
+              </span>
+              <span data-slot="session-status-budget-percent">{part.percent}%</span>
+            </div>
+          )}
+        </For>
+      </div>
     </div>
   )
 }
@@ -423,26 +367,11 @@ function Row(props: { label: string; value: JSX.Element }) {
   )
 }
 
-function stamp(message: SessionMessageInfo) {
-  if (message.type === "assistant") return message.time.completed ?? message.time.streamed ?? message.time.created
-
-  if (message.type === "shell") return message.time.completed ?? message.time.created
-
-  return message.time.created
-}
-
-function endIndex(list: ReadonlyArray<SessionMessageInfo>, boundary: string | undefined) {
-  if (!boundary) return list.length
-  const index = list.findIndex((message) => message.id === boundary)
-
-  return index === -1 ? undefined : index
-}
-
 /**
  * The provider reports only the number of prompt tokens, so the split by what produced them is estimated from each
  * message's character share of that total. Same accounting as the context panel's composition rows.
  */
-function split(list: ReadonlyArray<SessionMessageInfo>, last: SessionMessageInfo) {
+function splitPrompt(list: ReadonlyArray<SessionMessageInfo>, last: SessionMessageInfo): Split {
   const index = list.findIndex((message) => message.id === last.id)
   const upTo = index === -1 ? list : list.slice(0, index + 1)
   const weight: Split = { system: 0, history: 0, toolResults: 0 }

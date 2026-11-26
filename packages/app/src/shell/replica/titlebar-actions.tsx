@@ -1,5 +1,5 @@
 import { createMemo, Show } from "solid-js"
-import { lastAssistantWithUsage } from "@aicraft/client/solid"
+
 import { createCNY, flashCostBreakdown } from "@aicraft/gui-plugins/context/cost"
 import { Icon } from "@aicraft/ui/icon"
 import { ProgressCircle } from "@aicraft/ui/progress-circle"
@@ -108,7 +108,7 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
 
   const cny = createMemo(() => createCNY(language.locale()))
 
-  // Same accounting as the context panel: context after the last compaction, spend across the session family.
+  // Same accounting as the context panel: the recorded prompt size of the last usage, spend across the session family.
   const usage = () => {
     const route = layout.route()
 
@@ -117,22 +117,24 @@ export function ReplicaTitlebarActions(props: { placement: "workspace" | "panel"
     const session = ctx?.data.session.get(route.sessionId)
 
     if (!ctx || !session) return
-    const message = lastAssistantWithUsage(ctx.data.session.message.list(session.id), session.revert?.messageID)
+    const stats = session.stats
 
-    if (!message) return
+    if (!stats || stats.contextTokens === 0) return
 
     const directory = session.location.directory
 
-    const model = ctx.data.location.model
-      .list(directory ? { directory } : undefined)
-      ?.findLast(
-        (item) =>
-          item.providerID === message.model.providerID && item.id === message.model.id && item.status !== "deprecated",
-      )
+    const model = session.model
+      ? ctx.data.location.model
+          .list(directory ? { directory } : undefined)
+          ?.findLast(
+            (item) =>
+              item.providerID === session.model!.providerID && item.id === session.model!.id && item.status !== "deprecated",
+          )
+      : undefined
 
     // Context occupancy is the prompt side only: output and reasoning are already spent, not resident in the next
     // request. This is what the context panel and its progress ring measure.
-    const tokens = message.tokens.input + message.tokens.cache.read + message.tokens.cache.write
+    const tokens = stats.contextTokens
 
     const family = ctx.data.session.family(session.id)
 

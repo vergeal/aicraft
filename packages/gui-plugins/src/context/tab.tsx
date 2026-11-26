@@ -261,6 +261,21 @@ function RawMessage(props: {
 
 /** The recent calls' output rate, with the session average as a dashed baseline. */
 function Sparkline(props: { rates: readonly number[]; baseline: number | undefined }) {
+  // The stats tile is a grid cell, so the line follows the cell's real width instead of a fixed 120px.
+  let plot: HTMLDivElement | undefined
+  const width = createSignal(120)
+
+  onMount(() => {
+    if (plot) width[1](plot.clientWidth)
+  })
+
+  createResizeObserver(
+    () => plot,
+    () => {
+      if (plot) width[1](plot.clientWidth)
+    },
+  )
+
   const geometry = createMemo(() => {
     const rates = props.rates
 
@@ -269,20 +284,21 @@ function Sparkline(props: { rates: readonly number[]; baseline: number | undefin
     const max = Math.max(...values)
     const min = Math.min(...values)
     const span = Math.max(max - min, 1)
-    const width = 120
+    const full = width[0]()
     const height = 26
     const y = (value: number) => height - ((value - min) / span) * (height - 4) - 2
 
     const points = rates
-      .map((rate, index) => `${((index / (rates.length - 1)) * width).toFixed(1)},${y(rate).toFixed(1)}`)
+      .map((rate, index) => `${((index / (rates.length - 1)) * full).toFixed(1)},${y(rate).toFixed(1)}`)
       .join(" ")
 
     const low = Math.min(...rates)
 
     return {
+      width: full,
       points,
       baselineY: props.baseline === undefined ? undefined : y(props.baseline),
-      lowX: (rates.indexOf(low) / (rates.length - 1)) * width,
+      lowX: (rates.indexOf(low) / (rates.length - 1)) * full,
       lowY: y(low),
     }
   })
@@ -290,29 +306,37 @@ function Sparkline(props: { rates: readonly number[]; baseline: number | undefin
   return (
     <Show when={geometry()}>
       {(g) => (
-        <svg width="120" height="26" viewBox="0 0 120 26" class="overflow-visible" aria-hidden="true">
-          <Show when={g().baselineY}>
-            {(baselineY) => (
-              <line
-                x1="0"
-                y1={baselineY()}
-                x2="120"
-                y2={baselineY()}
-                stroke="var(--v2-border-border-strong)"
-                stroke-width="1"
-                stroke-dasharray="2 2"
-              />
-            )}
-          </Show>
-          <polyline
-            points={g().points}
-            fill="none"
-            stroke="var(--v2-text-text-muted)"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-          />
-          <circle cx={g().lowX} cy={g().lowY} r="2.5" fill="var(--v2-state-fg-danger)" />
-        </svg>
+        <div ref={plot} class="w-full">
+          <svg
+            width={g().width}
+            height="26"
+            viewBox={`0 0 ${g().width} 26`}
+            class="block overflow-visible"
+            aria-hidden="true"
+          >
+            <Show when={g().baselineY}>
+              {(baselineY) => (
+                <line
+                  x1="0"
+                  y1={baselineY()}
+                  x2={g().width}
+                  y2={baselineY()}
+                  stroke="var(--v2-border-border-strong)"
+                  stroke-width="1"
+                  stroke-dasharray="2 2"
+                />
+              )}
+            </Show>
+            <polyline
+              points={g().points}
+              fill="none"
+              stroke="var(--v2-text-text-muted)"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+            <circle cx={g().lowX} cy={g().lowY} r="2.5" fill="var(--v2-state-fg-danger)" />
+          </svg>
+        </div>
       )}
     </Show>
   )
@@ -402,7 +426,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
   // One row per call, and a long session has hundreds. Render the newest page first and let the reader pull the
   // rest, so opening the panel never builds the whole table at once.
-  const callsPage = 50
+  const callsPage = 10
   const callsShown = createSignal(callsPage)
 
   const revealCalls = (mode: "all" | "failed" | "slow") => {

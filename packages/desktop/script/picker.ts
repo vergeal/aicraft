@@ -22,6 +22,24 @@ export function pickerPlugin() {
       return plugin.resolveId(id === client ? "virtual:vite-opencode-picker/client" : id)
     },
     configureServer(server: Parameters<typeof plugin.configureServer>[0]) {
+      // The upstream picker client polls `?options=1` and `?recover=...` every 1.5s from every open page
+      // (`setInterval(refreshSessions, 1500)` in the plugin bundle). Both handlers run a service discovery that
+      // always throws on this fork (no standard OpenCode V2 service to discover), so each page hammers the dev
+      // server with a 500 every 1.5s forever — a diagnostics dump caught attempt #1433 during a slow-render
+      // investigation. Short-circuit every picker request before the upstream middleware: the client's
+      // `if (!response.ok) return` / `catch {}` swallows both, and the preview tool was already dead here.
+      const endpoint = `${server.config.base?.replace(/\/$/, "") ?? ""}/__vite_opencode_picker`
+      server.middlewares.use(endpoint, (request, response) => {
+        const url = new URL(request.url ?? "/", "http://localhost")
+        if (url.searchParams.has("options")) {
+          response.statusCode = 204
+          response.setHeader("cache-control", "no-store")
+          response.end()
+          return
+        }
+        response.statusCode = 404
+        response.end()
+      })
       server.middlewares.use(client, (_request, response) => {
         response.setHeader("content-type", "text/javascript")
         response.end(plugin.load(plugin.resolveId("virtual:vite-opencode-picker/client")!))

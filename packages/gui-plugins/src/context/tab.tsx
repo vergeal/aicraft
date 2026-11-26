@@ -29,6 +29,15 @@ function isAssistant(message: SessionMessageInfo): message is Assistant {
   return message.type === "assistant" && message.tokens !== undefined
 }
 
+/** Sums the per-source character sizes the composer records on an assistant message's `context` metadata. */
+function sumContextChars(metadata: { context?: unknown } | undefined): number {
+  const sources = metadata?.context
+
+  if (!Array.isArray(sources)) return 0
+
+  return sources.reduce((sum: number, source) => sum + (Number.isFinite(source?.chars) ? source.chars : 0), 0)
+}
+
 type Step = {
   message: Assistant
   tokens: NonNullable<SessionMessageAssistant["tokens"]>
@@ -525,10 +534,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
     // The loaded transcript page often starts after the system messages, so their text is missing here. Every
     // assistant step echoes the system prompt it sent, and that size is what the window actually holds.
-    const sources = last.metadata?.context
-    const sent = Array.isArray(sources)
-      ? sources.reduce((sum: number, source) => sum + (typeof source === "object" && source !== null && "chars" in source ? Number((source as { chars: unknown }).chars) || 0 : 0), 0)
-      : 0
+    const sent = sumContextChars(last.metadata)
 
     if (sent > 0) weight.system = sent
 
@@ -907,7 +913,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-v2-text-text-faint">
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px] bg-v2-blue-600" />
+              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-blue-600)" }} />
               {ctx.t("window.compositionSystem")}
             </span>
             <span class="inline-flex items-center gap-1.5">
@@ -918,15 +924,15 @@ export default function SessionContextTab(props: { session: MountedSession }) {
               {ctx.t("window.compositionHistory")}
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px] bg-v2-orange-500" />
+              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-orange-500)" }} />
               {ctx.t("window.compositionTools")}
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px] bg-v2-purple-500" />
+              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-purple-500)" }} />
               {ctx.t("window.legendOutputReserve")}
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px] bg-v2-grey-700" />
+              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-grey-700)" }} />
               {ctx.t("window.legendSafetyReserve")}
             </span>
             <span class="ms-auto text-v2-text-text-muted">

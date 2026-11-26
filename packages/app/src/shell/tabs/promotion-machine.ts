@@ -157,6 +157,15 @@ export function pendingPromotion(state: TabPromotionState, key: string) {
   return state.status === "active" ? state.entries[key]?.pending : undefined
 }
 
+/** Whether an in-flight promotion still claims this draft: the draft tab leaves the store before its
+ * session navigation commits, so the draft route must not fall back to Home inside that window. */
+export function promotionHoldsDraft(state: TabPromotionState, draftID: string) {
+  return (
+    state.status === "active" &&
+    Object.values(state.entries).some((entry) => entry.pending.draft.draftID === draftID)
+  )
+}
+
 function abandon(
   state: Extract<TabPromotionState, { status: "active" }>,
   match: (key: string, entry: PromotionEntry) => boolean,

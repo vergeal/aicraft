@@ -1,0 +1,39 @@
+/* The resolving skeleton sweeps in reading direction, like the Home list skeleton (design 17). */
+[data-component="session-pending-skeleton"] {
+  opacity: 0;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 1, 1);
+  mask-image: linear-gradient(90deg, rgb(0 0 0 / 0.55) 35%, #000 50%, rgb(0 0 0 / 0.55) 65%);
+  mask-size: 300% 100%;
+  animation: session-pending-skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+[data-component="session-pending-skeleton"][data-visible] {
+  opacity: 1;
+  transition: opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+[data-component="session-pending-skeleton"]:dir(rtl) {
+  animation-direction: reverse;
+}
+
+@keyframes session-pending-skeleton-sweep {
+  from {
+    mask-position: 100% 0;
+  }
+
+  to {
+    mask-position: 0% 0;
+  }
+}
+
+:root[data-motion="reduce"] {
+  [data-component="session-pending-skeleton"] {
+    animation: none;
+    mask-image: none;
+    transition: none;
+  }
+}

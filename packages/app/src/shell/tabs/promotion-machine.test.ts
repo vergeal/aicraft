@@ -6,6 +6,7 @@ import { tabKey, type DraftTab, type PendingSession, type SessionTab } from "./t
 import {
   INITIAL_TAB_PROMOTION_STATE,
   pendingPromotion,
+  promotionHoldsDraft,
   runsAfterCommit,
   transitionTabPromotion,
   type ComposerTarget,
@@ -199,5 +200,31 @@ describe("tab promotion", () => {
       state: disposed,
       effects: [[], []],
     })
+  })
+
+  test("a draft stays claimed by its promotion until the entry settles", () => {
+    const holds = (events: TabPromotionEvent[]) => promotionHoldsDraft(replay(events).state, draft.draftID)
+
+    expect(promotionHoldsDraft(INITIAL_TAB_PROMOTION_STATE, draft.draftID)).toBe(false)
+    expect(holds([prepare])).toBe(true)
+    expect(holds([prepare, { type: "complete.start", key, attempt: 1, target }])).toBe(true)
+    expect(holds([prepare, { type: "rollback.start", key, attempt: 1 }])).toBe(true)
+    expect(
+      holds([
+        prepare,
+        { type: "rollback.start", key, attempt: 1 },
+        { type: "rollback.settled", key, attempt: 1, open: true },
+      ]),
+    ).toBe(false)
+    expect(
+      holds([
+        prepare,
+        { type: "complete.start", key, attempt: 1, target },
+        { type: "complete.settled", key, attempt: 1 },
+      ]),
+    ).toBe(false)
+    expect(holds([prepare, { type: "abandon", keys: [key] }])).toBe(false)
+    expect(holds([prepare, { type: "dispose" }])).toBe(false)
+    expect(promotionHoldsDraft(replay([prepare]).state, "other-draft")).toBe(false)
   })
 })

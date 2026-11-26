@@ -27,6 +27,7 @@ import { useCurrentRoute, type LayoutRoute } from "@/shell/state/layout"
 import {
   INITIAL_TAB_PROMOTION_STATE,
   pendingPromotion,
+  promotionHoldsDraft,
   runsAfterCommit,
   transitionTabPromotion,
   type ComposerTarget,
@@ -505,6 +506,7 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
               tabs.push(tab)
             }),
           )
+
           if (options?.navigate !== false) navigate(draftHref(draftID))
         })
 
@@ -521,6 +523,7 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
         const existing = findDraftTab(store, draft)
 
         if (!existing) return actions.newDraft(draft, prompt, model, options)
+
         if (options?.navigate !== false) navigateTab(existing)
 
         return existing
@@ -543,6 +546,9 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
       },
       pendingSession(server: ServerConnection.Key, sessionID: string): PendingSession | undefined {
         return pendingPromotion(promotion(), tabKey({ type: "session", server, sessionId: sessionID }))
+      },
+      promotionHoldsDraft(draftID: string | undefined): boolean {
+        return draftID !== undefined && promotionHoldsDraft(promotion(), draftID)
       },
       prepareSession(
         draftID: string,

@@ -1,4 +1,4 @@
-import { ErrorBoundary, createEffect, createMemo, Match, on, Show, Switch, type ParentProps } from "solid-js"
+import { ErrorBoundary, createEffect, createMemo, createSignal, Match, on, onCleanup, Show, Switch, type ParentProps } from "solid-js"
 import { Title } from "@solidjs/meta"
 import { useParams } from "@solidjs/router"
 import { createStore } from "solid-js/store"
@@ -33,6 +33,10 @@ import { sessionRouteView } from "./resolution-machine"
 import { createSessionResolution } from "./session-resolution"
 import { SessionScreenView } from "./screen"
 import { PreparingComposer } from "./preparing-composer"
+import "./session-pending.css"
+
+// Design 17: a resolution faster than this shows the session directly, without flashing the skeleton.
+const PENDING_SKELETON_DELAY_MS = 400
 
 export function TargetSessionRouteContent() {
   const params = useParams<{ serverKey: string; id: string }>()
@@ -207,8 +211,35 @@ function ResolvedTargetSessionRoute() {
 function PendingSessionState(props: { sessionID: string }) {
   return (
     <SessionStatePanel>
-      <SessionIdentityHeader sessionID={props.sessionID} />
+      <div data-component="session-pending" data-scrollable class="min-h-0 flex-1 overflow-y-auto">
+        <SessionIdentityHeader sessionID={props.sessionID} />
+        <SessionPendingSkeleton />
+      </div>
     </SessionStatePanel>
+  )
+}
+
+// The deep-linked session is still resolving: show the timeline's shape instead of an empty panel, so the
+// wait reads as loading rather than a black screen.
+function SessionPendingSkeleton() {
+  const [revealed, setRevealed] = createSignal(false)
+  const timer = setTimeout(() => setRevealed(true), PENDING_SKELETON_DELAY_MS)
+  onCleanup(() => clearTimeout(timer))
+
+  return (
+    <div
+      aria-hidden="true"
+      data-component="session-pending-skeleton"
+      data-visible={revealed() || undefined}
+      class="mx-auto w-full min-w-0 px-4 pb-5 pt-3 md:max-w-session md:px-6"
+    >
+      <div class="flex flex-col gap-3">
+        <span class="h-16 w-full rounded-[8px] bg-v2-background-bg-layer-02" />
+        <span class="h-3 w-full rounded-[4px] bg-v2-background-bg-layer-02" />
+        <span class="h-3 w-11/12 rounded-[4px] bg-v2-background-bg-layer-02" />
+        <span class="h-3 w-2/3 rounded-[4px] bg-v2-background-bg-layer-02" />
+      </div>
+    </div>
   )
 }
 

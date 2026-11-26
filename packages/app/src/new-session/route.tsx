@@ -20,11 +20,14 @@ export function DraftRoute() {
   const [search] = useSearchParams<{ draftId?: string }>()
   const tabs = useTabs()
 
+  // A promoted draft leaves the store before the session navigation prepareSession commits. Navigating
+  // Home inside that window races the session route for the router's single transition slot and can strand
+  // the view on Home with the session URL, so only a draft no promotion still claims falls back.
   return (
     <Show
       when={tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId)}
       keyed
-      fallback={tabs.ready() && <Navigate href="/" />}
+      fallback={tabs.ready() && !tabs.promotionHoldsDraft(search.draftId) && <Navigate href="/" />}
     >
       {(draft) => <DraftPage draft={draft} />}
     </Show>

@@ -2030,6 +2030,62 @@ test("the inbox moves a session to Needs attention once auto-accept gives up on 
   expect(reply.attempts()).toBe(3)
 })
 
+// A stored draft tab whose draft was cleaned up during restore makes DraftRoute's ready gate fall back to
+// Navigate "/" while a deep link is opening a session route. The session route must win: the session content
+// mounts, and the Home welcome never renders on top of it.
+test("a restored draft that resolves away keeps the deep-linked session route on top of Home", async ({ page }) => {
+  const directory = "C:/AI Craft/DeepLinkHome"
+  const draftID = "draft_deeplink_gone"
+  const target = { id: "ses_deeplink_target", title: "Deep link target" }
+
+  const sessions = [
+    target,
+    ...Array.from({ length: 8 }, (_, index) => ({
+      id: `ses_deeplink_restored_${index}`,
+      title: `Restored session ${index}`,
+      directory,
+    })),
+  ]
+
+  await mockWorkspace(page, {
+    name: "DeepLinkHome",
+    sessions,
+    seed: {
+      tabs: [{ draft: draftID, directory }, ...sessions.map((item) => item.id)],
+    },
+  })
+
+  await page.goto(sessionHref(target.id))
+
+  // The session route wins: it mounts, the URL stays, and the Home welcome never shows above it.
+  await expectPath(page, sessionHref(target.id))
+  await expect(page.locator(`[data-slot="replica-row"][data-session-id="${target.id}"]`)).toBeVisible()
+  await expect(
+    page.getByText("Start a conversation in any project, or just describe what you want to build."),
+  ).toHaveCount(0)
+  await expect(page.locator('[data-component="new-session"]')).toHaveCount(0)
+})
+
+// A cold deep link whose session list and metadata requests are still pending keeps the route resolving
+// with no cached session. The panel must show the timeline's skeleton, not an empty area, until the data
+// arrives.
+test("a deep-linked session that is slow to load shows a skeleton until its data arrives", async ({ page }) => {
+  const target = { id: "ses_cold_pending", title: "Cold pending" }
+
+  await mockWorkspace(page, { name: "ColdPending", sessions: [target] })
+  const hold = await holdRoute(page, (url) => /^\/api\/session(\/|$)/.test(url.pathname), { method: "GET" })
+
+  await page.goto(sessionHref(target.id))
+
+  await expect(page.locator('[data-component="session-pending-skeleton"]')).toBeVisible()
+
+  await hold.release()
+
+  await expect(page.locator('[data-component="session-pending-skeleton"]')).toHaveCount(0)
+  await expect(page.locator('[data-component="composer-editor"]')).toBeEditable()
+  await expectPath(page, sessionHref(target.id))
+})
+
 // Auto-accept is on and every reply to session B's permission fails. The first reply waits for `release()`; then it
 // and both retries fail, and auto-accept gives up.
 async function mockGaveUpPermission(page: Page, tabLayout: "horizontal" | "inbox") {

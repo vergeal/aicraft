@@ -37,6 +37,12 @@ export interface SessionRequest {
 export interface SessionContext extends SessionRequest {
   readonly agent: Agent.ID
   tools: Record<string, { description: string; input: JsonSchema.JsonSchema }>
+  /**
+   * Context a hook injects outside the system prefix, such as a memory block appended to the tail
+   * of the last user message. The Step reports each entry as an injected source so the transcript
+   * can show it; entries must be byte-stable within a turn so per-step diffs stay silent.
+   */
+  injected?: Array<{ readonly key: string; readonly text: string }>
 }
 
 export interface SessionCompactionResult {

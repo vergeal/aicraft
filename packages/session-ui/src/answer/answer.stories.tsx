@@ -378,6 +378,53 @@ export const InjectedContextMultiple = {
   ),
 }
 
+// The memory subsystem reaches a turn in three ways: the retrieval block the subsystem injects
+// on the Step, and the model's own search and save calls, each with its own row.
+const memoryFlow: SessionMessageInfo[] = [
+  { id: "msg_user_mem", type: "user", text: "以后回复一律用中文。", time: { created: TIME } },
+  {
+    id: "msg_mem_step",
+    type: "assistant",
+    agent: "build",
+    model: { id: "claude-sonnet-4", providerID: "anthropic" },
+    content: [
+      tool("tool_mem_search", "memory_search", { query: "回复语言 偏好" }, "completed"),
+      {
+        type: "tool",
+        id: "tool_mem_save",
+        name: "memory_save",
+        state: {
+          status: "completed",
+          input: { text: "回复一律用中文", scope: "global" },
+          content: [{ type: "text", text: "已保存到全局记忆（id：mem_9f2c）：回复一律用中文" }],
+          metadata: {},
+        },
+        time: { created: TIME + 2_000, completed: TIME + 3_000 },
+      },
+      { type: "text", text: "好的，已记住：以后一律用中文回复。" },
+    ],
+    time: { created: TIME + 1_000, completed: TIME + 4_000 },
+    metadata: {
+      context: [
+        {
+          key: "memory",
+          chars: 96,
+          text: "## Relevant memory (retrieved for this turn)\nMay be out of date; where it conflicts with the current request, the current request wins.\n- 用户使用中文交流 (tags: 偏好)",
+        },
+      ],
+    },
+  },
+  idle("msg_idle_mem", TIME + 4_500),
+]
+
+export const MemoryFlow = {
+  render: () => (
+    <div class="h-dvh">
+      <AnswerPage messages={() => memoryFlow} />
+    </div>
+  ),
+}
+
 // An @skill mention's body is injected into the prompt on the server; the bubble still names what was loaded so the
 // reader can tell a live mention from an "@word" the writer simply typed.
 const skillMention: SessionMessageInfo[] = [

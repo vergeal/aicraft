@@ -134,6 +134,7 @@ const toolInput = Schema.decodeUnknownSync(
     content: optional(Schema.String),
     id: optional(Schema.String),
     name: optional(Schema.String),
+    text: optional(Schema.String),
     questions: optional(Schema.Array(Schema.Unknown)),
   }).pipe(Schema.catchDecoding(() => Effect.succeed(Option.some({})))),
 )
@@ -2676,6 +2677,78 @@ ToolRegistry.register({
         </Show>
       </BasicTool>
     )
+  },
+})
+
+/** The memory tools share one row shape: the action verb, what it targeted, and the localized result below. */
+function MemoryTool(props: ToolProps & { title: string; subtitle?: string }) {
+  const i18n = useI18n()
+
+  return (
+    <BasicTool
+      {...props}
+      icon="brain"
+      hasContent={!!props.output}
+      trigger={{ title: props.title, subtitle: props.subtitle }}
+    >
+      <Show when={props.output}>
+        <div
+          data-component="tool-output"
+          data-scrollable
+          tabIndex={0}
+          role="region"
+          aria-label={i18n.t("ui.scrollView.ariaLabel")}
+        >
+          <Markdown text={props.output!} />
+        </div>
+      </Show>
+    </BasicTool>
+  )
+}
+
+ToolRegistry.register({
+  name: "memory_search",
+  render(props) {
+    const i18n = useI18n()
+
+    return <MemoryTool {...props} title={i18n.t("ui.tool.memorySearch")} subtitle={toolInput(props.input).query} />
+  },
+})
+
+ToolRegistry.register({
+  name: "memory_save",
+  render(props) {
+    const i18n = useI18n()
+
+    return <MemoryTool {...props} title={i18n.t("ui.tool.memorySave")} subtitle={toolInput(props.input).text} />
+  },
+})
+
+ToolRegistry.register({
+  name: "memory_update",
+  render(props) {
+    const i18n = useI18n()
+    const input = toolInput(props.input)
+
+    return <MemoryTool {...props} title={i18n.t("ui.tool.memoryUpdate")} subtitle={input.text ?? input.id} />
+  },
+})
+
+ToolRegistry.register({
+  name: "memory_forget",
+  render(props) {
+    const i18n = useI18n()
+
+    return <MemoryTool {...props} title={i18n.t("ui.tool.memoryForget")} />
+  },
+})
+
+ToolRegistry.register({
+  name: "memory_list",
+  render(props) {
+    const i18n = useI18n()
+
+    return <MemoryTool {...props} title={i18n.t("ui.tool.memoryList")} />
   },
 })
 

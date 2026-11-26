@@ -289,6 +289,8 @@ const layer = Layer.effect(
               options: prepared.options,
               retry: prepared.retry,
               executeTool: prepared.executeTool,
+              // Keep the hook's injection report, but not the event's full message copy.
+              injected: prepared.event.injected,
             })),
           )
         // Advertised name to the mark the tool itself declares, so the part carries its icon with no UI table.
@@ -303,7 +305,10 @@ const layer = Layer.effect(
           assistantMessageID,
           agent: loaded.agent.id,
           model: loaded.model,
-          context: SessionModelRequest.contextSources(prepared.request.system),
+          context: [
+            ...SessionModelRequest.contextSources(prepared.request.system),
+            ...SessionModelRequest.hookContextSources(prepared.injected),
+          ],
           toolIcon: (name) => iconByName.get(name),
           prepared: {
             ...prepared,

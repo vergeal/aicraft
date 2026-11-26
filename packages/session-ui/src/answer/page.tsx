@@ -2239,6 +2239,7 @@ const CONTEXT_LABELS: Record<string, UiI18nOrdinaryKey> = {
   system: "ui.answer.context.system",
   "core/project": "ui.answer.context.project",
   session: "ui.answer.context.session",
+  memory: "ui.answer.context.memory",
   "core/language": "ui.answer.context.language",
   "core/date": "ui.answer.context.date",
   "core/environment": "ui.answer.context.environment",

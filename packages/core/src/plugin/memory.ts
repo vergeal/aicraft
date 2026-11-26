@@ -320,6 +320,9 @@ export const Plugin = define({
           turns.set(sessionKey, { key, block })
         }
         if (block === "") return
+        // Report the block as a Step-injected source: the same bytes ride every step of the turn,
+        // so the transcript shows one injection row per turn without touching the cached prefix.
+        event.injected = [...(event.injected ?? []), { key: "memory", text: block }]
         event.messages = event.messages.map((message) =>
           message === last && message.role === "user"
             ? new UserMessage({ ...message, content: [...message.content, { type: "text", text: block }] })

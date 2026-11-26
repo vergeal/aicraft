@@ -197,6 +197,12 @@ export const contextSources = (system: ReadonlyArray<SystemPart>): Array<Context
     return sources ? [...sources] : []
   })
 
+/** Context a hook injected outside the system prefix, reported by the hook event for the transcript. */
+export const hookContextSources = (
+  injected: ReadonlyArray<{ readonly key: string; readonly text: string }> | undefined,
+): Array<ContextSource> =>
+  (injected ?? []).map((entry) => ({ key: entry.key, chars: entry.text.length, text: entry.text }))
+
 const sessionBlock = (prompt: string) =>
   [
     "# Session instructions",

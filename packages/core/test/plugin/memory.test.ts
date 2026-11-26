@@ -136,12 +136,15 @@ describe("memory plugin injection", () => {
       expect(block).toContain("用短横线分隔")
       expect(block).toContain("Relevant memory")
       expect(first.system.map((part) => part.text)).toEqual([PROTOCOL_SHORT])
+      // The block is reported as a Step-injected source, so the timeline shows one injection row.
+      expect(first.injected).toEqual([{ key: "memory", text: block }])
 
       // Step two reuses the turn result: identical bytes, so the provider cache prefix holds.
       const second = context(session.id)
       yield* hooks.trigger("session", "context", second)
       expect(injectedBlock(second)).toBe(block)
       expect(second.system).toHaveLength(1)
+      expect(second.injected).toEqual([{ key: "memory", text: block }])
 
       // memory_log records the one real retrieval, not the cached step reuse.
       const { db } = yield* Database.Service
@@ -155,6 +158,7 @@ describe("memory plugin injection", () => {
       quiet.messages[1] = new UserMessage({ role: "user", content: [{ type: "text", text: "今天天气怎么样" }] })
       yield* hooks.trigger("session", "context", quiet)
       expect(injectedBlock(quiet)).toBe("")
+      expect(quiet.injected).toBeUndefined()
     }),
   )
 })

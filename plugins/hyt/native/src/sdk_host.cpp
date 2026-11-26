@@ -1030,7 +1030,10 @@ void SdkHost::handleReceive(void* ecMessage, bool offline) {
   emit("event.onMessage", messageToJson(message));
 
   // 插件自带桥接收到的消息也写进本地库，界面在客户端不开时也能看到；读取回执是通知类，不进聊天列表。
-  if (message.msgType != Msg_Type_ReadNotify && message.msgType != kMsgTypeReadVoiceNotify) {
+  // 输入状态（Msg_Type_UserState，正文 0/1）同样不落库：它是一次性信号，不是消息，
+  // 记下来只会把「正在发送中」的标记堆进聊天库。事件照常透出，界面需要时按事件处理。
+  if (message.msgType != Msg_Type_ReadNotify && message.msgType != kMsgTypeReadVoiceNotify &&
+      message.msgType != Msg_Type_UserState) {
     writeMessage(message, true, false);
   }
 

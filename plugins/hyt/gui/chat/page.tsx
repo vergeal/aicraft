@@ -1,5 +1,6 @@
 import type { Context, IpcClient } from "@aicraft/aix/gui"
-import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
+import { GroupMark, avatarOf } from "./avatar.js"
 import { Blank } from "./blank.js"
 import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"

@@ -1018,6 +1018,11 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
 
   if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
 
+  // A wake banner follows its answer on the footer's own line: the reply's action row keeps a 28px
+  // strip reserved for the hover buttons, so space above the banner would double-count it whenever
+  // the buttons are hidden, and crowd them out whenever they are shown.
+  if (isWakeBanner(snapshot, current) && isResponse(snapshot, previous)) return 0
+
   if (current.kind === "fold") return 12
 
   if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
@@ -1027,6 +1032,12 @@ function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index:
 
 function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
   return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
+}
+
+function isWakeBanner(snapshot: Snapshot, entry: TimelineEntry) {
+  const payload = entry.kind === "node" ? snapshot.nodes.get(entry.key)?.payload : undefined
+
+  return payload?.kind === "notice" && payload.wake !== undefined
 }
 
 /** The row a repeat run folds from: its first member names the run and carries its icon. */
@@ -2188,7 +2199,7 @@ function WakeNoticeRow(props: {
     <div
       data-slot="answer-wake"
       data-outcome={props.wake.outcome}
-      class="w-full min-w-0 rounded-[12px] border-[0.5px] border-v2-border-border-base px-3 py-1"
+      class="w-full min-w-0 rounded-[16px] border-[0.5px] border-v2-border-border-base px-4 py-[9px]"
       style={{ background: "var(--answer-surface)" }}
     >
       <DisclosureRow
@@ -2201,11 +2212,7 @@ function WakeNoticeRow(props: {
         leading={<FlowIcon name={props.wake.source === "shell" ? "answer-console" : "answer-subagent"} />}
         onToggle={() => props.onToggleRow?.(!expanded())}
       >
-        <div
-          data-slot="answer-wake-body"
-          class="ms-[30px] mt-1 flex flex-col gap-2 rounded-[12px] px-[22px] pt-[10px] pb-[12px]"
-          style={{ background: "var(--answer-surface)" }}
-        >
+        <div data-slot="answer-wake-body" class="ms-[24px] mt-1 flex flex-col gap-2 border-t-[0.5px] border-v2-border-border-muted pt-2">
           <Show when={props.wake.command}>
             {(command) => (
               <>

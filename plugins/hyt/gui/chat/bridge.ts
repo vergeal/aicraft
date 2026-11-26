@@ -1,8 +1,8 @@
 import { connectBridge } from "../../src/bridge/client.js"
 import { ensureLogin, sendTextEnsuringLogin } from "../../src/bridge/native.js"
 import type { BridgeCredentials } from "../../src/bridge/native.js"
-import { METHODS, isRecord, parseDownload, parseMarkRead, parseMembers, readEndpoint } from "../../src/bridge/protocol.js"
-import type { DownloadResult, MarkReadResult, MembersResult } from "../../src/bridge/protocol.js"
+import { METHODS, isRecord, parseDownload, parseMarkRead, parseMembers, parseRecall, readEndpoint } from "../../src/bridge/protocol.js"
+import type { DownloadResult, MarkReadResult, MembersResult, RecallResult } from "../../src/bridge/protocol.js"
 import { createSupervisor } from "../../src/bridge/supervisor.js"
 import type { BridgeSupervisor } from "../../src/bridge/supervisor.js"
 
@@ -49,6 +49,8 @@ export interface MessageSender {
   members(groupId: string): Promise<MembersResult>
   /** 把「我已经读过这条」上报给服务端。 */
   markRead(msgId: string, group: boolean): Promise<MarkReadResult>
+  /** 撤回自己发出的一条消息；时间窗由服务端判定，拒绝原因在 `error` 里。 */
+  recall(msgId: string): Promise<RecallResult>
   /**
    * 按消息 id 让服务端把文件下载到本地收件目录。
    * 客户端离线时收到的图片/文件没有本地副本，打开时靠它补下载。
@@ -139,6 +141,15 @@ export function createSender(options: SenderOptions): MessageSender {
       try {
         const client = await channel()
         return parseMarkRead(await client.request(METHODS.markRead, { msgId, group }), msgId)
+      } catch (cause) {
+        return { ok: false, msgId, error: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async recall(msgId) {
+      try {
+        const client = await channel()
+        return parseRecall(await client.request(METHODS.recall, { msgId, waitMs: 8_000 }), msgId)
       } catch (cause) {
         return { ok: false, msgId, error: cause instanceof Error ? cause.message : String(cause) }
       }

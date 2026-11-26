@@ -474,6 +474,23 @@ Value rpcMarkRead(const Value& params) {
   return v;
 }
 
+Value rpcRecallMessage(const Value& params) {
+  std::string msgId = paramString(params, "msgId");
+  int waitMs = paramInt(params, "waitMs", 5000);
+  Value v = Value::object();
+  if (msgId.empty()) {
+    v.set("ok", Value::boolean(false));
+    v.set("error", Value::string("缺少 msgId"));
+    return v;
+  }
+  // 撤回时间窗交给服务端判定：超窗等原因都在 reason 里，桥接不本地拦。
+  hyt::RecallResult result = hyt::SdkHost::instance().recallMessage(msgId, waitMs);
+  v.set("ok", Value::boolean(result.ok));
+  v.set("msgId", Value::string(result.msgId));
+  v.set("error", Value::string(result.error));
+  return v;
+}
+
 Value rpcHistory(const Value& params) {
   std::string sessionId = paramString(params, "sessionId");
   std::string beforeId = paramString(params, "beforeId");
@@ -654,6 +671,8 @@ void handleRequest(hyt_socket fd, const Value& req) {
     respond(fd, id, rpcMembers(params));
   } else if (method == "im.markRead") {
     respond(fd, id, rpcMarkRead(params));
+  } else if (method == "im.recall") {
+    respond(fd, id, rpcRecallMessage(params));
   } else if (method == "im.history") {
     respond(fd, id, rpcHistory(params));
   } else if (method == "im.sendMessage") {

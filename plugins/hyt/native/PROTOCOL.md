@@ -136,6 +136,17 @@
 
 上报失败时 `ok=false`、`error` 说明原因。这个接口只上报当前账号自己的已读，不改任何人的人员名单。
 
+### im.recall
+
+参数 `{msgId, waitMs?: number}`（默认 5000）。撤回自己发出的一条消息（`WithDrawMessage`）。
+可撤回的时间窗由服务端判定：桥接不做本地时限检查，超窗等拒绝原因原样进 `error`。
+
+```json
+{ "ok": true, "msgId": "...", "error": "" }
+```
+
+成功后服务端会向会话广播一条撤回通知消息（MsgType 25），本地库随消息推送自然更新。
+
 ### im.history
 
 参数 `{sessionId, beforeId?, limit?}`（默认 30，上限 200）。按 `Id` 倒序分页，

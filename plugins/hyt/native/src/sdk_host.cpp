@@ -193,6 +193,9 @@ void installCallbacks() {
   gMessageCallbacks.pfonReadMessage = [](unsigned int key, int reason) {
     SdkHost::instance().handleReadResult(key, reason);
   };
+  gMessageCallbacks.pfonWithDrawMessage = [](unsigned int key, int reason) {
+    SdkHost::instance().handleWithDrawResult(key, reason);
+  };
   gMessageCallbacks.pfonReceiveGroupNoticeMessage =
       [](const ECGroupNoticeMessage* notice) {
         nhjson::Value p = nhjson::Value::object();
@@ -811,6 +814,54 @@ ReadResult SdkHost::markRead(const std::string& msgId, bool group, int waitMs) {
 #endif
 }
 
+RecallResult SdkHost::recallMessage(const std::string& msgId, int waitMs) {
+  RecallResult result;
+  result.msgId = msgId;
+#ifdef HYT_WITH_EC_SDK
+  if (!available_) {
+    result.error = unavailableReason_;
+    return result;
+  }
+  if (!connected()) {
+    result.error = "未登录或未连接";
+    return result;
+  }
+  if (msgId.empty()) {
+    result.error = "缺少 msgId";
+    return result;
+  }
+  auto wait = std::make_shared<RecallWait>();
+  unsigned int matchKey = 0;
+  // type 是冗余字段；可撤回时间窗不在这里判断，服务端到点自然拒绝。
+  int ret = WithDrawMessage(&matchKey, msgId.c_str(), 0);
+  if (ret != 0) {
+    result.error = "提交撤回失败（" + std::to_string(ret) + "）";
+    return result;
+  }
+  {
+    std::lock_guard<std::mutex> lk(pendingMutex_);
+    pendingRecalls_[matchKey] = wait;
+  }
+
+  std::unique_lock<std::mutex> lk(wait->mutex);
+  int timeout = waitMs > 0 ? waitMs : 5000;
+  if (!wait->cv.wait_for(lk, std::chrono::milliseconds(timeout),
+                         [&wait] { return wait->done; })) {
+    result.error = "等待撤回结果超时";
+    return result;
+  }
+  result.ok = wait->reason == EC_Response_Success;
+  if (!result.ok) {
+    result.error = "服务端拒绝了撤回（reason=" + std::to_string(wait->reason) + "）";
+  }
+  return result;
+#else
+  (void)waitMs;
+  result.error = unavailableReason_;
+  return result;
+#endif
+}
+
 DownloadResult SdkHost::download(const StoredMessage& message,
                                  const std::string& account, int waitMs) {
   DownloadResult result;
@@ -1263,6 +1314,25 @@ void SdkHost::handleReadResult(unsigned int matchKey, int reason) {
     if (it != pendingReads_.end()) {
       wait = it->second;
       pendingReads_.erase(it);
+    }
+  }
+  if (!wait) return;
+  {
+    std::lock_guard<std::mutex> lk(wait->mutex);
+    wait->done = true;
+    wait->reason = reason;
+  }
+  wait->cv.notify_all();
+}
+
+void SdkHost::handleWithDrawResult(unsigned int matchKey, int reason) {
+  std::shared_ptr<RecallWait> wait;
+  {
+    std::lock_guard<std::mutex> lk(pendingMutex_);
+    auto it = pendingRecalls_.find(matchKey);
+    if (it != pendingRecalls_.end()) {
+      wait = it->second;
+      pendingRecalls_.erase(it);
     }
   }
   if (!wait) return;

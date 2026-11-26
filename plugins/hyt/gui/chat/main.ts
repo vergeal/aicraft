@@ -666,6 +666,20 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       return { ok: true, reason: recorded.recorded ? "" : `已发送，但未写入本地历史：${recorded.error}` }
     },
 
+    async recall(input) {
+      const msgId = input.msgId.trim()
+      if (msgId.length === 0) return { ok: false, reason: "这条消息没有可撤回的消息 id" }
+      // 时间窗交给服务端：这里不判断「发了多久」，拒绝原因就是服务端的判定结果。
+      const result = await sender.recall(msgId)
+      if (!result.ok) return { ok: false, reason: result.error || "撤回没有成功" }
+      // 撤回通知走服务端广播，通常几百毫秒内落库；立刻刷一次，慢到的下一次轮询补上。
+      await serial(async () => {
+        await load(true)
+        report()
+      })
+      return { ok: true, reason: "" }
+    },
+
     async login(input) {
       const userName = input.userName.trim()
       const result = await sender.login(userName, input.password)

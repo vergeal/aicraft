@@ -304,6 +304,11 @@ export const ChatIpc = Ipc.define({
       input: Schema.Struct({ sessionId: Schema.String, text: Schema.String, at: Schema.Array(Schema.String) }),
       output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
     },
+    /** 撤回自己发出的一条消息；可撤回时间窗由服务端判定，超窗等原因写进 `reason`。 */
+    recall: {
+      input: Schema.Struct({ msgId: Schema.String }),
+      output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
+    },
     /** 用账号密码登录消息通道，成功后把凭据存进插件数据目录。 */
     login: {
       input: Schema.Struct({ userName: Schema.String, password: Schema.String }),

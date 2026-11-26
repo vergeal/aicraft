@@ -438,6 +438,9 @@ export function ChatPage(props: {
       entries.push({ label: text(ctx, "hyt.chat.msg.enlarge"), onSelect: () => openImage(message.filePath) })
     if (message.filePath.length > 0)
       entries.push({ label: text(ctx, "hyt.chat.msg.reveal"), onSelect: () => reveal(message.filePath) })
+    // 自己发的消息给撤回入口；时间窗不在这里判断，超窗由服务端拒绝并给出原因。
+    if (message.outgoing && message.kind !== "recall" && message.kind !== "notice" && message.msgId.length > 0)
+      entries.push({ label: text(ctx, "hyt.chat.menu.message.recall"), onSelect: () => void recall(message) })
     entries.push({ label: text(ctx, "hyt.chat.menu.message.copySender"), onSelect: () => copy(message.sender) })
     entries.push({
       label: text(ctx, "hyt.chat.menu.message.profile"),
@@ -491,6 +494,22 @@ export function ChatPage(props: {
       })
       .catch(fail)
       .then(() => setSending(false))
+  }
+
+  const recall = (message: MessageRow) => {
+    void props.client
+      .recall({ msgId: message.msgId })
+      .then((result) => {
+        ctx.toast.show(
+          result.ok
+            ? { variant: "success", title: text(ctx, "hyt.chat.recall.done") }
+            : {
+                variant: "error",
+                title: text(ctx, "hyt.chat.recall.failed", { reason: result.reason || text(ctx, "hyt.chat.recall.unknown") }),
+              },
+        )
+      })
+      .catch(fail)
   }
 
   const mediaCache = new Map<string, Promise<string>>()

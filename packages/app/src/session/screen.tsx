@@ -49,7 +49,6 @@ import { SessionHeaderDrag, windowDragEnabled } from "./header/drag-area"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useServer } from "@/runtime/server/current"
 import { createTimelineCache } from "./timeline/cache"
-import { useSelectedSessionKey } from "./route-view-cache"
 import { createPanelMotion, holdLandingWidth, panelOpacity, setPanelResizing } from "@/shell/panel-motion"
 
 export function SessionScreenView(props: { session: SessionModel }) {
@@ -277,8 +276,6 @@ function SessionScreenContent(props: {
     return () => setHeaderGap((current) => (current === gap ? undefined : current))
   }
 
-  const selectedSessionKey = useSelectedSessionKey()
-
   const timelineView = createTimelineCache(
     session,
     (source, active) => {
@@ -330,9 +327,7 @@ function SessionScreenContent(props: {
         </PluginLinks>
       )
     },
-    // The route view cache swaps the selected session through this signal: a view that is mounted again has
-    // to know it stopped being the one on screen, or its landing never re-arms after the DOM moves back in.
-    () => conversationVisible() && messagesReady() && selectedSessionKey() === untrack(session.identity.sessionKey),
+    () => conversationVisible() && messagesReady(),
     (sessionID) => server.ctx.data.session.message.list(sessionID),
   )
 

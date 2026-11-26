@@ -13,6 +13,7 @@ import { HttpServer } from "effect/http"
 import { NetAddress } from "effect/net"
 import { Env } from "./env"
 import { PortOwner } from "./services/port-owner"
+import { ServerLock } from "./server-lock"
 import { ServiceConfig } from "./services/service-config"
 import { RetainedImage } from "./services/retained-image"
 import { ServiceRegistration } from "./services/service-registration"
@@ -96,6 +97,19 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
             : randomBytes(32).toString("base64url")
       if (!password) return yield* Effect.fail(new Error("Missing server password"))
       const instanceID = randomUUID()
+      const database = databasePath(global.data)
+      // One live server per database, isolated exactly like the SQLite files themselves:
+      // a second server for this environment would double-open the database and diverge
+      // from the first one's in-memory state. Service-mode losers retire with the clean
+      // exit the port election already promises the client's ensure; a manual serve or
+      // stdio server fails loudly so the operator sees which pid holds the lease.
+      const lease = ServerLock.acquire({ database, instanceID })
+      if (!lease.ok) {
+        if (options.mode !== "service") return yield* Effect.die(lease.busy)
+        process.stderr.write(`A server already holds this environment; another process is serving ${database}.\n`)
+        return
+      }
+      yield* Effect.addFinalizer(() => lease.release)
       const transform = yield* WebUi.handler()
       const remote = { urls: [] as ReadonlyArray<string> }
       const launch = start(
@@ -112,7 +126,7 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
           pty: { handoff },
           simulation: truthy(process.env.AICRAFT_SIMULATE),
           database: {
-            path: databasePath(global.data),
+            path: database,
           },
           models: {
             url: process.env.AICRAFT_MODELS_URL,

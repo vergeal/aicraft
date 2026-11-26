@@ -3,6 +3,7 @@ import type { useLanguage } from "@/runtime/i18n/language"
 import type { LocalProject } from "@/shell/state/layout"
 import { displayName } from "@aicraft/ui/project-avatar"
 import { clientSettings, projectSettings, serverSettings } from "./search-catalog"
+import { isRootTab } from "./route"
 import { pageIcons, pageLabels } from "./pages"
 import type { SettingsSearchResult } from "./search-results"
 import type { SettingsPluginTab, SettingsHostView, SettingsServerTab, SettingsView } from "./surface"
@@ -120,6 +121,9 @@ export function settingsSearchIndex(input: {
         ),
       )
     }
+
+    // A page under a host tab's id routes to the host's page, so its own entries are not indexed either.
+    if (isRootTab(setting.id)) return
 
     // SAFETY: a SettingsPage without a host page is a plugin tab under its id, as `createSettingsPages().tabs` lists.
     const tab = setting.id as SettingsPluginTab

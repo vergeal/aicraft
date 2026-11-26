@@ -25,7 +25,7 @@ import { createImagePreview } from "../components/image-preview"
 import { localImagePath } from "../components/markdown-image"
 import { DataContext } from "../context/data"
 import { useMarkdown } from "../context/markdown"
-import { projectTimeline } from "./project"
+import { flowGapPx, projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolImagePath, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
   createRestoreState,
@@ -1003,43 +1003,6 @@ function runningElapsed(turn: TimelineTurn | undefined, now: number) {
  * The leading gap of one row in pixels. It is padding inside the row box rather than a margin, so the
  * measured border box already covers it and the window offsets stay exact.
  */
-function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index: number) {
-  if (index <= 0) return 0
-
-  const current = entries[index]
-  const previous = entries[index - 1]
-
-  if (!current || !previous) return 0
-
-  // The answer sits 50px below the bubble. The prompt's action line is the row's own 24px tail (20px line plus a
-  // 4px gap), so the answer contributes only the remaining 26px; making this gap 50 would double-count the time
-  // line. The gap above the prompt stays wider than the rhythm because nothing sits in it.
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 26
-
-  if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
-
-  // A wake banner follows its answer on the footer's own line: the reply's action row keeps a 28px
-  // strip reserved for the hover buttons, so space above the banner would double-count it whenever
-  // the buttons are hidden, and crowd them out whenever they are shown.
-  if (isWakeBanner(snapshot, current) && isResponse(snapshot, previous)) return 0
-
-  if (current.kind === "fold") return 12
-
-  if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
-
-  return 4
-}
-
-function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
-  return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
-}
-
-function isWakeBanner(snapshot: Snapshot, entry: TimelineEntry) {
-  const payload = entry.kind === "node" ? snapshot.nodes.get(entry.key)?.payload : undefined
-
-  return payload?.kind === "notice" && payload.wake !== undefined
-}
-
 /** The row a repeat run folds from: its first member names the run and carries its icon. */
 function repeatLabel(i18n: ReturnType<typeof useI18n>, node: TimelineNode | undefined) {
   if (node?.payload.kind === "tool") return i18n.t(TOOL_ACTIONS[actionKey(node.payload.tool.name)])

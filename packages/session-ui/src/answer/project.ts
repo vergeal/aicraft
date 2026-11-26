@@ -738,8 +738,9 @@ export function projectTimeline(
 
       if (node.payload.kind === "input") {
         // A steered prompt cuts the process at this point: the work it set off belongs under the bubble, not above
-        // it, or the reader sees the run still busy with the old task after their own words.
-        if (node !== firstInput) {
+        // it, or the reader sees the run still busy with the old task after their own words. A prompt delivered
+        // into a wake-opened segment cuts too: it arrived after the work the report woke, above the reply it asked.
+        if (node !== firstInput || draft.nodes[0] !== node) {
           flush()
           splits.set(node.key, turnChildren.length)
         }
@@ -806,7 +807,12 @@ export function projectTimeline(
       )
     }
 
-    if (firstInput) entries.push({ kind: "node", key: firstInput.key })
+    // A plain turn opens on its prompt; a wake-anchored segment opens on its banner, and a prompt delivered
+    // into it joins the cut list at the spot delivery put it: under the woken work, above the reply it asked.
+    const leading = draft.nodes[0]
+    const opensWithPrompt = leading?.payload.kind === "input"
+
+    if (leading && opensWithPrompt) entries.push({ kind: "node", key: leading.key })
 
     for (const key of wakeKeys) entries.push({ kind: "node", key })
 
@@ -815,7 +821,7 @@ export function projectTimeline(
     // past the streaming reply, below everything the run has done so far.
     // The run takes a prompt up as soon as a row of its own follows it, reply text or not: waiting for the first
     // words would leave the work it set off reading as the task before the prompt.
-    const steers = inputs.slice(1)
+    const steers = opensWithPrompt ? inputs.slice(1) : inputs
     const lastWork = draft.nodes.findLastIndex((node) => node.payload.kind !== "input")
     const taken = steers.filter((steer) => draft.nodes.indexOf(steer) < lastWork)
     const waiting = steers.filter((steer) => draft.nodes.indexOf(steer) >= lastWork)
@@ -1069,4 +1075,43 @@ function reasoningTail(text: string) {
   const blocks = text.split(/\n\s*\n/).filter((block) => block.trim())
 
   return blocks.at(-1)?.split("\n").find((line) => line.trim())?.replace(/^#+\s*/, "").trim()
+}
+
+/** The vertical space, in px, between entry `index` and the one above it in the answer flow. */
+export function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index: number) {
+  if (index <= 0) return 0
+
+  const current = entries[index]
+  const previous = entries[index - 1]
+
+  if (!current || !previous) return 0
+
+  // The answer sits 50px below the bubble. The prompt's action line is the row's own 24px tail (20px line plus a
+  // 4px gap), so the answer contributes only the remaining 26px; making this gap 50 would double-count the time
+  // line. The gap above the prompt stays wider than the rhythm because nothing sits in it.
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 26
+
+  if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
+
+  // A wake banner follows its answer on the footer's own line: the reply's action row keeps a 28px
+  // strip reserved for the hover buttons, so space above the banner would double-count it whenever
+  // the buttons are hidden, and crowd them out whenever they are shown.
+  if (isWakeBanner(snapshot, current) && isResponse(snapshot, previous)) return 0
+
+  if (current.kind === "fold") return 12
+
+  if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
+
+  return 4
+}
+
+function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
+  return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
+}
+
+/** The flat segment-opening report row, as opposed to a notice riding inside a fold. */
+export function isWakeBanner(snapshot: Snapshot, entry: TimelineEntry) {
+  const payload = entry.kind === "node" ? snapshot.nodes.get(entry.key)?.payload : undefined
+
+  return payload?.kind === "notice" && payload.wake !== undefined
 }

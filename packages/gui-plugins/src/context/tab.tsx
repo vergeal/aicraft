@@ -20,6 +20,7 @@ import { catalogModel, syncCatalog } from "./catalog"
 import { createCNY, createCostAmount, createUSD, flashCostBreakdown, flashCostCNY, flashPrice } from "./cost"
 import { fetchSessionExport, sessionExportFilename } from "./export"
 import { createSessionContextFormatter } from "./format"
+import { CompactionChart } from "./compaction-chart"
 
 /** A finished step carries the usage the ledger prices; steps still streaming are left out. */
 type Assistant = SessionMessageAssistant & { tokens: NonNullable<SessionMessageAssistant["tokens"]> }
@@ -498,6 +499,15 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       }
     }
 
+    // The loaded transcript page often starts after the system messages, so their text is missing here. Every
+    // assistant step echoes the system prompt it sent, and that size is what the window actually holds.
+    const sources = last.metadata?.context
+    const sent = Array.isArray(sources)
+      ? sources.reduce((sum: number, source) => sum + (typeof source === "object" && source !== null && "chars" in source ? Number((source as { chars: unknown }).chars) || 0 : 0), 0)
+      : 0
+
+    if (sent > 0) weight.system = sent
+
     const total = weight.system + weight.history + weight.tools
 
     if (!total) return
@@ -702,16 +712,26 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     ctx.tabs.open({ server: props.session.server.id, id }, { focus: true })
   }
 
-  // The occupancy bar splits into the cache hits and the fresh input that make up the prompt side.
+  // The window as the budget the composer card draws: the prompt takes what it takes (split by the same character
+  // weights), the reply keeps the model's output limit, and everything left is the buffer requests stay under.
   const barSegments = createMemo(() => {
     const current = context()
 
     if (!current?.limit) return
 
+    const prompt = Math.min(current.used, current.limit)
+    const output = Math.min(current.tokens.output, current.limit - prompt)
+    const weights = composition()
+
+    const part = (key: "System" | "History" | "Tools") =>
+      weights?.find((item) => item.key === `window.composition${key}`)?.tokens ?? 0
+
     return {
-      cache: (current.cache / current.limit) * 100,
-      cacheWrite: (current.cacheWrite / current.limit) * 100,
-      input: (current.input / current.limit) * 100,
+      system: (part("System") / current.limit) * 100,
+      history: (part("History") / current.limit) * 100,
+      toolResults: (part("Tools") / current.limit) * 100,
+      output: (output / current.limit) * 100,
+      safety: ((current.limit - prompt - output) / current.limit) * 100,
       level: current.pct !== null && current.pct >= 90 ? "danger" : current.pct !== null && current.pct >= 70 ? "warn" : "normal",
     }
   })
@@ -847,38 +867,43 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </div>
           </div>
 
-          <div class="flex h-2 overflow-hidden rounded bg-v2-background-bg-layer-02" aria-hidden="true">
-            <div
-              class="h-full"
-              style={{ width: `${barSegments()?.cache ?? 0}%`, background: "var(--v2-icon-icon-faint)" }}
-            />
-            <div
-              class="h-full"
-              style={{ width: `${barSegments()?.cacheWrite ?? 0}%`, background: "var(--v2-icon-icon-muted)" }}
-            />
+          <div class="flex h-2 gap-[2px] overflow-hidden rounded-full" aria-hidden="true">
+            <div class="h-full" style={{ width: `${barSegments()?.system ?? 0}%`, background: "var(--v2-blue-600)" }} />
             <div
               class="h-full"
               style={{
-                width: `${barSegments()?.input ?? 0}%`,
-                background: levelPaint().bar,
-                "min-width": barSegments()?.input ? "2px" : undefined,
+                width: `${barSegments()?.history ?? 0}%`,
+                background: "color-mix(in oklab, var(--v2-green-600) 55%, var(--v2-cyan-700))",
               }}
             />
+            <div class="h-full" style={{ width: `${barSegments()?.toolResults ?? 0}%`, background: "var(--v2-orange-500)" }} />
+            <div class="h-full" style={{ width: `${barSegments()?.output ?? 0}%`, background: "var(--v2-purple-500)" }} />
+            <div class="h-full" style={{ width: `${barSegments()?.safety ?? 0}%`, background: "var(--v2-grey-700)" }} />
           </div>
 
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-v2-text-text-faint">
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px] bg-v2-background-bg-accent" />
-              {ctx.t("window.legendInput")} <span class="tabular-nums">{formatter().compact(context()?.input)}</span>
+              <i class="size-[7px] rounded-[2px] bg-v2-blue-600" />
+              {ctx.t("window.compositionSystem")}
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-icon-icon-faint)" }} />
-              {ctx.t("window.legendCache")} <span class="tabular-nums">{formatter().compact(context()?.cache)}</span>
+              <i
+                class="size-[7px] rounded-[2px]"
+                style={{ background: "color-mix(in oklab, var(--v2-green-600) 55%, var(--v2-cyan-700))" }}
+              />
+              {ctx.t("window.compositionHistory")}
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <i class="size-[7px] rounded-[2px]" style={{ background: "var(--v2-icon-icon-muted)" }} />
-              {ctx.t("window.legendCacheWrite")}{" "}
-              <span class="tabular-nums">{formatter().compact(context()?.cacheWrite)}</span>
+              <i class="size-[7px] rounded-[2px] bg-v2-orange-500" />
+              {ctx.t("window.compositionTools")}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="size-[7px] rounded-[2px] bg-v2-purple-500" />
+              {ctx.t("window.legendOutputReserve")}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="size-[7px] rounded-[2px] bg-v2-grey-700" />
+              {ctx.t("window.legendSafetyReserve")}
             </span>
             <span class="ms-auto text-v2-text-text-muted">
               {ctx.t("window.remaining", {
@@ -902,27 +927,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </span>
           </div>
 
-          <Show when={composition()}>
-            {(items) => (
-              <div class="flex flex-col gap-1.5 pt-1">
-                <div class="flex items-baseline gap-2 text-[11.5px] text-v2-text-text-faint">
-                  <span>{ctx.t("window.composition")}</span>
-                  <span class="ms-auto">{ctx.t("window.compositionNote")}</span>
-                </div>
-                {items().map((item) => (
-                  <div class="flex items-center gap-2 text-[11.5px]">
-                    <span class="w-[5.5rem] shrink-0 text-v2-text-text-faint">{ctx.t(item.key)}</span>
-                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-v2-background-bg-layer-02">
-                      <div class="h-full rounded-full bg-v2-icon-icon-muted" style={{ width: `${item.percent}%` }} />
-                    </div>
-                    <span class="w-[3.25rem] shrink-0 text-right tabular-nums text-v2-text-text-muted">
-                      {formatter().compact(item.tokens)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Show>
+          <CompactionChart session={props.session} />
 
           <div class="grid grid-cols-2 overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted gap-px">
             <Tile

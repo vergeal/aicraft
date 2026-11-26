@@ -15,6 +15,11 @@ export default {
   "window.compositionSystem": "系统提示词",
   "window.compositionHistory": "对话与思考",
   "window.compositionTools": "工具输出",
+  "window.history": "提示词历史",
+  "window.historyNote": "虚线为一次压缩",
+  "window.historyAria": "每一步的提示词大小占上下文窗口的比例;虚线标记一次压缩",
+  "window.legendOutputReserve": "输出预留",
+  "window.legendSafetyReserve": "安全余量",
 
   "stats.cost": "会话成本",
   "stats.costActual": "按服务端计费",

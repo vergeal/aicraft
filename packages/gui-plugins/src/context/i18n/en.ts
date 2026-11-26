@@ -16,6 +16,11 @@ export default {
   "window.compositionSystem": "Instructions",
   "window.compositionHistory": "Conversation",
   "window.compositionTools": "Tool output",
+  "window.history": "Prompt history",
+  "window.historyNote": "dashed rules are compactions",
+  "window.historyAria": "Prompt size of each step against the context window; dashed rules mark compactions",
+  "window.legendOutputReserve": "Output reserve",
+  "window.legendSafetyReserve": "Safety reserve",
 
   // Summary tiles
   "stats.cost": "Session cost",

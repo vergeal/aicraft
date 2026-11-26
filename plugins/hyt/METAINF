@@ -1,7 +1,7 @@
 {
   "apiVersion": 1,
   "id": "changhong.aicraft.hyt",
-  "version": "0.6.26",
+  "version": "0.6.27",
   "requires": {
     "opencode": "^2.2.5"
   },

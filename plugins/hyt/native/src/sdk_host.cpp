@@ -394,11 +394,13 @@ void SdkHost::setSink(EventSink sink) {
   sink_ = std::move(sink);
 }
 
-void SdkHost::setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update) {
+void SdkHost::setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update,
+                            StoreRecall recall) {
   std::lock_guard<std::mutex> lk(stateMutex_);
   storeWrite_ = std::move(write);
   storeLookup_ = std::move(lookup);
   storeUpdate_ = std::move(update);
+  storeRecall_ = std::move(recall);
 }
 
 void SdkHost::initialize() {
@@ -853,7 +855,13 @@ RecallResult SdkHost::recallMessage(const std::string& msgId, int waitMs) {
   result.ok = wait->reason == EC_Response_Success;
   if (!result.ok) {
     result.error = "服务端拒绝了撤回（reason=" + std::to_string(wait->reason) + "）";
+    return result;
   }
+  // 撤回通知走服务端广播，发送方自己不一定收得到；本地先落一次。
+  // markRecalled 带 MsgType<>25 条件，通知随后再到达时重复执行无害。
+  std::string recallError;
+  if (storeRecall_ && !storeRecall_(msgId, &recallError))
+    logDebug("撤回本地落库未命中 msgId=%s: %s", msgId.c_str(), recallError.c_str());
   return result;
 #else
   (void)waitMs;
@@ -1083,7 +1091,29 @@ void SdkHost::handleReceive(void* ecMessage, bool offline) {
   // 插件自带桥接收到的消息也写进本地库，界面在客户端不开时也能看到；读取回执是通知类，不进聊天列表。
   // 输入状态（Msg_Type_UserState，正文 0/1）同样不落库：它是一次性信号，不是消息，
   // 记下来只会把「正在发送中」的标记堆进聊天库。事件照常透出，界面需要时按事件处理。
-  if (message.msgType != Msg_Type_ReadNotify && message.msgType != kMsgTypeReadVoiceNotify &&
+  // 撤回通知不插新行：官方客户端的行为是把原消息行就地改成撤回通知，这里对齐；
+  // 找不到原行（本机没有那条历史）才退回插通知行，至少界面能看到「撤回了一条消息」。
+  bool recalled = false;
+  if (message.msgType == Msg_Type_WithDraw) {
+    ECMessage* ec = static_cast<ECMessage*>(ecMessage);
+    // 撤回通知把被撤回消息的 msgId 放在 userDataMsgId（ECImStructDef.h）；
+    // relateArry 是机器人关联问题，和撤回无关。个别服务端版本直接复用原 msgId。
+    std::string target = ec ? ecStr(ec->userDataMsgId) : "";
+    if (target.empty()) target = message.msgId;
+    logDebug("撤回通知 msgId=%s target=%s content=%.80s userData=%.120s",
+             message.msgId.c_str(), target.c_str(), message.msg.c_str(),
+             message.userData.c_str());
+    std::string recallError;
+    if (!target.empty() && storeRecall_ &&
+        storeRecall_(target, &recallError)) {
+      recalled = true;
+    } else {
+      logDebug("撤回落地未命中原消息 target=%s: %s", target.c_str(),
+               recallError.c_str());
+    }
+  }
+  if (!recalled && message.msgType != Msg_Type_ReadNotify &&
+      message.msgType != kMsgTypeReadVoiceNotify &&
       message.msgType != Msg_Type_UserState) {
     writeMessage(message, true, false);
   }

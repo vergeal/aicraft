@@ -106,13 +106,16 @@ using StoreWrite = std::function<bool(const OwnMessage&, std::string*)>;
 using StoreLookup = std::function<bool(const std::string&, StoredMessage*)>;
 using StoreUpdate =
     std::function<bool(const std::string&, const std::string&, std::string*)>;
+/** 撤回落地：把原消息行改成撤回通知。返回 false 表示库里没有那条消息。 */
+using StoreRecall = std::function<bool(const std::string&, std::string*)>;
 
 class SdkHost {
  public:
   static SdkHost& instance();
 
   void setSink(EventSink sink);
-  void setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update);
+  void setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update,
+                     StoreRecall recall);
 
   bool available() const { return available_; }
   const std::string& unavailableReason() const { return unavailableReason_; }
@@ -236,6 +239,7 @@ class SdkHost {
   StoreWrite storeWrite_;
   StoreLookup storeLookup_;
   StoreUpdate storeUpdate_;
+  StoreRecall storeRecall_;
 
   std::map<unsigned int, PendingSend> pendingSends_;
   std::map<unsigned int, std::shared_ptr<MemberWait>> pendingMembers_;

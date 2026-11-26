@@ -765,6 +765,14 @@ void storeHooks() {
           return false;
         }
         return gStore->updateFileFullPath(msgId, path, error);
+      },
+      [](const std::string& msgId, std::string* error) {
+        std::lock_guard<std::mutex> lk(gStoreMutex);
+        if (!gStore || !gStore->available()) {
+          if (error) *error = "chatmsg.db 未打开";
+          return false;
+        }
+        return gStore->markRecalled(msgId, error);
       });
 }
 

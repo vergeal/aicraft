@@ -11,6 +11,7 @@ import { DateTimeUtcFromMillis, PositiveInt, RelativePath, statics } from "./sch
 import { ascending } from "./identifier.js"
 import { Shell as ShellSchema } from "./shell.js"
 import { FinishReason } from "./llm.js"
+import { FileDiff } from "./file-diff.js"
 import { SessionError } from "./session-error.js"
 import { Agent } from "./agent.js"
 import { Skill as SkillSchema } from "./skill.js"
@@ -229,6 +230,7 @@ export const Assistant = Schema.Struct({
     start: Snapshot.ID.pipe(optional),
     end: Snapshot.ID.pipe(optional),
     files: Schema.Array(RelativePath).pipe(optional),
+    stats: Schema.Array(FileDiff.Summary).pipe(optional),
   }).pipe(optional),
   finish: FinishReason.pipe(optional),
   rawFinish: Schema.String.pipe(optional),

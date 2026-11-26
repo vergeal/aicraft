@@ -5,6 +5,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
 import { SettingsPageHeader } from "@/settings/page-header"
+import { PluginSettingsSections } from "@/runtime/plugin/settings-page-view"
 import { MEMORY_DEFAULTS, createMemorySettingsController, type MemoryInjectionMode } from "./controllers"
 import "@/settings/settings.css"
 
@@ -122,6 +123,8 @@ export const SettingsMemory: Component = () => {
             </div>
           </SettingsRow>
         </Section>
+
+        <PluginSettingsSections page="memory" />
       </div>
     </>
   )

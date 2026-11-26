@@ -25,6 +25,7 @@ import {
 } from "./turn-phase-machine"
 
 export { TimelineRow, type PartGroup, type PartRef, type TimelineRowMap, type TurnPhase }
+
 // Callers that decide how a settled turn reads need the same interruption test the projection uses.
 export { isInterruptedError }
 
@@ -41,7 +42,7 @@ type Entry =
   | { type: "assistant"; message: SessionMessageAssistant }
   | { type: "notice"; message: Notice }
   | { type: "idle"; message: FailedIdle }
-  | { type: "diff"; message: SessionMessageIdle; from: string; files: string[] }
+  | { type: "diff"; message: SessionMessageIdle; from: string; files: string[]; stats: TimelineRow.TurnDiffStat[] }
 
 type Content = SessionMessageAssistant["content"][number]
 
@@ -284,8 +285,11 @@ export namespace Timeline {
     const turnByUserID = new Map<string, Turn>()
     const leading: Notice[] = []
     let current: Turn | undefined
+
     // Everything since the last idle marker is one turn, including prompts steered in meanwhile.
-    let execution: { opener: string; turn: Turn; files: Set<string> } | undefined
+    let execution:
+      | { opener: string; turn: Turn; files: Set<string>; stats: Map<string, TimelineRow.TurnDiffStat> }
+      | undefined
 
     messages.forEach((message) => {
       if (isNotice(message)) {
@@ -313,7 +317,12 @@ export namespace Timeline {
 
         // Undelivered input has not joined the turn yet.
         if (!pendingInputIDs?.has(message.id))
-          execution = { opener: execution?.opener ?? message.id, turn, files: execution?.files ?? new Set() }
+          execution = {
+            opener: execution?.opener ?? message.id,
+            turn,
+            files: execution?.files ?? new Set(),
+            stats: execution?.stats ?? new Map(),
+          }
 
         return
       }
@@ -329,6 +338,7 @@ export namespace Timeline {
             message,
             from: execution.opener,
             files: [...execution.files].sort(),
+            stats: [...execution.stats.values()].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0)),
           })
         execution = undefined
 
@@ -337,6 +347,22 @@ export namespace Timeline {
 
       if (message.type !== "assistant") return
       message.snapshot?.files?.forEach((file) => execution?.files.add(file))
+      // Change counts sum across steps; the last step's status and binary flag describe the settled file.
+      message.snapshot?.stats?.forEach((stat) => {
+        if (!execution) return
+        execution.files.add(stat.file)
+        const prior = execution.stats.get(stat.file)
+        const merged: TimelineRow.TurnDiffStat = {
+          file: stat.file,
+          status: stat.status,
+          additions: (prior?.additions ?? 0) + stat.additions,
+          deletions: (prior?.deletions ?? 0) + stat.deletions,
+        }
+
+        if (stat.binary) merged.binary = true
+
+        execution.stats.set(stat.file, merged)
+      })
       const existing = current?.user ? current : undefined
 
       if (existing?.user) {
@@ -627,6 +653,7 @@ export namespace Timeline {
               messageID: entry.message.id,
               from: entry.from,
               files: entry.files,
+              stats: entry.stats,
             }),
           )
 

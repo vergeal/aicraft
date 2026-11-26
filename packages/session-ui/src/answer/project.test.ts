@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionMessageAssistant, SessionMessageInfo } from "@aicraft/client/promise"
-import { projectTimeline } from "./project"
+import { flowGapPx, projectTimeline } from "./project"
 import type { Snapshot } from "./types"
 
 type Content = SessionMessageAssistant["content"][number]
@@ -826,5 +826,218 @@ describe("answer projection", () => {
     const after = projectTimeline([user("msg_1", "go", 1), assistant("msg_2", 2, [...rows, text("more")], 10)], before)
 
     expect(after.changes.get(1)).toBe(before.changes.get(1))
+  })
+
+  const shellWake = (id: string, created: number, state = "completed") => ({
+    id,
+    type: "synthetic",
+    text: `<shell id="sh_1" state="${state}" command="npm test 2>&1">\n1 passing\n</shell>`,
+    description: "npm test 2>&1",
+    metadata: { source: "shell", state, shellID: "sh_1" },
+    time: { created },
+  }) satisfies SessionMessageInfo
+
+  test("a background wake after the answer owns its block, so the prompt keeps its reply", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 10),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      shellWake("msg_wake", 12),
+      assistant("msg_3", 13, [tool("tool_1"), text("woke reply")], 20),
+      { id: "msg_idle2", type: "idle", outcome: "succeeded", time: { created: 21 } } satisfies SessionMessageInfo,
+    ])
+
+    // The report opens a turn of its own; the run it wakes hangs off it instead of off the question.
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
+    expect(snapshot.nodes.get("notice:msg_wake")?.turn).toBe(2)
+    expect(snapshot.turns.get(2)?.answer).toBe("assistant:msg_3:0")
+
+    // The block lays flat above the folded process, so the reader sees what woke the segment closed.
+    expect(snapshot.entries.some((entry) => entry.kind === "node" && entry.key === "notice:msg_wake")).toBe(true)
+    const fold = snapshot.entries.find((entry) => entry.kind === "fold" && entry.turn === 2)
+    expect(fold?.kind === "fold" && fold.children.some((child) => child.key === "notice:msg_wake")).toBe(false)
+
+    // The block carries the call and the captured output for the reader to expand.
+    const notice = snapshot.nodes.get("notice:msg_wake")?.payload
+    expect(notice?.kind === "notice" && notice.wake?.source).toBe("shell")
+    expect(notice?.kind === "notice" && notice.wake?.command).toBe("npm test 2>&1")
+    expect(notice?.kind === "notice" && notice.wake?.output).toBe("1 passing")
+  })
+
+  test("a queued background wake rides the settled turn until delivery", () => {
+    const snapshot = projectTimeline(
+      [
+        user("msg_1", "go", 1),
+        assistant("msg_2", 2, [text("answer")], 10),
+        { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+        shellWake("msg_wake", 12),
+      ],
+      undefined,
+      new Set(["msg_wake"]),
+    )
+
+    // Undelivered, it is queued input: the question keeps its answer slot and the wake stays one line.
+    expect(snapshot.nodes.get("notice:msg_wake")?.turn).toBe(1)
+    const notice = snapshot.nodes.get("notice:msg_wake")?.payload
+    expect(notice?.kind === "notice" && notice.wake).toBeUndefined()
+  })
+
+  test("batched wakes share the one block the first opened", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 10),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      shellWake("msg_wake_a", 12),
+      shellWake("msg_wake_b", 12),
+      assistant("msg_3", 13, [text("woke reply")], 20),
+    ])
+
+    // Only a report interrupting finished work splits: the second arrives while its segment has no
+    // work yet, so it rides the first wake's turn instead of opening another block.
+    expect(snapshot.nodes.get("notice:msg_wake_a")?.turn).toBe(2)
+    expect(snapshot.nodes.get("notice:msg_wake_b")?.turn).toBe(2)
+    const second = snapshot.nodes.get("notice:msg_wake_b")?.payload
+    expect(second?.kind === "notice" && second.wake).toBeUndefined()
+  })
+
+  // A long mixed session: an answered turn, a wake that splits its own segment, and a later plain prompt.
+  const mixed = () => [
+    user("msg_1", "go", 1),
+    assistant("msg_2", 2, [tool("tool_1"), text("answer")], 10),
+    { id: "idle_1", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+    shellWake("msg_wake", 12),
+    assistant("msg_3", 13, [tool("tool_2"), text("woke reply")], 20),
+    { id: "idle_2", type: "idle", outcome: "succeeded", time: { created: 21 } } satisfies SessionMessageInfo,
+    user("msg_4", "next", 22),
+    assistant("msg_5", 23, [text("last answer")], 30),
+  ]
+
+  /** The top-level rows of the flow, folds named by the turn they belong to. */
+  const flowKeys = (snapshot: Snapshot) =>
+    snapshot.entries.map((entry) => (entry.kind === "node" ? entry.key : `fold>t${entry.turn}`))
+
+  const flowGaps = (snapshot: Snapshot) =>
+    snapshot.entries.map((_, index) => flowGapPx(snapshot, snapshot.entries, index))
+
+  test("a wake loses no message and invents none", () => {
+    const snapshot = projectTimeline(mixed())
+
+    // Exactly one node per visible part: the two prompts, three replies, three tools, one report.
+    expect([...snapshot.nodes.keys()].sort()).toEqual(
+      [
+        "assistant:msg_2:0",
+        "assistant:msg_3:0",
+        "assistant:msg_5:0",
+        "input:msg_1",
+        "input:msg_4",
+        "notice:msg_wake",
+        "tool:msg_2:tool_1",
+        "tool:msg_3:tool_2",
+      ].sort(),
+    )
+  })
+
+  test("a wake keeps the transcript in message order, question to answer", () => {
+    const snapshot = projectTimeline(mixed())
+
+    expect(flowKeys(snapshot)).toEqual([
+      "input:msg_1",
+      "fold>t1",
+      "assistant:msg_2:0",
+      "notice:msg_wake",
+      "fold>t2",
+      "assistant:msg_3:0",
+      "input:msg_4",
+      "fold>t3",
+      "assistant:msg_5:0",
+    ])
+  })
+
+  test("a wake answers its own segment and never steals the prompt's reply", () => {
+    const snapshot = projectTimeline(mixed())
+
+    // Each question still owns the answer it asked for; the report anchors the run it woke.
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
+    expect(snapshot.turns.get(2)?.answer).toBe("assistant:msg_3:0")
+    expect(snapshot.turns.get(3)?.answer).toBe("assistant:msg_5:0")
+  })
+
+  test("a wake never buries a final answer inside a fold", () => {
+    const snapshot = projectTimeline(mixed())
+    const flat = snapshot.entries.flatMap((entry) => (entry.kind === "node" ? [entry.key] : []))
+    const answers = [...snapshot.turns.values()].map((turn) => turn.answer).filter((key) => key !== null)
+
+    // Every closing reply lays flat in the flow, below the process fold of its own segment.
+    expect(answers.length).toBe(3)
+    for (const answer of answers) expect(flat).toContain(answer)
+    expect(flat.indexOf("assistant:msg_3:0")).toBeGreaterThan(flat.indexOf("notice:msg_wake"))
+  })
+
+  test("only background reports split: other synthetics stay one line", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 10),
+      { id: "idle_1", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      {
+        id: "msg_note",
+        type: "synthetic",
+        text: "context compacted",
+        metadata: { source: "compaction" },
+        time: { created: 12 },
+      } satisfies SessionMessageInfo,
+    ])
+
+    // A non-background notice rides the settled turn as a plain line: no new segment, no banner payload.
+    expect(snapshot.nodes.get("notice:msg_note")?.turn).toBe(1)
+    const payload = snapshot.nodes.get("notice:msg_note")?.payload
+    expect(payload?.kind === "notice" && payload.wake).toBeUndefined()
+  })
+
+  const subagentWake = (id: string, created: number) => ({
+    id,
+    type: "synthetic",
+    text: `<subagent id="sub_1" state="completed">\nfound 3 sites\n</subagent>`,
+    description: "explore the auth flow",
+    metadata: { source: "subagent", state: "completed", agent: "explore" },
+    time: { created },
+  }) satisfies SessionMessageInfo
+
+  test("a subagent report carries its agent, task line, and result", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 10),
+      { id: "idle_1", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      subagentWake("msg_sub", 12),
+    ])
+
+    const payload = snapshot.nodes.get("notice:msg_sub")?.payload
+
+    expect(payload?.kind === "notice" && payload.wake?.source).toBe("subagent")
+    expect(payload?.kind === "notice" && payload.wake?.agent).toBe("explore")
+    // A subagent ran no command line: the task text rides the row's summary instead.
+    expect(payload?.kind === "notice" && payload.wake?.command).toBeUndefined()
+    expect(payload?.kind === "notice" && payload.text).toBe("explore the auth flow")
+    expect(payload?.kind === "notice" && payload.wake?.output).toBe("found 3 sites")
+  })
+
+  test("the wake banner keeps one fixed gap above and below through streaming", () => {    // Above the banner: the answer's own 28px hover-action strip, no extra. Below: the same breathing room,
+    // so the bar reads centered in its segment instead of hugging the work it introduces.
+    expect(flowGaps(projectTimeline(mixed()))).toEqual([0, 26, 16, 0, 24, 16, 24, 26, 16])
+
+    // Mid-stream, before the woke run replies, the banner holds the same place and the same gaps.
+    const streaming = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [tool("tool_1"), text("answer")], 10),
+      { id: "idle_1", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      shellWake("msg_wake", 12),
+      assistant("msg_3", 13, [tool("tool_2")], undefined),
+    ])
+    expect(flowKeys(streaming)).toEqual(["input:msg_1", "fold>t1", "assistant:msg_2:0", "notice:msg_wake", "fold>t2"])
+    expect(flowGaps(streaming)).toEqual([0, 26, 16, 0, 24])
+
+    // The reply landing on the streamed snapshot shifts nothing above the banner: spacing never jumps.
+    const settled = projectTimeline(mixed().slice(0, 5), streaming)
+    expect(flowKeys(settled).slice(0, 5)).toEqual(flowKeys(streaming))
+    expect(flowGaps(settled).slice(0, 5)).toEqual(flowGaps(streaming))
   })
 })

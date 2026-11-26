@@ -110,6 +110,56 @@ function firstLine(text: string | undefined) {
   return text?.split("\n").find((line) => line.trim())?.trim()
 }
 
+type WakeReport = Extract<NodePayload, { kind: "notice" }>["wake"]
+
+function sameWake(previous: WakeReport, next: WakeReport) {
+  if (previous === next) return true
+  if (!previous || !next) return false
+
+  return (
+    previous.source === next.source &&
+    previous.outcome === next.outcome &&
+    previous.agent === next.agent &&
+    previous.command === next.command &&
+    previous.output === next.output
+  )
+}
+
+/**
+ * A background completion is the only notice that spawns follow-up work: delivered on top of finished
+ * work it opens a segment of its own, so the run it wakes cannot take the answer slot of the question
+ * above. Undelivered wakes are queued input and keep riding until delivery splits them off.
+ */
+function backgroundWake(message: SessionMessageInfo, pendingInputIDs?: ReadonlySet<string>): WakeReport {
+  if (message.type !== "synthetic" || pendingInputIDs?.has(message.id)) return undefined
+  const source = message.metadata?.source
+
+  if (source !== "shell" && source !== "subagent") return undefined
+
+  const state = message.metadata?.state
+  const agent = message.metadata?.agent
+  // The report arrives wrapped in the tag core builds (see shell/result.ts). The command attribute can
+  // embed `>` (as in `2>&1`), so the body is cut between the opening tag and its closing pair rather
+  // than re-parsing attributes; the command text comes from the description, the attribute is the fallback.
+  const raw = message.text.trim()
+  const wrapped = /^<(shell|subagent)\b(?:\s+[\w-]+="[^"]*")*\s*>([\s\S]*)<\/\1>$/.exec(raw)
+
+  return {
+    source,
+    outcome: state === "error" || state === "cancelled" ? state : "completed",
+    ...(typeof agent === "string" && agent !== "" ? { agent } : {}),
+    command: source === "shell" ? message.description?.trim() || /\bcommand="([^"]*)"/.exec(raw)?.[1] : undefined,
+    output: (wrapped?.[2] ?? raw).trim(),
+  }
+}
+
+// A wake that arrives before the turn has done any work still belongs to it: only a report interrupting
+// finished work starts a segment, so batched wakes delivered together share the one the first opened.
+// A bare prompt is not work yet, so notices queued behind it keep riding the question's turn.
+function turnHasWork(turn: TurnDraft) {
+  return turn.nodes.some((node) => node.payload.kind !== "notice" && node.payload.kind !== "input")
+}
+
 /** The localized body inside an English `<system-reminder>` tag, or undefined when the text is anything else. */
 function reminderBody(text: string | undefined) {
   return text ? (/^<system-reminder>([\s\S]*?)<\/system-reminder>$/.exec(text)?.[1]?.trim() || undefined) : undefined
@@ -145,7 +195,8 @@ function reusePayload(previous: NodePayload | undefined, next: NodePayload): Nod
       return previous.kind === "notice" &&
         previous.text === next.text &&
         previous.detail === next.detail &&
-        previous.notice === next.notice
+        previous.notice === next.notice &&
+        sameWake(previous.wake, next.wake)
         ? previous
         : next
     case "context":
@@ -355,7 +406,11 @@ function turnChanges(nodes: readonly TimelineNode[], turn: number): ChangedFile[
  * `previous` is the last projection: a row whose payload did not change keeps that payload object, so a
  * streamed delta only wakes the row it touched instead of every memo in the transcript.
  */
-export function projectTimeline(messages: readonly SessionMessageInfo[], previous?: Snapshot): Snapshot {
+export function projectTimeline(
+  messages: readonly SessionMessageInfo[],
+  previous?: Snapshot,
+  pendingInputIDs?: ReadonlySet<string>,
+): Snapshot {
   const drafts: TurnDraft[] = []
   const turns = new Map<number, TimelineTurn>()
   const changes = new Map<number, readonly ChangedFile[]>()
@@ -488,6 +543,18 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     if (message.type !== "assistant") {
       const copy = noticeCopy(message)
+      const wake = backgroundWake(message, pendingInputIDs)
+
+      // Interrupting finished work, the report opens its own segment; the run it wakes hangs off the
+      // notice instead of off the question whose answer slot it would otherwise steal.
+      if (copy && wake && turnHasWork(draft)) {
+        const segment: TurnDraft = { turn: drafts.length + 1, nodes: [], startedAt: message.time.created }
+        drafts.push(segment)
+        current = segment
+        push(segment, { kind: "notice", ...copy, wake }, `notice:${message.id}`, message.id, "turn")
+
+        continue
+      }
 
       if (copy) push(draft, { kind: "notice", ...copy }, `notice:${message.id}`, message.id, "turn")
 
@@ -627,6 +694,8 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     // Where each steered prompt cuts the process: how many rows were already laid out above it.
     const splits = new Map<string, number>()
     const turnChildren: TimelineChild[] = []
+    // A wake banner sits outside the fold: it is the headline of the whole segment, always visible.
+    const wakeKeys: string[] = []
     const runs: { key: string; members: TimelineNode[]; notice: boolean }[] = []
     let run: TimelineNode[] = []
 
@@ -659,10 +728,19 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     let summarySeen = false
 
     for (const node of draft.nodes) {
+      // The wake block is its segment's headline: it lays flat above the folded process so the reader
+      // always sees what woke the work below without opening anything.
+      if (node.payload.kind === "notice" && node.payload.wake) {
+        flush()
+        wakeKeys.push(node.key)
+        continue
+      }
+
       if (node.payload.kind === "input") {
         // A steered prompt cuts the process at this point: the work it set off belongs under the bubble, not above
-        // it, or the reader sees the run still busy with the old task after their own words.
-        if (node !== firstInput) {
+        // it, or the reader sees the run still busy with the old task after their own words. A prompt delivered
+        // into a wake-opened segment cuts too: it arrived after the work the report woke, above the reply it asked.
+        if (node !== firstInput || draft.nodes[0] !== node) {
           flush()
           splits.set(node.key, turnChildren.length)
         }
@@ -729,14 +807,21 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
       )
     }
 
-    if (firstInput) entries.push({ kind: "node", key: firstInput.key })
+    // A plain turn opens on its prompt; a wake-anchored segment opens on its banner, and a prompt delivered
+    // into it joins the cut list at the spot delivery put it: under the woken work, above the reply it asked.
+    const leading = draft.nodes[0]
+    const opensWithPrompt = leading?.payload.kind === "input"
+
+    if (leading && opensWithPrompt) entries.push({ kind: "node", key: leading.key })
+
+    for (const key of wakeKeys) entries.push({ kind: "node", key })
 
     // One fold per stretch of work, each steered prompt dropped between the stretch it interrupted and the stretch
     // that answers it. A prompt the run has not taken up yet splits nothing: no work has come from it, so it stays
     // past the streaming reply, below everything the run has done so far.
     // The run takes a prompt up as soon as a row of its own follows it, reply text or not: waiting for the first
     // words would leave the work it set off reading as the task before the prompt.
-    const steers = inputs.slice(1)
+    const steers = opensWithPrompt ? inputs.slice(1) : inputs
     const lastWork = draft.nodes.findLastIndex((node) => node.payload.kind !== "input")
     const taken = steers.filter((steer) => draft.nodes.indexOf(steer) < lastWork)
     const waiting = steers.filter((steer) => draft.nodes.indexOf(steer) >= lastWork)
@@ -990,4 +1075,47 @@ function reasoningTail(text: string) {
   const blocks = text.split(/\n\s*\n/).filter((block) => block.trim())
 
   return blocks.at(-1)?.split("\n").find((line) => line.trim())?.replace(/^#+\s*/, "").trim()
+}
+
+/** The vertical space, in px, between entry `index` and the one above it in the answer flow. */
+export function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index: number) {
+  if (index <= 0) return 0
+
+  const current = entries[index]
+  const previous = entries[index - 1]
+
+  if (!current || !previous) return 0
+
+  // The answer sits 50px below the bubble. The prompt's action line is the row's own 24px tail (20px line plus a
+  // 4px gap), so the answer contributes only the remaining 26px; making this gap 50 would double-count the time
+  // line. The gap above the prompt stays wider than the rhythm because nothing sits in it.
+  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 26
+
+  if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
+
+  // A wake banner keeps clear air above it: only a settled reply's own 28px hover-action strip counts as
+  // the margin (space added there would double-count it); under anything else — a change card, a fold, a
+  // step row — the banner carries the full 24px itself.
+  if (isWakeBanner(snapshot, current)) return isResponse(snapshot, previous) ? 0 : 24
+
+  // Below the banner the row it introduces keeps the same breathing room the reply's hover-action strip
+  // gives above it: 12px against the 28px strip reads as the bar hugging its follow-up, not centered.
+  if (isWakeBanner(snapshot, previous)) return 24
+
+  if (current.kind === "fold") return 12
+
+  if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
+
+  return 4
+}
+
+function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
+  return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
+}
+
+/** The flat segment-opening report row, as opposed to a notice riding inside a fold. */
+export function isWakeBanner(snapshot: Snapshot, entry: TimelineEntry) {
+  const payload = entry.kind === "node" ? snapshot.nodes.get(entry.key)?.payload : undefined
+
+  return payload?.kind === "notice" && payload.wake !== undefined
 }

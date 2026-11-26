@@ -13,9 +13,11 @@ export const METHODS = {
   logout: "auth.logout",
   state: "auth.state",
   sendMessage: "im.sendMessage",
+  sendMedia: "im.sendMedia",
   sessions: "im.sessions",
   members: "im.members",
   markRead: "im.markRead",
+  recall: "im.recall",
   download: "im.download",
   call: "sdk.call",
 } as const
@@ -50,6 +52,13 @@ export interface MarkReadResult {
   readonly error: string
 }
 
+/** `im.recall` 的回包，形状与 `im.markRead` 一致；时间窗由服务端判定，拒绝原因在 `error` 里。 */
+export interface RecallResult {
+  readonly ok: boolean
+  readonly msgId: string
+  readonly error: string
+}
+
 /** `im.members` 的回包：字段缺失时当作失败，避免把半截名单算成「没有未读」。 */
 export function parseMembers(value: unknown): MembersResult {
   if (!isRecord(value)) return { ok: false, members: [], error: "bridge 没有返回群成员" }
@@ -69,6 +78,12 @@ export function parseMembers(value: unknown): MembersResult {
 /** `im.markRead` 的回包。 */
 export function parseMarkRead(value: unknown, msgId: string): MarkReadResult {
   if (!isRecord(value)) return { ok: false, msgId, error: "bridge 没有返回已读上报结果" }
+  return { ok: value.ok === true, msgId, error: typeof value.error === "string" ? value.error : "" }
+}
+
+/** `im.recall` 的回包。 */
+export function parseRecall(value: unknown, msgId: string): RecallResult {
+  if (!isRecord(value)) return { ok: false, msgId, error: "bridge 没有返回撤回结果" }
   return { ok: value.ok === true, msgId, error: typeof value.error === "string" ? value.error : "" }
 }
 

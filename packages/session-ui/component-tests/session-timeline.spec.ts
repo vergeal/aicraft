@@ -60,7 +60,7 @@ story("aligns the retry icon with the error label", async ({ mount }) => {
   expect(iconY).toBe(labelY)
 })
 
-story("centers the error icon on the first line of short and wrapped errors", async ({ mount }) => {
+story("centers the error icon on the title line and wraps only long details", async ({ mount }) => {
   const timeline = await mount("current-session-error-card--provider-errors")
   const cards = timeline.locator('[data-kind="session-error-card"]')
 
@@ -69,12 +69,15 @@ story("centers the error icon on the first line of short and wrapped errors", as
   const geometry = await cards.evaluateAll((elements) =>
     elements.map((card) => {
       const icon = card.querySelector('[data-slot="icon-svg"]')!.getBoundingClientRect()
-      const message = card.querySelector('[data-slot="icon-svg"] + div')!
-      const line = parseFloat(getComputedStyle(message).lineHeight)
-      const box = message.getBoundingClientRect()
+      const title = card.querySelector('[data-slot="session-error-title"]')!
+      const line = parseFloat(getComputedStyle(title).lineHeight)
+      const box = title.getBoundingClientRect()
+      const detail = card.querySelector('[data-slot="session-error-detail"]')!
+      const detailLine = parseFloat(getComputedStyle(detail).lineHeight)
+      const detailBox = detail.getBoundingClientRect()
 
       return {
-        lines: Math.round(box.height / line),
+        lines: Math.round(detailBox.height / detailLine),
         offset: icon.top + icon.height / 2 - (box.top + line / 2),
       }
     }),

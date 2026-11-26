@@ -16,7 +16,7 @@ import { State } from "./state.js"
 export { ID }
 
 export class Error extends Schema.TaggedError<Error>()("Snapshot.Error", {
-  operation: Schema.Literals(["capture", "files", "diff", "restore"]),
+  operation: Schema.Literals(["capture", "files", "stats", "diff", "restore"]),
   message: Schema.String,
   cause: Schema.optional(Schema.Defect()),
 }) {}
@@ -53,6 +53,13 @@ export interface Interface extends State.Transformable<Editor> {
    * loading file contents or generating patches.
    */
   readonly files: (input: CompareInput) => Effect.Effect<readonly RelativePath[], Error>
+
+  /**
+   * List per-file change counts between two captured trees from git numstat,
+   * without loading contents or generating patches. Recorded on step end so the
+   * changed-files listing renders from the message alone.
+   */
+  readonly stats: (input: CompareInput) => Effect.Effect<readonly FileDiff.Summary[], Error>
 
   /**
    * Generate structured per-file diffs between two captured trees. `context`
@@ -147,7 +154,7 @@ const layer = Layer.effect(
       )
     })
 
-    const comparison = Effect.fnUntraced(function* (operation: "files" | "diff", input: CompareInput) {
+    const comparison = Effect.fnUntraced(function* (operation: "files" | "diff" | "stats", input: CompareInput) {
       const repo = yield* repository.pipe(Effect.mapError((cause) => failure(operation, cause)))
       return {
         source: repo.source,
@@ -159,7 +166,7 @@ const layer = Layer.effect(
 
     // Snapshots track every scoped file; the source repository's ignore rules decide what callers see.
     const ignored = Effect.fnUntraced(function* (
-      operation: "files" | "diff",
+      operation: "files" | "diff" | "stats",
       source: Git.Repository,
       paths: readonly RelativePath[],
     ) {
@@ -176,6 +183,16 @@ const layer = Layer.effect(
       if (changed.length === 0) return []
       const skipped = yield* ignored("files", compared.source, changed)
       return changed.filter((file) => !skipped.has(file))
+    })
+
+    const stats = Effect.fn("Snapshot.stats")(function* (input: CompareInput) {
+      const compared = yield* comparison("stats", input)
+      const changed = yield* git.tree
+        .stats({ repository: compared.repository, from: compared.from, to: compared.to })
+        .pipe(Effect.mapError((cause) => failure("stats", cause)))
+      if (changed.length === 0) return []
+      const skipped = yield* ignored("stats", compared.source, changed.map((entry) => entry.file))
+      return changed.filter((entry) => !skipped.has(entry.file))
     })
 
     const diff = Effect.fn("Snapshot.diff")(function* (input: DiffInput) {
@@ -216,7 +233,7 @@ const layer = Layer.effect(
         .pipe(Effect.mapError((cause) => failure("restore", cause)))
     })
 
-    return Service.of({ transform: state.transform, reload: state.reload, capture, files, diff, restore })
+    return Service.of({ transform: state.transform, reload: state.reload, capture, files, stats, diff, restore })
   }).pipe(Effect.withSpan("Snapshot.boot")),
 )
 
@@ -233,6 +250,7 @@ export const noopLayer = Layer.succeed(
     reload: () => Effect.void,
     capture: () => Effect.undefined,
     files: () => Effect.succeed([]),
+    stats: () => Effect.succeed([]),
     diff: () => Effect.succeed([]),
     restore: () => Effect.void,
   }),

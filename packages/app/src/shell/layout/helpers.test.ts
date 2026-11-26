@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionInfo } from "@aicraft/client/promise"
-import { errorMessage, projectForSession, toggleHomeProjectSelection } from "./helpers"
+import { errorMessage, projectForSession, promoteAwaitingReview, toggleHomeProjectSelection } from "./helpers"
 import { ServerConnection } from "@/runtime/server/registry"
 
 const serverKey = ServerConnection.Key.make
@@ -72,5 +72,28 @@ describe("layout workspace helpers", () => {
     expect(errorMessage({ data: { message: "boom" } }, "fallback")).toBe("boom")
     expect(errorMessage(new Error("broken"), "fallback")).toBe("broken")
     expect(errorMessage("unknown", "fallback")).toBe("fallback")
+  })
+
+  test("keeps finished sessions ahead until the session itself moves again", () => {
+    const rows = [
+      session({ id: "busy", directory: "/repo", time: { created: 0, updated: 100 } }),
+      session({ id: "done-new", directory: "/repo", outcome: "succeeded", time: { created: 0, updated: 60, idle: 70 } }),
+      session({ id: "done-old", directory: "/repo", outcome: "succeeded", time: { created: 0, updated: 40, idle: 50 } }),
+      session({
+        id: "done-then-prompted",
+        directory: "/repo",
+        outcome: "succeeded",
+        time: { created: 0, updated: 90, idle: 80 },
+      }),
+      session({ id: "failed", directory: "/repo", outcome: "failed", time: { created: 0, updated: 30, idle: 35 } }),
+    ]
+
+    expect(promoteAwaitingReview(rows, (row) => row).map((row) => row.id)).toEqual([
+      "done-new",
+      "done-old",
+      "busy",
+      "done-then-prompted",
+      "failed",
+    ])
   })
 })

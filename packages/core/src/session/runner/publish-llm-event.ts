@@ -1,6 +1,7 @@
 import { type LLMEvent, type ProviderMetadata, type ToolResultValue } from "@aicraft/ai/effect"
 import { isRecord } from "@aicraft/util/record"
 import type { Agent } from "@aicraft/schema/agent"
+import type { FileDiff } from "@aicraft/schema/file-diff"
 import type { Model } from "@aicraft/schema/model"
 import type { RelativePath } from "@aicraft/schema/schema"
 import type { Snapshot } from "@aicraft/schema/snapshot"
@@ -401,6 +402,7 @@ export const createLLMEventPublisher = (bus: Pick<Bus.Interface, "publish">, inp
     readonly tokens?: TokenUsage.Info
     readonly snapshot?: Snapshot.ID
     readonly files?: readonly RelativePath[]
+    readonly stats?: readonly FileDiff.Summary[]
   }) {
     if (stepFailure === undefined) return
     const assistantMessageID = yield* startAssistant()

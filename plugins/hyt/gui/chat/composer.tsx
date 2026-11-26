@@ -25,6 +25,8 @@ export function Composer(props: {
   notice: string | undefined
   onInput: (value: string) => void
   onSend: (body: string, at: readonly string[]) => void
+  /** 挑一个本地文件直接发出：图片按钮走 image（带扩展名过滤），回形针走 file（不过滤）。 */
+  onPickMedia: (kind: "image" | "file") => void
   onUseDraft: (value: string) => void
   onIgnoreDraft: () => void
   onRefresh: () => void
@@ -237,14 +239,26 @@ export function Composer(props: {
         />
 
         <div class="tools">
-          <button class="tool" type="button" disabled aria-label={text(props.ctx, "hyt.chat.composer.image")}>
+          <button
+            class="tool"
+            type="button"
+            disabled={locked() || props.sending}
+            aria-label={text(props.ctx, "hyt.chat.composer.image")}
+            onClick={() => props.onPickMedia("image")}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
               <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
               <circle cx="9" cy="10" r="1.6" />
               <path d="m5 17 4.5-4 3.5 3 2.5-2 3.5 3" />
             </svg>
           </button>
-          <button class="tool" type="button" disabled aria-label={text(props.ctx, "hyt.chat.composer.attach")}>
+          <button
+            class="tool"
+            type="button"
+            disabled={locked() || props.sending}
+            aria-label={text(props.ctx, "hyt.chat.composer.attach")}
+            onClick={() => props.onPickMedia("file")}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
               <path d="M13.5 6.5 8 12a3.5 3.5 0 0 0 5 5l6-6a2.5 2.5 0 0 0-3.5-3.5l-5.5 5.5" />
             </svg>

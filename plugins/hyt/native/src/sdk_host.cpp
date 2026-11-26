@@ -193,6 +193,9 @@ void installCallbacks() {
   gMessageCallbacks.pfonReadMessage = [](unsigned int key, int reason) {
     SdkHost::instance().handleReadResult(key, reason);
   };
+  gMessageCallbacks.pfonWithDrawMessage = [](unsigned int key, int reason) {
+    SdkHost::instance().handleWithDrawResult(key, reason);
+  };
   gMessageCallbacks.pfonReceiveGroupNoticeMessage =
       [](const ECGroupNoticeMessage* notice) {
         nhjson::Value p = nhjson::Value::object();
@@ -391,11 +394,13 @@ void SdkHost::setSink(EventSink sink) {
   sink_ = std::move(sink);
 }
 
-void SdkHost::setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update) {
+void SdkHost::setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update,
+                            StoreRecall recall) {
   std::lock_guard<std::mutex> lk(stateMutex_);
   storeWrite_ = std::move(write);
   storeLookup_ = std::move(lookup);
   storeUpdate_ = std::move(update);
+  storeRecall_ = std::move(recall);
 }
 
 void SdkHost::initialize() {
@@ -811,6 +816,60 @@ ReadResult SdkHost::markRead(const std::string& msgId, bool group, int waitMs) {
 #endif
 }
 
+RecallResult SdkHost::recallMessage(const std::string& msgId, int waitMs) {
+  RecallResult result;
+  result.msgId = msgId;
+#ifdef HYT_WITH_EC_SDK
+  if (!available_) {
+    result.error = unavailableReason_;
+    return result;
+  }
+  if (!connected()) {
+    result.error = "未登录或未连接";
+    return result;
+  }
+  if (msgId.empty()) {
+    result.error = "缺少 msgId";
+    return result;
+  }
+  auto wait = std::make_shared<RecallWait>();
+  unsigned int matchKey = 0;
+  // type 是冗余字段；可撤回时间窗不在这里判断，服务端到点自然拒绝。
+  int ret = WithDrawMessage(&matchKey, msgId.c_str(), 0);
+  if (ret != 0) {
+    result.error = "提交撤回失败（" + std::to_string(ret) + "）";
+    return result;
+  }
+  {
+    std::lock_guard<std::mutex> lk(pendingMutex_);
+    pendingRecalls_[matchKey] = wait;
+  }
+
+  std::unique_lock<std::mutex> lk(wait->mutex);
+  int timeout = waitMs > 0 ? waitMs : 5000;
+  if (!wait->cv.wait_for(lk, std::chrono::milliseconds(timeout),
+                         [&wait] { return wait->done; })) {
+    result.error = "等待撤回结果超时";
+    return result;
+  }
+  result.ok = wait->reason == EC_Response_Success;
+  if (!result.ok) {
+    result.error = "服务端拒绝了撤回（reason=" + std::to_string(wait->reason) + "）";
+    return result;
+  }
+  // 撤回通知走服务端广播，发送方自己不一定收得到；本地先落一次。
+  // markRecalled 带 MsgType<>25 条件，通知随后再到达时重复执行无害。
+  std::string recallError;
+  if (storeRecall_ && !storeRecall_(msgId, &recallError))
+    logDebug("撤回本地落库未命中 msgId=%s: %s", msgId.c_str(), recallError.c_str());
+  return result;
+#else
+  (void)waitMs;
+  result.error = unavailableReason_;
+  return result;
+#endif
+}
+
 DownloadResult SdkHost::download(const StoredMessage& message,
                                  const std::string& account, int waitMs) {
   DownloadResult result;
@@ -1030,7 +1089,32 @@ void SdkHost::handleReceive(void* ecMessage, bool offline) {
   emit("event.onMessage", messageToJson(message));
 
   // 插件自带桥接收到的消息也写进本地库，界面在客户端不开时也能看到；读取回执是通知类，不进聊天列表。
-  if (message.msgType != Msg_Type_ReadNotify && message.msgType != kMsgTypeReadVoiceNotify) {
+  // 输入状态（Msg_Type_UserState，正文 0/1）同样不落库：它是一次性信号，不是消息，
+  // 记下来只会把「正在发送中」的标记堆进聊天库。事件照常透出，界面需要时按事件处理。
+  // 撤回通知不插新行：官方客户端的行为是把原消息行就地改成撤回通知，这里对齐；
+  // 找不到原行（本机没有那条历史）才退回插通知行，至少界面能看到「撤回了一条消息」。
+  bool recalled = false;
+  if (message.msgType == Msg_Type_WithDraw) {
+    ECMessage* ec = static_cast<ECMessage*>(ecMessage);
+    // 撤回通知把被撤回消息的 msgId 放在 userDataMsgId（ECImStructDef.h）；
+    // relateArry 是机器人关联问题，和撤回无关。个别服务端版本直接复用原 msgId。
+    std::string target = ec ? ecStr(ec->userDataMsgId) : "";
+    if (target.empty()) target = message.msgId;
+    logDebug("撤回通知 msgId=%s target=%s content=%.80s userData=%.120s",
+             message.msgId.c_str(), target.c_str(), message.msg.c_str(),
+             message.userData.c_str());
+    std::string recallError;
+    if (!target.empty() && storeRecall_ &&
+        storeRecall_(target, &recallError)) {
+      recalled = true;
+    } else {
+      logDebug("撤回落地未命中原消息 target=%s: %s", target.c_str(),
+               recallError.c_str());
+    }
+  }
+  if (!recalled && message.msgType != Msg_Type_ReadNotify &&
+      message.msgType != kMsgTypeReadVoiceNotify &&
+      message.msgType != Msg_Type_UserState) {
     writeMessage(message, true, false);
   }
 
@@ -1260,6 +1344,25 @@ void SdkHost::handleReadResult(unsigned int matchKey, int reason) {
     if (it != pendingReads_.end()) {
       wait = it->second;
       pendingReads_.erase(it);
+    }
+  }
+  if (!wait) return;
+  {
+    std::lock_guard<std::mutex> lk(wait->mutex);
+    wait->done = true;
+    wait->reason = reason;
+  }
+  wait->cv.notify_all();
+}
+
+void SdkHost::handleWithDrawResult(unsigned int matchKey, int reason) {
+  std::shared_ptr<RecallWait> wait;
+  {
+    std::lock_guard<std::mutex> lk(pendingMutex_);
+    auto it = pendingRecalls_.find(matchKey);
+    if (it != pendingRecalls_.end()) {
+      wait = it->second;
+      pendingRecalls_.erase(it);
     }
   }
   if (!wait) return;

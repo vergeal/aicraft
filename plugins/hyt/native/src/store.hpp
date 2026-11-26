@@ -87,6 +87,8 @@ class Store {
   bool insertOwnMessage(const OwnMessage& msg, std::string* error);
   bool updateFileFullPath(const std::string& msgId, const std::string& path,
                           std::string* error);
+  /** 撤回落地：把原消息行就地改成撤回通知（MsgType 25），与官方客户端一致。命中才返回 true。 */
+  bool markRecalled(const std::string& msgId, std::string* error);
 
  private:
   bool execSimple(const std::string& sql, std::string* error);

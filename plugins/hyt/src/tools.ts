@@ -38,6 +38,7 @@ const MergeItemInfo = Schema.Struct({
   title: Schema.String,
   kind: Schema.String,
   url: Schema.String,
+  remoteUrl: Schema.String,
 })
 const MessageInfo = Schema.Struct({
   id: Schema.Number,
@@ -613,6 +614,7 @@ async function describeMessage(service: Service, message: ChatMessage) {
           title: item.title,
           kind: item.kind,
           url: item.url,
+          remoteUrl: item.remoteUrl,
         }))
       : undefined
   return {

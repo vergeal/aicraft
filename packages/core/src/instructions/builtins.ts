@@ -13,7 +13,7 @@ export interface Interface {
 export class Service extends Context.Service<Service, Interface>()("@aicraft/InstructionBuiltIns") {}
 
 const languageInstruction =
-  "Default to Chinese for user-facing content: replies, labels, buttons, empty states, error messages, and any UI copy you write. Keep code, identifiers, file paths, and command names as-is. Switch language only when the user writes in another language or explicitly asks for one."
+  "# Language rules (hard)\n\nDefault to Chinese for user-facing content: replies, labels, buttons, empty states, error messages, and any UI copy you write. Keep code, identifiers, file paths, and command names as-is. Switch language only when the user writes in another language or explicitly asks for one.\n\nHARD REQUIREMENT: write every single sentence of your internal reasoning — plans, analyses, self-checks — in Chinese characters; never reason in English, no matter what language the conversation, the task, or the code around you is in."
 
 /**
  * Cost discipline, not capability: every tool call re-sends the whole history, so the step count dominates

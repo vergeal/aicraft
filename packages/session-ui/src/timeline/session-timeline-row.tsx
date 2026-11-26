@@ -981,7 +981,7 @@ export function createSessionTimelineRowRenderer(input: {
             <span class="text-14-medium text-v2-text-text-base tabular-nums">
               {i18n.plural("ui.sessionTurn.diffs.changed", paths().length)}
             </span>
-            <DiffChanges changes={[...(diffs() ?? [])]} />
+            <DiffChanges changes={[...(diffs() ?? props.row.stats)]} />
             <Show when={overflow()}>
               <button
                 type="button"

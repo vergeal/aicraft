@@ -41,6 +41,17 @@ export function fromRow(row: typeof SessionTable.$inferSelect): SessionSchema.In
         write: row.tokens_cache_write,
       },
     },
+    stats:
+      row.stat_turns === null
+        ? undefined
+        : {
+            turns: row.stat_turns,
+            steps: row.stat_steps ?? 0,
+            modelTime: row.stat_model_time ?? 0,
+            toolTime: row.stat_tool_time ?? 0,
+            outputTokens: row.stat_output_tokens ?? 0,
+            contextTokens: row.stat_context_tokens ?? 0,
+          },
     location: {
       directory: AbsolutePath.make(row.directory),
       workspaceID: row.workspace_id ?? undefined,

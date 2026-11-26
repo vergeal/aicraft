@@ -1,19 +1,32 @@
-import { ConfirmDialog } from "@aicraft/ui/confirm-dialog"
-import { createSignal } from "solid-js"
+import { Button } from "@aicraft/ui/button"
+import { useDialog } from "@aicraft/ui/context/dialog"
+import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
+import { Icon } from "@aicraft/ui/icon"
+import { Loader } from "@aicraft/ui/loader"
+import { createSignal, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { showToast } from "@/shell/notifications/toast"
-import { closed, transition, type CustomProviderEffect, type CustomProviderState } from "./machine"
+import { busy, closed, transition, type CustomProviderEffect, type CustomProviderState } from "./machine"
+import "./editor.css"
 
-/** Removes a custom provider from the configuration and deletes any key stored for it. */
+/**
+ * Removes a custom provider from the configuration and deletes any key stored for it. The confirmation owns its own
+ * request: a failed delete keeps the sheet open and reports inside it, so the page never pairs a closed dialog with a
+ * toast that explains what went wrong.
+ */
 export function DialogDeleteCustomProvider(props: {
   directory?: string
   providerID: string
   name: string
+  /** How many models and stored credentials the removal takes with it. */
+  models: number
+  accounts: number
   onDeleted?: () => void
 }) {
   const language = useLanguage()
+  const dialog = useDialog()
   const server = useServerSDK()
 
   const [state, setState] = createSignal<CustomProviderState>(
@@ -25,22 +38,26 @@ export function DialogDeleteCustomProvider(props: {
   )
 
   const run = (effect: CustomProviderEffect) => {
-    if (effect.type !== "delete.run") return
-    void removeCustomProvider(server, props.directory, effect.providerID).then(
-      () => {
-        setState(transition(state(), { type: "delete.succeeded", attempt: effect.attempt }, { taken: [] }).state)
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("settings.providers.custom.toast.deleted", { provider: effect.name }),
-        })
-        props.onDeleted?.()
-      },
-      (cause: unknown) => {
-        setState(transition(state(), { type: "delete.failed", attempt: effect.attempt, message: "" }, { taken: [] }).state)
-        showToast({ title: language.t("common.requestFailed"), description: formatServerError(cause, language.t) })
-      },
-    )
+    if (effect.type === "delete.run") {
+      void removeCustomProvider(server, props.directory, effect.providerID).then(
+        () => dispatch({ type: "delete.succeeded", attempt: effect.attempt }),
+        (cause: unknown) => {
+          dispatch({ type: "delete.failed", attempt: effect.attempt, message: formatServerError(cause, language.t) })
+        },
+      )
+
+      return
+    }
+
+    if (effect.type !== "toast.deleted") return
+
+    dialog.close()
+    showToast({
+      variant: "success",
+      icon: "circle-check",
+      title: language.t("settings.providers.custom.toast.deleted", { provider: effect.providerName }),
+    })
+    props.onDeleted?.()
   }
 
   const dispatch = (event: Parameters<typeof transition>[1]) => {
@@ -49,15 +66,48 @@ export function DialogDeleteCustomProvider(props: {
     result.effects.forEach(run)
   }
 
+  const error = () => {
+    const current = state()
+    return current.type === "confirmingDelete" ? current.error : undefined
+  }
+
   return (
-    <ConfirmDialog
-      title={language.t("settings.providers.custom.delete.title", { provider: props.name })}
-      description={language.t("settings.providers.custom.delete.description", { provider: props.providerID })}
-      confirmLabel={language.t("settings.providers.custom.delete.confirm")}
-      cancelLabel={language.t("common.cancel")}
-      tone="danger"
-      onConfirm={() => dispatch({ type: "delete.confirmed" })}
-    />
+    <Dialog fit class="settings-provider-delete-dialog" preventBackdropDismiss={busy(state())}>
+      <DialogHeader hideClose>
+        <DialogTitleGroup
+          title={language.t("settings.providers.custom.delete.title", { provider: props.name })}
+          description={language.t("settings.providers.custom.delete.description", { provider: props.providerID })}
+        />
+      </DialogHeader>
+      <DialogBody flush>
+        <ul data-component="settings-provider-delete-details">
+          <Show when={props.models > 0}>
+            <li>
+              <Icon name="circle-exclamation" size="small" />
+              <span>{language.plural("settings.providers.custom.delete.models", props.models)}</span>
+            </li>
+          </Show>
+          <Show when={props.accounts > 0}>
+            <li>
+              <Icon name="circle-exclamation" size="small" />
+              <span>{language.plural("settings.providers.custom.delete.accounts", props.accounts)}</span>
+            </li>
+          </Show>
+        </ul>
+      </DialogBody>
+      <DialogFooter>
+        <Show when={error()}>{(message) => <p role="alert">{message()}</p>}</Show>
+        <Button variant="neutral" autofocus disabled={busy(state())} onClick={() => dialog.close()}>
+          {language.t("common.cancel")}
+        </Button>
+        <Button variant="danger" disabled={busy(state())} onClick={() => dispatch({ type: "delete.confirmed" })}>
+          <Show when={busy(state())}>
+            <Loader class="size-4" />
+          </Show>
+          {language.t("settings.providers.custom.delete.confirm")}
+        </Button>
+      </DialogFooter>
+    </Dialog>
   )
 }
 
@@ -73,5 +123,5 @@ async function removeCustomProvider(
   const credentials = integration?.data?.connections.filter((item) => item.type === "credential") ?? []
   await Promise.all(credentials.map((credential) => server.api.credential.remove({ credentialID: credential.id })))
   // Remove the provider last: the integration only disappears once the configuration no longer declares it.
-  await server.api.experimental.config.update({ providers: { [providerID]: null } })
+  await server.api.config.update({ providers: { [providerID]: null } })
 }

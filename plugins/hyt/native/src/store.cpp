@@ -372,4 +372,32 @@ bool Store::updateFileFullPath(const std::string& msgId, const std::string& path
   return true;
 }
 
+bool Store::markRecalled(const std::string& msgId, std::string* error) {
+  std::lock_guard<std::mutex> lk(mutex_);
+  if (!db_) {
+    if (error) *error = "chatmsg.db 未打开";
+    return false;
+  }
+  sqlite3_stmt* stmt = nullptr;
+  // 官方客户端收到撤回通知不会插新行，而是把原消息行就地改成 MsgType 25，
+  // 正文换成「你撤回了一条消息」（库里已有的官方样本就是这个形状）。
+  // 原文必须清掉，否则搜索与预览还看得到撤回前的内容。
+  const char* sql =
+      "UPDATE chatmsg SET MsgType=25, Msg='你撤回了一条消息', ReadStatus=1 "
+      "WHERE MsgId=? AND MsgType<>25";
+  if (sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    if (error) *error = sqlite3_errmsg(db_);
+    return false;
+  }
+  sqlite3_bind_text(stmt, 1, msgId.c_str(), -1, SQLITE_TRANSIENT);
+  int rc = sqlite3_step(stmt);
+  int changes = sqlite3_changes(db_);
+  sqlite3_finalize(stmt);
+  if (rc != SQLITE_DONE) {
+    if (error) *error = sqlite3_errmsg(db_);
+    return false;
+  }
+  return changes > 0;
+}
+
 }  // namespace hyt

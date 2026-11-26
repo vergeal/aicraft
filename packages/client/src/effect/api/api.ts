@@ -1225,6 +1225,7 @@ export type ExperimentalSessionLogOutput =
             }
             readonly snapshot?: Snapshot.ID | undefined
             readonly files?: ReadonlyArray<RelativePath> | undefined
+            readonly stats?: ReadonlyArray<FileDiff.Summary> | undefined
           }
         }
       | {
@@ -1260,6 +1261,7 @@ export type ExperimentalSessionLogOutput =
               | undefined
             readonly snapshot?: Snapshot.ID | undefined
             readonly files?: ReadonlyArray<RelativePath> | undefined
+            readonly stats?: ReadonlyArray<FileDiff.Summary> | undefined
           }
         }
       | {
@@ -2327,6 +2329,7 @@ export type EventSubscribeInput = {
         | "session.pinned"
         | "session.unpinned"
         | "session.usage.updated"
+        | "session.stats.updated"
         | "session.deleted"
         | "session.forked"
         | "session.inbox.delivered"

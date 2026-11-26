@@ -77,6 +77,12 @@ const session = (
   time_pinned: null,
   time_suspended: null,
   resume_attempts: 0,
+  stat_turns: null,
+  stat_steps: null,
+  stat_model_time: null,
+  stat_tool_time: null,
+  stat_output_tokens: null,
+  stat_context_tokens: null,
   ...overrides,
 })
 

@@ -60,3 +60,41 @@ export function detailsValid(draft: CustomProviderDraft, taken: readonly string[
 export function draftValid(draft: CustomProviderDraft, taken: readonly string[], mode: "create" | "edit") {
   return detailsValid(draft, taken, mode) && !modelsError(draft)
 }
+/** Whether two drafts would save to the same provider, so the page can tell an untouched form from one in progress. */
+export function sameDraft(a: CustomProviderDraft, b: CustomProviderDraft) {
+  return (
+    a.id === b.id &&
+    a.name === b.name &&
+    a.baseURL === b.baseURL &&
+    a.apiKey === b.apiKey &&
+    a.models.length === b.models.length &&
+    a.models.every((id, index) => id === b.models[index])
+  )
+}
+
+/**
+ * A provider ID an endpoint suggests: its host without the usual `api.`/`www.` prefix, so pasting a base URL fills
+ * the identity fields and the user only has to correct them when the guess is wrong.
+ */
+export function suggestProviderID(baseURL: string) {
+  const value = baseURL.trim()
+
+  if (!value || !URL.canParse(value)) return ""
+
+  const label = new URL(value).hostname
+    .toLowerCase()
+    .replace(/^(api|www)\./, "")
+    .split(".")
+    .at(0)
+  const id = (label ?? "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+
+  return PROVIDER_ID_PATTERN.test(id) ? id : ""
+}
+
+/** The readable name a suggested ID implies: `my-gateway` becomes `My Gateway`. */
+export function suggestProviderName(id: string) {
+  return id
+    .replace(/[-_]+/g, " ")
+    .replace(/(^|\s)([a-z0-9])/g, (_match, space: string, letter: string) => space + letter.toUpperCase())
+    .trim()
+}

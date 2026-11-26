@@ -7,8 +7,9 @@ import { Menu } from "@aicraft/ui/menu"
 import { AicraftLogo } from "@/providers/aicraft-logo"
 import { showToast } from "@/shell/notifications/toast"
 import { useQuery } from "@tanstack/solid-query"
-import { DialogCustomProvider, customProvidersFrom, readOnlyProvidersFrom, type CustomProvider } from "./custom/dialog"
+import { CustomProviderEditor } from "./custom/editor"
 import { DialogDeleteCustomProvider } from "./custom/delete-dialog"
+import { customProvidersFrom, readOnlyProvidersFrom, type CustomProvider } from "./custom/record"
 import { useProviders } from "@/providers/catalog/providers"
 import { visibleProviders } from "@/providers/catalog/order"
 import { consoleProviderGroup } from "@/providers/catalog/console"
@@ -81,6 +82,8 @@ export const SettingsProviders: Component<{
     consoleExpanded: boolean
     held?: ProviderItem[]
     confirming?: PendingRemoval
+    /** The page that replaces the list: a provider being created, or one being edited by id. */
+    editor?: { mode: "create" } | { mode: "edit"; id: string }
   }>({
     consoleExpanded: false,
   })
@@ -340,41 +343,26 @@ export const SettingsProviders: Component<{
     }
   }
 
-  const openCustom = (provider?: CustomProvider) => {
-    setState("held", available())
-    void dialog.show(
-      () => (
-        <DialogCustomProvider
-          directory={props.directory}
-          provider={provider}
-          existingApiKey={existingApiKey(provider)}
-          // Discovery borrows the stored key on edit, so it has to wait for the list that supplies it.
-          existingKeyLoading={!credentials.data}
-          taken={providerIDs()}
-          accounts={provider ? providerAccountList(provider) : undefined}
-          accountSecret={accountKey}
-          onCreateAccount={
-            provider
-              ? (input) =>
-                  accountActions
-                    .create({ integrationID: provider.id, provider: provider.name, ...input })
-                    .then((created) => {
-                      void credentials.refetch()
-
-                      return created
-                    })
-              : undefined
-          }
-          // Switching an account changes which key discovery borrows, so the credential list has to be reloaded.
-          onAccountChanged={() => void credentials.refetch()}
-        />
-      ),
-      () => {
-        setState("held", undefined)
-        void config.refetch()
-      },
-    )
+  // Adding and editing a custom provider is a page, not a dialog: the form owns more fields than a sheet may hold.
+  const openEditor = (provider?: CustomProvider) => {
+    setState("editor", provider ? { mode: "edit", id: provider.id } : { mode: "create" })
   }
+
+  const closeEditor = () => {
+    setState("editor", undefined)
+    void config.refetch()
+  }
+
+  const editingProvider = createMemo(() => {
+    const target = state.editor
+
+    return target?.mode === "edit" ? customProvider(target.id) : undefined
+  })
+
+  // A provider deleted elsewhere — from another window, or by editing the configuration file — takes its page with it.
+  createEffect(() => {
+    if (state.editor?.mode === "edit" && editingProvider() === undefined) setState("editor", undefined)
+  })
 
   const deleteCustom = (provider: CustomProvider) => {
     setState("held", available())
@@ -384,6 +372,8 @@ export const SettingsProviders: Component<{
           directory={props.directory}
           providerID={provider.id}
           name={provider.name}
+          models={provider.models.length}
+          accounts={providerAccountList(provider)?.items.length ?? 0}
           onDeleted={() => void config.refetch()}
         />
       ),
@@ -717,7 +707,7 @@ export const SettingsProviders: Component<{
             <Show when={custom()}>
               {(provider) => (
                 <>
-                  <Menu.Item onSelect={() => openCustom(provider())}>
+                  <Menu.Item onSelect={() => openEditor(provider())}>
                     {language.t("settings.providers.custom.edit")}
                   </Menu.Item>
                   <Menu.Separator />
@@ -760,9 +750,41 @@ export const SettingsProviders: Component<{
     state.confirming?.providerID === item.id ? state.confirming : undefined
 
   return (
-    <>
-      <SettingsPageHeader
-        title={language.t("settings.providers.title")}
+    <Switch>
+      <Match when={state.editor?.mode === "create"}>
+        <CustomProviderEditor directory={props.directory} taken={providerIDs()} onClose={closeEditor} />
+      </Match>
+      <Match when={editingProvider()}>
+        {(provider) => (
+          <CustomProviderEditor
+            directory={props.directory}
+            provider={provider()}
+            existingApiKey={existingApiKey(provider())}
+            // A read borrows the stored key on edit, so it has to wait for the list that supplies it.
+            existingKeyLoading={!credentials.data}
+            taken={providerIDs()}
+            accounts={providerAccountList(provider())}
+            accountSecret={accountKey}
+            onCreateAccount={(input) =>
+              accountActions
+                .create({ integrationID: provider().id, provider: provider().name, ...input })
+                .then((created) => {
+                  void credentials.refetch()
+
+                  return created
+                })
+            }
+            // Switching an account changes which key a read borrows, so the credential list has to be reloaded.
+            onAccountChanged={() => void credentials.refetch()}
+            onRequestDelete={() => deleteCustom(provider())}
+            onClose={closeEditor}
+          />
+        )}
+      </Match>
+      <Match when={true}>
+        <>
+          <SettingsPageHeader
+            title={language.t("settings.providers.title")}
         description={language.t("settings.providers.description")}
         actions={props.headerAction}
       />
@@ -834,7 +856,7 @@ export const SettingsProviders: Component<{
               <Show
                 when={config.isError}
                 fallback={
-                  <button type="button" onClick={() => openCustom()}>
+                  <button type="button" onClick={() => openEditor()}>
                     <Icon name="plus" size="small" />
                     <span>{language.t("settings.providers.custom.add")}</span>
                   </button>
@@ -886,7 +908,9 @@ export const SettingsProviders: Component<{
             </SettingsList>
           </div>
         </Show>
-      </div>
-    </>
+          </div>
+        </>
+      </Match>
+    </Switch>
   )
 }

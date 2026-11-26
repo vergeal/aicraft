@@ -85,16 +85,30 @@ export namespace TimelineRow {
   }> {}
 
   /**
+   * Per-file change counts recorded when a step ends. `TurnDiff` rows carry them so the listing shows
+   * added and removed lines from the messages alone, before (or without) the patch bodies arriving.
+   */
+  export type TurnDiffStat = {
+    file: string
+    status: "added" | "deleted" | "modified"
+    additions: number
+    deletions: number
+    binary?: true
+  }
+
+  /**
    * The files a finished turn changed, shown once the Session goes idle. `messageID` is the
    * idle marker that ended the turn; `from` is the prompt that opened it, which names the turn
    * to the session diff route even when later prompts were steered in. `files` are the paths its
    * steps recorded, listed before the diff loads; the diff can omit a file a later step reverted.
+   * `stats` accumulates the steps' change counts and may sum a file a later step reverted.
    */
   export class TurnDiff extends Data.TaggedClass("TurnDiff")<{
     userMessageID: string
     messageID: string
     from: string
     files: readonly string[]
+    stats: readonly TurnDiffStat[]
   }> {}
 
   /** Where the host shows the active turn's live status when undelivered input waits below it. */
@@ -217,6 +231,12 @@ export type TimelineRowMap = {
     resetAt?: number
   }
   CompactionQueued: { userMessageID: string; inboxID: string }
-  TurnDiff: { userMessageID: string; messageID: string; from: string; files: readonly string[] }
+  TurnDiff: {
+    userMessageID: string
+    messageID: string
+    from: string
+    files: readonly string[]
+    stats: readonly TimelineRow.TurnDiffStat[]
+  }
   Activity: { userMessageID: string }
 }

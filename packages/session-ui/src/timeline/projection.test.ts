@@ -51,8 +51,8 @@ const part = (key: string, partID: string) =>
 
 const user = (userMessageID = "user-1") => new TimelineRow.UserMessage({ userMessageID })
 
-const diff = (files: string[]) =>
-  new TimelineRow.TurnDiff({ userMessageID: "user-1", messageID: "idle-1", from: "user-1", files })
+const diff = (files: string[], stats: TimelineRow.TurnDiffStat[] = []) =>
+  new TimelineRow.TurnDiff({ userMessageID: "user-1", messageID: "idle-1", from: "user-1", files, stats })
 
 const spaced = (spacing?: "tool" | "content") =>
   new TimelineRow.AssistantPart({

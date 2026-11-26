@@ -2,44 +2,150 @@
    what a memory needs on top: a readable entry text, tag chips, and the editor's fields. Colours are semantic tokens,
    so both themes follow the app. */
 
-.memory-page {
+.memory-browser {
   display: flex;
   width: 100%;
   flex-direction: column;
   gap: var(--settings-space-6);
+
+  /* The dialog body's scroller has no top padding; without this the search field sits flush under the title bar
+     while the sections below it keep the 24px rhythm, which read as a misaligned row of gaps. */
+  padding-top: var(--settings-space-4);
 }
 
-/* Plugin memories group per plugin, so a user can tell which plugin owns an entry. */
-.memory-plugins {
+/* The dialog's search bar: the tag filter chip and the field sit above the lists. */
+.memory-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-2);
+}
+
+.memory-browser-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-section-loading {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* First load in the dialog: an open book turning its pages, centered in the frame. */
+.memory-flip {
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--settings-space-4);
+}
+
+.memory-flip-book {
+  position: relative;
+  width: 96px;
+  height: 68px;
+  perspective: 320px;
+}
+
+.memory-flip-book::before,
+.memory-flip-book::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 48px;
+  height: 100%;
+  background: var(--v2-background-bg-layer-02);
+  border: 1px solid var(--v2-border-border-muted);
+}
+
+.memory-flip-book::before {
+  left: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+.memory-flip-book::after {
+  right: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.memory-flip-page {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 100%;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(
+    to left,
+    var(--v2-background-bg-layer-01),
+    var(--v2-background-bg-layer-02) 70%,
+    var(--v2-border-border-muted)
+  );
+  transform-origin: left center;
+  animation: memory-flip-turn 2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.memory-flip-page--late {
+  animation-delay: 1s;
+}
+
+.memory-flip-caption {
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+@keyframes memory-flip-turn {
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  50%,
+  100% {
+    transform: rotateY(-176deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-flip-page {
+    animation: none;
+    transform: rotateY(-120deg);
+  }
+}
+
+/* Cross-project hits and plugin memories both group by owner, so a user can tell what owns an entry. */
+.memory-groups {
   display: flex;
   flex-direction: column;
   gap: var(--settings-space-4);
 }
 
-.memory-plugin-group {
+.memory-group {
   display: flex;
   flex-direction: column;
   gap: var(--settings-space-2);
 }
 
-.memory-plugin-head {
+.memory-group-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--settings-space-2);
 }
 
-.memory-plugin-name {
+.memory-group-name {
   color: var(--v2-text-text-base);
   font-size: 13px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: var(--line-height-compact);
 }
 
-.memory-plugin-hint {
-  margin: 0;
-  color: var(--v2-text-text-muted);
-  font-size: 12px;
-  line-height: 18px;
+/* A query hit inside an entry reads the same as in the command palette: accent ink on a transparent ground. */
+.memory-match {
+  background: transparent;
+  color: var(--v2-text-text-accent);
 }
 
 /* The entry text sits inside the row title slot, whose font it inherits. A long entry clamps to two lines and the

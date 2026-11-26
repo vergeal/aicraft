@@ -486,6 +486,7 @@ function MessageTimelineView(
       showHeader={showHeader()}
       activity={activity()}
       messages={() => props.data.messages()}
+      pendingInputIDs={props.data.pendingInputIDs}
       sessionID={sessionID}
       actions={props.actions}
       view={props.data.transcriptView()}

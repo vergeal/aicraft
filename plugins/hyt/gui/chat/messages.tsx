@@ -53,7 +53,8 @@ export function MessageStream(props: {
   /** 取头像并入共享表；回执名单按需补人。 */
   onAvatars: (paths: readonly string[]) => void
   onMedia: (path: string, msgId: string) => Promise<string>
-  onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
+  onMerge: (input: { path: string; msgId: string }) => Promise<{ items: readonly MergeItemRow[]; error: string }>
+  onMergeMedia: (url: string) => Promise<string>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
   /** 右键消息：复制、看发送者资料。 */
@@ -218,6 +219,7 @@ export function MessageStream(props: {
                     avatars={props.avatars}
                     onMedia={props.onMedia}
                     onMerge={props.onMerge}
+                    onMergeMedia={props.onMergeMedia}
                     onOpenFile={props.onOpenFile}
                     onOpenImage={props.onOpenImage}
                     onMenu={props.onMenu}
@@ -282,7 +284,9 @@ function Message(props: {
   self: boolean
   avatars: Record<string, string>
   onMedia: (path: string, msgId: string) => Promise<string>
-  onMerge: (path: string) => Promise<{ items: readonly MergeItemRow[]; error: string }>
+  onMerge: (input: { path: string; msgId: string }) => Promise<{ items: readonly MergeItemRow[]; error: string }>
+  /** 取合并消息里的图片：主进程按下载地址代取，返回 data URL。 */
+  onMergeMedia: (url: string) => Promise<string>
   onOpenFile: (path: string) => void
   onOpenImage: (path: string) => void
   onMenu: (message: MessageRow, target: MenuTarget) => void
@@ -296,6 +300,7 @@ function Message(props: {
   const [cardOpen, setCardOpen] = createSignal(false)
   const [merge, setMerge] = createSignal<{ items: readonly MergeItemRow[]; error: string } | undefined>()
   const [merging, setMerging] = createSignal(false)
+  const [mergeOpen, setMergeOpen] = createSignal(false)
 
   const body = () => props.message.text.trim()
   const clamped = () => body().length > CLAMP_AT && !expanded()
@@ -303,13 +308,12 @@ function Message(props: {
 
   const openMerge = async () => {
     if (merging()) return
-    if (merge() !== undefined) {
-      setMerge(undefined)
-      return
+    if (merge() === undefined) {
+      setMerging(true)
+      setMerge(await props.onMerge({ path: props.message.filePath, msgId: props.message.msgId }))
+      setMerging(false)
     }
-    setMerging(true)
-    setMerge(await props.onMerge(props.message.filePath))
-    setMerging(false)
+    setMergeOpen(true)
   }
 
   return (
@@ -476,37 +480,26 @@ function Message(props: {
 
         <Show when={props.message.kind === "merge"}>
           <button class="merge-card" type="button" onClick={() => void openMerge()}>
-            <span class="merge-title">
-              {merging()
-                ? text(props.ctx, "hyt.chat.messages.loadingMore")
-                : merge() === undefined
-                  ? text(props.ctx, "hyt.chat.msg.merge")
-                  : text(props.ctx, "hyt.chat.msg.merge.count", { count: merge()!.items.length })}
-            </span>
-            <span class="merge-text">{props.message.text || props.message.fileName}</span>
+            <span class="merge-title">{mergeTitle(props.ctx, props.message)}</span>
+            <Show
+              when={(props.message.merge?.lines.length ?? 0) > 0}
+              fallback={
+                <span class="merge-text">
+                  {props.message.text || text(props.ctx, "hyt.chat.msg.merge.open")}
+                </span>
+              }
+            >
+              <For each={props.message.merge?.lines ?? []}>{(line) => <span class="merge-text">{line}</span>}</For>
+            </Show>
           </button>
-          <Show when={merge()}>
-            {(value) => (
-              <Show when={value().error.length === 0} fallback={<p class="merge-error">{value().error}</p>}>
-                <div class="merge-list">
-                  <Show
-                    when={value().items.length > 0}
-                    fallback={<span class="merge-error">{text(props.ctx, "hyt.chat.msg.merge.empty")}</span>}
-                  >
-                    <For each={value().items}>
-                      {(item) => (
-                        <div class="merge-item">
-                          <b>{item.account}</b>
-                          <span>
-                            {item.kind === "image" ? text(props.ctx, "hyt.chat.msg.merge.image") : item.content}
-                          </span>
-                        </div>
-                      )}
-                    </For>
-                  </Show>
-                </div>
-              </Show>
-            )}
+          <Show when={mergeOpen() && merge() !== undefined}>
+            <MergeDialog
+              ctx={props.ctx}
+              message={props.message}
+              result={merge()!}
+              onMedia={props.onMergeMedia}
+              onClose={() => setMergeOpen(false)}
+            />
           </Show>
         </Show>
 
@@ -581,6 +574,106 @@ function ReceiptLabel(props: {
  * 打开期间收到新回执只合并、不重排：同账号的人沿用上一次的对象，
  * `For` 不会重建已经渲染的行，未读的人挪到已读段时也只会移动这一条。
  */
+/** 卡片与弹窗的标题：UserData 给的「XX和YY的消息记录」，没有就说「合并转发」。 */
+function mergeTitle(ctx: Context, message: MessageRow) {
+  const title = message.merge?.title ?? ""
+  return title.length > 0 ? title : text(ctx, "hyt.chat.msg.merge")
+}
+
+/** 合并消息弹窗：把 txt 解出的条目逐条列出，图片由主进程按下载地址代取后内联。 */
+function MergeDialog(props: {
+  ctx: Context
+  message: MessageRow
+  result: { items: readonly MergeItemRow[]; error: string }
+  onMedia: (url: string) => Promise<string>
+  onClose: () => void
+}) {
+  let dialog: HTMLDivElement | undefined
+  /** 打开弹窗的卡片：关闭时把焦点还回去，与回执弹窗同一做法。 */
+  let opener: Element | null = null
+
+  onMount(() => {
+    opener = document.activeElement
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") props.onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    onCleanup(() => {
+      window.removeEventListener("keydown", onKey)
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
+    })
+    dialog?.focus()
+  })
+
+  return (
+    <div
+      class="receipt-veil"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) props.onClose()
+      }}
+    >
+      <div
+        class="receipt merge-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={mergeTitle(props.ctx, props.message)}
+        tabIndex={-1}
+        ref={dialog}
+      >
+        <div class="receipt-head">
+          <strong>{mergeTitle(props.ctx, props.message)}</strong>
+          <span class="sum">{text(props.ctx, "hyt.chat.msg.merge.count", { count: props.result.items.length })}</span>
+          <button class="x" type="button" aria-label={text(props.ctx, "hyt.chat.receipt.close")} onClick={props.onClose}>
+            ×
+          </button>
+        </div>
+        <Show when={props.result.error.length === 0} fallback={<p class="merge-error">{props.result.error}</p>}>
+          <Show
+            when={props.result.items.length > 0}
+            fallback={<p class="merge-error">{text(props.ctx, "hyt.chat.msg.merge.empty")}</p>}
+          >
+            <div class="merge-body">
+              <For each={props.result.items}>
+                {(item) => (
+                  <div class="md-item">
+                    <div class="md-who">
+                      {item.account}
+                      <Show when={item.time > 0}>
+                        <span class="md-time">{clockOf(item.time)}</span>
+                      </Show>
+                    </div>
+                    <Show when={item.kind === "image"} fallback={<p class="md-text">{item.content || item.title}</p>}>
+                      <MergeShot ctx={props.ctx} url={item.remoteUrl} onMedia={props.onMedia} />
+                      <Show when={item.content.length > 0}>
+                        <p class="md-text">{item.content}</p>
+                      </Show>
+                    </Show>
+                  </div>
+                )}
+              </For>
+            </div>
+          </Show>
+        </Show>
+      </div>
+    </div>
+  )
+}
+
+/** 合并消息里的一张图：取不到（离线地址失效、未登录）就退回 [图片] 占位，不blocking 其余内容。 */
+function MergeShot(props: { ctx: Context; url: string; onMedia: (url: string) => Promise<string> }) {
+  const [src, setSrc] = createSignal("")
+  createEffect(() => {
+    const url = props.url
+    if (url.length === 0) return
+    void props.onMedia(url).then(setSrc)
+  })
+  return (
+    <Show when={src().length > 0} fallback={<p class="md-text">{text(props.ctx, "hyt.chat.msg.merge.image")}</p>}>
+      <img class="md-shot" src={src()} alt="" />
+    </Show>
+  )
+}
+
 function ReceiptDialog(props: {
   ctx: Context
   sessionId: string

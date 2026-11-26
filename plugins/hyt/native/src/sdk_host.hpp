@@ -91,18 +91,31 @@ struct ReadResult {
   std::string error;
 };
 
+/**
+ * 撤回自己消息的结果。可撤回的时间窗由服务端判定：桥接不做本地时限检查，
+ * 超窗等错误一律以服务端回调 reason 原文返回。
+ */
+struct RecallResult {
+  bool ok = false;
+  std::string msgId;
+  std::string error;
+};
+
 using EventSink = std::function<void(const std::string&, const nhjson::Value&)>;
 using StoreWrite = std::function<bool(const OwnMessage&, std::string*)>;
 using StoreLookup = std::function<bool(const std::string&, StoredMessage*)>;
 using StoreUpdate =
     std::function<bool(const std::string&, const std::string&, std::string*)>;
+/** 撤回落地：把原消息行改成撤回通知。返回 false 表示库里没有那条消息。 */
+using StoreRecall = std::function<bool(const std::string&, std::string*)>;
 
 class SdkHost {
  public:
   static SdkHost& instance();
 
   void setSink(EventSink sink);
-  void setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update);
+  void setStoreHooks(StoreWrite write, StoreLookup lookup, StoreUpdate update,
+                     StoreRecall recall);
 
   bool available() const { return available_; }
   const std::string& unavailableReason() const { return unavailableReason_; }
@@ -115,6 +128,8 @@ class SdkHost {
   MemberResult queryMembers(const std::string& groupId, int waitMs);
   /** 把「我已经读过这条」上报给服务端，才是别人回执里那个 N 的来源。 */
   ReadResult markRead(const std::string& msgId, bool group, int waitMs);
+  /** 撤回自己发出的一条消息；时限与资格由服务端判定。 */
+  RecallResult recallMessage(const std::string& msgId, int waitMs);
   DownloadResult download(const StoredMessage& message, const std::string& account,
                           int waitMs);
   void fetchGroups();
@@ -143,6 +158,7 @@ class SdkHost {
   void handleQueryMembers(unsigned int matchKey, int reason,
                           std::vector<MemberInfo> members);
   void handleReadResult(unsigned int matchKey, int reason);
+  void handleWithDrawResult(unsigned int matchKey, int reason);
   void handleOwnGroups(const std::vector<std::pair<std::string, std::string>>& groups);
   void handleGroupNotice(const nhjson::Value& notice);
   void handleOfflineCount(int count);
@@ -191,6 +207,13 @@ class SdkHost {
     int reason = 0;
   };
 
+  struct RecallWait {
+    std::mutex mutex;
+    std::condition_variable cv;
+    bool done = false;
+    int reason = 0;
+  };
+
   mutable std::mutex stateMutex_;
   std::condition_variable stateCv_;
   std::mutex callMutex_;
@@ -216,11 +239,13 @@ class SdkHost {
   StoreWrite storeWrite_;
   StoreLookup storeLookup_;
   StoreUpdate storeUpdate_;
+  StoreRecall storeRecall_;
 
   std::map<unsigned int, PendingSend> pendingSends_;
   std::map<unsigned int, std::shared_ptr<MemberWait>> pendingMembers_;
   std::map<unsigned int, std::shared_ptr<DownloadWait>> pendingDownloads_;
   std::map<unsigned int, std::shared_ptr<ReadWait>> pendingReads_;
+  std::map<unsigned int, std::shared_ptr<RecallWait>> pendingRecalls_;
   std::map<std::string, std::pair<std::string, std::string>> groups_;
   /** 群名缓存是否已经从磁盘读过，避免每次 groups() 都开文件。 */
   bool groupsLoaded_ = false;

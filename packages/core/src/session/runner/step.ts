@@ -252,16 +252,21 @@ export const make = Effect.gen(function* () {
         if (record.finish || record.failure) {
           const startSnapshot = yield* Fiber.join(pendingStartSnapshot)
           const snapshot = yield* snapshots.capture()
+          // One numstat pass records the per-file counts on the message; the path list is derived from them.
+          const stats =
+            startSnapshot && snapshot && startSnapshot !== snapshot
+              ? yield* snapshots
+                  .stats({ from: startSnapshot, to: snapshot })
+                  .pipe(Effect.orElseSucceed(() => undefined))
+              : undefined
           const files =
             startSnapshot && snapshot
               ? startSnapshot === snapshot
                 ? []
-                : yield* snapshots
-                    .files({ from: startSnapshot, to: snapshot })
-                    .pipe(Effect.orElseSucceed(() => undefined))
+                : stats?.map((stat) => stat.file)
               : undefined
           const usage = record.finish ? SessionUsage.record(record.finish.usage, input.model.cost) : undefined
-          if (record.failure) yield* publisher.publishStepFailure({ ...usage, snapshot, files })
+          if (record.failure) yield* publisher.publishStepFailure({ ...usage, snapshot, files, stats })
           if (record.finish && usage && !record.failure)
             yield* bus.publish(SessionEvent.Step.Ended, {
               sessionID: input.sessionID,
@@ -272,6 +277,7 @@ export const make = Effect.gen(function* () {
               ...usage,
               snapshot,
               files,
+              stats,
             })
         }
 

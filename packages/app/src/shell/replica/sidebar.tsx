@@ -8,7 +8,6 @@ import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { Accessibility, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
-import { ActivityRing } from "@aicraft/ui/activity-ring"
 import { Button } from "@aicraft/ui/button"
 import { useDialog } from "@aicraft/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@aicraft/ui/dialog"
@@ -32,7 +31,7 @@ import { SessionSettingsDialog } from "@/session/settings-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout, type LocalProject } from "@/shell/state/layout"
-import { homeProjectDirectories } from "@/shell/layout/helpers"
+import { homeProjectDirectories, promoteAwaitingReview } from "@/shell/layout/helpers"
 import { addProjects } from "@/home/projects/add"
 import { createProjectActions } from "@/home/projects/actions"
 import { fileManagerApp } from "@/home/projects/file-manager"
@@ -41,27 +40,14 @@ import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { showToast } from "@/shell/notifications/toast"
 import { sessionHref } from "@/shell/routes/session"
 import { createWorktree } from "@/workspaces/create"
-import { createSessionInbox, inboxArchived, type InboxEntry, type InboxStatus } from "@/shell/titlebar/inbox-model"
+import { createSessionInbox, inboxArchived, type InboxEntry } from "@/shell/titlebar/inbox-model"
+import { BulkArchiveDialog } from "./bulk-archive-dialog"
+import { StatusMark } from "./session-status-mark"
 import { deliveryFrom, playDeliveryFlight, playUndoDrop } from "./envelope-flight"
 import { LIST, ROW, SECTION } from "./sidebar-tokens"
 import { ReplicaPrimaryFooter, ReplicaPrimaryNav, useNewSessionDraft } from "./primary-nav"
 import { createdFrom, creatorName, playBranchGrowth } from "./session-branch"
 import { replicaRow } from "./overlay"
-
-const DOT: Record<Exclude<InboxStatus, "ready" | "working">, string> = {
-  approval: "bg-[var(--v2-state-fg-warning)]",
-  input: "bg-[var(--v2-state-fg-warning)]",
-  failed: "bg-[var(--v2-state-fg-danger)]",
-  done: "bg-[var(--v2-state-fg-success)]",
-}
-
-const STATUS_LABEL = {
-  approval: "sidebar.inbox.status.approval",
-  input: "sidebar.inbox.status.input",
-  working: "sidebar.inbox.status.working",
-  failed: "sidebar.inbox.status.failed",
-  done: "sidebar.inbox.status.done",
-} as const
 
 const RECENT_GROUP = "replica-sidebar-recent"
 
@@ -125,40 +111,6 @@ function pointerLandingIndex(group: string, sourceKey: string, y: number) {
   })
 
   return at === -1 ? rows.length : at
-}
-
-/** The run state at the end of a conversation row: a ring while working, one dot once the result lands. */
-function StatusMark(props: { status: InboxStatus }) {
-  const language = useLanguage()
-
-  const label = () => {
-    const value = props.status
-
-    if (value === "ready") return
-
-    return STATUS_LABEL[value]
-  }
-
-  return (
-    <Show when={label()}>
-      {(key) => (
-        <span class="ms-auto flex shrink-0 items-center" title={language.t(key())}>
-          <Show
-            when={props.status === "working"}
-            fallback={
-              <span
-                aria-hidden="true"
-                class={`size-[6px] shrink-0 rounded-full ${DOT[props.status as Exclude<InboxStatus, "ready" | "working">]}`}
-              />
-            }
-          >
-            <ActivityRing class="size-3.5 shrink-0 text-[var(--color-icon-secondary)]" />
-          </Show>
-          <span class="sr-only">{language.t(key())}</span>
-        </span>
-      )}
-    </Show>
-  )
 }
 
 /**
@@ -238,6 +190,8 @@ function SessionRow(props: {
   onOpen: (entry: InboxEntry) => void
   onArchive: (entry: InboxEntry) => void
   onDelete: (entry: InboxEntry) => void
+  /** Opens the bulk-archive picker over every session in the workspace, not just this row's. */
+  onBulkArchive: () => void
   /** Whether a row from another project may land here, which moves the session into this project. */
   crossProject?: boolean
   /** The edge of this row the insertion line sits on, while a drag is over it. */
@@ -445,6 +399,7 @@ function SessionRow(props: {
           label: session.time.archived !== undefined ? language.t("common.unarchive") : language.t("common.archive"),
           icon: "archive",
         },
+        { id: "bulkArchive", label: `${language.t("replica.session.bulkArchive")}…`, icon: "archive" },
         { type: "separator" },
         { id: "delete", label: `${language.t("common.delete")}…`, icon: "delete" },
       ],
@@ -459,6 +414,7 @@ function SessionRow(props: {
     else if (chosen === "projectSettings") openProjectSettings()
     else if (chosen === "createBranch") void createBranch()
     else if (chosen === "archive") props.onArchive(entry)
+    else if (chosen === "bulkArchive") props.onBulkArchive()
     else if (chosen === "delete") props.onDelete(props.entry())
   }
 
@@ -582,6 +538,7 @@ function SessionRow(props: {
                 ? language.t("common.unarchive")
                 : language.t("common.archive")}
             </Menu.Item>
+            <Menu.Item onSelect={props.onBulkArchive}>{`${language.t("replica.session.bulkArchive")}…`}</Menu.Item>
           </Menu.Group>
           <Menu.Separator />
           <Menu.Group>
@@ -1068,7 +1025,8 @@ function ConversationNav() {
   /**
    * The recent list read as a project tree: one folder row per project with its sessions underneath. A project the
    * user dragged keeps that position; the rest follow the list itself, so the project that spoke last stays on top.
-   * Pinned sessions are lifted into their own section, and a group left empty by that lift is dropped.
+   * Pinned sessions are lifted into their own section, and a group left empty by that lift is dropped. A session
+   * whose latest run finished waits at the top of its project, so completion reads as "ready to look at".
    */
   const projectGroups = createMemo(() => {
     const groups = new Map<string, ReplicaProjectGroup>()
@@ -1111,7 +1069,10 @@ function ConversationNav() {
     return [...groups.values()]
       .flatMap((group) => {
         const marked = group.entries.some((entry) => pinned.has(entry.session.id))
-        const entries = group.entries.filter((entry) => !pinned.has(entry.session.id))
+        const entries = promoteAwaitingReview(
+          group.entries.filter((entry) => !pinned.has(entry.session.id)),
+          (entry) => entry.session,
+        )
 
         if (entries.length === 0) return []
 
@@ -1198,6 +1159,20 @@ function ConversationNav() {
     }
 
     void inbox.archive(entry)
+  }
+
+  // Bulk archiving runs through the same one-row path, so every picked session moves its cached row and closes its
+  // tabs exactly the way the row menu would. The picker sees a snapshot taken here: the live list re-sorts on every
+  // activity tick and sheds archived rows, which would shuffle the checkboxes under the pointer.
+  const bulkArchive = () => {
+    const snapshot = [...inbox.entries()]
+
+    dialog.show(() => (
+      <BulkArchiveDialog
+        entries={snapshot}
+        onConfirm={(selected) => selected.forEach((entry) => void inbox.archive(entry))}
+      />
+    ))
   }
 
   const confirmDelete = (entry: InboxEntry) => {
@@ -1500,6 +1475,7 @@ function ConversationNav() {
                       onOpen={open}
                       onArchive={archive}
                       onDelete={confirmDelete}
+                      onBulkArchive={bulkArchive}
                       dropEdge={() => slotEdge(entry().key)}
                     />
                   )}
@@ -1536,6 +1512,7 @@ function ConversationNav() {
                               onOpen={open}
                               onArchive={archive}
                               onDelete={confirmDelete}
+                              onBulkArchive={bulkArchive}
                               dropEdge={() => slotEdge(entry().key)}
                             />
                           )}

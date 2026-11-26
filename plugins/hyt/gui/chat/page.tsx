@@ -1,5 +1,6 @@
 import type { Context, IpcClient } from "@aicraft/aix/gui"
-import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
+import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
+import { GroupMark, avatarOf } from "./avatar.js"
 import { Blank } from "./blank.js"
 import { Composer } from "./composer.js"
 import { ChatIpc } from "./contract.js"
@@ -437,6 +438,9 @@ export function ChatPage(props: {
       entries.push({ label: text(ctx, "hyt.chat.msg.enlarge"), onSelect: () => openImage(message.filePath) })
     if (message.filePath.length > 0)
       entries.push({ label: text(ctx, "hyt.chat.msg.reveal"), onSelect: () => reveal(message.filePath) })
+    // 自己发的消息给撤回入口；时间窗不在这里判断，超窗由服务端拒绝并给出原因。
+    if (message.outgoing && message.kind !== "recall" && message.kind !== "notice" && message.msgId.length > 0)
+      entries.push({ label: text(ctx, "hyt.chat.menu.message.recall"), onSelect: () => void recall(message) })
     entries.push({ label: text(ctx, "hyt.chat.menu.message.copySender"), onSelect: () => copy(message.sender) })
     entries.push({
       label: text(ctx, "hyt.chat.menu.message.profile"),
@@ -492,6 +496,46 @@ export function ChatPage(props: {
       .then(() => setSending(false))
   }
 
+  const recall = (message: MessageRow) => {
+    void props.client
+      .recall({ msgId: message.msgId })
+      .then((result) => {
+        ctx.toast.show(
+          result.ok
+            ? { variant: "success", title: text(ctx, "hyt.chat.recall.done") }
+            : {
+                variant: "error",
+                title: text(ctx, "hyt.chat.recall.failed", { reason: result.reason || text(ctx, "hyt.chat.recall.unknown") }),
+              },
+        )
+      })
+      .catch(fail)
+  }
+
+  const pickAndSend = (kind: "image" | "file") => {
+    const sessionId = selectedId()
+    if (sessionId.length === 0 || sending()) return
+    setSending(true)
+    setNotice(undefined)
+    void (async () => {
+      try {
+        const picked = await props.client.pick({ kind })
+        if (picked.error.length > 0) {
+          setNotice(text(ctx, "hyt.chat.composer.rejected", { reason: picked.error }))
+          return
+        }
+        // 取消选择是正常路径，不提示。
+        if (picked.path.length === 0) return
+        const result = await props.client.sendMedia({ sessionId, filePath: picked.path })
+        if (!result.ok) setNotice(text(ctx, "hyt.chat.composer.rejected", { reason: result.reason }))
+      } catch (cause) {
+        fail(cause)
+      } finally {
+        setSending(false)
+      }
+    })()
+  }
+
   const mediaCache = new Map<string, Promise<string>>()
   // 本地没有副本时主进程会按 msgId 补下载，所以缓存键必须带上消息 id：
   // 同一条消息补下载完成后 path 会变，那时应重新读一次，而不是复用失败的缓存。
@@ -519,14 +563,32 @@ export function ChatPage(props: {
   }
 
   const mergeCache = new Map<string, Promise<{ items: readonly MergeItemRow[]; error: string }>>()
-  const onMerge = (path: string) => {
-    const cached = mergeCache.get(path)
+  const onMerge = (input: { path: string; msgId: string }) => {
+    const key = input.msgId
+    const cached = mergeCache.get(key)
     if (cached !== undefined) return cached
-    const request = props.client.merge({ path }).catch((cause: unknown) => ({
+    const request = props.client.merge(input).catch((cause: unknown) => ({
       items: [] as readonly MergeItemRow[],
       error: cause instanceof Error ? cause.message : String(cause),
     }))
-    mergeCache.set(path, request)
+    mergeCache.set(key, request)
+    // 失败不留在缓存里：文件补下载或登录之后要能重新解一次。
+    void request.then((value) => {
+      if (value.error.length > 0) mergeCache.delete(key)
+    })
+    return request
+  }
+
+  const mergeMediaCache = new Map<string, Promise<string>>()
+  const onMergeMedia = (url: string) => {
+    if (url.length === 0) return Promise.resolve("")
+    const cached = mergeMediaCache.get(url)
+    if (cached !== undefined) return cached
+    const request = props.client
+      .mergeMedia({ url })
+      .then((result) => (result.error.length > 0 ? "" : result.dataUrl))
+      .catch(() => "")
+    mergeMediaCache.set(url, request)
     return request
   }
 
@@ -763,6 +825,7 @@ export function ChatPage(props: {
             onAvatars={loadAvatars}
             onMedia={onMedia}
             onMerge={onMerge}
+            onMergeMedia={onMergeMedia}
             onOpenFile={reveal}
             onOpenImage={openImage}
             onMenu={messageMenu}
@@ -784,6 +847,7 @@ export function ChatPage(props: {
             notice={notice()}
             onInput={writeDraft}
             onSend={send}
+            onPickMedia={pickAndSend}
             onUseDraft={useDraft}
             onIgnoreDraft={() => {
               const draft = currentDraft()

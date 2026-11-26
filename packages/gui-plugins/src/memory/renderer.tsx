@@ -1,6 +1,6 @@
 import { createMemo, createSignal, For, Show } from "solid-js"
 import type { JSX } from "solid-js"
-import { createKeyed, SearchProvider, SettingsPage, Style, type Plugin } from "@aicraft/aix/gui"
+import { createKeyed, createLatest, SearchProvider, SettingsPage, Style, type Plugin } from "@aicraft/aix/gui"
 import { Memory } from "@aicraft/schema/memory"
 import type definition from "./index"
 import styles from "./memory.css?inline"
@@ -11,6 +11,9 @@ type Entry = Memory.Entry
 
 /** One plugin's memories, as the server groups them. Plugin memories never join the user's own scopes. */
 type PluginGroup = { plugin: string; entries: readonly Entry[] }
+
+/** One not-opened project's search hits, so a query reaches beyond the page currently shown. */
+type CrossGroup = { projectID: string; name: string; entries: readonly Entry[] }
 
 /** Matches the tools' own limits, so the editor cannot build an entry they would reject or truncate. */
 const MAX_TEXT = 2_000
@@ -99,7 +102,12 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       setProject([])
       setPluginGroups([])
     } finally {
-      if (ticket === generation) setLoading(false)
+      if (ticket === generation) {
+        setLoading(false)
+
+        // A write while a search is open changes the cross-project groups too, not just the loaded page.
+        setCrossVersion((value) => value + 1)
+      }
     }
   }
 
@@ -139,17 +147,62 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       ? ctx.t("created", { date: formatDate(entry.createdAt) })
       : ctx.t("updated", { date: formatDate(entry.updatedAt) })
 
+  /** The freshest change across the user's own memories; plugin memories do not speak for the user. */
+  const latestUpdate = createMemo(() =>
+    [...global(), ...project()]
+      .map((entry) => entry.updatedAt)
+      .sort()
+      .at(-1),
+  )
+
+  const relativeTime = (iso: string) => {
+    const then = new Date(iso).getTime()
+
+    if (Number.isNaN(then)) return ""
+    const seconds = Math.max(1, Math.round((Date.now() - then) / 1000))
+    const format = new Intl.RelativeTimeFormat(ctx.locale.locale(), { numeric: "always" })
+
+    const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+      ["year", 31_536_000],
+      ["month", 2_592_000],
+      ["day", 86_400],
+      ["hour", 3_600],
+      ["minute", 60],
+    ]
+
+    const step = steps.find(([, size]) => seconds >= size)
+
+    return step ? format.format(-Math.round(seconds / step[1]), step[0]) : format.format(-seconds, "second")
+  }
+
+  /** One line for the summary row and the dialog header: how many memories there are, and when they last changed. */
+  const updatedLine = () => {
+    if (loading()) return ctx.t("loading")
+
+    const total = global().length + project().length
+    const time = latestUpdate()
+    const parts: string[] = []
+
+    if (total > 0) parts.push(ctx.plural("summary.count", total, { count: total }))
+
+    if (time !== undefined) parts.push(ctx.t("summary.updated", { time: relativeTime(time) }))
+
+    if (parts.length === 0) return ctx.t("summary.empty")
+
+    return parts.join(" · ")
+  }
+
+  const matchesFilter = (entry: Entry, needle: string, tag: string | null) =>
+    (tag === null || entry.tags.some((item) => item.toLowerCase() === tag)) &&
+    (needle.length === 0 ||
+      entry.text.toLowerCase().includes(needle) ||
+      entry.tags.some((item) => item.toLowerCase().includes(needle)))
+
   const visible = (entries: readonly Entry[]) => {
     const needle = query().trim().toLowerCase()
     const tag = activeTag()?.toLowerCase() ?? null
 
-    return entries.filter(
-      (entry) =>
-        (tag === null || entry.tags.some((item) => item.toLowerCase() === tag)) &&
-        (needle.length === 0 ||
-          entry.text.toLowerCase().includes(needle) ||
-          entry.tags.some((item) => item.toLowerCase().includes(needle))),
-    )
+    return entries.filter((entry) => matchesFilter(entry, needle, tag))
   }
 
   const globalMatches = createMemo(() => visible(global()))
@@ -163,13 +216,85 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   const pluginCount = () => pluginMatches().reduce((sum, group) => sum + group.entries.length, 0)
 
+  /**
+   * A search reaches every project, not just the loaded page: while a filter is active the other projects are
+   * fetched too and grouped by name, the same cross-project reach the command palette has. The key is a plain
+   * string because `createLatest` keys by identity and the project list is rebuilt on every read; the version
+   * bumps on every write, so the groups track edits and deletions made from this dialog.
+   */
+  const [crossVersion, setCrossVersion] = createSignal(0)
+
+  const crossKey = () => {
+    if (!filtering()) return
+
+    const current = selected()
+
+    const ids = projects()
+      .filter((item) => item.id !== current)
+      .map((item) => item.id)
+
+    if (ids.length === 0) return
+
+    return [query().trim().toLowerCase(), activeTag()?.toLowerCase() ?? "", ids.join(","), crossVersion()].join(" ")
+  }
+
+  const cross = createLatest(crossKey, (_, signal) =>
+    new Promise<readonly CrossGroup[]>((resolve) => {
+      // One keystroke per burst: wait for the typing to rest before hitting every project.
+      const timer = setTimeout(() => {
+        const client = rpc()
+
+        if (!client) {
+          resolve([])
+
+          return
+        }
+
+        // Asynchronous, so these read outside the fetch's tracking scope; a newer key aborts this run anyway.
+        const needle = query().trim().toLowerCase()
+        const tag = activeTag()?.toLowerCase() ?? null
+        const current = selected()
+
+        void Promise.all(
+          projects()
+            .filter((item) => item.id !== current)
+            .map(async (item) => ({ item, project: (await client.list({ projectID: item.id })).project })),
+        )
+          .then((pages) =>
+            resolve(
+              pages
+                .map((page) => ({
+                  projectID: page.item.id,
+                  name: projectName(page.item),
+                  entries: page.project.filter((entry) => matchesFilter(entry, needle, tag)),
+                }))
+                .filter((group) => group.entries.length > 0)
+                .sort((a, b) => (b.entries[0]?.updatedAt ?? "").localeCompare(a.entries[0]?.updatedAt ?? "")),
+            ),
+          )
+          .catch(() => resolve([]))
+      }, 250)
+
+      signal.addEventListener("abort", () => {
+        clearTimeout(timer)
+        resolve([])
+      })
+    }),
+  )
+
+  const others = () => cross.latest ?? []
+  const othersLoading = () => cross.loading && others().length === 0
+
+  const crossCount = () => others().reduce((sum, group) => sum + group.entries.length, 0)
+
   const searchEmpty = () =>
     filtering() &&
     !loading() &&
     !error() &&
     globalMatches().length === 0 &&
     projectMatches().length === 0 &&
-    pluginMatches().length === 0
+    pluginMatches().length === 0 &&
+    others().length === 0
 
   const sectionVisible = (matches: readonly Entry[]) => !filtering() || loading() || error() || matches.length > 0
   const pluginsVisible = () => !filtering() || loading() || error() || pluginMatches().length > 0
@@ -196,7 +321,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     })
 
   /** The new-or-edit dialog. Signals live in the component so the dialog's owner disposes them when it closes. */
-  const Editor = (props: { scope: Scope; entry?: Entry; close: () => void }) => {
+  const Editor = (props: { scope: Scope; entry?: Entry; project?: string; close: () => void }) => {
     const [scope, setScope] = createSignal<Scope>(props.scope)
     const [text, setText] = createSignal(props.entry?.text ?? "")
     const [tags, setTags] = createSignal<string[]>(props.entry ? [...props.entry.tags] : [])
@@ -223,7 +348,11 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
     const scopeHint = () => {
       if (scope() === "global") return ctx.t("editor.scope.global")
-      const item = currentProject()
+
+      const item =
+        props.project === undefined
+          ? currentProject()
+          : projects().find((entry) => entry.id === props.project)
 
       return item ? ctx.t("editor.scope.project", { project: projectName(item) }) : ctx.t("project.hint")
     }
@@ -306,7 +435,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       if (!client || busy() || value.length === 0 || value.length > MAX_TEXT) return
 
       if (!flushDraft()) return
-      const projectID = scope() === "project" ? selected() : null
+      const projectID = scope() === "project" ? (props.project ?? selected()) : null
 
       if (scope() === "project" && projectID === null) return
       setBusy(true)
@@ -452,12 +581,22 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     )
   }
 
-  const openEditor = (scope: Scope, entry?: Entry) => {
-    if (scope === "project" && selected() === null) return
-    ctx.dialogs.open((dialog) => <Editor scope={scope} {...(entry === undefined ? {} : { entry })} close={dialog.close} />)
+  const openEditor = (scope: Scope, entry?: Entry, project?: string) => {
+    if (scope === "project" && selected() === null && project === undefined) return
+
+    ctx.dialogs.open(
+      (dialog) => (
+        <Editor
+          scope={scope}
+          {...(entry === undefined ? {} : { entry })}
+          {...(project === undefined ? {} : { project })}
+          close={dialog.close}
+        />
+      ),
+    )
   }
 
-  const remove = async (scope: Scope, entry: Entry) => {
+  const remove = async (scope: Scope, entry: Entry, project?: string) => {
     const client = rpc()
 
     if (!client) return
@@ -475,7 +614,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     try {
       await client.remove({
         scope,
-        projectID: scope === "project" ? selected() : null,
+        projectID: scope === "project" ? (project ?? selected()) : null,
         id: entry.id,
       })
       await refresh()
@@ -512,17 +651,53 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const summary = (entry: Entry) =>
     entry.text.length > 72 ? `${entry.text.slice(0, 72).trimEnd()}…` : entry.text
 
-  const Row = (props: { scope: Scope | "plugin"; plugin?: string; entry: Entry }) => {
+  /**
+   * The search term marked like a command-palette hit: the first case-insensitive match in accent ink. Without an
+   * active query this is the plain text.
+   */
+  const Highlight = (props: { text: string }) => {
+    const hit = createMemo(() => {
+      const needle = query().trim().toLowerCase()
+
+      if (needle.length === 0) return
+
+      const lower = props.text.toLowerCase()
+
+      // Lower-casing some scripts changes the length, and then offsets no longer line up with the text.
+      if (lower.length !== props.text.length) return
+      const at = lower.indexOf(needle)
+
+      return at === -1 ? undefined : { at, end: at + needle.length }
+    })
+
+    return (
+      <Show when={hit()} fallback={props.text}>
+        {(range) => (
+          <>
+            {props.text.slice(0, range().at)}
+            <mark class="memory-match">{props.text.slice(range().at, range().end)}</mark>
+            {props.text.slice(range().end)}
+          </>
+        )}
+      </Show>
+    )
+  }
+
+  const Row = (props: { scope: Scope | "plugin"; plugin?: string; project?: string; entry: Entry }) => {
     const [expanded, setExpanded] = createSignal(false)
     const long = () => props.entry.text.length > CLAMP_AT
 
     return (
       <ctx.ui.SettingsRow
-        id={props.plugin ? `${props.plugin}:${props.entry.id}` : `${props.scope}:${props.entry.id}`}
+        id={props.plugin ? `${props.plugin}:${props.entry.id}` : `${props.project ?? props.scope}:${props.entry.id}`}
         title={
           <Show
             when={long()}
-            fallback={<span class="memory-entry-text">{props.entry.text}</span>}
+            fallback={
+              <span class="memory-entry-text">
+                <Highlight text={props.entry.text} />
+              </span>
+            }
           >
             <button
               type="button"
@@ -531,7 +706,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               aria-expanded={expanded()}
               onClick={() => setExpanded((value) => !value)}
             >
-              {props.entry.text}
+              <Highlight text={props.entry.text} />
             </button>
           </Show>
         }
@@ -566,7 +741,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               label={ctx.t("edit")}
               onClick={() => {
                 if (props.scope === "plugin") return
-                openEditor(props.scope, props.entry)
+                openEditor(props.scope, props.entry, props.project)
               }}
             />
           </ctx.ui.Tooltip>
@@ -583,7 +758,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 return
               }
 
-              void remove(props.scope, props.entry)
+              void remove(props.scope, props.entry, props.project)
             }}
           />
         </ctx.ui.Tooltip>
@@ -602,11 +777,14 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     </div>
   )
 
-  // The three list states share the empty card's height, so the page does not jump between loading, error and content.
-  const Loading = () => (
-    <div class="settings-project-empty-card">
-      <ctx.ui.Loader size="small" />
-      <div class="text-13-regular text-v2-text-text-muted">{ctx.t("loading")}</div>
+  /** The dialog's first-load state: memories arrive as a book turning its pages, centered in the frame. */
+  const FlipLoading = () => (
+    <div class="memory-flip" role="status" aria-label={ctx.t("loading")}>
+      <div class="memory-flip-book" aria-hidden="true">
+        <span class="memory-flip-page" />
+        <span class="memory-flip-page memory-flip-page--late" />
+      </div>
+      <span class="memory-flip-caption">{ctx.t("loading")}</span>
     </div>
   )
 
@@ -705,35 +883,26 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     },
   })
 
-  ctx.add(SettingsPage, {
-    id: "memory",
-    icon: "memory",
-    get title() {
-      return ctx.t("title")
-    },
-    get entries() {
-      return [
-        {
-          id: "memory",
-          title: ctx.t("title"),
-          description: ctx.t("description"),
-          keywords: "memory 记忆 remember 记住 长期记忆",
-        },
-      ]
-    },
-    render: () => (
-      <ctx.ui.SettingsLayout
-        title={ctx.t("title")}
-        description={ctx.t("description")}
-        actions={
-          <div class="flex items-center gap-2">
+  /** Inside the dialog a refetch keeps the old rows; a plain loader marks the section that is refreshing. */
+  const RowsLoading = () => (
+    <div class="memory-section-loading">
+      <ctx.ui.Loader size="small" />
+    </div>
+  )
+
+  const hasAny = () => global().length > 0 || project().length > 0 || pluginGroups().length > 0
+
+  /** The memory browser, shown in a dialog from the host's Memory page: the search bar, then the scope sections. */
+  const Browser = () => (
+    <div class="memory-browser">
+      <div class="memory-browser-bar">
             <Show when={activeTag() !== null}>
               <button type="button" class="memory-filter-chip" onClick={() => setActiveTag(null)}>
                 <span>{ctx.t("filter.by", { tag: activeTag() ?? "" })}</span>
                 <ctx.ui.Icon name="close" size="small" />
               </button>
             </Show>
-            <div class="w-[220px]">
+            <div class="memory-browser-search">
               <ctx.ui.TextInput
                 type="search"
                 label={ctx.t("search")}
@@ -747,14 +916,11 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               <ctx.ui.IconButton icon="close" label={ctx.t("filter.clear")} onClick={clearFilters} />
             </Show>
           </div>
-        }
-      >
         <Show
           when={server()}
           fallback={<EmptyState icon="warning" title={ctx.t("offline")} hint={ctx.t("offline.hint")} />}
         >
-          {/* Marks this page for its own scroll frame: the header stays put and only the lists scroll. */}
-          <div class="memory-page">
+          <Show when={!loading() || hasAny()} fallback={<FlipLoading />}>
           <Show
             when={!searchEmpty()}
             fallback={
@@ -781,7 +947,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                       : undefined
                   }
                 />
-                <Show when={!loading() || global().length > 0} fallback={<Loading />}>
+                <Show when={!loading() || global().length > 0} fallback={<RowsLoading />}>
                   <Show when={!error()} fallback={<ErrorState />}>
                     <Entries
                       scope="global"
@@ -825,7 +991,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                     <EmptyState icon="memory" title={ctx.t("project.none")} hint={ctx.t("project.none.hint")} />
                   }
                 >
-                  <Show when={!loading() || project().length > 0} fallback={<Loading />}>
+                  <Show when={!loading() || project().length > 0} fallback={<RowsLoading />}>
                     <Show when={!error()} fallback={<ErrorState />}>
                       <Entries
                         scope="project"
@@ -840,11 +1006,36 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               </section>
             </Show>
 
+            <Show when={filtering() && (othersLoading() || crossCount() > 0)}>
+              <section class="settings-section" aria-label={ctx.t("others")}>
+                <SectionHead title={ctx.t("others")} count={crossCount()} />
+                <Show when={!othersLoading() || crossCount() > 0} fallback={<RowsLoading />}>
+                  <div class="memory-groups">
+                    <For each={others()}>
+                      {(group) => (
+                        <div class="memory-group">
+                          <div class="memory-group-head">
+                            <span class="memory-group-name">{group.name}</span>
+                            <span class="settings-section-count">{group.entries.length}</span>
+                          </div>
+                          <div data-component="settings-list">
+                            <For each={group.entries}>
+                              {(entry) => <Row scope="project" project={group.projectID} entry={entry} />}
+                            </For>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </section>
+            </Show>
+
             <Show when={pluginsVisible()}>
               <section class="settings-section" aria-label={ctx.t("plugin.title")}>
                 <SectionHead title={ctx.t("plugin.title")} count={pluginCount()} />
-                <p class="memory-plugin-hint">{ctx.t("plugin.hint")}</p>
-                <Show when={!loading() || pluginGroups().length > 0} fallback={<Loading />}>
+                <p class="settings-section-description">{ctx.t("plugin.hint")}</p>
+                <Show when={!loading() || pluginGroups().length > 0} fallback={<RowsLoading />}>
                   <Show when={!error()} fallback={<ErrorState />}>
                     <Show
                       when={pluginMatches().length > 0}
@@ -856,12 +1047,12 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                         />
                       }
                     >
-                      <div class="memory-plugins">
+                      <div class="memory-groups">
                         <For each={pluginMatches()}>
                           {(group) => (
-                            <div class="memory-plugin-group">
-                              <div class="memory-plugin-head">
-                                <span class="memory-plugin-name">{group.plugin}</span>
+                            <div class="memory-group">
+                              <div class="memory-group-head">
+                                <span class="memory-group-name">{group.plugin}</span>
                                 <span class="settings-section-count">{group.entries.length}</span>
                               </div>
                               <div data-component="settings-list">
@@ -879,9 +1070,44 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               </section>
             </Show>
           </Show>
-          </div>
+          </Show>
         </Show>
-      </ctx.ui.SettingsLayout>
+    </div>
+  )
+
+  const openBrowser = () => {
+    ctx.dialogs.open(() => (
+      <ctx.ui.Dialog title={ctx.t("content.dialog")} size="large" variant="settings">
+        <Browser />
+      </ctx.ui.Dialog>
+    ))
+  }
+
+  // The host's Memory page keeps the settings; the entries live behind one summary row that opens this dialog.
+  ctx.add(SettingsPage, {
+    id: "memory-content",
+    page: "memory",
+    get title() {
+      return ctx.t("content.section")
+    },
+    get entries() {
+      return [
+        {
+          id: "memory-content",
+          title: ctx.t("content.row"),
+          description: ctx.t("content.hint"),
+          keywords: "memory 记忆 remember 记住 长期记忆 content 内容 manage 管理",
+        },
+      ]
+    },
+    render: () => (
+      <ctx.ui.SettingsSection title={ctx.t("content.section")}>
+        <ctx.ui.SettingsRow id="memory-content" title={ctx.t("content.row")} description={updatedLine()}>
+          <ctx.ui.Button variant="neutral" size="small" onClick={openBrowser}>
+            {ctx.t("content.browse")}
+          </ctx.ui.Button>
+        </ctx.ui.SettingsRow>
+      </ctx.ui.SettingsSection>
     ),
   })
 }

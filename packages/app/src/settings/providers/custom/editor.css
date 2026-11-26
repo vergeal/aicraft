@@ -1,0 +1,452 @@
+/*
+ * Settings > Providers > one custom provider. The page follows the settings form skeleton: a page header, a single
+ * 640px form column, and the action bar pinned under it. Every value comes from the settings metric scale or the
+ * semantic colour layer; the model list is the page's one lifted block, everything else is a continuous surface.
+ */
+
+.settings-provider-editor {
+  display: flex;
+  min-height: 100%;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/* Keeps the page's own back control and title, and pins both while the form scrolls under them. */
+.settings-provider-editor-head {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-space-2);
+  padding: var(--settings-space-6) var(--settings-content-inset) var(--settings-space-4);
+  background: var(--v2-background-bg-base);
+  border-bottom: var(--settings-hairline) solid var(--v2-border-border-muted);
+}
+
+.settings-provider-editor-back {
+  align-self: flex-start;
+  margin-inline-start: calc(var(--settings-space-2) * -1);
+}
+
+.settings-provider-editor-body {
+  display: flex;
+  flex: 1 0 auto;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--settings-space-6) var(--settings-content-inset) var(--settings-space-5);
+}
+
+/* 640 is the two-column form measure; the fields cap themselves at 420, so the pair reads as one column of text. */
+.settings-provider-editor-column {
+  display: flex;
+  width: 100%;
+  max-width: 640px;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--settings-space-6);
+}
+
+.settings-provider-editor-section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--settings-space-4);
+}
+
+.settings-provider-editor-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--settings-space-3);
+}
+
+/* A group title names the boundary, so it sits under the rows in weight: 12/500 muted, never a second heading. */
+.settings-provider-editor-section-title {
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.settings-provider-editor-section-aside {
+  flex: none;
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-provider-editor-field {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-provider-editor-label {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: var(--line-height-compact);
+}
+
+/* Required is a muted star, never red text. */
+.settings-provider-editor-required {
+  color: var(--v2-text-text-muted);
+}
+
+.settings-provider-editor-hint {
+  margin: 0;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+/* An error states the reason and carries an icon, so the field never relies on colour alone. */
+.settings-provider-editor-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--settings-space-1);
+  margin: 0;
+  color: var(--v2-state-fg-danger);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.settings-provider-editor-error [data-slot="icon-svg"] {
+  flex: none;
+  margin-block-start: 2px;
+}
+
+.settings-provider-editor-mono [data-slot="text-input-v2-input"] {
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+/* The outcome of a request wears the danger role: wash, ink and icon, the three parts the colour alone cannot carry. */
+.settings-provider-editor-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--settings-space-2);
+  padding: var(--settings-space-3);
+  border-radius: var(--settings-radius-sm);
+  background: var(--v2-state-bg-danger);
+  color: var(--v2-state-fg-danger);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.settings-provider-editor-alert > [data-slot="icon-svg"] {
+  flex: none;
+  margin-block-start: 2px;
+}
+
+.settings-provider-editor-alert-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-provider-editor-alert-hint {
+  color: var(--v2-text-text-muted);
+}
+
+/* --- Models ---------------------------------------------------------------------------------------------- */
+
+.settings-provider-editor-models {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--settings-space-3);
+}
+
+.settings-provider-editor-models-bar,
+.settings-provider-editor-models-add {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--settings-space-2);
+}
+
+/* A field that fills its row: the control itself is 280 wide and fixed by the input primitive. */
+.settings-provider-editor-models-search,
+.settings-provider-editor-models-add [data-component="text-input-v2"] {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.settings-provider-editor-models-bar > [data-component="button-v2"],
+.settings-provider-editor-models-add > [data-component="button-v2"] {
+  flex: none;
+}
+
+.settings-provider-editor-models-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--settings-space-3);
+}
+
+.settings-provider-editor-models-filter {
+  width: 200px;
+}
+
+.settings-provider-editor-models-count {
+  margin-inline-start: var(--settings-space-1);
+  color: var(--v2-text-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-provider-editor-models-note {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The list is the page's one bordered block: rows sit on the card fill, only the hover and the selection wash move. */
+.settings-provider-editor-models-list {
+  border-radius: var(--settings-radius-md);
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--v2-border-border-base);
+}
+
+/* The padding lives on the viewport so rows scroll to the edge under the thumb. */
+.settings-provider-editor-models-viewport {
+  max-height: 320px;
+  padding: var(--settings-space-1);
+}
+
+/* The rows are positioned in the content box, which scrolls with them, so the shared marker travels with the list. */
+.settings-provider-editor-models-list [data-slot="menu-scroll-content"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-provider-editor-models-marker {
+  border-radius: var(--settings-radius-sm);
+}
+
+.settings-provider-editor-model[data-slot="checkbox-v2"] {
+  padding: var(--settings-space-1) var(--settings-space-2);
+  border-radius: var(--settings-radius-sm);
+}
+
+.settings-provider-editor-model [data-slot="checkbox-v2-row"] {
+  width: 100%;
+  align-items: center;
+  gap: var(--settings-space-2);
+}
+
+.settings-provider-editor-model [data-slot="checkbox-v2-control-stack"] {
+  height: 16px;
+}
+
+.settings-provider-editor-model [data-slot="checkbox-v2-control"] {
+  top: 0;
+}
+
+.settings-provider-editor-model [data-slot="checkbox-v2-text"] {
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-provider-editor-model [data-slot="checkbox-v2-label"] {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  align-items: center;
+  gap: var(--settings-space-2);
+  line-height: var(--line-height-compact);
+}
+
+.settings-provider-editor-model-id {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-provider-editor-model-tag {
+  flex: none;
+  height: 18px;
+  padding-inline: var(--settings-space-1);
+  border-radius: 999px;
+  background: var(--v2-background-bg-layer-02);
+  color: var(--v2-text-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.settings-provider-editor-model-code {
+  max-width: 45%;
+  flex: none;
+  overflow: hidden;
+  color: var(--v2-text-text-faint);
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The empty and skeleton states keep the list's box, so a read never collapses the page. */
+.settings-provider-editor-models-empty,
+.settings-provider-editor-models-skeleton {
+  display: flex;
+  border-radius: var(--settings-radius-md);
+  background: var(--v2-background-bg-layer-01);
+  box-shadow: inset 0 0 0 var(--settings-hairline) var(--v2-border-border-base);
+}
+
+.settings-provider-editor-models-empty {
+  margin: 0;
+  padding: var(--settings-space-6) var(--settings-space-4);
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  text-align: center;
+  justify-content: center;
+}
+
+.settings-provider-editor-models-skeleton {
+  flex-direction: column;
+  gap: var(--settings-space-1);
+  padding: var(--settings-space-2);
+}
+
+.settings-provider-editor-models-skeleton > span {
+  height: 32px;
+  border-radius: var(--settings-radius-sm);
+  background: var(--v2-background-bg-layer-02);
+  animation: settings-provider-editor-pulse 1500ms ease-in-out infinite;
+}
+
+@keyframes settings-provider-editor-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* --- Danger and the action bar ---------------------------------------------------------------------------- */
+
+.settings-provider-editor-danger {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-space-3);
+  margin-block-start: var(--settings-space-2);
+  padding-block-start: var(--settings-space-6);
+  border-top: var(--settings-hairline) solid var(--v2-border-border-muted);
+}
+
+.settings-provider-editor-danger > div {
+  display: flex;
+}
+
+/* The bar is the page's last line: canvas fill, one hairline above it, no lift and no shadow. */
+.settings-provider-editor-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--settings-space-2);
+  padding: var(--settings-space-3) var(--settings-content-inset);
+  background: var(--v2-background-bg-base);
+  border-top: var(--settings-hairline) solid var(--v2-border-border-muted);
+}
+
+.settings-provider-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--settings-space-2);
+}
+
+/* Controls use the design system's 6-8px corner, not the shared pill: a button is a control, not a tag. */
+.settings-provider-editor [data-component="button-v2"] {
+  border-radius: var(--settings-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-provider-editor-models-skeleton > span {
+    animation: none;
+  }
+}
+
+:root[data-motion="reduce"] .settings-provider-editor-models-skeleton > span {
+  animation: none;
+}
+
+/* The delete confirmation is the shared sheet shape; only its title takes the dialog's 18/600 step. */
+.settings-provider-delete-dialog [data-slot="dialog-title"] {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+  letter-spacing: -0.01em;
+}
+
+.settings-provider-delete-dialog [data-component="settings-provider-delete-details"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-space-1);
+  margin: 0;
+  padding: 0 0 var(--settings-space-3);
+  list-style: none;
+}
+
+.settings-provider-delete-dialog [data-component="settings-provider-delete-details"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--settings-space-2);
+  color: var(--v2-text-text-muted);
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+}
+
+.settings-provider-delete-dialog [data-component="settings-provider-delete-details"] > li > [data-slot="icon-svg"] {
+  flex: none;
+  margin-block-start: 2px;
+  color: var(--v2-icon-icon-muted);
+}
+
+.settings-provider-delete-dialog [data-slot="dialog-footer"] > [role="alert"] {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--v2-state-fg-danger);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}

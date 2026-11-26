@@ -98,6 +98,18 @@ export const MessageRow = Schema.Struct({
     }),
   ),
   /**
+   * 合并消息卡片：服务端给的标题与前几条预览行（图片在预览里就是 `[图片]`）。
+   * 只有 `kind=merge` 的消息有；UserData 缺字段时没有。
+   */
+  merge: Schema.optional(
+    Schema.Struct({
+      /** 「石玉海和罗江湧的消息记录」这类标题；没有则空串。 */
+      title: Schema.String,
+      /** 预览行，最多三条。 */
+      lines: Schema.Array(Schema.String),
+    }),
+  ),
+  /**
    * 自己发出的消息的已读回执摘要；别人发来的消息没有这个字段。
    * `unread` 为 -1 表示还没拿到群成员名单，此时界面只报「N 人已读」。
    */
@@ -127,6 +139,8 @@ export const MergeItemRow = Schema.Struct({
   kind: Schema.Literals(["text", "image", "other"]),
   /** epoch 毫秒；0 表示未知。 */
   time: Schema.Number,
+  /** 媒体在文件服务器上的下载地址；图片用它内联显示，没有则回落到 [图片] 占位。 */
+  remoteUrl: Schema.String,
 })
 
 /** 一条 AI 草稿。文件由另一个会话写入，这里只读。 */
@@ -304,6 +318,21 @@ export const ChatIpc = Ipc.define({
       input: Schema.Struct({ sessionId: Schema.String, text: Schema.String, at: Schema.Array(Schema.String) }),
       output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
     },
+    /** 撤回自己发出的一条消息；可撤回时间窗由服务端判定，超窗等原因写进 `reason`。 */
+    recall: {
+      input: Schema.Struct({ msgId: Schema.String }),
+      output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
+    },
+    /** 打开系统文件选择框挑一个本地文件；取消返回空 path。 */
+    pick: {
+      input: Schema.Struct({ kind: Schema.Literals(["image", "file"]) }),
+      output: Schema.Struct({ path: Schema.String, error: Schema.String }),
+    },
+    /** 发送图片/文件/文档：走桥接 `im.sendMedia`，成功后写回本地库并刷新。 */
+    sendMedia: {
+      input: Schema.Struct({ sessionId: Schema.String, filePath: Schema.String }),
+      output: Schema.Struct({ ok: Schema.Boolean, reason: Schema.String }),
+    },
     /** 用账号密码登录消息通道，成功后把凭据存进插件数据目录。 */
     login: {
       input: Schema.Struct({ userName: Schema.String, password: Schema.String }),
@@ -313,10 +342,15 @@ export const ChatIpc = Ipc.define({
     logout: {
       output: Schema.Struct({ ok: Schema.Boolean, error: Schema.String }),
     },
-    /** 解开一条合并转发。 */
+    /** 解开一条合并转发：`path` 是已下载的 txt；没有就先按 `msgId` 补下载再解。 */
     merge: {
-      input: Schema.Struct({ path: Schema.String }),
+      input: Schema.Struct({ path: Schema.String, msgId: Schema.String }),
       output: Schema.Struct({ items: Schema.Array(MergeItemRow), error: Schema.String }),
+    },
+    /** 取合并消息里的图片：主进程按 http(s) 地址代取，返回 data URL。 */
+    mergeMedia: {
+      input: Schema.Struct({ url: Schema.String }),
+      output: Schema.Struct({ dataUrl: Schema.String, error: Schema.String }),
     },
     /** 读一张自己发出的消息的已读回执名单；`retry` 会忽略成员缓存重新拉一次群成员。 */
     receipts: {

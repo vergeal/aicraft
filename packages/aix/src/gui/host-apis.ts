@@ -1977,6 +1977,11 @@ export interface UiDialogProps {
    * either way. Defaults to true.
    */
   readonly closable?: boolean
+  /**
+   * The surface the dialog shows. Pass `settings` when the content reuses the settings rows, sections and controls, so
+   * the dialog picks up the settings metric scale instead of rendering with collapsed spacing.
+   */
+  readonly variant?: "settings"
 }
 
 /** Props of `Ui.Switch`. */

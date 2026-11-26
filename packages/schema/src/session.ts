@@ -15,6 +15,7 @@ import { Permission } from "./permission.js"
 import { TokenUsage } from "./token-usage.js"
 import { Revert } from "./session-revert.js"
 import { SessionFork } from "./session-fork.js"
+import { SessionTranscript } from "./session-transcript.js"
 
 export const ID = SessionID
 export type ID = SessionID
@@ -31,6 +32,13 @@ export { Revert }
 export const ForkBoundary = SessionFork.Boundary
 export type ForkBoundary = SessionFork.Boundary
 
+/**
+ * Turn and step counts, durations and prompt-token measurements recorded as the Session runs, stored on
+ * the Session so the composer status line renders from the Session alone instead of folding the transcript.
+ */
+export const Stats = SessionTranscript.Stats
+export interface Stats extends SessionTranscript.Stats {}
+
 export interface Info extends Schema.Schema.Type<typeof Info> {}
 export const Info = Schema.Struct({
   id: ID,
@@ -46,6 +54,8 @@ export const Info = Schema.Struct({
   model: Model.Ref.pipe(optional),
   cost: Money.USD,
   tokens: TokenUsage.Info,
+  /** Absent until the Session's first stats refresh; refreshed at every execution settle, revert and fork. */
+  stats: Stats.pipe(optional),
   /** Outcome of the last completed execution, recorded at `time.idle`. Absent until a run reaches a terminal transition. */
   outcome: Schema.Literals(["succeeded", "failed", "interrupted"]).pipe(optional),
   time: Schema.Struct({

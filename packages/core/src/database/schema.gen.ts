@@ -397,6 +397,12 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`tokens_reasoning\` integer DEFAULT 0 NOT NULL,
           \`tokens_cache_read\` integer DEFAULT 0 NOT NULL,
           \`tokens_cache_write\` integer DEFAULT 0 NOT NULL,
+          \`stat_turns\` integer,
+          \`stat_steps\` integer,
+          \`stat_model_time\` integer,
+          \`stat_tool_time\` integer,
+          \`stat_output_tokens\` integer,
+          \`stat_context_tokens\` integer,
           \`revert\` text,
           \`permission\` text,
           \`prompt\` text,
@@ -414,6 +420,17 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`time_suspended\` integer,
           \`resume_attempts\` integer DEFAULT 0 NOT NULL,
           CONSTRAINT \`fk_session_v2_project_id_project_id_fk\` FOREIGN KEY (\`project_id\`) REFERENCES \`project\`(\`id\`) ON DELETE CASCADE
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`session_turn_diff\` (
+          \`session_id\` text NOT NULL,
+          \`from_message_id\` text NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL,
+          \`data\` text NOT NULL,
+          CONSTRAINT \`session_turn_diff_pk\` PRIMARY KEY(\`session_id\`, \`from_message_id\`),
+          CONSTRAINT \`fk_session_turn_diff_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE
         );
       `)
       yield* tx.run(`

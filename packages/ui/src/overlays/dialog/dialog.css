@@ -207,6 +207,52 @@
   }
 }
 
+/* Body scroll edges: content fades as it leaves the top or bottom, the same scroll timeline the settings nav uses.
+   A body that does not overflow keeps both lengths at 0, so nothing fades. */
+@property --dialog-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --dialog-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@supports (animation-timeline: scroll()) {
+  [data-component="dialog-v2"] [data-slot="dialog-body"]:is([data-scrollable], [class*="overflow"]),
+  [data-component="dialog-v2"] [data-slot="dialog-body"] [data-scrollable] {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      var(--v2-background-bg-inverse) var(--dialog-fade-start),
+      var(--v2-background-bg-inverse) calc(100% - var(--dialog-fade-end)),
+      transparent
+    );
+    animation:
+      dialog-fade-start linear both,
+      dialog-fade-end linear both;
+    animation-timeline: scroll(self), scroll(self);
+    animation-range:
+      0 24px,
+      calc(100% - 24px) 100%;
+  }
+}
+
+@keyframes dialog-fade-start {
+  to {
+    --dialog-fade-start: 24px;
+  }
+}
+
+@keyframes dialog-fade-end {
+  from {
+    --dialog-fade-end: 24px;
+  }
+}
+
 /* Body inset lives in the base layer so a caller that already lays its content out (a padding utility, its own
    class, or `data-flush`) still wins without having to know about this default. */
 @layer base {

@@ -25,7 +25,7 @@ import { createImagePreview } from "../components/image-preview"
 import { localImagePath } from "../components/markdown-image"
 import { DataContext } from "../context/data"
 import { useMarkdown } from "../context/markdown"
-import { projectTimeline } from "./project"
+import { flowGapPx, projectTimeline } from "./project"
 import { toolActivity, toolDescription, toolError, toolImagePath, toolImages, toolInput, toolLabel, toolMark, toolOutput } from "./tool"
 import {
   createRestoreState,
@@ -82,6 +82,11 @@ const ReplyMetaContext = createContext<ReplyMeta>({
 
 export interface AnswerPageProps {
   readonly messages: () => readonly SessionMessageInfo[]
+  /**
+   * Inputs still waiting behind the active turn. A background wake that has not been delivered yet
+   * keeps riding the turn above instead of opening its block, as the row path does.
+   */
+  readonly pendingInputIDs?: () => ReadonlySet<string> | undefined
   readonly view?: TranscriptView
   readonly collapseTiming?: CollapseTiming
   readonly foldedReplies?: FoldedReplies
@@ -444,7 +449,9 @@ export function AnswerPage(props: AnswerPageProps) {
 
   // The previous projection is passed back in so unchanged rows keep their payload object: a streamed
   // delta then only invalidates the row it touched instead of every memo in the transcript.
-  const snapshot = createMemo<Snapshot>((previous) => projectTimeline(messages(), previous))
+  const snapshot = createMemo<Snapshot>((previous) =>
+    projectTimeline(messages(), previous, props.pendingInputIDs?.()),
+  )
 
   // The footer reports facts the projection leaves out: the model and agent that produced a reply, and when it
   // finished. Keep them keyed by message so each row reads only its own.
@@ -996,32 +1003,6 @@ function runningElapsed(turn: TimelineTurn | undefined, now: number) {
  * The leading gap of one row in pixels. It is padding inside the row box rather than a margin, so the
  * measured border box already covers it and the window offsets stay exact.
  */
-function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[], index: number) {
-  if (index <= 0) return 0
-
-  const current = entries[index]
-  const previous = entries[index - 1]
-
-  if (!current || !previous) return 0
-
-  // The answer sits 50px below the bubble. The prompt's action line is the row's own 24px tail (20px line plus a
-  // 4px gap), so the answer contributes only the remaining 26px; making this gap 50 would double-count the time
-  // line. The gap above the prompt stays wider than the rhythm because nothing sits in it.
-  if (previous.kind === "node" && snapshot.nodes.get(previous.key)?.payload.kind === "input") return 26
-
-  if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
-
-  if (current.kind === "fold") return 12
-
-  if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16
-
-  return 4
-}
-
-function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
-  return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
-}
-
 /** The row a repeat run folds from: its first member names the run and carries its icon. */
 function repeatLabel(i18n: ReturnType<typeof useI18n>, node: TimelineNode | undefined) {
   if (node?.payload.kind === "tool") return i18n.t(TOOL_ACTIONS[actionKey(node.payload.tool.name)])
@@ -1575,7 +1556,7 @@ function RunHeader(props: {
             aria-hidden="true"
             name="chevron-down"
             size="small"
-            class={`shrink-0 transition-transform motion-reduce:transition-none ${props.open ? "rotate-180" : ""}`}
+            class={`shrink-0 transition-transform motion-reduce:transition-none ${props.open ? "" : "-rotate-90"}`}
           />
         </Show>
       </button>
@@ -1962,6 +1943,7 @@ function Payload(props: {
           text={props.payload.text}
           detail={props.payload.detail}
           notice={props.payload.notice}
+          wake={props.payload.wake}
           cacheKey={props.cacheKey}
           rowOpen={props.rowOpen}
           onToggleRow={props.onToggleRow}
@@ -2094,12 +2076,17 @@ function NoticeRow(props: {
   text: string
   detail?: string
   notice?: "instructions-updated" | "system-reminder"
+  wake?: NonNullable<Extract<NodePayload, { kind: "notice" }>["wake"]>
   cacheKey: string
   rowOpen?: boolean
   onToggleRow?: (next: boolean) => void
 }) {
   const i18n = useI18n()
   const expanded = () => props.rowOpen ?? false
+
+  // A background wake that opened its own segment reads as an expandable completion block: the call
+  // it reports sits far above (often folded), so the row carries the command and the output itself.
+  if (props.wake) return <WakeNoticeRow wake={props.wake} text={props.text} rowOpen={props.rowOpen} onToggleRow={props.onToggleRow} />
 
   const title = () =>
     props.notice === "instructions-updated"
@@ -2133,6 +2120,96 @@ function NoticeRow(props: {
         class="answer-markdown ps-[30px] py-1 [overflow-wrap:anywhere]"
       />
     </DisclosureRow>
+  )
+}
+
+/**
+ * A background completion that opened its own segment: an expandable block naming the finished call,
+ * opening onto the command and the captured output, so the report reads like the tool row that
+ * started the job instead of one truncated line under the question it woke past.
+ */
+function WakeNoticeRow(props: {
+  wake: NonNullable<Extract<NodePayload, { kind: "notice" }>["wake"]>
+  text: string
+  rowOpen?: boolean
+  onToggleRow?: (next: boolean) => void
+}) {
+  const i18n = useI18n()
+  const expanded = () => props.rowOpen ?? false
+  const titleClass = () => {
+    if (props.wake.outcome === "error") return "text-v2-state-fg-danger"
+    if (props.wake.outcome === "cancelled") return "text-[var(--v2-yellow-900)] [[data-color-scheme=dark]_&]:text-v2-state-fg-warning"
+
+    return ""
+  }
+  // The banner names what happened, not who: the reader is asking why this segment exists at all.
+  const title = () => {
+    if (props.wake.source === "shell")
+      return props.wake.outcome === "error"
+        ? i18n.t("ui.answer.notice.wakeShellFailed")
+        : props.wake.outcome === "cancelled"
+          ? i18n.t("ui.answer.notice.wakeShellCancelled")
+          : i18n.t("ui.answer.notice.wakeShell")
+
+    return props.wake.outcome === "error"
+      ? i18n.t("ui.answer.notice.wakeSubagentFailed")
+      : props.wake.outcome === "cancelled"
+        ? i18n.t("ui.answer.notice.wakeSubagentCancelled")
+        : i18n.t("ui.answer.notice.wakeSubagent")
+  }
+
+  return (
+    <div
+      data-slot="answer-wake"
+      data-outcome={props.wake.outcome}
+      class="w-full min-w-0 rounded-[16px] border-[0.5px] border-v2-border-border-base px-5 py-3"
+      style={{ background: "var(--answer-surface)" }}
+    >
+      <DisclosureRow
+        title={title()}
+        titleClass={titleClass()}
+        summary={props.text}
+        summaryDanger={props.wake.outcome === "error"}
+        state={props.wake.outcome === "error" ? "error" : "ok"}
+        expanded={expanded()}
+        leading={<FlowIcon name={props.wake.source === "shell" ? "answer-console" : "answer-subagent"} />}
+        onToggle={() => props.onToggleRow?.(!expanded())}
+      >
+        <div data-slot="answer-wake-body" class="ms-[24px] mt-1 flex flex-col gap-2 border-t-[0.5px] border-v2-border-border-muted pt-2">
+          <Show when={props.wake.command}>
+            {(command) => (
+              <>
+                <section class="flex flex-col gap-1">
+                  <span class="font-mono text-[11px] leading-[19px]" style={{ color: "var(--answer-ink-tertiary)" }}>
+                    {i18n.t("ui.answer.io.input")}
+                  </span>
+                  <pre
+                    data-slot="answer-wake-command"
+                    class="whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
+                    style={{ color: "var(--answer-ink-secondary)" }}
+                  >
+                    {command()}
+                  </pre>
+                </section>
+                <div class="h-[0.5px] w-full bg-v2-border-border-muted" />
+              </>
+            )}
+          </Show>
+          <section class="flex flex-col gap-1">
+            <span class="font-mono text-[11px] leading-[19px]" style={{ color: "var(--answer-ink-tertiary)" }}>
+              {i18n.t("ui.answer.io.output")}
+            </span>
+            <pre
+              data-slot="answer-wake-output"
+              class="max-h-[50vh] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-[19px] [overflow-wrap:anywhere]"
+              style={{ color: props.wake.outcome === "error" ? "var(--v2-state-fg-danger)" : "var(--answer-ink-secondary)" }}
+            >
+              {props.wake.output}
+            </pre>
+          </section>
+        </div>
+      </DisclosureRow>
+    </div>
   )
 }
 
@@ -2274,8 +2351,8 @@ function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boo
 
   const chevron = () =>
     props.scope === "row"
-      ? `absolute opacity-0 transition-[opacity,transform] group-hover/row:opacity-100 group-focus-visible/row:opacity-100 motion-reduce:transition-none ${props.open ? "rotate-180" : ""}`
-      : `absolute opacity-0 transition-[opacity,transform] group-hover/heading:opacity-100 group-focus-visible/heading:opacity-100 motion-reduce:transition-none ${props.open ? "rotate-180" : ""}`
+      ? `absolute opacity-0 transition-[opacity,transform] group-hover/row:opacity-100 group-focus-visible/row:opacity-100 motion-reduce:transition-none ${props.open ? "" : "-rotate-90"}`
+      : `absolute opacity-0 transition-[opacity,transform] group-hover/heading:opacity-100 group-focus-visible/heading:opacity-100 motion-reduce:transition-none ${props.open ? "" : "-rotate-90"}`
 
   return (
     <span class="relative grid h-6 w-[18px] shrink-0 items-center justify-items-start [&_svg]:size-[18px] [&_svg]:translate-y-[0.5px]">
@@ -2296,6 +2373,7 @@ function LeadingSlot(props: { icon: JSX.Element; open: boolean; expandable?: boo
 /** L2: one disclosure row. The chevron only appears on hover, as in DSH. */
 function DisclosureRow(props: {
   title: string
+  titleClass?: string
   summary?: string
   summaryDanger?: boolean
   state: "ok" | "error" | "running"
@@ -2326,7 +2404,7 @@ function DisclosureRow(props: {
       >
         <LeadingSlot icon={props.leading} open={props.expanded} scope="row" />
         <span class="flex h-[24px] min-w-0 items-center overflow-hidden">
-          <bdi dir="auto" data-slot="answer-row-title" class="min-w-0 shrink truncate">{props.title}</bdi>
+          <bdi dir="auto" data-slot="answer-row-title" class={`min-w-0 shrink truncate ${props.titleClass ?? ""}`}>{props.title}</bdi>
           <Show when={props.summary}>
             {(value) => (
               <span

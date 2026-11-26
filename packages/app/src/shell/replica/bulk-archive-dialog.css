@@ -1,0 +1,85 @@
+/*
+ * The bulk-archive picker. Rows keep the sidebar list's rhythm — one row per tick, 2px apart, the shared row
+ * radius — while the control itself stays the compact checkbox's metric. Counts sit at the trailing edge in
+ * tabular figures so project folders of the same size line up.
+ */
+
+.bulk-archive-list {
+  max-height: min(380px, 50vh);
+  padding: 4px 12px 0;
+}
+
+.bulk-archive-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.bulk-archive-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-inline-start: 14px;
+}
+
+.bulk-archive-row {
+  width: 100%;
+}
+
+/* The hover band covers the whole row, not just the control and the label. */
+.bulk-archive-row :where([data-slot="checkbox-v2-row"]) {
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding-inline: 6px;
+  border-radius: var(--radius-row);
+}
+
+@media (hover: hover) {
+  .bulk-archive-row:hover :where([data-slot="checkbox-v2-row"]) {
+    background: var(--color-hover);
+  }
+}
+
+.bulk-archive-row :where([data-slot="checkbox-v2-text"]) {
+  flex: 1;
+  min-width: 0;
+}
+
+.bulk-archive-row :where([data-slot="checkbox-v2-label"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.bulk-archive-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bulk-archive-count {
+  flex: none;
+  font-size: 11px;
+  line-height: var(--line-height-tight);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bulk-archive-group-head :where([data-slot="checkbox-v2-label"]) {
+  font-weight: var(--font-weight-medium);
+}
+
+.bulk-archive-empty {
+  padding: 20px 24px;
+  margin: 0;
+  font-size: 13px;
+  line-height: var(--line-height-compact);
+  color: var(--color-text-tertiary);
+}

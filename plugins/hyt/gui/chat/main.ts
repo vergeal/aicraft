@@ -3,7 +3,7 @@ import { Schema } from "effect"
 import { createHash } from "node:crypto"
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { basename, join } from "node:path"
 import { decodeMergeText } from "../../src/chat/merge.js"
 import type { MergeItem } from "../../src/chat/merge.js"
 import { parseReceipt } from "../../src/chat/receipts.js"
@@ -666,6 +666,20 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       return { ok: true, reason: recorded.recorded ? "" : `已发送，但未写入本地历史：${recorded.error}` }
     },
 
+    async recall(input) {
+      const msgId = input.msgId.trim()
+      if (msgId.length === 0) return { ok: false, reason: "这条消息没有可撤回的消息 id" }
+      // 时间窗交给服务端：这里不判断「发了多久」，拒绝原因就是服务端的判定结果。
+      const result = await sender.recall(msgId)
+      if (!result.ok) return { ok: false, reason: result.error || "撤回没有成功" }
+      // 撤回通知走服务端广播，通常几百毫秒内落库；立刻刷一次，慢到的下一次轮询补上。
+      await serial(async () => {
+        await load(true)
+        report()
+      })
+      return { ok: true, reason: "" }
+    },
+
     async login(input) {
       const userName = input.userName.trim()
       const result = await sender.login(userName, input.password)
@@ -704,13 +718,59 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
     },
 
     async merge(input) {
-      const path = input.path
       const root = rootOf()
-      if (!insideRoot(path, root)) return { items: [], error: "路径不在数据目录内" }
+      let path = input.path
+      // 合并正文是个 txt 附件：本机没有副本（离线收到的）就先按消息 id 让服务端补下载。
+      if ((path.length === 0 || !insideRoot(path, root)) && input.msgId.length > 0) {
+        const downloaded = await sender.download(input.msgId)
+        if (downloaded.path.length > 0 && insideRoot(downloaded.path, root)) path = downloaded.path
+      }
+      if (path.length === 0 || !insideRoot(path, root)) return { items: [], error: "合并内容还没有下载到本机" }
       const text = readText(path)
       if (text === undefined) return { items: [], error: "文件不存在或无法读取" }
       const names = Db.readPersonNames(root, current?.status.account ?? "")
       return { items: decodeMergeText(text).map((item) => mergeRow(item, names)), error: "" }
+    },
+
+    async mergeMedia(input) {
+      const url = input.url.trim()
+      if (!/^https?:\/\//i.test(url)) return { dataUrl: "", error: "只支持 http(s) 地址" }
+      try {
+        // 渲染进程受 CORS 限制读不到内网文件服务器，由主进程代取一次再转 data URL。
+        const response = await fetch(url)
+        if (!response.ok) return { dataUrl: "", error: `服务端返回 ${response.status}` }
+        const bytes = new Uint8Array(await response.arrayBuffer())
+        const name = url.split("?")[0]?.split("/").pop() ?? "merge-media"
+        return mediaOf(bytes, name)
+      } catch (cause) {
+        return { dataUrl: "", error: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async pick(input) {
+      const dialog = electronDialog()
+      if (dialog === undefined) return { path: "", error: "当前环境没有系统文件选择框" }
+      const result = await dialog.showOpenDialog({
+        properties: ["openFile"],
+        filters: input.kind === "image" ? [{ name: "图片", extensions: IMAGE_EXTENSIONS }] : [],
+      })
+      if (result.canceled || result.filePaths.length === 0) return { path: "", error: "" }
+      return { path: result.filePaths[0] ?? "", error: "" }
+    },
+
+    async sendMedia(input) {
+      const sessionId = input.sessionId.trim()
+      const filePath = input.filePath.trim()
+      if (sessionId.length === 0) return { ok: false, reason: "没有选中的会话" }
+      if (filePath.length === 0) return { ok: false, reason: "没有选中文件" }
+      const result = await sender.sendMedia(sessionId, filePath)
+      if (!result.ok) return { ok: false, reason: result.error.length > 0 ? result.error : "发送没有成功" }
+      // 服务端把这条消息推回来落库有延迟：立刻刷一次，慢到的下一次轮询补上。
+      await serial(async () => {
+        await load(true)
+        report()
+      })
+      return { ok: true, reason: "" }
     },
 
     async receipts(input) {
@@ -773,6 +833,12 @@ export function provideChatIpc(ctx: MainContext): IpcProvider<typeof ChatIpc.spe
       // 附件在 LVS 端口的 http 服务上，比 SDK 的 FileServer 配置可靠。
       const source = Db.readFileSource(root, account, msgId)
       if (source !== undefined) {
+        // 自己发出的媒体：FileFullPath 就是发送时的原始文件，还在本机就直接读，
+        // 与官方客户端同一做法；不补下载也不重复写 RecvFiles。
+        if (source.sender === account && source.fullPath.length > 0) {
+          const original = readBytes(source.fullPath)
+          if (original !== undefined) return mediaOf(original, source.fullPath)
+        }
         const fetched = await fetchFileBytes(signedFileUrl(fileServerBase(root), source.url))
         if (fetched !== undefined) {
           const saved = writeRecvFile(root, account, source, fetched)
@@ -848,6 +914,24 @@ function mergeRow(item: MergeItem, names: ReadonlyMap<string, string>): MergeIte
     content: item.content,
     kind: item.kind,
     time: item.time,
+    remoteUrl: item.remoteUrl,
+  }
+}
+
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "bmp", "webp"]
+
+interface OpenDialogResult {
+  readonly canceled: boolean
+  readonly filePaths: readonly string[]
+}
+
+/** Electron 主进程的 dialog：插件 gui main 就运行在它里面，electron 保持运行时外部模块。 */
+function electronDialog(): { showOpenDialog(options: object): Promise<OpenDialogResult> } | undefined {
+  try {
+    return (require("electron") as { dialog?: { showOpenDialog(options: object): Promise<OpenDialogResult> } }).dialog
+  } catch {
+    // Web 端或非 Electron 宿主没有这个模块：文件选择退化为不可用，界面会给出原因。
+    return undefined
   }
 }
 
@@ -947,7 +1031,8 @@ function writeRecvFile(root: string, account: string, source: Db.FileSource, byt
   const dir = join(root, account, "RecvFiles", month)
   mkdirSync(dir, { recursive: true })
   const fromUrl = (source.url.split("?")[0] ?? "").split("/").pop() ?? ""
-  const name = source.fileName.length > 0 ? source.fileName : fromUrl
+  // 库里的 FileName 对自发媒体可能是发送时的绝对路径：只取文件名，否则 join 会把整条路径拼进收件目录。
+  const name = basename(source.fileName.length > 0 ? source.fileName : fromUrl)
   const base = name.length > 0 ? name : `download-${Date.now()}`
   let target = join(dir, base)
   for (let index = 1; existsSync(target) && index < 200; index += 1) {

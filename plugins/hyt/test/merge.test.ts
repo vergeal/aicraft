@@ -59,6 +59,7 @@ describe("parseMergeItems", () => {
         title: "只有正文",
         kind: "other",
         url: "",
+        remoteUrl: "",
         userData: "",
       },
     ])
@@ -109,6 +110,7 @@ describe("describeMerge", () => {
       title: "",
       kind: "text" as const,
       url: "",
+      remoteUrl: "",
       userData: "",
     }))
     const text = describeMerge(items, 2)

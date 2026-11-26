@@ -16,8 +16,16 @@ import { SessionMessageUpdater } from "./message-updater.js"
 import { SessionInbox } from "./inbox.js"
 import { InstructionState } from "./instruction-state.js"
 import { SessionBlob } from "./blob.js"
-import { SessionInboxTable, SessionMessageTable, SessionPartTable, SessionTable, type SessionPartData } from "./sql.js"
+import {
+  SessionInboxTable,
+  SessionMessageTable,
+  SessionPartTable,
+  SessionTable,
+  SessionTurnDiffTable,
+  type SessionPartData,
+} from "./sql.js"
 import { SessionStored } from "./stored.js"
+import { SessionStatsRefresh } from "./stats-refresh.js"
 import { InstructionEntry } from "./instruction-entry.js"
 import type { SQLiteUpdateSetSource } from "drizzle-orm/sqlite-core/query-builders/update"
 import { Slug } from "../util/slug.js"
@@ -1039,7 +1047,7 @@ const layer = Layer.effectDiscard(
           sessionID: event.data.sessionID,
         })
         const time = { created: DateTime.makeUnsafe(event.created) }
-        if (input.type === "user")
+        if (input.type === "user") {
           yield* insertMessage(db, event, {
             id: input.id,
             type: "user",
@@ -1050,6 +1058,11 @@ const layer = Layer.effectDiscard(
             skills: input.payload.skills,
             time,
           })
+          // A delivered prompt opens a turn; bump the turn count so the composer line stays live while the run
+          // proceeds. Full recounting waits for `session.step.ended` — the complete statement re-reads every
+          // part's JSON and sat on this delivery path, which session opening waits behind.
+          yield* SessionStatsRefresh.publishTurn(db, bus, event.data.sessionID)
+        }
         if (input.type === "synthetic")
           yield* insertMessage(db, event, {
             id: input.id,
@@ -1183,6 +1196,13 @@ const layer = Layer.effectDiscard(
           )
           .run()
           .pipe(Effect.orDie)
+        // Turn diffs are computed over history a revert can truncate mid-turn; drop the archive and
+        // let later reads backfill from the surviving range.
+        yield* db
+          .delete(SessionTurnDiffTable)
+          .where(eq(SessionTurnDiffTable.session_id, event.data.sessionID))
+          .run()
+          .pipe(Effect.orDie)
         yield* setSession(db, event.data.sessionID, { revert: null, time_updated: event.created })
         yield* InstructionState.rewind(db, event.data.sessionID, boundary.seq)
         yield* SessionBlob.releaseFrom(db, event.data.sessionID, boundary.seq)
@@ -1199,6 +1219,21 @@ const layer = Layer.effectDiscard(
       }),
       Effect.forkScoped({ startImmediately: true }),
     )
+    // Transcript statistics must be readable from the Session record alone, so every event that
+    // changes transcript counts, durations or the last prompt's size recounts after its transaction.
+    // Serial processing means the last event's recount always sees the newest rows.
+    yield* bus
+      .subscribe([
+        SessionEvent.Execution.Succeeded,
+        SessionEvent.Execution.Failed,
+        SessionEvent.Execution.Interrupted,
+        SessionEvent.RevertEvent.Committed,
+        SessionEvent.Forked,
+      ])
+      .pipe(
+        Stream.runForEach((event) => SessionStatsRefresh.publish(db, bus, event.data.sessionID)),
+        Effect.forkScoped({ startImmediately: true }),
+      )
   }),
 )
 

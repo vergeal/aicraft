@@ -784,6 +784,10 @@ export function createData(config: CreateDataInput) {
             tokens: event.data.tokens,
           })
         return
+      case "session.stats.updated":
+        if (store.session.info[event.data.sessionID])
+          setStore("session", "info", event.data.sessionID, "stats", event.data.stats)
+        return
       case "session.agent.selected": {
         const previous = store.session.info[event.data.sessionID]?.agent
         if (store.session.info[event.data.sessionID])

@@ -191,6 +191,11 @@ export interface Interface {
       from: TreeID
       to: TreeID
     }) => Effect.Effect<readonly RelativePath[], OperationError>
+    readonly stats: (input: {
+      repository: Repository
+      from: TreeID
+      to: TreeID
+    }) => Effect.Effect<readonly FileDiff.Summary[], OperationError>
     readonly diff: (input: {
       repository: Repository
       from: TreeID
@@ -990,6 +995,61 @@ const layer = Layer.effect(
       )
     })
 
+    // name-status and numstat share one parser pair: the diff pipeline and the per-step stats both need them.
+    const nameStatus = (text: string) => {
+      const statuses = nuls(text)
+      return statuses.flatMap((code, index) => {
+        const file = statuses[index + 1]
+        if (index % 2 !== 0 || !file) return []
+        return [
+          {
+            file: RelativePath.make(file),
+            status: code.startsWith("A") ? "added" : code.startsWith("D") ? "deleted" : "modified",
+          } as const,
+        ]
+      })
+    }
+    const numstat = (text: string) =>
+      new Map(
+        nuls(text).flatMap((line) => {
+          const [additions, deletions, ...file] = line.split("\t")
+          if (!additions || !deletions || file.length === 0) return []
+          return [
+            [
+              file.join("\t"),
+              additions === "-" || deletions === "-"
+                ? { binary: true, additions: 0, deletions: 0 }
+                : { binary: false, additions: Number(additions), deletions: Number(deletions) },
+            ] as const,
+          ]
+        }),
+      )
+
+    const treeStats = Effect.fn("Git.tree.stats")(function* (input: {
+      repository: Repository
+      from: TreeID
+      to: TreeID
+    }) {
+      const args = ["--no-renames", input.from, input.to]
+      const [names, numbers] = yield* Effect.all(
+        [
+          repositoryOperation("diff", input.repository, ["--literal-pathspecs", "diff", "--name-status", "-z", ...args]),
+          repositoryOperation("diff", input.repository, ["--literal-pathspecs", "diff", "--numstat", "-z", ...args]),
+        ],
+        { concurrency: 2 },
+      )
+      const counts = numstat(numbers.text)
+      return nameStatus(names.text).map((entry) => {
+        const count = counts.get(entry.file)
+        return {
+          ...entry,
+          additions: count?.additions ?? 0,
+          deletions: count?.deletions ?? 0,
+          ...(count?.binary ? { binary: true as const } : {}),
+        } satisfies FileDiff.Summary
+      })
+    })
+
     const treeFiles = Effect.fn("Git.tree.files")(function* (input: {
       repository: Repository
       from: TreeID
@@ -1062,31 +1122,8 @@ const layer = Layer.effect(
         ],
         { concurrency: 3 },
       )
-      const statuses = nuls(names.text)
-      const files = statuses.flatMap((code, index) => {
-        const file = statuses[index + 1]
-        if (index % 2 !== 0 || !file) return []
-        return [
-          {
-            file: RelativePath.make(file),
-            status: code.startsWith("A") ? "added" : code.startsWith("D") ? "deleted" : "modified",
-          } as const,
-        ]
-      })
-      const stats = new Map(
-        nuls(numbers.text).flatMap((line) => {
-          const [additions, deletions, ...file] = line.split("\t")
-          if (!additions || !deletions || file.length === 0) return []
-          return [
-            [
-              file.join("\t"),
-              additions === "-" || deletions === "-"
-                ? { binary: true, additions: 0, deletions: 0 }
-                : { binary: false, additions: Number(additions), deletions: Number(deletions) },
-            ] as const,
-          ]
-        }),
-      )
+      const files = nameStatus(names.text)
+      const stats = numstat(numbers.text)
       const patches = VcsPatch.chunksByFile(patch, (index) => files[index]?.file)
       return {
         diffs: files.map((entry) => {
@@ -1490,6 +1527,7 @@ const layer = Layer.effect(
         capture: captureTree,
         write: (repository) => writeTree(repository),
         files: treeFiles,
+        stats: treeStats,
         diff: treeDiff,
         restore,
       },

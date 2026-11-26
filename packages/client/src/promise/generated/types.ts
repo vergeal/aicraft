@@ -2725,12 +2725,7 @@ export type ConfigEntry =
         websearch?: false | { provider: "random" | WebSearchID }
         plugins?: Array<string | { package: string; options?: { [x: string]: JsonValue } }>
         worktree?: ConfigWorktree
-        memory?: {
-          auto_inject?: ConfigMemoryAutoInject
-          max_injected_chars?: number
-          extract?: boolean
-          max_entries?: number
-        }
+        memory?: { auto_inject?: ConfigMemoryAutoInject; max_injected_chars?: number; max_entries?: number }
         warming?: boolean | { prompt?: string; interval?: "auto" | (string & {}); duration?: string }
         providers?: {
           [x: string]: {
@@ -5262,7 +5257,6 @@ export type ExperimentalConfigUpdateInput = {
     | {
         readonly auto_inject?: "off" | "trigger" | "vector"
         readonly max_injected_chars?: number
-        readonly extract?: boolean
         readonly max_entries?: number
       }
     | null

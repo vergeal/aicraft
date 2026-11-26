@@ -12,7 +12,6 @@ import { Message, SystemPart, UserMessage } from "@aicraft/ai/effect"
 import { Effect, Schema } from "effect"
 import { KV } from "../kv.js"
 import * as Memory from "../memory.js"
-import { MemoryExtract } from "../memory/extract.js"
 import { MemoryService } from "../memory/service.js"
 import CONTENT from "./memory/SKILL.md" with { type: "text" }
 
@@ -281,21 +280,6 @@ export const Plugin = define({
     // block keeps the provider cache warm across steps. Failures only skip the block.
     const turns = new Map<string, { key: string; block: string }>()
     const protocol = SystemPart.make(PROTOCOL_SHORT)
-    // The idle-time extraction job rides `session.generate`, whose transcript is the same
-    // conversation prefix the main loop keeps cached: its marginal cost is the fixed
-    // instruction tail plus a small JSON answer, gated by the subsystem's turn and cooldown rules.
-    const extraction =
-      service.settings.extract === "off"
-        ? undefined
-        : MemoryExtract.createExtractionJob({
-            generate: (sessionID, prompt) =>
-              ctx.session
-                .generate({ sessionID: Session.ID.make(sessionID), prompt })
-                .pipe(Effect.map((result) => result.text)),
-            subsystem: memory,
-            settings: service.settings,
-            log: service.logExtraction,
-          })
     yield* ctx.session.hook("context", (event) =>
       Effect.gen(function* () {
         // Channel ①: the compact save-rules section rides the static system prefix. Its bytes are
@@ -308,8 +292,6 @@ export const Plugin = define({
         if (query.trim() === "") return
         const key = last.id ?? query
         const sessionKey = String(event.sessionID)
-        // Turn accounting runs even when injection is off: it gates the extraction job.
-        if (extraction !== undefined) yield* extraction.noteTurn(sessionKey, key)
         if (injectMode === "off") return
         const project = yield* projectID(event.sessionID)
         const cached = turns.get(sessionKey)
@@ -338,21 +320,6 @@ export const Plugin = define({
         ),
       ),
     )
-
-    // The extraction job: on idle, after the turn and cooldown gates, one background model pass
-    // proposes memories and the subsystem's lifecycle writes them. Every attempt — applied,
-    // malformed or failed — lands in `memory_extract_log`; failures only warn.
-    if (extraction !== undefined)
-      yield* ctx.session.hook("experimental.idle", (event) =>
-        Effect.gen(function* () {
-          const project = yield* projectID(event.sessionID)
-          yield* extraction.onIdle({ sessionID: String(event.sessionID), projectID: project })
-        }).pipe(
-          Effect.catchCause((cause) =>
-            Effect.logWarning("memory extraction turn failed", { sessionID: event.sessionID, cause }),
-          ),
-        ),
-      )
   }),
 })
 

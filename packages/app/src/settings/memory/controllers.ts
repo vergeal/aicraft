@@ -14,7 +14,6 @@ export interface MemorySettings {
   readonly auto_inject: MemoryInjectionMode
   readonly max_injected_chars: number
   readonly max_entries: number
-  readonly extract: boolean
 }
 
 /**
@@ -27,7 +26,6 @@ export const MEMORY_DEFAULTS: MemorySettings = {
   auto_inject: "vector",
   max_injected_chars: 1500,
   max_entries: 200,
-  extract: true,
 }
 
 export function createMemorySettingsController() {
@@ -55,7 +53,6 @@ export function createMemorySettingsController() {
         auto_inject: latest((memory) => memory.auto_inject, MEMORY_DEFAULTS.auto_inject),
         max_injected_chars: latest((memory) => memory.max_injected_chars, MEMORY_DEFAULTS.max_injected_chars),
         max_entries: latest((memory) => memory.max_entries, MEMORY_DEFAULTS.max_entries),
-        extract: latest((memory) => memory.extract, MEMORY_DEFAULTS.extract),
       }
     },
     { initialValue: MEMORY_DEFAULTS },

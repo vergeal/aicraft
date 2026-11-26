@@ -21,10 +21,6 @@ export function resolveSettings(input?: Partial<Settings> | undefined): Settings
     vectorThreshold: ratio(input.vectorThreshold, DEFAULT_SETTINGS.vectorThreshold),
     vectorScanLimit: positive(input.vectorScanLimit, DEFAULT_SETTINGS.vectorScanLimit),
     sessionIndex: input.sessionIndex === "on" ? "on" : "off",
-    extract: input.extract === "off" ? "off" : "on",
-    extractMinUserTurns: positive(input.extractMinUserTurns, DEFAULT_SETTINGS.extractMinUserTurns),
-    extractMaxCandidates: capped(input.extractMaxCandidates, DEFAULT_SETTINGS.extractMaxCandidates, 10),
-    extractCooldownMs: floored(input.extractCooldownMs, DEFAULT_SETTINGS.extractCooldownMs, 30_000),
     nearDuplicateThreshold: ratio(input.nearDuplicateThreshold, DEFAULT_SETTINGS.nearDuplicateThreshold),
     semanticDuplicateThreshold: ratio(input.semanticDuplicateThreshold, DEFAULT_SETTINGS.semanticDuplicateThreshold),
     browseLimit: positive(input.browseLimit, DEFAULT_SETTINGS.browseLimit),
@@ -40,15 +36,6 @@ export function injectionFloor(settings: Settings, headerChars: number): number 
 function positive(value: number | undefined, fallback: number): number {
   const floored = Number.isFinite(value) ? Math.floor(value!) : 0
   return floored >= 1 ? floored : fallback
-}
-
-function capped(value: number | undefined, fallback: number, max: number): number {
-  return Math.min(positive(value, fallback), max)
-}
-
-function floored(value: number | undefined, fallback: number, min: number): number {
-  const taken = Number.isFinite(value) ? Math.floor(value!) : 0
-  return taken >= min ? taken : fallback
 }
 
 function ratio(value: number | undefined, fallback: number): number {

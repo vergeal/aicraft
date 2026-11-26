@@ -1,4 +1,5 @@
-import { For, Show, createMemo } from "solid-js"
+import { createSignal, For, Show, createMemo, onCleanup, onMount } from "solid-js"
+import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { lastAssistantWithUsage } from "@aicraft/client/solid"
 import { usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import { catalogModel } from "./catalog"
@@ -12,14 +13,31 @@ import { catalogModel } from "./catalog"
 /** One finished step's prompt side; `afterCompaction` marks the first step a completed compaction precedes. */
 type Point = { readonly tokens: number; readonly afterCompaction: boolean }
 
-const WIDTH = 552
-
 const HEIGHT = 64
 
 const PAD = 4
 
+/** Initial plot width; the resize observer replaces it with the container's real one. */
+const INITIAL_WIDTH = 552
+
 export function CompactionChart(props: { session: MountedSession }) {
   const ctx = usePlugin()
+
+  // The side panel is resizable, so the geometry follows the container's real width instead of a fixed viewBox
+  // scale, which centers and letterboxes the line once the panel is wider or narrower than the fallback.
+  let plot: HTMLDivElement | undefined
+  const width = createSignal(INITIAL_WIDTH)
+
+  onMount(() => {
+    if (plot) width[1](plot.clientWidth)
+  })
+
+  createResizeObserver(
+    () => plot,
+    () => {
+      if (plot) width[1](plot.clientWidth)
+    },
+  )
 
   // Same window as the header's counter and the panel's occupancy bar: after the last completed compaction and
   // before the undo boundary. An earlier compaction is history this chart does not re-draw.
@@ -66,6 +84,7 @@ export function CompactionChart(props: { session: MountedSession }) {
 
     if (last < 1) return
 
+    const full = width[0]()
     const ceiling = limit()
 
     const tokens = values.map((point) => point.tokens)
@@ -74,25 +93,30 @@ export function CompactionChart(props: { session: MountedSession }) {
     const floor = ceiling ? 0 : Math.min(...tokens)
 
     const y = (value: number) => PAD + (1 - Math.min((value - floor) / span, 1)) * (HEIGHT - 2 * PAD)
+    const x = (position: number) => (position / last) * (full - 2 * PAD) + PAD
 
     return {
-      line: values.map((point, index) => `${x(index, last)},${y(point.tokens).toFixed(1)}`).join(" "),
-      marks: values.flatMap((point, index) => (point.afterCompaction && index > 0 ? [x(index, last)] : [])),
+      width: full,
+      line: values.map((point, index) => `${x(index).toFixed(1)},${y(point.tokens).toFixed(1)}`).join(" "),
+      marks: values.flatMap((point, index) => (point.afterCompaction && index > 0 ? [x(index)] : [])),
     }
   })
+
+  onCleanup(() => width[1](INITIAL_WIDTH))
 
   return (
     <Show when={geometry()}>
       {(g) => (
-        <div class="flex flex-col gap-1.5 pt-1">
+        <div ref={plot} class="flex flex-col gap-1.5 pt-1">
           <div class="flex items-baseline gap-2 text-[11.5px] text-v2-text-text-faint">
             <span>{ctx.t("window.history")}</span>
             <span class="ms-auto">{ctx.t("window.historyNote")}</span>
           </div>
           <svg
-            class="w-full overflow-visible"
+            class="block w-full overflow-visible"
             height={HEIGHT}
-            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            viewBox={`0 0 ${g().width} ${HEIGHT}`}
+            preserveAspectRatio="none"
             role="img"
             aria-label={ctx.t("window.historyAria")}
           >
@@ -122,8 +146,4 @@ export function CompactionChart(props: { session: MountedSession }) {
       )}
     </Show>
   )
-}
-
-function x(position: number, last: number) {
-  return Number((position / last) * (WIDTH - 2 * PAD) + PAD).toFixed(1)
 }

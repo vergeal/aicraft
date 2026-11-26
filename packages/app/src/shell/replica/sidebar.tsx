@@ -31,7 +31,7 @@ import { SessionSettingsDialog } from "@/session/settings-dialog"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLayout, type LocalProject } from "@/shell/state/layout"
-import { homeProjectDirectories } from "@/shell/layout/helpers"
+import { homeProjectDirectories, promoteAwaitingReview } from "@/shell/layout/helpers"
 import { addProjects } from "@/home/projects/add"
 import { createProjectActions } from "@/home/projects/actions"
 import { fileManagerApp } from "@/home/projects/file-manager"
@@ -1025,7 +1025,8 @@ function ConversationNav() {
   /**
    * The recent list read as a project tree: one folder row per project with its sessions underneath. A project the
    * user dragged keeps that position; the rest follow the list itself, so the project that spoke last stays on top.
-   * Pinned sessions are lifted into their own section, and a group left empty by that lift is dropped.
+   * Pinned sessions are lifted into their own section, and a group left empty by that lift is dropped. A session
+   * whose latest run finished waits at the top of its project, so completion reads as "ready to look at".
    */
   const projectGroups = createMemo(() => {
     const groups = new Map<string, ReplicaProjectGroup>()
@@ -1068,7 +1069,10 @@ function ConversationNav() {
     return [...groups.values()]
       .flatMap((group) => {
         const marked = group.entries.some((entry) => pinned.has(entry.session.id))
-        const entries = group.entries.filter((entry) => !pinned.has(entry.session.id))
+        const entries = promoteAwaitingReview(
+          group.entries.filter((entry) => !pinned.has(entry.session.id)),
+          (entry) => entry.session,
+        )
 
         if (entries.length === 0) return []
 

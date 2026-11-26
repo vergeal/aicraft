@@ -16,6 +16,20 @@ describe("buildHomeSessionRecords", () => {
   const opened = { id: "project-a", worktree: "/repo/a" } as LocalProject
   const sessions = [session("a", "/repo/a", "project-a"), session("b", "/repo/b", "project-b")]
 
+  const finished = (
+    id: string,
+    time: { updated: number; idle?: number },
+    outcome?: "succeeded" | "failed" | "interrupted",
+  ) => ({ ...session(id, "/repo/a", "project-a"), outcome, time: { created: 1, ...time } })
+
+  const finishedSessions = [
+    finished("busy", { updated: 10 }),
+    finished("failed", { updated: 11, idle: 9 }, "failed"),
+    finished("done-new", { updated: 6, idle: 7 }, "succeeded"),
+    finished("done-old", { updated: 4, idle: 5 }, "succeeded"),
+    finished("done-then-prompted", { updated: 12, idle: 8 }, "succeeded"),
+  ]
+
   test("includes sessions outside added projects when unfiltered", () => {
     const records = buildHomeSessionRecords({
       sessions: () => sessions,
@@ -73,6 +87,38 @@ describe("buildHomeSessionRecords", () => {
     })
 
     expect(records.map((record) => record.session.id)).toEqual(["ses_a", "ses_z", "ses_old"])
+  })
+
+  test("pins finished sessions to the top of the selected project's list", () => {
+    const records = buildHomeSessionRecords({
+      sessions: () => finishedSessions,
+      projectDirectories: () => ["/repo/a"],
+      projects: () => [opened],
+    })
+
+    expect(records.map((record) => record.session.id)).toEqual([
+      "done-new",
+      "done-old",
+      "done-then-prompted",
+      "failed",
+      "busy",
+    ])
+  })
+
+  test("keeps finished sessions in plain time order when no project is selected", () => {
+    const records = buildHomeSessionRecords({
+      sessions: () => finishedSessions,
+      projectDirectories: () => undefined,
+      projects: () => [opened],
+    })
+
+    expect(records.map((record) => record.session.id)).toEqual([
+      "done-then-prompted",
+      "failed",
+      "busy",
+      "done-new",
+      "done-old",
+    ])
   })
 })
 

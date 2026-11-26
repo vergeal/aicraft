@@ -1,7 +1,7 @@
 import type { SessionInfo } from "@aicraft/client/promise"
 import type { LocalProject } from "@/shell/state/layout"
 import { displayName } from "@aicraft/ui/project-avatar"
-import { compareSessionTime } from "@/shell/layout/helpers"
+import { compareSessionTime, promoteAwaitingReview } from "@/shell/layout/helpers"
 import { pathKey } from "@/workspaces/path-key"
 import { getFilename } from "@aicraft/util/path"
 
@@ -28,9 +28,11 @@ export function buildHomeSessionRecords(input: {
     ? input.sessions().filter((session) => directories.has(pathKey(session.location.directory)))
     : input.sessions()
 
-  return [...new Map(sessions.map((session) => [session.id, session] as const)).values()]
-    .sort(compareSessionTime)
-    .map((session) => {
+  const sorted = [...new Map(sessions.map((session) => [session.id, session] as const)).values()].sort(
+    compareSessionTime,
+  )
+
+  return (directories ? promoteAwaitingReview(sorted, (session) => session) : sorted).map((session) => {
       const project = input.resolveProject?.(session) ??
         homeProjectForSession(session, input.projects()) ?? {
           id: session.projectID,

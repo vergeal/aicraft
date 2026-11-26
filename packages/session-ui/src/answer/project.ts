@@ -1098,6 +1098,10 @@ export function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[],
   // the buttons are hidden, and crowd them out whenever they are shown.
   if (isWakeBanner(snapshot, current) && isResponse(snapshot, previous)) return 0
 
+  // Below the banner the row it introduces keeps the same breathing room the reply's hover-action strip
+  // gives above it: 12px against the 28px strip reads as the bar hugging its follow-up, not centered.
+  if (isWakeBanner(snapshot, previous)) return 24
+
   if (current.kind === "fold") return 12
 
   if (isResponse(snapshot, current) || isResponse(snapshot, previous)) return 16

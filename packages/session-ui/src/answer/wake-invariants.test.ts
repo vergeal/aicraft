@@ -307,12 +307,12 @@ describe.each(Object.entries(samples))("wake invariants: %s", (_name, build) => 
 
       // The rules the banner was designed around, identical in every scenario:
       // under a settled answer it rides that reply's 28px hover-action strip (0 flow gap);
-      // after a bubble it keeps the prompt's 26px rhythm; its own block below folds at 12,
-      // meets a plain reply at 16, and yields to the next prompt at 24.
+      // after a bubble it keeps the prompt's 26px rhythm; below it every row keeps the same
+      // 24px breathing room, so the bar never hugs the work it introduces.
       if (previous === "assistant") expect(gaps[i], `gap under ${previous}`).toBe(0)
       if (previous === "input") expect(gaps[i], `gap under ${previous}`).toBe(26)
-      if (next === "fold") expect(gaps[i + 1], `gap over fold`).toBe(12)
-      if (next === "assistant") expect(gaps[i + 1], `gap over reply`).toBe(16)
+      if (next === "fold") expect(gaps[i + 1], `gap over fold`).toBe(24)
+      if (next === "assistant") expect(gaps[i + 1], `gap over reply`).toBe(24)
       if (next === "input") expect(gaps[i + 1], `gap over prompt`).toBe(24)
     })
 

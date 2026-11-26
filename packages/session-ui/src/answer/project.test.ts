@@ -1020,8 +1020,9 @@ describe("answer projection", () => {
     expect(payload?.kind === "notice" && payload.wake?.output).toBe("found 3 sites")
   })
 
-  test("the wake banner keeps one fixed gap above and below through streaming", () => {    // Above the banner: the answer's own 28px hover-action strip, no extra. Below: the step-fold rhythm.
-    expect(flowGaps(projectTimeline(mixed()))).toEqual([0, 26, 16, 0, 12, 16, 24, 26, 16])
+  test("the wake banner keeps one fixed gap above and below through streaming", () => {    // Above the banner: the answer's own 28px hover-action strip, no extra. Below: the same breathing room,
+    // so the bar reads centered in its segment instead of hugging the work it introduces.
+    expect(flowGaps(projectTimeline(mixed()))).toEqual([0, 26, 16, 0, 24, 16, 24, 26, 16])
 
     // Mid-stream, before the woke run replies, the banner holds the same place and the same gaps.
     const streaming = projectTimeline([
@@ -1032,7 +1033,7 @@ describe("answer projection", () => {
       assistant("msg_3", 13, [tool("tool_2")], undefined),
     ])
     expect(flowKeys(streaming)).toEqual(["input:msg_1", "fold>t1", "assistant:msg_2:0", "notice:msg_wake", "fold>t2"])
-    expect(flowGaps(streaming)).toEqual([0, 26, 16, 0, 12])
+    expect(flowGaps(streaming)).toEqual([0, 26, 16, 0, 24])
 
     // The reply landing on the streamed snapshot shifts nothing above the banner: spacing never jumps.
     const settled = projectTimeline(mixed().slice(0, 5), streaming)

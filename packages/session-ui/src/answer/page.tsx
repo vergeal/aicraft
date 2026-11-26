@@ -2162,7 +2162,7 @@ function WakeNoticeRow(props: {
     <div
       data-slot="answer-wake"
       data-outcome={props.wake.outcome}
-      class="w-full min-w-0 rounded-[16px] border-[0.5px] border-v2-border-border-base px-4 py-[9px]"
+      class="w-full min-w-0 rounded-[16px] border-[0.5px] border-v2-border-border-base px-5 py-3"
       style={{ background: "var(--answer-surface)" }}
     >
       <DisclosureRow

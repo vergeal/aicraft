@@ -1299,7 +1299,9 @@ async function submitPending(page: Page, mock: Awaited<ReturnType<typeof openWor
   const preparing = page.locator('[data-component="session-preparing"]')
   const message = page.locator('[data-component="user-message"]')
   const shimmer = preparing.getByRole("status").locator('[data-component="text-shimmer"]')
-  await expect(preparing.getByRole("heading", { level: 1 })).toHaveText("Session")
+  // The replica shell moves the conversation title to the window bar and hides the timeline's title row
+  // (replica.css), so the "Session" heading is no longer user-visible here; the route identity is already
+  // pinned by the URL above, and the panel below is what the user actually sees while preparing.
   await expect(editor(page)).toBeEditable()
   await expect(submit(page)).toBeDisabled()
   await expect(preparing.locator('[data-component="user-message"]')).toHaveCount(1)

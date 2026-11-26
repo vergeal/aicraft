@@ -6,8 +6,8 @@ import { toaster } from "@aicraft/ui/toast"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ui } from "@/runtime/plugin/ui"
 import { showToast } from "@/shell/notifications/toast"
-import type { BuiltinLocale } from "../../plugin/src/gui/builtin"
-import { PluginContext } from "../../plugin/src/gui/internal"
+import type { BuiltinLocale } from "../../aix/src/gui/builtin"
+import { PluginContext } from "../../aix/src/gui/internal"
 import {
   type App,
   type Appearance,
@@ -22,7 +22,7 @@ import {
   type Servers,
   type Toasts,
   type Workspaces,
-} from "../../plugin/src/gui/index"
+} from "../../aix/src/gui/index"
 
 const definitions = import.meta.glob<Entry>("../../gui-plugins/src/*/index.ts", { eager: true, import: "default" })
 const styles = import.meta.glob<string>("../../gui-plugins/src/*/*.css", {

@@ -802,4 +802,10 @@ describe("ConfigNormalize", () => {
     expect(result.diagnostics.some((item) => item.kind === "invalid")).toBe(true)
     expect(result.encoded.memory).toEqual({ max_entries: 50 })
   })
+
+  test("discards the removed memory.extract key with a diagnostic", () => {
+    const result = normalized({ memory: { extract: true, max_entries: 50 } })
+    expect(result.diagnostics.some((item) => item.path.join(".") === "memory.extract" && item.kind === "unsupported")).toBe(true)
+    expect(result.encoded.memory).toEqual({ max_entries: 50 })
+  })
 })

@@ -618,7 +618,16 @@ function normalizeMemory(input: Record<string, unknown>, encoded: Record<string,
       if (value !== undefined) result.auto_inject = value
     }
   }
-  for (const key of ["max_injected_chars", "max_entries", "extract"] as const) {
+  if (own(memory, "extract")) {
+    // The background extraction job is removed: it spent one model call per gated idle run and
+    // wrote paraphrased duplicates that the save-time dedup gates now prevent at the source.
+    diagnostics.push({
+      kind: "unsupported",
+      path: ["memory", "extract"],
+      message: "ignored removed memory.extract key",
+    })
+  }
+  for (const key of ["max_injected_chars", "max_entries"] as const) {
     if (!own(memory, key)) continue
     const value = decodeEncoded(ConfigMemory.Info.fields[key], memory[key], ["memory", key], diagnostics)
     if (value !== undefined) result[key] = value

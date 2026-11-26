@@ -3107,7 +3107,6 @@ export type ExperimentalConfigUpdateInput = {
     | {
         readonly auto_inject?: ("off" | "trigger" | "vector") | undefined
         readonly max_injected_chars?: number | undefined
-        readonly extract?: boolean | undefined
         readonly max_entries?: number | undefined
       }
     | null

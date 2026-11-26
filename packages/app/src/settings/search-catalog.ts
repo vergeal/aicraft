@@ -236,13 +236,6 @@ export const serverSettings: Entry<SettingsServerTab | "servers">[] = [
     keywords: "memory listing entries limit 条数 上限",
   },
   {
-    tab: "memory",
-    label: "settings.memory.row.extract.title",
-    target: "settings-memory-extract",
-    description: "settings.memory.row.extract.description",
-    keywords: "memory extraction idle background save 提取 后台",
-  },
-  {
     tab: "servers",
     label: "settings.general.row.shell.title",
     target: "settings-shell",

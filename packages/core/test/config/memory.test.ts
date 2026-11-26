@@ -70,11 +70,11 @@ describe("Config.update memory", () => {
   }
 }
 `,
-      { memory: new ConfigMemory.Info({ extract: false }) },
+      { memory: new ConfigMemory.Info({ max_injected_chars: 1200 }) },
       (text) => {
         expect(text).toContain("// keep this comment")
         const memory = readDocument(text).memory as Record<string, unknown>
-        expect(memory).toEqual({ auto_inject: "trigger", max_entries: 50, extract: false })
+        expect(memory).toEqual({ auto_inject: "trigger", max_entries: 50, max_injected_chars: 1200 })
       },
     ),
   )
@@ -87,7 +87,7 @@ describe("Config.update memory", () => {
   )
 
   it.live("null removes the whole section", () =>
-    run('{"theme": "dark", "memory": {"extract": false}}\n', { memory: null }, (text) => {
+    run('{"theme": "dark", "memory": {"max_entries": 30}}\n', { memory: null }, (text) => {
       const doc = readDocument(text)
       expect(doc.memory).toBeUndefined()
       expect(doc.theme).toBe("dark")

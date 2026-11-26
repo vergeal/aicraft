@@ -1,6 +1,5 @@
 import { createMemo, type Component, type JSX } from "solid-js"
 import { Select } from "@aicraft/ui/select"
-import { Switch } from "@aicraft/ui/switch"
 import { useLanguage } from "@/runtime/i18n/language"
 import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
@@ -110,17 +109,6 @@ export const SettingsMemory: Component = () => {
               gutter={6}
               onSelect={(entries) => entries !== null && memory.set({ max_entries: entries })}
             />
-          </SettingsRow>
-        </Section>
-
-        <Section id="settings-memory-extraction-title" title={language.t("settings.memory.section.extraction")}>
-          <SettingsRow
-            title={language.t("settings.memory.row.extract.title")}
-            description={language.t("settings.memory.row.extract.description")}
-          >
-            <div data-action="settings-memory-extract">
-              <Switch checked={memory.current().extract} onChange={(checked) => memory.set({ extract: checked })} />
-            </div>
           </SettingsRow>
         </Section>
 

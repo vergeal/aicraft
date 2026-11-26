@@ -953,7 +953,6 @@ export const dict = {
   "settings.memory.description":
     "How this server reads memory back into a request. Changes apply the next time the backend starts.",
   "settings.memory.section.retrieval": "Retrieval",
-  "settings.memory.section.extraction": "Extraction",
   "settings.memory.row.inject.title": "Memory injection",
   "settings.memory.row.inject.description":
     "Which channels read memory into every request. The semantic channel needs a local embedding runtime, which the installers bundle.",
@@ -968,9 +967,6 @@ export const dict = {
   "settings.memory.row.listing.description": "How many memories each scope listing returns at most.",
   "settings.memory.entries": "{{value}} entries",
   "settings.memory.entries.default": "{{value}} entries (default)",
-  "settings.memory.row.extract.title": "Background extraction",
-  "settings.memory.row.extract.description":
-    "When a session goes idle, one model call turns the finished conversation into memories.",
   "settings.plugins.reload": "Reload",
   "settings.plugins.loadFailed": "Could not load the plugins",
   "settings.plugins.empty": "No plugins found",

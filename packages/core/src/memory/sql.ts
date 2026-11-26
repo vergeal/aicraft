@@ -110,29 +110,3 @@ export const MemoryLogTable = sqliteTable(
   (table) => [index("memory_log_time_idx").on(table.time_created), index("memory_log_session_idx").on(table.session_id)],
 )
 
-/**
- * One row per extraction attempt, including the failed and malformed ones — the question this
- * ledger answers is "why was (not) extracted", so an attempt that wrote nothing is still a fact.
- * The reply itself is not stored: it carries conversation content the memory rows already own.
- */
-export const MemoryExtractLogTable = sqliteTable(
-  "memory_extract_log",
-  {
-    seq: integer().primaryKey({ autoIncrement: true }),
-    session_id: text().notNull(),
-    scope: text().notNull(),
-    /** `applied` | `malformed` | `failed` */
-    outcome: text().notNull(),
-    reply_chars: integer().notNull(),
-    saved: text({ mode: "json" }).$type<string[]>().notNull(),
-    merged: integer().notNull(),
-    superseded: text({ mode: "json" }).$type<{ id: string; byID: string }[]>().notNull(),
-    rejected: text({ mode: "json" }).$type<{ index: number; reason: string }[]>().notNull(),
-    duration_ms: integer().notNull(),
-    time_created: integer().notNull().$default(() => Date.now()),
-  },
-  (table) => [
-    index("memory_extract_log_time_idx").on(table.time_created),
-    index("memory_extract_log_session_idx").on(table.session_id),
-  ],
-)

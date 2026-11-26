@@ -142,21 +142,6 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
         );
       `)
       yield* tx.run(`
-        CREATE TABLE \`memory_extract_log\` (
-          \`seq\` integer PRIMARY KEY AUTOINCREMENT,
-          \`session_id\` text NOT NULL,
-          \`scope\` text NOT NULL,
-          \`outcome\` text NOT NULL,
-          \`reply_chars\` integer NOT NULL,
-          \`saved\` text NOT NULL,
-          \`merged\` integer NOT NULL,
-          \`superseded\` text NOT NULL,
-          \`rejected\` text NOT NULL,
-          \`duration_ms\` integer NOT NULL,
-          \`time_created\` integer NOT NULL
-        );
-      `)
-      yield* tx.run(`
         CREATE TABLE \`memory_log\` (
           \`seq\` integer PRIMARY KEY AUTOINCREMENT,
           \`session_id\` text,
@@ -458,8 +443,6 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
       yield* tx.run(`CREATE INDEX \`job_child_session_idx\` ON \`job\` (\`child_session_id\`);`)
       yield* tx.run(`CREATE INDEX \`job_id_idx\` ON \`job\` (\`id\`);`)
       yield* tx.run(`CREATE INDEX \`knowledge_chunk_library_idx\` ON \`knowledge_chunk\` (\`library_id\`);`)
-      yield* tx.run(`CREATE INDEX \`memory_extract_log_time_idx\` ON \`memory_extract_log\` (\`time_created\`);`)
-      yield* tx.run(`CREATE INDEX \`memory_extract_log_session_idx\` ON \`memory_extract_log\` (\`session_id\`);`)
       yield* tx.run(`CREATE INDEX \`memory_log_time_idx\` ON \`memory_log\` (\`time_created\`);`)
       yield* tx.run(`CREATE INDEX \`memory_log_session_idx\` ON \`memory_log\` (\`session_id\`);`)
       yield* tx.run(`CREATE INDEX \`memory_source_lookup_idx\` ON \`memory_source\` (\`kind\`,\`ref\`);`)

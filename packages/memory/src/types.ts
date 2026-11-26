@@ -93,6 +93,13 @@ export interface Settings {
   /** Symmetric token-bag containment at which a save is treated as a near-duplicate instead
    *  of a new entry. Below exact-hash dedup, above it the corpus grows without gaining facts. */
   readonly nearDuplicateThreshold: number
+  /** Embedding cosine at which a save is a semantic duplicate despite unrelated wording.
+   *  Containment is lexical: six paraphrases of one habit, saved by different models in
+   *  different sessions, each passed the 0.85 gate — the vector gate is what catches those.
+   *  Not yet calibrated against the real bge-small-zh (the fake embedder is not semantic and
+   *  dev runs carry no embedder); 0.92 is the conservative end. Change only with spike
+   *  measurements, same rule as `vectorThreshold`. */
+  readonly semanticDuplicateThreshold: number
   /** Default page size for the settings page and `browse`. */
   readonly browseLimit: number
 }
@@ -117,6 +124,7 @@ export const DEFAULT_SETTINGS: Settings = {
   extractMaxCandidates: 3,
   extractCooldownMs: 600_000,
   nearDuplicateThreshold: 0.85,
+  semanticDuplicateThreshold: 0.92,
   browseLimit: 50,
 }
 

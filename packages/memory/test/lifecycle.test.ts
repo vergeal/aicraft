@@ -140,6 +140,56 @@ describe("dedup — near-duplicates are refused, not merged", () => {
     }
     expect(inserted).toBe(400)
   })
+
+  test("a differently-worded paraphrase falls to the vector gate when containment misses", async () => {
+    // The real failure shape: six sessions saving one habit in six phrasings, each clear of
+    // the 0.85 lexical gate. Fixed unit vectors stand in for the semantic model here — the
+    // fake embedder is not semantic, so its scores would prove nothing (see AGENTS.md).
+    const store = MemoryReference.createStore({ records: [semanticRow("mem_habit", [1, 0])] })
+    const memory = MemorySubsystem.createSubsystem({ store, embedder: fixedVectorEmbedder([1, 0]), clock: fixedClock() })
+    const result = await memory.save({ scope: "global", type: "convention", text: "换一种说法记录同一个习惯要求" })
+    expect(result.duplicate).toBe(true)
+    expect(result.duplicateMode).toBe("semantic")
+    expect(result.record.id).toBe("mem_habit")
+    expect((await memory.list("global", 200)).total).toBe(1)
+  })
+
+  test("a related fact below the semantic gate still gets its own row", async () => {
+    // [0.8, 0.6] scores 0.8 against the fresh vector — same neighborhood, different fact.
+    // The conservative default threshold exists so this case keeps inserting.
+    const store = MemoryReference.createStore({ records: [semanticRow("mem_neighbour", [0.8, 0.6])] })
+    const memory = MemorySubsystem.createSubsystem({ store, embedder: fixedVectorEmbedder([1, 0]), clock: fixedClock() })
+    const result = await memory.save({ scope: "global", type: "convention", text: "另一件相关但不是同一件事的记录" })
+    expect(result.duplicate).toBe(false)
+    expect((await memory.list("global", 200)).total).toBe(2)
+  })
+
+  test("dedup spans scopes: re-saving a global entry into a project returns the global row", async () => {
+    const memory = await seeded()
+    const text = "周报每周五下午交，格式随意但内容要实"
+    await memory.save({ scope: "global", type: "convention", text })
+    const result = await memory.save({ scope: "project", projectID: PROJECT, type: "convention", text })
+    expect(result.duplicate).toBe(true)
+    expect(result.duplicateMode).toBe("exact")
+    expect(result.record.scope).toBe("global")
+    const project = await memory.list(scopeKey("project", PROJECT), 200)
+    expect(project.records.some((record) => record.text === text)).toBe(false)
+  })
+
+  test("a global save dedups against the project it came from, and stores no project id", async () => {
+    const memory = await seeded()
+    const branch = SEED.find((entry) => entry.id === "mem_branch")!
+    const result = await memory.save({
+      scope: "global",
+      projectID: PROJECT,
+      type: "convention",
+      text: branch.text,
+    })
+    expect(result.duplicate).toBe(true)
+    expect(result.record.id).toBe("mem_branch")
+    const saved = await memory.save({ scope: "global", projectID: PROJECT, type: "convention", text: "缩写 kk = 快速 kill 掉卡住的预览进程" })
+    expect(saved.record.projectID).toBeUndefined()
+  })
 })
 
 describe("embedding staleness — a model swap invalidates vectors, not entries", () => {
@@ -225,8 +275,22 @@ describe("session index — the one-time channel, off by default", () => {
   })
 })
 
-function row(id: string, embedVersion: string, embedding: number[], status: "active" | "superseded" = "active") {
+function semanticRow(id: string, embedding: number[]) {
+  return row(id, "fixed-1", embedding)
+}
+
+/** The save tests need a vector they can predict: shared-token overlap through the fake
+ *  embedder is untestable arithmetic, so these rows arrive at a known cosine instead. */
+function fixedVectorEmbedder(vector: number[]) {
   return {
+    dimensions: vector.length,
+    version: "fixed-1",
+    embed: async () => [...vector],
+    embedAll: async (texts: readonly string[]) => texts.map(() => [...vector]),
+  }
+}
+
+function row(id: string, embedVersion: string, embedding: number[], status: "active" | "superseded" = "active") {  return {
     id,
     scope: "global" as const,
     type: "convention" as const,

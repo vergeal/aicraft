@@ -38,9 +38,11 @@ export interface SaveInput {
 export interface SaveResult {
   readonly record: MemoryRecord
   readonly duplicate: boolean
-  /** `near` means an existing entry covers the same ground: the caller updates instead of
-   *  inserting, and never gets a silent overwrite of text an earlier context already cited. */
-  readonly duplicateMode?: "exact" | "near"
+  /** `near` is a token-overlap match and `semantic` a vector match on differently-worded
+   *  text: either way an existing entry covers the same ground, so the caller updates
+   *  instead of inserting, and never gets a silent overwrite of text an earlier context
+   *  already cited. */
+  readonly duplicateMode?: "exact" | "near" | "semantic"
   readonly duplicateScore?: number
 }
 
@@ -149,16 +151,36 @@ export function createSubsystem(options: SubsystemOptions): Subsystem {
 
   const save = async (input: SaveInput): Promise<SaveResult> => {
     const scope = scopeKey(input.scope, input.scope === "global" ? undefined : (input.projectID ?? input.pluginID))
+    // Dedup reads across the scope flip: one habit saved once globally and once into a
+    // project is two corpus entries for one fact — scope oscillation is how six "pp" rows grew.
+    const dedupScopes = dedupScopeKeys(input, scope)
     const draft = await buildRecord(input, input.id ?? newID(), 1, clock())
-    const exact = await store.findByTextHash(draft.textHash, scope)
-    if (exact !== undefined) return { record: exact, duplicate: true, duplicateMode: "exact", duplicateScore: 1 }
+    for (const candidate of dedupScopes) {
+      const exact = await store.findByTextHash(draft.textHash, candidate)
+      if (exact !== undefined) return { record: exact, duplicate: true, duplicateMode: "exact", duplicateScore: 1 }
+    }
     // A failed dedup read proceeds as a plain insert: a rare duplicate row is fixable by
     // supersede later, a lost save is not.
-    const candidates = await store.lexicalCandidates(draft.tokens, scope, NEAR_DUP_CANDIDATES).catch(() => [])
-    const near = MemoryLifecycle.findDuplicate(candidates, draft.tokens, settings.nearDuplicateThreshold)
+    const groups = await Promise.all(
+      dedupScopes.map((candidate) => store.lexicalCandidates(draft.tokens, candidate, NEAR_DUP_CANDIDATES).catch(() => [])),
+    )
+    const near = MemoryLifecycle.findDuplicate(groups.flat(), draft.tokens, settings.nearDuplicateThreshold)
     // Duplicate saves keep the original id: a reference already handed to the model in
     // earlier context must never dangle.
     if (near !== undefined) return { record: near.record, duplicate: true, duplicateMode: "near", duplicateScore: near.score }
+    // Containment is lexical, so a re-worded copy of the same fact passes it; the stored
+    // vector is the gate that sees through paraphrase. Reuse the draft embedding — asking
+    // the embedder twice per save would double the write cost.
+    if (options.embedder !== undefined && draft.embedding !== undefined) {
+      const scored = await MemoryQuery
+        .vectorScored(store, draft.embedding, options.embedder.version, settings.vectorScanLimit, dedupScopes)
+        .catch(() => [])
+      const semantic = scored.find(
+        (hit) => hit.record.id !== draft.id && hit.score >= settings.semanticDuplicateThreshold,
+      )
+      if (semantic !== undefined)
+        return { record: semantic.record, duplicate: true, duplicateMode: "semantic", duplicateScore: semantic.score }
+    }
     await store.insert(draft)
     if (input.trigger !== undefined) await addTrigger(draft.id, input.trigger)
     if (input.sessionID !== undefined) await store.addSource({ memoryID: draft.id, kind: "session", ref: input.sessionID })
@@ -283,7 +305,9 @@ export function createSubsystem(options: SubsystemOptions): Subsystem {
     return {
       id,
       scope: input.scope,
-      projectID: input.projectID,
+      // A global save may carry the session's project purely for dedup; the record itself
+      // is not project-scoped, so the stored key must stay `global`.
+      projectID: input.scope === "global" ? undefined : input.projectID,
       pluginID: input.pluginID,
       type: input.type,
       status: "active",
@@ -374,6 +398,16 @@ function emptyLedger(input: { query: string; scopes: readonly string[] }, mode: 
 
 function newID(): string {
   return `mem_${crypto.randomUUID()}`
+}
+
+/** The scopes a save dedups against: its own key plus global, and for a global save the
+ *  originating project key when the caller carries one. A project save never sees another
+ *  project's rows — cross-project duplication is a corpus leak, cross-project privacy is a
+ *  product boundary, and only the global key is shared ground. */
+function dedupScopeKeys(input: SaveInput, scope: string): string[] {
+  if (input.scope === "global")
+    return input.projectID === undefined ? ["global"] : ["global", scopeKey("project", input.projectID)]
+  return [scope, "global"]
 }
 
 /** Embedding is best effort at the write boundary: a missing binary must not fail a save, and

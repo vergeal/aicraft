@@ -54,6 +54,15 @@ network, or a session lives in `@aicraft/core` adapters that implement the ports
   worst pair containment 0.70 vs the 0.85 gate). Repeating whole topic sentences inside filler
   text collapses the corpus (measured 400 → 153 and → 246 with earlier templates) and silently
   voids every scale-dependent gate — `test/corpus` and the dedup test guard this.
+- Save dedup runs three gates over a cross-scope candidate set (a project save also reads
+  `global`, a global save also reads the originating project key): text hash (exact), token
+  containment ≥ `nearDuplicateThreshold`, and embedding cosine ≥ `semanticDuplicateThreshold`
+  when an embedder is configured. The semantic gate exists because containment is lexical:
+  measured 2026-11 in the live corpus, six paraphrases of one "pp" habit saved by different
+  models in different sessions each passed the 0.85 gate and all six injected on every turn.
+  The 0.92 default is a conservative placeholder, NOT yet calibrated against bge-small-zh —
+  the fake embedder is not semantic and dev runs carry no embedder. Calibrate with a spike
+  before moving it, same rule as `vectorThreshold`.
 
 ## Layout
 

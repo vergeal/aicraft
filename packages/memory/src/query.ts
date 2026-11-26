@@ -63,16 +63,41 @@ export async function vectorRank(
 ): Promise<Ranked> {
   const embedding = await embedder.embed(query).then((value) => [value] as const, () => undefined)
   if (embedding === undefined) return { ranked: [], status: "failed" }
-  const candidates = await lookup(() => Promise.all(scopes.map((scope) => store.vectorCandidates(scope, scanLimit, embedder.version))))
-  if (candidates === undefined) return { ranked: [], status: "failed" }
-  return {
-    ranked: rank(
-      candidates
-        .flat()
-        .map((record) => ({ record, score: cosine(embedding[0], record.embedding ?? []), channel: "vector" as const })),
-    ),
-    status: "ran",
-  }
+  const ranked = await scoreAgainst(store, embedding[0], embedder.version, scanLimit, scopes)
+  if (ranked === undefined) return { ranked: [], status: "failed" }
+  return { ranked, status: "ran" }
+}
+
+/** Cosine ranking against a vector the caller already holds: the save path embeds its draft
+ *  before dedup, and re-embedding inside dedup would double the cost of every write. A store
+ *  read failure yields an empty list — the caller treats "no candidates" as "not a duplicate",
+ *  never as a reason to lose the save. */
+export async function vectorScored(
+  store: Store,
+  embedding: readonly number[],
+  embedVersion: string,
+  scanLimit: number,
+  scopes: readonly string[],
+): Promise<readonly Hit[]> {
+  return (await scoreAgainst(store, embedding, embedVersion, scanLimit, scopes)) ?? []
+}
+
+async function scoreAgainst(
+  store: Store,
+  embedding: readonly number[],
+  embedVersion: string,
+  scanLimit: number,
+  scopes: readonly string[],
+): Promise<readonly Hit[] | undefined> {
+  const candidates = await lookup(() =>
+    Promise.all(scopes.map((scope) => store.vectorCandidates(scope, scanLimit, embedVersion))),
+  )
+  if (candidates === undefined) return undefined
+  return rank(
+    candidates
+      .flat()
+      .map((record) => ({ record, score: cosine(embedding, record.embedding ?? []), channel: "vector" as const })),
+  )
 }
 
 /**

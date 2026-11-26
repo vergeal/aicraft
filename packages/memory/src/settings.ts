@@ -26,6 +26,7 @@ export function resolveSettings(input?: Partial<Settings> | undefined): Settings
     extractMaxCandidates: capped(input.extractMaxCandidates, DEFAULT_SETTINGS.extractMaxCandidates, 10),
     extractCooldownMs: floored(input.extractCooldownMs, DEFAULT_SETTINGS.extractCooldownMs, 30_000),
     nearDuplicateThreshold: ratio(input.nearDuplicateThreshold, DEFAULT_SETTINGS.nearDuplicateThreshold),
+    semanticDuplicateThreshold: ratio(input.semanticDuplicateThreshold, DEFAULT_SETTINGS.semanticDuplicateThreshold),
     browseLimit: positive(input.browseLimit, DEFAULT_SETTINGS.browseLimit),
   }
 }

@@ -127,7 +127,7 @@ export const Plugin = define({
             if (text.length === 0)
               return yield* Effect.fail(context.error("memory.empty", "Memory text must not be empty.", {}))
             const result = yield* Effect.promise(() =>
-              memory.save({ scope: input.scope, projectID: input.scope === "project" ? input.projectID ?? "" : undefined, type: "convention", text, tags: input.tags }),
+              memory.save({ scope: input.scope, projectID: input.scope === "project" ? input.projectID ?? "" : input.projectID ?? undefined, type: "convention", text, tags: input.tags }),
             )
             return { entry: info(result.record), duplicate: result.duplicate }
           }),
@@ -174,14 +174,18 @@ export const Plugin = define({
               const text = input.text.trim()
               if (text.length === 0) return yield* new Tool.Error({ message: "记忆内容不能为空。" })
               const scope = input.scope ?? "project"
-              const project = scope === "project" ? yield* projectID(context.sessionID) : undefined
+              // A global save still carries the session's project: dedup must see the project
+              // rows before the habit duplicates itself into a second scope.
+              const project = yield* projectID(context.sessionID)
               const result = yield* Effect.promise(() =>
                 memory.save({ scope, projectID: project, type: "convention", text, tags: input.tags }),
               )
               return {
                 output: { entry: info(result.record), duplicate: result.duplicate },
                 content: result.duplicate
-                  ? `已更新同内容的${label(scope)}（id：${result.record.id}）。`
+                  ? result.duplicateMode === "exact"
+                    ? `已存在同内容的${label(result.record.scope === "global" ? "global" : "project")}（id：${result.record.id}），未新增。`
+                    : `已有近似记忆（id：${result.record.id}，重合度 ${Math.round((result.duplicateScore ?? 0) * 100)}%）：${result.record.text}\n补充或修正请调用 memory_update 合并进该条，不要重复保存。`
                   : `已保存到${label(scope)}（id：${result.record.id}）：${text}`,
               }
             }).pipe(Effect.mapError(toToolFailure("无法保存记忆"))),

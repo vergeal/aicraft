@@ -20,7 +20,7 @@ export function createSettingsPages() {
     /** Their tab values. */
     tabs,
     /** Sections on a host page, or with `section`, the rows placed in that host section. */
-    sections: (page: "general" | "servers", section?: "general") =>
+    sections: (page: "general" | "servers" | "memory", section?: "general") =>
       items().filter((item) => item.value.page === page && item.value.section === section),
   }
 }

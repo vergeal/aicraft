@@ -139,6 +139,51 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       ? ctx.t("created", { date: formatDate(entry.createdAt) })
       : ctx.t("updated", { date: formatDate(entry.updatedAt) })
 
+  /** The freshest change across the user's own memories; plugin memories do not speak for the user. */
+  const latestUpdate = createMemo(() =>
+    [...global(), ...project()]
+      .map((entry) => entry.updatedAt)
+      .sort()
+      .at(-1),
+  )
+
+  const relativeTime = (iso: string) => {
+    const then = new Date(iso).getTime()
+
+    if (Number.isNaN(then)) return ""
+    const seconds = Math.max(1, Math.round((Date.now() - then) / 1000))
+    const format = new Intl.RelativeTimeFormat(ctx.locale.locale(), { numeric: "always" })
+
+    const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+      ["year", 31_536_000],
+      ["month", 2_592_000],
+      ["day", 86_400],
+      ["hour", 3_600],
+      ["minute", 60],
+    ]
+
+    const step = steps.find(([, size]) => seconds >= size)
+
+    return step ? format.format(-Math.round(seconds / step[1]), step[0]) : format.format(-seconds, "second")
+  }
+
+  /** One line for the summary row and the dialog header: how many memories there are, and when they last changed. */
+  const updatedLine = () => {
+    if (loading()) return ctx.t("loading")
+
+    const total = global().length + project().length
+    const time = latestUpdate()
+    const parts: string[] = []
+
+    if (total > 0) parts.push(ctx.plural("summary.count", total, { count: total }))
+
+    if (time !== undefined) parts.push(ctx.t("summary.updated", { time: relativeTime(time) }))
+
+    if (parts.length === 0) return ctx.t("summary.empty")
+
+    return parts.join(" · ")
+  }
+
   const visible = (entries: readonly Entry[]) => {
     const needle = query().trim().toLowerCase()
     const tag = activeTag()?.toLowerCase() ?? null
@@ -602,11 +647,14 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     </div>
   )
 
-  // The three list states share the empty card's height, so the page does not jump between loading, error and content.
-  const Loading = () => (
-    <div class="settings-project-empty-card">
-      <ctx.ui.Loader size="small" />
-      <div class="text-13-regular text-v2-text-text-muted">{ctx.t("loading")}</div>
+  /** The dialog's first-load state: memories arrive as a book turning its pages, centered in the frame. */
+  const FlipLoading = () => (
+    <div class="memory-flip" role="status" aria-label={ctx.t("loading")}>
+      <div class="memory-flip-book" aria-hidden="true">
+        <span class="memory-flip-page" />
+        <span class="memory-flip-page memory-flip-page--late" />
+      </div>
+      <span class="memory-flip-caption">{ctx.t("loading")}</span>
     </div>
   )
 
@@ -705,35 +753,26 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     },
   })
 
-  ctx.add(SettingsPage, {
-    id: "memory",
-    icon: "memory",
-    get title() {
-      return ctx.t("title")
-    },
-    get entries() {
-      return [
-        {
-          id: "memory",
-          title: ctx.t("title"),
-          description: ctx.t("description"),
-          keywords: "memory 记忆 remember 记住 长期记忆",
-        },
-      ]
-    },
-    render: () => (
-      <ctx.ui.SettingsLayout
-        title={ctx.t("title")}
-        description={ctx.t("description")}
-        actions={
-          <div class="flex items-center gap-2">
+  /** Inside the dialog a refetch keeps the old rows; a plain loader marks the section that is refreshing. */
+  const RowsLoading = () => (
+    <div class="memory-section-loading">
+      <ctx.ui.Loader size="small" />
+    </div>
+  )
+
+  const hasAny = () => global().length > 0 || project().length > 0 || pluginGroups().length > 0
+
+  /** The memory browser, shown in a dialog from the host's Memory page: the search bar, then the scope sections. */
+  const Browser = () => (
+    <div class="memory-browser">
+      <div class="memory-browser-bar">
             <Show when={activeTag() !== null}>
               <button type="button" class="memory-filter-chip" onClick={() => setActiveTag(null)}>
                 <span>{ctx.t("filter.by", { tag: activeTag() ?? "" })}</span>
                 <ctx.ui.Icon name="close" size="small" />
               </button>
             </Show>
-            <div class="w-[220px]">
+            <div class="memory-browser-search">
               <ctx.ui.TextInput
                 type="search"
                 label={ctx.t("search")}
@@ -747,14 +786,11 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               <ctx.ui.IconButton icon="close" label={ctx.t("filter.clear")} onClick={clearFilters} />
             </Show>
           </div>
-        }
-      >
         <Show
           when={server()}
           fallback={<EmptyState icon="warning" title={ctx.t("offline")} hint={ctx.t("offline.hint")} />}
         >
-          {/* Marks this page for its own scroll frame: the header stays put and only the lists scroll. */}
-          <div class="memory-page">
+          <Show when={!loading() || hasAny()} fallback={<FlipLoading />}>
           <Show
             when={!searchEmpty()}
             fallback={
@@ -781,7 +817,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                       : undefined
                   }
                 />
-                <Show when={!loading() || global().length > 0} fallback={<Loading />}>
+                <Show when={!loading() || global().length > 0} fallback={<RowsLoading />}>
                   <Show when={!error()} fallback={<ErrorState />}>
                     <Entries
                       scope="global"
@@ -825,7 +861,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                     <EmptyState icon="memory" title={ctx.t("project.none")} hint={ctx.t("project.none.hint")} />
                   }
                 >
-                  <Show when={!loading() || project().length > 0} fallback={<Loading />}>
+                  <Show when={!loading() || project().length > 0} fallback={<RowsLoading />}>
                     <Show when={!error()} fallback={<ErrorState />}>
                       <Entries
                         scope="project"
@@ -843,8 +879,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
             <Show when={pluginsVisible()}>
               <section class="settings-section" aria-label={ctx.t("plugin.title")}>
                 <SectionHead title={ctx.t("plugin.title")} count={pluginCount()} />
-                <p class="memory-plugin-hint">{ctx.t("plugin.hint")}</p>
-                <Show when={!loading() || pluginGroups().length > 0} fallback={<Loading />}>
+                <p class="settings-section-description">{ctx.t("plugin.hint")}</p>
+                <Show when={!loading() || pluginGroups().length > 0} fallback={<RowsLoading />}>
                   <Show when={!error()} fallback={<ErrorState />}>
                     <Show
                       when={pluginMatches().length > 0}
@@ -879,9 +915,44 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               </section>
             </Show>
           </Show>
-          </div>
+          </Show>
         </Show>
-      </ctx.ui.SettingsLayout>
+    </div>
+  )
+
+  const openBrowser = () => {
+    ctx.dialogs.open(() => (
+      <ctx.ui.Dialog title={ctx.t("content.dialog")} size="large" variant="settings">
+        <Browser />
+      </ctx.ui.Dialog>
+    ))
+  }
+
+  // The host's Memory page keeps the settings; the entries live behind one summary row that opens this dialog.
+  ctx.add(SettingsPage, {
+    id: "memory-content",
+    page: "memory",
+    get title() {
+      return ctx.t("content.section")
+    },
+    get entries() {
+      return [
+        {
+          id: "memory-content",
+          title: ctx.t("content.row"),
+          description: ctx.t("content.hint"),
+          keywords: "memory 记忆 remember 记住 长期记忆 content 内容 manage 管理",
+        },
+      ]
+    },
+    render: () => (
+      <ctx.ui.SettingsSection title={ctx.t("content.section")}>
+        <ctx.ui.SettingsRow id="memory-content" title={ctx.t("content.row")} description={updatedLine()}>
+          <ctx.ui.Button variant="neutral" size="small" onClick={openBrowser}>
+            {ctx.t("content.browse")}
+          </ctx.ui.Button>
+        </ctx.ui.SettingsRow>
+      </ctx.ui.SettingsSection>
     ),
   })
 }

@@ -400,8 +400,9 @@ export interface SettingsPage {
    * Adds a section to a host page. Omit it to add a page.
    * - `general`: the General page.
    * - `servers`: the Servers page.
+   * - `memory`: the server's Memory settings page.
    */
-  readonly page?: "general" | "servers"
+  readonly page?: "general" | "servers" | "memory"
   /**
    * `general`: with `page: "general"`, adds rows to that page's General section instead of a section of its own:
    * `render` returns settings rows, which the host places in its list. Search lists the entries under the host

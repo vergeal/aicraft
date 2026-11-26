@@ -122,6 +122,18 @@ export function settingsSearchIndex(input: {
       )
     }
 
+    if (setting.page === "memory") {
+      return setting.entries?.forEach((entry) =>
+        addPlugin(
+          item,
+          entry,
+          { type: "root", tab: "memory", target: entry.id },
+          input.translate(pageLabels.memory),
+          "",
+        ),
+      )
+    }
+
     // A page under a host tab's id routes to the host's page, so its own entries are not indexed either.
     if (isRootTab(setting.id)) return
 

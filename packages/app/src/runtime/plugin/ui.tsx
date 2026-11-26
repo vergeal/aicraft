@@ -148,6 +148,7 @@ export const ui: Ui = {
       <Dialog
         fit={(props.size ?? "fit") === "fit"}
         size={props.size === "large" || props.size === "x-large" ? props.size : "normal"}
+        variant={props.variant}
       >
         <DialogHeader hideClose={props.closable === false}>
           <DialogTitleGroup title={props.title} description={props.description} />

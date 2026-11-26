@@ -64,4 +64,13 @@ export default {
   failed: "操作失败",
   created: "添加于 {{date}}",
   updated: "更新于 {{date}}",
+  "content.section": "记忆内容",
+  "content.row": "已保存的记忆",
+  "content.hint": "查看、编辑和删除助手记住的内容。",
+  "content.browse": "管理",
+  "content.dialog": "记忆内容",
+  "summary.count.one": "{{count}} 条记忆",
+  "summary.count.other": "{{count}} 条记忆",
+  "summary.updated": "上次更新：{{time}}",
+  "summary.empty": "还没有保存的记忆",
 }

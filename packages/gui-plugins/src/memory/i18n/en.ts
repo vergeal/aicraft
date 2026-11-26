@@ -65,4 +65,13 @@ export default {
   failed: "Couldn't update memories",
   created: "Added {{date}}",
   updated: "Updated {{date}}",
+  "content.section": "Memory content",
+  "content.row": "Saved memories",
+  "content.hint": "Browse, edit, and delete what the assistant remembers.",
+  "content.browse": "Manage",
+  "content.dialog": "Memories",
+  "summary.count.one": "{{count}} memory",
+  "summary.count.other": "{{count}} memories",
+  "summary.updated": "Last updated {{time}}",
+  "summary.empty": "No memories saved yet",
 }

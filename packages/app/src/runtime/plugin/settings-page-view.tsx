@@ -32,7 +32,7 @@ export function PluginSettingsPages() {
  * Plugin sections on a host settings page, in contribution order; with `section`, the plugin rows placed in
  * that host section, rendered where the host lists them.
  */
-export function PluginSettingsSections(props: { page: "general" | "servers"; section?: "general" }) {
+export function PluginSettingsSections(props: { page: "general" | "servers" | "memory"; section?: "general" }) {
   const surface = useSettingsSurface()
 
   return (

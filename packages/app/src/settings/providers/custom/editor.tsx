@@ -98,8 +98,8 @@ export function CustomProviderEditor(props: {
             attempt: 1,
             provider: {
               id: props.provider.id,
-              name: props.provider.name,
-              baseURL: props.provider.baseURL,
+              name: props.provider.name ?? props.provider.id,
+              baseURL: props.provider.baseURL ?? "",
               models: props.provider.models,
             },
           }
@@ -129,11 +129,14 @@ export function CustomProviderEditor(props: {
       void server.api.experimental.config
         .update({
           providers: {
+            // SAFETY: providerConfig builds the entry from the validated draft plus the untouched config maps, in
+            // the shape the config update endpoint declares for a custom provider.
             [saved.id]: providerConfig(saved, props.provider?.info) as ProviderPatch,
           },
         })
         .then(() => {
           if (!saved.apiKey) return
+
           return connectKey(server, props.directory, saved.id, saved.apiKey)
         })
         .then(
@@ -149,6 +152,7 @@ export function CustomProviderEditor(props: {
     if (effect.type === "delete.run") return
 
     const name = effect.providerName
+
     if (effect.type === "toast.created")
       showToast({
         variant: "success",
@@ -156,12 +160,14 @@ export function CustomProviderEditor(props: {
         title: language.t("settings.providers.custom.toast.created.title", { provider: name }),
         description: language.t("settings.providers.custom.toast.created.description"),
       })
+
     if (effect.type === "toast.saved")
       showToast({
         variant: "success",
         icon: "circle-check",
         title: language.t("settings.providers.custom.toast.saved", { provider: name }),
       })
+
     if (effect.type === "toast.deleted")
       showToast({
         variant: "success",
@@ -179,16 +185,21 @@ export function CustomProviderEditor(props: {
 
   const draft = () => {
     const current = state()
+
     return current.type === "editing" || current.type === "saving" ? current.draft : undefined
   }
+
   const error = () => {
     const current = state()
+
     return current.type === "editing" ? current.error : undefined
   }
+
   // A save keeps what the read already fetched: the model list stays on screen while the request runs instead of
   // collapsing to the empty state and jumping the page's height.
   const discovery = () => {
     const current = state()
+
     return current.type === "editing" || current.type === "saving" ? current.discovery : ({ type: "idle" } as const)
   }
 
@@ -214,7 +225,9 @@ export function CustomProviderEditor(props: {
     const current = state()
 
     if (current.type !== "editing" || current.discovery.type !== "idle") return
+
     if (baseURLError(current.draft)) return
+
     if (keyPending() || !keyAvailable()) return
     startDiscovery()
   }
@@ -225,6 +238,7 @@ export function CustomProviderEditor(props: {
     if (mode === "create" && auto.id) {
       const id = suggestProviderID(value)
       patch.id = id
+
       if (auto.name) patch.name = suggestProviderName(id)
     }
 
@@ -233,10 +247,11 @@ export function CustomProviderEditor(props: {
 
   const changeID = (value: string) => {
     setAuto("id", false)
-    dispatch({
-      type: "draft.changed",
-      patch: { id: value, ...(auto.name ? { name: suggestProviderName(value) } : {}) },
-    })
+    const patch: Partial<CustomProviderDraft> = { id: value }
+
+    if (auto.name) patch.name = suggestProviderName(value)
+
+    dispatch({ type: "draft.changed", patch })
   }
 
   const changeName = (value: string) => {
@@ -286,6 +301,7 @@ export function CustomProviderEditor(props: {
 
   createEffect(() => {
     if (!closeWhenEmpty()) return
+
     // Removing the last account deletes the provider, so the accounts prop can disappear instead of becoming empty.
     if (!props.accounts || props.accounts.items.length === 0) props.onClose()
   })
@@ -306,6 +322,7 @@ export function CustomProviderEditor(props: {
     if (!accounts) return
     const final = accounts.items.length === 1
     setAccountBusy(account.id)
+
     if (final) setCloseWhenEmpty(true)
     await accountActions.remove({ integrationID: accounts.integrationID, provider: providerName(), account, final })
     props.onAccountChanged?.()
@@ -652,8 +669,11 @@ function EditorField(props: {
 function discoveryFailure(cause: unknown, language: ReturnType<typeof useLanguage>) {
   if (Predicate.hasProperty(cause, "kind") && Predicate.isString(cause.kind)) {
     if (cause.kind === "provider.models.auth") return language.t("settings.providers.custom.models.failed.auth")
+
     if (cause.kind === "provider.models.address") return language.t("settings.providers.custom.models.failed.address")
+
     if (cause.kind === "provider.models.timeout") return language.t("settings.providers.custom.models.failed.timeout")
+
     if (cause.kind === "provider.models.connection")
       return language.t("settings.providers.custom.models.failed.connection")
   }
@@ -672,14 +692,19 @@ async function connectKey(
   key: string,
 ) {
   const location = directory ? { directory } : undefined
+
   // 20 attempts with a short pause is long enough for a reload and still bounded, so the page cannot hang.
   for (let attempt = 0; attempt < 20; attempt++) {
     const integration = await server.api.integration.get({ integrationID: providerID, location }).catch(() => undefined)
+
     if (integration?.data) {
       await server.api.integration.connect.key({ integrationID: providerID, location, key })
+
       return
     }
+
     await new Promise((resolve) => setTimeout(resolve, 150))
   }
+
   throw new Error("The provider integration did not register: " + providerID)
 }

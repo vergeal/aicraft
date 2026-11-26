@@ -736,6 +736,12 @@ export const dict = {
   "settings.providers.custom.delete.description":
     "这会从配置中移除 providers.{{provider}}，并删除为其保存的 API 密钥。",
   "settings.providers.custom.delete.confirm": "删除提供商",
+  "settings.providers.custom.delete.models.one": "该提供商声明了 {{count}} 个模型。",
+  "settings.providers.custom.delete.models.other": "该提供商声明了 {{count}} 个模型。",
+  "settings.providers.custom.delete.accounts.one": "已为其存储 {{count}} 个 API 密钥。",
+  "settings.providers.custom.delete.accounts.other": "已为其存储 {{count}} 个 API 密钥。",
+  "settings.providers.custom.models.selected.one": "已选 {{count}} 个",
+  "settings.providers.custom.models.selected.other": "已选 {{count}} 个",
   "settings.providers.custom.configured": "已在配置中配置",
   "settings.providers.custom.readOnly": "已在只读配置中配置",
   "settings.providers.custom.keyMissing": "添加 API 密钥",

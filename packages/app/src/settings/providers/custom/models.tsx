@@ -41,6 +41,7 @@ export function ProviderModelPicker(props: {
 
   let viewport: HTMLDivElement | undefined
   // The indicator is laid into the content box, which scrolls with the rows, not into the viewport around it.
+  // SAFETY: MenuScroll always renders the content box as the viewport's only child element.
   const content = () => viewport?.firstElementChild as HTMLElement | undefined
 
   const discovered = createMemo(() => (props.discovery.type === "ready" ? props.discovery.models : []))
@@ -128,6 +129,7 @@ export function ProviderModelPicker(props: {
       <div class="settings-provider-editor-models-meta">
         <SegmentedControl
           value={store.scope}
+          // SAFETY: the control's value space is exactly the two items it renders below.
           onChange={(value) => value && setStore("scope", value as "all" | "selected")}
           class="settings-provider-editor-models-filter"
         >
@@ -174,15 +176,21 @@ export function ProviderModelPicker(props: {
           <MenuScroll
             class="settings-provider-editor-models-list"
             viewportClass="settings-provider-editor-models-viewport"
-            viewportRef={(element) => (viewport = element)}
+            viewportRef={(element) => {
+              viewport = element
+              // MenuScroll owns the viewport's focusin for scroll-into-view; this observes the same bubbling
+              // event to track which row holds focus, so the selection indicator follows keyboard and clicks.
+              element.addEventListener("focusin", (event) => {
+                // SAFETY: focusin targets are always elements; closest ignores anything that is not a model row.
+                const row = (event.target as HTMLElement).closest<HTMLElement>("[data-model-id]")
+
+                if (row?.dataset.modelId) setStore("active", row.dataset.modelId)
+              })
+            }}
             onKeyDown={(event: KeyboardEvent) => {
               if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
               event.preventDefault()
               moveActive(event.key === "ArrowDown" ? 1 : -1)
-            }}
-            onFocusIn={(event) => {
-              const row = (event.target as HTMLElement).closest<HTMLElement>("[data-model-id]")
-              if (row?.dataset.modelId) setStore("active", row.dataset.modelId)
             }}
           >
             <SelectionIndicator

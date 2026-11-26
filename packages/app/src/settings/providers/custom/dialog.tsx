@@ -28,6 +28,8 @@ import {
   type CustomProviderState,
 } from "./machine"
 
+// oxlint-disable anti-slop/no-unsafe-dictionary-type -- the config JSON owns these provider maps; the editor
+// forwards them untouched and reads only baseURL and the model ids.
 type CustomProviderInfo = {
   id: string
   name?: string
@@ -83,7 +85,16 @@ export function DialogCustomProvider(props: {
     transition(
       closed,
       props.provider
-        ? { type: "open.edit", attempt: 1, provider: props.provider }
+        ? {
+            type: "open.edit",
+            attempt: 1,
+            provider: {
+              id: props.provider.id,
+              name: props.provider.name ?? props.provider.id,
+              baseURL: props.provider.baseURL ?? "",
+              models: props.provider.models,
+            },
+          }
         : { type: "open.create", attempt: 1 },
       context,
     ).state,
@@ -94,18 +105,24 @@ export function DialogCustomProvider(props: {
     setState(result.state)
     result.effects.forEach(run)
   }
+
   const draft = () => {
     const current = state()
+
     return current.type === "editing" || current.type === "saving" ? current.draft : undefined
   }
+
   const error = () => {
     const current = state()
+
     return current.type === "editing" ? current.error : undefined
   }
+
   // A save keeps what discovery already fetched: the model list stays on screen while the request runs instead of
   // collapsing to the empty state and jumping the sheet's height.
   const discovery = () => {
     const current = state()
+
     return current.type === "editing" || current.type === "saving" ? current.discovery : ({ type: "idle" } as const)
   }
 
@@ -124,9 +141,11 @@ export function DialogCustomProvider(props: {
         .models({ baseURL: effect.baseURL, apiKey: effect.apiKey ?? props.existingApiKey })
         .then((models) => dispatch({ type: "discover.succeeded", attempt, models }))
         .catch((cause: unknown) => {
-          setDiscoveryError("message", discoveryFailure(cause, language))
-          dispatch({ type: "discover.failed", attempt })
+          const message = discoveryFailure(cause, language)
+          setDiscoveryError("message", message)
+          dispatch({ type: "discover.failed", attempt, message })
         })
+
       return
     }
 
@@ -136,17 +155,21 @@ export function DialogCustomProvider(props: {
       void server.api.experimental.config
         .update({
           providers: {
+            // SAFETY: providerConfig builds the entry from the validated draft plus the untouched config maps, in
+            // the shape the config update endpoint declares for a custom provider.
             [saved.id]: providerConfig(saved, props.provider?.info) as ProviderPatch,
           },
         })
         .then(() => {
           if (!saved.apiKey) return
+
           return connectKey(server, props.directory, saved.id, saved.apiKey)
         })
         .then(
           () => dispatch({ type: "submit.succeeded", attempt }),
           (cause: unknown) => dispatch({ type: "submit.failed", attempt, message: formatServerError(cause, language.t) }),
         )
+
       return
     }
 
@@ -154,6 +177,7 @@ export function DialogCustomProvider(props: {
     if (effect.type === "delete.run") return
 
     const name = effect.providerName
+
     if (effect.type === "toast.created")
       showToast({
         variant: "success",
@@ -161,12 +185,14 @@ export function DialogCustomProvider(props: {
         title: language.t("settings.providers.custom.toast.created.title", { provider: name }),
         description: language.t("settings.providers.custom.toast.created.description"),
       })
+
     if (effect.type === "toast.saved")
       showToast({
         variant: "success",
         icon: "circle-check",
         title: language.t("settings.providers.custom.toast.saved", { provider: name }),
       })
+
     if (effect.type === "toast.deleted")
       showToast({
         variant: "success",
@@ -186,6 +212,7 @@ export function DialogCustomProvider(props: {
 
   createEffect(() => {
     if (!closeWhenEmpty()) return
+
     // Removing the last account deletes the provider, so the accounts prop can disappear instead of becoming empty.
     if (!props.accounts || props.accounts.items.length === 0) dialog.close()
   })
@@ -206,6 +233,7 @@ export function DialogCustomProvider(props: {
     if (!accounts) return
     const final = accounts.items.length === 1
     setAccountBusy(account.id)
+
     if (final) setCloseWhenEmpty(true)
     await accountActions.remove({ integrationID: accounts.integrationID, provider: providerName(), account, final })
     props.onAccountChanged?.()
@@ -216,16 +244,21 @@ export function DialogCustomProvider(props: {
   // A field only complains after the user leaves it: an empty form on open is not an error yet.
   const [touched, setTouched] = createStore({ id: false, baseURL: false })
   const models = createMemo(() => draft()?.models ?? [])
+
   const discovered = createMemo(() => {
     const result = discovery()
+
     return result.type === "ready" ? result.models : []
   })
 
   // The search only narrows what the endpoint returned; it never hides a selection the user already made.
   const [query, setQuery] = createSignal("")
+
   const visible = createMemo(() => {
     const needle = query().trim().toLowerCase()
+
     if (!needle) return discovered()
+
     return discovered().filter(
       (model) => model.id.toLowerCase().includes(needle) || model.name?.toLowerCase().includes(needle),
     )
@@ -233,6 +266,7 @@ export function DialogCustomProvider(props: {
 
   const toggleModel = (id: string, checked: boolean) => {
     const value = draft()
+
     if (!value) return
     set({ models: checked ? [...value.models, id] : value.models.filter((item) => item !== id) })
   }
@@ -245,6 +279,7 @@ export function DialogCustomProvider(props: {
 
   const setAllModels = (checked: boolean) => {
     const value = draft()
+
     if (!value) return
     const ids = visible().map((model) => model.id)
     set({
@@ -255,6 +290,7 @@ export function DialogCustomProvider(props: {
   const addManual = () => {
     const id = manual().trim()
     const value = draft()
+
     if (!id || !value || value.models.includes(id)) return
     set({ models: [...value.models, id] })
     setManual("")
@@ -309,6 +345,7 @@ export function DialogCustomProvider(props: {
                   class="settings-provider-custom-fields"
                   onKeyDown={(event: KeyboardEvent) => {
                     if (event.key !== "Enter" || event.isComposing) return
+
                     // One screen has one action: Enter submits the form the footer's button submits.
                     if (!canSubmit(state(), context)) return
                     event.preventDefault()
@@ -586,8 +623,11 @@ export function DialogCustomProvider(props: {
 function discoveryFailure(cause: unknown, language: ReturnType<typeof useLanguage>) {
   if (Predicate.hasProperty(cause, "kind") && Predicate.isString(cause.kind)) {
     if (cause.kind === "provider.models.auth") return language.t("settings.providers.custom.models.failed.auth")
+
     if (cause.kind === "provider.models.address") return language.t("settings.providers.custom.models.failed.address")
+
     if (cause.kind === "provider.models.timeout") return language.t("settings.providers.custom.models.failed.timeout")
+
     if (cause.kind === "provider.models.connection")
       return language.t("settings.providers.custom.models.failed.connection")
   }
@@ -606,36 +646,49 @@ async function connectKey(
   key: string,
 ) {
   const location = directory ? { directory } : undefined
+
   // 20 attempts with a short pause is long enough for a reload and still bounded, so the dialog cannot hang.
   for (let attempt = 0; attempt < 20; attempt++) {
     const integration = await server.api.integration.get({ integrationID: providerID, location }).catch(() => undefined)
+
     if (integration?.data) {
       await server.api.integration.connect.key({ integrationID: providerID, location, key })
+
       return
     }
+
     await new Promise((resolve) => setTimeout(resolve, 150))
   }
+
   throw new Error(`The provider integration did not register: ${providerID}`)
+}
+
+/**
+ * The `config.get` JSON view of one entry. The provider maps are free-form documents the server owns; only
+ * `baseURL`, `name` and the model ids are read here, the rest is forwarded back untouched.
+ */
+type ConfigProviderEntry = {
+  type?: string
+  writable?: boolean
+  info?: {
+    providers?: Record<string, { name?: string; settings?: Record<string, unknown>; models?: Record<string, unknown> }>
+  }
 }
 
 /** Reads the custom providers the editor may change: those declared in a global document the server writes. */
 export function customProvidersFrom(entries: readonly unknown[]) {
-  return (entries as Array<{
-    type?: string
-    writable?: boolean
-    info?: {
-      providers?: Record<
-        string,
-        { name?: string; settings?: Record<string, unknown>; models?: Record<string, unknown> }
-      >
-    }
-  }>).flatMap((entry) => {
+  // SAFETY: `entries` is the `config.get` JSON view of `Config.Entry[]`; only the document fields read here exist on
+  // it, and a directory entry simply has neither `writable` nor `info.providers`.
+  return (entries as ConfigProviderEntry[]).flatMap((entry) => {
     if (entry.type !== "document" || !entry.writable) return []
+
     return Object.entries(entry.info?.providers ?? {}).map(([id, provider]) => {
       const baseURL = provider.settings?.baseURL
+
       return {
         id,
         name: provider.name ?? id,
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- config JSON carries the endpoint untyped; only a string can name one
         baseURL: typeof baseURL === "string" ? baseURL : undefined,
         models: Object.keys(provider.models ?? {}),
         info: provider,
@@ -649,7 +702,7 @@ export function readOnlyProvidersFrom(entries: readonly unknown[]) {
   return new Set(
     // SAFETY: `entries` is the `config.get` JSON view of `Config.Entry[]`; only the document fields read here exist on
     // it, and a directory entry simply has neither `writable` nor `info.providers`.
-    (entries as Array<{ type?: string; writable?: boolean; info?: { providers?: Record<string, unknown> } }>).flatMap(
+    (entries as ConfigProviderEntry[]).flatMap(
       (entry) => (entry.type !== "document" || entry.writable ? [] : Object.keys(entry.info?.providers ?? {})),
     ),
   )

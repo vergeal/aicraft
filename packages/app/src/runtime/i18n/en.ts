@@ -1632,6 +1632,12 @@ export const dict = {
   "settings.providers.custom.delete.description":
     "This removes providers.{{provider}} from your configuration and deletes the API key stored for it.",
   "settings.providers.custom.delete.confirm": "Delete provider",
+  "settings.providers.custom.delete.models.one": "This provider declares {{count}} model.",
+  "settings.providers.custom.delete.models.other": "This provider declares {{count}} models.",
+  "settings.providers.custom.delete.accounts.one": "{{count}} API key is stored for it.",
+  "settings.providers.custom.delete.accounts.other": "{{count}} API keys are stored for it.",
+  "settings.providers.custom.models.selected.one": "{{count}} selected",
+  "settings.providers.custom.models.selected.other": "{{count}} selected",
   "settings.providers.custom.configured": "Configured in your configuration",
   "settings.providers.custom.readOnly": "Declared in a read-only configuration",
   "settings.providers.custom.keyMissing": "Add API key",

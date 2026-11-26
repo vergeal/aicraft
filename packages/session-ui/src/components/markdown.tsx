@@ -30,7 +30,6 @@ import {
   projectMarkdown,
 } from "./markdown-worker"
 import { markdownBlockKey, type MarkdownToken } from "./markdown-worker-protocol"
-import { shouldResetCodeTokens, type RenderedCodeState } from "./markdown-code-state"
 import {
   getCachedMarkdown,
   getReadyMarkdown,
@@ -85,7 +84,7 @@ type RenderResult = {
   ready: boolean
 }
 
-const renderedCodeTokens = new WeakMap<HTMLDivElement, RenderedCodeState>()
+const renderedCodeTokens = new WeakMap<HTMLDivElement, string>()
 
 const renderedMarkdown = new WeakMap<
   HTMLDivElement,
@@ -259,13 +258,19 @@ function codeKind(language: string | undefined) {
 }
 
 function applyCodeMetadata(wrapper: HTMLElement, language: string | undefined) {
-  if (language) wrapper.dataset.language = language
-  else delete wrapper.dataset.language
+  // Change-only writes: streaming re-enters this per delta, and a redundant setAttribute is a
+  // mutation record even when the value did not move.
+  if (wrapper.dataset.language !== language) {
+    if (language) wrapper.dataset.language = language
+    else delete wrapper.dataset.language
+  }
 
   const kind = codeKind(language)
 
-  if (kind) wrapper.dataset.codeKind = kind
-  else delete wrapper.dataset.codeKind
+  if (wrapper.dataset.codeKind !== kind) {
+    if (kind) wrapper.dataset.codeKind = kind
+    else delete wrapper.dataset.codeKind
+  }
 }
 
 type CodePlugins = { blocks: MarkdownCodeBlocks; match: MarkdownCodeBlockMatch }
@@ -1308,10 +1313,12 @@ function updateBlock(
   }
 
   const next = existing ?? document.createElement("div")
-  next.dataset.markdownBlock = ""
-  next.dataset.markdownKey = block.key
-  next.dataset.markdownHash = block.hash
-  next.dataset.markdownMode = block.mode
+  // Writing the dataset only on change keeps a streamed delta from logging four attribute mutations
+  // for values that did not move.
+  if (next.dataset.markdownBlock !== "") next.dataset.markdownBlock = ""
+  if (next.dataset.markdownKey !== block.key) next.dataset.markdownKey = block.key
+  if (next.dataset.markdownHash !== block.hash) next.dataset.markdownHash = block.hash
+  if (next.dataset.markdownMode !== block.mode) next.dataset.markdownMode = block.mode
   next.style.display = "contents"
   const rendered = renderedMarkdown.get(next)
   // Keep live renderers in control of their DOM, including after completion.
@@ -1328,7 +1335,7 @@ function updateBlock(
   markExternalLinkFavicons(source)
 
   if (rendered) {
-    rendered.renderer.update(source, block.mode === "live", rendered.raw !== block.raw)
+    rendered.renderer.update(source, rendered.raw !== block.raw)
     rendered.raw = block.raw
 
     return pending
@@ -1337,7 +1344,7 @@ function updateBlock(
   if (block.mode === "live") {
     next.replaceChildren()
     renderedMarkdown.set(next, {
-      renderer: createMarkdownRenderer(next, source, true),
+      renderer: createMarkdownRenderer(next, source),
       raw: block.raw,
     })
   }
@@ -1388,10 +1395,13 @@ function updateCodeBlock(
       : undefined
 
   const next = existing ?? document.createElement("div")
-  next.dataset.markdownBlock = ""
-  next.dataset.markdownKey = block.key
-  next.dataset.markdownHash = block.hash
-  next.dataset.markdownComplete = block.complete ? "true" : "false"
+  // Same change-only dataset writes as the generic block path: streaming re-enters here per delta.
+  if (next.dataset.markdownBlock !== "") next.dataset.markdownBlock = ""
+  if (next.dataset.markdownKey !== block.key) next.dataset.markdownKey = block.key
+  if (next.dataset.markdownHash !== block.hash) next.dataset.markdownHash = block.hash
+  const complete = block.complete ? "true" : "false"
+
+  if (next.dataset.markdownComplete !== complete) next.dataset.markdownComplete = complete
   next.style.display = "contents"
 
   const code = existing?.querySelector("code")
@@ -1400,34 +1410,36 @@ function updateCodeBlock(
     const wrapper = code.closest('[data-component="markdown-code"]')
 
     if (wrapper instanceof HTMLElement) applyCodeMetadata(wrapper, block.language)
-    code.className = `language-${block.language}`
-    const previous = renderedCodeTokens.get(next)
+    if (code.className !== `language-${block.language}`) code.className = `language-${block.language}`
+    const tokens = [...block.stable, ...block.unstable]
 
-    const reset = shouldResetCodeTokens(previous, {
-      language: block.language,
-      generation: block.generation,
-      stableCount: block.stable.length,
-      raw: block.raw,
+    // Update the spans the code element already holds instead of dropping the tail and rebuilding it:
+    // a re-tokenization (a fence closing, a language settling) lands as attribute and character
+    // mutations on kept spans, and only genuinely new tokens mount. This is the code counterpart of
+    // the prose path's text-level updates.
+    while (code.children.length > tokens.length) code.lastElementChild?.remove()
+    tokens.forEach((token, index) => {
+      const span = code.children[index] as HTMLElement | undefined
+
+      if (!span) {
+        code.appendChild(createTokenSpan(token))
+
+        return
+      }
+
+      if (sameTokenSpan(span, token)) return
+      if (span.getAttribute("style") !== token[1]) span.setAttribute("style", token[1])
+      const label = span.firstChild
+
+      if (label instanceof Text) {
+        if (label.data !== token[0]) label.data = token[0]
+
+        return
+      }
+
+      span.textContent = token[0]
     })
-
-    const stableCount = reset ? 0 : previous!.stableCount
-    const tail = [...block.stable.slice(stableCount), ...block.unstable]
-    const prior = reset ? [] : previous!.unstable
-    const prefix = prior.findIndex((token, index) => !sameToken(token, tail[index]))
-    const keep = stableCount + (prefix < 0 ? Math.min(prior.length, tail.length) : prefix)
-
-    while (code.children.length > keep) code.lastElementChild?.remove()
-    tail
-      .slice(keep - stableCount)
-      .map(createTokenSpan)
-      .forEach((span) => code.appendChild(span))
-    renderedCodeTokens.set(next, {
-      language: block.language,
-      generation: block.generation,
-      stableCount: block.stable.length,
-      unstable: block.unstable,
-      raw: block.raw,
-    })
+    renderedCodeTokens.set(next, block.language)
 
     if (wrapper instanceof HTMLElement) decorateCode(wrapper, code, block.complete, plugins)
 
@@ -1447,13 +1459,7 @@ function updateCodeBlock(
   wrapper.appendChild(createCopyButton(labels))
   decorateCode(wrapper, codeElement, block.complete, plugins)
   next.appendChild(wrapper)
-  renderedCodeTokens.set(next, {
-    language: block.language,
-    generation: block.generation,
-    stableCount: block.stable.length,
-    unstable: block.unstable,
-    raw: block.raw,
-  })
+  renderedCodeTokens.set(next, block.language)
 
   if (current) {
     disposeCodeHosts(current)
@@ -1466,8 +1472,9 @@ function updateCodeBlock(
   container.appendChild(next)
 }
 
-function sameToken(left: MarkdownToken, right: MarkdownToken | undefined) {
-  return !!right && left[0] === right[0] && left[1] === right[1]
+/** Whether an existing token span already renders this token, so its DOM stays untouched. */
+function sameTokenSpan(span: HTMLElement, token: MarkdownToken) {
+  return span.textContent === token[0] && span.getAttribute("style") === token[1]
 }
 
 function createTokenSpan(token: MarkdownToken) {

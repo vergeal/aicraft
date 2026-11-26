@@ -22,7 +22,7 @@ test("assigns stable paths to elements and individual words", () => {
       attributes: { class: "lead" },
       children: [
         { key: "0.0:0", type: "word", text: "Hello" },
-        { key: "0.0:1", type: "text", text: " " },
+        { key: "t0.0:1", type: "text", text: " " },
         {
           key: "0.1",
           type: "element",
@@ -30,7 +30,7 @@ test("assigns stable paths to elements and individual words", () => {
           attributes: {},
           children: [{ key: "0.1.0:0", type: "word", text: "streaming" }],
         },
-        { key: "0.2:1", type: "text", text: " " },
+        { key: "t0.2:1", type: "text", text: " " },
         { key: "0.2:2", type: "word", text: "world" },
       ],
     },
@@ -44,7 +44,7 @@ test("keeps completed block text compact", () => {
       type: "element",
       tag: "p",
       attributes: {},
-      children: [{ key: "0.0", type: "text", text: "Hello world" }],
+      children: [{ key: "t0.0", type: "text", text: "Hello world" }],
     },
   ])
 })

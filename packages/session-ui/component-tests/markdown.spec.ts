@@ -840,7 +840,9 @@ story("replaces completed DOM before live rendering and retains streamed code co
   await harness.getByLabel("Streaming").check()
   await harness.getByLabel("Markdown text").fill("Initial **content** continues")
   await expect(markdown.locator("p")).toHaveCount(1)
-  await expect(markdown.locator("[data-markdown-word]")).toHaveCount(3)
+  // The streamed paragraph is now owned by the live renderer (plain prose updates as a text node; the
+  // word spans it used to mount are gone), which the block's mode attribute still records.
+  await expect(markdown.locator('[data-markdown-mode="live"]')).toHaveCount(1)
   await harness.getByLabel("Markdown text").fill("```sh\necho hello\n")
   await expect(markdown.locator("pre code")).toHaveText("echo hello\n")
   await expect(markdown.locator("p")).toHaveCount(0)

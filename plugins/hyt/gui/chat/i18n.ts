@@ -136,6 +136,7 @@ export const zh: Record<string, string> = {
   "hyt.chat.msg.merge.collapse": "收起",
   "hyt.chat.msg.merge.empty": "这条合并转发读不到内容。",
   "hyt.chat.msg.merge.image": "[图片]",
+  "hyt.chat.msg.merge.open": "点击查看合并消息",
   "hyt.chat.msg.recall": "撤回了一条消息",
   "hyt.chat.recall.done": "消息已撤回。",
   "hyt.chat.recall.failed": "撤回失败：{{reason}}",

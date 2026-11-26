@@ -13,6 +13,7 @@ export const METHODS = {
   logout: "auth.logout",
   state: "auth.state",
   sendMessage: "im.sendMessage",
+  sendMedia: "im.sendMedia",
   sessions: "im.sessions",
   members: "im.members",
   markRead: "im.markRead",

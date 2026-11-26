@@ -624,6 +624,7 @@ function messageRow(row: ChatRow, account: string, people: Map<string, PersonEnt
   const message = toMessage(row)
   const person = people.get(message.sender)
   const app = message.kind === "app" ? parseAppCard(row.UserData, message.text) : undefined
+  const merge = message.kind === "merge" ? mergeCardOf(row.UserData) : undefined
   return {
     id: message.id,
     msgId: message.msgId,
@@ -642,7 +643,34 @@ function messageRow(row: ChatRow, account: string, people: Map<string, PersonEnt
     fileSize: numberOf(row.FileSize) ?? 0,
     filePath: message.fileFullPath,
     ...(app === undefined ? {} : { app }),
+    ...(merge === undefined ? {} : { merge }),
   }
+}
+
+/**
+ * 合并消息卡片：服务端在 UserData 里给了 `title`（「石玉海和罗江湧的消息记录」）
+ * 与 `msgDesc`（前几条内容的拼接，条目间以 [rx_str_merge_des] 分隔，图片即 [图片]）。
+ */
+function mergeCardOf(userData: string | null) {
+  if (userData === null || userData.length === 0) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(userData)
+  } catch {
+    return undefined
+  }
+  if (typeof parsed !== "object" || parsed === null) return undefined
+  const data = parsed as Record<string, unknown>
+  const title = typeof data.title === "string" ? data.title.trim() : ""
+  const lines = typeof data.msgDesc === "string"
+    ? data.msgDesc
+        .split("[rx_str_merge_des]")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .slice(0, 3)
+    : []
+  if (title.length === 0 && lines.length === 0) return undefined
+  return { title, lines }
 }
 
 function previewOf(row: ChatRow) {
@@ -735,6 +763,10 @@ export interface FileSource {
   readonly url: string
   readonly fileName: string
   readonly createdAt: number
+  /** 行上的 FileFullPath：自己发出的媒体是发送时的原始绝对路径。 */
+  readonly fullPath: string
+  /** 发送者账号，用来判断这条是不是自己发的。 */
+  readonly sender: string
 }
 
 /**
@@ -749,7 +781,7 @@ export function readFileSource(root: string, account: string, msgId: string): Fi
   let db: DatabaseSync | undefined
   try {
     db = new DatabaseSync(file)
-    const row = db.prepare("select FileUrl, FileName, CreatedTime from chatmsg where MsgId = ? limit 1").get(msgId)
+    const row = db.prepare("select FileUrl, FileName, CreatedTime, FileFullPath, Sender from chatmsg where MsgId = ? limit 1").get(msgId)
     if (row === undefined) return undefined
     const url = text((row as Row).FileUrl)
     if (url.length === 0) return undefined
@@ -758,6 +790,8 @@ export function readFileSource(root: string, account: string, msgId: string): Fi
       url,
       fileName: text((row as Row).FileName),
       createdAt: Number.isFinite(created) ? created : 0,
+      fullPath: text((row as Row).FileFullPath),
+      sender: text((row as Row).Sender),
     }
   } catch {
     return undefined

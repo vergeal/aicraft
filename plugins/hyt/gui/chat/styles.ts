@@ -1783,21 +1783,18 @@ export const css = `
   object-fit: cover;
 }
 
-/* 合并转发展开后直接在气泡下方列消息，不再开二级窗口 */
-.hyt-shell .merge-list {
-  width: min(420px, 100%);
-  margin-top: 6px;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-row);
-  background: var(--paper);
-  font-size: 13px;
-}
+/* ── 合并消息弹窗：宽卡列出解开的条目，图片取回后内联 
+   （veil 与回执弹窗共用 .receipt-veil / .receipt，这里只放宽面板尺寸）。 */
+.hyt-shell .merge-dialog { width: min(460px, 100%); max-height: min(620px, 100%); }
 
-.hyt-shell .merge-item { padding: 4px 0; }
-.hyt-shell .merge-item + .merge-item { border-top: 1px solid var(--line-soft); }
-.hyt-shell .merge-item b { font-weight: 500; }
-.hyt-shell .merge-item span { display: block; color: var(--muted); }
+.hyt-shell .merge-body { flex: 1; overflow-y: auto; padding: 4px 14px 14px; }
+
+.hyt-shell .md-item { padding: 8px 0; }
+.hyt-shell .md-item + .md-item { border-top: 1px solid var(--line-soft); }
+.hyt-shell .md-who { display: flex; align-items: baseline; gap: 8px; font-size: 12px; font-weight: 500; }
+.hyt-shell .md-time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.hyt-shell .md-text { margin-top: 3px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.hyt-shell .md-shot { display: block; margin-top: 6px; max-width: 280px; border-radius: var(--r-row); }
 
 .hyt-shell .merge-error { margin-top: 6px; color: var(--seal-ink); font-size: 12px; }
 

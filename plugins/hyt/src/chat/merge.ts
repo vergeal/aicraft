@@ -15,6 +15,8 @@ export interface MergeItem {
   readonly title: string
   readonly kind: MergeKind
   readonly url: string
+  /** 图片等媒体在文件服务器上的可下载地址：txt 里键名是 merge_remote_url，回落到 merge_url。 */
+  readonly remoteUrl: string
   readonly userData: string
 }
 
@@ -51,6 +53,7 @@ export function parseMergeItems(input: unknown): MergeItem[] {
         title: title.length > 0 ? title : content,
         kind: mergeKindOf(item.merge_type),
         url,
+        remoteUrl: text(item.merge_remote_url) || url,
         userData: text(item.merge_userData),
       },
     ]

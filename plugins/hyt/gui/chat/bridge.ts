@@ -1,8 +1,9 @@
+import { basename } from "node:path"
 import { connectBridge } from "../../src/bridge/client.js"
 import { ensureLogin, sendTextEnsuringLogin } from "../../src/bridge/native.js"
 import type { BridgeCredentials } from "../../src/bridge/native.js"
-import { METHODS, isRecord, parseDownload, parseMarkRead, parseMembers, parseRecall, readEndpoint } from "../../src/bridge/protocol.js"
-import type { DownloadResult, MarkReadResult, MembersResult, RecallResult } from "../../src/bridge/protocol.js"
+import { METHODS, isRecord, parseDownload, parseMarkRead, parseMembers, parseRecall, parseSendResult, readEndpoint } from "../../src/bridge/protocol.js"
+import type { DownloadResult, MarkReadResult, MembersResult, RecallResult, SendResult } from "../../src/bridge/protocol.js"
 import { createSupervisor } from "../../src/bridge/supervisor.js"
 import type { BridgeSupervisor } from "../../src/bridge/supervisor.js"
 
@@ -45,6 +46,8 @@ export interface SenderOptions {
 
 export interface MessageSender {
   send(sessionId: string, text: string): Promise<SendOutcome>
+  /** 发送图片/文件/文档：桥接按扩展名推断消息类型（图片 4、音视频 2/3、其他 6）。 */
+  sendMedia(sessionId: string, filePath: string): Promise<SendResult>
   /** 拉群成员，用来算「未读」；单聊不需要。 */
   members(groupId: string): Promise<MembersResult>
   /** 把「我已经读过这条」上报给服务端。 */
@@ -125,6 +128,19 @@ export function createSender(options: SenderOptions): MessageSender {
           : { ok: false, reason: result.error.length > 0 ? result.error : "消息通道没有确认已发出" }
       } catch (cause) {
         return { ok: false, reason: cause instanceof Error ? cause.message : String(cause) }
+      }
+    },
+
+    async sendMedia(sessionId, filePath) {
+      try {
+        const client = await channel()
+        // displayName 必须传文件名：留空时 SDK 会把整个绝对路径写进本地库的 FileName，
+        // 之后 im.download 拿它拼收件目录会得到坏路径，补下载全失败。
+        return parseSendResult(
+          await client.request(METHODS.sendMedia, { sessionId, filePath, fileName: basename(filePath) }),
+        )
+      } catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : String(cause) }
       }
     },
 

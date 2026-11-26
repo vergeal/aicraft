@@ -512,6 +512,30 @@ export function ChatPage(props: {
       .catch(fail)
   }
 
+  const pickAndSend = (kind: "image" | "file") => {
+    const sessionId = selectedId()
+    if (sessionId.length === 0 || sending()) return
+    setSending(true)
+    setNotice(undefined)
+    void (async () => {
+      try {
+        const picked = await props.client.pick({ kind })
+        if (picked.error.length > 0) {
+          setNotice(text(ctx, "hyt.chat.composer.rejected", { reason: picked.error }))
+          return
+        }
+        // 取消选择是正常路径，不提示。
+        if (picked.path.length === 0) return
+        const result = await props.client.sendMedia({ sessionId, filePath: picked.path })
+        if (!result.ok) setNotice(text(ctx, "hyt.chat.composer.rejected", { reason: result.reason }))
+      } catch (cause) {
+        fail(cause)
+      } finally {
+        setSending(false)
+      }
+    })()
+  }
+
   const mediaCache = new Map<string, Promise<string>>()
   // 本地没有副本时主进程会按 msgId 补下载，所以缓存键必须带上消息 id：
   // 同一条消息补下载完成后 path 会变，那时应重新读一次，而不是复用失败的缓存。
@@ -539,14 +563,32 @@ export function ChatPage(props: {
   }
 
   const mergeCache = new Map<string, Promise<{ items: readonly MergeItemRow[]; error: string }>>()
-  const onMerge = (path: string) => {
-    const cached = mergeCache.get(path)
+  const onMerge = (input: { path: string; msgId: string }) => {
+    const key = input.msgId
+    const cached = mergeCache.get(key)
     if (cached !== undefined) return cached
-    const request = props.client.merge({ path }).catch((cause: unknown) => ({
+    const request = props.client.merge(input).catch((cause: unknown) => ({
       items: [] as readonly MergeItemRow[],
       error: cause instanceof Error ? cause.message : String(cause),
     }))
-    mergeCache.set(path, request)
+    mergeCache.set(key, request)
+    // 失败不留在缓存里：文件补下载或登录之后要能重新解一次。
+    void request.then((value) => {
+      if (value.error.length > 0) mergeCache.delete(key)
+    })
+    return request
+  }
+
+  const mergeMediaCache = new Map<string, Promise<string>>()
+  const onMergeMedia = (url: string) => {
+    if (url.length === 0) return Promise.resolve("")
+    const cached = mergeMediaCache.get(url)
+    if (cached !== undefined) return cached
+    const request = props.client
+      .mergeMedia({ url })
+      .then((result) => (result.error.length > 0 ? "" : result.dataUrl))
+      .catch(() => "")
+    mergeMediaCache.set(url, request)
     return request
   }
 
@@ -783,6 +825,7 @@ export function ChatPage(props: {
             onAvatars={loadAvatars}
             onMedia={onMedia}
             onMerge={onMerge}
+            onMergeMedia={onMergeMedia}
             onOpenFile={reveal}
             onOpenImage={openImage}
             onMenu={messageMenu}
@@ -804,6 +847,7 @@ export function ChatPage(props: {
             notice={notice()}
             onInput={writeDraft}
             onSend={send}
+            onPickMedia={pickAndSend}
             onUseDraft={useDraft}
             onIgnoreDraft={() => {
               const draft = currentDraft()

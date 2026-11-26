@@ -956,7 +956,7 @@ export const dict = {
   "settings.memory.section.extraction": "Extraction",
   "settings.memory.row.inject.title": "Memory injection",
   "settings.memory.row.inject.description":
-    "Which channels read memory into every request. The semantic channel needs a local embedding runtime, which the Windows installer bundles.",
+    "Which channels read memory into every request. The semantic channel needs a local embedding runtime, which the installers bundle.",
   "settings.memory.mode.off": "Off (tools only)",
   "settings.memory.mode.trigger": "Exact triggers",
   "settings.memory.mode.vector": "Triggers + semantic",

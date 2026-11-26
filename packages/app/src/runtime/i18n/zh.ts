@@ -1228,7 +1228,7 @@ export const dict = {
   "settings.memory.section.retrieval": "检索",
   "settings.memory.section.extraction": "提取",
   "settings.memory.row.inject.title": "记忆注入",
-  "settings.memory.row.inject.description": "每次请求前启用哪些检索通道。语义通道需要本机的向量运行时，Windows 安装包已内置。",
+  "settings.memory.row.inject.description": "每次请求前启用哪些检索通道。语义通道需要本机的向量运行时，安装包已内置。",
   "settings.memory.mode.off": "关闭（仅通过工具检索）",
   "settings.memory.mode.trigger": "仅精确触发",
   "settings.memory.mode.vector": "精确触发 + 语义匹配",

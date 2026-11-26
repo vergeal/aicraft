@@ -7,6 +7,8 @@ import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { Configuration } from "electron-builder"
 import { getConfig } from "./electron-builder.config"
+import { EMBEDDING_TARGETS, embeddingTarget, serverFileName } from "./src/main/service/embedding"
+import { MODEL_FILE, rootFileNames } from "./script/embedding-assets"
 import { CLI_BINARIES, getCurrentCli, nodePtyPackage } from "./script/utils"
 
 // Use electron-builder's matcher so the tests also cover its glob and directory traversal semantics.
@@ -132,12 +134,37 @@ test("shared packaging defaults", async () => {
   const optional = (dir: string) =>
     existsSync(path.join(import.meta.dirname, "resources", dir)) ? [{ from: `resources/${dir}`, to: dir }] : []
 
+  const embedding = embeddingTarget(getCurrentCli().os, getCurrentCli().cpu)
+
   expect(config.extraResources).toEqual([
     { from: "resources/", to: "", filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"] },
     ...optional("distribution"),
-    // The embedding runtime ships on Windows targets only.
-    ...(getCurrentCli().os === "win32" ? optional("embedding") : []),
+    // Each installer carries the shared model plus only its own embedding target directory.
+    ...(embedding && existsSync(path.join(import.meta.dirname, "resources", "embedding"))
+      ? [{ from: "resources/embedding", to: "embedding", filter: [...rootFileNames(), `${embedding}/**/*`] }]
+      : []),
   ])
+})
+
+test("the embedding filter ships only the target's own runtime directory", () => {
+  const root = path.join(import.meta.dirname, "resources", "embedding")
+  const fileStats = statSync(import.meta.filename)
+
+  for (const target of EMBEDDING_TARGETS) {
+    const included = new FileMatcher(
+      root,
+      "",
+      (value: string) => value,
+      [...rootFileNames(), `${target}/**/*`],
+    ).createFilter()
+
+    expect(included(path.join(root, target, serverFileName(target.split("-")[0])), fileStats), target).toBe(true)
+    expect(included(path.join(root, MODEL_FILE), fileStats), `${target} keeps the shared model`).toBe(true)
+    expect(included(path.join(root, "embedding.version"), fileStats), `${target} keeps the version marker`).toBe(true)
+
+    for (const other of EMBEDDING_TARGETS.filter((item) => item !== target))
+      expect(included(path.join(root, other, "ggml-dead-weight.bin"), fileStats), `${target} excludes ${other}`).toBe(false)
+  }
 })
 
 test("trims external dependencies without excluding runtime files", () => {

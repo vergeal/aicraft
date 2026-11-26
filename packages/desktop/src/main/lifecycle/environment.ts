@@ -44,6 +44,7 @@ export const preferApplicationEnvironment = Effect.gen(function* () {
       process.env,
       bundledEmbeddingEnv({
         platform: process.platform,
+        cpu: process.arch,
         packaged: app.isPackaged,
         resourcesPath: process.resourcesPath,
         exists: existsSync,

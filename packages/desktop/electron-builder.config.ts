@@ -1,11 +1,13 @@
 import { existsSync } from "node:fs"
-import { copyFile, readdir, stat } from "node:fs/promises"
+import { chmod, copyFile, readdir, stat, symlink } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { Arch, type Configuration } from "electron-builder"
 import { NativeArch } from "../../script/native-arch"
 import { DESKTOP_NATIVE_ENGLISH } from "@aicraft/app/i18n/desktop-native"
+import { LICENSE_FILE, MODEL_FILE, compatLinks, rootFileNames } from "./script/embedding-assets"
+import { type EmbeddingTarget, embeddingTarget, serverFileName } from "./src/main/service/embedding"
 import { CLI_BINARIES, getCurrentCli, nodePtyPackage } from "./script/utils"
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url))
@@ -62,6 +64,7 @@ function linuxExecutableName(appId: string): string {
 
 const getBase = (appId: string): Configuration => {
   const target = getCurrentCli()
+  const bundle = embeddingTarget(target.os, target.cpu)
   const desktopName = `${appId}.desktop`
 
   return {
@@ -118,12 +121,13 @@ const getBase = (appId: string): Configuration => {
         ? [{ from: "resources/distribution", to: "distribution" }]
         : []),
       // Committed to the repo (script/embedding-assets.ts only regenerates it when the model or
-      // llama build changes). Windows-only: the runtime is a win64 build, and other platforms
-      // keep the designed trigger + lexical fallback. From the install directory the sidecar
-      // spawns llama-server in place; the update flow stops $INSTDIR processes first, which
-      // covers the bundled runtime's file handles.
-      ...(target.os === "win32" && existsSync(path.join(packageDir, "resources", "embedding"))
-        ? [{ from: "resources/embedding", to: "embedding" }]
+      // llama build changes). Each installer carries the shared model plus only its own target
+      // directory, so the other platforms' binaries never ride along; targets outside the runtime
+      // matrix (win32-arm64, linux-arm64) keep the designed trigger + lexical fallback. From the
+      // install directory the sidecar spawns llama-server in place; the update flow stops
+      // $INSTDIR processes first, which covers the bundled runtime's file handles.
+      ...(bundle && existsSync(path.join(packageDir, "resources", "embedding"))
+        ? [{ from: "resources/embedding", to: "embedding", filter: [...rootFileNames(), `${bundle}/**/*`] }]
         : []),
     ],
     afterPack: async (context) => {
@@ -149,6 +153,13 @@ const getBase = (appId: string): Configuration => {
       if (context.electronPlatformName === "darwin")
         await copyFile(path.join(packageDir, "resources/icons/icon.icns"), path.join(resources, "icon.icns"))
 
+      // Every installer inside the runtime matrix must carry the memory vector runtime; a silent
+      // miss would ship an app whose vector channel can never start and whose corpus has no way to
+      // notice. Targets outside the matrix ship no bundle and keep the trigger + lexical fallback.
+      const embedding = embeddingTarget(context.electronPlatformName, arch)
+
+      if (embedding) await packEmbedding(context.electronPlatformName, resources, embedding, arch)
+
       if (context.electronPlatformName !== "win32") return
 
       const prebuilds = path.join(
@@ -172,30 +183,6 @@ const getBase = (appId: string): Configuration => {
 
             if (await NativeArch.isNative(file)) await NativeArch.verify(file, arch)
           }),
-      )
-
-      // Windows installers must carry the memory vector runtime; a silent miss would ship an app
-      // whose vector channel can never start and whose corpus has no way to notice.
-      const embedding = path.join(resources, "embedding")
-
-      if (!existsSync(embedding))
-        throw new Error(`Windows builds must bundle the memory embedding runtime (missing ${embedding}); run script/build.ts first`)
-
-      const server = path.join(embedding, "llama-server.exe")
-
-      if ((await stat(server)).size === 0) throw new Error(`Bundled embedding server must be a non-empty file: ${server}`)
-      await NativeArch.verify(server, arch)
-
-      const model = path.join(embedding, "bge-small-zh-v1.5-q8_0.gguf")
-
-      if ((await stat(model)).size === 0) throw new Error(`Bundled embedding model must be a non-empty file: ${model}`)
-
-      const runtime = await readdir(embedding, { withFileTypes: true })
-
-      await Promise.all(
-        runtime
-          .filter((entry) => entry.isFile() && /\.(dll|exe)$/.test(entry.name))
-          .map((entry) => NativeArch.verify(path.join(embedding, entry.name), arch)),
       )
     },
     mac: {
@@ -248,6 +235,53 @@ const getBase = (appId: string): Configuration => {
       target: ["AppImage", "deb", "rpm"],
     },
   }
+}
+
+/**
+ * Checks the embedding directory the installer copied and repairs what git could not store: the
+ * tarballs' loader-visible compatibility symlinks (`@rpath/libggml.1.dylib`, `libllama.so.1`) are
+ * recreated from the versioned real files per the script/embedding-assets.ts rule, because a Windows
+ * checkout would drop them, and the executable bit is restored, because Windows git does not keep it.
+ * The repo is the packaging source, so a missing bundle for an in-matrix target fails the build
+ * instead of shipping a silently downgraded installer.
+ */
+async function packEmbedding(electronPlatformName: string, resources: string, target: EmbeddingTarget, arch: "x64" | "arm64") {
+  const dir = path.join(resources, "embedding", target)
+
+  if (!existsSync(dir)) throw new Error(`${target} builds must bundle the memory embedding runtime (missing ${dir})`)
+
+  const server = path.join(dir, serverFileName(electronPlatformName))
+  const model = path.join(resources, "embedding", MODEL_FILE)
+  const license = path.join(resources, "embedding", LICENSE_FILE)
+
+  if ((await stat(server)).size === 0) throw new Error(`Bundled embedding server must be a non-empty file: ${server}`)
+
+  if ((await stat(model)).size === 0) throw new Error(`Bundled embedding model must be a non-empty file: ${model}`)
+
+  if ((await stat(license)).size === 0)
+    throw new Error(`Bundled embedding license must be a non-empty file: ${license}`)
+
+  const files = await readdir(dir)
+
+  await Promise.all(
+    files.map(async (name) => {
+      const file = path.join(dir, name)
+
+      if ((await stat(file)).size === 0) throw new Error(`Bundled embedding runtime shipped an empty file: ${file}`)
+
+      if (await NativeArch.isNative(file)) await NativeArch.verify(file, arch)
+    }),
+  )
+
+  await Promise.all(
+    compatLinks(target, files)
+      .filter((link) => !files.includes(link.link))
+      .map((link) => symlink(link.to, path.join(dir, link.link))),
+  )
+
+  // Windows checkouts lose the executable bit the sidecar spawn needs on unix; the install
+  // directory is not user-editable, so 755 across the target directory is the safe uniform mode.
+  if (electronPlatformName !== "win32") await Promise.all(files.map((name) => chmod(path.join(dir, name), 0o755)))
 }
 
 export function getConfig() {

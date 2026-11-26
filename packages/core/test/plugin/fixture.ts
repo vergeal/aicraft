@@ -23,6 +23,7 @@ import { Job } from "@aicraft/core/job"
 import { KV } from "@aicraft/core/kv"
 import { Location } from "@aicraft/core/location"
 import { Mcp } from "@aicraft/core/mcp/index"
+import { MemoryService } from "@aicraft/core/memory/service"
 import { Model } from "@aicraft/core/model"
 import { Npm } from "@aicraft/util/npm"
 import { Plugin } from "@aicraft/core/plugin"
@@ -118,6 +119,7 @@ export const makePluginTestLayer = (permission = permissionLayer, generate = gen
       Job.node,
       KV.node,
       Mcp.node,
+      MemoryService.node,
       Session.node,
       SharedCache.node,
       InstructionEntry.node,

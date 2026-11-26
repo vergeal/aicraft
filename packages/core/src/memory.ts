@@ -1,60 +1,46 @@
 export * as Memory from "./memory.js"
 
-import { ConfigMemory } from "@aicraft/schema/config/memory"
 import { Memory as MemorySchema } from "@aicraft/schema/memory"
 import { Effect, Option, Schema } from "effect"
 import { KV } from "./kv.js"
 
-/** The canonical wire contract, re-exported so tools, RPC, and the settings page share one schema identity. */
+/** The canonical wire contract, re-exported so the plugin host and the settings RPC share one schema identity. */
 export const Entry = MemorySchema.Entry
 export type Entry = MemorySchema.Entry
 export const Scope = MemorySchema.Scope
 export type Scope = MemorySchema.Scope
-export type Lookup = Scope | "all"
 
 const decodeEntry = Schema.decodeUnknownOption(Entry)
 
-/** Every key lives under one namespace, so a scan prefix is the only thing separating the two scopes. */
 const ROOT = "memory/entry/"
-export const globalPrefix = `${ROOT}global/`
-/** Plugin memories never join the user's scopes: each plugin writes under its own id, and none are injected. */
+/**
+ * Plugin memories still live in kv: each plugin writes under its own id, none are injected, and
+ * the boot-time `migrateKv` mirrors them into the subsystem's plugin scope for the settings page.
+ * Project and global memories are SQL-owned since the subsystem cutover.
+ */
 export const pluginRoot = `${ROOT}plugin/`
-
-export function projectPrefix(projectID: string) {
-  return `${ROOT}project/${encodeURIComponent(projectID)}/`
-}
 
 export function pluginPrefix(pluginID: string) {
   return `${pluginRoot}${encodeURIComponent(pluginID)}/`
-}
-
-export function prefixFor(scope: Scope, projectID: string) {
-  return scope === "global" ? globalPrefix : projectPrefix(projectID)
-}
-
-export function keyFor(scope: Scope, projectID: string, id: string) {
-  return prefixFor(scope, projectID) + id
-}
-
-export function newID() {
-  return `mem_${crypto.randomUUID()}`
 }
 
 /** A save or a search has to see the whole scope to deduplicate and match correctly; this is the hard ceiling. */
 export const MAX_SCAN = 2_000
 
 /**
- * Reads one scope, paging until `max` entries or the end. Undecodable values are skipped so one bad write cannot hide
- * the rest.
+ * Reads one scope and returns the newest `max` entries. Undecodable values are skipped so one bad write cannot hide
+ * the rest. Note the ordering trap: keys are `mem_<uuid>`, so kv's ascending key order is random order — taking the
+ * first `max` rows was a random sample, not the recent head (measured 2026-11: golden-set recall 0.33 at 400+
+ * entries). The whole scope must be paged before recency is meaningful.
  */
 export const readScope = (kv: KV.Interface, prefix: string, max: number) =>
   Effect.gen(function* () {
     const entries: Entry[] = []
     let after: string | undefined
-    while (entries.length < max) {
+    while (entries.length < MAX_SCAN) {
       const page = yield* kv.scan({
         prefix,
-        limit: Math.min(100, max - entries.length),
+        limit: Math.min(100, MAX_SCAN - entries.length),
         ...(after === undefined ? {} : { after }),
       })
       for (const item of page.entries) {
@@ -64,7 +50,7 @@ export const readScope = (kv: KV.Interface, prefix: string, max: number) =>
       if (page.next === undefined || page.next === after) break
       after = page.next
     }
-    return entries
+    return sortRecent(entries).slice(0, max)
   })
 
 export function sortRecent(entries: readonly Entry[]) {
@@ -84,96 +70,32 @@ export function normalizeTags(input: readonly string[] | undefined) {
   return [...new Set(tags)].slice(0, 8)
 }
 
-/** Looks in the project scope first, then global; an ID is unique, so the first match is the entry. */
-export const findEntry = (kv: KV.Interface, projectID: string, id: string) =>
-  Effect.gen(function* () {
-    for (const scope of ["project", "global"] as const) {
-      const key = keyFor(scope, projectID, id)
-      const value = yield* kv.get(key)
-      if (value === undefined) continue
-      const decoded = decodeEntry(value)
-      if (Option.isSome(decoded)) return { scope, key, entry: decoded.value }
-    }
-    return undefined
-  })
-
-export const list = (kv: KV.Interface, projectID: string, lookup: Lookup, limit: number) =>
-  Effect.gen(function* () {
-    const scopes: readonly Scope[] = lookup === "all" ? ["project", "global"] : [lookup]
-    const groups = yield* Effect.forEach(
-      scopes,
-      (scope) => readScope(kv, prefixFor(scope, projectID), limit).pipe(Effect.map((entries) => ({ scope, entries }))),
-      { concurrency: "unbounded" },
-    )
-    return groups
-      .flatMap((group) => group.entries.map((entry) => ({ entry, scope: group.scope })))
-      .sort((a, b) => (a.entry.updatedAt < b.entry.updatedAt ? 1 : a.entry.updatedAt > b.entry.updatedAt ? -1 : 0))
-      .slice(0, limit)
-  })
-
-/**
- * Writes a memory, merging tags into an entry with the same text instead of storing a second copy. A duplicate keeps
- * the original ID so references already handed to the model stay valid.
- */
-export const save = (
-  kv: KV.Interface,
-  input: {
-    readonly scope: Scope
-    readonly projectID: string
-    readonly text: string
-    readonly tags: readonly string[] | undefined
-    readonly now: string
-  },
-) => saveAt(kv, prefixFor(input.scope, input.projectID), input)
-
 /** A plugin's own memories live in one prefix per plugin, so two plugins can never read each other's. */
 export const savePlugin = (
   kv: KV.Interface,
   pluginID: string,
   input: { readonly text: string; readonly tags: readonly string[] | undefined; readonly now: string },
-) => saveAt(kv, pluginPrefix(pluginID), input)
-
-const saveAt = (
-  kv: KV.Interface,
-  prefix: string,
-  input: { readonly text: string; readonly tags: readonly string[] | undefined; readonly now: string },
 ) =>
   Effect.gen(function* () {
     const text = input.text.trim()
     const tags = normalizeTags(input.tags)
+    const prefix = pluginPrefix(pluginID)
     const existing = yield* readScope(kv, prefix, MAX_SCAN)
     const duplicate = existing.find((entry) => entry.text.trim() === text)
     const entry: Entry = duplicate
       ? { ...duplicate, tags: normalizeTags([...duplicate.tags, ...tags]), updatedAt: input.now }
-      : { id: newID(), text, tags, createdAt: input.now, updatedAt: input.now }
+      : { id: `mem_${crypto.randomUUID()}`, text, tags, createdAt: input.now, updatedAt: input.now }
     yield* kv.set(prefix + entry.id, entry)
     return { entry, duplicate: duplicate !== undefined }
   })
-
-export const update = (
-  kv: KV.Interface,
-  input: {
-    readonly scope: Scope
-    readonly projectID: string
-    readonly id: string
-    readonly text: string
-    readonly tags: readonly string[]
-    readonly now: string
-  },
-) => updateAt(kv, keyFor(input.scope, input.projectID, input.id), input)
 
 export const updatePlugin = (
   kv: KV.Interface,
   pluginID: string,
   input: { readonly id: string; readonly text: string; readonly tags: readonly string[]; readonly now: string },
-) => updateAt(kv, pluginPrefix(pluginID) + input.id, input)
-
-const updateAt = (
-  kv: KV.Interface,
-  key: string,
-  input: { readonly text: string; readonly tags: readonly string[]; readonly now: string },
 ) =>
   Effect.gen(function* () {
+    const key = pluginPrefix(pluginID) + input.id
     const value = yield* kv.get(key)
     const current = value === undefined ? Option.none() : decodeEntry(value)
     if (Option.isNone(current)) return undefined
@@ -187,14 +109,9 @@ const updateAt = (
     return entry
   })
 
-export const remove = (
-  kv: KV.Interface,
-  input: { readonly scope: Scope; readonly projectID: string; readonly id: string },
-) => kv.remove(keyFor(input.scope, input.projectID, input.id))
-
 export const removePlugin = (kv: KV.Interface, pluginID: string, id: string) => kv.remove(pluginPrefix(pluginID) + id)
 
-/** One scope's entry, located by id without assuming which scope holds it. */
+/** One plugin-scope entry, located by id. */
 export function findPluginEntry(kv: KV.Interface, pluginID: string, id: string) {
   return Effect.gen(function* () {
     const key = pluginPrefix(pluginID) + id
@@ -247,132 +164,3 @@ function safeDecode(value: string) {
     return value
   }
 }
-
-const MAX_ENTRY_CHARS = 400
-
-function line(entry: Entry) {
-  const text = entry.text.length > MAX_ENTRY_CHARS ? `${entry.text.slice(0, MAX_ENTRY_CHARS - 1)}…` : entry.text
-  return entry.tags.length > 0 ? `- ${text} (tags: ${entry.tags.join(", ")})` : `- ${text}`
-}
-
-function pack(entries: readonly Entry[], budget: number) {
-  const lines: string[] = []
-  let used = 0
-  for (const [index, entry] of entries.entries()) {
-    const text = line(entry)
-    const cost = text.length + 1
-    if (used + cost > budget) return { lines, used, omitted: entries.length - index }
-    lines.push(text)
-    used += cost
-  }
-  return { lines, used, omitted: 0 }
-}
-
-export interface RenderInput {
-  readonly project: readonly Entry[]
-  readonly global: readonly Entry[]
-  readonly budget: number
-}
-
-/**
- * The writing rules travel with every request instead of only inside the skill, because the skill is loaded on demand:
- * a model that never decides to save would never read the skill that tells it when to save. The judgement itself stays
- * with the model — these are semantic checks, not phrases to match.
- */
-const PROTOCOL = [
-  "## Memory protocol",
-  "Before each reply, judge the current user message and call memory.save first if any of these hold:",
-  "1. it corrects your approach, and the correction will apply again;",
-  "2. it states a habit, preference, or way of working;",
-  "3. it asks you to follow a convention long term;",
-  "4. it tells you an important fact you will need again.",
-  'Judge by meaning, not wording: the user need not say "remember", and a plain-looking correction may still belong in memory. Use scope=global for personal habits that span projects; otherwise save to the current project.',
-  "When a stored memory goes stale or gets corrected, rewrite it with memory.update rather than keeping contradictory entries; use memory.forget when the user asks you to forget. Never save secrets, credentials, or one-off details.",
-  "When a user message is terse, ambiguous, or uses shorthand you cannot resolve, call memory.search before asking for clarification: the injection budget may have left a saved preference out of this conversation.",
-].join("\n")
-
-const HEADER =
-  "## Long-term memory\nThe following was saved by earlier sessions and may be out of date. Where it conflicts with the user's current request, the current request wins."
-
-/**
- * Builds the system section injected before every request, including the empty case so a fresh Project still learns the
- * protocol. The budget is shared in proportion to each scope's own size, so a short global list does not reserve space
- * the project list needs, and vice versa. Global entries keep a guaranteed floor: they are cross-project habits — few,
- * short, and the ones the model needs most often — and a large project list must not crowd them out entirely.
- */
-export function render(input: RenderInput) {
-  const project = sortRecent(input.project)
-  const global = sortRecent(input.global)
-  if (project.length === 0 && global.length === 0) return PROTOCOL
-
-  const available = Math.max(0, input.budget - PROTOCOL.length - HEADER.length - 120)
-  const projectLength = project.reduce((sum, entry) => sum + line(entry).length + 1, 0)
-  const globalLength = global.reduce((sum, entry) => sum + line(entry).length + 1, 0)
-  const total = projectLength + globalLength
-  const globalFloor = total <= available ? 0 : Math.min(globalLength, Math.floor(available / 4))
-  const packedProject = pack(project, available - globalFloor)
-  const packedGlobal = pack(global, available - packedProject.used)
-
-  const sections: string[] = []
-  if (packedProject.lines.length > 0) sections.push(["### Project memory", ...packedProject.lines].join("\n"))
-  if (packedGlobal.lines.length > 0) sections.push(["### Global memory", ...packedGlobal.lines].join("\n"))
-  const omitted = packedProject.omitted + packedGlobal.omitted
-  if (omitted > 0)
-    sections.push(`${omitted} more memories were not injected; retrieve them with memory.search when you need them.`)
-  if (sections.length === 0) return PROTOCOL
-  return [PROTOCOL, HEADER, ...sections].join("\n\n")
-}
-
-export interface Settings {
-  readonly autoInject: boolean
-  readonly maxInjectedChars: number
-  readonly maxEntries: number
-}
-
-export const DEFAULTS: Settings = { autoInject: true, maxInjectedChars: 4_000, maxEntries: 200 }
-
-export function readSettings(config: ConfigMemory.Info | undefined): Settings {
-  return {
-    autoInject: config?.auto_inject ?? DEFAULTS.autoInject,
-    maxInjectedChars: bounded(config?.max_injected_chars, DEFAULTS.maxInjectedChars, 200, 40_000),
-    maxEntries: bounded(config?.max_entries, DEFAULTS.maxEntries, 1, MAX_SCAN),
-  }
-}
-
-function bounded(value: number | undefined, fallback: number, min: number, max: number) {
-  if (value === undefined || !Number.isFinite(value)) return fallback
-  return Math.min(max, Math.max(min, Math.floor(value)))
-}
-
-/**
- * The previous memory plugin kept its entries under its own plugin-storage namespace. Copy them into the built-in
- * namespace once, without touching the source, so installing the built-in feature does not forget anything. A later
- * built-in entry with the same key wins, and a marker keeps the walk from repeating on every activation.
- */
-const LEGACY_ROOT = "plugin:006300680061006e00670068006f006e0067002e006d0065006d006f00720079:entry/"
-const LEGACY_MARKER = "memory/migrated.changhong.memory"
-
-export const migrate = (kv: KV.Interface) =>
-  Effect.gen(function* () {
-    if ((yield* kv.get(LEGACY_MARKER)) !== undefined) return
-    let after: string | undefined
-    do {
-      const page = yield* kv.scan({
-        prefix: LEGACY_ROOT,
-        limit: 200,
-        ...(after === undefined ? {} : { after }),
-      })
-      yield* Effect.forEach(
-        page.entries,
-        (item) => {
-          const key = ROOT + item.key.slice(LEGACY_ROOT.length)
-          return kv
-            .get(key)
-            .pipe(Effect.flatMap((existing) => (existing === undefined ? kv.set(key, item.value) : Effect.void)))
-        },
-        { discard: true },
-      )
-      after = page.next
-    } while (after !== undefined)
-    yield* kv.set(LEGACY_MARKER, true)
-  })

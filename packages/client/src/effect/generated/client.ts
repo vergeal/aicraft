@@ -2138,7 +2138,12 @@ const adaptGroupConfig = (raw: RawClient["server.config"]) => ({
 const EndpointExperimentalConfigUpdate = (raw: RawClient["server.config"]) => (input?: ExperimentalConfigUpdateInput) =>
   preserveEffect<ExperimentalConfigUpdateOutput>()(
     raw["config.update"]({
-      payload: { shell: input?.["shell"], plugins: input?.["plugins"], providers: input?.["providers"] },
+      payload: {
+        shell: input?.["shell"],
+        plugins: input?.["plugins"],
+        providers: input?.["providers"],
+        memory: input?.["memory"],
+      },
     }).pipe(Effect.mapError(mapClientError)),
   )
 

@@ -149,6 +149,12 @@ export const Patch = Schema.Struct({
    * a key entered in the UI stays in the credential store instead of being inlined into the document.
    */
   providers: Schema.Record(Schema.String, Schema.NullOr(ProviderPatch)).pipe(optional),
+  /**
+   * Memory subsystem section. `null` removes the whole section. An object merges field by field
+   * onto the document's own `memory` node, so a key the UI never shows (or a hand-written value
+   * for a field it does) survives the edit.
+   */
+  memory: Schema.NullOr(ConfigMemory.Info).pipe(optional),
 }).annotate({ identifier: "Config.Patch" })
 export interface Patch extends Schema.Schema.Type<typeof Patch> {}
 

@@ -1,5 +1,6 @@
 export * as MemoryPlugin from "./memory.js"
 
+import { PROTOCOL_SHORT, type MemoryRecord } from "@aicraft/memory"
 import { SkillPackage } from "@aicraft/aix/skill-package"
 import { define } from "@aicraft/aix/effect/plugin"
 import { Memory as MemorySchema } from "@aicraft/schema/memory"
@@ -7,10 +8,12 @@ import { Session } from "@aicraft/schema/session"
 import { Skill } from "@aicraft/schema/skill"
 import { optional } from "@aicraft/schema/schema"
 import { Tool } from "@aicraft/schema/tool"
+import { Message, SystemPart, UserMessage } from "@aicraft/ai/effect"
 import { Effect, Schema } from "effect"
-import { Config } from "../config.js"
 import { KV } from "../kv.js"
 import * as Memory from "../memory.js"
+import { MemoryExtract } from "../memory/extract.js"
+import { MemoryService } from "../memory/service.js"
 import CONTENT from "./memory/SKILL.md" with { type: "text" }
 
 const EntryInfo = Schema.Struct({
@@ -84,74 +87,65 @@ const ForgetResult = Schema.Struct({ id: Schema.String, removed: Schema.Boolean 
 
 const options = { namespace: "memory", codemode: true } as const
 
+/** Project and global memories are owned by the subsystem's SQL store since the cutover. Plugin
+ *  namespaces still live in kv until their writes move (the migration already mirrored them,
+ *  read deduplicated by id), so the plugin RPC below stays on the old kernel for now. */
 export const Plugin = define({
   id: "aicraft.memory",
   effect: Effect.fn("MemoryPlugin")(function* (ctx) {
     const kv = yield* KV.Service
-    const config = yield* Config.Service
-    const settings = () => Memory.readSettings(Config.latest(config.snapshot(), "memory"))
+    const service = yield* MemoryService.Service
+    const memory = service.subsystem
+    const injectMode = service.settings.inject
 
     const projectID = (sessionID: Session.ID) =>
       ctx.session.get({ sessionID }).pipe(Effect.map((session) => session.projectID))
 
-    // Entries written by the previous memory plugin live in its own namespace; copy them over once.
-    yield* Memory.migrate(kv).pipe(
-      Effect.catchCause((cause) => Effect.logWarning("failed to import memories from the previous plugin", { cause })),
-    )
+    /** The two scopes a session reads and writes; a session without a project sees only global. */
+    const scopesFor = (project: string | null) =>
+      project === null ? ["global"] : [`project:${project}`, "global"]
 
     yield* ctx.rpc
       .register(MemorySchema.Definition, {
         list: (input) =>
           Effect.gen(function* () {
-            const settingsValue = settings()
+            const limit = service.settings.maxEntries
             const [global, project] = yield* Effect.all(
               [
-                Memory.readScope(kv, Memory.globalPrefix, settingsValue.maxEntries),
+                Effect.promise(() => memory.list("global", limit)),
                 input.projectID === null
-                  ? Effect.succeed([])
-                  : Memory.readScope(kv, Memory.projectPrefix(input.projectID), settingsValue.maxEntries),
+                  ? Effect.succeed(undefined)
+                  : Effect.promise(() => memory.list(`project:${input.projectID}`, limit)),
               ],
               { concurrency: "unbounded" },
             )
-            return { global: Memory.sortRecent(global), project: Memory.sortRecent(project) }
+            return { global: global.records.map(info), project: (project?.records ?? []).map(info) }
           }),
         save: (input, context) =>
           Effect.gen(function* () {
             const text = input.text.trim()
             if (text.length === 0)
               return yield* Effect.fail(context.error("memory.empty", "Memory text must not be empty.", {}))
-            const result = yield* Memory.save(kv, {
-              scope: input.scope,
-              projectID: projectFor(input.scope, input.projectID),
-              text,
-              tags: input.tags,
-              now: now(),
-            })
-            return { entry: result.entry, duplicate: result.duplicate }
+            const result = yield* Effect.promise(() =>
+              memory.save({ scope: input.scope, projectID: input.scope === "project" ? input.projectID ?? "" : undefined, type: "convention", text, tags: input.tags }),
+            )
+            return { entry: info(result.record), duplicate: result.duplicate }
           }),
         update: (input, context) =>
           Effect.gen(function* () {
             const text = input.text.trim()
             if (text.length === 0)
               return yield* Effect.fail(context.error("memory.empty", "Memory text must not be empty.", {}))
-            const entry = yield* Memory.update(kv, {
-              scope: input.scope,
-              projectID: projectFor(input.scope, input.projectID),
-              id: input.id,
-              text,
-              tags: input.tags,
-              now: now(),
-            })
-            return { entry: entry ?? null }
+            const record = yield* Effect.promise(() => memory.update(input.id, { text, tags: input.tags }))
+            return { entry: record === undefined ? null : info(record) }
           }),
-        remove: (input) =>
-          Memory.remove(kv, {
-            scope: input.scope,
-            projectID: projectFor(input.scope, input.projectID),
-            id: input.id,
-          }).pipe(Effect.as({ removed: true })),
-        plugins: () => Memory.readPlugins(kv, settings().maxEntries).pipe(Effect.map((groups) => ({ groups }))),
-        removePlugin: (input) => Memory.removePlugin(kv, input.plugin, input.id).pipe(Effect.as({ removed: true })),
+        remove: (input) => Effect.promise(() => memory.remove(input.id)).pipe(Effect.map((removed) => ({ removed }))),
+        plugins: () => Memory.readPlugins(kv, 200).pipe(Effect.map((groups) => ({ groups }))),
+        removePlugin: (input) =>
+          Memory.removePlugin(kv, input.plugin, input.id).pipe(
+            Effect.flatMap(() => Effect.promise(() => memory.remove(input.id))),
+            Effect.as({ removed: true }),
+          ),
       })
       .pipe(Effect.orDie)
 
@@ -171,7 +165,7 @@ export const Plugin = define({
         editor.add({
           name: "save",
           description:
-            "Remember a user habit, project convention, or important fact, kept across sessions. Call this before replying whenever the user corrects your approach, states a preference or way of working, or asks you to follow a convention long term. Defaults to the current project; use global for personal habits that span projects. Search before saving to avoid duplicates.",
+            "Remember a user habit, project convention, or important fact, kept across sessions. Call this before replying whenever the user corrects your approach, states a preference or way of working, or asks you to follow a convention long term. Defaults to the current project; use global for personal habits that span projects.",
           input: SaveInput,
           output: SaveResult,
           options,
@@ -179,19 +173,16 @@ export const Plugin = define({
             Effect.gen(function* () {
               const text = input.text.trim()
               if (text.length === 0) return yield* new Tool.Error({ message: "记忆内容不能为空。" })
-              const result = yield* Memory.save(kv, {
-                scope: input.scope ?? "project",
-                projectID: yield* projectID(context.sessionID),
-                text,
-                tags: input.tags,
-                now: now(),
-              })
               const scope = input.scope ?? "project"
+              const project = scope === "project" ? yield* projectID(context.sessionID) : undefined
+              const result = yield* Effect.promise(() =>
+                memory.save({ scope, projectID: project, type: "convention", text, tags: input.tags }),
+              )
               return {
-                output: { entry: info(result.entry, scope), duplicate: result.duplicate },
+                output: { entry: info(result.record), duplicate: result.duplicate },
                 content: result.duplicate
-                  ? `已更新同内容的${label(scope)}（id：${result.entry.id}）。`
-                  : `已保存到${label(scope)}（id：${result.entry.id}）：${text}`,
+                  ? `已更新同内容的${label(scope)}（id：${result.record.id}）。`
+                  : `已保存到${label(scope)}（id：${result.record.id}）：${text}`,
               }
             }).pipe(Effect.mapError(toToolFailure("无法保存记忆"))),
         })
@@ -204,13 +195,14 @@ export const Plugin = define({
           options,
           execute: (input, context) =>
             Effect.gen(function* () {
-              const rows = yield* Memory.list(
-                kv,
-                yield* projectID(context.sessionID),
-                input.scope ?? "all",
-                input.limit ?? 50,
-              )
-              const entries = rows.map((row) => info(row.entry, row.scope))
+              const project = yield* projectID(context.sessionID)
+              const limit = input.limit ?? 50
+              const pages = yield* Effect.promise(async () => {
+                const wanted = input.scope === "global" ? ["global"] : input.scope === "project" ? scopesFor(project).slice(0, 1) : scopesFor(project)
+                const listings = await Promise.all(wanted.map((scope) => memory.list(scope, limit)))
+                return listings.flatMap((page) => page.records).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, limit)
+              })
+              const entries = pages.map(info)
               return { output: { entries, total: entries.length }, content: summarize(entries) }
             }).pipe(Effect.mapError(toToolFailure("Failed to read memories"))),
         })
@@ -218,7 +210,7 @@ export const Plugin = define({
         editor.add({
           name: "search",
           description:
-            "Search memory text and tags by keyword. Defaults to searching this project and global together.",
+            "Search memories by meaning and keyword for a specific earlier decision, convention, or fact. Retrieval runs mechanically and the most relevant turn memories are already injected automatically; call this only to dig beyond what the injected block showed.",
           input: SearchInput,
           output: SearchResult,
           options,
@@ -226,16 +218,10 @@ export const Plugin = define({
             Effect.gen(function* () {
               const query = input.query.trim()
               if (query.length === 0) return yield* new Tool.Error({ message: "检索关键词不能为空。" })
-              const rows = yield* Memory.list(
-                kv,
-                yield* projectID(context.sessionID),
-                input.scope ?? "all",
-                Memory.MAX_SCAN,
-              )
-              const entries = rows
-                .filter((row) => Memory.matches(row.entry, query))
-                .slice(0, input.limit ?? 20)
-                .map((row) => info(row.entry, row.scope))
+              const project = yield* projectID(context.sessionID)
+              const scopes = input.scope === "global" ? ["global"] : input.scope === "project" ? scopesFor(project).slice(0, 1) : scopesFor(project)
+              const result = yield* Effect.promise(() => memory.search({ query, scopes, limit: input.limit ?? 20 }))
+              const entries = result.records.map(info)
               return {
                 output: { query, entries },
                 content: entries.length === 0 ? `没有匹配「${query}」的记忆。` : summarize(entries),
@@ -251,24 +237,17 @@ export const Plugin = define({
           options,
           execute: (input, context) =>
             Effect.gen(function* () {
-              const located = yield* Memory.findEntry(kv, yield* projectID(context.sessionID), input.id)
-              if (!located)
-                return yield* new Tool.Error({
-                  message: `找不到 id 为 ${input.id} 的记忆。先用 memory.list 或 memory.search 确认。`,
-                })
               const text = input.text?.trim()
               if (text !== undefined && text.length === 0)
                 return yield* new Tool.Error({ message: "记忆内容不能为空。" })
-              const entry: Memory.Entry = {
-                ...located.entry,
-                text: text ?? located.entry.text,
-                tags: input.tags === undefined ? located.entry.tags : Memory.normalizeTags(input.tags),
-                updatedAt: now(),
-              }
-              yield* kv.set(located.key, entry)
+              const record = yield* Effect.promise(() => memory.update(input.id, { text, tags: input.tags }))
+              if (record === undefined)
+                return yield* new Tool.Error({
+                  message: `找不到 id 为 ${input.id} 的记忆。先用 memory.list 或 memory.search 确认。`,
+                })
               return {
-                output: { entry: info(entry, located.scope) },
-                content: `已更新${label(located.scope)}（id：${entry.id}）：${entry.text}`,
+                output: { entry: info(record) },
+                content: `已更新${label(record.scope === "global" ? "global" : "project")}（id：${record.id}）：${record.text}`,
               }
             }).pipe(Effect.mapError(toToolFailure("无法修改记忆"))),
         })
@@ -281,58 +260,117 @@ export const Plugin = define({
           options,
           execute: (input, context) =>
             Effect.gen(function* () {
-              const located = yield* Memory.findEntry(kv, yield* projectID(context.sessionID), input.id)
-              if (!located)
+              const removed = yield* Effect.promise(() => memory.remove(input.id))
+              if (!removed)
                 return yield* new Tool.Error({
                   message: `找不到 id 为 ${input.id} 的记忆。先用 memory.list 或 memory.search 确认。`,
                 })
-              yield* kv.remove(located.key)
-              return {
-                output: { id: input.id, removed: true },
-                content: `已删除${label(located.scope)}（id：${input.id}）：${located.entry.text}`,
-              }
+              return { output: { id: input.id, removed: true }, content: `已删除记忆（id：${input.id}）。` }
             }).pipe(Effect.mapError(toToolFailure("无法删除记忆"))),
         })
       })
       .pipe(Effect.orDie)
 
-    // Injected before every primary request. A failure here must never fail the request itself.
+    // The per-turn retrieval block, appended to the tail of the last user message — not the
+    // system section, so an injection never invalidates the cached history prefix. One lookup
+    // per turn: the step loop re-fires this hook with the same last message, and a byte-stable
+    // block keeps the provider cache warm across steps. Failures only skip the block.
+    const turns = new Map<string, { key: string; block: string }>()
+    const protocol = SystemPart.make(PROTOCOL_SHORT)
+    // The idle-time extraction job rides `session.generate`, whose transcript is the same
+    // conversation prefix the main loop keeps cached: its marginal cost is the fixed
+    // instruction tail plus a small JSON answer, gated by the subsystem's turn and cooldown rules.
+    const extraction =
+      service.settings.extract === "off"
+        ? undefined
+        : MemoryExtract.createExtractionJob({
+            generate: (sessionID, prompt) =>
+              ctx.session
+                .generate({ sessionID: Session.ID.make(sessionID), prompt })
+                .pipe(Effect.map((result) => result.text)),
+            subsystem: memory,
+            settings: service.settings,
+            log: service.logExtraction,
+          })
     yield* ctx.session.hook("context", (event) =>
       Effect.gen(function* () {
-        const settingsValue = settings()
-        if (!settingsValue.autoInject) return
-        const id = yield* projectID(event.sessionID)
-        const [project, global] = yield* Effect.all(
-          [
-            Memory.readScope(kv, Memory.projectPrefix(id), settingsValue.maxEntries),
-            Memory.readScope(kv, Memory.globalPrefix, settingsValue.maxEntries),
-          ],
-          { concurrency: "unbounded" },
+        // Channel ①: the compact save-rules section rides the static system prefix. Its bytes are
+        // identical on every request, so it costs the provider cache nothing, and the rules stay
+        // visible even when retrieval injection is off — saving is always available.
+        if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) event.system.push(protocol)
+        const last = findLastUser(event.messages)
+        if (last === undefined) return
+        const query = userText(last)
+        if (query.trim() === "") return
+        const key = last.id ?? query
+        const sessionKey = String(event.sessionID)
+        // Turn accounting runs even when injection is off: it gates the extraction job.
+        if (extraction !== undefined) yield* extraction.noteTurn(sessionKey, key)
+        if (injectMode === "off") return
+        const project = yield* projectID(event.sessionID)
+        const cached = turns.get(sessionKey)
+        let block: string
+        if (cached !== undefined && cached.key === key) {
+          block = cached.block
+        } else {
+          const turn = yield* Effect.promise(() => memory.onTurn({ query, scopes: scopesFor(project) }))
+          block = turn.injectBlock
+          yield* service.logTurn(turn.decision, sessionKey)
+          if (turns.size > 200) turns.clear()
+          turns.set(sessionKey, { key, block })
+        }
+        if (block === "") return
+        event.messages = event.messages.map((message) =>
+          message === last && message.role === "user"
+            ? new UserMessage({ ...message, content: [...message.content, { type: "text", text: block }] })
+            : message,
         )
-        event.system.push({
-          type: "text",
-          text: Memory.render({ project, global, budget: settingsValue.maxInjectedChars }),
-        })
       }).pipe(
         Effect.catchCause((cause) =>
           Effect.logWarning("failed to inject memories", { sessionID: event.sessionID, cause }),
         ),
       ),
     )
+
+    // The extraction job: on idle, after the turn and cooldown gates, one background model pass
+    // proposes memories and the subsystem's lifecycle writes them. Every attempt — applied,
+    // malformed or failed — lands in `memory_extract_log`; failures only warn.
+    if (extraction !== undefined)
+      yield* ctx.session.hook("experimental.idle", (event) =>
+        Effect.gen(function* () {
+          const project = yield* projectID(event.sessionID)
+          yield* extraction.onIdle({ sessionID: String(event.sessionID), projectID: project })
+        }).pipe(
+          Effect.catchCause((cause) =>
+            Effect.logWarning("memory extraction turn failed", { sessionID: event.sessionID, cause }),
+          ),
+        ),
+      )
   }),
 })
 
 const SKILL_ID = Skill.ID.make("memory")
 
-function info(entry: Memory.Entry, scope: Memory.Scope): EntryInfo {
+function info(record: MemoryRecord): EntryInfo {
   return {
-    id: entry.id,
-    scope,
-    text: entry.text,
-    tags: [...entry.tags],
-    createdAt: entry.createdAt,
-    updatedAt: entry.updatedAt,
+    id: record.id,
+    scope: record.scope === "global" ? "global" : "project",
+    text: record.text,
+    tags: [...record.tags],
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
   }
+}
+
+function findLastUser(messages: Array<Message>): UserMessage | undefined {
+  return messages.findLast((message) => message.role === "user") as UserMessage | undefined
+}
+
+function userText(message: UserMessage): string {
+  return message.content
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("\n")
 }
 
 function label(scope: Memory.Scope) {
@@ -344,17 +382,6 @@ function summarize(entries: readonly EntryInfo[]) {
   return entries
     .map((entry) => `[${entry.scope === "project" ? "项目" : "全局"}] ${entry.text}（id：${entry.id}）`)
     .join("\n")
-}
-
-function now() {
-  return new Date().toISOString()
-}
-
-/** A project-scoped write needs a Project; a global one stores under the empty prefix. */
-function projectFor(scope: Memory.Scope, projectID: string | null) {
-  if (scope === "global") return ""
-  if (projectID === null) throw new Error("没有打开的项目，无法保存项目记忆。")
-  return projectID
 }
 
 /** Tool failures must stay typed so the model reads a message instead of a defect. */

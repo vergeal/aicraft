@@ -58,6 +58,7 @@ import { KV } from "../kv.js"
 import { Location } from "../location.js"
 import { ModelsDev } from "../models-dev.js"
 import { Mcp } from "../mcp/index.js"
+import { MemoryService } from "../memory/service.js"
 import { Npm } from "@aicraft/util/npm"
 import { Permission } from "../permission.js"
 import { Reference } from "../reference.js"
@@ -162,6 +163,7 @@ const services = [
   Location.Service,
   ModelsDev.Service,
   Mcp.Service,
+  MemoryService.Service,
   Npm.Service,
   Permission.Service,
   Form.Service,
@@ -224,6 +226,7 @@ export const requirements = LayerNode.group([
   Location.node,
   ModelsDev.node,
   Mcp.node,
+  MemoryService.node,
   Npm.node,
   Permission.node,
   Form.node,

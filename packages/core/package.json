@@ -70,6 +70,11 @@
       "node": "./src/database/v1-migration.noop.ts",
       "workerd": "./src/database/v1-migration.noop.ts",
       "default": "./src/database/v1-migration.noop.ts"
+    },
+    "#memory-embedding": {
+      "types": "./src/memory/embedding.bun.ts",
+      "bun": "./src/memory/embedding.bun.ts",
+      "default": "./src/memory/embedding.noop.ts"
     }
   },
   "devDependencies": {
@@ -109,6 +114,7 @@
     "@aicraft/ai": "workspace:*",
     "@aicraft/codemode": "workspace:*",
     "@aicraft/aix": "workspace:*",
+    "@aicraft/memory": "workspace:*",
     "@aicraft/plugin-browser": "workspace:*",
     "@aicraft/schema": "workspace:*",
     "@aicraft/util": "workspace:*",

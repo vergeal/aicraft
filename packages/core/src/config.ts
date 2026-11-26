@@ -6,6 +6,7 @@ import { isDeepStrictEqual } from "node:util"
 import { applyEdits, modify, type ParseError, parse } from "jsonc-parser"
 import { Context, Effect, FiberMap, Layer, Option, PubSub, Schema, Semaphore, Stream } from "effect"
 import { Directory, Document, Info, ProviderPatch, type Patch, type Entry, Event } from "@aicraft/schema/config"
+import { ConfigMemory } from "@aicraft/schema/config/memory"
 import { Credential } from "./credential.js"
 import { Bus } from "./bus.js"
 import { Watcher } from "./filesystem/watcher.js"
@@ -141,6 +142,7 @@ export const layer = (options?: Options) =>
       const decodeOptions = { errors: "all", onExcessProperty: "ignore" } as const
       const decodeInfo = Schema.decodeUnknownOption(Info, decodeOptions)
       const encodeProviderPatch = Schema.encodeSync(ProviderPatch)
+const encodeMemoryInfo = Schema.encodeSync(ConfigMemory.Info)
       const parseInfo = Effect.fn("Config.parseInfo")(function* (text: string, source: string) {
         const errors: ParseError[] = []
         const input: unknown = parse(text, errors, { allowTrailingComma: true })
@@ -489,6 +491,11 @@ export const layer = (options?: Options) =>
       // settings to merge into.
       const documentSettings = (value: string) => object(parse(value, [], { allowTrailingComma: true }))
 
+      // Field-by-field merge onto the document's own `memory` node, mirroring providers: `null` removes the
+      // section, and a key the patch omits keeps the value already written for it.
+      const mergeMemory = (value: string, patch: ConfigMemory.Info | null) =>
+        patch === null ? undefined : { ...object(documentSettings(value).memory), ...encodeMemoryInfo(patch) }
+
       // The key a provider is declared under: v2 `providers`, or the v1 singular `provider` a migrated file may keep.
       const providerSectionKey = (value: string, id: string) => {
         const parsed = documentSettings(value)
@@ -609,6 +616,11 @@ export const layer = (options?: Options) =>
                 modify(current, ["shell"], patch.shell ?? undefined, { formattingOptions }),
               )
             }
+            if (primary && patch.memory !== undefined) {
+              const memory = mergeMemory(current, patch.memory)
+
+              current = applyEdits(current, modify(current, ["memory"], memory, { formattingOptions }))
+            }
             // One provider key at a time, so a provider edit never rewrites the rest of the document. The merge base
             // is the file's own JSONC node, not the decoded Info: `{file:…}` and `{env:…}` substitutions happen
             // before parsing, so merging the resolved Info would write a secret into the document.
@@ -629,7 +641,7 @@ export const layer = (options?: Options) =>
 
           // A file is only rewritten when the patch changes something in it, so an untouched document keeps its bytes
           // and does not trigger a reload.
-          const touches = (patch.plugins?.length ?? 0) > 0 || patch.shell !== undefined
+          const touches = (patch.plugins?.length ?? 0) > 0 || patch.shell !== undefined || patch.memory !== undefined
           const writes = files.flatMap((file) => {
             const ids = assigned.get(file) ?? []
             const primary = file === fallback

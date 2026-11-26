@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { statSync } from "node:fs"
+import { existsSync, statSync } from "node:fs"
 import { cp, mkdtemp, rm } from "node:fs/promises"
 import { createRequire } from "node:module"
 import os from "node:os"
@@ -7,7 +7,7 @@ import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { Configuration } from "electron-builder"
 import { getConfig } from "./electron-builder.config"
-import { CLI_BINARIES, nodePtyPackage } from "./script/utils"
+import { CLI_BINARIES, getCurrentCli, nodePtyPackage } from "./script/utils"
 
 // Use electron-builder's matcher so the tests also cover its glob and directory traversal semantics.
 const { FileMatcher } = createRequire(import.meta.resolve("electron-builder"))("app-builder-lib/out/fileMatcher")
@@ -125,8 +125,18 @@ test("shared packaging defaults", async () => {
   expect(config.nsis?.include).toBe(include)
   expect(await Bun.file(include).exists()).toBe(true)
   expect(config.files).toContain("!resources/opencode-cli*")
+  expect(config.files).toContain("!resources/embedding{,/**/*}")
+  // Staging directories are optional at config time (channel and platform gate them), so the
+  // expected table mirrors the conditions in the config itself.
+
+  const optional = (dir: string) =>
+    existsSync(path.join(import.meta.dirname, "resources", dir)) ? [{ from: `resources/${dir}`, to: dir }] : []
+
   expect(config.extraResources).toEqual([
     { from: "resources/", to: "", filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"] },
+    ...optional("distribution"),
+    // The embedding runtime ships on Windows targets only.
+    ...(getCurrentCli().os === "win32" ? optional("embedding") : []),
   ])
 })
 

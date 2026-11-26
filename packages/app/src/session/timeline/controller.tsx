@@ -321,6 +321,7 @@ export function createTimelineController(input: { session: TimelineSessionSource
       showHeader,
       projection,
       messages: displayedMessages,
+      pendingInputIDs,
       transcriptView: settings.general.transcriptView,
       collapseTiming: settings.general.collapseTiming,
       foldedReplies: settings.general.foldedReplies,

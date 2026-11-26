@@ -53,6 +53,8 @@ export function AnswerTimeline(props: {
   showHeader: boolean
   activity: JSX.Element
   messages: () => readonly SessionMessageInfo[]
+  /** Inputs still queued behind the active turn, so a delivered-only wake can split its own block. */
+  pendingInputIDs?: () => ReadonlySet<string> | undefined
   /** The session these messages belong to, so a message action addresses the right session. */
   sessionID?: () => string | undefined
   actions?: SessionUserActions
@@ -886,6 +888,7 @@ export function AnswerTimeline(props: {
         </Show>
         <AnswerPage
           messages={props.messages}
+          pendingInputIDs={props.pendingInputIDs}
           sessionID={props.sessionID?.()}
           actions={props.actions}
           view={props.view}

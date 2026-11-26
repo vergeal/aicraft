@@ -50,6 +50,18 @@ export type NodePayload =
       readonly text: string
       readonly detail?: string
       readonly notice?: "instructions-updated" | "system-reminder"
+      /**
+       * A background completion that opened a segment of its own. The row reads as an expandable
+       * completion block — the call it reports plus the captured output — so the run it wakes cannot
+       * take the answer slot of the question above.
+       */
+      readonly wake?: {
+        readonly source: "shell" | "subagent"
+        readonly outcome: "completed" | "error" | "cancelled"
+        readonly agent?: string
+        readonly command?: string
+        readonly output?: string
+      }
     }
   /** Context the Step injected ahead of the conversation, listed by source. */
   | {

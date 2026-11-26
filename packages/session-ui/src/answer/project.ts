@@ -110,6 +110,56 @@ function firstLine(text: string | undefined) {
   return text?.split("\n").find((line) => line.trim())?.trim()
 }
 
+type WakeReport = Extract<NodePayload, { kind: "notice" }>["wake"]
+
+function sameWake(previous: WakeReport, next: WakeReport) {
+  if (previous === next) return true
+  if (!previous || !next) return false
+
+  return (
+    previous.source === next.source &&
+    previous.outcome === next.outcome &&
+    previous.agent === next.agent &&
+    previous.command === next.command &&
+    previous.output === next.output
+  )
+}
+
+/**
+ * A background completion is the only notice that spawns follow-up work: delivered on top of finished
+ * work it opens a segment of its own, so the run it wakes cannot take the answer slot of the question
+ * above. Undelivered wakes are queued input and keep riding until delivery splits them off.
+ */
+function backgroundWake(message: SessionMessageInfo, pendingInputIDs?: ReadonlySet<string>): WakeReport {
+  if (message.type !== "synthetic" || pendingInputIDs?.has(message.id)) return undefined
+  const source = message.metadata?.source
+
+  if (source !== "shell" && source !== "subagent") return undefined
+
+  const state = message.metadata?.state
+  const agent = message.metadata?.agent
+  // The report arrives wrapped in the tag core builds (see shell/result.ts). The command attribute can
+  // embed `>` (as in `2>&1`), so the body is cut between the opening tag and its closing pair rather
+  // than re-parsing attributes; the command text comes from the description, the attribute is the fallback.
+  const raw = message.text.trim()
+  const wrapped = /^<(shell|subagent)\b(?:\s+[\w-]+="[^"]*")*\s*>([\s\S]*)<\/\1>$/.exec(raw)
+
+  return {
+    source,
+    outcome: state === "error" || state === "cancelled" ? state : "completed",
+    ...(typeof agent === "string" && agent !== "" ? { agent } : {}),
+    command: source === "shell" ? message.description?.trim() || /\bcommand="([^"]*)"/.exec(raw)?.[1] : undefined,
+    output: (wrapped?.[2] ?? raw).trim(),
+  }
+}
+
+// A wake that arrives before the turn has done any work still belongs to it: only a report interrupting
+// finished work starts a segment, so batched wakes delivered together share the one the first opened.
+// A bare prompt is not work yet, so notices queued behind it keep riding the question's turn.
+function turnHasWork(turn: TurnDraft) {
+  return turn.nodes.some((node) => node.payload.kind !== "notice" && node.payload.kind !== "input")
+}
+
 /** The localized body inside an English `<system-reminder>` tag, or undefined when the text is anything else. */
 function reminderBody(text: string | undefined) {
   return text ? (/^<system-reminder>([\s\S]*?)<\/system-reminder>$/.exec(text)?.[1]?.trim() || undefined) : undefined
@@ -145,7 +195,8 @@ function reusePayload(previous: NodePayload | undefined, next: NodePayload): Nod
       return previous.kind === "notice" &&
         previous.text === next.text &&
         previous.detail === next.detail &&
-        previous.notice === next.notice
+        previous.notice === next.notice &&
+        sameWake(previous.wake, next.wake)
         ? previous
         : next
     case "context":
@@ -355,7 +406,11 @@ function turnChanges(nodes: readonly TimelineNode[], turn: number): ChangedFile[
  * `previous` is the last projection: a row whose payload did not change keeps that payload object, so a
  * streamed delta only wakes the row it touched instead of every memo in the transcript.
  */
-export function projectTimeline(messages: readonly SessionMessageInfo[], previous?: Snapshot): Snapshot {
+export function projectTimeline(
+  messages: readonly SessionMessageInfo[],
+  previous?: Snapshot,
+  pendingInputIDs?: ReadonlySet<string>,
+): Snapshot {
   const drafts: TurnDraft[] = []
   const turns = new Map<number, TimelineTurn>()
   const changes = new Map<number, readonly ChangedFile[]>()
@@ -488,6 +543,18 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
 
     if (message.type !== "assistant") {
       const copy = noticeCopy(message)
+      const wake = backgroundWake(message, pendingInputIDs)
+
+      // Interrupting finished work, the report opens its own segment; the run it wakes hangs off the
+      // notice instead of off the question whose answer slot it would otherwise steal.
+      if (copy && wake && turnHasWork(draft)) {
+        const segment: TurnDraft = { turn: drafts.length + 1, nodes: [], startedAt: message.time.created }
+        drafts.push(segment)
+        current = segment
+        push(segment, { kind: "notice", ...copy, wake }, `notice:${message.id}`, message.id, "turn")
+
+        continue
+      }
 
       if (copy) push(draft, { kind: "notice", ...copy }, `notice:${message.id}`, message.id, "turn")
 
@@ -627,6 +694,8 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     // Where each steered prompt cuts the process: how many rows were already laid out above it.
     const splits = new Map<string, number>()
     const turnChildren: TimelineChild[] = []
+    // A wake banner sits outside the fold: it is the headline of the whole segment, always visible.
+    const wakeKeys: string[] = []
     const runs: { key: string; members: TimelineNode[]; notice: boolean }[] = []
     let run: TimelineNode[] = []
 
@@ -659,6 +728,14 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     let summarySeen = false
 
     for (const node of draft.nodes) {
+      // The wake block is its segment's headline: it lays flat above the folded process so the reader
+      // always sees what woke the work below without opening anything.
+      if (node.payload.kind === "notice" && node.payload.wake) {
+        flush()
+        wakeKeys.push(node.key)
+        continue
+      }
+
       if (node.payload.kind === "input") {
         // A steered prompt cuts the process at this point: the work it set off belongs under the bubble, not above
         // it, or the reader sees the run still busy with the old task after their own words.
@@ -730,6 +807,8 @@ export function projectTimeline(messages: readonly SessionMessageInfo[], previou
     }
 
     if (firstInput) entries.push({ kind: "node", key: firstInput.key })
+
+    for (const key of wakeKeys) entries.push({ kind: "node", key })
 
     // One fold per stretch of work, each steered prompt dropped between the stretch it interrupted and the stretch
     // that answers it. A prompt the run has not taken up yet splits nothing: no work has come from it, so it stays

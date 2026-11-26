@@ -827,4 +827,76 @@ describe("answer projection", () => {
 
     expect(after.changes.get(1)).toBe(before.changes.get(1))
   })
+
+  const shellWake = (id: string, created: number, state = "completed") => ({
+    id,
+    type: "synthetic",
+    text: `<shell id="sh_1" state="${state}" command="npm test 2>&1">\n1 passing\n</shell>`,
+    description: "npm test 2>&1",
+    metadata: { source: "shell", state, shellID: "sh_1" },
+    time: { created },
+  }) satisfies SessionMessageInfo
+
+  test("a background wake after the answer owns its block, so the prompt keeps its reply", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 10),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      shellWake("msg_wake", 12),
+      assistant("msg_3", 13, [tool("tool_1"), text("woke reply")], 20),
+      { id: "msg_idle2", type: "idle", outcome: "succeeded", time: { created: 21 } } satisfies SessionMessageInfo,
+    ])
+
+    // The report opens a turn of its own; the run it wakes hangs off it instead of off the question.
+    expect(snapshot.turns.get(1)?.answer).toBe("assistant:msg_2:0")
+    expect(snapshot.nodes.get("notice:msg_wake")?.turn).toBe(2)
+    expect(snapshot.turns.get(2)?.answer).toBe("assistant:msg_3:0")
+
+    // The block lays flat above the folded process, so the reader sees what woke the segment closed.
+    expect(snapshot.entries.some((entry) => entry.kind === "node" && entry.key === "notice:msg_wake")).toBe(true)
+    const fold = snapshot.entries.find((entry) => entry.kind === "fold" && entry.turn === 2)
+    expect(fold?.kind === "fold" && fold.children.some((child) => child.key === "notice:msg_wake")).toBe(false)
+
+    // The block carries the call and the captured output for the reader to expand.
+    const notice = snapshot.nodes.get("notice:msg_wake")?.payload
+    expect(notice?.kind === "notice" && notice.wake?.source).toBe("shell")
+    expect(notice?.kind === "notice" && notice.wake?.command).toBe("npm test 2>&1")
+    expect(notice?.kind === "notice" && notice.wake?.output).toBe("1 passing")
+  })
+
+  test("a queued background wake rides the settled turn until delivery", () => {
+    const snapshot = projectTimeline(
+      [
+        user("msg_1", "go", 1),
+        assistant("msg_2", 2, [text("answer")], 10),
+        { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+        shellWake("msg_wake", 12),
+      ],
+      undefined,
+      new Set(["msg_wake"]),
+    )
+
+    // Undelivered, it is queued input: the question keeps its answer slot and the wake stays one line.
+    expect(snapshot.nodes.get("notice:msg_wake")?.turn).toBe(1)
+    const notice = snapshot.nodes.get("notice:msg_wake")?.payload
+    expect(notice?.kind === "notice" && notice.wake).toBeUndefined()
+  })
+
+  test("batched wakes share the one block the first opened", () => {
+    const snapshot = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [text("answer")], 10),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      shellWake("msg_wake_a", 12),
+      shellWake("msg_wake_b", 12),
+      assistant("msg_3", 13, [text("woke reply")], 20),
+    ])
+
+    // Only a report interrupting finished work splits: the second arrives while its segment has no
+    // work yet, so it rides the first wake's turn instead of opening another block.
+    expect(snapshot.nodes.get("notice:msg_wake_a")?.turn).toBe(2)
+    expect(snapshot.nodes.get("notice:msg_wake_b")?.turn).toBe(2)
+    const second = snapshot.nodes.get("notice:msg_wake_b")?.payload
+    expect(second?.kind === "notice" && second.wake).toBeUndefined()
+  })
 })

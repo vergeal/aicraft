@@ -86,6 +86,39 @@ export const publish = Effect.fn("SessionStatsRefresh.publish")(function* (
   sessionID: SessionSchema.ID,
 ) {
   yield* refresh(db, sessionID)
+  return yield* emit(db, bus, sessionID)
+})
+
+/**
+ * Incremental `stat_turns` bump for a delivered prompt: a correlated count over an indexed column runs in
+ * milliseconds, while the full statement re-reads every assistant part's JSON (`json_each`) — ~600ms on a
+ * large session, measured in production — and it sat on the `InboxDelivered` critical path, which is what a
+ * reader waits behind when opening a session. Turn counts only ever grow there, so a +1 keeps the composer
+ * line live; the next `session.step.ended` refresh (which already runs on every step) reconciles anything else.
+ */
+export const publishTurn = Effect.fn("SessionStatsRefresh.publishTurn")(function* (
+  db: Database.Interface["db"],
+  bus: Bus.Interface,
+  sessionID: SessionSchema.ID,
+) {
+  yield* db
+    .run(sql`
+      UPDATE ${SessionTable} SET stat_turns = (
+        SELECT count(*) FROM ${SessionMessageTable}
+        WHERE ${SessionMessageTable.session_id} = ${SessionTable.id} AND ${SessionMessageTable.type} = 'user'
+      )
+      WHERE ${SessionTable.id} = ${sessionID}
+    `)
+    .pipe(Effect.orDie)
+  yield* emit(db, bus, sessionID)
+})
+
+/** Read the fresh numbers back and broadcast them on the ephemeral bus. */
+const emit = Effect.fn("SessionStatsRefresh.emit")(function* (
+  db: Database.Interface["db"],
+  bus: Bus.Interface,
+  sessionID: SessionSchema.ID,
+) {
   const row = yield* db
     .select({
       turns: SessionTable.stat_turns,

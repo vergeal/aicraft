@@ -1058,8 +1058,10 @@ const layer = Layer.effectDiscard(
             skills: input.payload.skills,
             time,
           })
-          // A delivered prompt opens a turn; recount now so the composer line stays live while the run proceeds.
-          yield* SessionStatsRefresh.publish(db, bus, event.data.sessionID)
+          // A delivered prompt opens a turn; bump the turn count so the composer line stays live while the run
+          // proceeds. Full recounting waits for `session.step.ended` — the complete statement re-reads every
+          // part's JSON and sat on this delivery path, which session opening waits behind.
+          yield* SessionStatsRefresh.publishTurn(db, bus, event.data.sessionID)
         }
         if (input.type === "synthetic")
           yield* insertMessage(db, event, {

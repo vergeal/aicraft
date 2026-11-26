@@ -11,6 +11,7 @@ export default {
   "project.none": "还没有打开的项目",
   "project.none.hint": "打开一个项目后，就能保存只在该项目生效的记忆。",
   "plugin.title": "插件记忆",
+  "others": "其他项目",
   "plugin.hint": "由插件自己保存和使用。每个插件只能看到自己的记忆，也不会注入到你的会话。",
   "plugin.empty": "还没有插件记忆",
   "plugin.empty.hint": "插件通过 ctx.memory 保存的内容会出现在这里。",

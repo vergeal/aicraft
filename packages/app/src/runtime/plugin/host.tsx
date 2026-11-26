@@ -439,17 +439,26 @@ function createHost(input: HostInput) {
         return handle
       }
 
-      // Settles with the content's answer, or with `fallback` once the dialog ends without one; the first wins.
+      // Settles with the content's answer, or with `fallback` once the dialog ends without one. The stack's close
+      // callback runs before `ConfirmDialog` invokes its action callback, so the fallback waits a microtask: an
+      // answer given in the same call stack must win over the dismissal its own closing raised.
       const ask = <T,>(fallback: T, content: (answer: (value: T) => void) => JSX.Element) =>
         new Promise<T>((resolve) => {
+          let answered = false
+
           open(
             (handle) =>
               content((value) => {
+                answered = true
                 resolve(value)
                 handle.close()
               }),
             undefined,
-            () => resolve(fallback),
+            () => {
+              Promise.resolve().then(() => {
+                if (!answered) resolve(fallback)
+              })
+            },
           )
         })
 

@@ -7,6 +7,10 @@
   width: 100%;
   flex-direction: column;
   gap: var(--settings-space-6);
+
+  /* The dialog body's scroller has no top padding; without this the search field sits flush under the title bar
+     while the sections below it keep the 24px rhythm, which read as a misaligned row of gaps. */
+  padding-top: var(--settings-space-4);
 }
 
 /* The dialog's search bar: the tag filter chip and the field sit above the lists. */
@@ -112,30 +116,36 @@
   }
 }
 
-/* Plugin memories group per plugin, so a user can tell which plugin owns an entry. */
-.memory-plugins {
+/* Cross-project hits and plugin memories both group by owner, so a user can tell what owns an entry. */
+.memory-groups {
   display: flex;
   flex-direction: column;
   gap: var(--settings-space-4);
 }
 
-.memory-plugin-group {
+.memory-group {
   display: flex;
   flex-direction: column;
   gap: var(--settings-space-2);
 }
 
-.memory-plugin-head {
+.memory-group-head {
   display: flex;
   align-items: center;
   gap: var(--settings-space-2);
 }
 
-.memory-plugin-name {
+.memory-group-name {
   color: var(--v2-text-text-base);
   font-size: 13px;
   font-weight: 500;
   line-height: var(--line-height-compact);
+}
+
+/* A query hit inside an entry reads the same as in the command palette: accent ink on a transparent ground. */
+.memory-match {
+  background: transparent;
+  color: var(--v2-text-text-accent);
 }
 
 /* The entry text sits inside the row title slot, whose font it inherits. A long entry clamps to two lines and the

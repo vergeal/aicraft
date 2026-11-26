@@ -12,6 +12,7 @@ export default {
   "project.none": "No project open",
   "project.none.hint": "Open a project to keep memories that apply only there.",
   "plugin.title": "Plugin memories",
+  "others": "Other projects",
   "plugin.hint": "Saved by plugins for their own use. Each plugin sees only its own, and none enter your sessions.",
   "plugin.empty": "No plugin memories yet",
   "plugin.empty.hint": "What a plugin saves with ctx.memory appears here.",

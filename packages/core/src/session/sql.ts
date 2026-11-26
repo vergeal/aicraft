@@ -56,6 +56,13 @@ export const SessionTable = sqliteTable(
     tokens_reasoning: integer().notNull().default(0),
     tokens_cache_read: integer().notNull().default(0),
     tokens_cache_write: integer().notNull().default(0),
+    /** Transcript statistics recorded as the Session runs; see SessionStatsRefresh. Null until first write. */
+    stat_turns: integer(),
+    stat_steps: integer(),
+    stat_model_time: integer(),
+    stat_tool_time: integer(),
+    stat_output_tokens: integer(),
+    stat_context_tokens: integer(),
     revert: text({ mode: "json" }).$type<Session.Revert | RevertV1>(),
     permission: text({ mode: "json" }).$type<Permission.Ruleset>(),
     prompt: text(),
@@ -129,6 +136,27 @@ export const SessionPartTable = sqliteTable(
     primaryKey({ columns: [table.message_id, table.ordinal] }),
     index("session_part_session_message_idx").on(table.session_id, table.message_id, table.ordinal),
   ],
+)
+
+/**
+ * Patch bodies of a completed turn, keyed by the user message that opens the turn.
+ * `SessionDiff.turn` reads this first so opening a turn never spawns git diff, and
+ * backfills it on first computation.
+ */
+export const SessionTurnDiffTable = sqliteTable(
+  "session_turn_diff",
+  {
+    session_id: text()
+      .$type<SessionSchema.ID>()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    from_message_id: text()
+      .$type<SessionMessage.ID>()
+      .notNull(),
+    ...Timestamps,
+    data: text({ mode: "json" }).notNull().$type<readonly FileDiff.Info[]>(),
+  },
+  (table) => [primaryKey({ columns: [table.session_id, table.from_message_id] })],
 )
 
 export const SessionInboxTable = sqliteTable(

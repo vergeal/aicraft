@@ -4,6 +4,7 @@ import { Schema } from "effect"
 import { optional } from "./schema.js"
 import { Event } from "./event.js"
 import { FinishReason } from "./llm.js"
+import { FileDiff } from "./file-diff.js"
 import { Content } from "./tool.js"
 import { Model } from "./model.js"
 import { NonNegativeInt, PositiveInt, RelativePath } from "./schema.js"
@@ -24,6 +25,7 @@ import { TokenUsage } from "./token-usage.js"
 import { SessionInbox } from "./session-inbox.js"
 import { Project } from "./project.js"
 import { SessionFork } from "./session-fork.js"
+import { SessionTranscript } from "./session-transcript.js"
 import { Permission } from "./permission.js"
 
 const Base = {
@@ -210,6 +212,15 @@ export const UsageUpdated = Event.ephemeral({
   },
 })
 export type UsageUpdated = typeof UsageUpdated.Type
+
+export const StatsUpdated = Event.ephemeral({
+  type: "session.stats.updated",
+  schema: {
+    ...Base,
+    stats: SessionTranscript.Stats,
+  },
+})
+export type StatsUpdated = typeof StatsUpdated.Type
 
 export const Deleted = Event.durable({
   type: "session.deleted",
@@ -423,6 +434,7 @@ export namespace Step {
       tokens: TokenUsage.Info,
       snapshot: Snapshot.ID.pipe(optional),
       files: Schema.Array(RelativePath).pipe(optional),
+      stats: Schema.Array(FileDiff.Summary).pipe(optional),
     },
   })
   export type Ended = typeof Ended.Type
@@ -441,6 +453,7 @@ export namespace Step {
       tokens: TokenUsage.Info.pipe(optional),
       snapshot: Snapshot.ID.pipe(optional),
       files: Schema.Array(RelativePath).pipe(optional),
+      stats: Schema.Array(FileDiff.Summary).pipe(optional),
     },
   })
   export type Failed = typeof Failed.Type
@@ -720,6 +733,7 @@ export const Definitions = Event.inventory(
   Pinned,
   Unpinned,
   UsageUpdated,
+  StatsUpdated,
   Deleted,
   Forked,
   InboxDelivered,

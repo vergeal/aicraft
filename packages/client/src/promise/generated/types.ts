@@ -77,6 +77,15 @@ export type TokenUsageInfo = {
   cache: { read: number; write: number }
 }
 
+export type SessionStats = {
+  turns: number
+  steps: number
+  modelTime: number
+  toolTime: number
+  outputTokens: number
+  contextTokens: number
+}
+
 export type RelativePath = string
 
 export type SessionMetadata = { [x: string]: JsonValue }
@@ -551,6 +560,14 @@ export type SearchMessageHit = {
 }
 
 export type UsageLimitsBudgetModel = { providerID: ProviderID; modelID: string; name: string; spent?: MoneyUSD }
+
+export type FileDiffSummary = {
+  file: RelativePath
+  status: "added" | "deleted" | "modified"
+  additions: number
+  deletions: number
+  binary?: true
+}
 
 export type FileSystemEntry = { path: RelativePath; type: "file" | "directory" }
 
@@ -1614,6 +1631,7 @@ export type SessionStepEnded = {
     tokens: TokenUsageInfo
     snapshot?: SnapshotID
     files?: Array<RelativePath>
+    stats?: Array<FileDiffSummary>
   }
 }
 
@@ -1635,6 +1653,7 @@ export type SessionStepFailed = {
     tokens?: TokenUsageInfo
     snapshot?: SnapshotID
     files?: Array<RelativePath>
+    stats?: Array<FileDiffSummary>
   }
 }
 
@@ -1907,6 +1926,15 @@ export type SessionUsageUpdated = {
   type: "session.usage.updated"
   location?: LocationRef
   data: { sessionID: SessionID; cost: MoneyUSD; tokens: TokenUsageInfo }
+}
+
+export type SessionStatsUpdated = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "session.stats.updated"
+  location?: LocationRef
+  data: { sessionID: SessionID; stats: SessionStats }
 }
 
 export type SessionTextDelta = {
@@ -2506,6 +2534,7 @@ export type SessionInfo = {
   model?: ModelRef
   cost: MoneyUSD
   tokens: TokenUsageInfo
+  stats?: SessionStats
   outcome?: "succeeded" | "failed" | "interrupted"
   time: {
     created: number
@@ -2901,7 +2930,7 @@ export type SessionMessageAssistant = {
   agent: AgentID
   model: ModelRef
   content: Array<SessionMessageAssistantText | SessionMessageAssistantReasoning | SessionMessageAssistantTool>
-  snapshot?: { start?: SnapshotID; end?: SnapshotID; files?: Array<RelativePath> }
+  snapshot?: { start?: SnapshotID; end?: SnapshotID; files?: Array<RelativePath>; stats?: Array<FileDiffSummary> }
   finish?: "stop" | "length" | "tool-calls" | "content-filter" | "error" | "unknown"
   rawFinish?: string
   native?: SessionMessageNative
@@ -3076,6 +3105,7 @@ export type V2Event =
   | SessionPinned
   | SessionUnpinned
   | SessionUsageUpdated
+  | SessionStatsUpdated
   | SessionDeleted
   | SessionForked
   | SessionInboxDelivered
@@ -4115,6 +4145,14 @@ export type ExperimentalSessionImportInput = {
       readonly reasoning: number
       readonly cache: { readonly read: number; readonly write: number }
     }
+    readonly stats?: {
+      readonly turns: number
+      readonly steps: number
+      readonly modelTime: number
+      readonly toolTime: number
+      readonly outputTokens: number
+      readonly contextTokens: number
+    }
     readonly outcome?: "succeeded" | "failed" | "interrupted"
     readonly time: {
       readonly created: number
@@ -4674,6 +4712,7 @@ export type EventSubscribeInput = {
         | "session.pinned"
         | "session.unpinned"
         | "session.usage.updated"
+        | "session.stats.updated"
         | "session.deleted"
         | "session.forked"
         | "session.inbox.delivered"

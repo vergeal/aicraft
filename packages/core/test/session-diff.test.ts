@@ -2,6 +2,7 @@ import { $ } from "bun"
 import { describe, expect } from "bun:test"
 import fs from "fs/promises"
 import path from "path"
+import { sql } from "drizzle-orm"
 import { Effect } from "effect"
 import { Agent } from "@aicraft/core/agent"
 import { Bus } from "@aicraft/core/bus"
@@ -153,6 +154,12 @@ describe("Session.diff", () => {
           ])
           const full = yield* sessions.diff({ sessionID: created.id, from: first })
           expect(full[0]?.patch).toContain("-first\n+first edited\n")
+          // The default-context read above archived the turn opened by `first`; later opens read the row.
+          expect(
+            yield* database.db.all<{ n: number }>(
+              sql`SELECT count(*) AS n FROM session_turn_diff WHERE session_id = ${created.id} AND from_message_id = ${first}`,
+            ),
+          ).toMatchObject([{ n: 1 }])
           expect(yield* diff({ from: steer, to: second }).pipe(Effect.flip)).toMatchObject({
             _tag: "Session.TurnRangeError",
             field: "to",
@@ -191,6 +198,12 @@ describe("Session.diff", () => {
           expect(yield* diff({ from: steer }).pipe(Effect.flip)).toMatchObject({
             _tag: "Session.MessageNotFoundError",
           })
+          // Reverting truncates history, possibly mid-turn, so the whole archive is dropped with it.
+          expect(
+            yield* database.db.all<{ n: number }>(
+              sql`SELECT count(*) AS n FROM session_turn_diff WHERE session_id = ${created.id}`,
+            ),
+          ).toMatchObject([{ n: 0 }])
           const forked = yield* sessions.fork({ sessionID: created.id })
           expect((yield* sessions.diff({ sessionID: forked.id, context: 0 })).map(summarize)).toEqual([
             ["third.txt", "added", 1, 0],

@@ -10,7 +10,7 @@ import { PATCH_CONTEXT_LINES } from "../vcs/patch.js"
 import { MessageNotFoundError } from "./error.js"
 import { SessionMessage } from "./message.js"
 import { SessionSchema } from "./schema.js"
-import { SessionMessageTable } from "./sql.js"
+import { SessionMessageTable, SessionTurnDiffTable } from "./sql.js"
 
 export class TurnRangeError extends Schema.TaggedError<TurnRangeError>()("Session.TurnRangeError", {
   sessionID: SessionSchema.ID,
@@ -135,15 +135,55 @@ export const turn = Effect.fn("SessionDiff.turn")(function* (
   const after = switches.find((row) => row.seq > first.seq)?.previous
   const location = before ? decodeLocation(before) : after ? decodeLocation(after) : input.session.location
   const recorded = steps.findLast((step) => step.end)?.end
+  const running = input.active && final.completed === null
+  // A finished single-turn range at default context is a fact about immutable snapshot trees, so its
+  // patch bodies are archived once and every later open reads the row instead of spawning git. An
+  // explicit `to` widens the range, an explicit `context` changes the payload, and an in-flight turn
+  // compares against the working copy; all three bypass the archive.
+  const archive = input.to === undefined && input.context === undefined && !running && recorded !== undefined
+  const opener = archive
+    ? yield* db
+        .select({ id: SessionMessageTable.id })
+        .from(SessionMessageTable)
+        .where(
+          and(
+            eq(SessionMessageTable.session_id, sessionID),
+            eq(SessionMessageTable.type, "user"),
+            eq(SessionMessageTable.seq, start),
+          ),
+        )
+        .get()
+        .pipe(Effect.orDie)
+    : undefined
+  if (opener) {
+    const stored = yield* db
+      .select({ data: SessionTurnDiffTable.data })
+      .from(SessionTurnDiffTable)
+      .where(
+        and(
+          eq(SessionTurnDiffTable.session_id, sessionID),
+          eq(SessionTurnDiffTable.from_message_id, opener.id),
+        ),
+      )
+      .get()
+      .pipe(Effect.orDie)
+    if (stored) return stored.data
+  }
   return yield* Effect.gen(function* () {
     const snapshot = yield* Snapshot.Service
-    const running = input.active && final.completed === null
     const to = running ? ((yield* snapshot.capture()) ?? recorded) : recorded
     if (!to) return []
-    return yield* snapshot.diff({
+    const diffs = yield* snapshot.diff({
       from: Snapshot.ID.make(from),
       to: Snapshot.ID.make(to),
       context: input.context ?? PATCH_CONTEXT_LINES,
     })
+    if (opener)
+      yield* db
+        .insert(SessionTurnDiffTable)
+        .values({ session_id: sessionID, from_message_id: opener.id, data: diffs })
+        .onConflictDoNothing()
+        .pipe(Effect.orDie)
+    return diffs
   }).pipe(Effect.provide(locations.get(location)))
 })

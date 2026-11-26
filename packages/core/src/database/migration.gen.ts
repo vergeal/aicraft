@@ -66,6 +66,8 @@ import m63 from "./migration/20261124064714_session_subagent.js"
 import m64 from "./migration/20261124093000_session_subagent_creator_reset.js"
 import m65 from "./migration/20261125160339_memory_subsystem.js"
 import m66 from "./migration/20261125170739_memory_extract.js"
+import m67 from "./migration/20261126120000_session_turn_diff.js"
+import m68 from "./migration/20261126130000_session_stats.js"
 
 export const migrations = [
   m00,
@@ -135,4 +137,6 @@ export const migrations = [
   m64,
   m65,
   m66,
+  m67,
+  m68,
 ] satisfies DatabaseMigration.Migration[]

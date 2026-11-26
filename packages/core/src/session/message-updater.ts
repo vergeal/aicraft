@@ -39,11 +39,12 @@ type DraftAssistant = WritableDraft<SessionMessage.Assistant>
 const decodeAssistantContent = Schema.decodeUnknownSync(Schema.Array(SessionMessage.AssistantContent))
 
 const projectTerminalSnapshot = (draft: DraftAssistant, event: SessionEvent.Step.Ended | SessionEvent.Step.Failed) => {
-  if (event.data.snapshot || event.data.files)
+  if (event.data.snapshot || event.data.files || event.data.stats)
     draft.snapshot = {
       ...draft.snapshot,
       end: event.data.snapshot,
       files: event.data.files ? Array.from(event.data.files) : undefined,
+      stats: event.data.stats ? Array.from(event.data.stats) : undefined,
     }
 }
 

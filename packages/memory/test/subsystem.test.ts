@@ -68,7 +68,9 @@ describe("onTurn — mechanical per-turn retrieval", () => {
 
   test("retrieval-only types are reported as skipped, not injected", async () => {
     const memory = await seeded()
-    const turn = await memory.onTurn({ query: "字体", scopes: SCOPES })
+    // A multi-bigram query so the entry is a real evidence-backed candidate: the assertion is
+    // about the type partition, not about the lexical floor rejecting the match outright.
+    const turn = await memory.onTurn({ query: "默认字体栈", scopes: SCOPES })
     expect(turn.entries.map((record) => record.id)).not.toContain("mem_font")
     expect(turn.decision.skipped.some((skip) => skip.id === "mem_font" && skip.reason === "auto_inject_type")).toBe(true)
   })

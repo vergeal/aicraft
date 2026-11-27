@@ -104,8 +104,17 @@ async function scoreAgainst(
  * Bigram-overlap ranking over token-index candidates from each scope. The candidate source
  * is the token index (`lexicalCandidates`), never a recency window: entries worth finding are
  * usually the oldest ones, and a window silently re-creates the kv kernel's newest-100 cap.
+ * `minEvidence` is the absolute-evidence floor (`evidenceCount`): candidates scoring below it
+ * are coincidences, not hits. Search keeps the default — any match is a legitimate hit when the
+ * user asked for it; the turn's auto-inject raises it — see `subsystem.ts`.
  */
-export async function lexicalRank(store: Store, scanLimit: number, query: string, scopes: readonly string[]): Promise<Ranked> {
+export async function lexicalRank(
+  store: Store,
+  scanLimit: number,
+  query: string,
+  scopes: readonly string[],
+  minEvidence = 1,
+): Promise<Ranked> {
   const tokens = MemoryTokens.tokenize(query)
   if (tokens.length === 0) return { ranked: [], status: "skipped" }
   const candidates = await lookup(() => Promise.all(scopes.map((scope) => store.lexicalCandidates(tokens, scope, scanLimit))))
@@ -115,12 +124,13 @@ export async function lexicalRank(store: Store, scanLimit: number, query: string
     ranked: rank(
       candidates
         .flat()
-        .map((record) => ({
-          record,
-          score: MemoryTokens.tokenOverlap(queryTokens, record.tokens),
+        .map((record) => ({ record, evidence: MemoryTokens.evidenceCount(queryTokens, record.tokens) }))
+        .filter((match) => match.evidence >= minEvidence)
+        .map((match) => ({
+          record: match.record,
+          score: MemoryTokens.tokenOverlap(queryTokens, match.record.tokens),
           channel: "lexical" as const,
-        }))
-        .filter((hit) => hit.score > 0),
+        })),
     ),
     status: "ran",
   }

@@ -94,6 +94,18 @@ export interface Subsystem {
 const NEAR_DUP_CANDIDATES = 20
 
 /**
+ * The turn's lexical fallback gates on evidence class, not the overlap ratio. The ratio alone is
+ * blind to token class: a one-bigram query like "继续" scores every entry containing it at 1.0, so
+ * a work note saying "…气泡下方继续" auto-injected on every "继续" (measured 2026-11-27 in the
+ * live `memory_log`). `evidenceCount` weights whole word tokens twice — CJK runs tokenize to
+ * segmentation-free bigrams where one shared pair is a substring coincidence, while "pp" or
+ * "consul" matching a word token carries identity on its own. The floor admits either. Any
+ * vocabulary gets the same treatment; single-surface-form abbreviations stay the trigger
+ * channel's job.
+ */
+const TURN_LEXICAL_MIN_EVIDENCE = 2
+
+/**
  * The facade binds policy (which channels may auto-inject, budgets, thresholds, lifecycle
  * rules) to the ports. Everything here is pure orchestration: no fs, no sql, no subprocess.
  */
@@ -335,7 +347,7 @@ export function createSubsystem(options: SubsystemOptions): Subsystem {
   }
 
   async function lexicalFuzzy(query: string, scopes: readonly string[], vector: ChannelStatus): Promise<Fuzzy> {
-    const lexical = await MemoryQuery.lexicalRank(store, settings.lexicalScanLimit, query, scopes)
+    const lexical = await MemoryQuery.lexicalRank(store, settings.lexicalScanLimit, query, scopes, TURN_LEXICAL_MIN_EVIDENCE)
     return {
       ranked: lexical.ranked,
       status: lexical.status,

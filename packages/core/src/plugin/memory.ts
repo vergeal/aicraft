@@ -274,11 +274,25 @@ export const Plugin = define({
       })
       .pipe(Effect.orDie)
 
-    // The per-turn retrieval block, appended to the tail of the last user message — not the
+    // The per-turn retrieval block, appended to the tail of the user's prompt message — not the
     // system section, so an injection never invalidates the cached history prefix. One lookup
     // per turn: the step loop re-fires this hook with the same last message, and a byte-stable
     // block keeps the provider cache warm across steps. Failures only skip the block.
     const turns = new Map<string, { key: string; block: string }>()
+    // The retrieval query is what the user typed, never what the harness injected: instruction
+    // synthetics, skill bodies and shell results all arrive with role "user" in the context
+    // event, so "last user message" let file prose pose as intent — an AGENTS.md containing a
+    // trigger word hijacked the trigger channel (measured 2026-11-27 in `memory_log`). The
+    // prompt hook sees every real delivery with its message id; the context hook queries only
+    // through recorded ids. Raw text also excludes skill/mention parts the delivered message
+    // grew. Note: text captured pre-mutation, so a later prompt hook's edits don't reach here.
+    const promptTexts = new Map<string, string>()
+    yield* ctx.session.hook("prompt", (event) =>
+      Effect.sync(() => {
+        if (promptTexts.size > 200) promptTexts.clear()
+        promptTexts.set(String(event.messageID), event.prompt.text)
+      }),
+    )
     const protocol = SystemPart.make(PROTOCOL_SHORT)
     yield* ctx.session.hook("context", (event) =>
       Effect.gen(function* () {
@@ -286,11 +300,11 @@ export const Plugin = define({
         // identical on every request, so it costs the provider cache nothing, and the rules stay
         // visible even when retrieval injection is off — saving is always available.
         if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) event.system.push(protocol)
-        const last = findLastUser(event.messages)
+        const last = findPromptMessage(event.messages, promptTexts)
         if (last === undefined) return
-        const query = userText(last)
-        if (query.trim() === "") return
-        const key = last.id ?? query
+        const query = promptTexts.get(String(last.id))
+        if (query === undefined || query.trim() === "") return
+        const key = String(last.id)
         const sessionKey = String(event.sessionID)
         if (injectMode === "off") return
         const project = yield* projectID(event.sessionID)
@@ -336,15 +350,13 @@ function info(record: MemoryRecord): EntryInfo {
   }
 }
 
-function findLastUser(messages: Array<Message>): UserMessage | undefined {
-  return messages.findLast((message) => message.role === "user") as UserMessage | undefined
-}
-
-function userText(message: UserMessage): string {
-  return message.content
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("\n")
+/** The last user-role message a real prompt produced: ids are the join key, so a synthetic
+ *  instruction, skill body or shell result — role "user" but never a prompt — can neither become
+ *  the retrieval query nor append its tail. */
+function findPromptMessage(messages: Array<Message>, promptTexts: ReadonlyMap<string, string>): UserMessage | undefined {
+  return messages.findLast(
+    (message) => message.role === "user" && message.id !== undefined && promptTexts.has(String(message.id)),
+  ) as UserMessage | undefined
 }
 
 function label(scope: Memory.Scope) {

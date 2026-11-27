@@ -13,6 +13,7 @@ import { Database } from "@aicraft/core/database/database"
 import { Provider } from "@aicraft/core/provider"
 import { Rpc } from "@aicraft/core/rpc"
 import { Session } from "@aicraft/core/session"
+import { SessionMessage } from "@aicraft/core/session/message"
 import { Skill } from "@aicraft/core/skill"
 import { Tool } from "@aicraft/core/tool"
 import { Model } from "@aicraft/schema/model"
@@ -83,26 +84,26 @@ describe("memory plugin", () => {
 })
 
 describe("memory plugin injection", () => {
-  const injectedBlock = (event: SessionHooks["context"]) => {
-    const last = event.messages.findLast((message) => message.role === "user")
-    if (last?.role !== "user") return ""
-    return last.content.filter((part) => part.type === "text").map((part) => part.text).slice(1).join("\n")
+  const injectedTail = (event: SessionHooks["context"], messageID: string) => {
+    const target = event.messages.find((message) => message.role === "user" && message.id === messageID)
+    if (target?.role !== "user") return ""
+    return target.content.filter((part) => part.type === "text").map((part) => part.text).slice(1).join("\n")
   }
 
-  const context = (sessionID: Session.ID): SessionHooks["context"] => ({
+  const context = (sessionID: Session.ID, messageID: string, text: string): SessionHooks["context"] => ({
     sessionID,
     agent: Agent.ID.make("build"),
     model: Model.Ref.make({ providerID: Provider.ID.make("test"), id: Model.ID.make("m1") }),
     system: [],
     messages: [
       new SystemMessage({ role: "system", content: [] }),
-      new UserMessage({ role: "user", content: [{ type: "text", text: "分支命名规范" }] }),
+      new UserMessage({ id: messageID, role: "user", content: [{ type: "text", text }] }),
     ],
     tools: {},
     options: {},
   })
 
-  it.effect("lands the turn block at the tail of the last user message, stable across steps", () =>
+  it.effect("lands the turn block at the tail of the prompt message, stable across steps", () =>
     Effect.gen(function* () {
       const sessions = yield* Session.Service
       const location = yield* Location.Service
@@ -128,37 +129,91 @@ describe("memory plugin injection", () => {
       const miss = yield* Effect.promise(() => service.subsystem.onTurn({ query: "今天天气怎么样", scopes: ["global"] }))
       expect(miss.entries).toHaveLength(0)
 
+      const admit = (messageID: string, text: string) =>
+        hooks.trigger("session", "prompt", {
+          sessionID: session.id,
+          messageID: SessionMessage.ID.make(messageID),
+          prompt: { text },
+          delivery: "steer",
+        })
+      yield* admit("msg_branch", "分支命名规范")
+
       // Step one of the turn: the block reaches the request tail, never the system section; the
       // system carries only the byte-stable save-rules protocol (channel ①).
-      const first = context(session.id)
+      const first = context(session.id, "msg_branch", "分支命名规范")
       yield* hooks.trigger("session", "context", first)
-      const block = injectedBlock(first)
+      const block = injectedTail(first, "msg_branch")
       expect(block).toContain("用短横线分隔")
       expect(block).toContain("Relevant memory")
       expect(first.system.map((part) => part.text)).toEqual([PROTOCOL_SHORT])
       // The block is reported as a Step-injected source, so the timeline shows one injection row.
       expect(first.injected).toEqual([{ key: "memory", text: block }])
 
+      // An instructions synthetic joins history with role "user" after the prompt. It must not
+      // hijack the retrieval query (its prose carries trigger words — a live `memory_log` case),
+      // re-run the lookup, or steal the block's tail.
+      const withSynthetic = context(session.id, "msg_branch", "分支命名规范")
+      withSynthetic.messages.push(
+        new UserMessage({
+          id: "msg_instructions",
+          role: "user",
+          content: [{ type: "text", text: "Instructions from: AGENTS.md\npp 的含义是提交并推送" }],
+        }),
+      )
+      yield* hooks.trigger("session", "context", withSynthetic)
+      expect(withSynthetic.injected).toEqual([{ key: "memory", text: block }])
+      expect(injectedTail(withSynthetic, "msg_branch")).toBe(block)
+      expect(injectedTail(withSynthetic, "msg_instructions")).toBe("")
+
       // Step two reuses the turn result: identical bytes, so the provider cache prefix holds.
-      const second = context(session.id)
+      const second = context(session.id, "msg_branch", "分支命名规范")
       yield* hooks.trigger("session", "context", second)
-      expect(injectedBlock(second)).toBe(block)
+      expect(injectedTail(second, "msg_branch")).toBe(block)
       expect(second.system).toHaveLength(1)
       expect(second.injected).toEqual([{ key: "memory", text: block }])
 
-      // memory_log records the one real retrieval, not the cached step reuse.
+      // memory_log records the one real retrieval — the cached steps and the synthetic add no
+      // rows — and its query is the raw prompt, never the injected instruction text.
       const { db } = yield* Database.Service
-      const rows = yield* db.select({ injected: MemoryLogTable.injected, mode: MemoryLogTable.mode }).from(MemoryLogTable).all()
+      const rows = yield* db
+        .select({ injected: MemoryLogTable.injected, mode: MemoryLogTable.mode, query: MemoryLogTable.query })
+        .from(MemoryLogTable)
+        .all()
       expect(rows.length).toBe(1)
       expect(rows[0]!.injected.length).toBeGreaterThan(0)
       expect(rows[0]!.mode).toBe("trigger+vector")
+      expect(rows[0]!.query).toBe("分支命名规范")
 
       // An unrelated turn with no index hit injects nothing rather than a recency window.
-      const quiet = context(session.id)
-      quiet.messages[1] = new UserMessage({ role: "user", content: [{ type: "text", text: "今天天气怎么样" }] })
+      yield* admit("msg_weather", "今天天气怎么样")
+      const quiet = context(session.id, "msg_weather", "今天天气怎么样")
       yield* hooks.trigger("session", "context", quiet)
-      expect(injectedBlock(quiet)).toBe("")
+      expect(injectedTail(quiet, "msg_weather")).toBe("")
       expect(quiet.injected).toBeUndefined()
+    }),
+  )
+
+  it.effect("a turn that never came from a user prompt retrieves nothing", () =>
+    Effect.gen(function* () {
+      const sessions = yield* Session.Service
+      const location = yield* Location.Service
+      const session = yield* sessions.create({ location: { directory: location.directory } })
+      const hooks = yield* PluginHooks.Service
+      yield* activate
+
+      const rpc = yield* Rpc.Service
+      yield* rpc.call("aicraft.memory", "save", {
+        scope: "global",
+        projectID: null,
+        text: "分支命名规范：用短横线分隔，禁止斜杠和类型前缀",
+        tags: ["git"],
+      })
+      // A bare synthetic — a restart note, a shell result, an instruction load — must not
+      // become the query source even when its text would retrieve perfectly.
+      const synthetic = context(session.id, "msg_synthetic", "分支命名规范")
+      yield* hooks.trigger("session", "context", synthetic)
+      expect(synthetic.injected).toBeUndefined()
+      expect(injectedTail(synthetic, "msg_synthetic")).toBe("")
     }),
   )
 })

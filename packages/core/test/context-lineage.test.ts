@@ -79,18 +79,21 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("project instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: live("planning instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 1, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: live("post-compaction instructions"),
       })
 
@@ -119,12 +122,14 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("project instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 5, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: live("planning instructions"),
       })
 
@@ -144,6 +149,7 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 5, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: parts,
       })
       expect(resolved.rebuilt).toBe(true)
@@ -173,6 +179,7 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("project instructions"),
       })
 
@@ -182,6 +189,7 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: parts,
       })
       expect(rebuilt.rebuilt).toBe(true)
@@ -192,6 +200,7 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("changed again"),
       })
       expect(frozen.rebuilt).toBe(false)
@@ -263,6 +272,7 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 4, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: parts,
       })
       expect(resolved.rebuilt).toBe(true)
@@ -283,12 +293,14 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 2, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("project instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 2, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: live("planning instructions"),
       })
 
@@ -310,6 +322,7 @@ describe("SessionContextSnapshot lineage archive", () => {
         sessionID,
         baselineEpoch: 2, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: live("refreshed instructions"),
       })
       expect(resolved.rebuilt).toBe(true)

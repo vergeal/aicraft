@@ -162,7 +162,10 @@ describe("Session.compact", () => {
       const compacted = yield* session.compact({ sessionID: created.id })
 
       expect((yield* session.get(created.id)).revert).toBeUndefined()
-      expect(yield* session.context(created.id)).toEqual([])
+      // The prompt and its revert marker both survive: compaction is the only history shrink.
+      expect((yield* session.messages({ sessionID: created.id })).map((message) => message.type)).toEqual(
+        expect.arrayContaining(["user", "synthetic"]),
+      )
       expect(yield* session.inbox(created.id)).toEqual([
         expect.objectContaining({ id: compacted.id, type: "compaction" }),
       ])

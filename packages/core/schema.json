@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "95722932-287b-46ec-b0de-51ec42fcf466",
-  "prevIds": ["010c08ab-3e71-4c3c-84f5-0946f13d2d8b"],
+  "id": "e61d52b5-44c5-4836-bae9-0d5cfa946a91",
+  "prevIds": ["95722932-287b-46ec-b0de-51ec42fcf466"],
   "ddl": [
     {
       "name": "account_state",
@@ -2041,6 +2041,16 @@
       "default": null,
       "generated": null,
       "name": "parts",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "name": "tools",
       "entityType": "columns",
       "table": "context_snapshot"
     },

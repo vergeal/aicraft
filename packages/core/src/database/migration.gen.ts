@@ -72,6 +72,7 @@ import m69 from "./migration/20261126170000_drop_memory_extract_log.js"
 import m70 from "./migration/20261127060717_slimy_abomination.js"
 import m71 from "./migration/20261127072426_puzzling_logan.js"
 import m72 from "./migration/20261127085418_sloppy_sunset_bain.js"
+import m73 from "./migration/20261127124727_chubby_nightshade.js"
 
 export const migrations = [
   m00,
@@ -147,4 +148,5 @@ export const migrations = [
   m70,
   m71,
   m72,
+  m73,
 ] satisfies DatabaseMigration.Migration[]

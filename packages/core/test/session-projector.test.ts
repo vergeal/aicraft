@@ -227,14 +227,26 @@ describe("SessionProjector", () => {
         sessionID,
         revert: { messageID: boundary, files: [] },
       })
+      // L3 is append-only: the commit appends a marker instead of deleting the withdrawn turns.
+      yield* bus.publish(SessionEvent.Synthetic, {
+        sessionID,
+        text: `The user reverted this conversation to message ${boundary}.`,
+        description: "Revert marker",
+      })
       yield* bus.publish(SessionEvent.RevertEvent.Committed, {
         sessionID,
         to: boundary,
       })
-      expect(
-        (yield* db.select({ id: SessionMessageTable.id }).from(SessionMessageTable).all()).map((row) => row.id),
-      ).toEqual([earlier])
+      const rows = yield* db
+        .select({ id: SessionMessageTable.id, type: SessionMessageTable.type })
+        .from(SessionMessageTable)
+        .all()
+      expect(rows.map((row) => row.id)).toContain(earlier)
+      expect(rows.map((row) => row.id)).toContain(boundary)
+      expect(rows.map((row) => row.id)).toContain(SessionMessage.ID.make("msg_later"))
+      expect(rows.at(-1)?.type).toBe("synthetic")
       expect(yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get()).toMatchObject({
+        revert: null,
         cost: Money.USD.make(1.25),
         tokens_input: 10,
         tokens_output: 4,
@@ -1581,7 +1593,7 @@ describe("SessionProjector", () => {
     }).pipe(Effect.provide(mediaBlob)),
   )
 
-  it.effect("deletes reverted messages' blob refs and the blobs only they referenced", () =>
+  it.effect("keeps reverted messages' blob refs and blobs because L3 is append-only", () =>
     Effect.gen(function* () {
       const db = yield* seedSession()
       const bus = yield* Bus.Service
@@ -1601,16 +1613,19 @@ describe("SessionProjector", () => {
       expect(yield* db.select().from(BlobRefTable).all().pipe(Effect.orDie)).toHaveLength(3)
 
       yield* bus.publish(SessionEvent.RevertEvent.Committed, { sessionID, to: reverted })
+      // The withdrawn rows stay durable, so their refs and blobs cannot be released.
       expect(
         yield* db
           .select({ message: BlobRefTable.message_id, hash: BlobRefTable.hash })
           .from(BlobRefTable)
           .all()
           .pipe(Effect.orDie),
-      ).toEqual([{ message: kept, hash: SessionBlob.hashBytes(png) }])
-      expect(yield* db.select({ hash: BlobTable.hash }).from(BlobTable).all().pipe(Effect.orDie)).toEqual([
-        { hash: SessionBlob.hashBytes(png) },
+      ).toEqual([
+        { message: kept, hash: SessionBlob.hashBytes(png) },
+        { message: reverted, hash: SessionBlob.hashBytes(text) },
+        { message: shared, hash: SessionBlob.hashBytes(png) },
       ])
+      expect(yield* db.select({ hash: BlobTable.hash }).from(BlobTable).all().pipe(Effect.orDie)).toHaveLength(2)
     }).pipe(Effect.provide(mediaBlob)),
   )
 
@@ -2350,7 +2365,7 @@ describe("SessionProjector", () => {
     }).pipe(Effect.provideService(SessionBlob.ForkMedia, true)),
   )
 
-  it.effect("deletes a reverted message's session_part rows and the blobs only they referenced", () =>
+  it.effect("keeps a reverted message's session_part rows because L3 is append-only", () =>
     Effect.gen(function* () {
       const db = yield* seedSession()
       const bus = yield* Bus.Service
@@ -2375,9 +2390,9 @@ describe("SessionProjector", () => {
       expect(yield* db.select().from(BlobTable).all().pipe(Effect.orDie)).toHaveLength(1)
 
       yield* bus.publish(SessionEvent.RevertEvent.Committed, { sessionID, to: assistantMessageID })
-      expect(yield* db.select().from(SessionPartTable).all().pipe(Effect.orDie)).toEqual([])
-      expect(yield* db.select().from(BlobRefTable).all().pipe(Effect.orDie)).toEqual([])
-      expect(yield* db.select().from(BlobTable).all().pipe(Effect.orDie)).toEqual([])
+      expect(yield* db.select().from(SessionPartTable).all().pipe(Effect.orDie)).toHaveLength(1)
+      expect(yield* db.select().from(BlobRefTable).all().pipe(Effect.orDie)).toHaveLength(1)
+      expect(yield* db.select().from(BlobTable).all().pipe(Effect.orDie)).toHaveLength(1)
     }).pipe(Effect.provide(mediaBlobPartRows)),
   )
 

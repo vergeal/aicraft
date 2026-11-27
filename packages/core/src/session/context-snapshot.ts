@@ -2,6 +2,7 @@ export * as SessionContextSnapshot from "./context-snapshot.js"
 
 import { eq } from "drizzle-orm"
 import { bumpLineage, initialLineage } from "@aicraft/context"
+import { ToolDefinition } from "@aicraft/ai/effect"
 import { Effect, Option, Schema } from "effect"
 import type { Lineage } from "@aicraft/context"
 import type { Database } from "../database/database.js"
@@ -21,6 +22,8 @@ export interface VolatilePart {
 
 export interface Resolved {
   readonly parts: ReadonlyArray<VolatilePart>
+  /** L2 tool declarations frozen with the prefix (see `ContextSnapshotTable.tools`). */
+  readonly tools: ReadonlyArray<ToolDefinition>
   readonly lineage: Lineage
   readonly rebuilt: boolean
 }
@@ -37,6 +40,8 @@ interface ResolveInput {
   readonly agentID: string
   /** Catalog model composite (`provider/id`): switching model rebakes the family-resolved agent part. */
   readonly modelID: string
+  /** Live L2 declarations; adopted only when this resolve rebuilds the snapshot. */
+  readonly tools: ReadonlyArray<ToolDefinition>
   readonly live: ReadonlyArray<VolatilePart>
 }
 
@@ -44,7 +49,9 @@ const VolatilePartSchema = Schema.Struct({
   kind: Schema.Literals(["agent", "identity", "project", "session"]),
   text: Schema.String,
 })
-const StoredPartsSchema = Schema.Struct({ parts: Schema.Array(VolatilePartSchema) })
+const StoredPartsSchema = Schema.Struct({
+  parts: Schema.Array(VolatilePartSchema),
+})
 const BumpReasonSchema = Schema.Literals(["initial", "advance", "compaction"])
 
 /**
@@ -67,20 +74,27 @@ export const resolve = Effect.fn("SessionContextSnapshot.resolve")(function* (
   if (!row) {
     const lineage = initialLineage()
     yield* store(db, input, lineage)
-    return { parts: input.live, lineage, rebuilt: true }
+    return { parts: input.live, tools: input.tools, lineage, rebuilt: true }
   }
   const stored = yield* requireLineage(row)
   if (
     row.baseline_epoch === input.baselineEpoch &&
     row.agent_id === input.agentID &&
     row.model_id === input.modelID &&
-    !row.pending_advance
+    !row.pending_advance &&
+    // Rows migrated before tools were stored hold []; rebuilding once adopts the live set.
+    (row.tools.length > 0 || input.tools.length === 0)
   )
-    return { parts: yield* requireParts(row.parts), lineage: stored, rebuilt: false }
+    return {
+      parts: yield* requireParts(row.parts),
+      tools: yield* requireTools(row.tools),
+      lineage: stored,
+      rebuilt: false,
+    }
   // A pending advance keeps the epoch key, so it joins the agent and model switches in the "advance" bucket.
   const lineage = bumpLineage(stored, row.baseline_epoch !== input.baselineEpoch ? "compaction" : "advance")
   yield* store(db, input, lineage)
-  return { parts: input.live, lineage, rebuilt: true }
+  return { parts: input.live, tools: input.tools, lineage, rebuilt: true }
 })
 
 /**
@@ -164,6 +178,7 @@ const store = Effect.fnUntraced(function* (db: Writer, input: ResolveInput, line
     // Writing the rebake is what consumes a pending advance flag.
     pending_advance: false,
     parts: { parts },
+    tools: input.tools,
   }
   yield* db
     .insert(ContextSnapshotTable)
@@ -188,6 +203,7 @@ const store = Effect.fnUntraced(function* (db: Writer, input: ResolveInput, line
 })
 
 const decodeStoredParts = Schema.decodeUnknownOption(StoredPartsSchema)
+const decodeStoredTools = Schema.decodeUnknownOption(Schema.Array(ToolDefinition))
 const decodeBumpReason = Schema.decodeUnknownOption(BumpReasonSchema)
 const decodeLiveParts = Schema.decodeUnknownOption(Schema.Array(VolatilePartSchema))
 
@@ -204,6 +220,11 @@ const requireLineage = (row: SnapshotRow) =>
 const requireParts = (value: unknown) =>
   Effect.gen(function* () {
     return (yield* orDie("parts", decodeStoredParts(value), value)).parts
+  })
+
+const requireTools = (value: unknown) =>
+  Effect.gen(function* () {
+    return yield* orDie("tools", decodeStoredTools(value), value)
   })
 
 const requireLive = (live: ReadonlyArray<VolatilePart>) =>

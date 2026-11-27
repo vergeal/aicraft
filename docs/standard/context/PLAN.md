@@ -13,6 +13,14 @@
 | P4 通道收口 | 干掉旁路（现存的 B/C 两条暗道） | family txt → L1 声明化（装配期解析，运行期 override 通道关闭）；claude-agent 3 处独立拼装接入 assemble 出口校验；compaction/title/generate 系统流走同内核（kind 参数） | ① CI grep 守卫：`packages/core/src/session` 内找不到绕过内核的 system 装配点；② 7 个 family fixtures：模板解析输出与现状逐字节一致；运行期 override 尝试不生效、只进账本；③ claude-agent 透传 event.system 覆盖 → 走校验，违层即 Violation；④ 三种 kind 的 plan 快照测试全部出自内核 |
 | P5 兜底与收尾 | 语义闭环，删旧路 | 工具执行层对照真实注册表返回 `tool unavailable` result；删除 core 旧装配残骸；DESIGN/PLAN 转正 `docs/standard/` | ① 插件热卸载后模型调用死工具 → 收到明确 unavailable tool result、前缀字节不变、下一步模型改道；② 全量会话回归 + `bun run check` 绿；③ 故意违规演示：往请求塞漂移内容 → `LayerViolation` 报错拒绝发出 |
 
+## 修订：L3 只追加与撤回标记（subsystem/context 收口）
+
+- L3 只做线性追加，不删除、不改写；撤回在历史尾部写入 durable 标记，被撤回的消息保留。
+- 压缩是唯一允许折叠 L3 的入口（epoch+1）；其余路径不得缩短历史。
+- 记忆检索只走 L6 动态注入，不写入 L3。
+- L2 工具声明与 L1 一起冻结进快照：热卸载后请求仍广告冻结声明，执行层对已死工具返回明确 unavailable。
+- 验收：撤回后 system+tools 逐字节不变且标记出现在历史；热卸载后 tools 数组不变；记忆块不出现在 durable 消息中。
+
 ## 全程约束
 
 - 每阶段一个小 PR，快合；动的是 `timeline-scroll` 同期热区，rebase 对 origin/master。

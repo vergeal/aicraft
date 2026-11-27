@@ -56,6 +56,7 @@ describe("SessionContextSnapshot", () => {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: parts,
       })
 
@@ -70,12 +71,13 @@ describe("SessionContextSnapshot", () => {
       const sessionID = SessionSchema.ID.make("ses_snapshot_frozen")
       const { db } = yield* setup(sessionID)
       const original = live("project instructions")
-      yield* SessionContextSnapshot.resolve(db, { sessionID, baselineEpoch: 0, modelID: "test/test-model", agentID: "build", live: original })
+      yield* SessionContextSnapshot.resolve(db, { sessionID, baselineEpoch: 0, modelID: "test/test-model", agentID: "build", tools: [], live: original })
 
       const resolved = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("changed project instructions"),
       })
 
@@ -94,6 +96,7 @@ describe("SessionContextSnapshot", () => {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("project instructions"),
       })
       const rebuilt = live("post-compaction instructions")
@@ -102,6 +105,7 @@ describe("SessionContextSnapshot", () => {
         sessionID,
         baselineEpoch: 1, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: rebuilt,
       })
 
@@ -119,6 +123,7 @@ describe("SessionContextSnapshot", () => {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: live("project instructions"),
       })
       const switched = live("same project instructions")
@@ -127,6 +132,7 @@ describe("SessionContextSnapshot", () => {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "plan",
+        tools: [],
         live: switched,
       })
 
@@ -147,11 +153,12 @@ describe("SessionContextSnapshot", () => {
         { kind: "session", text: "行内换行\n第二行 🥲" },
       ] as const satisfies ReadonlyArray<SessionContextSnapshot.VolatilePart>
 
-      yield* SessionContextSnapshot.resolve(db, { sessionID, baselineEpoch: 0, modelID: "test/test-model", agentID: "build", live: parts })
+      yield* SessionContextSnapshot.resolve(db, { sessionID, baselineEpoch: 0, modelID: "test/test-model", agentID: "build", tools: [], live: parts })
       const resolved = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
+        tools: [],
         live: [],
       })
 

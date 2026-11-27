@@ -21,7 +21,6 @@ import {
   SessionMessageTable,
   SessionPartTable,
   SessionTable,
-  SessionTurnDiffTable,
   type SessionPartData,
 } from "./sql.js"
 import { SessionStored } from "./stored.js"
@@ -1179,13 +1178,9 @@ const layer = Layer.effectDiscard(
           .get()
           .pipe(Effect.orDie)
         if (!boundary) return yield* Effect.die(new Error(`Revert boundary message not found: ${event.data.to}`))
-        yield* db
-          .delete(SessionMessageTable)
-          .where(
-            and(eq(SessionMessageTable.session_id, event.data.sessionID), gte(SessionMessageTable.seq, boundary.seq)),
-          )
-          .run()
-          .pipe(Effect.orDie)
+        // L3 is append-only: the withdrawn messages stay durable so the prompt prefix keeps its
+        // bytes, and the marker `SessionRevert.commit` published names the authoritative point.
+        // Only undelivered inbox items after the boundary belong to the withdrawn range and go.
         yield* db
           .delete(SessionInboxTable)
           .where(
@@ -1196,16 +1191,8 @@ const layer = Layer.effectDiscard(
           )
           .run()
           .pipe(Effect.orDie)
-        // Turn diffs are computed over history a revert can truncate mid-turn; drop the archive and
-        // let later reads backfill from the surviving range.
-        yield* db
-          .delete(SessionTurnDiffTable)
-          .where(eq(SessionTurnDiffTable.session_id, event.data.sessionID))
-          .run()
-          .pipe(Effect.orDie)
+        // No instruction rewind: L1 stays frozen, so withdrawing turns must not move the baseline.
         yield* setSession(db, event.data.sessionID, { revert: null, time_updated: event.created })
-        yield* InstructionState.rewind(db, event.data.sessionID, boundary.seq)
-        yield* SessionBlob.releaseFrom(db, event.data.sessionID, boundary.seq)
       }),
     )
     yield* bus.subscribe([SessionEvent.Step.Ended, SessionEvent.Step.Failed, SessionEvent.UsageRecorded]).pipe(

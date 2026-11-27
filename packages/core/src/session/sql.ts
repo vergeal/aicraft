@@ -240,6 +240,15 @@ export const ContextSnapshotTable = sqliteTable("context_snapshot", {
   parts: text({ mode: "json" }).notNull().$type<{
     readonly parts: ReadonlyArray<{ readonly kind: "agent" | "identity" | "project" | "session"; readonly text: string }>
   }>(),
+  /**
+   * L2: the tool declarations frozen with the prefix. A snapshot hit replays these bytes, so a
+   * registry change (plugin install/unload) cannot move the tools array inside an epoch; the
+   * live registry still executes by name, and an unloaded tool answers unavailable.
+   */
+  tools: text({ mode: "json" })
+    .notNull()
+    .default("[]")
+    .$type<ReadonlyArray<unknown>>(),
 })
 
 /**

@@ -3,7 +3,7 @@ import type { FileSystem } from "@aicraft/core/filesystem"
 import { DateTime, Effect, Fiber, Layer, LayerMap, Schema, Stream } from "effect"
 import path from "path"
 import { pathToFileURL } from "url"
-import { eq } from "drizzle-orm"
+import { asc, eq } from "drizzle-orm"
 import { Database } from "@aicraft/core/database/database"
 import { Agent } from "@aicraft/core/agent"
 import { AppNodeBuilder } from "@aicraft/core/effect/app-node-builder"
@@ -380,11 +380,20 @@ describe("Session.prompt", () => {
       yield* session.prompt({ sessionID, text: "after revert", resume: false })
 
       expect((yield* session.get(sessionID)).revert).toBeUndefined()
+      const rows = yield* db
+        .select({ id: SessionMessageTable.id, type: SessionMessageTable.type, data: SessionMessageTable.data })
+        .from(SessionMessageTable)
+        .orderBy(asc(SessionMessageTable.seq))
+        .all()
+        .pipe(Effect.orDie)
+      // L3 is append-only: the withdrawn rows survive and a marker names the authoritative point.
+      expect(rows.map((row) => row.id)).toContain(boundary.id)
+      expect(rows.map((row) => row.id)).toContain(stale)
       expect(
-        (yield* db.select({ id: SessionMessageTable.id }).from(SessionMessageTable).all().pipe(Effect.orDie)).map(
-          (row) => row.id,
+        rows.some(
+          (row) => row.type === "synthetic" && JSON.stringify(row.data).includes(`message ${boundary.id}`),
         ),
-      ).not.toContainAnyValues([boundary.id, stale])
+      ).toBe(true)
       expect(yield* SessionInbox.find(db, boundary.id)).toBeUndefined()
     }),
   )

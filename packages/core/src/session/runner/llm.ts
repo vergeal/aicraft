@@ -264,6 +264,9 @@ const layer = Layer.effect(
           baselineEpoch: (yield* InstructionState.epochOf(db, sessionID)) ?? -1,
           agentID: loaded.agent.id,
           modelID: `${loaded.model.ref.providerID}/${loaded.model.ref.id}`,
+          // L2 tool declarations are frozen with the prefix: a hit replays the stored array even if
+          // the live registry changed (plugin install/unload), keeping system+tools byte-identical.
+          tools: loaded.tools.definitions,
           live: SessionModelRequest.volatileParts({
             agent: loaded.agent.info,
             tools: loaded.tools,
@@ -272,10 +275,13 @@ const layer = Layer.effect(
             catalog: loaded.model.catalog,
           }),
         })
+        // Execution still goes through the live registry (`execute`), so a tool dropped from it
+        // answers unavailable while the request keeps advertising the frozen declaration.
+        const tools = { ...loaded.tools, definitions: snapshot.tools }
         const transcript = SessionModelRequest.baseTranscript({
           agent: loaded.agent.info,
           model: loaded.model,
-          tools: loaded.tools,
+          tools,
           initial: loaded.initial,
           l4: loaded.l4,
           project: loaded.project,
@@ -288,7 +294,7 @@ const layer = Layer.effect(
             session: loaded.session,
             agent: loaded.agent.id,
             model: loaded.model,
-            tools: loaded.tools,
+            tools,
             system: transcript.system,
             messages: stepLimitReached
               ? // L8 tail channel (DESIGN §7): the text comes from the turn-supplier registry,

@@ -72,11 +72,29 @@ export const clear = Effect.fn("SessionRevert.clear")(function* (session: Sessio
   }).pipe(instances.provide(session))
 })
 
+/**
+ * A commit appends a marker instead of deleting: L3 only grows linearly, so the withdrawn turns
+ * stay in the transcript and the prompt prefix never moves. Compaction is the only path that may
+ * shrink history (epoch boundary). The marker tells the model which point remains authoritative.
+ */
+const marker = (messageID: SessionMessage.ID) =>
+  [
+    `The user reverted this conversation to message ${messageID}.`,
+    "The turns after that message are withdrawn: do not rely on them and continue from the reverted point.",
+  ].join("\n")
+
 export const commit = Effect.fn("SessionRevert.commit")(function* (bus: Bus.Interface, session: SessionSchema.Info) {
   if (!session.revert) return
+  const to = session.revert.messageID
+  yield* bus.publish(SessionEvent.Synthetic, {
+    sessionID: session.id,
+    text: marker(to),
+    description: "Revert marker",
+    metadata: { revert: { to } },
+  })
   yield* bus.publish(SessionEvent.RevertEvent.Committed, {
     sessionID: session.id,
-    to: session.revert.messageID,
+    to,
   })
 })
 

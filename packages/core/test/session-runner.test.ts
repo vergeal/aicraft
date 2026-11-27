@@ -1480,8 +1480,9 @@ describe("SessionRunnerLLM", () => {
     const requests = s.requests
     expect(requests.length).toBeGreaterThanOrEqual(3)
     // The unload changed the live toolset but not the frozen snapshot: every later step reuses the
-    // same system bytes, so the provider cache keeps its read.
+    // same system and tool bytes, so the provider cache keeps its read.
     expect(requests.at(-1)?.system).toEqual(requests[1]?.system)
+    expect(requests.at(-1)?.tools).toEqual(requests[1]?.tools)
     expect(yield* s.context).toMatchObject([
       Expected.user("Use the mortal tool"),
       Expected.assistant({}, [
@@ -1543,6 +1544,46 @@ describe("SessionRunnerLLM", () => {
       expect(request.system).toEqual(first.system)
       expect(request.tools).toEqual(first.tools)
     }
+  })
+
+  scenario("keeps memory retrieval out of durable history", function* (s) {
+    // L6 is a dynamic layer: a retrieval block rides the system tail of the request it was
+    // supplied for and is never written into L3, so withdrawing or compacting history cannot
+    // resurrect stale memories as conversation turns.
+    const hooks = yield* PluginHooks.Service
+    const block = "# Relevant memories\n- prefers tabs over spaces"
+    yield* hooks.register("session", "context", (event) =>
+      Effect.sync(() => {
+        event.system.push(SystemPart.make(block))
+      }),
+    )
+    yield* s.admit("First")
+    yield* s.llm.push(TestLLM.text("Done", "text-memory"))
+    yield* s.resume
+
+    expect(s.requests.at(-1)?.system.map((part) => part.text)).toContain(block)
+    expect(JSON.stringify(yield* s.messages)).not.toContain("prefers tabs over spaces")
+  })
+
+  scenario("keeps the frozen prefix across a committed revert and replays the marker", function* (s) {
+    // The requested L3 contract: revert never deletes or rewinds. The withdrawn turns stay, the
+    // marker joins L3 as an append, and system+tools keep their bytes so the cache survives.
+    const first = yield* s.runPrompt("First")
+    yield* s.runPrompt("Second")
+    const before = s.requests.at(-1)!
+    yield* s.bus.publish(SessionEvent.RevertEvent.Staged, {
+      sessionID,
+      revert: { messageID: first.id, files: [] },
+    })
+    yield* s.session.revert.commit(sessionID)
+    yield* s.runPrompt("Third")
+
+    const after = s.requests.at(-1)!
+    expect(after.system).toEqual(before.system)
+    expect(after.tools).toEqual(before.tools)
+    // The marker is durable history, and the withdrawn turn is still there.
+    expect(JSON.stringify(yield* s.messages)).toContain(`reverted this conversation to message ${first.id}`)
+    expect(JSON.stringify(yield* s.messages)).toContain("Second")
   })
 
   scenario("starts a real runner step after default prompt recording", function* (s) {
@@ -2045,13 +2086,15 @@ describe("SessionRunnerLLM", () => {
 
       yield* s.bus.publish(SessionEvent.RevertEvent.Committed, { sessionID, to: checkpoint.id })
       yield* s.runPrompt("After revert")
+      // L3 is append-only: the checkpoint and the withdrawn turns stay durable, so the native
+      // window still leads the replay and the marker is the only new record.
       expect(
         s.requests
           .at(-1)
           ?.messages.flatMap((message) => [...message.content])
           .some((part) => part.type === "compaction"),
-      ).toBe(false)
-      expect(s.requests.at(-1)?.messages[0]?.content).toEqual([Message.text("Original request")])
+      ).toBe(true)
+      expect(s.requests.at(-1)?.messages[0]).toEqual(replacement[0])
       expect(
         (yield* s.session.messages({ sessionID: forked.id })).find((message) => message.type === "compaction"),
       ).toMatchObject({ native })
@@ -2227,18 +2270,24 @@ describe("SessionRunnerLLM", () => {
     expect(s.requests.at(-1)?.system.map((part) => part.text)).toEqual(before)
   })
 
-  scenario("resyncs the instruction state when a committed revert removes an update", function* (s) {
+  scenario("keeps instruction updates in place when a committed revert is stamped", function* (s) {
     yield* s.runPrompt("First")
     s.systemBaseline = "Changed context"
     const second = yield* s.runPrompt("Second")
     s.systemBaseline = "Latest context"
     yield* s.runPrompt("Third")
 
-    // The "Latest context" update is delivered with "Third", after the boundary.
+    // The revert no longer rewinds instruction state: the baseline stays Initial and the newest
+    // update keeps riding the L4 notice, while the withdrawn turns stay in L3.
     yield* s.bus.publish(SessionEvent.RevertEvent.Committed, { sessionID, to: second.id })
     yield* s.runPrompt("Fourth")
 
-    expect(s.requests.at(-1)?.system.map((part) => part.text)).toEqual([defaultSystem, fakeIdentity, ledger("Latest context")])
+    expect(s.requests.at(-1)?.system.map((part) => part.text)).toEqual([
+      defaultSystem,
+      fakeIdentity,
+      ledger("Initial context"),
+      "Latest context",
+    ])
   })
 
   scenario("uses the selected model family prompt when the agent does not override it", function* (s) {

@@ -8,14 +8,14 @@
 |---|---|---|---|---|
 | L1 | 系统提示词、Harness 机制（agent system、family 解析结果、项目/会话指令、静态注册表指令） | 不动产 | context 自管（快照） | 否 |
 | L2 | 能力声明：CodeMode、插件工具、MCP 的 tools schema | 不动产 | context 自管（快照） | 否 |
-| L3 | 历史上下文（投影后的消息流：**正文 + 工具结果**；思考默认不回放，见 §1.1） | 每轮追加、追加区之前不动 | context 自管（快照/折叠） | 本体 |
+| L3 | 历史上下文（投影后的消息流：**正文 + 工具结果**；思考默认不回放，见 §1.1；撤回只追加标记，不删改） | 每轮追加、只增不减（压缩除外） | context 自管（快照/折叠） | 本体 |
 | L4 | 变更状态声明（search 已不可用 / 又可用了——**替换式**，只反映最新态） | 少变更 | context 账本渲染 | 否 |
 | L5 | 动态描述（日期、环境变化） | 热变更 | 调用方注入槽（默认 context 时钟） | 否 |
 | L6 | 记忆层（**memory 子系统检索产出**，命中即携带、不去重、临时） | 热变更 | 外部供给 | 否（其效果经 L3 交互痕迹体现） |
 | L7 | 本轮问答输入 | 每轮 | 调用方注入槽 | 轮末转 L3 |
 | L8 | 尾部注入（MAX_STEPS、CONTINUE_AFTER、system-reminder、steer） | 热变更 | 调用方注入槽（注册表声明） | 否 |
 
-装配次序即表序。缓存语义：L1–L4 在版本内字节稳定；L4 变化只失效 L4 及其后小段；L5–L8 本就在尾部热区，不计较。
+装配次序即表序。缓存语义：L1–L3 在一个 epoch 内字节稳定（L2 的工具声明随快照冻结）；L4 变化只失效 L4 及其后小段；L5–L8 本就在尾部热区，不计较。
 
 ### 1.1 L3 回放细则
 
@@ -24,7 +24,8 @@
 1. **正常完成的 turn**：只回放正文与工具轨迹，reasoning 一律不进请求（思考逐轮全量重发是最大的隐性 token 花销之一，切断）。
 2. **未完成 turn**（异常终止或用户手动终止）：该消息的**全部思考段**顶替正文回放，并以文字标注明确"这是思考内容、非正文"；模型需要断点线索才不会从头重做。现状 `failAssistant→flush` 已把中断时刻的累积思考全量提交落库，素材完整。
 3. **无正文也无思考的终止 turn**：写备注"本轮无任何输出"，并同时标明终止方式（异常终止 / 用户手动终止）。
-4. **undo/resend**：L3 线性追加（消息按 seq 单调），undo/resend 即把上一步内容自尾部**线性移除**（现 `SessionRevert` 已符合：删 `seq > boundary` 后缀）。允许连续 undo，每次都是线性往上移除；剩余前缀逐字节不动，与快照缓存语义天然一致（不动 baseline 就不裂缓存）。
+4. **undo/resend**：L3 只做线性追加，撤回不删除、不改写。`SessionRevert.commit` 在历史尾部追加一条 durable 标记（“The user reverted this conversation to message …；其后轮次作废”），被撤回的消息原样保留——前缀字节不动，缓存只可能在未来的新追加处失效。压缩是唯一允许缩短/折叠 L3 的入口（epoch+1）。
+5. **记忆（L6）永不写入 L3**：检索块只作为动态层随请求尾部注入（`plugin/memory` 的 context hook），不落 durable 消息；撤回、压缩、fork 都不会把历史记忆复活成对话轮次。
 
 已知风险（落地前必须逐 provider 核实）：Anthropic interleaved-thinking、OpenAI encrypted reasoning 这类 provider 把 thinking block 当**工具调用链的重放证明**，同 provider 续接多轮 tool loop 时可能强制要求历史 thinking 随 tool_use 回传——该情形下规则 1 需要按 provider 降级（保留签名块，砍纯文本思考），属 P4 `to-llm-message` 收口时的验收项，不是推翻规则。
 

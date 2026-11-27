@@ -539,6 +539,16 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
         }),
       )
       .handle(
+        "session.assembly",
+        Effect.fn(function* (ctx) {
+          const data = yield* session.inspectContext(ctx.params.sessionID).pipe(
+            Effect.catchTag("Session.NotFoundError", missingSession),
+            Effect.catchTag("Session.MessageDecodeError", failedMessageDecode),
+          )
+          return { data }
+        }),
+      )
+      .handle(
         "session.diff",
         Effect.fn(function* (ctx) {
           return {

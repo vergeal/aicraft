@@ -608,6 +608,9 @@ export interface SessionApi<E = never> {
   /** @deprecated Use `client.experimental.session.stats`. Removed in the next minor. */
   readonly stats: ExperimentalSessionStatsOperation<E>
 
+  /** @deprecated Use `client.experimental.session.assembly`. Removed in the next minor. */
+  readonly assembly: ExperimentalSessionAssemblyOperation<E>
+
   /** @deprecated Use `client.experimental.session.import`. Removed in the next minor. */
   readonly import: ExperimentalSessionImportOperation<E>
 
@@ -708,6 +711,46 @@ export type ExperimentalSessionStatsOutput = {
 export type ExperimentalSessionStatsOperation<E = never> = (
   input?: ExperimentalSessionStatsInput,
 ) => Effect.Effect<ExperimentalSessionStatsOutput, E>
+
+export type ExperimentalSessionAssemblyInput = { readonly sessionID: Session.ID }
+export type ExperimentalSessionAssemblyOutput = {
+  readonly snapshot: {
+    readonly epoch: number
+    readonly prefixVersion: number
+    readonly parentVersion: number | null
+    readonly bumpReason: string
+    readonly baselineEpoch: number
+    readonly agentID: string
+    readonly modelID: string
+    readonly pendingAdvance: boolean
+    readonly layers: ReadonlyArray<{
+      readonly layer: string
+      readonly kind: string
+      readonly source: string
+      readonly bytes: number
+      readonly text: string
+    }>
+    readonly tools: ReadonlyArray<{ readonly name: string; readonly bytes: number; readonly source: string }>
+  } | null
+  readonly lineage: ReadonlyArray<{
+    readonly epoch: number
+    readonly prefixVersion: number
+    readonly parentVersion: number | null
+    readonly bumpReason: string
+    readonly created: number
+  }>
+  readonly history: ReadonlyArray<{
+    readonly id: string
+    readonly label: string
+    readonly started: number
+    readonly messages: ReadonlyArray<{ readonly id: string; readonly type: string; readonly text: string }>
+  }>
+  readonly notice: ReadonlyArray<string>
+  readonly dynamic: ReadonlyArray<{ readonly layer: string; readonly source: string; readonly bytes: number }>
+}
+export type ExperimentalSessionAssemblyOperation<E = never> = (
+  input: ExperimentalSessionAssemblyInput,
+) => Effect.Effect<ExperimentalSessionAssemblyOutput, E>
 
 export type ExperimentalSessionImportInput = {
   readonly info: Session.Info
@@ -1653,6 +1696,7 @@ export type ExperimentalSessionLogOperation<E = never> = (
 
 export interface ExperimentalSessionApi<E = never> {
   readonly stats: ExperimentalSessionStatsOperation<E>
+  readonly assembly: ExperimentalSessionAssemblyOperation<E>
   readonly import: ExperimentalSessionImportOperation<E>
   readonly export: ExperimentalSessionExportOperation<E>
   readonly skill: ExperimentalSessionSkillOperation<E>
@@ -3338,6 +3382,15 @@ export type SessionStatsOutput = ExperimentalSessionStatsOutput
 
 /** @deprecated Use `ExperimentalSessionStatsOperation`. Removed in the next minor. */
 export type SessionStatsOperation<E = never> = ExperimentalSessionStatsOperation<E>
+
+/** @deprecated Use `ExperimentalSessionAssemblyInput`. Removed in the next minor. */
+export type SessionAssemblyInput = ExperimentalSessionAssemblyInput
+
+/** @deprecated Use `ExperimentalSessionAssemblyOutput`. Removed in the next minor. */
+export type SessionAssemblyOutput = ExperimentalSessionAssemblyOutput
+
+/** @deprecated Use `ExperimentalSessionAssemblyOperation`. Removed in the next minor. */
+export type SessionAssemblyOperation<E = never> = ExperimentalSessionAssemblyOperation<E>
 
 /** @deprecated Use `ExperimentalSessionImportInput`. Removed in the next minor. */
 export type SessionImportInput = ExperimentalSessionImportInput

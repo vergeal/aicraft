@@ -41,8 +41,12 @@ export interface SessionContext extends SessionRequest {
    * Context a hook injects outside the system prefix, such as a memory block appended to the tail
    * of the last user message. The Step reports each entry as an injected source so the transcript
    * can show it; entries must be byte-stable within a turn so per-step diffs stay silent.
+   *
+   * `layer` names the layer that supplied the bytes (DESIGN §1), so the context audit can size L5–L8
+   * instead of lumping hook injections into the frozen prefix. Omit it when the text belongs to the
+   * system prefix; the audit then reports the entry without a layer.
    */
-  injected?: Array<{ readonly key: string; readonly text: string }>
+  injected?: Array<{ readonly key: string; readonly layer?: string; readonly text: string }>
 }
 
 export interface SessionCompactionResult {

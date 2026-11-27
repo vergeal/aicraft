@@ -9,7 +9,8 @@ import {
   type ProviderMetadata,
   type TextPart,
 } from "@aicraft/ai/effect"
-import type { Model } from "@aicraft/schema/model"
+import { Model } from "@aicraft/schema/model"
+import { Provider } from "@aicraft/schema/provider"
 import { Option, Schema } from "effect"
 import { fileURLToPath } from "url"
 import { SessionMessage } from "../message.js"
@@ -351,3 +352,16 @@ export const toLLMMessages = (
   model: Model.Ref,
   providerMetadataKey: string = model.providerID,
 ) => messages.flatMap((message) => toLLMMessage(message, model, providerMetadataKey))
+
+/**
+ * Whether one durable message produces any request content at all — the same question the replay
+ * above answers per message, so a panel can list exactly what the model sees and no more
+ * (bookkeeping rows such as `idle` and `agent-switched`, and a background shell's duplicate,
+ * contribute nothing).
+ */
+export const replays = (message: SessionMessage.Info) =>
+  toLLMMessage(
+    message,
+    Model.Ref.make({ providerID: Provider.ID.make("inspect"), id: Model.ID.make("inspect") }),
+    "inspect",
+  ).length > 0

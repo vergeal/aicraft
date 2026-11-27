@@ -202,6 +202,8 @@ export const ContextItem = Schema.Struct({
 /** One source the request injected ahead of the conversation, in system order. */
 export const ContextSource = Schema.Struct({
   key: Schema.String,
+  /** The layer that asked for these bytes (DESIGN §1); absent on sources recorded before the audit existed. */
+  layer: Schema.optionalKey(Schema.String),
   chars: Schema.Number,
   text: Schema.String,
   items: Schema.optionalKey(Schema.Array(ContextItem)),
@@ -217,10 +219,18 @@ const ContextMetadata = Schema.Struct({
 const sourceKey = (kind: SessionContextSnapshot.VolatilePart["kind"]) =>
   kind === "agent" ? "system" : kind === "project" ? ProjectInstructions.key : kind === "identity" ? ModelIdentity.key : "session"
 
-const contextSource = (key: string, text: string): ContextSource => ({ key, chars: text.length, text })
+const contextSource = (key: string, text: string, layer: string = "L1"): ContextSource => ({
+  key,
+  layer,
+  chars: text.length,
+  text,
+})
 
 const renderedSource = (source: Instructions.Rendered): ContextSource => ({
   key: source.key,
+  // A rendered source carries its own layer declaration; the agent prompt, project block and
+  // session block report through `contextSource` and are L1 by construction.
+  ...(source.layer === undefined ? {} : { layer: source.layer }),
   chars: source.text.length,
   text: source.text,
   ...(source.parts?.length
@@ -254,9 +264,14 @@ export const contextSources = (system: ReadonlyArray<SystemPart>): Array<Context
 
 /** Context a hook injected outside the system prefix, reported by the hook event for the transcript. */
 export const hookContextSources = (
-  injected: ReadonlyArray<{ readonly key: string; readonly text: string }> | undefined,
+  injected: ReadonlyArray<{ readonly key: string; readonly layer?: string; readonly text: string }> | undefined,
 ): Array<ContextSource> =>
-  (injected ?? []).map((entry) => ({ key: entry.key, chars: entry.text.length, text: entry.text }))
+  (injected ?? []).map((entry) => ({
+    key: entry.key,
+    ...(entry.layer === undefined ? {} : { layer: entry.layer }),
+    chars: entry.text.length,
+    text: entry.text,
+  }))
 
 /**
  * Maps one assembled system part to the `ContextEntry` shape the tail gate fingerprints.

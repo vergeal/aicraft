@@ -21,6 +21,7 @@ import { createCNY, createCostAmount, createUSD, flashCostBreakdown, flashCostCN
 import { fetchSessionExport, sessionExportFilename } from "./export"
 import { createSessionContextFormatter } from "./format"
 import { CompactionChart } from "./compaction-chart"
+import ContextAssembly from "./assembly"
 
 /** A finished step carries the usage the ledger prices; steps still streaming are left out. */
 type Assistant = SessionMessageAssistant & { tokens: NonNullable<SessionMessageAssistant["tokens"]> }
@@ -1026,6 +1027,9 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             <span class="text-[12px] text-v2-text-text-faint">{context()?.providerLabel ?? "—"}</span>
           </div>
         </section>
+
+        {/* Layer assembly: frozen L1-L3 snapshot, live layers, and the version genealogy */}
+        <ContextAssembly session={props.session} />
 
         {/* Calls */}
         <section class="flex flex-col gap-2.5">

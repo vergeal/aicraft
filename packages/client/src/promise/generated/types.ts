@@ -4119,6 +4119,40 @@ export type ExperimentalSessionStatsInput = {
 
 export type ExperimentalSessionStatsOutput = { data: SessionStatsInfo }["data"]
 
+export type ExperimentalSessionAssemblyInput = { readonly sessionID: string }
+
+export type ExperimentalSessionAssemblyOutput = {
+  data: {
+    snapshot: {
+      epoch: number
+      prefixVersion: number
+      parentVersion: number | null
+      bumpReason: string
+      baselineEpoch: number
+      agentID: string
+      modelID: string
+      pendingAdvance: boolean
+      layers: Array<{ layer: string; kind: string; source: string; bytes: number; text: string }>
+      tools: Array<{ name: string; bytes: number; source: string }>
+    } | null
+    lineage: Array<{
+      epoch: number
+      prefixVersion: number
+      parentVersion: number | null
+      bumpReason: string
+      created: number
+    }>
+    history: Array<{
+      id: string
+      label: string
+      started: number
+      messages: Array<{ id: string; type: string; text: string }>
+    }>
+    notice: Array<string>
+    dynamic: Array<{ layer: string; source: string; bytes: number }>
+  }
+}["data"]
+
 export type ExperimentalSessionImportInput = {
   readonly info: {
     readonly id: string
@@ -5378,6 +5412,12 @@ export type SessionStatsInput = ExperimentalSessionStatsInput
 
 /** @deprecated Use `ExperimentalSessionStatsOutput`. Removed in the next minor. */
 export type SessionStatsOutput = ExperimentalSessionStatsOutput
+
+/** @deprecated Use `ExperimentalSessionAssemblyInput`. Removed in the next minor. */
+export type SessionAssemblyInput = ExperimentalSessionAssemblyInput
+
+/** @deprecated Use `ExperimentalSessionAssemblyOutput`. Removed in the next minor. */
+export type SessionAssemblyOutput = ExperimentalSessionAssemblyOutput
 
 /** @deprecated Use `ExperimentalSessionImportInput`. Removed in the next minor. */
 export type SessionImportInput = ExperimentalSessionImportInput

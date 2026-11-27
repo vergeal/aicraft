@@ -405,7 +405,7 @@ describe("InstructionState", () => {
       expect((yield* instructionEvents(db, sessionID)).map((event) => event.data.text)).toEqual([undefined, undefined])
       expect(yield* messages()).toEqual([])
       expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([
-        { key: Instructions.Key.make("test/context"), text: "Changed context" },
+        { key: Instructions.Key.make("test/context"), layer: "L4", text: "Changed context" },
       ])
 
       // A no-op observation adds nothing.

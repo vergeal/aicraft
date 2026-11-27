@@ -186,19 +186,21 @@ export const notices = Effect.fn("InstructionState.notices")(function* (
     delta[key] = after === undefined ? Option.none() : Option.some(requireBlob(blobs, after))
   }
   // Per-source rendering (mirroring `Instructions.renderUpdate`, which joins to one string):
-  // each notice keeps its key so the assembly can tag the request's context metadata.
+  // each notice keeps its key so the assembly can tag the request's context metadata. A notice is
+  // an L4 state declaration even when the source it restates belongs to another layer (DESIGN §1):
+  // it carries the net change, and the assembly trails it after the frozen baseline.
   return instructions.flatMap((source) => {
     if (!Object.hasOwn(delta, source.key)) return []
     const current = delta[source.key]
     if (current === undefined || Option.isNone(current)) {
       if (!Object.hasOwn(previous, source.key)) return []
       const text = source.removed(previous[source.key])
-      return text === undefined ? [] : [{ key: source.key, text }]
+      return text === undefined ? [] : [{ key: source.key, layer: "L4" as const, text }]
     }
     const text = Object.hasOwn(previous, source.key)
       ? source.changed(previous[source.key], current.value)
       : source.initial(current.value)
-    return text === undefined ? [] : [{ key: source.key, text }]
+    return text === undefined ? [] : [{ key: source.key, layer: "L4" as const, text }]
   })
 })
 

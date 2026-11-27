@@ -162,6 +162,78 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
       ),
     )
     .add(
+      HttpApiEndpoint.get("session.assembly", "/api/experimental/session/:sessionID/assembly", {
+        params: { sessionID: Session.ID },
+        success: Schema.Struct({
+          data: Schema.Struct({
+            /** Live snapshot generation; null until the first request builds one. */
+            snapshot: Schema.NullOr(
+              Schema.Struct({
+                epoch: Schema.Number,
+                prefixVersion: Schema.Number,
+                parentVersion: Schema.NullOr(Schema.Number),
+                bumpReason: Schema.String,
+                baselineEpoch: Schema.Number,
+                agentID: Schema.String,
+                modelID: Schema.String,
+                pendingAdvance: Schema.Boolean,
+                /** Frozen L1 segments with their layer tags, in assembly order. */
+                layers: Schema.Array(
+                  Schema.Struct({
+                    layer: Schema.String,
+                    kind: Schema.String,
+                    source: Schema.String,
+                    bytes: Schema.Number,
+                    text: Schema.String,
+                  }),
+                ),
+                /** Frozen L2 tool declarations: name plus its serialized schema size. */
+                tools: Schema.Array(
+                  Schema.Struct({ name: Schema.String, bytes: Schema.Number, source: Schema.String }),
+                ),
+              }),
+            ),
+            /** Append-only snapshot genealogy, oldest first. */
+            lineage: Schema.Array(
+              Schema.Struct({
+                epoch: Schema.Number,
+                prefixVersion: Schema.Number,
+                parentVersion: Schema.NullOr(Schema.Number),
+                bumpReason: Schema.String,
+                created: Schema.Number,
+              }),
+            ),
+            /**
+             * L3: the turns the next request replays, newest first. Each group is the user message that
+             * opened the turn plus only the rows that actually produce request content.
+             */
+            history: Schema.Array(
+              Schema.Struct({
+                id: Schema.String,
+                label: Schema.String,
+                started: Schema.Number,
+                messages: Schema.Array(
+                  Schema.Struct({ id: Schema.String, type: Schema.String, text: Schema.String }),
+                ),
+              }),
+            ),
+            /** L4: instruction keys whose current value differs from the epoch baseline. */
+            notice: Schema.Array(Schema.String),
+            /** L5/L6/L8 suppliers the assembly declares, by layer. */
+            dynamic: Schema.Array(Schema.Struct({ layer: Schema.String, source: Schema.String, bytes: Schema.Number })),
+          }),
+        }),
+        error: [SessionNotFoundError, UnknownError],
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "experimental.session.assembly",
+          summary: "Inspect session context assembly",
+          description:
+            "Experimental: may change without compatibility guarantees. Read the frozen L1-L3 snapshot, its genealogy, and the live layer occupancy for the context panel.",
+        }),
+      ),
+    )
+    .add(
       HttpApiEndpoint.post("session.create", "/api/session", {
         payload: Schema.Struct({
           id: Session.ID.pipe(Schema.optional),

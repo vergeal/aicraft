@@ -310,7 +310,7 @@ export const Plugin = define({
         // injection is off — saving is always available.
         if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) {
           event.system.push(protocol)
-          event.injected = [...(event.injected ?? []), { key: "memory/protocol", text: PROTOCOL_SHORT }]
+          event.injected = [...(event.injected ?? []), { key: "memory/protocol", layer: "L6", text: PROTOCOL_SHORT }]
         }
         const last = findPromptMessage(event.messages, promptTexts)
         if (last === undefined) return
@@ -343,7 +343,7 @@ export const Plugin = define({
         if (budgeted.truncated) return
         // Report the block as a Step-injected source: the same bytes ride every step of the turn,
         // so the transcript shows one injection row per turn without touching the cached prefix.
-        event.injected = [...(event.injected ?? []), { key: "memory", text: block }]
+        event.injected = [...(event.injected ?? []), { key: "memory", layer: "L6", text: block }]
         event.messages = event.messages.map((message) =>
           message === last && message.role === "user"
             ? new UserMessage({ ...message, content: [...message.content, { type: "text", text: block }] })

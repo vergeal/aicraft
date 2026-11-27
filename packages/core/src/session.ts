@@ -256,6 +256,16 @@ export interface Interface {
   readonly advanceContext: (
     id: SessionSchema.ID,
   ) => Effect.Effect<SessionContextSnapshot.AdvanceResult, NotFoundError | ArchivedError>
+  /**
+   * Experimental: the frozen snapshot and its genealogy for the context panel. Read-only, so opening
+   * the panel never builds a snapshot or shifts the prompt prefix.
+   */
+  readonly inspectContext: (
+    sessionID: SessionSchema.ID,
+  ) => Effect.Effect<
+    Effect.Success<ReturnType<typeof SessionContextSnapshot.inspect>>,
+    NotFoundError | MessageDecodeError
+  >
   readonly active: Effect.Effect<ReadonlySet<SessionSchema.ID>>
   readonly background: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
   readonly resume: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError | SessionRunner.RunError>
@@ -469,6 +479,10 @@ const layer = Layer.effect(
       context: Effect.fn("Session.context")(function* (sessionID) {
         yield* result.get(sessionID)
         return yield* store.context(sessionID)
+      }),
+      inspectContext: Effect.fn("Session.inspectContext")(function* (sessionID) {
+        yield* result.get(sessionID)
+        return yield* SessionContextSnapshot.inspect(db, sessionID)
       }),
       diff: Effect.fn("Session.diff")(function* (input) {
         const session = yield* result.get(input.sessionID)

@@ -188,9 +188,14 @@ export function diff(observed: ReadResult, previous?: Values): Effect.Effect<Adm
   return Effect.succeed({ delta, blobs })
 }
 
-/** One source's rendered text, keyed so consumers can tell the sources apart. */
+/**
+ * One source's rendered text, keyed so consumers can tell the sources apart. `layer` is the
+ * source's own declaration (DESIGN §1), carried through assembly so the audit can attribute
+ * the bytes to the layer that asked for them instead of dumping everything into L1.
+ */
 export interface Rendered {
   readonly key: Key
+  readonly layer?: Suppliers.SupplierLayer
   readonly text: string
   readonly parts?: ReadonlyArray<RenderedPart>
 }
@@ -201,7 +206,14 @@ export function renderInitial(value: List, values: Readonly<Record<string, Schem
     const text = source.initial(values[source.key])
     if (text === undefined) return []
     const parts = source.parts?.(values[source.key])
-    return [{ key: source.key, text, ...(parts && parts.length > 0 ? { parts } : {}) }]
+    return [
+      {
+        key: source.key,
+        ...(source.layer === undefined ? {} : { layer: source.layer }),
+        text,
+        ...(parts && parts.length > 0 ? { parts } : {}),
+      },
+    ]
   })
 }
 

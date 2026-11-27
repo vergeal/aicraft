@@ -105,6 +105,8 @@ import type {
   SessionViewOutput,
   ExperimentalSessionStatsInput,
   ExperimentalSessionStatsOutput,
+  ExperimentalSessionAssemblyInput,
+  ExperimentalSessionAssemblyOutput,
   ExperimentalSessionImportInput,
   ExperimentalSessionImportOutput,
   ExperimentalSessionExportInput,
@@ -787,6 +789,17 @@ export function make(options: ClientOptions) {
               },
               successStatus: 200,
               declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+        assembly: (input: ExperimentalSessionAssemblyInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalSessionAssemblyOutput }>(
+            {
+              method: "GET",
+              path: `/api/experimental/session/${encodeURIComponent(input.sessionID)}/assembly`,
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404, 500],
               empty: false,
             },
             requestOptions,
@@ -3063,6 +3076,8 @@ export function make(options: ClientOptions) {
       ...client.session,
       /** @deprecated Use `client.experimental.session.stats`. Removed in the next minor. */
       stats: client.experimental.session.stats,
+      /** @deprecated Use `client.experimental.session.assembly`. Removed in the next minor. */
+      assembly: client.experimental.session.assembly,
       /** @deprecated Use `client.experimental.session.import`. Removed in the next minor. */
       import: client.experimental.session.import,
       /** @deprecated Use `client.experimental.session.export`. Removed in the next minor. */

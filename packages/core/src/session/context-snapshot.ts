@@ -3,16 +3,34 @@ export * as SessionContextSnapshot from "./context-snapshot.js"
 import { eq } from "drizzle-orm"
 import { bumpLineage, initialLineage } from "@aicraft/context"
 import { ToolDefinition } from "@aicraft/ai/effect"
-import { Effect, Option, Schema } from "effect"
+import { DateTime, Effect, Option, Schema } from "effect"
 import type { Lineage } from "@aicraft/context"
 import type { Database } from "../database/database.js"
 import { SessionSchema } from "./schema.js"
 import { ContextLineageTable, ContextSnapshotTable, InstructionStateTable } from "./sql.js"
+import { SessionHistory } from "./history.js"
+import { replays } from "./runner/to-llm-message.js"
+import type { SessionMessage } from "./message.js"
 
 type DatabaseService = Database.Interface["db"]
 type SnapshotRow = typeof ContextSnapshotTable.$inferSelect
 /** The write surface the snapshot helpers need; a transaction handle satisfies it too. */
 type Writer = Pick<DatabaseService, "insert" | "update">
+
+/**
+ * One source a Step reported for the request it sent, read back from the assistant message's
+ * `metadata.context`. A source recorded before the audit carried a layer has none, and lands in L1
+ * because the assembler only ever reported the frozen prefix then.
+ */
+const SentSource = Schema.Struct({
+  key: Schema.String,
+  layer: Schema.optionalKey(Schema.String),
+  chars: Schema.Number,
+  text: Schema.String,
+})
+const SentContext = Schema.Struct({
+  context: Schema.Struct({ sources: Schema.Array(SentSource) }),
+})
 
 /** One of the four volatile system-prefix segments captured at build time. */
 export interface VolatilePart {
@@ -96,6 +114,197 @@ export const resolve = Effect.fn("SessionContextSnapshot.resolve")(function* (
   yield* store(db, input, lineage)
   return { parts: input.live, tools: input.tools, lineage, rebuilt: true }
 })
+
+/**
+ * Reads the stored snapshot, its genealogy and the live layer occupancy for the context panel.
+ * Nothing here writes: a session without a snapshot reports `snapshot: null` instead of building one,
+ * because opening a panel must never move the prompt prefix.
+ *
+ * Every layer reports the text it actually contributes to the request, so the panel can show the
+ * assembly rather than a summary of it.
+ */
+export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+) {
+  const row = yield* db
+    .select()
+    .from(ContextSnapshotTable)
+    .where(eq(ContextSnapshotTable.session_id, sessionID))
+    .get()
+    .pipe(Effect.orDie)
+  const lineage = yield* db
+    .select()
+    .from(ContextLineageTable)
+    .where(eq(ContextLineageTable.session_id, sessionID))
+    .orderBy(ContextLineageTable.prefix_version)
+    .all()
+    .pipe(Effect.orDie)
+  const state = yield* db
+    .select()
+    .from(InstructionStateTable)
+    .where(eq(InstructionStateTable.session_id, sessionID))
+    .get()
+    .pipe(Effect.orDie)
+  // L3: the durable transcript from the newest compaction on — the same rows the next request replays.
+  const history = yield* SessionHistory.load(db, sessionID, "latest")
+  // L3 is grouped by the user message that opened the turn, and only rows that actually produce
+  // request content are listed: these are the bytes the model reads, not the wider durable log.
+  const turns = history
+    .filter((message) => replays(message))
+    .reduce<Array<{ id: string; label: string; started: number; messages: Array<{ type: string; id: string; text: string }> }>>(
+      (groups, message) => {
+        const entry = { type: message.type, id: message.id, text: messageText(message) }
+        if (message.type === "user") {
+          groups.push({
+            id: message.id,
+            label: message.text || `[${message.type}]`,
+            started: DateTime.toEpochMillis(message.time.created),
+            messages: [entry],
+          })
+          return groups
+        }
+        const current = groups.at(-1)
+        // Rows before the first user message (a checkpoint, a system notice) form their own group.
+        if (!current) {
+          groups.push({ id: message.id, label: entry.text, started: DateTime.toEpochMillis(message.time.created), messages: [entry] })
+          return groups
+        }
+        current.messages.push(entry)
+        return groups
+      },
+      [],
+    )
+  // The last request that actually went out. Every system part and hook injection reported its
+  // sources into the Step, so this is the real occupancy rather than a re-derivation of it.
+  const sent = history.reduce<ReadonlyArray<typeof SentSource.Type>>((found, message) => {
+    const decoded = Option.getOrUndefined(Schema.decodeUnknownOption(SentContext)(message.metadata))
+    return decoded === undefined ? found : decoded.context.sources
+  }, [])
+  return {
+    snapshot: row
+      ? {
+          epoch: row.epoch,
+          prefixVersion: row.prefix_version,
+          parentVersion: row.parent_version ?? null,
+          bumpReason: row.bump_reason,
+          baselineEpoch: row.baseline_epoch,
+          agentID: row.agent_id,
+          modelID: row.model_id,
+          pendingAdvance: row.pending_advance,
+          layers: parts(row.parts),
+          tools: tools(row.tools),
+        }
+      : null,
+    lineage: lineage.map((entry) => ({
+      epoch: entry.epoch,
+      prefixVersion: entry.prefix_version,
+      parentVersion: entry.parent_version ?? null,
+      bumpReason: entry.bump_reason,
+      created: entry.time_created,
+    })),
+    history: [...turns].reverse(),
+    // L4: the keys whose current value differs from the epoch baseline. The rendered notices need the
+    // instruction sources, which the panel does not have; the diff is what the ledger would settle.
+    notice: state
+      ? [
+          ...new Set([...Object.keys(state.initial_values), ...Object.keys(state.current_values)]),
+        ].filter((key) => state.initial_values[key] !== state.current_values[key])
+      : [],
+    // L4–L8 occupancy of the last request that actually went out. Every source the assembler and the
+    // context hook reported carries the layer that asked for its bytes, so the audit reads the real
+    // request instead of re-deriving it: L4 notices, L5 dynamic facts and L6 memory were previously
+    // indistinguishable from the frozen prefix.
+    dynamic: dynamic(sent),
+  }
+})
+
+const encoder = new TextEncoder()
+
+/** Mirrors `to-llm-message`: only an unfinished turn keeps its reasoning in the request. */
+const NORMAL_FINISHES = new Set(["stop", "length", "tool-calls", "content-filter"])
+const replayReasoning = (message: SessionMessage.Assistant) =>
+  message.error !== undefined ||
+  (message.finish === undefined ? message.time.completed === undefined : !NORMAL_FINISHES.has(message.finish))
+
+/** Readable text of one durable message, for the panel's L3 list — the same bytes the model reads. */
+const messageText = (message: SessionMessage.Info): string => {
+  if (message.type === "user" || message.type === "synthetic" || message.type === "skill" || message.type === "system")
+    return message.text
+  // A shell result reaches the model wrapped in this prompt, not as the bare command.
+  if (message.type === "shell")
+    return `The user ran the following shell command:\n\nCommand:\n${message.command}\n\nOutput:\n${message.output?.output ?? ""}`
+  if (message.type === "assistant")
+    return message.content
+      .map((part) => {
+        if (part.type === "tool") return toolText(part)
+        if (part.type === "reasoning") return replayReasoning(message) ? part.text : ""
+        return part.text
+      })
+      .filter((text) => text !== "")
+      .join("\n\n")
+  // Compaction replays as the checkpoint block rather than a one-word label.
+  if (message.type === "compaction") return message.status === "completed" ? message.summary : ""
+  return ""
+}
+
+/**
+ * One tool part as the model sees it: the call with its real input, then the real result or error.
+ * Nothing is summarized — a label like "[tool shell completed]" would show the reader something the
+ * model never receives.
+ */
+const toolText = (part: SessionMessage.AssistantTool): string => {
+  const call = `Tool call: ${part.name}\n${JSON.stringify(part.state.status === "streaming" ? part.state.input : part.state.input, null, 2)}`
+  if (part.executed !== true) return call
+  if (part.state.status === "completed") {
+    const content = part.state.content
+      .map((item) => (item.type === "text" ? item.text : `[${item.type} ${item.uri ?? item.mime ?? ""}]`))
+      .join("\n")
+    return `${call}\n\nTool result:\n${content}`
+  }
+  if (part.state.status === "error") return `${call}\n\nTool error:\n${part.state.error.message}`
+  return call
+}
+
+/** L1 segments as the panel lists them: one row per frozen part, sized in UTF-8 bytes. */
+const parts = (value: unknown) =>
+  Option.getOrUndefined(decodeStoredParts(value))?.parts.map((part) => ({
+    layer: "L1",
+    kind: part.kind,
+    source: part.kind === "agent" ? "system" : `core/${part.kind}`,
+    bytes: encoder.encode(part.text).length,
+    text: part.text,
+  })) ?? []
+
+/** L2 declarations as the panel lists them: the advertised name and its serialized schema size. */
+const tools = (value: unknown) =>
+  Option.getOrUndefined(decodeStoredTools(value))?.map((tool) => ({
+    name: tool.name,
+    bytes: encoder.encode(JSON.stringify(tool.inputSchema)).length,
+    source: "tool-registry",
+  })) ?? []
+
+/**
+ * L4–L8 occupancy, folded per layer from the sources the last request reported. Grouping by
+ * source key keeps a layer's rows stable across steps; a source with no layer predates the
+ * audit and belongs to the frozen prefix, which is why it lands in L1.
+ */
+const dynamic = (sent: ReadonlyArray<typeof SentSource.Type>) => {
+  const groups = new Map<string, { layer: string; source: string; bytes: number; text: string }>()
+  for (const entry of sent) {
+    const layer = entry.layer ?? "L1"
+    if (layer === "L1" || layer === "L2" || layer === "L3") continue
+    const key = `${layer}\u0000${entry.key}`
+    const found = groups.get(key)
+    if (found === undefined) {
+      groups.set(key, { layer, source: entry.key, bytes: encoder.encode(entry.text).length, text: entry.text })
+      continue
+    }
+    found.bytes += encoder.encode(entry.text).length
+    found.text = found.text === entry.text ? found.text : `${found.text}\n\n${entry.text}`
+  }
+  return [...groups.values()]
+}
 
 /**
  * Manual advance: the user explicitly commits the pending instruction changes. Settles the

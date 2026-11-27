@@ -85,7 +85,7 @@ describe("InstructionState.notices (L4)", () => {
       yield* InstructionState.prepare(db, events, Instructions.combine([alpha, added]), sessionID)
 
       expect(yield* InstructionState.notices(db, sessionID, Instructions.combine([alpha, added]))).toEqual([
-        { key: Instructions.Key.make("test/beta"), text: "test/beta initial two" },
+        { key: Instructions.Key.make("test/beta"), layer: "L4" as const, text: "test/beta initial two" },
       ])
     }),
   )
@@ -105,7 +105,7 @@ describe("InstructionState.notices (L4)", () => {
       yield* InstructionState.prepare(db, events, instructions, sessionID)
 
       expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([
-        { key: Instructions.Key.make("test/alpha"), text: "test/alpha changed one -> three" },
+        { key: Instructions.Key.make("test/alpha"), layer: "L4" as const, text: "test/alpha changed one -> three" },
       ])
     }),
   )
@@ -125,7 +125,7 @@ describe("InstructionState.notices (L4)", () => {
       yield* InstructionState.prepare(db, events, instructions, sessionID)
 
       expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([
-        { key: Instructions.Key.make("test/alpha"), text: "test/alpha removed one" },
+        { key: Instructions.Key.make("test/alpha"), layer: "L4" as const, text: "test/alpha removed one" },
       ])
     }),
   )
@@ -170,7 +170,7 @@ describe("InstructionState.notices (L4)", () => {
       // Replacing, never appending: the intermediate v3 narrative is gone and the
       // settled notice restates the net baseline-to-current change only once.
       expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([
-        { key: Instructions.Key.make("test/alpha"), text: "test/alpha changed one -> two" },
+        { key: Instructions.Key.make("test/alpha"), layer: "L4" as const, text: "test/alpha changed one -> two" },
       ])
     }),
   )

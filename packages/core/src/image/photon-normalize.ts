@@ -29,6 +29,8 @@ export type Result =
 const PNG_PASSTHROUGH_MAX_BASE64_BYTES = 384 * 1024
 const SMALL_PNG_MAX_PIXELS = 256 * 256
 const JPEG_QUALITIES = [80, 70, 55, 40]
+// WebP carries the same pixels in a fraction of the bytes PNG or JPEG need, and every protocol that
+// accepts an image part accepts `image/webp`, so it goes first: the smallest candidate that fits wins.
 
 // A runtime without a photon wasm artifact (#photon-wasm resolves to the empty
 // string on workerd) has no resizer, by declaration.
@@ -125,18 +127,43 @@ export function normalize(photon: Photon, content: Content, limits: Readonly<Lim
         const jpegEncoders = JPEG_QUALITIES.map(
           (quality) => ["image/jpeg", () => resized.get_bytes_jpeg(quality)] as const,
         )
-        const pngFirst = transparent || size.width * size.height <= SMALL_PNG_MAX_PIXELS
-        const encoders: Array<readonly [mime: string, encode: () => Uint8Array]> = pngFirst
-          ? [pngEncoder, ...jpegEncoders]
-          : [...jpegEncoders, pngEncoder]
-        for (const [mime, encode] of encoders) {
-          const candidate = encode()
-          if (base64Length(candidate) <= limits.maxBase64Bytes)
+        // Every candidate that fits is encoded and the smallest one wins. Picking the first that fits
+        // would keep a 5 MB PNG over a fraction-of-that WebP, and the bytes are the prompt: an image
+        // that reaches a text-only provider is billed as base64 characters, so size is cost.
+        // WebP goes first only to keep alpha lossless where PNG already fits, because a transparent
+        // image flattened by WebP's lossy path loses its edges.
+        const webpEncoder = ["image/webp", () => resized.get_bytes_webp()] as const
+        // A transparent image keeps PNG: WebP's lossy path softens alpha edges, and transparency only
+        // exists where the pixels are small enough for PNG to fit. Everything else competes on size.
+        if (transparent) {
+          const png = pngEncoder[1]()
+          if (base64Length(png) <= limits.maxBase64Bytes)
             return {
               _tag: "Content",
-              content: { ...content, content: Buffer.from(candidate).toString("base64"), encoding: "base64", mime },
+              content: { ...content, content: Buffer.from(png).toString("base64"), encoding: "base64", mime: "image/png" },
             }
         }
+        const encoders: Array<readonly [mime: string, encode: () => Uint8Array]> = [
+          webpEncoder,
+          ...jpegEncoders,
+          pngEncoder,
+        ]
+        let best: { mime: string; candidate: Uint8Array } | undefined
+        for (const [mime, encode] of encoders) {
+          const candidate = encode()
+          if (base64Length(candidate) > limits.maxBase64Bytes) continue
+          if (best === undefined || candidate.length < best.candidate.length) best = { mime, candidate }
+        }
+        if (best)
+          return {
+            _tag: "Content",
+            content: {
+              ...content,
+              content: Buffer.from(best.candidate).toString("base64"),
+              encoding: "base64",
+              mime: best.mime,
+            },
+          }
       } finally {
         if (resized !== decoded) resized.free()
       }

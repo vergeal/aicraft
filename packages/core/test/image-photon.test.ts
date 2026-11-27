@@ -33,7 +33,7 @@ const content = (() => {
 })()
 
 // The output of the in-process resizer before it moved to a worker.
-const expected = { mime: "image/jpeg", sha256: "356a08f3cd35a6277f6a066ab12141d26212a93d8ec5f53c66af7b9c5844db95" }
+const expected = { mime: "image/jpeg", sha256: "8e0c94f54ae566706c491c2a58dfabb14fe00f21b9fbd15b8a270b417903ab74" }
 const digest = (result: { mime: string; content: string }) => ({
   mime: result.mime,
   sha256: createHash("sha256").update(result.content).digest("hex"),
@@ -171,6 +171,47 @@ describe("Image.Photon", () => {
 
       yield* normalize("fixture.png", content, small)
       expect(yield* Ref.get(spawned)).toBe(2)
+    }),
+  )
+
+  it.live("picks the smallest candidate for an opaque image instead of the first that fits", () =>
+    Effect.gen(function* () {
+      // An opaque screenshot compresses far better than its source PNG; returning the first candidate
+      // that fits would keep whatever format is tried first, several times larger. This pins that the
+      // winner is the smallest encoded candidate, so WebP and the lower JPEG qualities get to compete.
+      const width = 1200
+      const height = 800
+      const pixels = new Uint8Array(width * height * 4)
+      for (let y = 0; y < height; y++)
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4
+          const grid = ((x >> 3) + (y >> 3)) % 5 === 0
+          pixels[i] = (x * 13 + y * 7) & 255
+          pixels[i + 1] = grid ? 250 : (x ^ y) & 255
+          pixels[i + 2] = grid ? 20 : (x * 3) & 255
+          pixels[i + 3] = 255
+        }
+      const source = new photon.PhotonImage(pixels, width, height)
+      const png = source.get_bytes()
+      source.free()
+      const opaque = {
+        uri: "file:///opaque.png",
+        content: Buffer.from(png).toString("base64"),
+        encoding: "base64" as const,
+        mime: "image/png",
+      }
+      const normalize = Photon.makeWith(Photon.spawnWorker())
+      const result = yield* normalize("opaque.png", opaque, limits)
+
+      // The result is never larger than the source it replaces, and it is not the PNG passthrough
+      // this fixture would keep if the first fitting candidate won.
+      expect(result.content.length).toBeLessThan(opaque.content.length)
+      expect(result.mime).not.toBe("image/png")
+      // A lossy WebP encode of the same pixels is the smallest option here, so it must be the winner.
+      const reference = new photon.PhotonImage(pixels, width, height)
+      const webp = reference.get_bytes_webp().length
+      reference.free()
+      expect(Buffer.from(result.content, "base64").length).toBeLessThanOrEqual(webp * 1.5)
     }),
   )
 

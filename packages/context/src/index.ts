@@ -1,6 +1,7 @@
 export * from "./layer.js"
 export * from "./entry.js"
 export * from "./snapshot.js"
+export * from "./lineage.js"
 export * from "./plan.js"
 export * from "./errors.js"
 export * from "./api.js"

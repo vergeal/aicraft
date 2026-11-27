@@ -21,7 +21,8 @@ export interface Snapshot {
   readonly l3FoldThroughSeq: number
 }
 
+/** 版本推进的两种命令。 */
+export type AbsorbKind = "advance" | "compaction"
+
 /** absorb 命令：advance 只拨 prefixVersion；compaction 同时拨 epoch 并要求折叠参数。 */
-export type AbsorbCommand =
-  | { readonly kind: "advance" }
-  | { readonly kind: "compaction"; readonly fold: HistoryFold }
+export type AbsorbCommand = { readonly kind: "advance" } | { readonly kind: "compaction"; readonly fold: HistoryFold }

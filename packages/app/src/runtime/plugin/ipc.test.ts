@@ -92,6 +92,42 @@ test("a subscribe main rejects fails the Ipc until main provides it again", asyn
   ipcs.dispose()
 })
 
+// The crash this guards: a throw while one event is being processed (a reactive write or a schema decode
+// overflowing the stack) unwinds the drain, and the unshifted head kept every later dispatch from
+// scheduling a new one — the queue died and the Ipc stayed stale forever.
+test("an event that throws while being processed cannot stop the queue for good", async () => {
+  const bridge = fakeBridge()
+  const ipcs = createIpcClients(bridge.value)
+  ipcs.client(token)
+  const log = console.error
+  let poisoned = false
+  console.error = (...args: unknown[]) => {
+    if (!poisoned) {
+      poisoned = true
+
+      throw new Error("the writer exploded")
+    }
+
+    log(...args)
+  }
+
+  try {
+    bridge.fail(new Error("main is busy"))
+    await Bun.sleep(0) // the rejection dispatches `failed`; its log effect throws mid-drain
+    bridge.emit({ type: "available", ipc: "fixture", available: true })
+    bridge.reply({ available: true, state: { count: 1 } })
+    await Bun.sleep(0)
+
+    expect({ client: !!ipcs.client(token), state: ipcs.client(token)?.state() }).toEqual({
+      client: true,
+      state: { count: 1 },
+    })
+  } finally {
+    console.error = log
+    ipcs.dispose()
+  }
+})
+
 test("a payload its codec rejects reaches no reader and does not stop the bridge's other listeners", async () => {
   const bridge = fakeBridge()
   const Counter = Ipc.define({ id: "fixture", methods: {}, state: Schema.Struct({ count: Schema.Number }) })

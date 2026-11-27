@@ -41,34 +41,52 @@ export function createIpcClients(bridge: Bridge | undefined) {
   const clients = new Map<string, IpcClient<IpcSpec>>()
   const listeners = new Map<string, Set<(name: string, data: Decoded) => void>>()
 
+  // One drain at a time: a dispatch raised while the queue is being consumed joins the running drain
+  // instead of starting a nested one.
+  let draining = false
+
   const dispatch = (event: IpcEvent) => {
     queue.push(event)
 
-    if (queue.length === 1) untrack(drain)
+    if (!draining) untrack(drain)
   }
 
   const drain = () => {
-    const event = queue[0]
+    draining = true
 
-    if (!event) return
+    try {
+      // Consume in a loop, never by recursing into the next event: a burst queued while main is chatty
+      // grows the stack per event, and a depth failure unwinds the whole chain.
+      while (queue.length) {
+        const event = queue[0]
 
-    const next = transitionIpc(machine.state, event)
+        try {
+          const next = transitionIpc(machine.state, event)
 
-    if (next.state !== machine.state && event.type !== "disposed")
-      setViews(
-        event.id,
-        reconcile({
-          available: selectIpcAvailable(next.state, event.id),
-          generation: selectIpcGeneration(next.state, event.id),
-          failed: selectIpcFailed(next.state, event.id),
-          value: selectIpcValue(next.state, event.id),
-        }),
-      )
+          if (next.state !== machine.state && event.type !== "disposed")
+            setViews(
+              event.id,
+              reconcile({
+                available: selectIpcAvailable(next.state, event.id),
+                generation: selectIpcGeneration(next.state, event.id),
+                failed: selectIpcFailed(next.state, event.id),
+                value: selectIpcValue(next.state, event.id),
+              }),
+            )
 
-    machine.state = next.state
-    next.effects.forEach(run)
-    queue.shift()
-    drain()
+          machine.state = next.state
+          next.effects.forEach(run)
+        } catch (cause) {
+          // An event that dies while processing is still consumed: a poison left at the head would
+          // keep every later dispatch from scheduling a drain again, and the queue would never move.
+          console.error(`[plugin] ${"id" in event ? event.id : event.type}`, cause)
+        } finally {
+          queue.shift()
+        }
+      }
+    } finally {
+      draining = false
+    }
   }
 
   const run = (effect: IpcEffect) => {

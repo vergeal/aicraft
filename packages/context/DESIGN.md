@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | L1 | 系统提示词、Harness 机制（agent system、family 解析结果、项目/会话指令、静态注册表指令） | 不动产 | context 自管（快照） | 否 |
 | L2 | 能力声明：CodeMode、插件工具、MCP 的 tools schema | 不动产 | context 自管（快照） | 否 |
-| L3 | 历史上下文（投影后的消息流，含工具结果） | 每轮追加、追加区之前不动 | context 自管（快照/折叠） | 本体 |
+| L3 | 历史上下文（投影后的消息流：**正文 + 工具结果**；思考默认不回放，见 §1.1） | 每轮追加、追加区之前不动 | context 自管（快照/折叠） | 本体 |
 | L4 | 变更状态声明（search 已不可用 / 又可用了——**替换式**，只反映最新态） | 少变更 | context 账本渲染 | 否 |
 | L5 | 动态描述（日期、环境变化） | 热变更 | 调用方注入槽（默认 context 时钟） | 否 |
 | L6 | 记忆层（**memory 子系统检索产出**，命中即携带、不去重、临时） | 热变更 | 外部供给 | 否（其效果经 L3 交互痕迹体现） |
@@ -16,6 +16,17 @@
 | L8 | 尾部注入（MAX_STEPS、CONTINUE_AFTER、system-reminder、steer） | 热变更 | 调用方注入槽（注册表声明） | 否 |
 
 装配次序即表序。缓存语义：L1–L4 在版本内字节稳定；L4 变化只失效 L4 及其后小段；L5–L8 本就在尾部热区，不计较。
+
+### 1.1 L3 回放细则
+
+**L3 只存正文，思考不进回放**——落库（durable 消息流）不变，UI 可回看；进请求的映射规则：
+
+1. **正常完成的 turn**：只回放正文与工具轨迹，reasoning 一律不进请求（思考逐轮全量重发是最大的隐性 token 花销之一，切断）。
+2. **未完成 turn**（异常终止或用户手动终止）：该消息的**全部思考段**顶替正文回放，并以文字标注明确"这是思考内容、非正文"；模型需要断点线索才不会从头重做。现状 `failAssistant→flush` 已把中断时刻的累积思考全量提交落库，素材完整。
+3. **无正文也无思考的终止 turn**：写备注"本轮无任何输出"，并同时标明终止方式（异常终止 / 用户手动终止）。
+4. **undo/resend**：L3 线性追加（消息按 seq 单调），undo/resend 即把上一步内容自尾部**线性移除**（现 `SessionRevert` 已符合：删 `seq > boundary` 后缀）。允许连续 undo，每次都是线性往上移除；剩余前缀逐字节不动，与快照缓存语义天然一致（不动 baseline 就不裂缓存）。
+
+已知风险（落地前必须逐 provider 核实）：Anthropic interleaved-thinking、OpenAI encrypted reasoning 这类 provider 把 thinking block 当**工具调用链的重放证明**，同 provider 续接多轮 tool loop 时可能强制要求历史 thinking 随 tool_use 回传——该情形下规则 1 需要按 provider 降级（保留签名块，砍纯文本思考），属 P4 `to-llm-message` 收口时的验收项，不是推翻规则。
 
 ## 2. 两个时钟 + 可追溯谱系
 
@@ -116,7 +127,7 @@ interface SourceReaders { /* Instructions 域 read() / agent 配置 / 工具注�
 | 现有 | 去向 |
 |---|---|
 | `baseTranscript`（每步重建 + `project`/`sessionPrompt` 实时重读） | 快照化，实时重读切断。现状最大的漂移源，P1 第一个死 |
-| `to-llm-message.ts` | `assemble` 的 L3 映射；媒体/provider 细节留 adapter（§9 降级条款） |
+| `to-llm-message.ts` | `assemble` 的 L3 映射：按 §1.1 细则实现（思考默认不回放、终止 turn 思考顶正文带标注、空输出备注）；媒体/provider 细节留 adapter（§9 降级条款），interleaved-thinking 类签名保真按 provider 降级 |
 | `instruction-state.ts` initial/changed/`advanceEpoch` | initial→Snapshot；changed 时间线注入→废弃（L4 替换式取代）；advanceEpoch→absorb；表/blob→SnapshotStore 适配器 |
 | `MAX_STEPS`/`CONTINUE_AFTER_*`/system-reminder/memory 注入 | L8/L6 供给者注册表 |
 | family txt + `optimize.ts` override | 装配期解析进 L1（v1 定稿）；运行期 override 通道关闭，变更走账本 |

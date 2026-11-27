@@ -7,6 +7,7 @@ import { SessionTimeline } from "../timeline/session-timeline"
 import { FileComponentProvider } from "@aicraft/ui/context/file"
 import { Button } from "@aicraft/ui/button"
 import { Show, createMemo, createSignal, type JSX } from "solid-js"
+import type { TimelineDetail } from "../timeline/detail"
 import { CURRENT_SESSION_ID, STORY_TIME } from "./current-session-fixtures"
 
 export function CurrentSessionProviders(props: {
@@ -84,6 +85,7 @@ export function CurrentSessionTimelineStory(props: {
   editToolDefaultOpen?: boolean
   turnDiffs?: boolean
   backgroundCompaction?: boolean
+  timelineDetail?: TimelineDetail
 }) {
   // Inline story documents rebuild their messages on every prop read, and the timeline projection keys text by identity.
   const document = createMemo(() => props.document)
@@ -130,6 +132,7 @@ export function CurrentSessionTimelineStory(props: {
                   shellToolDefaultOpen={props.shellToolDefaultOpen}
                   editToolDefaultOpen={props.editToolDefaultOpen}
                   turnDiffs={props.turnDiffs}
+                  timelineDetail={props.timelineDetail}
                 />
               </CurrentSessionProviders>
             </div>

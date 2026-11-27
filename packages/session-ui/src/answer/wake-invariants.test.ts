@@ -159,16 +159,6 @@ const samples: Record<string, () => { messages: SessionMessageInfo[]; pending?: 
       assistant("msg_3", 13, [tool("tool_1"), text("streaming…")], undefined),
     ],
   }),
-  "a wake follows a change-carrying fold": () => ({
-    messages: [
-      user("msg_1", "go", 1),
-      assistant("msg_2", 2, [tool("tool_1")], 10),
-      idle("idle_1", 11),
-      shellWake("msg_w", 12),
-      assistant("msg_3", 13, [text("woke reply")], 20),
-      idle("idle_2", 21),
-    ],
-  }),
   "a wake follows an interrupted answer": () => ({
     messages: [
       user("msg_1", "go", 1),
@@ -321,7 +311,6 @@ describe.each(Object.entries(samples))("wake invariants: %s", (_name, build) => 
       // 24px breathing room, so the bar never hugs the work it introduces.
       if (previous === "assistant") expect(gaps[i], `gap under ${previous}`).toBe(0)
       if (previous === "input") expect(gaps[i], `gap under ${previous}`).toBe(26)
-      if (previous === "fold") expect(gaps[i], `gap under a fold`).toBe(24)
       if (next === "fold") expect(gaps[i + 1], `gap over fold`).toBe(24)
       if (next === "assistant") expect(gaps[i + 1], `gap over reply`).toBe(24)
       if (next === "input") expect(gaps[i + 1], `gap over prompt`).toBe(24)

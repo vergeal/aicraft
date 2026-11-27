@@ -293,6 +293,14 @@ export namespace Timeline {
 
     messages.forEach((message) => {
       if (isNotice(message)) {
+        if (current && backgroundWakeNotice(message, pendingInputIDs) && turnHasWork(current)) {
+          const turn: Turn = { id: message.id, time: message.time, entries: [{ type: "notice", message }] }
+          turns.push(turn)
+          current = turn
+
+          return
+        }
+
         if (current) current.entries.push({ type: "notice", message })
 
         if (!current) leading.push(message)
@@ -494,7 +502,8 @@ export namespace Timeline {
     ]
 
     // Like the TUI, a queued compaction waits after the active turn and ahead of every undelivered input:
-    // steers, which own turns, and synthetic notices, which ride at the end of the active one.
+    // steers, which own turns, and notices, which ride at the end of the active one until a background
+    // wake delivered after its work opens a turn of its own.
     const pendingAt = rows.findIndex(
       (row) =>
         pendingInputIDs?.has(row.userMessageID) ||
@@ -1259,4 +1268,20 @@ function isNotice(message: SessionMessageInfo): message is Notice {
   if (message.type !== "synthetic") return true
 
   return !!message.description?.trim() || timelineNoticeRequired(message)
+}
+
+// A completed background shell or subagent is the only notice that spawns follow-up work: its
+// report opens a block of its own so the work it wakes cannot steal the answer slot of the turn
+// above. Undelivered wakes are queued input and keep riding until delivery splits them off.
+function backgroundWakeNotice(message: Notice, pendingInputIDs?: ReadonlySet<string>) {
+  if (message.type !== "synthetic" || pendingInputIDs?.has(message.id)) return false
+  const source = message.metadata?.source
+
+  return source === "shell" || source === "subagent"
+}
+
+// A wake that arrives before the turn has done anything still belongs to that turn: only a notice
+// interrupting finished work starts a block, so batched wakes delivered together share one.
+function turnHasWork(turn: { entries: readonly { type: string }[] }) {
+  return turn.entries.some((entry) => entry.type !== "notice")
 }

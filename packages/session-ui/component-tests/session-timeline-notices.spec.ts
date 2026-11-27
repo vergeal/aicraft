@@ -1,5 +1,21 @@
 import { expect, story } from "../../stories/playwright/story"
 
+// A background wake that opens its own turn reads as a collapsible completion block: the command and
+// the captured output ride with the notice, because the call it interrupts sits folded far above.
+story("renders a background wake notice as an expandable completion block", async ({ mount }) => {
+  const timeline = await mount("current-session-timeline-rows--background-wake-after-answered-turn")
+  const notice = timeline.locator('[data-slot="session-timeline-notice"][data-wake="true"]')
+
+  await expect(notice).toHaveCount(1)
+  await expect(notice).toContainText("Shell finished")
+  await expect(notice).toContainText("bash jk_watch.sh")
+  await expect(notice.locator('[data-slot="bash-pre"]')).toHaveCount(0)
+
+  await notice.locator('[data-slot="collapsible-trigger"]').click()
+  await expect(notice.locator('[data-slot="bash-command"]')).toContainText("bash jk_watch.sh")
+  await expect(notice.locator('[data-slot="bash-result"]')).toContainText("#563 DONE SUCCESS")
+})
+
 // Moved from packages/app/e2e/regression/session-timeline-notices.spec.ts
 story("renders the moved location notice as a timeline divider", async ({ mount, page }) => {
   const directory = `/Users/usrnk1/Developer/aicraft/${"nested-directory/".repeat(24)}session`

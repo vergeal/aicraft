@@ -155,10 +155,13 @@ describe("current session timeline rows", () => {
 
     const result = Timeline.constructSessionMessageRows(source, true, { type: "idle" })
 
+    // The subagent wake interrupts finished work, so it opens its own block; everything delivered
+    // after it — the switch, the next step, the restart and skill notices — hangs off the wake.
     expect(result.rows.map(TimelineRow.key)).toEqual([
       "user-message:msg_user",
       "notice:msg_agent",
       "assistant-part:part:part:msg_assistant_1:msg_assistant_1:text:0",
+      "turn-gap:msg_background",
       "notice:msg_background",
       "notice:msg_model",
       "assistant-part:part:part:msg_assistant_2:msg_assistant_2:text:0",
@@ -652,10 +655,94 @@ describe("current session timeline rows", () => {
       expect(keys).toEqual([
         "user-message:msg_user",
         "assistant-part:commands:commands:msg_before:msg_before_read",
+        "turn-gap:msg_agent",
         "notice:msg_agent",
         "notice:msg_shell",
         "assistant-part:commands:commands:msg_after:msg_after_read",
       ])
+  })
+
+  test("a background wake after the turn settled owns its block, so the prompt keeps its answer", () => {
+    const step = (id: string, created: number, content: SessionMessageAssistant["content"]) =>
+      ({
+        id,
+        type: "assistant",
+        agent: "build",
+        model: { id: "model", providerID: "provider" },
+        content,
+        time: { created, completed: created },
+      }) satisfies SessionMessageInfo
+
+    const source: SessionMessageInfo[] = [
+      { id: "msg_user", type: "user", text: "合并没", time: { created: 1 } },
+      step("msg_answer", 2, [{ type: "text", text: "已合，HEAD 就是 3b9d。" }]),
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 3 } },
+      {
+        id: "msg_wake",
+        type: "synthetic",
+        text: "<shell id=\"sh_1\" state=\"completed\">",
+        description: "bun test",
+        metadata: { source: "shell", shellID: "sh_1", state: "completed", exit: 0 },
+        time: { created: 4 },
+      },
+      step("msg_report", 5, [
+        storyTool("tool_read", "read", "completed", {}),
+        { type: "text", text: "#563 发布成功，正在核对。" },
+      ]),
+    ]
+
+    // The wake's notice opens its own turn; the work it wakes hangs off it, not off the question.
+    expect(Timeline.constructSessionMessageRows(source, false, { type: "idle" }).rows.map(TimelineRow.key)).toEqual([
+      "user-message:msg_user",
+      "assistant-part:part:part:msg_answer:msg_answer:text:0",
+      "turn-gap:msg_wake",
+      "notice:msg_wake",
+      "assistant-part:commands:commands:msg_report:tool_read",
+      "assistant-part:part:part:msg_report:msg_report:text:0",
+    ])
+
+    // With commentary hidden, the answer slot is visible: before the split, the wake's trailing
+    // tool pushed the prompt's answer into commentary and its own closing text took the slot.
+    const quiet = { ...timelinePresets[2].value, commentary: { placement: "hidden" as const } }
+    expect(
+      Timeline.constructSessionMessageRows(source, false, { type: "idle" }, undefined, false, false, undefined, quiet)
+        .rows.map(TimelineRow.key),
+    ).toEqual([
+      "user-message:msg_user",
+      "assistant-part:part:part:msg_answer:msg_answer:text:0",
+      "turn-gap:msg_wake",
+      "notice:msg_wake",
+      "assistant-part:commands:commands:msg_report:tool_read",
+      "assistant-part:part:part:msg_report:msg_report:text:0",
+    ])
+  })
+
+  test("keeps a queued background wake riding the settled turn until delivery", () => {
+    const source: SessionMessageInfo[] = [
+      { id: "msg_user", type: "user", text: "合并没", time: { created: 1 } },
+      {
+        id: "msg_answer",
+        type: "assistant",
+        agent: "build",
+        model: { id: "model", providerID: "provider" },
+        content: [{ type: "text", text: "已合。" }],
+        time: { created: 2, completed: 2 },
+      },
+      { id: "msg_idle", type: "idle", outcome: "succeeded", time: { created: 3 } },
+      {
+        id: "msg_wake",
+        type: "synthetic",
+        text: "done",
+        description: "bun test",
+        metadata: { source: "shell", shellID: "sh_1", state: "completed", exit: 0 },
+        time: { created: 4 },
+      },
+    ]
+
+    const rows = Timeline.constructSessionMessageRows(source, false, { type: "idle" }, new Set(["msg_wake"])).rows
+
+    expect(rows.at(-1)?.userMessageID).toBe("msg_user")
+    expect(rows.some((row) => row._tag === "TurnGap")).toBe(false)
   })
 
   test.each([

@@ -1093,10 +1093,10 @@ export function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[],
 
   if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
 
-  // A wake banner keeps clear air above it: only a settled reply's own 28px hover-action strip counts as
-  // the margin (space added there would double-count it); under anything else — a change card, a fold, a
-  // step row — the banner carries the full 24px itself.
-  if (isWakeBanner(snapshot, current)) return isResponse(snapshot, previous) ? 0 : 24
+  // A wake banner follows its answer on the footer's own line: the reply's action row keeps a 28px
+  // strip reserved for the hover buttons, so space above the banner would double-count it whenever
+  // the buttons are hidden, and crowd them out whenever they are shown.
+  if (isWakeBanner(snapshot, current) && isResponse(snapshot, previous)) return 0
 
   // Below the banner the row it introduces keeps the same breathing room the reply's hover-action strip
   // gives above it: 12px against the 28px strip reads as the bar hugging its follow-up, not centered.

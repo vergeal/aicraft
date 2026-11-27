@@ -51,8 +51,8 @@ import {
   SessionCompactionMessage,
   SessionCompactionQueued,
 } from "../message/message-content"
-import { taskAgentName, ToolDisplay, ToolRegistry, type ContextGroupPart } from "../tools/tool-renderer"
-import { GenericTool } from "../components/basic-tool"
+import { ConsoleOutput, taskAgentName, ToolDisplay, ToolRegistry, type ContextGroupPart } from "../tools/tool-renderer"
+import { BasicTool, GenericTool } from "../components/basic-tool"
 import { SessionRetry } from "../components/session-retry"
 import { SessionError } from "../components/session-error"
 import { timelineCategory, type TimelineDetail } from "./detail"
@@ -716,7 +716,7 @@ export function createSessionTimelineRowRenderer(input: {
     </div>
   )
 
-  function Notice(props: { messageID: string; grouped?: boolean }) {
+  function Notice(props: { messageID: string; grouped?: boolean; wake?: boolean }) {
     const inset = () => (props.grouped ? "" : padding())
     const message = createMemo(() => input.projection.messageByID().get(props.messageID))
 
@@ -761,10 +761,37 @@ export function createSessionTimelineRowRenderer(input: {
       }
     })
 
+    // A background wake that opened its own turn carries its report: the call it interrupts sits far
+    // above (often folded), so the notice reads as an expandable completion block with the command
+    // and the captured output, matching the tool row that started the job.
+    const report = createMemo(() => {
+      if (!props.wake) return
+      const value = message()
+
+      if (value?.type !== "synthetic") return
+      const source = value.metadata?.source
+
+      if (source !== "shell" && source !== "subagent") return
+      const summary = notice(value)
+      const state = value.metadata?.state
+      const outcome: Outcome = state === "error" || state === "cancelled" ? state : "completed"
+
+      return {
+        title: summary?.label ?? "",
+        subtitle: summary?.data,
+        command: source === "shell" ? value.description : undefined,
+        output: noticeBody(value),
+        icon: source === "shell" ? ("console" as const) : ("task" as const),
+        outcome,
+      }
+    })
+
     const content = createMemo(() => {
       const value = message()
 
-      return value ? notice(value) : undefined
+      if (!value || report()) return undefined
+
+      return notice(value)
     })
 
     const childID = createMemo(() => {
@@ -821,6 +848,34 @@ export function createSessionTimelineRowRenderer(input: {
 
     return (
       <>
+        <Show when={report()}>
+          {(report) => (
+            <div
+              data-slot="session-timeline-notice"
+              data-wake="true"
+              data-outcome={report().outcome}
+              class={`w-full ${props.grouped ? "" : padding()}`}
+            >
+              <BasicTool
+                icon={report().icon}
+                hasContent
+                compact
+                rail={false}
+                defaultOpen={false}
+                open={input.disclosure.value(props.messageID)}
+                onOpenChange={(open) => input.disclosure.set(props.messageID, open)}
+                trigger={{
+                  title: report().title,
+                  titleClass: outcomeNoticeColor(report().outcome),
+                  subtitle: report().subtitle,
+                }}
+                onSubtitleClick={clickable() ? open : undefined}
+              >
+                <ConsoleOutput command={report().command} output={report().output} />
+              </BasicTool>
+            </div>
+          )}
+        </Show>
         <Show when={compaction()}>
           {(message) => (
             <div data-slot="session-turn-message-container" class={`w-full ${inset()}`}>
@@ -1121,7 +1176,7 @@ export function createSessionTimelineRowRenderer(input: {
 
       return (
         <Frame row={current()}>
-          <Notice messageID={current().messageID} />
+          <Notice messageID={current().messageID} wake={current().userMessageID === current().messageID} />
         </Frame>
       )
     }
@@ -1425,6 +1480,16 @@ function outcomeNoticeKey(state: string | undefined) {
   if (state === "cancelled") return "ui.sessionTimeline.notice.cancelled"
 
   return "ui.sessionTimeline.notice.finished"
+}
+
+// Wake reports arrive wrapped in the tag the core notification builds (see shell/result.ts). The
+// command attribute can embed `>` (as in `2>&1`), so the body is cut between the opening tag and
+// its closing pair rather than re-parsing attributes; the command text comes from the description.
+function noticeBody(message: { text?: string }) {
+  const raw = message.text?.trim() ?? ""
+  const match = /^<(shell|subagent)\b(?:\s+[\w-]+="[^"]*")*\s*>([\s\S]*)<\/\1>$/.exec(raw)
+
+  return (match?.[2] ?? raw).trim()
 }
 
 /** Brings a freshly sent or auto-delivered prompt in: the row grows from nothing while its content eases up into

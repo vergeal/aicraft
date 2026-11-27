@@ -1861,7 +1861,7 @@ ToolRegistry.register({
   },
 })
 
-function ConsoleOutput(props: { command?: string; output: string }) {
+export function ConsoleOutput(props: { command?: string; output: string }) {
   const i18n = useI18n()
 
   return (

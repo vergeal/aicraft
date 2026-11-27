@@ -6,6 +6,8 @@ import { SessionTimeline } from "./session-timeline"
 import { CommentCard, commentCardTarget } from "../message/comment-card"
 import type { ReasoningMode } from "./projection"
 import { CurrentSessionProviders, CurrentSessionTimelineStory } from "../storybook/current-session-story"
+import { storyTool } from "../storybook/current-session-scenarios"
+import { timelinePresets } from "./detail"
 import {
   CURRENT_SESSION_ID,
   STORY_MODEL,
@@ -922,6 +924,98 @@ export const InstructionsUpdatedMultiple = {
       description="A system notice in the timeline showing multiple updated instruction sources."
       document={instructionsUpdatedMultipleDocument}
       width="600px"
+    />
+  ),
+}
+
+const backgroundWakeMessages = [
+  { id: "msg_wake_user", type: "user", text: "合并到 gstest 没", time: { created: STORY_TIME } },
+  {
+    id: "msg_wake_confirm",
+    type: "assistant",
+    agent: "build",
+    model: STORY_MODEL,
+    content: [
+      { type: "text", text: "已经合了 —— 准确说是 cherry-pick 修复提交。我确认一下远端实际状态。" },
+      storyTool("tool_wake_fetch", "shell", "completed", { command: "git fetch origin GSTEST" }),
+    ],
+    time: { created: STORY_TIME + 1_000, completed: STORY_TIME + 2_000 },
+  },
+  {
+    id: "msg_wake_answer",
+    type: "assistant",
+    agent: "build",
+    model: STORY_MODEL,
+    content: [{ type: "text", text: "已合，`origin/GSTEST` 当前 HEAD 就是 `3b9d322f`，审计模块与 `feat/audit` 零差异。" }],
+    time: { created: STORY_TIME + 3_000, completed: STORY_TIME + 4_000 },
+  },
+  { id: "msg_wake_idle", type: "idle", outcome: "succeeded", time: { created: STORY_TIME + 4_500 } },
+  {
+    id: "msg_wake_notice",
+    type: "synthetic",
+    text: "<shell id=\"sh_wake\" state=\"completed\">#563 DONE SUCCESS…BUILD SUCCESSFUL</shell>",
+    description: "bash jk_watch.sh",
+    metadata: { source: "shell", shellID: "sh_wake", state: "completed", exit: 0 },
+    time: { created: STORY_TIME + 5_000 },
+  },
+  {
+    id: "msg_wake_report",
+    type: "assistant",
+    agent: "build",
+    model: STORY_MODEL,
+    content: [
+      { type: "text", text: "**#563 发布成功**：镜像 `202611261343_3b9d322f` 已更新。挂后台盯 `OA_DOC_RETURN_LOG`。" },
+      storyTool("tool_wake_watch", "write", "completed", { path: "watch_log.py" }),
+    ],
+    time: { created: STORY_TIME + 6_000, completed: STORY_TIME + 7_000 },
+  },
+  {
+    id: "msg_wake_final",
+    type: "assistant",
+    agent: "build",
+    model: STORY_MODEL,
+    content: [
+      storyTool("tool_wake_quartz", "shell", "completed", { command: "python3 oa_quartz2.py" }),
+      {
+        type: "text",
+        text: "这条查得很值，把 8 天的谜团解开了：任务从 11-18 起每 5 分钟准时跑一次，但旧配置命中 0 条，一直在空转。",
+      },
+    ],
+    time: { created: STORY_TIME + 8_000, completed: STORY_TIME + 9_000 },
+  },
+  { id: "msg_wake_idle_2", type: "idle", outcome: "succeeded", time: { created: STORY_TIME + 9_500 } },
+] satisfies SessionMessageInfo[]
+
+const backgroundWakeDocument: SessionDocument = {
+  sessionID: CURRENT_SESSION_ID,
+  status: { type: "idle" },
+  diffs: [],
+  messages: backgroundWakeMessages,
+}
+
+// Text-only detail with commentary hidden: each turn shows just its answer, which is where the
+// wake's trailing text stealing the prompt's answer was most visible.
+const backgroundWakeQuiet = { ...timelinePresets[4].value, commentary: { placement: "hidden" as const } }
+
+export const BackgroundWakeAfterAnsweredTurn = {
+  render: () => (
+    <CurrentSessionTimelineStory
+      title="Background wake after an answered turn"
+      description="A background shell completes after the question was already answered. The wake opens its own block, so the question keeps its answer instead of being overwritten by the monitoring report."
+      width="720px"
+      document={backgroundWakeDocument}
+    />
+  ),
+}
+
+export const BackgroundWakeQuietAnswers = {
+  render: () => (
+    <CurrentSessionTimelineStory
+      title="Background wake, answers only"
+      description="The same transcript with tools and commentary hidden. The question keeps its own answer; the wake's closing text stays in the wake block."
+      width="600px"
+      timelineDetail={backgroundWakeQuiet}
+      document={backgroundWakeDocument}
     />
   ),
 }

@@ -121,10 +121,11 @@ export const volatileParts = (input: {
   ...(input.sessionPrompt ? [{ kind: "session" as const, text: sessionBlock(input.sessionPrompt) }] : []),
 ]
 
-/** The frozen volatile parts followed by the epoch-frozen baseline, in cache order. */
+/** The frozen volatile parts followed by the epoch-frozen baseline and the L4 notices, in cache order. */
 export const assembleSystem = (
   parts: ReadonlyArray<SessionContextSnapshot.VolatilePart>,
   initial: ReadonlyArray<Instructions.Rendered>,
+  l4: ReadonlyArray<Instructions.Rendered> = [],
 ) =>
   [
     // The Project's and Session's instructions sit before the baseline: both are stable, while the baseline carries
@@ -137,6 +138,9 @@ export const assembleSystem = (
       },
       initial.map(renderedSource),
     ),
+    // The L4 notices trail the baseline: they hold the net instruction change, so an edit invalidates only
+    // this tail segment instead of the cached prefix, and each notice is tagged with its own source key.
+    ...l4.map((notice) => withContext(SystemPart.make(notice.text), [renderedSource(notice)])),
   ].filter((part) => part.text.length > 0)
 
 export const baseTranscript = (input: {
@@ -144,6 +148,8 @@ export const baseTranscript = (input: {
   readonly model: SessionRunnerModel.Resolved
   readonly tools: Tool.Snapshot
   readonly initial: ReadonlyArray<Instructions.Rendered>
+  /** The L4 notices, rendered as their own parts after the baseline. Absent leaves the request byte-identical. */
+  readonly l4?: ReadonlyArray<Instructions.Rendered>
   /** The Project's own instructions, reread for every Step and rendered ahead of the baseline. */
   readonly project?: string
   /** This Session's own instructions, the most specific source in the request. */
@@ -155,7 +161,7 @@ export const baseTranscript = (input: {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
   return {
     providerMetadataKey,
-    system: assembleSystem(input.volatile ?? volatileParts(input), input.initial),
+    system: assembleSystem(input.volatile ?? volatileParts(input), input.initial, input.l4),
     messages: toLLMMessages(input.messages, input.model.ref, providerMetadataKey),
   }
 }

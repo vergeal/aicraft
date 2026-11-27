@@ -42,15 +42,14 @@ export const commit = Effect.fn("InstructionState.commit")(function* (
   observation: Observation,
 ) {
   if (!observation.initial && Object.keys(observation.delta).length === 0) return
-  // The rendered text is frozen into the durable event because re-rendering it
-  // later would require the original Location-scoped instruction sources.
-  const text = observation.initial ? "" : yield* renderUpdateText(db, instructions, observation)
+  // The event is a ledger delta only. The rendered narrative is no longer frozen here: L4
+  // recomputes the net baseline-to-current diff from the ledger at assembly time, replacing
+  // the old append-only timeline injection.
   yield* bus.publish(
     SessionEvent.InstructionsUpdated,
     {
       sessionID: observation.sessionID,
       delta: observation.delta,
-      ...(text.length > 0 ? { text } : {}),
     },
     {
       // Initial sync establishes the baseline; unlike later deltas it is not chronological history.
@@ -58,23 +57,6 @@ export const commit = Effect.fn("InstructionState.commit")(function* (
       commit: () => insertBlobs(db, observation.blobs),
     },
   )
-})
-
-const renderUpdateText = Effect.fnUntraced(function* (
-  db: DatabaseService,
-  instructions: Instructions.List,
-  observation: Observation,
-) {
-  const replaced = Object.entries(observation.previous).filter(([key]) => Object.hasOwn(observation.delta, key))
-  const blobs = yield* loadBlobs(
-    db,
-    replaced.map(([, hash]) => hash),
-  )
-  const previous = Object.fromEntries(replaced.map(([key, hash]) => [key, requireBlob(blobs, hash)]))
-  const admitted = new Map(
-    Object.entries(observation.blobs).map(([hash, value]) => [Instructions.Hash.make(hash), value]),
-  )
-  return Instructions.renderUpdate(instructions, previous, dereferenceDelta(observation.delta, admitted))
 })
 
 export const prepare = Effect.fn("InstructionState.prepare")(function* (
@@ -174,6 +156,51 @@ export const current = Effect.fn("InstructionState.current")(function* (
   sessionID: SessionSchema.ID,
 ) {
   return (yield* find(db, sessionID))?.current_values
+})
+
+/**
+ * L4 notices for the in-flight version: the net diff between the epoch baseline and
+ * the current instruction values, rendered by the sources' own renderers. Recomputed
+ * per assembly (replacing, never appending), so contradictory observations — uninstalled
+ * then reinstalled, edited back to the baseline — settle to the latest state or vanish.
+ */
+export const notices = Effect.fn("InstructionState.notices")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+  instructions: Instructions.List,
+) {
+  const state = yield* find(db, sessionID)
+  if (!state) return []
+  const keys = new Set([...Object.keys(state.initial_values), ...Object.keys(state.current_values)])
+  const changed = [...keys].filter((key) => state.initial_values[key] !== state.current_values[key])
+  if (changed.length === 0) return []
+  const referenced = changed
+    .flatMap((key) => [state.initial_values[key], state.current_values[key]])
+    .filter((hash): hash is Instructions.Hash => hash !== undefined)
+  const blobs = yield* loadBlobs(db, referenced)
+  const previous: Record<string, Schema.Json> = {}
+  const delta: Record<string, Option.Option<Schema.Json>> = {}
+  for (const key of changed) {
+    const before = state.initial_values[key]
+    const after = state.current_values[key]
+    if (before !== undefined) previous[key] = requireBlob(blobs, before)
+    delta[key] = after === undefined ? Option.none() : Option.some(requireBlob(blobs, after))
+  }
+  // Per-source rendering (mirroring `Instructions.renderUpdate`, which joins to one string):
+  // each notice keeps its key so the assembly can tag the request's context metadata.
+  return instructions.flatMap((source) => {
+    if (!Object.hasOwn(delta, source.key)) return []
+    const current = delta[source.key]
+    if (current === undefined || Option.isNone(current)) {
+      if (!Object.hasOwn(previous, source.key)) return []
+      const text = source.removed(previous[source.key])
+      return text === undefined ? [] : [{ key: source.key, text }]
+    }
+    const text = Object.hasOwn(previous, source.key)
+      ? source.changed(previous[source.key], current.value)
+      : source.initial(current.value)
+    return text === undefined ? [] : [{ key: source.key, text }]
+  })
 })
 
 /** The current baseline epoch start seq, the invalidation key for the context snapshot. */

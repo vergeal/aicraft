@@ -227,10 +227,35 @@ export const ContextSnapshotTable = sqliteTable("context_snapshot", {
   baseline_epoch: integer().notNull(),
   /** Agent switching is an explicit user action, so it is a second invalidation key. */
   agent_id: text().notNull(),
+  /** Set by a manual advance: the deferred rebuild fires on the next resolve (DESIGN.md §4). */
+  pending_advance: integer({ mode: "boolean" })
+    .notNull()
+    .default(false),
   parts: text({ mode: "json" }).notNull().$type<{
     readonly parts: ReadonlyArray<{ readonly kind: "agent" | "project" | "session"; readonly text: string }>
   }>(),
 })
+
+/**
+ * Append-only archive of every snapshot version ever built. The live row in
+ * context_snapshot only holds the newest generation, so the genealogy chain
+ * "Epoch1{v1,v2} → Epoch2{v3}" and its break reasons stay traceable here (DESIGN.md §2).
+ */
+export const ContextLineageTable = sqliteTable(
+  "context_lineage",
+  {
+    session_id: text()
+      .$type<SessionSchema.ID>()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    epoch: integer().notNull(),
+    prefix_version: integer().notNull(),
+    parent_version: integer(),
+    bump_reason: text().notNull(),
+    ...Timestamps,
+  },
+  (table) => [uniqueIndex("context_lineage_session_prefix_version_idx").on(table.session_id, table.prefix_version)],
+)
 
 export const BlobTable = sqliteTable("blob", {
   hash: text().primaryKey(),

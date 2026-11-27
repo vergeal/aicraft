@@ -41,7 +41,9 @@ export interface Loaded {
   readonly agent: Agent.Selection & { readonly info: Agent.Info }
   readonly model: SessionRunnerModel.Resolved
   readonly initial: ReadonlyArray<Instructions.Rendered>
-  /** The Project's own instructions, reread for every Step rather than frozen with the Session's baseline. */
+  /** The L4 notices recomputed from the ledger at assembly time: the net change from the epoch baseline. */
+  readonly l4?: ReadonlyArray<Instructions.Rendered>
+  /** The Project's own instructions, reread for every Step; they re-enter the request's system prefix only when the snapshot rebuilds after an epoch advance. */
   readonly project?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
   readonly tools: Tool.Snapshot
@@ -96,9 +98,10 @@ const layer = Layer.effect(
     const store = yield* SessionStore.Service
     const registry = yield* Tool.Service
 
-    // Detects edits to the Project's own instructions so they surface as a notice. The text itself never enters the
-    // baseline: `load` rereads it every Step and `baseTranscript` renders it as its own system part, so the next
-    // request always sees the newest instructions.
+    // Detects edits to the Project's own instructions so they surface as an L4 notice. The text itself never enters
+    // the frozen instruction baseline: `load` rereads it every Step and feeds the volatile parts, but a snapshot hit
+    // keeps the prefix byte-stable, so the newest text only re-enters the request as its own system part once the
+    // epoch advances and the snapshot rebuilds.
     const projectInstructions = Instructions.make({
       key: ProjectInstructions.key,
       codec: Schema.toCodecJson(Schema.String),
@@ -203,7 +206,9 @@ const layer = Layer.effect(
         agent: selection.agent,
         model,
         initial: history.initial,
-        // Reread on every Step so an edit reaches the very next request as its own system part.
+        l4: history.l4,
+        // Reread on every Step to feed the volatile parts; a snapshot hit keeps the frozen bytes, so an edit
+        // only reaches the prefix after the epoch advance rebuilds the snapshot.
         project: (yield* project.get(location.project.id))?.prompt,
         messages: history.entries.map((entry) => entry.message),
         tools: selection.tools,

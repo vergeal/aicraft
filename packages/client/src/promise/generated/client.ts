@@ -113,6 +113,8 @@ import type {
   ExperimentalSessionSkillOutput,
   ExperimentalSessionWaitInput,
   ExperimentalSessionWaitOutput,
+  ExperimentalSessionAdvanceContextInput,
+  ExperimentalSessionAdvanceContextOutput,
   ExperimentalSessionInstructionsEntryListInput,
   ExperimentalSessionInstructionsEntryListOutput,
   ExperimentalSessionInstructionsEntryPutInput,
@@ -836,6 +838,17 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ),
+        advanceContext: (input: ExperimentalSessionAdvanceContextInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalSessionAdvanceContextOutput }>(
+            {
+              method: "POST",
+              path: `/api/experimental/session/${encodeURIComponent(input.sessionID)}/context/advance`,
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404, 409, 503],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
         instructions: {
           entry: {
             list: (input: ExperimentalSessionInstructionsEntryListInput, requestOptions?: RequestOptions) =>
@@ -3058,6 +3071,8 @@ export function make(options: ClientOptions) {
       skill: client.experimental.session.skill,
       /** @deprecated Use `client.experimental.session.wait`. Removed in the next minor. */
       wait: client.experimental.session.wait,
+      /** @deprecated Use `client.experimental.session.advanceContext`. Removed in the next minor. */
+      advanceContext: client.experimental.session.advanceContext,
       /** @deprecated Use `client.experimental.session.instructions`. Removed in the next minor. */
       instructions: {
         /** @deprecated Use `client.experimental.session.instructions.entry`. Removed in the next minor. */

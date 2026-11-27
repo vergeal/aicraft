@@ -620,6 +620,9 @@ export interface SessionApi<E = never> {
   /** @deprecated Use `client.experimental.session.wait`. Removed in the next minor. */
   readonly wait: ExperimentalSessionWaitOperation<E>
 
+  /** @deprecated Use `client.experimental.session.advanceContext`. Removed in the next minor. */
+  readonly advanceContext: ExperimentalSessionAdvanceContextOperation<E>
+
   /** @deprecated Use `client.experimental.session.instructions`. Removed in the next minor. */
   readonly instructions: {
     /** @deprecated Use `client.experimental.session.instructions.entry`. Removed in the next minor. */
@@ -740,6 +743,19 @@ export type ExperimentalSessionWaitOutput = void
 export type ExperimentalSessionWaitOperation<E = never> = (
   input: ExperimentalSessionWaitInput,
 ) => Effect.Effect<ExperimentalSessionWaitOutput, E>
+
+export type ExperimentalSessionAdvanceContextInput = { readonly sessionID: Session.ID }
+export type ExperimentalSessionAdvanceContextOutput = {
+  readonly epoch: number
+  readonly prefixVersion: number
+  readonly parentVersion?: number | undefined
+  readonly bumpReason: "initial" | "advance" | "compaction"
+  readonly settled: ReadonlyArray<string>
+  readonly rebuiltAt: "pending" | "not-needed"
+}
+export type ExperimentalSessionAdvanceContextOperation<E = never> = (
+  input: ExperimentalSessionAdvanceContextInput,
+) => Effect.Effect<ExperimentalSessionAdvanceContextOutput, E>
 
 export type ExperimentalSessionInstructionsEntryListInput = { readonly sessionID: Session.ID }
 export type ExperimentalSessionInstructionsEntryListOutput = ReadonlyArray<InstructionEntry.Info>
@@ -1641,6 +1657,7 @@ export interface ExperimentalSessionApi<E = never> {
   readonly export: ExperimentalSessionExportOperation<E>
   readonly skill: ExperimentalSessionSkillOperation<E>
   readonly wait: ExperimentalSessionWaitOperation<E>
+  readonly advanceContext: ExperimentalSessionAdvanceContextOperation<E>
   readonly instructions: {
     readonly entry: {
       readonly list: ExperimentalSessionInstructionsEntryListOperation<E>
@@ -3357,6 +3374,15 @@ export type SessionWaitOutput = ExperimentalSessionWaitOutput
 
 /** @deprecated Use `ExperimentalSessionWaitOperation`. Removed in the next minor. */
 export type SessionWaitOperation<E = never> = ExperimentalSessionWaitOperation<E>
+
+/** @deprecated Use `ExperimentalSessionAdvanceContextInput`. Removed in the next minor. */
+export type SessionAdvanceContextInput = ExperimentalSessionAdvanceContextInput
+
+/** @deprecated Use `ExperimentalSessionAdvanceContextOutput`. Removed in the next minor. */
+export type SessionAdvanceContextOutput = ExperimentalSessionAdvanceContextOutput
+
+/** @deprecated Use `ExperimentalSessionAdvanceContextOperation`. Removed in the next minor. */
+export type SessionAdvanceContextOperation<E = never> = ExperimentalSessionAdvanceContextOperation<E>
 
 /** @deprecated Use `ExperimentalSessionInstructionsEntryListInput`. Removed in the next minor. */
 export type SessionInstructionsEntryListInput = ExperimentalSessionInstructionsEntryListInput

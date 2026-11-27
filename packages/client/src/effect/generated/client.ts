@@ -119,6 +119,8 @@ import type {
   ExperimentalSessionSkillOutput,
   ExperimentalSessionWaitInput,
   ExperimentalSessionWaitOutput,
+  ExperimentalSessionAdvanceContextInput,
+  ExperimentalSessionAdvanceContextOutput,
   ExperimentalSessionInstructionsEntryListInput,
   ExperimentalSessionInstructionsEntryListOutput,
   ExperimentalSessionInstructionsEntryPutInput,
@@ -976,6 +978,15 @@ const EndpointExperimentalSessionWait = (raw: RawClient["server.session"]) => (i
     raw["session.wait"]({ params: { sessionID: input["sessionID"] } }).pipe(Effect.mapError(mapClientError)),
   )
 
+const EndpointExperimentalSessionAdvanceContext =
+  (raw: RawClient["server.session"]) => (input: ExperimentalSessionAdvanceContextInput) =>
+    preserveEffect<ExperimentalSessionAdvanceContextOutput>()(
+      raw["session.advanceContext"]({ params: { sessionID: input["sessionID"] } }).pipe(
+        Effect.mapError(mapClientError),
+        Effect.map((value) => value.data),
+      ),
+    )
+
 const EndpointExperimentalSessionInstructionsEntryList =
   (raw: RawClient["server.session"]) => (input: ExperimentalSessionInstructionsEntryListInput) =>
     preserveEffect<ExperimentalSessionInstructionsEntryListOutput>()(
@@ -1021,6 +1032,7 @@ const adaptGroupExperimentalSession = (raw: RawClient["server.session"]) => ({
   export: EndpointExperimentalSessionExport(raw),
   skill: EndpointExperimentalSessionSkill(raw),
   wait: EndpointExperimentalSessionWait(raw),
+  advanceContext: EndpointExperimentalSessionAdvanceContext(raw),
   instructions: {
     entry: {
       list: EndpointExperimentalSessionInstructionsEntryList(raw),
@@ -2298,6 +2310,8 @@ const adaptClient = (raw: RawClient) => {
       skill: client.experimental.session.skill,
       /** @deprecated Use `client.experimental.session.wait`. Removed in the next minor. */
       wait: client.experimental.session.wait,
+      /** @deprecated Use `client.experimental.session.advanceContext`. Removed in the next minor. */
+      advanceContext: client.experimental.session.advanceContext,
       /** @deprecated Use `client.experimental.session.instructions`. Removed in the next minor. */
       instructions: {
         /** @deprecated Use `client.experimental.session.instructions.entry`. Removed in the next minor. */

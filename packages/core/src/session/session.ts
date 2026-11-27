@@ -22,6 +22,7 @@ import {
 } from "./error.js"
 import { SessionEvent } from "./event.js"
 import { SessionExecution } from "./execution.js"
+import { SessionContextSnapshot } from "./context-snapshot.js"
 import { SessionInbox } from "./inbox.js"
 import { SessionMessage } from "./message.js"
 import { SessionPrompt } from "./prompt.js"
@@ -315,6 +316,15 @@ export const make = Effect.fn("Session.make")(function* () {
     yield* get(sessionID)
     yield* execution.awaitIdle(sessionID)
   })
+  /**
+   * Manual context advance: settle the instruction ledger and flag the frozen prefix for a
+   * rebuild at the next resolve, making pending instruction and agent edits visible without
+   * waiting for compaction. Costs one full cache break; archived sessions are sealed from it.
+   */
+  const advanceContext = Effect.fn("Session.advanceContext")(function* (sessionID: SessionSchema.ID) {
+    yield* getOpen(sessionID)
+    return yield* SessionContextSnapshot.advance(database.db, sessionID)
+  })
   const resume = Effect.fn("Session.resume")(function* (sessionID: SessionSchema.ID) {
     yield* get(sessionID)
     yield* execution.resume(sessionID)
@@ -413,6 +423,7 @@ export const make = Effect.fn("Session.make")(function* () {
     skill,
     compact,
     wait,
+    advanceContext,
     resume,
     interrupt,
     cancelInbox,
@@ -442,6 +453,7 @@ export const make = Effect.fn("Session.make")(function* () {
     const skill = operations.skill.bind(undefined, sessionID)
     const compact = operations.compact.bind(undefined, sessionID)
     const wait = operations.wait.bind(undefined, sessionID)
+    const advanceContext = operations.advanceContext.bind(undefined, sessionID)
     const resume = operations.resume.bind(undefined, sessionID)
     const interrupt = operations.interrupt.bind(undefined, sessionID)
     const cancelInbox = operations.cancelInbox.bind(undefined, sessionID)
@@ -474,6 +486,7 @@ export const make = Effect.fn("Session.make")(function* () {
       skill,
       compact,
       wait,
+      advanceContext,
       resume,
       interrupt,
       cancelInbox,

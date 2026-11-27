@@ -64,7 +64,14 @@ import { Document, Info } from "@aicraft/schema/config"
 import { ConfigCompaction } from "@aicraft/schema/config/compaction"
 import { Tool } from "@aicraft/core/tool"
 import type { Info as ToolInfo } from "@aicraft/schema/tool"
-import { InstructionStateTable, SessionInboxTable, SessionMessageTable, SessionTable } from "@aicraft/core/session/sql"
+import {
+  ContextLineageTable,
+  ContextSnapshotTable,
+  InstructionStateTable,
+  SessionInboxTable,
+  SessionMessageTable,
+  SessionTable,
+} from "@aicraft/core/session/sql"
 import { InstructionEntry } from "@aicraft/core/session/instruction-entry"
 import { SessionStore } from "@aicraft/core/session/store"
 import { Instructions } from "@aicraft/core/instructions/index"
@@ -719,6 +726,18 @@ const messageTexts = (request: LLMRequest, role: "user" | "system") =>
 const userTexts = (request: LLMRequest) => messageTexts(request, "user")
 const systemTexts = (request: LLMRequest) => messageTexts(request, "system")
 const messageRoles = (request: LLMRequest | undefined) => request?.messages.map((message) => message.role)
+
+// Everything after the baseline part is the L4 notice segment. The baseline is the only part tagged with
+// `metadata.experimental.instructions`, and each notice part carries its instruction key in its sources.
+const l4Sources = (request: LLMRequest | undefined) => {
+  const system = request?.system ?? []
+  const baseline = system.findLastIndex((part) => part.metadata?.experimental !== undefined)
+  return system.slice(baseline + 1).flatMap((part) => {
+    const context = (part.metadata?.context ?? {}) as { sources?: ReadonlyArray<{ key: string; text: string }> }
+    return context.sources ?? []
+  })
+}
+const l4Texts = (request: LLMRequest | undefined) => l4Sources(request).map((source) => source.text)
 
 const recordedEventTypes = (id: Session.ID) =>
   Effect.gen(function* () {
@@ -1499,11 +1518,13 @@ describe("SessionRunnerLLM", () => {
     yield* s.db.update(ProjectTable).set({ prompt: "Prefer bun over npm." }).run().pipe(Effect.orDie)
 
     // The snapshot freezes the volatile prefix: a mid-session edit waits for the epoch advance instead of
-    // splitting the provider cache on every step. The change notice still rides in the baseline.
+    // splitting the provider cache on every step. The change surfaces as an L4 notice, never a timeline message.
     yield* s.runPrompt("Second")
     const frozen = s.requests.at(-1)!
     expect(frozen.system.some((part) => part.text.includes("Prefer bun over npm."))).toBe(false)
-    expect(systemTexts(frozen).some((text) => text.includes("The project instructions changed"))).toBe(true)
+    expect(l4Sources(frozen).some((source) => source.key === "core/project")).toBe(true)
+    expect(l4Texts(frozen).some((text) => text.includes("The project instructions changed"))).toBe(true)
+    expect(systemTexts(frozen)).toEqual([])
 
     yield* s.db
       .update(InstructionStateTable)
@@ -1558,6 +1579,55 @@ describe("SessionRunnerLLM", () => {
       .pipe(Effect.orDie)
     yield* s.runPrompt("Fifth")
     expect(sessionInstruction()).toBe(-1)
+  })
+
+  scenario("manual advance promotes pending edits to the prefix without moving the epoch", function* (s) {
+    yield* s.runPrompt("Warmup")
+    yield* s.runPrompt("First")
+    yield* s.project.resolve(AbsolutePath.make("/project"), { persist: true })
+    yield* s.db.update(ProjectTable).set({ prompt: "Prefer bun over npm." }).run().pipe(Effect.orDie)
+
+    // Before the advance the edit stays frozen in the prefix and only the L4 notice reports it.
+    yield* s.runPrompt("Second")
+    const frozen = s.requests.at(-1)!
+    expect(frozen.system.some((part) => part.text.includes("Prefer bun over npm."))).toBe(false)
+    expect(l4Texts(frozen).some((text) => text.includes("The project instructions changed"))).toBe(true)
+
+    const advanced = yield* s.session.advanceContext(sessionID).pipe(Effect.orDie)
+    expect(advanced.rebuiltAt).toBe("pending")
+    expect(advanced.settled).toEqual(["core/project"])
+    // Audit: the cache break this advance causes is announced with its reason (PLAN P2 ④).
+    expect(advanced.lineage.bumpReason).toBe("advance")
+
+    // The deferred rebuild runs on the next step: the prefix now carries the edit and the
+    // settled ledger empties the notice. The epoch clock stays where it was (dual-clock).
+    yield* s.runPrompt("Third")
+    const promoted = s.requests.at(-1)!
+    expect(
+      promoted.system.some(
+        (part) => part.text.includes("# Project instructions") && part.text.includes("Prefer bun over npm."),
+      ),
+    ).toBe(true)
+    expect(l4Texts(promoted)).toEqual([])
+
+    const row = yield* s.db
+      .select()
+      .from(ContextSnapshotTable)
+      .where(eq(ContextSnapshotTable.session_id, sessionID))
+      .get()
+      .pipe(Effect.orDie)
+    expect(row?.pending_advance).toBe(false)
+    const archive = yield* s.db
+      .select()
+      .from(ContextLineageTable)
+      .where(eq(ContextLineageTable.session_id, sessionID))
+      .orderBy(asc(ContextLineageTable.prefix_version))
+      .all()
+      .pipe(Effect.orDie)
+    expect(archive.map((line) => [line.prefix_version, line.bump_reason, line.epoch])).toEqual([
+      [1, "initial", 1],
+      [2, "advance", 1],
+    ])
   })
 
   scenario("retries the first request after system context becomes available", function* (s) {
@@ -1842,16 +1912,18 @@ describe("SessionRunnerLLM", () => {
       if (!continued) throw new Error("Expected continuation request")
       expect(continued.messages[0]).toEqual(replacement[0])
       expect(continued.system.map((part) => part.text)).toContain("Checkpoint instructions")
-      expect(systemTexts(continued)).toEqual(["Newest instructions"])
+      // The later edit arrives as a replaced L4 notice instead of a chronological message.
+      expect(l4Texts(continued)).toEqual(["Newest instructions"])
+      expect(systemTexts(continued)).toEqual([])
 
       const forked = yield* s.session.fork({ sessionID, before: after.id })
       yield* s.session.prompt({ sessionID: forked.id, text: "Fork prompt", resume: false })
       yield* s.session.resume(forked.id)
       expect(s.requests.at(-1)?.messages[0]).toEqual(replacement[0])
       expect(s.requests.at(-1)?.system.map((part) => part.text)).toContain("Newest instructions")
-      expect(s.requests.at(-1)?.messages.filter((message) => message.role === "system")).toEqual([
-        Message.system("Newest instructions"),
-      ])
+      // The fork's baseline already holds the newest value, so no notice rides along in either segment.
+      expect(s.requests.at(-1)?.messages.filter((message) => message.role === "system")).toEqual([])
+      expect(l4Texts(s.requests.at(-1)!)).toEqual([])
       expect(
         (yield* s.session.messages({ sessionID: forked.id })).find((message) => message.type === "compaction"),
       ).toMatchObject({ native })
@@ -1861,9 +1933,7 @@ describe("SessionRunnerLLM", () => {
       yield* s.session.prompt({ sessionID: forked.id, text: "Switched fork", resume: false })
       yield* s.session.resume(forked.id)
       expect(s.requests.at(-1)?.messages[0]?.content).toEqual([Message.text("Original request")])
-      expect(s.requests.at(-1)?.messages.filter((message) => message.role === "system")).toEqual([
-        Message.system("Newest instructions"),
-      ])
+      expect(s.requests.at(-1)?.messages.filter((message) => message.role === "system")).toEqual([])
       s.currentModel = original
 
       yield* s.bus.publish(SessionEvent.RevertEvent.Committed, { sessionID, to: checkpoint.id })
@@ -1899,9 +1969,10 @@ describe("SessionRunnerLLM", () => {
     yield* s.session.resume(forked.id)
 
     expect(s.requests.at(-1)?.system.map((part) => part.text)).toEqual([defaultSystem, fakeIdentity, "Latest context"])
-    // Copied history keeps the frozen chronological update; no new update is emitted.
-    expect(systemTexts(s.requests.at(-1)!)).toContain("Changed context")
-    expect(systemTexts(s.requests.at(-1)!)).not.toContain("Latest context")
+    // The copied history carries no notice: events hold ledger deltas only, and the fork's baseline
+    // already holds the newest value, so its own L4 segment is empty.
+    expect(systemTexts(s.requests.at(-1)!)).toEqual([])
+    expect(l4Texts(s.requests.at(-1)!)).toEqual([])
 
     const recorded = yield* s.db
       .select()
@@ -1978,7 +2049,7 @@ describe("SessionRunnerLLM", () => {
     })
   })
 
-  scenario("keeps the initial instructions stable and derives a chronological update from values", function* (s) {
+  scenario("keeps the initial instructions stable and replaces the L4 notice as values change", function* (s) {
     yield* s.runPrompt("First")
     s.systemBaseline = "Changed context"
     yield* s.runPrompt("Second")
@@ -1999,21 +2070,21 @@ describe("SessionRunnerLLM", () => {
       "toolChoice",
       "cache",
       "tools",
-      "system",
     ] as const)
       expect(s.requests[1][field]).toEqual(s.requests[0][field])
     expect(s.requests[0].messages).toHaveLength(1)
     expect(s.requests[1].messages.slice(0, 1)).toEqual([...s.requests[0].messages])
+    // The baseline stays byte-stable; the net change trails it as a replaceable L4 notice.
     expect(s.requests.map((request) => request.system.map((part) => part.text))).toEqual([
       [defaultSystem, fakeIdentity, "Initial context"],
-      [defaultSystem, fakeIdentity, "Initial context"],
+      [defaultSystem, fakeIdentity, "Initial context", "Changed context"],
     ])
-    expect(messageRoles(s.requests[1])).toEqual(["user", "system", "user"])
-    expect(s.requests[1]?.messages.at(1)?.content).toEqual([Expected.text("Changed context")])
-    // The chronological update is a durable client-visible system message.
-    const messages = yield* s.messages
-    expect(messages).toHaveLength(3)
-    expect(messages[1]).toMatchObject({ type: "system", text: "Changed context" })
+    expect(messageRoles(s.requests[1])).toEqual(["user", "user"])
+    expect(l4Sources(s.requests[1])).toEqual([
+      expect.objectContaining({ key: "test/context", text: "Changed context" }),
+    ])
+    // The net change is no longer projected as a durable client-visible system message.
+    expect(yield* s.messages).toHaveLength(2)
 
     const updates = yield* s.db
       .select({ data: EventTable.data })
@@ -2030,10 +2101,9 @@ describe("SessionRunnerLLM", () => {
     expect(updates[1]?.data).toEqual({
       sessionID,
       delta: { "test/context": Instructions.hash("Changed context") },
-      text: "Changed context",
     })
     yield* replaySessionProjection(sessionID)
-    expect(yield* s.messages).toHaveLength(3)
+    expect(yield* s.messages).toHaveLength(2)
   })
 
   scenario("keeps the system prompt stable across a committed revert", function* (s) {
@@ -2042,7 +2112,7 @@ describe("SessionRunnerLLM", () => {
     yield* s.runPrompt("Second")
     const third = yield* s.runPrompt("Third")
     const before = s.requests.at(-1)?.system.map((part) => part.text)
-    expect(before).toEqual([defaultSystem, fakeIdentity, "Initial context"])
+    expect(before).toEqual([defaultSystem, fakeIdentity, "Initial context", "Changed context"])
 
     yield* s.bus.publish(SessionEvent.RevertEvent.Committed, { sessionID, to: third.id })
     yield* s.runPrompt("Fourth")
@@ -2211,9 +2281,11 @@ describe("SessionRunnerLLM", () => {
 
     expect(s.requests.map((request) => request.system.map((part) => part.text))).toEqual([
       [defaultSystem, fakeIdentity, "Build skills\n\nInitial context"],
-      [defaultSystem, fakeIdentity, "Build skills\n\nInitial context"],
+      [defaultSystem, fakeIdentity, "Build skills\n\nInitial context", "Reviewer skills"],
     ])
-    expect(systemTexts(s.requests[1])).toContainEqual(expect.stringContaining("Reviewer skills"))
+    // The switched agent's guidance arrives as a replaced L4 notice, not a chronological message.
+    expect(l4Sources(s.requests[1])).toEqual([expect.objectContaining({ key: "test/skill-guidance" })])
+    expect(l4Texts(s.requests[1])).toEqual([expect.stringContaining("Reviewer skills")])
   })
 
   scenario("keeps the sampled agent when selection changes during observation", function* (s) {
@@ -2256,16 +2328,16 @@ describe("SessionRunnerLLM", () => {
     ])
   })
 
-  scenario("admits removed context as a chronological System message", function* (s) {
+  scenario("admits removed context as a replaced L4 notice", function* (s) {
     yield* s.runPrompt("First")
     s.systemRemoved = true
     yield* s.runPrompt("Second")
 
-    expect(messageRoles(s.requests[1])).toEqual(["user", "system", "user"])
-    expect(s.requests[1]?.messages.at(1)?.content).toEqual([
-      Expected.text("System context source removed: test/context"),
+    expect(messageRoles(s.requests[1])).toEqual(["user", "user"])
+    expect(l4Sources(s.requests[1])).toEqual([
+      expect.objectContaining({ key: "test/context", text: "System context source removed: test/context" }),
     ])
-    expect(yield* s.messages).toHaveLength(3)
+    expect(yield* s.messages).toHaveLength(2)
   })
 
   scenario("renders API context entries through add, change, and removal", function* (s) {
@@ -2289,33 +2361,29 @@ describe("SessionRunnerLLM", () => {
       ],
     })
 
-    // Non-string JSON pretty-prints; the change narrates as a System update.
+    // Non-string JSON pretty-prints; the change narrates through the L4 notice segment.
     yield* contextEntries.put({ sessionID, key: "deploy-target", value: { region: "us-east-1" } })
     yield* s.runPrompt("Second")
 
-    expect(messageRoles(s.requests[1])).toEqual(["user", "system", "user"])
-    expect(s.requests[1]?.messages.at(1)?.content).toEqual([
-      Expected.text(
-        [
-          'The context under "deploy-target" changed and supersedes the previous value:',
-          '<context key="deploy-target">',
-          "{",
-          '  "region": "us-east-1"',
-          "}",
-          "</context>",
-        ].join("\n"),
-      ),
+    expect(messageRoles(s.requests[1])).toEqual(["user", "user"])
+    expect(l4Texts(s.requests[1])).toEqual([
+      [
+        'The context under "deploy-target" changed and supersedes the previous value:',
+        '<context key="deploy-target">',
+        "{",
+        '  "region": "us-east-1"',
+        "}",
+        "</context>",
+      ].join("\n"),
     ])
     expect(yield* contextEntries.list(sessionID)).toEqual([{ key: "deploy-target", value: { region: "us-east-1" } }])
 
-    // Deleting the row announces removal through the stored removal text.
+    // Deleting the row announces removal through the stored removal text; the change notice is replaced.
     yield* contextEntries.remove({ sessionID, key: "deploy-target" })
     yield* s.runPrompt("Third")
 
-    expect(messageRoles(s.requests[2])).toEqual(["user", "system", "user", "system", "user"])
-    expect(s.requests[2]?.messages.at(-2)?.content).toEqual([
-      Expected.text('The context under "deploy-target" no longer applies. Ignore it.'),
-    ])
+    expect(messageRoles(s.requests[2])).toEqual(["user", "user", "user"])
+    expect(l4Texts(s.requests[2])).toEqual(['The context under "deploy-target" no longer applies. Disregard it.'])
     expect(yield* contextEntries.list(sessionID)).toEqual([])
   })
 
@@ -2327,15 +2395,14 @@ describe("SessionRunnerLLM", () => {
     yield* entries.put({ sessionID, key: "nullable", value: null })
     yield* s.runPrompt("Second")
 
-    expect(s.requests[1]?.messages.at(1)?.content).toEqual([
-      Expected.text(
-        [
-          'The context under "nullable" changed and supersedes the previous value:',
-          '<context key="nullable">',
-          "null",
-          "</context>",
-        ].join("\n"),
-      ),
+    // The changed entry narrates through the L4 notice segment instead of a chronological message.
+    expect(l4Texts(s.requests[1])).toEqual([
+      [
+        'The context under "nullable" changed and supersedes the previous value:',
+        '<context key="nullable">',
+        "null",
+        "</context>",
+      ].join("\n"),
     ])
     expect(yield* entries.list(sessionID)).toEqual([{ key: "nullable", value: null }])
   })
@@ -2374,22 +2441,17 @@ describe("SessionRunnerLLM", () => {
 
     expect(s.requests.map((request) => request.system.map((part) => part.text))).toEqual([
       [defaultSystem, fakeIdentity, "Initial context"],
-      [defaultSystem, fakeIdentity, "Initial context"],
-      [defaultSystem, replacementIdentity, "Initial context"],
+      [defaultSystem, fakeIdentity, "Initial context", "Changed context"],
+      [defaultSystem, replacementIdentity, "Initial context", "Replacement context"],
     ])
-    expect(messageRoles(s.requests[1])).toEqual(["user", "system", "user"])
-    expect(s.requests[2]?.messages.filter((message) => message.role === "system")).toHaveLength(2)
-    expect((yield* s.context).map((message) => message.type)).toEqual([
-      "user",
-      "system",
-      "user",
-      "model-switched",
-      "system",
-      "user",
-    ])
+    expect(messageRoles(s.requests[1])).toEqual(["user", "user"])
+    expect(s.requests[2]?.messages.filter((message) => message.role === "system")).toHaveLength(0)
+    expect((yield* s.context).map((message) => message.type)).toEqual(["user", "user", "model-switched", "user"])
     yield* replaySessionProjection(sessionID)
-    expect(yield* s.messages).toHaveLength(6)
+    expect(yield* s.messages).toHaveLength(4)
     yield* s.runPrompt("Fourth")
+    // Replacement semantics: the tail notices only the net baseline-to-current change, once.
+    expect(l4Texts(s.requests.at(-1)!)).toEqual(["Replacement context"])
   })
 
   scenario("records a same-model effort switch as a cache-preserving effort update", function* (s) {
@@ -2439,7 +2501,7 @@ describe("SessionRunnerLLM", () => {
     expect(s.requests.map((request) => request.system.map((part) => part.text))).toEqual([
       [defaultSystem, fakeIdentity, "Initial context"],
       [defaultSystem, replacementIdentity, "Initial context"],
-      [defaultSystem, replacementIdentity, "Initial context"],
+      [defaultSystem, replacementIdentity, "Initial context", "Replacement context"],
     ])
   })
 
@@ -2457,17 +2519,19 @@ describe("SessionRunnerLLM", () => {
     expect(s.requests.map((request) => request.system.map((part) => part.text))).toEqual([
       [defaultSystem, fakeIdentity, "Initial context"],
       [defaultSystem, fakeIdentity, "Initial context"],
-      [defaultSystem, fakeIdentity, "Initial context"],
+      [defaultSystem, fakeIdentity, "Initial context", "Replacement context"],
     ])
-    expect(messageRoles(s.requests[2])).toEqual(["user", "system", "user"])
-    expect(s.requests[2]?.messages.at(1)?.content).toEqual([Expected.text("Replacement context")])
+    expect(messageRoles(s.requests[2])).toEqual(["user", "user"])
+    expect(l4Texts(s.requests[2])).toEqual(["Replacement context"])
     yield* replaySessionProjection(sessionID)
     const latest = yield* s.runPrompt("Third")
-    expect(systemTexts(s.requests[3])).toEqual(["Replacement context"])
+    // Replaying the ledger rebuilds the timeline without notices; L4 re-renders from the values.
+    expect(systemTexts(s.requests[3])).toEqual([])
+    expect(l4Texts(s.requests[3])).toEqual(["Replacement context"])
     const fork = yield* s.session.fork({ sessionID, before: latest.id })
     expect(
       (yield* s.session.context(fork.id)).flatMap((message) => (message.type === "system" ? [message.text] : [])),
-    ).toEqual(["Replacement context"])
+    ).toEqual([])
   })
 
   for (const order of ["before", "between", "after"] as const) {
@@ -3791,8 +3855,10 @@ describe("SessionRunnerLLM", () => {
       defaultSystem,
       replacementIdentity,
       "Initial context",
+      "Changed during compaction",
     ])
-    expect(systemTexts(s.requests[2])).toContain("Changed during compaction")
+    expect(l4Texts(s.requests[2])).toEqual(["Changed during compaction"])
+    expect(systemTexts(s.requests[2])).toEqual([])
     expect(userTexts(s.requests[2])[0]).toContain("<summary>\n## Objective\n- Overflow summary\n</summary>")
     expect(userTexts(s.requests[2]).join("\n")).not.toContain("Queued during compaction")
     expect(userTexts(s.requests[2]).join("\n")).not.toContain("Steered during compaction")
@@ -4175,9 +4241,11 @@ describe("SessionRunnerLLM", () => {
     expect(s.requests.map((request) => request.model)).toEqual([model, replacementModel])
     expect(s.requests.map((request) => request.system.map((part) => part.text))).toEqual([
       [defaultSystem, fakeIdentity, "Initial context"],
-      [defaultSystem, replacementIdentity, "Initial context"],
+      [defaultSystem, replacementIdentity, "Initial context", "Replacement context"],
     ])
-    expect(systemTexts(s.requests[1])).toContain("Replacement context")
+    // The edit observed mid-turn arrives as a replaced L4 notice instead of a chronological message.
+    expect(l4Texts(s.requests[1])).toEqual(["Replacement context"])
+    expect(systemTexts(s.requests[1])).toEqual([])
   })
 
   scenario("consumes the full provider stream before recording its boundary and settling local tools", function* (s) {

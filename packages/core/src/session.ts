@@ -59,6 +59,7 @@ import { SessionModelTransport } from "./session/model-transport.js"
 import { llmClient } from "./effect/app-node-platform.js"
 import { Snapshot } from "./snapshot.js"
 import { Session } from "./session/session.js"
+import { SessionContextSnapshot } from "./session/context-snapshot.js"
 import { SessionDiff, TurnRangeError } from "./session/diff.js"
 import { LocationServiceMap } from "./location-service-map.js"
 import { FSUtil } from "@aicraft/util/fs-util"
@@ -252,6 +253,9 @@ export interface Interface {
     input: CompactInput,
   ) => Effect.Effect<SessionInbox.Compaction, NotFoundError | CompactionConflictError | ArchivedError>
   readonly wait: (id: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
+  readonly advanceContext: (
+    id: SessionSchema.ID,
+  ) => Effect.Effect<SessionContextSnapshot.AdvanceResult, NotFoundError | ArchivedError>
   readonly active: Effect.Effect<ReadonlySet<SessionSchema.ID>>
   readonly background: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
   readonly resume: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError | SessionRunner.RunError>
@@ -534,6 +538,7 @@ const layer = Layer.effect(
       move: moves.move,
       compact: (input) => sessions.forSession(input.sessionID).compact(input),
       wait: (sessionID) => sessions.forSession(sessionID).wait(),
+      advanceContext: (sessionID) => sessions.forSession(sessionID).advanceContext(),
       active: execution.active,
       background: Effect.fn("Session.background")(function* (sessionID) {
         yield* result.get(sessionID)

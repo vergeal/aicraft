@@ -275,6 +275,7 @@ const layer = Layer.effect(
           model: loaded.model,
           tools: loaded.tools,
           initial: loaded.initial,
+          l4: loaded.l4,
           project: loaded.project,
           sessionPrompt: loaded.session.prompt,
           messages: loaded.messages,

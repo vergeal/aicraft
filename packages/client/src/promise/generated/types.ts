@@ -4204,6 +4204,19 @@ export type ExperimentalSessionWaitInput = { readonly sessionID: string }
 
 export type ExperimentalSessionWaitOutput = void
 
+export type ExperimentalSessionAdvanceContextInput = { readonly sessionID: string }
+
+export type ExperimentalSessionAdvanceContextOutput = {
+  data: {
+    epoch: number
+    prefixVersion: number
+    parentVersion?: number | undefined
+    bumpReason: "initial" | "advance" | "compaction"
+    settled: Array<string>
+    rebuiltAt: "pending" | "not-needed"
+  }
+}["data"]
+
 export type ExperimentalSessionInstructionsEntryListInput = { readonly sessionID: string }
 
 export type ExperimentalSessionInstructionsEntryListOutput = { data: Array<InstructionEntryInfo> }["data"]
@@ -5389,6 +5402,12 @@ export type SessionWaitInput = ExperimentalSessionWaitInput
 
 /** @deprecated Use `ExperimentalSessionWaitOutput`. Removed in the next minor. */
 export type SessionWaitOutput = ExperimentalSessionWaitOutput
+
+/** @deprecated Use `ExperimentalSessionAdvanceContextInput`. Removed in the next minor. */
+export type SessionAdvanceContextInput = ExperimentalSessionAdvanceContextInput
+
+/** @deprecated Use `ExperimentalSessionAdvanceContextOutput`. Removed in the next minor. */
+export type SessionAdvanceContextOutput = ExperimentalSessionAdvanceContextOutput
 
 /** @deprecated Use `ExperimentalSessionInstructionsEntryListInput`. Removed in the next minor. */
 export type SessionInstructionsEntryListInput = ExperimentalSessionInstructionsEntryListInput

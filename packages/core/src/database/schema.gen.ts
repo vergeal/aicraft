@@ -290,6 +290,18 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
         );
       `)
       yield* tx.run(`
+        CREATE TABLE \`context_lineage\` (
+          \`session_id\` text NOT NULL,
+          \`epoch\` integer NOT NULL,
+          \`prefix_version\` integer NOT NULL,
+          \`parent_version\` integer,
+          \`bump_reason\` text NOT NULL,
+          \`time_created\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL,
+          CONSTRAINT \`fk_context_lineage_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`context_snapshot\` (
           \`session_id\` text PRIMARY KEY,
           \`epoch\` integer NOT NULL,
@@ -298,6 +310,7 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`bump_reason\` text NOT NULL,
           \`baseline_epoch\` integer NOT NULL,
           \`agent_id\` text NOT NULL,
+          \`pending_advance\` integer DEFAULT false NOT NULL,
           \`parts\` text NOT NULL,
           CONSTRAINT \`fk_context_snapshot_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE
         );
@@ -473,6 +486,9 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
       )
       yield* tx.run(`CREATE INDEX \`blob_ref_hash_idx\` ON \`blob_ref\` (\`hash\`);`)
       yield* tx.run(`CREATE INDEX \`blob_ref_session_seq_idx\` ON \`blob_ref\` (\`session_id\`,\`seq\`);`)
+      yield* tx.run(
+        `CREATE UNIQUE INDEX \`context_lineage_session_prefix_version_idx\` ON \`context_lineage\` (\`session_id\`,\`prefix_version\`);`,
+      )
       yield* tx.run(
         `CREATE INDEX \`session_inbox_session_delivery_seq_idx\` ON \`session_inbox\` (\`session_id\`,\`delivery\`,\`enqueued_seq\`);`,
       )

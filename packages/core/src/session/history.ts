@@ -299,6 +299,7 @@ export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(fun
         const messages = yield* messageEntries(db, sessionID, boundary)
         return {
           initial: baseline(yield* InstructionState.initial(db, sessionID, instructions)),
+          l4: yield* InstructionState.notices(db, sessionID, instructions),
           entries: messages,
         }
       }),

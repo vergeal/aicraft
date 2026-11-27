@@ -465,6 +465,18 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
         }),
       )
       .handle(
+        "session.advanceContext",
+        Effect.fn(function* (ctx) {
+          const advanced = yield* session
+            .advanceContext(ctx.params.sessionID)
+            .pipe(
+              Effect.catchTag("Session.NotFoundError", missingSession),
+              Effect.catchTag("Session.ArchivedError", archivedSession),
+            )
+          return { data: { ...advanced.lineage, settled: advanced.settled, rebuiltAt: advanced.rebuiltAt } }
+        }),
+      )
+      .handle(
         "session.revert.stage",
         Effect.fn(function* (ctx) {
           yield* Effect.log("session.revert.stage", {

@@ -205,11 +205,8 @@ describe("InstructionState", () => {
           "test/retired": "removed",
         },
       ])
-      // The chronological update text is frozen into the event; the baseline has none.
-      expect((yield* instructionEvents(db, sessionID)).map((event) => event.data.text)).toEqual([
-        undefined,
-        "changed\n\nRemoved retired",
-      ])
+      // The event is a ledger delta only; L4 renders notices at assembly, so no text is frozen (the baseline never had one).
+      expect((yield* instructionEvents(db, sessionID)).map((event) => event.data.text)).toEqual([undefined, undefined])
       expect(yield* db.select().from(InstructionStateTable).get().pipe(Effect.orDie)).toMatchObject({
         initial_values: {
           "test/current": Instructions.hash("initial"),
@@ -380,7 +377,7 @@ describe("InstructionState", () => {
     }),
   )
 
-  it.effect("persists chronological updates as system messages", () =>
+  it.effect("records chronological updates without projecting system messages", () =>
     Effect.gen(function* () {
       const sessionID = SessionSchema.ID.make("ses_instruction_messages")
       const { db, events } = yield* setup(sessionID)
@@ -402,16 +399,18 @@ describe("InstructionState", () => {
       yield* InstructionState.prepare(db, events, instructions, sessionID)
       expect(yield* messages()).toEqual([])
 
+      // L4 replaces the timeline injection: the delta stays in the ledger, the projector skips the absent text.
       value = "Changed context"
       yield* InstructionState.prepare(db, events, instructions, sessionID)
-      const rows = yield* messages()
-      expect(rows).toHaveLength(1)
-      expect(rows[0]?.data).toMatchObject({ text: "Changed context" })
-      expect(rows.map((row) => row.seq)).toEqual([(yield* instructionEvents(db, sessionID)).at(-1)!.seq])
+      expect((yield* instructionEvents(db, sessionID)).map((event) => event.data.text)).toEqual([undefined, undefined])
+      expect(yield* messages()).toEqual([])
+      expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([
+        { key: Instructions.Key.make("test/context"), text: "Changed context" },
+      ])
 
       // A no-op observation adds nothing.
       yield* InstructionState.prepare(db, events, instructions, sessionID)
-      expect(yield* messages()).toHaveLength(1)
+      expect(yield* messages()).toEqual([])
     }),
   )
 

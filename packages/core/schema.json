@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "8161e681-0496-4727-a053-892bc7ab8ae2",
-  "prevIds": ["06dd4756-7bf6-40a7-ac42-e0b76f7f63a0"],
+  "id": "010c08ab-3e71-4c3c-84f5-0946f13d2d8b",
+  "prevIds": ["8161e681-0496-4727-a053-892bc7ab8ae2"],
   "ddl": [
     {
       "name": "account_state",
@@ -94,6 +94,10 @@
     },
     {
       "name": "blob",
+      "entityType": "tables"
+    },
+    {
+      "name": "context_lineage",
       "entityType": "tables"
     },
     {
@@ -1872,6 +1876,76 @@
     },
     {
       "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "epoch",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "prefix_version",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "parent_version",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bump_reason",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "context_lineage"
+    },
+    {
+      "type": "text",
       "notNull": false,
       "autoincrement": false,
       "default": null,
@@ -1937,6 +2011,16 @@
       "default": null,
       "generated": null,
       "name": "agent_id",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "pending_advance",
       "entityType": "columns",
       "table": "context_snapshot"
     },
@@ -3028,6 +3112,17 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
+      "name": "fk_context_lineage_session_id_session_v2_id_fk",
+      "entityType": "fks",
+      "table": "context_lineage"
+    },
+    {
+      "columns": ["session_id"],
+      "tableTo": "session_v2",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
       "name": "fk_context_snapshot_session_id_session_v2_id_fk",
       "entityType": "fks",
       "table": "context_snapshot"
@@ -3678,6 +3773,24 @@
       "name": "blob_ref_session_seq_idx",
       "entityType": "indexes",
       "table": "blob_ref"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "prefix_version",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "context_lineage_session_prefix_version_idx",
+      "entityType": "indexes",
+      "table": "context_lineage"
     },
     {
       "columns": [

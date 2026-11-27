@@ -476,6 +476,31 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
       ),
     )
     .add(
+      HttpApiEndpoint.post("session.advanceContext", "/api/experimental/session/:sessionID/context/advance", {
+        params: { sessionID: Session.ID },
+        success: Schema.Struct({
+          data: Schema.Struct({
+            epoch: NonNegativeInt,
+            prefixVersion: NonNegativeInt,
+            parentVersion: NonNegativeInt.pipe(Schema.optional),
+            bumpReason: Schema.Literals(["initial", "advance", "compaction"]),
+            settled: Schema.Array(Schema.String),
+            rebuiltAt: Schema.Literals(["pending", "not-needed"]),
+          }),
+        }),
+        error: [SessionNotFoundError, ServiceUnavailableError, ConflictError],
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "experimental.session.advanceContext",
+          summary: "Advance session context version",
+          description:
+            "Experimental: may change without compatibility guarantees. Rebuild the session's frozen context " +
+            "prefix immediately, settling the instruction ledger: pending instruction and agent edits become " +
+            "visible at the next request at the cost of one full cache break for this session.",
+        }),
+      ),
+    )
+    .add(
       HttpApiEndpoint.post("session.revert.stage", "/api/session/:sessionID/revert/stage", {
         params: { sessionID: Session.ID },
         payload: Schema.Struct({ messageID: SessionMessage.ID, files: Schema.Boolean.pipe(Schema.optional) }),

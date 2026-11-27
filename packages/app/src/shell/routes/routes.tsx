@@ -10,7 +10,7 @@ import { ServerSignedOutPanel } from "@/session/server-unavailable-panel"
 import { LayoutProvider } from "@/shell/state/layout"
 import { SettingsSurfaceProvider } from "@/settings/surface"
 import Shell from "@/shell/shell"
-import { requireServerKey } from "./session"
+import { routeServerKey } from "./session"
 import { PluginAttachment } from "@/runtime/plugin/root"
 import {
   DraftRoute,
@@ -81,7 +81,7 @@ function TargetServerRoute(props: ParentProps) {
   // Show below remounts the whole routed subtree on an identity change, which would throw away the cached timelines,
   // so the memo only moves on a content change.
   const connection = createMemo(
-    () => global.servers.list().find((item) => ServerConnection.key(item) === requireServerKey(params.serverKey)),
+    () => global.servers.list().find((item) => ServerConnection.key(item) === routeServerKey(params.serverKey)),
     undefined,
     {
       equals: (previous, next) =>

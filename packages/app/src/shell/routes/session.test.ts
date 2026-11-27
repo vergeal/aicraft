@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { ServerConnection } from "@/runtime/server/registry"
-import { requireServerKey, rootSession, sessionHref } from "./session"
+import { requireServerKey, rootSession, routeServerKey, sessionHref } from "./session"
 
 describe("session routes", () => {
   test("builds and decodes a server-keyed session route", () => {
@@ -42,5 +42,14 @@ describe("session routes", () => {
     await expect(rootSession(sessions.child, async (id) => sessions[id]!)).rejects.toThrow(
       "Session parent cycle: child",
     )
+  })
+
+  test("route params without a server segment never resolve a key", () => {
+    // Router params can clear before a session route's subtree unmounts, so
+    // the route must read as "no server" instead of throwing.
+    expect(routeServerKey(undefined)).toBeUndefined()
+    expect(routeServerKey("")).toBeUndefined()
+    expect(routeServerKey("not-base64")).toBeUndefined()
+    expect(() => requireServerKey(undefined)).toThrow("Invalid server route")
   })
 })

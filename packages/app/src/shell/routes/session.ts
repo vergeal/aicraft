@@ -6,12 +6,22 @@ export function sessionHref(server: ServerConnection.Key, sessionID: string) {
   return `/server/${base64Encode(server)}/session/${sessionID}`
 }
 
-export function requireServerKey(segment: string | undefined) {
+export function routeServerKey(segment: string | undefined) {
   const key = decode64(segment)
 
-  if (!key || base64Encode(key) !== segment) throw new Error("Invalid server route")
+  // A transition away from a session route empties the router's params before this subtree is disposed,
+  // so the absence of a key is a normal state here, not a bad URL.
+  if (!key || base64Encode(key) !== segment) return undefined
 
   return ServerConnection.Key.make(key)
+}
+
+export function requireServerKey(segment: string | undefined) {
+  const key = routeServerKey(segment)
+
+  if (!key) throw new Error("Invalid server route")
+
+  return key
 }
 
 type SessionParent = { id: string; parentID?: string }

@@ -21,6 +21,10 @@ const id = (value: string) => SessionMessage.ID.make(`msg_${value}`)
 const model = Model.Ref.make({ id: Model.ID.make("model"), providerID: Provider.ID.make("provider") })
 const build = Agent.defaultID
 
+// Model-visible replay note from to-llm-message (DESIGN §1.1 rule 2).
+const REASONING_NOTE =
+  "Note: the following is the assistant's private reasoning from an interrupted turn, not part of its final answer."
+
 describe("toLLMMessages", () => {
   test("background user shells enter model context only through their completion notification", () => {
     const shell = SessionMessage.Shell.make({
@@ -81,7 +85,8 @@ describe("toLLMMessages", () => {
       model,
     )
 
-    expect(messages.map((message) => message.id)).toEqual([id("text"), id("reasoning")])
+    // Completed turns drop every reasoning segment, signed or empty (DESIGN §1.1 rule 1).
+    expect(messages.map((message) => message.id)).toEqual([id("text")])
   })
 
   test("maps every top-level Session message type", () => {
@@ -809,7 +814,7 @@ Earlier work
     expect(messages.map((message) => message.role)).toEqual(["assistant", "tool"])
     expect(messages[0]?.content).toEqual([
       { type: "text", text: "Checking" },
-      { type: "reasoning", text: "Think", providerMetadata: { provider: { signature: "sig_1" } } },
+      // Completed turns never replay reasoning, even signed (DESIGN §1.1 rule 1).
       { type: "tool-call", id: "pending", name: "read", input: { path: "README.md" } },
       { type: "tool-call", id: "running", name: "read", input: { path: "README.md" } },
       {
@@ -870,7 +875,7 @@ Earlier work
     ])
   })
 
-  test("restores OpenAI encrypted reasoning metadata", () => {
+  test("omits completed-turn encrypted reasoning from requests", () => {
     const messages = toLLMMessages(
       [
         SessionMessage.Assistant.make({
@@ -891,16 +896,11 @@ Earlier work
       model,
     )
 
-    expect(messages[0]?.content).toEqual([
-      {
-        type: "reasoning",
-        text: "Think",
-        providerMetadata: { provider: { itemId: "rs_1", reasoningEncryptedContent: "encrypted-state" } },
-      },
-    ])
+    // DESIGN §1.1 rule 1: reasoning is durable-only, never replayed for a settled turn.
+    expect(messages).toEqual([])
   })
 
-  test("replays flat state under an AI Craft hosted model's route key", () => {
+  test("replays interrupted hosted-model reasoning as annotated text without provider state", () => {
     const aicraft = Model.Ref.make({ id: Model.ID.make("claude-fable-5"), providerID: Provider.ID.aicraft })
     const messages = toLLMMessages(
       [
@@ -916,6 +916,8 @@ Earlier work
               native: { signature: "signed" },
             }),
           ],
+          finish: "error",
+          error: { type: "provider.transport", message: "Stream cut" },
           time: { created, completed: created },
         }),
       ],
@@ -923,12 +925,10 @@ Earlier work
       "anthropic",
     )
 
-    expect(messages[0]?.content).toEqual([
-      { type: "reasoning", text: "Think", providerMetadata: { anthropic: { signature: "signed" } } },
-    ])
+    expect(messages[0]?.content).toEqual([{ type: "text", text: `${REASONING_NOTE}\n\nThink` }])
   })
 
-  test("drops failed assistant reasoning while preserving settled hosted tools", () => {
+  test("replays failed assistant reasoning annotated while preserving settled hosted tools", () => {
     const messages = toLLMMessages(
       [
         SessionMessage.Assistant.make({
@@ -978,6 +978,9 @@ Earlier work
     )
 
     expect(messages[0]?.content).toEqual([
+      // DESIGN §1.1 rule 2: the interrupted turn's reasoning merges into one
+      // annotated text part; provider-native payloads never travel with it.
+      { type: "text", text: `${REASONING_NOTE}\n\nPartial thought` },
       {
         type: "tool-call",
         id: "hosted-completed",
@@ -1021,7 +1024,7 @@ Earlier work
     ])
   })
 
-  test("omits unfinished reasoning from an interrupted assistant message", () => {
+  test("replays finished reasoning segments of an interrupted assistant message as annotated text", () => {
     const messages = toLLMMessages(
       [
         SessionMessage.Assistant.make({
@@ -1049,7 +1052,10 @@ Earlier work
       model,
     )
 
-    expect(messages).toEqual([])
+    // The empty open segment contributes nothing (DESIGN §1.1 rule 4); the finished
+    // segment replays merged with the note.
+    expect(messages.map((message) => message.role)).toEqual(["assistant"])
+    expect(messages[0]?.content).toEqual([{ type: "text", text: `${REASONING_NOTE}\n\nCompleted summary part` }])
   })
 
   test("drops model-scoped continuation metadata after a model switch but keeps hosted result payloads", () => {
@@ -1100,7 +1106,7 @@ Earlier work
     )
 
     expect(messages[0]?.content).toEqual([
-      { type: "reasoning", text: "Visible thought" },
+      // Completed turn: reasoning never replays after a model switch either.
       {
         type: "tool-call",
         id: "hosted-old-model",
@@ -1142,7 +1148,7 @@ Earlier work
     ])
   })
 
-  test("preserves provider metadata for a catalog alias with a different API model ID", () => {
+  test("drops reasoning for a catalog alias turn like any other completed turn", () => {
     const messages = toLLMMessages(
       [
         SessionMessage.Assistant.make({
@@ -1163,13 +1169,8 @@ Earlier work
       Model.Ref.make({ id: Model.ID.make("fast"), providerID: Provider.ID.make("provider") }),
     )
 
-    expect(messages[0]?.content).toEqual([
-      {
-        type: "reasoning",
-        text: "Visible thought",
-        providerMetadata: { provider: { reasoningEncryptedContent: "encrypted" } },
-      },
-    ])
+    // DESIGN §1.1 rule 1: no replay window remains for signed reasoning, alias or not.
+    expect(messages).toEqual([])
   })
 
   test("drops assistant text provider state across model changes and failures", () => {

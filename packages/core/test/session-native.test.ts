@@ -251,11 +251,9 @@ it.effect(
             replayed.entries.map((entry) => entry.message),
             model.ref,
           ),
-        ).toEqual([
-          ...replacement,
-          Message.system("newest instructions"),
-          expect.objectContaining({ role: "user", content: [Message.text("continue")] }),
-        ])
+        // P2 cut the narrative instruction injection: superseded updates never enter the
+        // L3 timeline, so the replay is the native window plus the new prompt only.
+        ).toEqual([...replacement, expect.objectContaining({ role: "user", content: [Message.text("continue")] })])
         for (const incompatible of [
           "local" as const,
           { ...model.ref, id: Model.ID.make("other") },
@@ -268,11 +266,7 @@ it.effect(
               expanded.entries.map((entry) => entry.message),
               model.ref,
             ).map((message) => message.content),
-          ).toEqual([
-            [Message.text("original request")],
-            [Message.text("newest instructions")],
-            [Message.text("continue")],
-          ])
+          ).toEqual([[Message.text("original request")], [Message.text("continue")]])
         }
         const preview = yield* SessionHistory.preview(s.db, sessionID, s.instructions, target)
         expect(Instructions.join(preview.initial)).toBe("changed instructions")
@@ -280,9 +274,7 @@ it.effect(
         const store = yield* SessionStore.Service
         expect((yield* store.messages({ sessionID })).map((message) => message.type)).toEqual([
           "user",
-          "system",
           "compaction",
-          "system",
           "user",
         ])
       })
@@ -327,17 +319,20 @@ it.effect("falls back to an earlier compatible native or local checkpoint", () =
     yield* s.prepare
     const replayed = yield* s.load(target)
     expect(Instructions.join(replayed.initial)).toBe("new native baseline")
-    expect(replayed.entries.map((entry) => entry.message.type)).toEqual(["compaction", "user", "system"])
+    // Narrative instruction updates no longer land in the runner timeline (P2).
+    expect(replayed.entries.map((entry) => entry.message.type)).toEqual(["compaction", "user"])
     expect(replayed.entries[0]?.message).toMatchObject({ native, model: model.ref })
+    // Instruction narrative no longer reaches the L3 timeline; the epoch baseline
+    // lives in `initial` (asserted above).
     expect(
       toLLMMessages(
         replayed.entries.map((entry) => entry.message),
         model.ref,
       ).filter((message) => message.role === "system"),
-    ).toEqual([Message.system("post-epoch update")])
+    ).toEqual([])
     const local = yield* s.load("local")
     expect(Instructions.join(local.initial)).toBe("new native baseline")
-    expect(local.entries.map((entry) => entry.message.type)).toEqual(["compaction", "user", "user", "system"])
+    expect(local.entries.map((entry) => entry.message.type)).toEqual(["compaction", "user", "user"])
     expect(local.entries[0]?.message).toMatchObject({ summary: "local summary" })
   }),
 )

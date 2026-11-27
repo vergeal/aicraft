@@ -692,7 +692,11 @@ const incompleteStream = () =>
   })
 
 const INCOMPLETE_STREAM_CONTINUATION =
-  "The previous reply was interrupted. Continue from where it stopped without repeating work that is already done."
+  "The previous response was interrupted. Continue from where you left off without repeating completed content."
+
+// Model-visible replay note from to-llm-message (DESIGN §1.1 rule 2).
+const REASONING_NOTE =
+  "Note: the following is the assistant's private reasoning from an interrupted turn, not part of its final answer."
 
 const providerRejected = (input: { readonly message: string; readonly classification?: "context-overflow" }) =>
   new AIError({ reason: new InvalidRequestError(input) })
@@ -4313,7 +4317,7 @@ describe("SessionRunnerLLM", () => {
     })
   })
 
-  scenario("restores durable reasoning provider metadata in the next request", function* (s) {
+  scenario("keeps signed reasoning durable but out of later requests", function* (s) {
     yield* s.admit("Think first")
 
     yield* s.llm.push(
@@ -4364,18 +4368,14 @@ describe("SessionRunnerLLM", () => {
     yield* s.llm.push([])
     yield* s.resume
 
-    expect(s.requests[1]?.messages[1]?.content).toEqual([
-      {
-        type: "reasoning",
-        text: "Signed thought",
-        providerMetadata: { openai: { signature: "sig_1" } },
-      },
-      {
-        type: "reasoning",
-        text: "Encrypted thought",
-        providerMetadata: { openai: { itemId: "rs_1", reasoningEncryptedContent: "encrypted-state" } },
-      },
-    ])
+    // DESIGN §1.1 rule 1: completed turns never replay reasoning, even signed
+    // same-model segments.
+    expect(s.requests[1]?.messages.map((message) => message.role)).toEqual(["user", "user"])
+    expect(
+      s.requests[1]?.messages.flatMap((message) =>
+        message.content.flatMap((part) => (part.type === "reasoning" ? [part.text] : [])),
+      ),
+    ).toEqual([])
   })
 
   scenario("keeps one durable reasoning part when reasoning closes after text", function* (s) {
@@ -4417,12 +4417,12 @@ describe("SessionRunnerLLM", () => {
     yield* s.llm.push([])
     yield* s.resume
 
-    expect(s.requests[1]?.messages[1]?.content.filter((part) => part.type === "reasoning")).toEqual([
-      {
-        type: "reasoning",
-        text: "thinking",
-        providerMetadata: { openai: { reasoningField: "reasoning", reasoningDetails: details } },
-      },
+    // DESIGN §1.1 rule 1: the completed turn's signed reasoning stays durable and
+    // never enters the next request; only the text replays.
+    expect(s.requests[1]?.messages[1]?.content.filter((part) => part.type === "reasoning")).toEqual([])
+    expect(s.requests[1]?.messages[1]?.role).toBe("assistant")
+    expect(s.requests[1]?.messages[1]?.content).toEqual([
+      { type: "text", text: "Hello world", providerMetadata: undefined },
     ])
   })
 
@@ -6234,7 +6234,7 @@ describe("SessionRunnerLLM", () => {
   for (const type of ["text", "reasoning"] as const) {
     scenario(`continues ${type} after an output token limit`, function* (s) {
       const nudge =
-        "The previous reply hit the output length limit (stop reason: length). Do not apologize, restate, or repeat yourself. Break the remaining work into smaller steps."
+        "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces."
       const partial =
         type === "text"
           ? [
@@ -6255,10 +6255,18 @@ describe("SessionRunnerLLM", () => {
       yield* s.runPrompt("Complete the response")
 
       expect(s.requests).toHaveLength(2)
-      expect(s.requests[1]?.messages.at(-2)).toMatchObject({
-        role: "assistant",
-        content: [expect.objectContaining({ text: "Partial" })],
-      })
+      if (type === "text")
+        expect(s.requests[1]?.messages.at(-2)).toMatchObject({
+          role: "assistant",
+          content: [expect.objectContaining({ text: "Partial" })],
+        })
+      // DESIGN §1.1 rule 1: a length-capped turn still counts as settled, so its
+      // reasoning is durable-only and the assistant message carries nothing else.
+      if (type === "reasoning")
+        expect(s.requests[1]?.messages.at(-2)).toMatchObject({
+          role: "user",
+          content: [expect.objectContaining({ text: "Complete the response" })],
+        })
       expect(s.requests[1]?.messages.at(-1)).toMatchObject({
         role: "user",
         content: [{ type: "text", text: nudge }],
@@ -6499,7 +6507,7 @@ describe("SessionRunnerLLM", () => {
     ])
   })
 
-  scenario("drops interrupted reasoning before continuing an incomplete stream", function* (s) {
+  scenario("replays interrupted reasoning as annotated text before continuing an incomplete stream", function* (s) {
     yield* s.admit("Continue interrupted reasoning")
     yield* s.llm.push(
       TestLLM.failAfter(
@@ -6517,8 +6525,13 @@ describe("SessionRunnerLLM", () => {
     yield* TestClock.adjust("2400 millis")
     yield* Fiber.join(run)
 
+    // DESIGN §1.1 rule 2: the flushed reasoning of the cut turn replays as one
+    // annotated text part, ahead of the continuation nudge.
     expect(s.requests[1]?.messages.slice(-2)).toMatchObject([
-      { role: "user", content: [{ type: "text", text: "Continue interrupted reasoning" }] },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: `${REASONING_NOTE}\n\nPartial thought` }],
+      },
       { role: "user", content: [{ type: "text", text: INCOMPLETE_STREAM_CONTINUATION }] },
     ])
     expect(yield* s.context).toMatchObject([
@@ -6554,8 +6567,10 @@ describe("SessionRunnerLLM", () => {
 
       expect(s.requests).toHaveLength(2)
       expect(yield* recordedEventTypes(sessionID)).toContain("session.retry.scheduled.1")
+      // DESIGN §1.1 rule 3/4: the orphan reasoning segment carries no text, so the
+      // cut turn replays as a termination note instead.
       expect(s.requests[1]?.messages.slice(-2)).toMatchObject([
-        { role: "user", content: [{ type: "text", text: "Recover disconnected reasoning" }] },
+        { role: "assistant", content: [{ type: "text", text: "This turn produced no output before it was terminated by an error." }] },
         { role: "user", content: [{ type: "text", text: INCOMPLETE_STREAM_CONTINUATION }] },
       ])
       expect(yield* s.context).toMatchObject([

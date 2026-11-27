@@ -139,13 +139,60 @@ const toolResult = (tool: SessionMessage.AssistantTool, providerMetadata: Provid
   }
 }
 
+/**
+ * L3 replay rules (DESIGN §1.1, packages/context/DESIGN.md): thinking never
+ * travels in requests for completed turns. An unfinished turn replays its
+ * reasoning merged into one plainly annotated text part so the model keeps
+ * the break-point without mistaking private thinking for a final answer; a
+ * turn that left no text and no reasoning is replaced by a termination note.
+ */
+const INTERRUPTED_REASONING_NOTE =
+  "Note: the following is the assistant's private reasoning from an interrupted turn, not part of its final answer."
+
+/**
+ * User-initiated aborts are the only non-error distinction the projection
+ * keeps: step.ts records STEP_INTERRUPTED / TOOLS_INTERRUPTED and llm.ts the
+ * compaction cancel with error type "aborted". Everything else — provider
+ * failures, and turns cut before their step settled by a hard process kill —
+ * counts as an error termination.
+ */
+const terminatedByUser = (message: SessionMessage.Assistant) => message.error?.type === "aborted"
+
+const terminationNote = (message: SessionMessage.Assistant) =>
+  `This turn produced no output before it was terminated ${terminatedByUser(message) ? "by the user" : "by an error"}.`
+
+/**
+ * A turn completed normally when its step settled without error on a normal
+ * finish. Failures and aborts either keep an error on the message or, once a
+ * scheduled retry clears the error, leave the abnormal `finish` marker
+ * ("error" / "unknown") behind. A hard kill or an in-flight retry settles
+ * neither, so the turn counts as unfinished and its reasoning keeps the
+ * break-point replay of DESIGN §1.1 rule 2.
+ */
+const NORMAL_FINISHES = new Set(["stop", "length", "tool-calls", "content-filter"])
+const turnCompleted = (message: SessionMessage.Assistant) =>
+  message.error === undefined &&
+  (message.finish === undefined
+    ? message.time.completed !== undefined
+    : NORMAL_FINISHES.has(message.finish))
+
 const assistant = (message: SessionMessage.Assistant, model: Model.Ref, providerMetadataKey: string) => {
   const sameProvider = message.model.providerID === model.providerID
   const sameModel = sameProvider && message.model.id === model.id
   const reuseProviderMetadata = sameModel && message.error === undefined
-  const reasoningInterrupted = message.content.some(
-    (item) => item.type === "reasoning" && item.time !== undefined && item.time.completed === undefined,
-  )
+  const completed = turnCompleted(message)
+  // Segments with text only: an orphan "started" fragment committed empty by
+  // a hard kill reads as no reasoning (DESIGN §1.1 rule 4).
+  const reasoningTexts = completed
+    ? []
+    : message.content.flatMap((item) => (item.type === "reasoning" && item.text !== "" ? [item.text] : []))
+  const firstReasoning =
+    reasoningTexts.length === 0
+      ? undefined
+      : message.content.find((item) => item.type === "reasoning" && item.text !== "")
+  const hasVisibleOutput =
+    reasoningTexts.length > 0 ||
+    message.content.some((item) => (item.type === "text" && item.text !== "") || item.type === "tool")
   const content = message.content.flatMap((item): Array<AssistantMessage["content"][number]> => {
     if (item.type === "text")
       return [
@@ -157,21 +204,12 @@ const assistant = (message: SessionMessage.Assistant, model: Model.Ref, provider
           providerMetadata: reuseProviderMetadata ? providerMetadata(providerMetadataKey, item.native) : undefined,
         },
       ]
-    // Let the destination adapter handle readable reasoning after a model/provider switch.
-    if (item.type === "reasoning") {
-      if (message.error !== undefined || reasoningInterrupted) return []
-      return reuseProviderMetadata
-        ? [
-            {
-              type: "reasoning",
-              text: item.text,
-              providerMetadata: providerMetadata(providerMetadataKey, item.native),
-            },
-          ]
-        : item.text.length > 0
-          ? [{ type: "reasoning", text: item.text }]
-          : []
-    }
+    // Completed turns drop reasoning entirely. Interrupted turns replace the
+    // first non-empty segment with the merged annotated replay; the rest vanish.
+    if (item.type === "reasoning")
+      return item === firstReasoning
+        ? [{ type: "text", text: [INTERRUPTED_REASONING_NOTE, reasoningTexts.join("\n\n")].join("\n\n") }]
+        : []
     // Call-side metadata is model-scoped proof of generation (Gemini thought
     // signatures, OpenAI encrypted reasoning): only the producing model may
     // replay it.
@@ -189,11 +227,12 @@ const assistant = (message: SessionMessage.Assistant, model: Model.Ref, provider
     const result = toolResult(item, sameProvider ? providerMetadata(providerMetadataKey, item.native) : undefined)
     return result ? [call, result] : [call]
   })
-  const meaningful = content.filter((part) => {
-    if (part.type === "text") return part.text !== ""
-    if (part.type !== "reasoning") return true
-    return part.text !== "" || (part.providerMetadata !== undefined && Object.keys(part.providerMetadata).length > 0)
-  })
+  // A partless carrier (retry scheduled before any output) stays invisible: it
+  // is the same message the next attempt continues, and emitting a note would
+  // break the byte-stable request prefix mid-retry.
+  if (!completed && !hasVisibleOutput && message.content.length > 0)
+    content.unshift({ type: "text", text: terminationNote(message) })
+  const meaningful = content.filter((part) => part.type !== "text" || part.text !== "")
   const results = message.content
     .filter((item): item is SessionMessage.AssistantTool => item.type === "tool" && item.executed !== true)
     .map((item) =>

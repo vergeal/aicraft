@@ -37,11 +37,13 @@ export interface TurnInput {
   readonly content: ReadonlyArray<ContextEntry>
 }
 
-/** 账本条目：L1–L3 源变化的观测记录，模型不可见，absorb 时结算。 */
+/** 账本条目：L1–L3 源变化的观测记录，absorb 时结算。 */
 export interface JournalEntry {
   readonly key: string
   readonly observedAt: number
   readonly render: string
+  /** 观测时刻的值身份；undefined 表示该源此刻不存在（卸载/删除）。折叠靠它判净变化。 */
+  readonly value: string | undefined
 }
 
 /** compaction 版本推进时的历史折叠参数（epoch 时钟拨动的唯一载体）。 */

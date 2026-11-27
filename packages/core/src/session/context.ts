@@ -10,6 +10,7 @@ import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { InstructionDiscovery } from "../instruction-discovery.js"
 import { Instructions } from "../instructions/index.js"
 import { InstructionBuiltIns } from "../instructions/builtins.js"
+import { ToolGuidance } from "../instructions/tool-guidance.js"
 import { Location } from "../location.js"
 import { McpInstructions } from "../mcp/instructions.js"
 import { McpTool } from "../tool/mcp.js"
@@ -179,6 +180,7 @@ const layer = Layer.effect(
         // prompt-cache prefix: user-level catalog and guidance, then project instructions, then
         // the date and environment, which vary by day and directory.
         instructions: Instructions.combine([
+          ToolGuidance.make(),
           CodeModeInstructions.make(loaded.tools.codeModeCatalog),
           loaded.mcp,
           loaded.references,

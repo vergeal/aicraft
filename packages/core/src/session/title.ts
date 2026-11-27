@@ -47,6 +47,19 @@ function withForkSuffix(session: SessionSchema.Info, base: string) {
 // Framing the input as text to name keeps models from answering or carrying out the request instead.
 const messagePrompt = (text: string) =>
   `Here is the first message of the conversation:\n\n<message>\n${text}\n</message>\n\nReply with only the title.`
+// P4 keeps the title flow on the shared assembly conventions: the agent prompt enters as one system part
+// tagged like `SessionModelRequest.assembleSystem` tags its agent volatile part (metadata.context.sources
+// under the key "system"), so the Step transcript reports title requests in the same shape. The tag helper
+// is local because `withContext` is module-private in model-request.ts; a title carries no instruction
+// baseline, no L4 tail, and no tools — it is a lightweight request by design (DESIGN §5).
+const titleSystem = (agentSystem: string): Array<SystemPart> =>  agentSystem
+    ? [
+        {
+          ...SystemPart.make(agentSystem),
+          metadata: { context: { sources: [{ key: "system", chars: agentSystem.length, text: agentSystem }] } },
+        },
+      ]
+    : []
 const conversationPrompt = (text: string) =>
   `Here is the conversation so far:\n\n<conversation>\n${text}\n</conversation>\n\nReply with only the title.`
 export const isUntitled = (session: SessionSchema.Info) =>
@@ -86,7 +99,7 @@ export const layer = Layer.effect(
         session: input.session,
         agent: input.agent.id,
         model: input.model,
-        system: input.agent.system ? [SystemPart.make(input.agent.system)] : [],
+        system: titleSystem(input.agent.system ?? ""),
         messages: [Message.user(input.text)],
       })
       if (prepared.event.result !== undefined)

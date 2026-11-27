@@ -15,6 +15,9 @@ const InstructionsMetadata = Schema.Struct({
 })
 
 // Claude Code writes its own date and environment, so AI Craft's would repeat them.
+// P3 dependency: if date/environment move out of the ledger baseline into a live L5 tail part, they arrive
+// here as a plain part.text instead of an experimental instruction and this filter stops applying — the
+// characterization test pins the current behavior, revisit the list when the layering lands.
 const SUPPLIED_BY_CLAUDE = new Set(["core/date", "core/environment"])
 
 export const register = Effect.fn("ClaudeInstructions.register")(function* (ctx: Context) {
@@ -37,7 +40,9 @@ export const register = Effect.fn("ClaudeInstructions.register")(function* (ctx:
 })
 
 // The first part is AI Craft's own prompt, which Claude Code's prompt replaces.
-function instructions(system: ReadonlyArray<SystemPart>) {
+// Exported for the P4 characterization test: the provider reassembles its system prompt from exactly this
+// degradation of the core `assembleSystem` output — behavior changes must be deliberate.
+export function instructions(system: ReadonlyArray<SystemPart>) {
   const texts: string[] = []
   for (const part of system.slice(1)) {
     const metadata = Schema.decodeUnknownOption(InstructionsMetadata)(part.metadata)

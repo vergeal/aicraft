@@ -80,6 +80,9 @@ export const layer = (options?: Options) =>
       const source = (value: ReadonlyArray<File> | Instructions.Unavailable | Instructions.Removed) =>
         Instructions.make<ReadonlyArray<File>>({
           key,
+          // L1: §1 lists 项目/会话指令 under L1, and §3 invariant 4 is explicit that content like
+          // AGENTS.md must not ride L4 — it lands on version advance. Static-registration face.
+          layer: "L1",
           codec: Schema.toCodecJson(Files),
           read: Effect.succeed(value),
           render: {

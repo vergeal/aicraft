@@ -12,7 +12,8 @@ import { AbsolutePath } from "@aicraft/core/schema"
 import { SessionModelRequest } from "@aicraft/core/session/model-request"
 import { SessionModelTransport } from "@aicraft/core/session/model-transport"
 import { SessionRunnerModel } from "@aicraft/core/session/runner/model"
-import { DateTime, Effect, Stream } from "effect"
+import { LayerViolation } from "@aicraft/context"
+import { DateTime, Cause, Effect, Exit, Stream } from "effect"
 import { HttpClientRequest, HttpClientResponse } from "effect/http"
 import { testEffect } from "./lib/effect"
 import { PluginTestLayer } from "./plugin/fixture"
@@ -41,6 +42,42 @@ const transport = SessionModelTransport.Service.of({
 })
 
 describe("SessionModelRequest HTTP hooks", () => {
+  it.effect("refuses frozen-prefix drift from every kind at the same kernel gate", () =>
+    // P4 acceptance ④: compaction, title, and generate are not parallel assembly paths — each kind
+    // runs through SessionModelRequest.prepare, so the same tail gate guards every system flow.
+    Effect.gen(function* () {
+      const hooks = yield* PluginHooks.Service
+      const requests = yield* SessionModelRequest.Service.pipe(Effect.provide(SessionModelRequest.layer))
+
+      // One tampering hook per flow: whichever kind assembles the request, the drift is refused.
+      for (const hook of ["context", "compaction", "generate", "title"] as const) {
+        yield* hooks.register("session", hook, (event) =>
+          Effect.sync(() => {
+            event.system[0] = { ...event.system[0]!, text: `${hook} drift` }
+          }),
+        )
+      }
+
+      const input = {
+        session,
+        agent: Agent.ID.make("build"),
+        model,
+        system: [{ type: "text" as const, text: "frozen prefix" }],
+        messages: [],
+      }
+      const refusal = (effect: Effect.Effect<unknown>) =>
+        effect.pipe(
+          Effect.exit,
+          Effect.map((exit) => Exit.isFailure(exit) && Cause.squash(exit.cause) instanceof LayerViolation),
+        )
+
+      expect(yield* refusal(requests.primary(input))).toBe(true)
+      expect(yield* refusal(requests.compaction(input))).toBe(true)
+      expect(yield* refusal(requests.generate(input))).toBe(true)
+      expect(yield* refusal(requests.title(input))).toBe(true)
+    }).pipe(Effect.provideService(SessionModelTransport.Service, transport)),
+  )
+
   it.effect("tags every Session request kind on http.request and http.response", () =>
     Effect.gen(function* () {
       const hooks = yield* PluginHooks.Service

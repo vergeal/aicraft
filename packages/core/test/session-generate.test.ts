@@ -337,14 +337,14 @@ it.effect(
       expect(requests[0]?.system.map((part) => part.text)).toContain("Initial context")
       expect(requests[0]?.headers).toMatchObject({ "X-Session-Id": sessionID })
       expect(requests[0]?.promptCacheKey).toBe(sessionID)
-      const instructionUpdates = requests[0]?.messages.flatMap((message) =>
-        message.role === "system"
-          ? message.content.flatMap((content) => (content.type === "text" ? [content.text] : []))
-          : [],
-      )
+      // P4: the net instruction update rides the system L4 tail part (baseTranscript `l4`), not a
+      // system-role message in the transcript.
+      const instructionUpdates = requests[0]?.system
+        .map((part) => part.text)
+        .filter((text) => text.includes("Changed context"))
       expect(instructionUpdates).toHaveLength(1)
-      expect(instructionUpdates?.[0]).toContain("Changed context")
       expect(instructionUpdates?.[0]).toContain("tools.captured.lookup(): Promise<string>")
+      expect(requests[0]?.messages.some((message) => message.role === "system")).toBe(false)
       expect(userTexts(requests[0])).toEqual(["Existing durable context", "Summarize privately"])
       expect(
         requests[0]?.messages.flatMap((message) =>

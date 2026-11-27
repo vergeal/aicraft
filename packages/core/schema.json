@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "010c08ab-3e71-4c3c-84f5-0946f13d2d8b",
-  "prevIds": ["8161e681-0496-4727-a053-892bc7ab8ae2"],
+  "id": "95722932-287b-46ec-b0de-51ec42fcf466",
+  "prevIds": ["010c08ab-3e71-4c3c-84f5-0946f13d2d8b"],
   "ddl": [
     {
       "name": "account_state",
@@ -2011,6 +2011,16 @@
       "default": null,
       "generated": null,
       "name": "agent_id",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "name": "model_id",
       "entityType": "columns",
       "table": "context_snapshot"
     },

@@ -60,6 +60,8 @@ export const Plugin = define({
       const stale = event.agent !== plan && reminder === enterReminder
       const text = missing ? enterReminder : stale ? leave : undefined
       if (!text) return Effect.void
+      // L8 tail channel: the reminder rides the messages tail only. The P3 tail gate
+      // fingerprints the system array's frozen segment, so this splice is exempt by design.
       // Before the user's prompt, matching where agent-switch reminders land.
       const at = event.messages.at(-1)?.role === "user" ? event.messages.length - 1 : event.messages.length
       event.messages.splice(at, 0, Message.user(text))

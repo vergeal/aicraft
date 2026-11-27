@@ -327,7 +327,12 @@ export const preview = Effect.fn("SessionHistory.preview")(function* (
         return {
           initial: baseline(assembled.initial),
           messages: settled.map((entry) => entry.message),
-          instructionUpdate: assembled.update,
+          // The same `l4: Rendered[]` shape `entriesForRunner` returns, so every flow hands the update to
+          // `baseTranscript` unchanged. InstructionState.preview renders the net change as one joined string
+          // (reshaping it to per-source notices is mainline territory), so the whole update becomes a single
+          // notice keyed "core/preview" (Instruction.Key requires a namespace): the L4 tail part is tagged
+          // with that key instead of per-source keys.
+          l4: assembled.update ? [{ key: Instructions.Key.make("core/preview"), text: assembled.update }] : [],
         }
       }),
     )

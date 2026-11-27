@@ -1004,8 +1004,12 @@ const transcript = (context: SessionContext.Loaded, messages: ReadonlyArray<Sess
     model: context.model,
     tools: context.tools,
     initial: context.initial,
+    l4: context.l4,
     project: context.project,
     sessionPrompt: context.session.prompt,
+    // Volatile parts stay live-computed here: compaction is the request right before the breakpoint, and
+    // its own prefix is discarded with the history it summarizes, so freezing it against the snapshot buys
+    // no cache reuse.
     messages,
   })
 

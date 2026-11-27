@@ -59,6 +59,9 @@ export const layer = Layer.effect(
         const source = (value: ReadonlyArray<Summary> | Instructions.Removed) =>
           Instructions.make<ReadonlyArray<Summary>>({
             key: Instructions.Key.make("core/mcp-guidance"),
+            // L4: a replaceable declaration of which servers are attached and what they say; it
+            // restates on connect/disconnect, §1's 变更状态声明, not frozen harness text.
+            layer: "L4",
             codec: Schema.toCodecJson(Schema.Array(Summary)),
             read: Effect.succeed(value),
             render: {

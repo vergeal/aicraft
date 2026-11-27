@@ -2,6 +2,7 @@ export * as Instructions from "./index.js"
 
 import { createHash } from "crypto"
 import { Instruction } from "@aicraft/schema/instruction"
+import type { Suppliers } from "@aicraft/context"
 import { Data, Effect, Option, Schema } from "effect"
 
 export const Key = Instruction.Key
@@ -32,6 +33,14 @@ export type Removed = typeof removed
  */
 export interface Source {
   readonly key: Key
+  /**
+   * Design layer the source's content belongs to (DESIGN.md §1), carried through from
+   * `Source.Definition`. Absent means the static-registration face: the content rides the
+   * frozen baseline and only changes on version advance, so it never registers as a turn
+   * supplier. Sources declaring a turn layer (L4/L5/L6/L8) join the supplier registry with
+   * a per-supplier byte budget (DESIGN.md §5).
+   */
+  readonly layer?: Suppliers.SupplierLayer
   readonly read: Effect.Effect<Schema.Json | Unavailable | Removed>
   readonly initial: (value: Schema.Json) => string | undefined
   readonly changed: (previous: Schema.Json, current: Schema.Json) => string | undefined
@@ -43,6 +52,8 @@ export declare namespace Source {
   /** The typed definition supplied when constructing a source. */
   export interface Definition<A> {
     readonly key: Key
+    /** Layer attribution of this source's content (DESIGN.md §1); see `Source.layer` for the default. */
+    readonly layer?: Suppliers.SupplierLayer
     readonly codec: Schema.Codec<A, Schema.Json>
     readonly read: Effect.Effect<A | Unavailable | Removed>
     readonly render: {
@@ -102,6 +113,7 @@ export function make<A>(source: Source.Definition<A>): List {
   return [
     {
       key: source.key,
+      ...(source.layer === undefined ? {} : { layer: source.layer }),
       read: source.read.pipe(
         Effect.map((value) => {
           if (isUnavailable(value)) return unavailable

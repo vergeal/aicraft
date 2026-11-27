@@ -227,12 +227,18 @@ export const ContextSnapshotTable = sqliteTable("context_snapshot", {
   baseline_epoch: integer().notNull(),
   /** Agent switching is an explicit user action, so it is a second invalidation key. */
   agent_id: text().notNull(),
+  /**
+   * Catalog model (`provider/id`), the third invalidation key: the family prompt template resolves at
+   * assembly time into the frozen L1 parts (P4), so a model switch must rebake. The model is itself a
+   * provider-cache boundary, so the rebuild costs no cross-model cache the snapshot could have kept.
+   */
+  model_id: text().notNull().default(""),
   /** Set by a manual advance: the deferred rebuild fires on the next resolve (DESIGN.md §4). */
   pending_advance: integer({ mode: "boolean" })
     .notNull()
     .default(false),
   parts: text({ mode: "json" }).notNull().$type<{
-    readonly parts: ReadonlyArray<{ readonly kind: "agent" | "project" | "session"; readonly text: string }>
+    readonly parts: ReadonlyArray<{ readonly kind: "agent" | "identity" | "project" | "session"; readonly text: string }>
   }>(),
 })
 

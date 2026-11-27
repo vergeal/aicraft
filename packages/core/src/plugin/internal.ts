@@ -111,7 +111,6 @@ import { WriteTool } from "../tool/plugin/write.js"
 import { AgentPlugin } from "./agent.js"
 import BrowserPlugin from "@aicraft/plugin-browser"
 import { CommandPlugin } from "./command.js"
-import { IdentityPlugin } from "./identity.js"
 import { PlanPlugin } from "./plan.js"
 import { GoalPlugin } from "./goal.js"
 import { MemoryPlugin } from "./memory.js"
@@ -123,7 +122,6 @@ import { WebSearchPlugins } from "./websearch/index.js"
 import { SkillPlugin } from "./skill.js"
 import { VcsHgPlugin } from "./vcs/hg.js"
 import { ToolInputRepairPlugin } from "./tool-input-repair.js"
-import { OptimizePlugin } from "./optimize.js"
 import { VcsGitPlugin } from "./vcs/git.js"
 import { VerbosityPlugin } from "./verbosity.js"
 import { WarmingPlugin } from "./warming.js"
@@ -273,10 +271,7 @@ const pre = [
   ...ProviderPlugins,
   ...WebSearchPlugins,
   PatchTool.Plugin,
-  // Render model prompts after the patch plugin selects the available editing tools.
-  ...OptimizePlugin.Plugins,
   VerbosityPlugin.Plugin,
-  IdentityPlugin.Plugin,
   EditTool.Plugin,
   GlobTool.Plugin,
   GrepTool.Plugin,

@@ -35,7 +35,6 @@ import { McpInstructions } from "@aicraft/core/mcp/instructions"
 import { PluginSupervisor } from "@aicraft/core/plugin/supervisor"
 import { Plugin } from "@aicraft/core/plugin"
 import { PluginHooks } from "@aicraft/core/plugin/hooks"
-import { OptimizePlugin } from "@aicraft/core/plugin/optimize"
 import { IdentityPlugin } from "@aicraft/core/plugin/identity"
 import { describe, expect } from "bun:test"
 import { eq } from "drizzle-orm"
@@ -197,7 +196,8 @@ describe("SessionRunnerLLM recorded", () => {
         provider: noProviders,
         session: { hook: (name, callback) => hooks.register("session", name, callback) },
       })
-      yield* Effect.forEach(OptimizePlugin.Plugins, (plugin) => plugin.effect(pluginHost), { discard: true })
+      // P4: the OptimizePlugin prompt hooks are gone (assembly-time system-template now); IdentityPlugin
+      // activates inertly, kept here to prove the removed hook truly registers nothing.
       yield* IdentityPlugin.Plugin.effect(pluginHost)
       const { db } = yield* Database.Service
       yield* db

@@ -24,9 +24,6 @@ test("formats the model identity part", () => {
   ).toBe(["# Your Model", "- Name: GPT-4o mini", "- Provider ID: openai", "- Model ID: gpt-4o-mini"].join("\n"))
 })
 
-const identity = (name: string, id: string) =>
-  ["# Your Model", `- Name: ${name}`, "- Provider ID: test", `- Model ID: ${id}`].join("\n")
-
 const context = (id: string): SessionHooks["context"] => ({
   sessionID: Session.ID.make("ses_model_identity"),
   agent: Agent.ID.make("build"),
@@ -37,33 +34,19 @@ const context = (id: string): SessionHooks["context"] => ({
   options: {},
 })
 
-it.effect("inserts the structured model block after the agent prompt", () =>
+// P4 removed the identity session hook: the "# Your Model" block is an instruction-ledger source now
+// (instructions/model-identity.ts), rendered into the epoch baseline by SessionContext.select. The plugin
+// definition stays activated by internal.ts for compatibility but must register nothing and leave the
+// assembled system array untouched.
+it.effect("activates inertly and no longer rewrites the system prefix", () =>
   Effect.gen(function* () {
-    const catalog = yield* Provider.Service
     const hooks = yield* PluginHooks.Service
     const plugins = yield* Plugin.Service
     const pluginHost = yield* PluginHost.make(plugins, "test")
-    yield* catalog.transform((editor) => {
-      editor.models.update(Provider.ID.make("test"), Model.ID.make("meta/muse-spark-1.1"), (model) => {
-        model.name = "Muse Spark"
-      })
-    })
     yield* IdentityPlugin.Plugin.effect(pluginHost)
 
-    const named = context("meta/muse-spark-1.1")
-    yield* hooks.trigger("session", "context", named)
-    expect(named.system.map((part) => part.text)).toEqual([
-      "Agent prompt",
-      identity("Muse Spark", "meta/muse-spark-1.1"),
-      "Initial context",
-    ])
-
-    const fallback = context("unknown-model")
-    yield* hooks.trigger("session", "context", fallback)
-    expect(fallback.system.map((part) => part.text)).toEqual([
-      "Agent prompt",
-      identity("unknown-model", "unknown-model"),
-      "Initial context",
-    ])
+    const event = context("meta/muse-spark-1.1")
+    yield* hooks.trigger("session", "context", event)
+    expect(event.system.map((part) => part.text)).toEqual(["Agent prompt", "Initial context"])
   }),
 )

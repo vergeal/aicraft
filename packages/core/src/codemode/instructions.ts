@@ -134,6 +134,11 @@ export const make = (inventory?: CodeModeCatalog.Inventory): Instructions.List =
   const catalog = inventory === undefined ? Instructions.removed : CodeModeCatalog.summarize(inventory)
   return Instructions.make({
     key,
+    // L2: §1 names CodeMode under 能力声明 — this catalog text is the rendered twin of the L2
+    // tool schemas (the schemas themselves ride the tools array). Prefix semantics: a full
+    // rebuild settles on version advance (static-registration face), not as a turn supply;
+    // interim change notices already ride the L4 tail through the ledger.
+    layer: "L2",
     codec,
     read: Effect.succeed(catalog),
     render: {

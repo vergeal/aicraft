@@ -61,6 +61,14 @@ export const resolved = (
     providerID: Provider.ID.make(model.provider),
     ...(options.variant === undefined ? {} : { variant: options.variant }),
   }),
+  // The seam has no catalog entry; mirror the route model so family matching sees the same id and name
+  // the removed hook chain's Model.Info.default fallback produced for test and embedded models.
+  catalog: {
+    ...Model.Info.default(Provider.ID.make(model.provider), Model.ID.make(model.id)),
+    capabilities: options.capabilities,
+    cost: options.cost,
+    limit: options.limit,
+  },
   capabilities: options.capabilities,
   cost: options.cost,
   limit: options.limit,

@@ -1,15 +1,32 @@
 export * as WarmingPlugin from "./warming.js"
 
 import { define } from "@aicraft/aix/effect/plugin"
+import type { Context } from "@aicraft/aix/effect/plugin"
 import type { SessionHooks } from "@aicraft/aix/effect/session"
 import type { Provider } from "@aicraft/schema/provider"
 import type { Session } from "@aicraft/schema/session"
+import { Model } from "@aicraft/schema/model"
 import { ConfigWarming } from "@aicraft/schema/config/warming"
 import { Clock, Duration, Effect, Option, Schema, Scope, Stream } from "effect"
 import { Config } from "../config.js"
-import { resolveModel } from "./optimize.js"
 
 const decodeWarming = Schema.decodeUnknownOption(ConfigWarming.Warming)
+
+// The catalog entry behind a context hook event, needed for its `settings.cache`. Cached per event
+// object across the warming hooks that resolve the same request.
+const models = new WeakMap<SessionHooks["context"], Model.Info>()
+
+const resolveModel = (ctx: Context, event: SessionHooks["context"]) =>
+  Effect.gen(function* () {
+    const cached = models.get(event)
+    if (cached?.providerID === event.model.providerID && cached.id === event.model.id) return cached
+    const model: Model.Info =
+      (yield* ctx.model.list()).data.find(
+        (model) => model.providerID === event.model.providerID && model.id === event.model.id,
+      ) ?? Model.Info.default(event.model.providerID, event.model.id)
+    models.set(event, model)
+    return model
+  })
 
 const defaults = {
   prompt: "This is a keep-alive request. Do not perform any work or use tools. Reply with exactly: OK",

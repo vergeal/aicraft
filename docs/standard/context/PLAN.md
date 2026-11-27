@@ -1,6 +1,6 @@
 # Context 子系统施工任务清单
 
-分支：`subsystem/context`（基线 origin/master）· 工作区：`/Users/ekko/Projects/aicraft-context` · 设计依据：`packages/context/DESIGN.md`（v3 终版）
+分支：`subsystem/context`（基线 origin/master）· 设计依据：[DESIGN.md](DESIGN.md)（v3 终版）· 状态：P0–P5 已完成
 
 | 阶段 | 为了什么 | 任务 | 测试用例 |
 |---|---|---|---|
@@ -17,5 +17,4 @@
 
 - 每阶段一个小 PR，快合；动的是 `timeline-scroll` 同期热区，rebase 对 origin/master。
 - 律令只对新建会话生效（快照首聊创建）；旧会话兼容测试在 P1。
-- 施工在本 worktree，主工作区零写入。
 - P4 媒体/provider 翻译成本失控 → 触发 DESIGN §9 降级条款（退 `core/src/context` + lint），先停手汇报再定。

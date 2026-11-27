@@ -77,19 +77,19 @@ describe("SessionContextSnapshot lineage archive", () => {
 
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 0,
+        baselineEpoch: 0, modelID: "test/test-model",
         agentID: "build",
         live: live("project instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 0,
+        baselineEpoch: 0, modelID: "test/test-model",
         agentID: "plan",
         live: live("planning instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 1,
+        baselineEpoch: 1, modelID: "test/test-model",
         agentID: "plan",
         live: live("post-compaction instructions"),
       })
@@ -117,13 +117,13 @@ describe("SessionContextSnapshot lineage archive", () => {
       yield* InstructionState.initialize(db, sessionID, 5, {})
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 5,
+        baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
         live: live("project instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 5,
+        baselineEpoch: 5, modelID: "test/test-model",
         agentID: "plan",
         live: live("planning instructions"),
       })
@@ -142,7 +142,7 @@ describe("SessionContextSnapshot lineage archive", () => {
       const parts = live("refreshed instructions")
       const resolved = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 5,
+        baselineEpoch: 5, modelID: "test/test-model",
         agentID: "plan",
         live: parts,
       })
@@ -171,7 +171,7 @@ describe("SessionContextSnapshot lineage archive", () => {
       yield* InstructionState.initialize(db, sessionID, 5, {})
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 5,
+        baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
         live: live("project instructions"),
       })
@@ -180,7 +180,7 @@ describe("SessionContextSnapshot lineage archive", () => {
       const parts = live("refreshed instructions")
       const rebuilt = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 5,
+        baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
         live: parts,
       })
@@ -190,7 +190,7 @@ describe("SessionContextSnapshot lineage archive", () => {
       // by the advance, so nothing asks for another rebuild.
       const frozen = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 5,
+        baselineEpoch: 5, modelID: "test/test-model",
         agentID: "build",
         live: live("changed again"),
       })
@@ -261,7 +261,7 @@ describe("SessionContextSnapshot lineage archive", () => {
       const parts = live("first instructions")
       const resolved = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 4,
+        baselineEpoch: 4, modelID: "test/test-model",
         agentID: "build",
         live: parts,
       })
@@ -281,13 +281,13 @@ describe("SessionContextSnapshot lineage archive", () => {
       yield* InstructionState.initialize(db, sessionID, 2, {})
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 2,
+        baselineEpoch: 2, modelID: "test/test-model",
         agentID: "build",
         live: live("project instructions"),
       })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 2,
+        baselineEpoch: 2, modelID: "test/test-model",
         agentID: "plan",
         live: live("planning instructions"),
       })
@@ -308,7 +308,7 @@ describe("SessionContextSnapshot lineage archive", () => {
 
       const resolved = yield* SessionContextSnapshot.resolve(db, {
         sessionID,
-        baselineEpoch: 2,
+        baselineEpoch: 2, modelID: "test/test-model",
         agentID: "plan",
         live: live("refreshed instructions"),
       })

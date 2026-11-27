@@ -42,6 +42,7 @@ export const generate = Effect.fn("SessionGenerate.generate")(function* (input: 
       model,
       tools: selection.tools,
       initial: history.initial,
+      l4: history.l4,
       messages: history.messages,
     })
     const prepared = yield* context.request.generate({
@@ -50,11 +51,7 @@ export const generate = Effect.fn("SessionGenerate.generate")(function* (input: 
       model,
       tools: selection.tools,
       system: transcript.system,
-      messages: [
-        ...transcript.messages,
-        ...(history.instructionUpdate ? [Message.system(history.instructionUpdate)] : []),
-        Message.user(input.prompt),
-      ],
+      messages: [...transcript.messages, Message.user(input.prompt)],
     })
     yield* Effect.logInfo("sending session generation request", {
       sessionID: selection.session.id,

@@ -222,6 +222,8 @@ export const Plugin = define({
           if (goal?.status !== "active") return
           const objective = objectiveBlock(goal.objective)
           if (event.messages.some((message) => message.role === "user" && textOf(message).includes(objective))) return
+          // L8 tail channel: the reminder rides the messages tail only. The P3 tail gate
+          // fingerprints the system array's frozen segment, so this splice is exempt by design.
           const at = event.messages.at(-1)?.role === "user" ? event.messages.length - 1 : event.messages.length
           event.messages.splice(at, 0, Message.user(render(REMINDER, { objective: escape(goal.objective) })))
         }),

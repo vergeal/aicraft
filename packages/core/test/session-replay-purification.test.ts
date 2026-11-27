@@ -73,7 +73,7 @@ test("completed turns replay body and tools but zero reasoning parts", () => {
   expect(messages.map((message) => message.role)).toEqual(["user", "assistant", "tool", "user", "assistant"])
   expect(messages.flatMap((message) => (message.content as Array<{ type: string }>).filter((p) => p.type === "reasoning")))
     .toEqual([])
-  const replayed = messages[1]?.content as Array<{ type: string; text?: string; id?: string }>
+  const replayed = messages[1]?.content as Array<{ type: string; text?: string; id?: string; providerMetadata?: unknown }>
   expect(replayed.map((part) => [part.type, part.text ?? part.id])).toEqual([
     ["tool-call", "call-1"],
     ["text", "Final answer"],

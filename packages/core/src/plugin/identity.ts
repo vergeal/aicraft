@@ -1,31 +1,17 @@
 export * as IdentityPlugin from "./identity.js"
 
-import { SystemPart } from "@aicraft/ai/effect"
 import { define } from "@aicraft/aix/effect/plugin"
-import type { SessionHooks } from "@aicraft/aix/effect/session"
-import { Model } from "@aicraft/schema/model"
 import { Effect } from "effect"
-import { OptimizePlugin } from "./optimize.js"
+import { ModelIdentity } from "../instructions/model-identity.js"
 
-export function identity(model: { readonly name: string; readonly ref: Model.Ref }) {
-  return [
-    "# Your Model",
-    `- Name: ${model.name}`,
-    `- Provider ID: ${model.ref.providerID}`,
-    `- Model ID: ${model.ref.id}`,
-  ].join("\n")
-}
+// P4 removed the session hook that spliced the "# Your Model" block into the live system prefix at
+// position 1. The block is an instruction-ledger source now (instructions/model-identity.ts), registered
+// by SessionContext.select, so it renders into the epoch baseline instead of riding an assembly-time
+// override channel. `identity` re-exports from there for existing callers; the plugin definition stays
+// inert so any host that still activates it registers nothing.
+export const identity = ModelIdentity.identity
 
 export const Plugin = define({
   id: "aicraft.prompt.identity",
-  effect: Effect.fn("IdentityPlugin")(function* (ctx) {
-    const hook = (event: SessionHooks["context"]) =>
-      Effect.gen(function* () {
-        const model = yield* OptimizePlugin.resolveModel(ctx, event)
-        event.system.splice(1, 0, SystemPart.make(identity({ name: model.name, ref: event.model })))
-      }).pipe(Effect.catch(() => Effect.void))
-    yield* ctx.session.hook("context", hook)
-    yield* ctx.session.hook("compaction", hook)
-    yield* ctx.session.hook("generate", hook)
-  }),
+  effect: Effect.fn("IdentityPlugin")(function* () {}),
 })

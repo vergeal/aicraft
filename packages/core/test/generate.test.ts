@@ -214,6 +214,7 @@ resolverIt.effect("resolves dynamic models with their catalog metadata", () =>
     expect(result).toEqual({
       model: runtime,
       ref: Ref.make({ providerID: selected.providerID, id: selected.id }),
+      catalog: expect.objectContaining({ id: selected.id, name: selected.name }),
       capabilities: selected.capabilities,
       cost: selected.cost,
       limit: selected.limit,

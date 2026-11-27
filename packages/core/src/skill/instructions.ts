@@ -68,6 +68,9 @@ const layer = Layer.effect(
           .toSorted((a, b) => a.id.localeCompare(b.id))
         return Instructions.make<ReadonlyArray<Summary>>({
           key: Instructions.Key.make("core/skill-guidance"),
+          // L4: a replaceable availability declaration — installs and removals restate the list,
+          // which is §1's 变更状态声明 semantics, not static harness text.
+          layer: "L4",
           codec: Schema.toCodecJson(Schema.Array(Summary)),
           read: Effect.succeed(available.length === 0 ? Instructions.removed : available),
           render: {

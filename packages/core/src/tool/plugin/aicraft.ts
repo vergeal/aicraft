@@ -1,8 +1,7 @@
 export * as AicraftTools from "./aicraft.js"
 
-import { SystemPart, ToolFailure } from "@aicraft/ai/effect"
+import { ToolFailure } from "@aicraft/ai/effect"
 import type { Context } from "@aicraft/aix/effect/plugin"
-import type { SessionHooks } from "@aicraft/aix/effect/session"
 import { Model } from "@aicraft/schema/model"
 import { AbsolutePath } from "@aicraft/schema/schema"
 import { Session } from "@aicraft/schema/session"
@@ -97,17 +96,8 @@ export const Plugin = {
   effect: Effect.fn("AicraftTools.Plugin")(function* (ctx: Context) {
     const access = yield* FileAccess.Service
     const permission = yield* Permission.Service
-    const hook = (event: SessionHooks["context"]) =>
-      Effect.sync(() => {
-        event.system.push(
-          SystemPart.make(
-            "When you create a worktree outside the current working directory and intend to use it as your primary working directory, consider using `execute` to call `tools.aicraft.session_move` and make the worktree the session's working directory.",
-          ),
-        )
-      })
-    yield* ctx.session.hook("context", hook)
-    yield* ctx.session.hook("compaction", hook)
-    yield* ctx.session.hook("generate", hook)
+    // P4: the session-move guidance is no longer pushed onto the live system prefix by a hook; it is an
+    // instruction-ledger source (instructions/tool-guidance.ts) registered by SessionContext.select.
     yield* ctx.tool
       .transform((draft) => {
         draft.namespace({

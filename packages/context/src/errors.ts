@@ -5,7 +5,7 @@ export type ViolationCode =
   | "layer_order"
   /** 外部供给试图写 L1–L3。 */
   | "frozen_slot"
-  /** 预算越界（当前策略为截断 + 告警，保留硬拒语义给 P3 定夺）。 */
+  /** 预算越界。P3 已定夺：软截断 + 审计，不硬拒（见 budget.ts `applyBudget`，越界整条丢弃并记账）。 */
   | "budget_exceeded"
   /** P0 骨架桩：签名就位、行为未实现。 */
   | "not_implemented"

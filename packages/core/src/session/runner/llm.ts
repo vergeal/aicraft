@@ -35,7 +35,7 @@ import { effectiveName } from "../../tool/runtime.js"
 import { ToolOutput } from "../../tool-output.js"
 import { Plugin } from "../../plugin.js"
 import { PluginHooks } from "../../plugin/hooks.js"
-import { MAX_STEPS_PROMPT } from "./max-steps.js"
+import { SessionTurnSuppliers } from "../turn-suppliers.js"
 
 const CONTINUE_AFTER_INCOMPLETE_STREAM =
   "The previous response was interrupted. Continue from where you left off without repeating completed content."
@@ -263,11 +263,13 @@ const layer = Layer.effect(
           sessionID,
           baselineEpoch: (yield* InstructionState.epochOf(db, sessionID)) ?? -1,
           agentID: loaded.agent.id,
+          modelID: `${loaded.model.ref.providerID}/${loaded.model.ref.id}`,
           live: SessionModelRequest.volatileParts({
             agent: loaded.agent.info,
             tools: loaded.tools,
             project: loaded.project,
             sessionPrompt: loaded.session.prompt,
+            catalog: loaded.model.catalog,
           }),
         })
         const transcript = SessionModelRequest.baseTranscript({
@@ -289,7 +291,10 @@ const layer = Layer.effect(
             tools: loaded.tools,
             system: transcript.system,
             messages: stepLimitReached
-              ? [...transcript.messages, Message.assistant(MAX_STEPS_PROMPT)]
+              ? // L8 tail channel (DESIGN §7): the text comes from the turn-supplier registry,
+                // which declares it byte-identical to the max-steps constant; shape and position
+                // of the injection are unchanged.
+                [...transcript.messages, Message.assistant(SessionTurnSuppliers.MAX_STEPS.text)]
               : transcript.messages,
             // Keep tool definitions on the final Step to preserve the provider's cached prefix.
             toolChoice: stepLimitReached ? "none" : undefined,

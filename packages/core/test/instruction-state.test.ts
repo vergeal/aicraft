@@ -167,7 +167,7 @@ describe("InstructionState", () => {
 
       const initial = yield* InstructionState.observe(db, instructions, sessionID)
       expect(reads).toBe(2)
-      yield* InstructionState.commit(db, events, instructions, initial)
+      yield* InstructionState.commit(db, events, initial)
       expect(reads).toBe(2)
 
       current = "changed"
@@ -188,7 +188,7 @@ describe("InstructionState", () => {
         },
         blobs: { [Instructions.hash("changed")]: "changed" },
       })
-      yield* InstructionState.commit(db, events, instructions, changed)
+      yield* InstructionState.commit(db, events, changed)
       expect(reads).toBe(4)
       yield* unsubscribe
 
@@ -267,7 +267,7 @@ describe("InstructionState", () => {
         delta: {},
         blobs: {},
       })
-      yield* InstructionState.commit(db, events, instructions, observation)
+      yield* InstructionState.commit(db, events, observation)
 
       expect(yield* instructionEvents(db, sessionID)).toEqual(beforeEvents)
       expect(yield* db.select().from(InstructionBlobTable).all().pipe(Effect.orDie)).toEqual(beforeBlobs)
@@ -498,7 +498,7 @@ describe("InstructionState", () => {
       for (const next of ["initial", "changed", "changed", Instructions.removed] as const) {
         value = next
         yield* InstructionState.observe(db, observedInstructions, observedSessionID).pipe(
-          Effect.flatMap((observation) => InstructionState.commit(db, events, observedInstructions, observation)),
+          Effect.flatMap((observation) => InstructionState.commit(db, events, observation)),
         )
         yield* InstructionState.prepare(db, events, preparedInstructions, preparedSessionID)
       }

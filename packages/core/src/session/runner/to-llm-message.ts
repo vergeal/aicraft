@@ -206,6 +206,10 @@ const assistant = (message: SessionMessage.Assistant, model: Model.Ref, provider
       ]
     // Completed turns drop reasoning entirely. Interrupted turns replace the
     // first non-empty segment with the merged annotated replay; the rest vanish.
+    // DESIGN §9 downgrade contingency: if a live provider rejects tool-loop continuation without replayed
+    // thinking (Anthropic interleaved-thinking signatures, OpenAI Responses encrypted reasoning), restore
+    // only segments carrying provider-bound state here — never plain thinking text. Recorded cassettes do
+    // not cover this; verify against real providers before tightening.
     if (item.type === "reasoning")
       return item === firstReasoning
         ? [{ type: "text", text: [INTERRUPTED_REASONING_NOTE, reasoningTexts.join("\n\n")].join("\n\n") }]

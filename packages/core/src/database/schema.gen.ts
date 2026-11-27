@@ -310,6 +310,7 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`bump_reason\` text NOT NULL,
           \`baseline_epoch\` integer NOT NULL,
           \`agent_id\` text NOT NULL,
+          \`model_id\` text DEFAULT '' NOT NULL,
           \`pending_advance\` integer DEFAULT false NOT NULL,
           \`parts\` text NOT NULL,
           CONSTRAINT \`fk_context_snapshot_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE

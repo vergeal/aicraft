@@ -38,7 +38,6 @@ export const observe = Effect.fn("InstructionState.observe")(function* (
 export const commit = Effect.fn("InstructionState.commit")(function* (
   db: DatabaseService,
   bus: Bus.Interface,
-  instructions: Instructions.List,
   observation: Observation,
 ) {
   if (!observation.initial && Object.keys(observation.delta).length === 0) return
@@ -65,7 +64,7 @@ export const prepare = Effect.fn("InstructionState.prepare")(function* (
   instructions: Instructions.List,
   sessionID: SessionSchema.ID,
 ) {
-  yield* commit(db, bus, instructions, yield* observe(db, instructions, sessionID))
+  yield* commit(db, bus, yield* observe(db, instructions, sessionID))
 })
 
 export const apply = Effect.fn("InstructionState.apply")(function* (

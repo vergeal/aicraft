@@ -13,9 +13,9 @@ type SnapshotRow = typeof ContextSnapshotTable.$inferSelect
 /** The write surface the snapshot helpers need; a transaction handle satisfies it too. */
 type Writer = Pick<DatabaseService, "insert" | "update">
 
-/** One of the three volatile system-prefix segments captured at build time. */
+/** One of the four volatile system-prefix segments captured at build time. */
 export interface VolatilePart {
-  readonly kind: "agent" | "project" | "session"
+  readonly kind: "agent" | "identity" | "project" | "session"
   readonly text: string
 }
 
@@ -35,11 +35,13 @@ interface ResolveInput {
   readonly sessionID: SessionSchema.ID
   readonly baselineEpoch: number
   readonly agentID: string
+  /** Catalog model composite (`provider/id`): switching model rebakes the family-resolved agent part. */
+  readonly modelID: string
   readonly live: ReadonlyArray<VolatilePart>
 }
 
 const VolatilePartSchema = Schema.Struct({
-  kind: Schema.Literals(["agent", "project", "session"]),
+  kind: Schema.Literals(["agent", "identity", "project", "session"]),
   text: Schema.String,
 })
 const StoredPartsSchema = Schema.Struct({ parts: Schema.Array(VolatilePartSchema) })
@@ -68,9 +70,14 @@ export const resolve = Effect.fn("SessionContextSnapshot.resolve")(function* (
     return { parts: input.live, lineage, rebuilt: true }
   }
   const stored = yield* requireLineage(row)
-  if (row.baseline_epoch === input.baselineEpoch && row.agent_id === input.agentID && !row.pending_advance)
+  if (
+    row.baseline_epoch === input.baselineEpoch &&
+    row.agent_id === input.agentID &&
+    row.model_id === input.modelID &&
+    !row.pending_advance
+  )
     return { parts: yield* requireParts(row.parts), lineage: stored, rebuilt: false }
-  // A pending advance keeps the epoch key, so it joins the agent switch in the "advance" bucket.
+  // A pending advance keeps the epoch key, so it joins the agent and model switches in the "advance" bucket.
   const lineage = bumpLineage(stored, row.baseline_epoch !== input.baselineEpoch ? "compaction" : "advance")
   yield* store(db, input, lineage)
   return { parts: input.live, lineage, rebuilt: true }
@@ -153,6 +160,7 @@ const store = Effect.fnUntraced(function* (db: Writer, input: ResolveInput, line
     bump_reason: lineage.bumpReason,
     baseline_epoch: input.baselineEpoch,
     agent_id: input.agentID,
+    model_id: input.modelID,
     // Writing the rebake is what consumes a pending advance flag.
     pending_advance: false,
     parts: { parts },

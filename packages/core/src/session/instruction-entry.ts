@@ -99,6 +99,10 @@ const renderBlock = (key: Key, value: Schema.Json) =>
 const source = (entry: Info & { readonly removed: boolean }) =>
   Instructions.make<Schema.Json>({
     key: Instructions.Key.make(`api/${entry.key}`),
+    // L5: caller-injected session facts. The API writes them at any moment through the
+    // 调用方注入槽, so they are hot material; they stay out of L4 because a value is
+    // caller-chosen content, not a short ledger state claim (§3 invariant 4's capacity rule).
+    layer: "L5",
     codec: Schema.toCodecJson(Schema.Json),
     read: Effect.succeed(entry.removed ? Instructions.removed : entry.value),
     render: {

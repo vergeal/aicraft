@@ -65,6 +65,9 @@ const layer = Layer.effect(
           .toSorted((a, b) => a.name.localeCompare(b.name))
         return Instructions.make<ReadonlyArray<typeof Summary.Type>>({
           key: Instructions.Key.make("core/reference-guidance"),
+          // L4: which reference directories are attached is replaceable availability state,
+          // restated whenever the reference list changes — §1's 变更状态声明.
+          layer: "L4",
           codec: Schema.toCodecJson(Schema.Array(Summary)),
           read: Effect.succeed(available.length === 0 ? Instructions.removed : available),
           render: {

@@ -33,6 +33,9 @@ const layer = Layer.effect(
           Instructions.combine([
             Instructions.make({
               key: Instructions.Key.make("core/language"),
+              // L1: static harness text that never changes at runtime; the §5 static-registration
+              // face — an edit lands on version advance, not as a turn supply.
+              layer: "L1",
               codec: Schema.toCodecJson(Schema.String),
               read: Effect.succeed("zh"),
               render: {
@@ -42,6 +45,8 @@ const layer = Layer.effect(
             }),
             Instructions.make({
               key: Instructions.Key.make("core/tool-economy"),
+              // L1: same static harness text as core/language — byte-stable for the session's life.
+              layer: "L1",
               codec: Schema.toCodecJson(Schema.String),
               read: Effect.succeed("on"),
               render: {
@@ -51,6 +56,9 @@ const layer = Layer.effect(
             }),
             Instructions.make({
               key: Instructions.Key.make("core/date"),
+              // L5: the day the clock crosses is exactly the dynamic fact §1 names for L5; it must
+              // stay in the hot tail so it never invalidates the cached prefix behind it.
+              layer: "L5",
               codec: Schema.toCodecJson(Schema.String),
               read: DateTime.nowAsDate.pipe(Effect.map((date) => date.toDateString())),
               render: {
@@ -60,6 +68,9 @@ const layer = Layer.effect(
             }),
             Instructions.make({
               key: Instructions.Key.make("core/environment"),
+              // L5: environment facts (directory, platform) vary per location — the "环境变化"
+              // hot material §1 puts in L5, not in the frozen baseline's owner list.
+              layer: "L5",
               codec: Schema.toCodecJson(Schema.String),
               read: Effect.sync(() =>
                 [

@@ -2,11 +2,11 @@ export * as SessionSystemPrompt from "./system-prompt.js"
 
 import PROMPT from "./runner/prompt/system.txt"
 
-export function make(tools: string[]) {
+export function make(tools: ReadonlyArray<string>) {
   return render(PROMPT, tools)
 }
 
-export function render(prompt: string, tools: string[]) {
+export function render(prompt: string, tools: ReadonlyArray<string>) {
   const instructions: string[] = []
   if (tools.includes("shell")) {
     instructions.push(

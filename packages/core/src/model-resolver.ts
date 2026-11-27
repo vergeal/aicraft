@@ -121,6 +121,11 @@ export interface Resolved {
   readonly model: LanguageModel
   /** Selected catalog identity. Durable records and displays must use this, never the API model id. */
   readonly ref: Ref
+  /**
+   * The full catalog entry behind this resolution (P4): the family prompt template matches on the
+   * catalog id and name at assembly time, which the route model alone cannot provide.
+   */
+  readonly catalog: Info
   /** Catalog capabilities used to shape requests before provider lowering. */
   readonly capabilities: Capabilities
   /** Catalog pricing in dollars per million tokens. */
@@ -481,6 +486,7 @@ export const layer = Layer.effect(
           providerID: selected.providerID,
           ...(variant === undefined ? {} : { variant }),
         }),
+        catalog: selected,
         capabilities: selected.capabilities,
         cost: selected.cost,
         limit: selected.limit,

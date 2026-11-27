@@ -10,9 +10,11 @@ import { optional } from "@aicraft/schema/schema"
 import { Tool } from "@aicraft/schema/tool"
 import { Message, SystemPart, UserMessage } from "@aicraft/ai/effect"
 import { Effect, Schema } from "effect"
+import { Budget } from "@aicraft/context"
 import { KV } from "../kv.js"
 import * as Memory from "../memory.js"
 import { MemoryService } from "../memory/service.js"
+import { SessionTurnSuppliers } from "../session/turn-suppliers.js"
 import CONTENT from "./memory/SKILL.md" with { type: "text" }
 
 const EntryInfo = Schema.Struct({
@@ -294,12 +296,22 @@ export const Plugin = define({
       }),
     )
     const protocol = SystemPart.make(PROTOCOL_SHORT)
+    // L6 supplier declaration (DESIGN §1 记忆层): the settings char cap converted to its
+    // UTF-8 byte envelope once, at activation — validateRegistration runs here.
+    const memoryL6 = SessionTurnSuppliers.memoryChannel(service.settings.maxInjectedChars)
     yield* ctx.session.hook("context", (event) =>
       Effect.gen(function* () {
-        // Channel ①: the compact save-rules section rides the static system prefix. Its bytes are
-        // identical on every request, so it costs the provider cache nothing, and the rules stay
-        // visible even when retrieval injection is off — saving is always available.
-        if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) event.system.push(protocol)
+        // Channel ① (L6, P3 收编): the save-rules block still rides the very tail of the
+        // assembled system — byte-identical on every request, appended after the frozen
+        // segment so the tail gate (§3 invariant 1) passes and the provider cache holds —
+        // but it is no longer silent static-prefix content: it is a declared L6 supply
+        // reported through `injected`, so the Step audit shows it exactly like the retrieval
+        // block (§5 hookContextSources 收编). The rules stay visible even when retrieval
+        // injection is off — saving is always available.
+        if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) {
+          event.system.push(protocol)
+          event.injected = [...(event.injected ?? []), { key: "memory/protocol", text: PROTOCOL_SHORT }]
+        }
         const last = findPromptMessage(event.messages, promptTexts)
         if (last === undefined) return
         const query = promptTexts.get(String(last.id))
@@ -320,6 +332,15 @@ export const Plugin = define({
           turns.set(sessionKey, { key, block })
         }
         if (block === "") return
+        // P3 L6 budget gate (DESIGN §5): the block is the supplier's one entry for this turn.
+        // `applyBudget` degrades over-budget by dropping it whole with an audit record, never a
+        // refusal (budget.ts). The subsystem already packed it within `maxInjectedChars`, and
+        // `memoryChannel` widened that to its UTF-8 byte envelope, so a legitimately packed
+        // block always fits; a cut here means the supplier overshot its own cap, and the block
+        // is withheld from the request while the retrieval still logs. The Step-injected report
+        // mirrors the kept decision so the timeline shows the block only when it actually rode.
+        const budgeted = Budget.applyBudget([{ id: memoryL6.id, layer: "L6", text: block, source: "memory" }], memoryL6.budget)
+        if (budgeted.truncated) return
         // Report the block as a Step-injected source: the same bytes ride every step of the turn,
         // so the transcript shows one injection row per turn without touching the cached prefix.
         event.injected = [...(event.injected ?? []), { key: "memory", text: block }]

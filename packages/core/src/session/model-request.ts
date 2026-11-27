@@ -27,13 +27,15 @@ import type {
   SessionTitle,
 } from "@aicraft/aix/effect/session"
 import type { Agent } from "@aicraft/schema/agent"
-import type { Model } from "@aicraft/schema/model"
+import { Model } from "@aicraft/schema/model"
 import type { Content } from "@aicraft/schema/tool"
 import { Cause, Context, Effect, Layer, Option, Result, Schema, Stream } from "effect"
 import { HttpClientRequest, HttpClientResponse } from "effect/http"
+import { Gates, type ContextEntry } from "@aicraft/context"
 import { makeLocationNode } from "@aicraft/util/effect/app-node"
 import { App } from "../app.js"
 import { Instructions } from "../instructions/index.js"
+import { ModelIdentity } from "../instructions/model-identity.js"
 import { Permission } from "../permission.js"
 import { PluginHooks } from "../plugin/hooks.js"
 import { QuestionTool } from "../tool/plugin/question.js"
@@ -45,6 +47,7 @@ import { ProjectInstructions } from "./project-instructions.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionSystemPrompt } from "./system-prompt.js"
+import { SessionSystemTemplate } from "./system-template.js"
 import { toLLMMessages } from "./runner/to-llm-message.js"
 import type { SessionMessage } from "./message.js"
 
@@ -110,16 +113,39 @@ export const volatileParts = (input: {
   readonly tools: Tool.Snapshot
   readonly project?: string
   readonly sessionPrompt?: string
-}) => [
-  {
-    kind: "agent" as const,
-    text: input.agent.system
-      ? input.agent.system
-      : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name)),
-  },
-  ...(input.project ? [{ kind: "project" as const, text: ProjectInstructions.block(input.project) }] : []),
-  ...(input.sessionPrompt ? [{ kind: "session" as const, text: sessionBlock(input.sessionPrompt) }] : []),
-]
+  /** Catalog identity for P4 assembly-time family resolution; absent keeps the unresolved fallback. */
+  readonly catalog?: Model.Info
+}) => {
+  const toolNames = input.tools.definitions.map((tool) => tool.name)
+  return [
+    {
+      kind: "agent" as const,
+      // P4: the family template resolves here (into the frozen snapshot) instead of the removed
+      // session.context hook splicing it over the assembled prefix at request time.
+      text: input.catalog
+        ? SessionSystemTemplate.resolve({ agent: input.agent, model: input.catalog, tools: toolNames })
+        : input.agent.system
+          ? input.agent.system
+          : SessionSystemPrompt.make(toolNames),
+    },
+    // P4: identity rides the frozen volatile parts, not the epoch ledger: a model switch is a snapshot
+    // invalidation key (context_snapshot.model_id), so the block rebakes with the family prompt while the
+    // instruction baseline stays untouched (model-identity.ts doc contract).
+    ...(input.catalog
+      ? [
+          {
+            kind: "identity" as const,
+            text: ModelIdentity.identity({
+              name: input.catalog.name,
+              ref: Model.Ref.make({ providerID: input.catalog.providerID, id: input.catalog.modelID }),
+            }),
+          },
+        ]
+      : []),
+    ...(input.project ? [{ kind: "project" as const, text: ProjectInstructions.block(input.project) }] : []),
+    ...(input.sessionPrompt ? [{ kind: "session" as const, text: sessionBlock(input.sessionPrompt) }] : []),
+  ]
+}
 
 /** The frozen volatile parts followed by the epoch-frozen baseline and the L4 notices, in cache order. */
 export const assembleSystem = (
@@ -161,7 +187,7 @@ export const baseTranscript = (input: {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
   return {
     providerMetadataKey,
-    system: assembleSystem(input.volatile ?? volatileParts(input), input.initial, input.l4),
+    system: assembleSystem(input.volatile ?? volatileParts({ ...input, catalog: input.model.catalog }), input.initial, input.l4),
     messages: toLLMMessages(input.messages, input.model.ref, providerMetadataKey),
   }
 }
@@ -189,7 +215,7 @@ const ContextMetadata = Schema.Struct({
 // Mirrors the source keys the inline assembly used before the parts were snapshotted: the agent prompt reports as
 // "system", the project block under its instruction key, and the session prompt as "session".
 const sourceKey = (kind: SessionContextSnapshot.VolatilePart["kind"]) =>
-  kind === "agent" ? "system" : kind === "project" ? ProjectInstructions.key : "session"
+  kind === "agent" ? "system" : kind === "project" ? ProjectInstructions.key : kind === "identity" ? ModelIdentity.key : "session"
 
 const contextSource = (key: string, text: string): ContextSource => ({ key, chars: text.length, text })
 
@@ -231,6 +257,35 @@ export const hookContextSources = (
   injected: ReadonlyArray<{ readonly key: string; readonly text: string }> | undefined,
 ): Array<ContextSource> =>
   (injected ?? []).map((entry) => ({ key: entry.key, chars: entry.text.length, text: entry.text }))
+
+/**
+ * Maps one assembled system part to the `ContextEntry` shape the tail gate fingerprints.
+ * `id` carries the part's attribution — its first reported context source key, falling back
+ * to position — so a violation names which key was where when the prefix moved. `layer`
+ * labels the frozen segment as a whole (the §1 L1–L3 domain), not the part's individual
+ * layer: the gate compares model-visible text bytes (§3 invariant 1), and per-part layer
+ * attribution lands with P4's snapshot layers.
+ */
+const frozenEntry = (index: number, part: SystemPart): ContextEntry => ({
+  id: contextSources([part])[0]?.key ?? `system:${index}`,
+  layer: "L1",
+  source: "assembler",
+  text: part.text,
+})
+
+/**
+ * The hook's side of the comparison. Inside the frozen segment the identity fields are
+ * copied from the assembler entry, so only text bytes can differ — a metadata edit that
+ * leaves the model-visible text intact is not a cache break and must not trip the gate.
+ * Past the segment the part is hook-owned tail (the §5 L5–L8 append channel) and is never
+ * compared by `checkTailOnly`.
+ */
+const gatedEntry = (frozen: ReadonlyArray<ContextEntry>, index: number, part: SystemPart): ContextEntry => {
+  const base = frozen[index]
+  return base === undefined
+    ? { id: `system:${index}`, layer: "L1", source: "hook", text: part.text }
+    : { ...base, text: part.text }
+}
 
 const sessionBlock = (prompt: string) =>
   [
@@ -397,6 +452,9 @@ export const layer = Layer.effect(
       )
       // Hooks see the default output limit and may change or remove it. Titles and generate keep the provider default,
       // because their reasoning is hard to budget.
+      // The frozen segment snapshot must be taken before the hook runs: the event carries this
+      // same array by reference, so anything read afterwards could already be rewritten.
+      const frozen = input.system.map((part, index) => frozenEntry(index, part))
       const shaped = yield* shape(
         {
           sessionID: session.id,
@@ -412,6 +470,13 @@ export const layer = Layer.effect(
         },
         Object.fromEntries(Array.from(given, ([d, t]) => [t.name, d])),
       )
+      // DESIGN §3 invariant 1 / §5: the hook may append to and rewrite the assembled tail,
+      // never the frozen segment — a rewritten prefix silently corrupts provider cache
+      // accounting, so there is no warn-and-send path: the violation throws as a
+      // LayerViolation defect (§8 P3 acceptance) and the request is refused before it can
+      // reach `ai.request` below. Hooks that only touch messages/tools/options, or append
+      // system parts after the segment (the L5–L8 channel), pass untouched.
+      Gates.checkTailOnly(frozen, shaped.system.map((part, index) => gatedEntry(frozen, index, part)))
       // Match by identity first, then by key. Entries matching neither were invented by a
       // hook and are dropped. `t.name` stays the real name so execution can map renames back.
       const byName = new Map(tools.definitions.map((t) => [t.name, t]))

@@ -1,8 +1,8 @@
 import { useDialog } from "@aicraft/ui/context/dialog"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import type { JSX } from "solid-js"
-import { usePlugin, type IpcClient } from "../../../plugin/src/gui/index"
-import { PluginContext } from "../../../plugin/src/gui/internal"
+import { usePlugin, type IpcClient } from "../../../aix/src/gui/index"
+import { PluginContext } from "../../../aix/src/gui/internal"
 import type { Pairing } from "../../../gui-plugins/src/pairing/contract"
 import type { PairingServer } from "../../../gui-plugins/src/pairing/page"
 // The pairing page renders inside the app's settings page, which brings these styles.

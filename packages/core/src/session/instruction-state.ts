@@ -176,6 +176,20 @@ export const current = Effect.fn("InstructionState.current")(function* (
   return (yield* find(db, sessionID))?.current_values
 })
 
+/** The current baseline epoch start seq, the invalidation key for the context snapshot. */
+export const epochOf = Effect.fn("InstructionState.epochOf")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+) {
+  const row = yield* db
+    .select({ epoch_start: InstructionStateTable.epoch_start })
+    .from(InstructionStateTable)
+    .where(eq(InstructionStateTable.session_id, sessionID))
+    .get()
+    .pipe(Effect.orDie)
+  return row?.epoch_start
+})
+
 export const preview = Effect.fn("InstructionState.preview")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,

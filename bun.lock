@@ -277,6 +277,7 @@
         "@aicraft/ai": "workspace:*",
         "@aicraft/aix": "workspace:*",
         "@aicraft/codemode": "workspace:*",
+        "@aicraft/context": "workspace:*",
         "@aicraft/memory": "workspace:*",
         "@aicraft/plugin-browser": "workspace:*",
         "@aicraft/schema": "workspace:*",

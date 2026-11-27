@@ -39,6 +39,7 @@ import { PluginHooks } from "../plugin/hooks.js"
 import { QuestionTool } from "../tool/plugin/question.js"
 import { Tool } from "../tool.js"
 import { SessionAffinity } from "./affinity.js"
+import type { SessionContextSnapshot } from "./context-snapshot.js"
 import { SessionModelTransport } from "./model-transport.js"
 import { ProjectInstructions } from "./project-instructions.js"
 import { SessionRunnerModel } from "./runner/model.js"
@@ -103,6 +104,41 @@ export const outputLimit = (limit: Model.Info["limit"], inputTokens?: Input["inp
   return Math.min(requested, Math.max(OUTPUT_TOKEN_MIN, room))
 }
 
+/** The volatile L1 parts of the system prefix; snapshotted per session, reread only on rebuild. */
+export const volatileParts = (input: {
+  readonly agent: Agent.Info
+  readonly tools: Tool.Snapshot
+  readonly project?: string
+  readonly sessionPrompt?: string
+}) => [
+  {
+    kind: "agent" as const,
+    text: input.agent.system
+      ? input.agent.system
+      : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name)),
+  },
+  ...(input.project ? [{ kind: "project" as const, text: ProjectInstructions.block(input.project) }] : []),
+  ...(input.sessionPrompt ? [{ kind: "session" as const, text: sessionBlock(input.sessionPrompt) }] : []),
+]
+
+/** The frozen volatile parts followed by the epoch-frozen baseline, in cache order. */
+export const assembleSystem = (
+  parts: ReadonlyArray<SessionContextSnapshot.VolatilePart>,
+  initial: ReadonlyArray<Instructions.Rendered>,
+) =>
+  [
+    // The Project's and Session's instructions sit before the baseline: both are stable, while the baseline carries
+    // the date and environment that change and would otherwise invalidate the cached prefix behind them.
+    ...parts.map((part) => withContext(SystemPart.make(part.text), [contextSource(sourceKey(part.kind), part.text)])),
+    withContext(
+      {
+        ...SystemPart.make(Instructions.join(initial)),
+        metadata: { experimental: { instructions: initial } },
+      },
+      initial.map(renderedSource),
+    ),
+  ].filter((part) => part.text.length > 0)
+
 export const baseTranscript = (input: {
   readonly agent: Agent.Info
   readonly model: SessionRunnerModel.Resolved
@@ -113,31 +149,13 @@ export const baseTranscript = (input: {
   /** This Session's own instructions, the most specific source in the request. */
   readonly sessionPrompt?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
+  /** Frozen parts from the session snapshot; defaults to live values. */
+  readonly volatile?: ReadonlyArray<SessionContextSnapshot.VolatilePart>
 }) => {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
-  const agentPrompt = input.agent.system
-    ? input.agent.system
-    : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name))
-  const projectBlock = input.project ? ProjectInstructions.block(input.project) : undefined
-  const sessionPrompt = input.sessionPrompt ? sessionBlock(input.sessionPrompt) : undefined
   return {
     providerMetadataKey,
-    // The Project's and Session's instructions sit before the baseline: both are stable, while the baseline carries
-    // the date and environment that change and would otherwise invalidate the cached prefix behind them.
-    system: [
-      withContext(SystemPart.make(agentPrompt), [contextSource("system", agentPrompt)]),
-      ...(projectBlock
-        ? [withContext(SystemPart.make(projectBlock), [contextSource(ProjectInstructions.key, projectBlock)])]
-        : []),
-      ...(sessionPrompt ? [withContext(SystemPart.make(sessionPrompt), [contextSource("session", sessionPrompt)])] : []),
-      withContext(
-        {
-          ...SystemPart.make(Instructions.join(input.initial)),
-          metadata: { experimental: { instructions: input.initial } },
-        },
-        input.initial.map(renderedSource),
-      ),
-    ].filter((part) => part.text.length > 0),
+    system: assembleSystem(input.volatile ?? volatileParts(input), input.initial),
     messages: toLLMMessages(input.messages, input.model.ref, providerMetadataKey),
   }
 }
@@ -161,6 +179,11 @@ export type ContextSource = typeof ContextSource.Type
 const ContextMetadata = Schema.Struct({
   context: Schema.Struct({ sources: Schema.Array(ContextSource) }),
 })
+
+// Mirrors the source keys the inline assembly used before the parts were snapshotted: the agent prompt reports as
+// "system", the project block under its instruction key, and the session prompt as "session".
+const sourceKey = (kind: SessionContextSnapshot.VolatilePart["kind"]) =>
+  kind === "agent" ? "system" : kind === "project" ? ProjectInstructions.key : "session"
 
 const contextSource = (key: string, text: string): ContextSource => ({ key, chars: text.length, text })
 

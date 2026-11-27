@@ -9,6 +9,7 @@ import { LocationLifecycle } from "../../location-lifecycle.js"
 import { InstructionState } from "../instruction-state.js"
 import { SessionCompaction } from "../compaction.js"
 import { SessionContext } from "../context.js"
+import { SessionContextSnapshot } from "../context-snapshot.js"
 import { SessionEvent } from "../event.js"
 import { SessionInbox } from "../inbox.js"
 import { SessionBackground } from "../background.js"
@@ -256,6 +257,19 @@ const layer = Layer.effect(
         }
         yield* compaction.precompute(Effect.succeed(loaded), estimate)
         const stepLimitReached = loaded.agent.info.steps !== undefined && step >= loaded.agent.info.steps
+        // The volatile parts are recomputed every step but only adopted when the snapshot is missing or stale; on a
+        // hit the prefix keeps its frozen bytes, so live project and session instructions never re-enter the request.
+        const snapshot = yield* SessionContextSnapshot.resolve(db, {
+          sessionID,
+          baselineEpoch: (yield* InstructionState.epochOf(db, sessionID)) ?? -1,
+          agentID: loaded.agent.id,
+          live: SessionModelRequest.volatileParts({
+            agent: loaded.agent.info,
+            tools: loaded.tools,
+            project: loaded.project,
+            sessionPrompt: loaded.session.prompt,
+          }),
+        })
         const transcript = SessionModelRequest.baseTranscript({
           agent: loaded.agent.info,
           model: loaded.model,
@@ -264,6 +278,7 @@ const layer = Layer.effect(
           project: loaded.project,
           sessionPrompt: loaded.session.prompt,
           messages: loaded.messages,
+          volatile: snapshot.parts,
         })
         const prepared = yield* context.request
           .primary({

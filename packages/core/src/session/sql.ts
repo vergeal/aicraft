@@ -214,6 +214,24 @@ export const InstructionStateTable = sqliteTable("instruction_state", {
   current_values: text({ mode: "json" }).notNull().$type<Instruction.Values>(),
 })
 
+export const ContextSnapshotTable = sqliteTable("context_snapshot", {
+  session_id: text()
+    .$type<SessionSchema.ID>()
+    .primaryKey()
+    .references(() => SessionTable.id, { onDelete: "cascade" }),
+  epoch: integer().notNull(),
+  prefix_version: integer().notNull(),
+  parent_version: integer(),
+  bump_reason: text().notNull(),
+  /** InstructionState epoch_start at build time: the snapshot invalidation key. */
+  baseline_epoch: integer().notNull(),
+  /** Agent switching is an explicit user action, so it is a second invalidation key. */
+  agent_id: text().notNull(),
+  parts: text({ mode: "json" }).notNull().$type<{
+    readonly parts: ReadonlyArray<{ readonly kind: "agent" | "project" | "session"; readonly text: string }>
+  }>(),
+})
+
 export const BlobTable = sqliteTable("blob", {
   hash: text().primaryKey(),
   mime: text().notNull(),

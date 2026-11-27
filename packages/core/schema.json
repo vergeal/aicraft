@@ -1,41 +1,145 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "06dd4756-7bf6-40a7-ac42-e0b76f7f63a0",
-  "prevIds": ["f54d4bcd-4b59-42da-9cc5-b5052e11cdd0"],
+  "id": "8161e681-0496-4727-a053-892bc7ab8ae2",
+  "prevIds": ["06dd4756-7bf6-40a7-ac42-e0b76f7f63a0"],
   "ddl": [
-    { "name": "account_state", "entityType": "tables" },
-    { "name": "account", "entityType": "tables" },
-    { "name": "control_account", "entityType": "tables" },
-    { "name": "credential", "entityType": "tables" },
-    { "name": "event_sequence", "entityType": "tables" },
-    { "name": "event", "entityType": "tables" },
-    { "name": "job", "entityType": "tables" },
-    { "name": "knowledge_chunk", "entityType": "tables" },
-    { "name": "knowledge_document", "entityType": "tables" },
-    { "name": "knowledge_library", "entityType": "tables" },
-    { "name": "project_knowledge", "entityType": "tables" },
-    { "name": "kv", "entityType": "tables" },
-    { "name": "memory_log", "entityType": "tables" },
-    { "name": "memory_source", "entityType": "tables" },
-    { "name": "memory", "entityType": "tables" },
-    { "name": "memory_token", "entityType": "tables" },
-    { "name": "memory_trigger", "entityType": "tables" },
-    { "name": "permission", "entityType": "tables" },
-    { "name": "project_directory", "entityType": "tables" },
-    { "name": "project", "entityType": "tables" },
-    { "name": "schedule", "entityType": "tables" },
-    { "name": "blob_ref", "entityType": "tables" },
-    { "name": "blob", "entityType": "tables" },
-    { "name": "instruction_blob", "entityType": "tables" },
-    { "name": "instruction_entry", "entityType": "tables" },
-    { "name": "instruction_state", "entityType": "tables" },
-    { "name": "session_inbox", "entityType": "tables" },
-    { "name": "session_message", "entityType": "tables" },
-    { "name": "session_part", "entityType": "tables" },
-    { "name": "session_v2", "entityType": "tables" },
-    { "name": "workspace", "entityType": "tables" },
-    { "name": "worktree", "entityType": "tables" },
+    {
+      "name": "account_state",
+      "entityType": "tables"
+    },
+    {
+      "name": "account",
+      "entityType": "tables"
+    },
+    {
+      "name": "control_account",
+      "entityType": "tables"
+    },
+    {
+      "name": "credential",
+      "entityType": "tables"
+    },
+    {
+      "name": "event_sequence",
+      "entityType": "tables"
+    },
+    {
+      "name": "event",
+      "entityType": "tables"
+    },
+    {
+      "name": "job",
+      "entityType": "tables"
+    },
+    {
+      "name": "knowledge_chunk",
+      "entityType": "tables"
+    },
+    {
+      "name": "knowledge_document",
+      "entityType": "tables"
+    },
+    {
+      "name": "knowledge_library",
+      "entityType": "tables"
+    },
+    {
+      "name": "project_knowledge",
+      "entityType": "tables"
+    },
+    {
+      "name": "kv",
+      "entityType": "tables"
+    },
+    {
+      "name": "memory_log",
+      "entityType": "tables"
+    },
+    {
+      "name": "memory_source",
+      "entityType": "tables"
+    },
+    {
+      "name": "memory",
+      "entityType": "tables"
+    },
+    {
+      "name": "memory_token",
+      "entityType": "tables"
+    },
+    {
+      "name": "memory_trigger",
+      "entityType": "tables"
+    },
+    {
+      "name": "permission",
+      "entityType": "tables"
+    },
+    {
+      "name": "project_directory",
+      "entityType": "tables"
+    },
+    {
+      "name": "project",
+      "entityType": "tables"
+    },
+    {
+      "name": "schedule",
+      "entityType": "tables"
+    },
+    {
+      "name": "blob_ref",
+      "entityType": "tables"
+    },
+    {
+      "name": "blob",
+      "entityType": "tables"
+    },
+    {
+      "name": "context_snapshot",
+      "entityType": "tables"
+    },
+    {
+      "name": "instruction_blob",
+      "entityType": "tables"
+    },
+    {
+      "name": "instruction_entry",
+      "entityType": "tables"
+    },
+    {
+      "name": "instruction_state",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_inbox",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_message",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_part",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_v2",
+      "entityType": "tables"
+    },
+    {
+      "name": "session_turn_diff",
+      "entityType": "tables"
+    },
+    {
+      "name": "workspace",
+      "entityType": "tables"
+    },
+    {
+      "name": "worktree",
+      "entityType": "tables"
+    },
     {
       "type": "integer",
       "notNull": false,
@@ -1772,6 +1876,86 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "epoch",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "prefix_version",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "parent_version",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bump_reason",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "baseline_epoch",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "agent_id",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "parts",
+      "entityType": "columns",
+      "table": "context_snapshot"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
       "name": "hash",
       "entityType": "columns",
       "table": "instruction_blob"
@@ -2357,6 +2541,66 @@
       "table": "session_v2"
     },
     {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stat_turns",
+      "entityType": "columns",
+      "table": "session_v2"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stat_steps",
+      "entityType": "columns",
+      "table": "session_v2"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stat_model_time",
+      "entityType": "columns",
+      "table": "session_v2"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stat_tool_time",
+      "entityType": "columns",
+      "table": "session_v2"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stat_output_tokens",
+      "entityType": "columns",
+      "table": "session_v2"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stat_context_tokens",
+      "entityType": "columns",
+      "table": "session_v2"
+    },
+    {
       "type": "text",
       "notNull": false,
       "autoincrement": false,
@@ -2515,6 +2759,56 @@
       "name": "resume_attempts",
       "entityType": "columns",
       "table": "session_v2"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "session_turn_diff"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "from_message_id",
+      "entityType": "columns",
+      "table": "session_turn_diff"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "session_turn_diff"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "session_turn_diff"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "data",
+      "entityType": "columns",
+      "table": "session_turn_diff"
     },
     {
       "type": "text",
@@ -2734,6 +3028,17 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
+      "name": "fk_context_snapshot_session_id_session_v2_id_fk",
+      "entityType": "fks",
+      "table": "context_snapshot"
+    },
+    {
+      "columns": ["session_id"],
+      "tableTo": "session_v2",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
       "name": "fk_instruction_entry_session_id_session_v2_id_fk",
       "entityType": "fks",
       "table": "instruction_entry"
@@ -2803,6 +3108,17 @@
       "name": "fk_session_v2_project_id_project_id_fk",
       "entityType": "fks",
       "table": "session_v2"
+    },
+    {
+      "columns": ["session_id"],
+      "tableTo": "session_v2",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_session_turn_diff_session_id_session_v2_id_fk",
+      "entityType": "fks",
+      "table": "session_turn_diff"
     },
     {
       "columns": ["project_id"],
@@ -2893,6 +3209,13 @@
       "table": "session_part"
     },
     {
+      "columns": ["session_id", "from_message_id"],
+      "nameExplicit": false,
+      "name": "session_turn_diff_pk",
+      "entityType": "pks",
+      "table": "session_turn_diff"
+    },
+    {
       "columns": ["project_id", "directory"],
       "nameExplicit": false,
       "name": "worktree_pk",
@@ -2906,8 +3229,20 @@
       "table": "account_state",
       "entityType": "pks"
     },
-    { "columns": ["id"], "nameExplicit": false, "name": "account_pk", "table": "account", "entityType": "pks" },
-    { "columns": ["id"], "nameExplicit": false, "name": "credential_pk", "table": "credential", "entityType": "pks" },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "account_pk",
+      "table": "account",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "credential_pk",
+      "table": "credential",
+      "entityType": "pks"
+    },
     {
       "columns": ["aggregate_id"],
       "nameExplicit": false,
@@ -2915,8 +3250,20 @@
       "table": "event_sequence",
       "entityType": "pks"
     },
-    { "columns": ["id"], "nameExplicit": false, "name": "event_pk", "table": "event", "entityType": "pks" },
-    { "columns": ["notification_id"], "nameExplicit": false, "name": "job_pk", "table": "job", "entityType": "pks" },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "event_pk",
+      "table": "event",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["notification_id"],
+      "nameExplicit": false,
+      "name": "job_pk",
+      "table": "job",
+      "entityType": "pks"
+    },
     {
       "columns": ["id"],
       "nameExplicit": false,
@@ -2931,12 +3278,55 @@
       "table": "knowledge_library",
       "entityType": "pks"
     },
-    { "columns": ["key"], "nameExplicit": false, "name": "kv_pk", "table": "kv", "entityType": "pks" },
-    { "columns": ["seq"], "nameExplicit": false, "name": "memory_log_pk", "table": "memory_log", "entityType": "pks" },
-    { "columns": ["id"], "nameExplicit": false, "name": "permission_pk", "table": "permission", "entityType": "pks" },
-    { "columns": ["id"], "nameExplicit": false, "name": "project_pk", "table": "project", "entityType": "pks" },
-    { "columns": ["id"], "nameExplicit": false, "name": "schedule_pk", "table": "schedule", "entityType": "pks" },
-    { "columns": ["hash"], "nameExplicit": false, "name": "blob_pk", "table": "blob", "entityType": "pks" },
+    {
+      "columns": ["key"],
+      "nameExplicit": false,
+      "name": "kv_pk",
+      "table": "kv",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["seq"],
+      "nameExplicit": false,
+      "name": "memory_log_pk",
+      "table": "memory_log",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "permission_pk",
+      "table": "permission",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "project_pk",
+      "table": "project",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "schedule_pk",
+      "table": "schedule",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["hash"],
+      "nameExplicit": false,
+      "name": "blob_pk",
+      "table": "blob",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["session_id"],
+      "nameExplicit": false,
+      "name": "context_snapshot_pk",
+      "table": "context_snapshot",
+      "entityType": "pks"
+    },
     {
       "columns": ["hash"],
       "nameExplicit": false,
@@ -2965,12 +3355,30 @@
       "table": "session_message",
       "entityType": "pks"
     },
-    { "columns": ["id"], "nameExplicit": false, "name": "session_v2_pk", "table": "session_v2", "entityType": "pks" },
-    { "columns": ["id"], "nameExplicit": false, "name": "workspace_pk", "table": "workspace", "entityType": "pks" },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "session_v2_pk",
+      "table": "session_v2",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "workspace_pk",
+      "table": "workspace",
+      "entityType": "pks"
+    },
     {
       "columns": [
-        { "value": "aggregate_id", "isExpression": false },
-        { "value": "seq", "isExpression": false }
+        {
+          "value": "aggregate_id",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
       ],
       "isUnique": true,
       "where": null,
@@ -2981,9 +3389,18 @@
     },
     {
       "columns": [
-        { "value": "aggregate_id", "isExpression": false },
-        { "value": "type", "isExpression": false },
-        { "value": "seq", "isExpression": false }
+        {
+          "value": "aggregate_id",
+          "isExpression": false
+        },
+        {
+          "value": "type",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -2993,7 +3410,12 @@
       "table": "event"
     },
     {
-      "columns": [{ "value": "session_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3002,7 +3424,12 @@
       "table": "job"
     },
     {
-      "columns": [{ "value": "child_session_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "child_session_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3011,7 +3438,12 @@
       "table": "job"
     },
     {
-      "columns": [{ "value": "id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3020,7 +3452,12 @@
       "table": "job"
     },
     {
-      "columns": [{ "value": "library_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "library_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3029,7 +3466,12 @@
       "table": "knowledge_chunk"
     },
     {
-      "columns": [{ "value": "time_created", "isExpression": false }],
+      "columns": [
+        {
+          "value": "time_created",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3038,7 +3480,12 @@
       "table": "memory_log"
     },
     {
-      "columns": [{ "value": "session_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3048,8 +3495,14 @@
     },
     {
       "columns": [
-        { "value": "kind", "isExpression": false },
-        { "value": "ref", "isExpression": false }
+        {
+          "value": "kind",
+          "isExpression": false
+        },
+        {
+          "value": "ref",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3060,9 +3513,18 @@
     },
     {
       "columns": [
-        { "value": "scope", "isExpression": false },
-        { "value": "status", "isExpression": false },
-        { "value": "time_updated", "isExpression": false }
+        {
+          "value": "scope",
+          "isExpression": false
+        },
+        {
+          "value": "status",
+          "isExpression": false
+        },
+        {
+          "value": "time_updated",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3073,8 +3535,14 @@
     },
     {
       "columns": [
-        { "value": "scope", "isExpression": false },
-        { "value": "text_hash", "isExpression": false }
+        {
+          "value": "scope",
+          "isExpression": false
+        },
+        {
+          "value": "text_hash",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3084,7 +3552,12 @@
       "table": "memory"
     },
     {
-      "columns": [{ "value": "memory_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "memory_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3094,8 +3567,14 @@
     },
     {
       "columns": [
-        { "value": "scope", "isExpression": false },
-        { "value": "memory_id", "isExpression": false }
+        {
+          "value": "scope",
+          "isExpression": false
+        },
+        {
+          "value": "memory_id",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3105,7 +3584,12 @@
       "table": "memory_token"
     },
     {
-      "columns": [{ "value": "memory_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "memory_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3115,9 +3599,18 @@
     },
     {
       "columns": [
-        { "value": "project_id", "isExpression": false },
-        { "value": "action", "isExpression": false },
-        { "value": "resource", "isExpression": false }
+        {
+          "value": "project_id",
+          "isExpression": false
+        },
+        {
+          "value": "action",
+          "isExpression": false
+        },
+        {
+          "value": "resource",
+          "isExpression": false
+        }
       ],
       "isUnique": true,
       "where": null,
@@ -3127,7 +3620,12 @@
       "table": "permission"
     },
     {
-      "columns": [{ "value": "session_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3136,7 +3634,12 @@
       "table": "schedule"
     },
     {
-      "columns": [{ "value": "next_due_at", "isExpression": false }],
+      "columns": [
+        {
+          "value": "next_due_at",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": "\"schedule\".\"status\" = 'active' and \"schedule\".\"next_due_at\" is not null",
       "origin": "manual",
@@ -3145,7 +3648,12 @@
       "table": "schedule"
     },
     {
-      "columns": [{ "value": "hash", "isExpression": false }],
+      "columns": [
+        {
+          "value": "hash",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3155,8 +3663,14 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "seq", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3167,9 +3681,18 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "delivery", "isExpression": false },
-        { "value": "enqueued_seq", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "delivery",
+          "isExpression": false
+        },
+        {
+          "value": "enqueued_seq",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3180,8 +3703,14 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "enqueued_seq", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "enqueued_seq",
+          "isExpression": false
+        }
       ],
       "isUnique": true,
       "where": null,
@@ -3192,8 +3721,14 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "seq", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
       ],
       "isUnique": true,
       "where": null,
@@ -3204,9 +3739,18 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "type", "isExpression": false },
-        { "value": "seq", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "type",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3217,9 +3761,18 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "time_created", "isExpression": false },
-        { "value": "id", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "time_created",
+          "isExpression": false
+        },
+        {
+          "value": "id",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3229,7 +3782,12 @@
       "table": "session_message"
     },
     {
-      "columns": [{ "value": "time_created", "isExpression": false }],
+      "columns": [
+        {
+          "value": "time_created",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3239,9 +3797,18 @@
     },
     {
       "columns": [
-        { "value": "session_id", "isExpression": false },
-        { "value": "message_id", "isExpression": false },
-        { "value": "ordinal", "isExpression": false }
+        {
+          "value": "session_id",
+          "isExpression": false
+        },
+        {
+          "value": "message_id",
+          "isExpression": false
+        },
+        {
+          "value": "ordinal",
+          "isExpression": false
+        }
       ],
       "isUnique": false,
       "where": null,
@@ -3251,7 +3818,12 @@
       "table": "session_part"
     },
     {
-      "columns": [{ "value": "project_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "project_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3260,7 +3832,12 @@
       "table": "session_v2"
     },
     {
-      "columns": [{ "value": "workspace_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "workspace_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3269,7 +3846,12 @@
       "table": "session_v2"
     },
     {
-      "columns": [{ "value": "parent_id", "isExpression": false }],
+      "columns": [
+        {
+          "value": "parent_id",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": null,
       "origin": "manual",
@@ -3278,7 +3860,12 @@
       "table": "session_v2"
     },
     {
-      "columns": [{ "value": "time_suspended", "isExpression": false }],
+      "columns": [
+        {
+          "value": "time_suspended",
+          "isExpression": false
+        }
+      ],
       "isUnique": false,
       "where": "\"session_v2\".\"time_suspended\" is not null",
       "origin": "manual",

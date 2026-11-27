@@ -1486,7 +1486,10 @@ describe("SessionRunnerLLM", () => {
     expect(instructionEvents[1]?.metadata).toBeUndefined()
   })
 
-  scenario("surfaces project instruction edits in the next request", function* (s) {
+  scenario("freezes project instruction edits in the prefix until the epoch advances", function* (s) {
+    // Two prompts before the edit: the first initializes instruction state, the second proves the epoch is
+    // settled so the snapshot is built against the steady baseline.
+    yield* s.runPrompt("Warmup")
     yield* s.runPrompt("First")
     expect(s.requests.at(-1)?.system.some((part) => part.text.includes("# Project instructions"))).toBe(false)
 
@@ -1495,36 +1498,65 @@ describe("SessionRunnerLLM", () => {
     yield* s.project.resolve(AbsolutePath.make("/project"), { persist: true })
     yield* s.db.update(ProjectTable).set({ prompt: "Prefer bun over npm." }).run().pipe(Effect.orDie)
 
+    // The snapshot freezes the volatile prefix: a mid-session edit waits for the epoch advance instead of
+    // splitting the provider cache on every step. The change notice still rides in the baseline.
     yield* s.runPrompt("Second")
-    const request = s.requests.at(-1)!
+    const frozen = s.requests.at(-1)!
+    expect(frozen.system.some((part) => part.text.includes("Prefer bun over npm."))).toBe(false)
+    expect(systemTexts(frozen).some((text) => text.includes("The project instructions changed"))).toBe(true)
 
-    // The newest text rides in the system prompt instead of the frozen baseline, so the next request is already
-    // synchronized rather than relying on the notice alone.
+    yield* s.db
+      .update(InstructionStateTable)
+      .set({ epoch_start: 100000 })
+      .where(eq(InstructionStateTable.session_id, sessionID))
+      .run()
+      .pipe(Effect.orDie)
+    yield* s.runPrompt("Third")
     expect(
-      request.system.some(
-        (part) => part.text.includes("# Project instructions") && part.text.includes("Prefer bun over npm."),
-      ),
+      s.requests
+        .at(-1)!
+        .system.some((part) => part.text.includes("# Project instructions") && part.text.includes("Prefer bun over npm.")),
     ).toBe(true)
-    expect(systemTexts(request).some((text) => text.includes("The project instructions changed"))).toBe(true)
   })
 
-  scenario("reads the session's own instructions for each request", function* (s) {
+  scenario("freezes session prompt edits in the prefix until the epoch advances", function* (s) {
     const systemTexts = () => s.requests.at(-1)?.system.map((part) => part.text) ?? []
     const sessionInstruction = () => systemTexts().findIndex((text) => text.startsWith("# Session instructions"))
 
+    yield* s.runPrompt("Warmup")
     yield* s.runPrompt("First")
     expect(sessionInstruction()).toBe(-1)
 
     yield* s.session.setPrompt({ sessionID, prompt: "Use the staging API." }).pipe(Effect.orDie)
+    // Snapshot hit keeps the prefix byte-stable; the edit waits for a version advance.
     yield* s.runPrompt("Second")
+    expect(sessionInstruction()).toBe(-1)
 
+    const advanceEpoch = () =>
+      s.db
+        .update(InstructionStateTable)
+        .set({ epoch_start: 100000 })
+        .where(eq(InstructionStateTable.session_id, sessionID))
+        .run()
+        .pipe(Effect.orDie)
+    yield* advanceEpoch()
+    yield* s.runPrompt("Third")
     expect(sessionInstruction()).toBeGreaterThan(-1)
     expect(systemTexts()[sessionInstruction()]).toContain("Use the staging API.")
     // The baseline carries the date and environment, so it stays last.
     expect(sessionInstruction()).toBeLessThan(systemTexts().findIndex((text) => text.includes(s.systemBaseline)))
 
     yield* s.session.setPrompt({ sessionID, prompt: "" }).pipe(Effect.orDie)
-    yield* s.runPrompt("Third")
+    yield* s.runPrompt("Fourth")
+    expect(sessionInstruction()).toBeGreaterThan(-1)
+
+    yield* s.db
+      .update(InstructionStateTable)
+      .set({ epoch_start: 200000 })
+      .where(eq(InstructionStateTable.session_id, sessionID))
+      .run()
+      .pipe(Effect.orDie)
+    yield* s.runPrompt("Fifth")
     expect(sessionInstruction()).toBe(-1)
   })
 

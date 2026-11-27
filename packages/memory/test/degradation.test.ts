@@ -74,6 +74,30 @@ describe("degradation — the memory system must never fail the request", () => 
     expect(miss.decision.channels.lexical).toBe("skipped")
   })
 
+  test("a single shared bigram is coincidence, not evidence: terse phatic queries never auto-inject", async () => {
+    // Regression: "继续" tokenizes to one bigram and scored every entry containing it at 1.0,
+    // injecting an unrelated timeline note that says "…气泡下方继续" (live memory_log, 2026-11-27).
+    const memory = MemorySubsystem.createSubsystem({
+      store: MemoryReference.createStore(),
+      clock: fixedClock(),
+    })
+    await memory.save({ scope: "global", type: "convention", text: "引导气泡夹在两段工作之间，工作在气泡下方继续折叠" })
+    const turn = await memory.onTurn({ query: "继续", scopes: SCOPES })
+    expect(turn.entries).toHaveLength(0)
+    expect(turn.injectBlock).toBe("")
+    // Two shared bigrams still carry the fallback — the gold-set path stays alive.
+    const rich = await memory.onTurn({ query: "气泡下方继续折叠", scopes: SCOPES })
+    expect(rich.entries.map((record) => record.text)).toContain("引导气泡夹在两段工作之间，工作在气泡下方继续折叠")
+    // The gate is token-class evidence, not query length or a word list: a lone ASCII word
+    // token carries identity and still hits, exactly like the reported noise-word case fails.
+    const consul = await memory.save({ scope: "global", type: "preference", text: "wpskb 生产的 consul 配置在 etcd 迁移后要保持双写" })
+    const word = await memory.onTurn({ query: "consul", scopes: SCOPES })
+    expect(word.entries.map((record) => record.id)).toContain(consul.record.id)
+    // search is the explicit path and keeps single-bigram hits.
+    const found = await memory.search({ query: "继续", scopes: SCOPES })
+    expect(found.records).toHaveLength(1)
+  })
+
   test("empty query injects nothing", async () => {
     const memory = await seeded()
     const turn = await memory.onTurn({ query: "   ", scopes: SCOPES })

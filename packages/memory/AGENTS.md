@@ -87,6 +87,12 @@ network, or a session lives in `@aicraft/core` adapters that implement the ports
 - Injection defaults to zero: only trigger-exact hits and threshold-passing vector/lexical
   candidates reach the request. The old "every step, up to the budget" full-scan window is
   gone for good — do not reintroduce it.
+- The turn's lexical fallback gates on `MemoryTokens.evidenceCount` (≥2), not just the ratio
+  threshold: CJK bigrams are substring-level matches, so one shared bigram ("继续" inside
+  "…气泡下方继续") scores a one-token query at 1.0 and injected noise on every such turn
+  (live `memory_log`, 2026-11-27). A whole word token ("pp", "consul") weighs 2 and stands
+  alone; search keeps the lenient floor because the user asked explicitly. Fix noise by class
+  of evidence, never by word blocklists or by deleting the offending entry.
 - A channel's candidate source is its index, never a recency window: the lexical channel reads
   `Store.lexicalCandidates` (token index), and `maxEntries` is only a page size for `list`.
   Measured 2026-11: sourcing lexical candidates from a recency window scored 0.22 recall on

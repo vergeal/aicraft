@@ -36,6 +36,24 @@ export function tokenize(input: string): string[] {
   return [...out]
 }
 
+const CJK_TOKEN = /^[\p{Script=Han}]+$/u
+
+/**
+ * Evidence toward turn auto-injection, not a ranking score. CJK runs tokenize to
+ * segmentation-free bigrams, so one shared bigram ("继续" inside "…气泡下方继续") is a
+ * coincidence — the live corpus injected a work note on every "继续" for a week. A whole
+ * word token ("pp", "consul") carries identity on its own. Weighted so a turn hit needs
+ * either one word token or two bigram coincidences.
+ */
+export function evidenceCount(queryTokens: ReadonlySet<string>, entryTokens: readonly string[]): number {
+  let evidence = 0
+  for (const token of entryTokens) {
+    if (!queryTokens.has(token)) continue
+    evidence += CJK_TOKEN.test(token) ? 1 : 2
+  }
+  return evidence
+}
+
 /** Query-normalized overlap: |intersection| / |query tokens|. Answers "how much of what the
  *  user asked is present in the entry", which stays meaningful for terse queries. */
 export function tokenOverlap(queryTokens: ReadonlySet<string>, entryTokens: readonly string[]): number {

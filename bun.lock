@@ -255,6 +255,19 @@
         "@typescript/native": "catalog:",
       },
     },
+    "packages/context": {
+      "name": "@aicraft/context",
+      "version": "2.2.5",
+      "dependencies": {
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/bun": "catalog:",
+        "@types/bun": "catalog:",
+        "@typescript/native": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/core": {
       "name": "@aicraft/core",
       "version": "2.2.5",
@@ -1099,6 +1112,8 @@
     "@aicraft/client": ["@aicraft/client@workspace:packages/client"],
 
     "@aicraft/codemode": ["@aicraft/codemode@workspace:packages/codemode"],
+
+    "@aicraft/context": ["@aicraft/context@workspace:packages/context"],
 
     "@aicraft/core": ["@aicraft/core@workspace:packages/core"],
 

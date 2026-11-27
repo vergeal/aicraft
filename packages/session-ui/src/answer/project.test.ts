@@ -1040,4 +1040,49 @@ describe("answer projection", () => {
     expect(flowKeys(settled).slice(0, 5)).toEqual(flowKeys(streaming))
     expect(flowGaps(settled).slice(0, 5)).toEqual(flowGaps(streaming))
   })
+
+  test("the wake banner keeps a gap whenever the row above ends with real content", () => {
+    const gapAboveWake = (snapshot: Snapshot) => {
+      const index = snapshot.entries.findIndex((entry) => entry.kind === "node" && entry.key === "notice:msg_wake")
+
+      return index < 0 ? undefined : flowGaps(snapshot)[index]
+    }
+
+    const editTool = (id: string): Content => ({
+      type: "tool",
+      id,
+      name: "edit",
+      state: {
+        status: "completed",
+        input: { filePath: "src/a.ts" },
+        content: [{ type: "text", text: "ok" }],
+        metadata: { files: [{ file: "src/a.ts", patch: "", additions: 2, deletions: 1, status: "modified" }] },
+      },
+      time: { created: 2, completed: 3 },
+    })
+
+    // A changed-files block hangs under the closing reply, so the row ends with the file list rather than
+    // the invisible hover strip: the banner keeps the same gap above it as below, not flush on the last file.
+    const withChanges = projectTimeline([
+      user("msg_1", "go", 1),
+      assistant("msg_2", 2, [editTool("tool_1"), text("answer")], 10),
+      { id: "idle_1", type: "idle", outcome: "succeeded", time: { created: 11 } } satisfies SessionMessageInfo,
+      shellWake("msg_wake", 12),
+    ])
+
+    expect(withChanges.changes.get(1)?.length).toBe(1)
+    expect(gapAboveWake(withChanges)).toBe(24)
+
+    // An error card above the banner is content too; only hover-only elements never count.
+    const failed = {
+      ...assistant("msg_2", 2, [tool("tool_1")], 3),
+      error: { type: "ProviderError", message: "boom" },
+    } satisfies SessionMessageInfo
+    const withError = projectTimeline([user("msg_1", "go", 1), failed, shellWake("msg_wake", 12)])
+
+    expect(gapAboveWake(withError)).toBe(24)
+
+    // The plain reply's reserved hover strip stays the only zero-gap case.
+    expect(gapAboveWake(projectTimeline(mixed()))).toBe(0)
+  })
 })

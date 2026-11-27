@@ -1093,10 +1093,17 @@ export function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[],
 
   if (current.kind === "node" && snapshot.nodes.get(current.key)?.payload.kind === "input") return 24
 
-  // A wake banner follows its answer on the footer's own line: the reply's action row keeps a 28px
-  // strip reserved for the hover buttons, so space above the banner would double-count it whenever
-  // the buttons are hidden, and crowd them out whenever they are shown.
-  if (isWakeBanner(snapshot, current) && isResponse(snapshot, previous)) return 0
+  // A wake banner follows whatever sits above it. Only a row whose bottom edge is the reply's
+  // hover-action strip adds nothing: the strip is a 28px band reserved in layout, invisible until
+  // hover, so the band itself is the spacing and an extra gap would double-count it. Hover-only
+  // elements never count as content — a changed-files block hanging under the reply, an error card,
+  // or any other row ending is real content, and the banner keeps the same 24px it already gets
+  // below it, so it sits centered in its segment.
+  if (isWakeBanner(snapshot, current)) {
+    if (isWakeBanner(snapshot, previous)) return 24
+
+    return endsInActionStrip(snapshot, previous) ? 0 : 24
+  }
 
   // Below the banner the row it introduces keeps the same breathing room the reply's hover-action strip
   // gives above it: 12px against the 28px strip reads as the bar hugging its follow-up, not centered.
@@ -1111,6 +1118,26 @@ export function flowGapPx(snapshot: Snapshot, entries: readonly TimelineEntry[],
 
 function isResponse(snapshot: Snapshot, entry: TimelineEntry) {
   return entry.kind === "node" && snapshot.nodes.get(entry.key)?.payload.kind === "assistant"
+}
+
+/**
+ * Whether the row's bottom edge is the reply's reserved hover-action strip: the closing answer of a
+ * settled turn, with no changed-files block hanging under it. Mirrors the page's own render condition
+ * (`answerTurn` plus the changes `Show`), so the spacing counts what is actually painted and a
+ * hover-only element never reads as content.
+ */
+function endsInActionStrip(snapshot: Snapshot, entry: TimelineEntry) {
+  if (entry.kind !== "node") return false
+
+  const node = snapshot.nodes.get(entry.key)
+
+  if (node?.payload.kind !== "assistant") return false
+
+  const owner = snapshot.turns.get(node.turn)
+
+  if (!owner || owner.status !== "closed" || owner.answer !== node.key) return false
+
+  return (snapshot.changes.get(node.turn)?.length ?? 0) === 0
 }
 
 /** The flat segment-opening report row, as opposed to a notice riding inside a fold. */

@@ -74,6 +74,7 @@ import m71 from "./migration/20261127072426_puzzling_logan.js"
 import m72 from "./migration/20261127085418_sloppy_sunset_bain.js"
 import m73 from "./migration/20261127124727_chubby_nightshade.js"
 import m74 from "./migration/20261128120320_context_snapshot_baseline.js"
+import m75 from "./migration/20261128150251_lumpy_magik.js"
 
 export const migrations = [
   m00,
@@ -151,4 +152,5 @@ export const migrations = [
   m72,
   m73,
   m74,
+  m75,
 ] satisfies DatabaseMigration.Migration[]

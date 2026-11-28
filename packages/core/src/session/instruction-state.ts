@@ -98,6 +98,8 @@ export const initialize = Effect.fn("InstructionState.initialize")(function* (
       through_seq: seq,
       initial_values: values,
       current_values: values,
+      // A fresh session's first baseline is what its first request carries, so nothing is outstanding.
+      notified_values: values,
     })
     .onConflictDoNothing()
     .run()
@@ -158,10 +160,17 @@ export const current = Effect.fn("InstructionState.current")(function* (
 })
 
 /**
- * L4 notices for the in-flight version: the net diff between the epoch baseline and
- * the current instruction values, rendered by the sources' own renderers. Recomputed
- * per assembly (replacing, never appending), so contradictory observations — uninstalled
- * then reinstalled, edited back to the baseline — settle to the latest state or vanish.
+ * L4 notices for the in-flight version, as the diff between what the model has already been told and the
+ * current instruction values.
+ *
+ * The baseline (`initial_values`) is the wrong side of this comparison. It stays fixed until the next
+ * compaction, so a source that changed once differed from it on every following step, and its notice rode
+ * the tail of every request — measured on one session, the Code Mode catalog's 9.3 KB was restated on 10
+ * consecutive steps. A notice is a statement the model has now read, so `notified_values` records what was
+ * sent and the diff starts from there.
+ *
+ * Settlement is written back by the caller that actually ships the notice (see `markNotified`), so a step
+ * that never reaches the provider does not consume it.
  */
 export const notices = Effect.fn("InstructionState.notices")(function* (
   db: DatabaseService,
@@ -170,17 +179,20 @@ export const notices = Effect.fn("InstructionState.notices")(function* (
 ) {
   const state = yield* find(db, sessionID)
   if (!state) return []
-  const keys = new Set([...Object.keys(state.initial_values), ...Object.keys(state.current_values)])
-  const changed = [...keys].filter((key) => state.initial_values[key] !== state.current_values[key])
+  const keys = new Set([
+    ...Object.keys(state.notified_values),
+    ...Object.keys(state.current_values),
+  ])
+  const changed = [...keys].filter((key) => state.notified_values[key] !== state.current_values[key])
   if (changed.length === 0) return []
   const referenced = changed
-    .flatMap((key) => [state.initial_values[key], state.current_values[key]])
+    .flatMap((key) => [state.notified_values[key], state.current_values[key]])
     .filter((hash): hash is Instructions.Hash => hash !== undefined)
   const blobs = yield* loadBlobs(db, referenced)
   const previous: Record<string, Schema.Json> = {}
   const delta: Record<string, Option.Option<Schema.Json>> = {}
   for (const key of changed) {
-    const before = state.initial_values[key]
+    const before = state.notified_values[key]
     const after = state.current_values[key]
     if (before !== undefined) previous[key] = requireBlob(blobs, before)
     delta[key] = after === undefined ? Option.none() : Option.some(requireBlob(blobs, after))
@@ -202,6 +214,25 @@ export const notices = Effect.fn("InstructionState.notices")(function* (
       : source.initial(current.value)
     return text === undefined ? [] : [{ key: source.key, layer: "L4" as const, text }]
   })
+})
+
+/**
+ * Records that the current instruction values have been announced, so the next assembly's notice diff
+ * starts from them. Called by the step that actually ships the notices: a step that fails before its
+ * request reaches the provider must not consume them, or the model never learns what changed.
+ */
+export const markNotified = Effect.fn("InstructionState.markNotified")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+) {
+  const state = yield* find(db, sessionID)
+  if (!state) return
+  yield* db
+    .update(InstructionStateTable)
+    .set({ notified_values: state.current_values })
+    .where(eq(InstructionStateTable.session_id, sessionID))
+    .run()
+    .pipe(Effect.orDie)
 })
 
 /** The current baseline epoch start seq, the invalidation key for the context snapshot. */

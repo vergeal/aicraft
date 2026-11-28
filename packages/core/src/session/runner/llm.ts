@@ -326,6 +326,13 @@ const layer = Layer.effect(
               injected: prepared.event.injected,
             })),
           )
+        // The L4 notices are now part of the request that is about to stream, so the ledger can record them
+        // as delivered: without this the same diff against the epoch baseline was re-rendered on every step
+        // until the next compaction (measured: a 9.3 KB Code Mode catalog restated on 10 steps in a row).
+        // A step that fails after this point still consumed them, which is correct — the request was built
+        // with the notice in it, and the retry rebuilds from `loaded` and would otherwise send it twice.
+        if (loaded.l4 !== undefined && loaded.l4.length > 0)
+          yield* InstructionState.markNotified(db, sessionID)
         // Advertised name to the mark the tool itself declares, so the part carries its icon with no UI table.
         const iconByName = new Map(
           (yield* registry.list()).flatMap((tool) =>

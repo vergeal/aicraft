@@ -60,15 +60,20 @@ ${render(current)}`
   const entriesChanged = diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0
 
   if (!currentComplete) {
-    if (entriesChanged) return replacement
     const namespaces = Instructions.diffByKey(
       previous.namespaces,
       current.namespaces,
       (namespace) => namespace.name,
       (before, after) => before.count !== after.count,
     )
-    const changed = namespaces.added.length > 0 || namespaces.removed.length > 0 || namespaces.changed.length > 0
-    if (!changed) return replacement
+    // A namespace that appeared brings its entries with it, so `entriesChanged` is always true here. That
+    // is not a reason to restate the whole catalog: an install that adds one namespace changed one
+    // namespace, and the notice should name that one. Only a change with no namespace-level story — an
+    // entry that appeared inside a namespace the previous listing already covered, with that namespace's
+    // count unchanged — needs the full text, because the delta could not name where it came from.
+    const namespaced =
+      namespaces.added.length > 0 || namespaces.removed.length > 0 || namespaces.changed.length > 0
+    if (!namespaced) return replacement
 
     const parts = ["The Code Mode tool catalog has changed."]
     if (namespaces.added.length > 0) {

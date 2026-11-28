@@ -494,7 +494,12 @@ const settleLedger = Effect.fnUntraced(function* (
   ].filter((key) => state.initial_values[key] !== state.current_values[key])
   yield* db
     .update(InstructionStateTable)
-    .set({ initial_values: state.current_values })
+    .set({
+      initial_values: state.current_values,
+      // A rebake folds the live values into the new baseline, so they are also what the model has been
+      // told: leaving the previous watermark behind would make the settled diff reappear as a notice.
+      notified_values: state.current_values,
+    })
     .where(eq(InstructionStateTable.session_id, sessionID))
     .run()
     .pipe(Effect.orDie)

@@ -212,6 +212,12 @@ export const InstructionStateTable = sqliteTable("instruction_state", {
   through_seq: integer().notNull(),
   initial_values: text({ mode: "json" }).notNull().$type<Instruction.Values>(),
   current_values: text({ mode: "json" }).notNull().$type<Instruction.Values>(),
+  /**
+   * The values already announced as L4 notices. A notice is a statement the model has now seen, so it is
+   * sent once and recorded here; without it the diff against `initial_values` was recomputed every step and
+   * the same text rode the tail of every request until the next compaction settled the ledger.
+   */
+  notified_values: text({ mode: "json" }).notNull().default({}).$type<Instruction.Values>(),
 })
 
 export const ContextSnapshotTable = sqliteTable("context_snapshot", {

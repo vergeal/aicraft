@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "b6662b33-0df7-4fd8-809d-0c9353cffeb0",
-  "prevIds": ["e61d52b5-44c5-4836-bae9-0d5cfa946a91"],
+  "id": "dd57621d-f99a-4e0e-a75f-63002077ed23",
+  "prevIds": ["b6662b33-0df7-4fd8-809d-0c9353cffeb0"],
   "ddl": [
     {
       "name": "account_state",
@@ -2191,6 +2191,16 @@
       "default": null,
       "generated": null,
       "name": "current_values",
+      "entityType": "columns",
+      "table": "instruction_state"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "name": "notified_values",
       "entityType": "columns",
       "table": "instruction_state"
     },

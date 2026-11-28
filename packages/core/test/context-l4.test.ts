@@ -174,4 +174,55 @@ describe("InstructionState.notices (L4)", () => {
       ])
     }),
   )
+
+  it.effect("announces a change once, not on every step until the next rebake", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_l4_settles")
+      const { db, events } = yield* setup(sessionID)
+      let alpha = "one"
+      const instructions = source(
+        "test/alpha",
+        Effect.sync(() => alpha),
+      )
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+
+      alpha = "two"
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+      const first = yield* InstructionState.notices(db, sessionID, instructions)
+      expect(first).toHaveLength(1)
+
+      // The step ships the notice, then records it as delivered.
+      yield* InstructionState.markNotified(db, sessionID)
+
+      // The source still differs from the epoch baseline, which is what kept restating it forever.
+      // With the notice settled, the following steps carry nothing.
+      expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([])
+      expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([])
+    }),
+  )
+
+  it.effect("announces the next change after a settled one", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_l4_settles_twice")
+      const { db, events } = yield* setup(sessionID)
+      let alpha = "one"
+      const instructions = source(
+        "test/alpha",
+        Effect.sync(() => alpha),
+      )
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+
+      alpha = "two"
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+      yield* InstructionState.markNotified(db, sessionID)
+
+      alpha = "three"
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+
+      // Settling one notice must not swallow the next: the diff starts from what was announced.
+      expect(yield* InstructionState.notices(db, sessionID, instructions)).toEqual([
+        { key: Instructions.Key.make("test/alpha"), layer: "L4" as const, text: "test/alpha changed two -> three" },
+      ])
+    }),
+  )
 })

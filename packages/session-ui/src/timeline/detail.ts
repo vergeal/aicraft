@@ -126,7 +126,10 @@ export function timelineNoticePlacement(message: SessionMessageInfo, detail: Tim
 }
 
 export function timelineNoticeRequired(message: SessionMessageInfo) {
-  if (message.type === "compaction") return message.status !== "completed"
+  // A manual compaction always shows: the user asked for it, so its outcome is the answer to that
+  // request, and hiding it under a quiet preset reads as the command having done nothing. Auto
+  // compactions stay quiet when they succeed — nobody asked, and the transcript already shortened.
+  if (message.type === "compaction") return message.status !== "completed" || message.reason === "manual"
 
   if (message.type !== "synthetic") return false
   const metadata = message.metadata

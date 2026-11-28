@@ -132,10 +132,24 @@ export default function ContextAssembly(props: { session: MountedSession }) {
   const PAGE = 10
   const [pageSizes, setPageSizes] = createSignal(new Map<string, number>())
 
+  // A compaction rebakes the baseline: the epoch advances and L1-L3 change wholesale. Keying the read
+  // on that marker makes the panel follow it instead of showing the pre-compaction snapshot until the
+  // reader happens to press refresh.
+  const rebaked = createMemo(() => {
+    const id = props.session.id
+    if (!id) return undefined
+
+    const last = props.session.server.data.session.message.list(id).findLast((message) => message.type === "compaction")
+
+    // The status is part of the marker, not just the id: a compaction keeps its row from queued to
+    // completed, so the id alone would not fire when the baseline is actually rebaked.
+    return last === undefined ? undefined : `${last.id}:${last.status}`
+  })
+
   // The panel is read-only, so a failed or missing read leaves the section empty instead of failing the tab.
   const [inspection, { refetch }] = createResource(
-    () => props.session.id,
-    async (sessionID) => {
+    () => [props.session.id, rebaked()] as const,
+    async ([sessionID]) => {
       if (!sessionID) return undefined
 
       try {
@@ -162,26 +176,51 @@ export default function ContextAssembly(props: { session: MountedSession }) {
       return next
     })
 
-  // Turns come from the live message store rather than the one-shot endpoint, so L3 entries appear as
+  // Turns come from the message store rather than the one-shot endpoint, so L3 entries appear as
   // messages arrive. Rows that produce no request content (idle, agent-switched, a background shell's
   // duplicate) are left out: the panel lists what the model reads.
+  //
+  // The store only holds the newest page (20 rows, or 40 under a wider preset), while a replay window
+  // after a compaction is routinely larger. Reading the window from the endpoint's `history` keeps a
+  // long session's L3 complete; the store is only a live tail layered on top of it.
   const liveTurns = createMemo(() => {
     const id = props.session.id
     if (!id) return []
-    const messages = props.session.server.data.session.message.list(id)
+    const all = props.session.server.data.session.message.list(id)
+    // L3 is the replay window, not the archive: the next request starts at the newest compaction, so
+    // everything before it is exactly the history that compaction replaced. Keeping it here made a
+    // compaction look like it freed nothing.
+    const start = all.findLastIndex((message) => message.type === "compaction" && message.status === "completed")
+    const store = start === -1 ? all : all.slice(start + 1)
+    // The endpoint groups the whole window server-side and reports the text the model reads; take it
+    // when it reaches further back than the page the store loaded, and let store rows that arrived
+    // after that read carry the live tail.
+    const history = inspection()?.history ?? []
+    const fromHistory = history.flatMap((turn) =>
+      turn.messages.map((message) => ({ id: message.id, type: message.type, text: message.text })),
+    )
+    const known = new Set(fromHistory.map((message) => message.id))
+    const messages =
+      fromHistory.length > 0 && fromHistory.length > store.length
+        ? [
+            ...fromHistory,
+            ...store
+              .filter((message) => !known.has(message.id))
+              .map((message) => ({ id: message.id, type: message.type, text: liveText(message) })),
+          ]
+        : store.map((message) => ({ id: message.id, type: message.type, text: liveText(message) }))
     // A live group per user message, mirroring the server's grouping so the two never disagree.
     return messages.reduce<
-      Array<{ id: string; label: string; started: number; messages: Array<{ id: string; type: string; text: string }> }>
+      Array<{ id: string; label: string; messages: Array<{ id: string; type: string; text: string }> }>
     >((groups, message) => {
-      const text = liveText(message)
-      const entry = { id: message.id, type: message.type, text }
+      const entry = { id: message.id, type: message.type, text: message.text }
       if (message.type === "user") {
-        groups.push({ id: message.id, label: text, started: message.time.created, messages: [entry] })
+        groups.push({ id: message.id, label: entry.text, messages: [entry] })
         return groups
       }
       const current = groups.at(-1)
       if (!current) {
-        groups.push({ id: message.id, label: text, started: message.time.created, messages: [entry] })
+        groups.push({ id: message.id, label: entry.text, messages: [entry] })
         return groups
       }
       current.messages.push(entry)

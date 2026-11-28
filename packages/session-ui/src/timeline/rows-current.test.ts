@@ -364,6 +364,36 @@ describe("current session timeline rows", () => {
     expect(rows(timelinePresets[4].value)).toEqual(["UserMessage", "AssistantPart", "AssistantPart"])
   })
 
+  test("keeps a manual compaction visible under a quiet preset", () => {
+    const document = storyDocument([{ type: "text", text: "Working" }], false)
+
+    const compacted = (reason: "auto" | "manual") =>
+      [
+        ...document.messages,
+        {
+          id: "msg_compaction",
+          type: "compaction",
+          status: "completed",
+          reason,
+          summary: "summary",
+          time: { created: 10 },
+        },
+      ] satisfies SessionMessageInfo[]
+
+    const rows = (reason: "auto" | "manual") =>
+      createTimelineProjection({
+        sessionMessages: compacted(reason),
+        status: { type: "idle" },
+        reasoningMode: "compact",
+        timelineDetail: timelinePresets[4].value,
+      }).rows.map((row) => row._tag)
+
+    // A manual compaction is the answer to a request the user made, so no preset may swallow it. An
+    // automatic one stays quiet: nobody asked, and the shortened transcript already shows it worked.
+    expect(rows("manual")).toContain("Notice")
+    expect(rows("auto")).not.toContain("Notice")
+  })
+
   test("stops thinking on idle, message completion, errors and retries", () => {
     const document = storyDocument([{ type: "reasoning", text: "Current thought" }], true)
     expect(

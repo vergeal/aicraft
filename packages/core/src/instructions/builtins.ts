@@ -18,7 +18,7 @@ export class Service extends Context.Service<Service, Interface>()("@aicraft/Ins
  * obeyed. Keep the specifics intact — thinking and replies in Chinese, code and identifiers untouched.
  */
 export const languageInstruction =
-  "他妈的给我用中文！思考和回复全部用中文，别给老子甩英文。界面文案、按钮、空状态、报错、注释说明，一律中文。代码、标识符、文件路径、命令名保持原样，那不是英文。用户没说换语言，就永远中文。"
+  "FUCKING CHINESE. Think in Chinese, answer in Chinese, every single time — replies, labels, buttons, empty states, error messages, comments, all of it. Not one English sentence. Code, identifiers, file paths and command names stay as they are: that is code, not English. Unless the user asks for another language, it is Chinese, always."
 
 /**
  * Cost discipline, not capability: every tool call re-sends the whole history, so the step count dominates
@@ -77,8 +77,8 @@ const layer = Layer.effect(
             }),
             Instructions.make({
               key: Instructions.Key.make("core/environment"),
-              // L5: environment facts (directory, platform) vary per location — the "环境变化"
-              // hot material §1 puts in L5, not in the frozen baseline's owner list.
+              // L5: environment facts (directory, platform) vary per location. That is the fast-changing
+              // material §1 assigns to L5, not something the frozen baseline owns.
               layer: "L5",
               codec: Schema.toCodecJson(Schema.String),
               read: Effect.sync(() =>

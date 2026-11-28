@@ -17,7 +17,7 @@ export default {
   "window.compositionHistory": "Conversation",
   "window.compositionTools": "Tool output",
   "window.history": "Prompt history",
-  "window.sinceCompaction": "{{count}} steps since compaction",
+  "window.sinceCompaction": "{{count}} turns since compaction",
   "window.historyNote": "dashed rules are compactions",
   "window.historyAria": "Prompt size of each step against the context window; dashed rules mark compactions",
   "window.legendOutputReserve": "Output reserve",

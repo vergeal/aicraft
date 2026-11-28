@@ -78,16 +78,22 @@ export function CompactionChart(props: { session: MountedSession }) {
     return last ? catalogModel(props.session, last.model)?.model?.limit.context : undefined
   })
 
-  // How many finished steps have run since the newest completed compaction: what the chart's right edge
-  // ends on, stated in words so a reader does not have to count the sawtooth's teeth.
+  // How many turns have run since the newest completed compaction. A turn is the user message that
+  // opens it, not the steps it took: a single long turn can be dozens of steps, and "19 步" reads as
+  // nineteen exchanges when it may be one. Counted over the same window as the points below.
   const sinceCompaction = createMemo<number | undefined>(() => {
-    const values = points()
+    const list = props.session.server.data.session.message.list(props.session.id)
+    const boundary = props.session.server.data.session.get(props.session.id)?.revert?.messageID
+    const end = boundary ? list.findIndex((message) => message.id === boundary) : list.length
 
-    if (values.length === 0) return
+    if (end === -1) return
 
-    const mark = values.findLastIndex((point) => point.afterCompaction)
-    // No compaction in the loaded window means the whole window is one stretch.
-    return mark === -1 ? values.length : values.length - mark - 1
+    const window = list.slice(0, end)
+    const start = window.findLastIndex(
+      (message) => message.type === "compaction" && message.status === "completed",
+    )
+    // With no compaction in the window every turn here counts; otherwise only those after the newest.
+    return window.slice(start + 1).filter((message) => message.type === "user").length
   })
 
   const geometry = createMemo(() => {

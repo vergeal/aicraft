@@ -56,6 +56,14 @@ import "@/shell/palette-menu.css"
 // Only the platform's own command modifier reaches the alternate delivery: Cmd on macOS, Ctrl elsewhere.
 const IS_MAC = typeof navigator !== "undefined" && /(Mac|iPod|iPhone|iPad)/.test(navigator.platform)
 
+/**
+ * The debug reasoning-replay toggle is hidden for now: replaying every turn's thinking multiples the
+ * request size (measured at 26.8x over 50 turns), so it stays a hidden experiment rather than a control
+ * anyone can flip by accident. The view wiring and the runner behind it are intact — set this to true to
+ * bring the button back.
+ */
+const SHOW_REASONING_REPLAY = false
+
 const MobilePanelDrawer = lazy(async () => {
   const { MobilePanelDrawer } = await import("@/shell/mobile-panel-drawer")
 
@@ -605,7 +613,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
           <Show when={!touch()}>
             <div data-slot="composer-actions" class="flex shrink-0 items-center">
-              <Show when={view.reasoningReplay}>
+              <Show when={SHOW_REASONING_REPLAY ? view.reasoningReplay : undefined}>
                 {(control) => (
                   <Tooltip value={i18n.t("ui.promptInput.replayReasoning")} placement="top">
                     <IconButton

@@ -273,8 +273,15 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
     // L4–L8 occupancy of the last request that actually went out. Every source the assembler and the
     // context hook reported carries the layer that asked for its bytes, so the audit reads the real
     // request instead of re-deriving it: L4 notices, L5 dynamic facts and L6 memory were previously
-    // indistinguishable from the frozen prefix.
-    dynamic: dynamic(sent),
+    // indistinguishable from the frozen prefix. The frozen L1 segments already have a home in the
+    // snapshot, so their keys are excluded here and only an L1 the snapshot never captured survives.
+    dynamic: dynamic(
+      sent,
+      new Set([
+        ...parts(row?.parts).map((part) => part.source),
+        ...storedBaseline(row?.baseline).map((entry) => entry.source),
+      ]),
+    ),
   }
 })
 
@@ -381,16 +388,20 @@ const tools = (value: unknown) =>
  * source key keeps a layer's rows stable across steps; a source with no layer predates the
  * audit and belongs to the frozen prefix, which is why it lands in L1.
  */
-const dynamic = (sent: ReadonlyArray<typeof SentSource.Type>) => {
+const dynamic = (sent: ReadonlyArray<typeof SentSource.Type>, frozen: ReadonlySet<string>) => {
   const groups = new Map<
     string,
     { layer: string; source: string; bytes: number; text: string; items: Map<string, { name: string; bytes: number; text: string }> }
   >()
   for (const entry of sent) {
-    const layer = entry.layer ?? "L1"
-    // L1-L3 are frozen content the panel reads from the snapshot and the baseline, not from the
-    // request audit; only the live tail (L4 and up) belongs here.
-    if (layer === "L1" || layer === "L2" || layer === "L3") continue
+    // Only a source that names its layer reaches the panel from here. A source without one predates the
+    // audit and only ever reported the frozen prefix. An L1 key the snapshot already captured is skipped
+    // too, because the panel lists that segment from the snapshot and counting it here would double its
+    // bytes; an L1 the snapshot never captured (fixed harness text injected at request time, such as the
+    // memory save rules) has no other home, so this is where a reader finds it.
+    const layer = entry.layer
+    if (layer === undefined || layer === "L2" || layer === "L3") continue
+    if (layer === "L1" && frozen.has(entry.key)) continue
     const key = `${layer}\u0000${entry.key}`
     const found = groups.get(key)
     if (found === undefined) {

@@ -300,6 +300,18 @@ export default function ContextAssembly(props: { session: MountedSession }) {
                 bytes: entry.bytes,
                 text: entry.text,
               })),
+            // Fixed harness text the request injects at assembly time (the memory save rules) has no
+            // snapshot entry, so the audit is the only place it appears. It is L1 like the rest of the
+            // frozen prefix, and leaving it out here dropped it from the panel entirely.
+            ...(data?.dynamic ?? [])
+              .filter((entry) => entry.layer === "L1")
+              .map((entry) => ({
+                name: `assembly.source.${entry.source}`,
+                type: entry.source,
+                bytes: entry.bytes,
+                text: entry.text,
+                items: entry.items,
+              })),
           ],
         }
 

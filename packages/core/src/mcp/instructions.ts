@@ -59,9 +59,12 @@ export const layer = Layer.effect(
         const source = (value: ReadonlyArray<Summary> | Instructions.Removed) =>
           Instructions.make<ReadonlyArray<Summary>>({
             key: Instructions.Key.make("core/mcp-guidance"),
-            // L4: a replaceable declaration of which servers are attached and what they say; it
-            // restates on connect/disconnect, §1's 变更状态声明, not frozen harness text.
-            layer: "L4",
+            // No turn layer: these bytes are the servers' own published instructions, which belong to the
+            // frozen baseline. Declaring L4 made every request restate the whole block — and because the
+            // summary carries each server's version banner, a server that merely bumped its version (the
+            // codegraph server reporting 1.6.4 one day and 1.6.5 the next) changed the hash and re-sent
+            // 1.6 KB of fixed text on every step of every turn. Absent a layer the content rides the epoch
+            // baseline and becomes an L4 notice only when it actually changes, which is what L4 is for.
             codec: Schema.toCodecJson(Schema.Array(Summary)),
             read: Effect.succeed(value),
             render: {

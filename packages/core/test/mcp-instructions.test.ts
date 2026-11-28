@@ -5,7 +5,7 @@ import { Mcp } from "@aicraft/core/mcp/index"
 import { McpInstructions } from "@aicraft/core/mcp/instructions"
 import { McpTool } from "@aicraft/core/tool/mcp"
 import { it } from "./lib/effect"
-import { readInitial, readUpdate } from "./lib/instructions"
+import { readInitial, readUpdate, state } from "./lib/instructions"
 
 const instructions = (server: string, text: string) =>
   ({ server: Mcp.ServerName.make(server), instructions: text }) satisfies Mcp.ServerInstructions
@@ -199,3 +199,24 @@ describe("McpInstructions", () => {
     )
   })
 })
+
+  it.effect("keeps MCP instructions on the frozen baseline instead of restating them every turn", () =>
+    Effect.gen(function* () {
+      const service = yield* McpInstructions.Service
+      const initial = yield* service.load([]).pipe(Effect.flatMap(readInitial))
+      const previous = state({ "core/mcp-guidance": initial.values["core/mcp-guidance"] })
+      // The same catalog read again: a server that bumped its own version banner changes the text, but
+      // the source must not declare a turn layer, or every request would restate the whole block as an
+      // L4 change. An unchanged read settles to no update at all.
+      const unchanged = yield* service.load([]).pipe(Effect.flatMap((list) => readUpdate(list, previous)))
+
+      expect(unchanged.text).toBe("")
+    }).pipe(
+      Effect.provide(
+        layer(
+          () => [instructions("alpha", "Alpha instructions"), instructions("beta", "Beta instructions")],
+          () => [tool("alpha"), tool("beta")],
+        ),
+      ),
+    ),
+  )

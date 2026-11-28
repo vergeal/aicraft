@@ -301,16 +301,18 @@ export const Plugin = define({
     const memoryL6 = SessionTurnSuppliers.memoryChannel(service.settings.maxInjectedChars)
     yield* ctx.session.hook("context", (event) =>
       Effect.gen(function* () {
-        // Channel ① (L6, P3 收编): the save-rules block still rides the very tail of the
-        // assembled system — byte-identical on every request, appended after the frozen
-        // segment so the tail gate (§3 invariant 1) passes and the provider cache holds —
-        // but it is no longer silent static-prefix content: it is a declared L6 supply
-        // reported through `injected`, so the Step audit shows it exactly like the retrieval
-        // block (§5 hookContextSources 收编). The rules stay visible even when retrieval
-        // injection is off — saving is always available.
+        // The save-rules block rides the very tail of the assembled system: byte-identical on every
+        // request, appended after the frozen segment so the tail gate (§3 invariant 1) passes and the
+        // provider cache holds. It is reported through `injected` so the Step audit can account for its
+        // bytes, and it is L1: fixed harness text, not per-turn supply. The rules stay visible even when
+        // retrieval injection is off — saving is always available.
         if (!event.system.some((part) => part.text === PROTOCOL_SHORT)) {
           event.system.push(protocol)
-          event.injected = [...(event.injected ?? []), { key: "memory/protocol", layer: "L6", text: PROTOCOL_SHORT }]
+          // L1: the save rules are fixed harness text, byte-identical on every request and part of the
+          // cached prefix. Only the retrieval block below is L6 — the layer whose bytes are recomputed
+          // per turn. Listing the rules under L6 read as memory that changes every turn when nothing
+          // about them does.
+          event.injected = [...(event.injected ?? []), { key: "memory/protocol", layer: "L1", text: PROTOCOL_SHORT }]
         }
         const last = findPromptMessage(event.messages, promptTexts)
         if (last === undefined) return

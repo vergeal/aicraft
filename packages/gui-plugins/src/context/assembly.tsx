@@ -61,10 +61,25 @@ type Inspection = {
   }>
 }
 
-/** One row the panel lists inside a layer: what it is, where it came from, and the text it contributes. */
+/**
+ * One row the panel lists inside a layer: what it is, where it came from, and the text it contributes.
+ *
+ * `name` is the message key for what this row is, and `type` is the machine identity behind it — an
+ * instruction source key, a tool name, a part kind. Keeping them apart is what lets the panel read in
+ * any locale without losing the identifier an operator needs to match a log or an error: a tool is
+ * still `read`, a source is still `core/date`, and only the label changes.
+ */
 type Row = {
+  /**
+   * What the row is called. Either a message key resolved through `ctx.t`, or — for a row whose own
+   * content is its best label, such as the prompt that opened a turn — the text itself, marked by
+   * `label`. A key that resolves to itself reads as the key, so the two cases cannot share one field
+   * without saying which is which.
+   */
   readonly name: string
-  readonly source: string
+  readonly label?: "literal"
+  /** Machine identity: the stable name a log, error or provider response would show. */
+  readonly type: string
   readonly bytes: number
   /** The model-visible text. Empty when the layer reports only a size. */
   readonly text: string
@@ -252,14 +267,19 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           churn: "frozen" as const,
           rows: [
             ...(snapshot?.layers ?? []).map((part) => ({
-              name: ctx.t(`assembly.kind.${part.kind}`),
-              source: part.source,
+              name: `assembly.kind.${part.kind}`,
+              type: part.source,
               bytes: part.bytes,
               text: part.text,
             })),
             ...(snapshot?.baseline ?? [])
               .filter((entry) => entry.layer === "L1")
-              .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+              .map((entry) => ({
+                name: `assembly.source.${entry.source}`,
+                type: entry.source,
+                bytes: entry.bytes,
+                text: entry.text,
+              })),
           ],
         }
 
@@ -271,8 +291,8 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           churn: "frozen" as const,
           rows: [
             ...(snapshot?.tools ?? []).map((tool) => ({
-              name: tool.name,
-              source: tool.source,
+              name: `assembly.tool.${tool.name}`,
+              type: tool.name,
               bytes: tool.bytes,
               text: "",
             })),
@@ -280,7 +300,12 @@ export default function ContextAssembly(props: { session: MountedSession }) {
             // it arrives in the baseline rather than in the tool set.
             ...(snapshot?.baseline ?? [])
               .filter((entry) => entry.layer === "L2")
-              .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+              .map((entry) => ({
+                name: `assembly.source.${entry.source}`,
+                type: entry.source,
+                bytes: entry.bytes,
+                text: entry.text,
+              })),
           ],
         }
 
@@ -294,8 +319,12 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           layer,
           churn: "frozen" as const,
           rows: [...groups].reverse().map((group) => ({
-            name: group.label.slice(0, 80) || group.id,
-            source: `${group.messages.length} msg · ${group.id}`,
+            // A turn is identified by the prompt that opened it, not by a generic label: ten rows all
+            // reading "Turn" tells a reader nothing, while the prompt text is what they are scanning
+            // for. The message id stays on the right as the stable identifier.
+            name: group.label.slice(0, 80) || ctx.t("assembly.turn"),
+            label: "literal" as const,
+            type: group.id,
             bytes: group.messages.reduce((sum, message) => sum + size(message.text), 0),
             text: group.messages.map((message) => `[${message.type}]\n${message.text}`).join("\n\n---\n\n"),
           })),
@@ -313,14 +342,19 @@ export default function ContextAssembly(props: { session: MountedSession }) {
             // A pending declaration reads as an L4 row with the value the source holds now: the
             // key alone would say that something changed without saying what it changed to.
             ...(data?.notice ?? []).map((notice) => ({
-              name: notice.key,
-              source: "instruction_ledger · pending",
+              name: `assembly.source.${notice.key}`,
+              type: notice.key,
               bytes: notice.bytes,
               text: notice.text,
             })),
             ...(data?.dynamic ?? [])
               .filter((entry) => entry.layer === "L4")
-              .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+              .map((entry) => ({
+                name: `assembly.source.${entry.source}`,
+                type: entry.source,
+                bytes: entry.bytes,
+                text: entry.text,
+              })),
           ],
         }
 
@@ -330,7 +364,12 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           churn: "low" as const,
           rows: (data?.dynamic ?? [])
             .filter((entry) => entry.layer === "L5")
-            .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+            .map((entry) => ({
+              name: `assembly.source.${entry.source}`,
+              type: entry.source,
+              bytes: entry.bytes,
+              text: entry.text,
+            })),
         }
 
       // L6 to L8 are the hot band: memory injection, the turn's own input, and tail notices, all
@@ -340,7 +379,12 @@ export default function ContextAssembly(props: { session: MountedSession }) {
         churn: "hot" as const,
         rows: (data?.dynamic ?? [])
           .filter((entry) => entry.layer === layer)
-          .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+          .map((entry) => ({
+            name: `assembly.source.${entry.source}`,
+            type: entry.source,
+            bytes: entry.bytes,
+            text: entry.text,
+          })),
       }
     })
   })
@@ -357,7 +401,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     }
   })
 
-  const rowKey = (layer: string, name: string) => `${layer}\u0000${name}`
+  const rowKey = (layer: string, type: string) => `${layer}\u0000${type}`
 
   const pageSize = (layer: string) => pageSizes().get(layer) ?? PAGE
   const visibleRows = (layer: string, rows: readonly Row[]) => rows.slice(0, pageSize(layer))
@@ -366,7 +410,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
 
   /** A collapsible row: the header always, its text when opened. */
   const RowView = (rowProps: { layer: string; row: Row; index: number }): JSX.Element => {
-    const key = rowKey(rowProps.layer, rowProps.row.name)
+    const key = rowKey(rowProps.layer, rowProps.row.type)
     const open = () => expandedRows().has(key)
     const expandable = () => rowProps.row.text.length > 0
 
@@ -382,8 +426,10 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           <Show when={expandable()} fallback={<span class="w-3" />}>
             <Icon name="chevron-right" size="small" class="shrink-0 text-v2-text-text-faint" style={{ transform: open() ? "rotate(90deg)" : undefined }} />
           </Show>
-          <span class="min-w-0 truncate text-[11.5px] text-v2-text-text-base">{rowProps.row.name}</span>
-          <span class="shrink-0 text-[10.5px] text-v2-text-text-faint">{rowProps.row.source}</span>
+          <span class="min-w-0 truncate text-[11.5px] text-v2-text-text-base">
+            {rowProps.row.label === "literal" ? rowProps.row.name : ctx.t(rowProps.row.name)}
+          </span>
+          <span class="shrink-0 text-[10.5px] text-v2-text-text-faint">{rowProps.row.type}</span>
           <span class="ms-auto shrink-0 text-[11px] tabular-nums text-v2-text-text-faint">
             {bytes(rowProps.row.bytes)}
           </span>

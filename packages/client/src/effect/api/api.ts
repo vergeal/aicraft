@@ -623,6 +623,9 @@ export interface SessionApi<E = never> {
   /** @deprecated Use `client.experimental.session.wait`. Removed in the next minor. */
   readonly wait: ExperimentalSessionWaitOperation<E>
 
+  /** @deprecated Use `client.experimental.session.contextWindow`. Removed in the next minor. */
+  readonly contextWindow: ExperimentalSessionContextWindowOperation<E>
+
   /** @deprecated Use `client.experimental.session.advanceContext`. Removed in the next minor. */
   readonly advanceContext: ExperimentalSessionAdvanceContextOperation<E>
 
@@ -804,6 +807,30 @@ export type ExperimentalSessionWaitOutput = void
 export type ExperimentalSessionWaitOperation<E = never> = (
   input: ExperimentalSessionWaitInput,
 ) => Effect.Effect<ExperimentalSessionWaitOutput, E>
+
+export type ExperimentalSessionContextWindowInput = {
+  readonly sessionID: Session.ID
+  readonly maxPoints?: number | undefined
+}
+export type ExperimentalSessionContextWindowOutput = {
+  readonly messages: number
+  readonly turns: number
+  readonly turnsSinceCompaction: number
+  readonly steps: number
+  readonly tokens: {
+    readonly input: number
+    readonly output: number
+    readonly reasoning: number
+    readonly cacheRead: number
+    readonly cacheWrite: number
+  }
+  readonly last?: { readonly tokens: number; readonly model: Model.Ref } | undefined
+  readonly points: ReadonlyArray<{ readonly tokens: number; readonly afterCompaction: boolean }>
+  readonly aggregated: boolean
+}
+export type ExperimentalSessionContextWindowOperation<E = never> = (
+  input: ExperimentalSessionContextWindowInput,
+) => Effect.Effect<ExperimentalSessionContextWindowOutput, E>
 
 export type ExperimentalSessionAdvanceContextInput = { readonly sessionID: Session.ID }
 export type ExperimentalSessionAdvanceContextOutput = {
@@ -1719,6 +1746,7 @@ export interface ExperimentalSessionApi<E = never> {
   readonly export: ExperimentalSessionExportOperation<E>
   readonly skill: ExperimentalSessionSkillOperation<E>
   readonly wait: ExperimentalSessionWaitOperation<E>
+  readonly contextWindow: ExperimentalSessionContextWindowOperation<E>
   readonly advanceContext: ExperimentalSessionAdvanceContextOperation<E>
   readonly instructions: {
     readonly entry: {
@@ -3445,6 +3473,15 @@ export type SessionWaitOutput = ExperimentalSessionWaitOutput
 
 /** @deprecated Use `ExperimentalSessionWaitOperation`. Removed in the next minor. */
 export type SessionWaitOperation<E = never> = ExperimentalSessionWaitOperation<E>
+
+/** @deprecated Use `ExperimentalSessionContextWindowInput`. Removed in the next minor. */
+export type SessionContextWindowInput = ExperimentalSessionContextWindowInput
+
+/** @deprecated Use `ExperimentalSessionContextWindowOutput`. Removed in the next minor. */
+export type SessionContextWindowOutput = ExperimentalSessionContextWindowOutput
+
+/** @deprecated Use `ExperimentalSessionContextWindowOperation`. Removed in the next minor. */
+export type SessionContextWindowOperation<E = never> = ExperimentalSessionContextWindowOperation<E>
 
 /** @deprecated Use `ExperimentalSessionAdvanceContextInput`. Removed in the next minor. */
 export type SessionAdvanceContextInput = ExperimentalSessionAdvanceContextInput

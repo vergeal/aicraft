@@ -10,9 +10,6 @@ import { catalogModel } from "./catalog"
  * drop to summary plus recent text. The transcript pages, so the chart covers the loaded messages only.
  */
 
-/** One finished step's prompt side; `afterCompaction` marks the first step a completed compaction precedes. */
-type Point = { readonly tokens: number; readonly afterCompaction: boolean }
-
 const HEIGHT = 64
 
 const PAD = 4
@@ -20,7 +17,15 @@ const PAD = 4
 /** Initial plot width; the resize observer replaces it with the container's real one. */
 const INITIAL_WIDTH = 552
 
-export function CompactionChart(props: { session: MountedSession }) {
+export function CompactionChart(props: {
+  session: MountedSession
+  /**
+   * The whole Session's step series and turn count, read from the server aggregate. The chart used to
+   * walk the loaded transcript, so it drew only the page a reader had scrolled to.
+   */
+  points: ReadonlyArray<{ readonly tokens: number; readonly afterCompaction: boolean }>
+  turns: number
+}) {
   const ctx = usePlugin()
 
   // The side panel is resizable, so the geometry follows the container's real width instead of a fixed viewBox
@@ -39,36 +44,6 @@ export function CompactionChart(props: { session: MountedSession }) {
     },
   )
 
-  // Same window as the header's counter and the panel's occupancy bar: after the last completed compaction and
-  // before the undo boundary. An earlier compaction is history this chart does not re-draw.
-  const points = createMemo<Point[]>(() => {
-    const list = props.session.server.data.session.message.list(props.session.id)
-    const boundary = props.session.server.data.session.get(props.session.id)?.revert?.messageID
-    const end = boundary ? list.findIndex((message) => message.id === boundary) : list.length
-
-    if (end === -1) return []
-
-    const result: Point[] = []
-    let afterCompaction = false
-
-    for (const message of list.slice(0, end)) {
-      if (message.type === "compaction" && message.status === "completed") {
-        afterCompaction = true
-        continue
-      }
-
-      if (message.type === "assistant" && message.tokens !== undefined) {
-        result.push({
-          tokens: message.tokens.input + message.tokens.cache.read + message.tokens.cache.write,
-          afterCompaction,
-        })
-        afterCompaction = false
-      }
-    }
-
-    return result
-  })
-
   // The same model resolution as the occupancy bar: the catalog entry of the last reported model.
   const limit = createMemo(() => {
     const list = props.session.server.data.session.message.list(props.session.id)
@@ -78,26 +53,8 @@ export function CompactionChart(props: { session: MountedSession }) {
     return last ? catalogModel(props.session, last.model)?.model?.limit.context : undefined
   })
 
-  // How many turns have run since the newest completed compaction. A turn is the user message that
-  // opens it, not the steps it took: a single long turn can be dozens of steps, and "19 步" reads as
-  // nineteen exchanges when it may be one. Counted over the same window as the points below.
-  const sinceCompaction = createMemo<number | undefined>(() => {
-    const list = props.session.server.data.session.message.list(props.session.id)
-    const boundary = props.session.server.data.session.get(props.session.id)?.revert?.messageID
-    const end = boundary ? list.findIndex((message) => message.id === boundary) : list.length
-
-    if (end === -1) return
-
-    const window = list.slice(0, end)
-    const start = window.findLastIndex(
-      (message) => message.type === "compaction" && message.status === "completed",
-    )
-    // With no compaction in the window every turn here counts; otherwise only those after the newest.
-    return window.slice(start + 1).filter((message) => message.type === "user").length
-  })
-
   const geometry = createMemo(() => {
-    const values = points()
+    const values = props.points
     const last = values.length - 1
 
     if (last < 1) return
@@ -128,11 +85,9 @@ export function CompactionChart(props: { session: MountedSession }) {
         <div ref={plot} class="flex flex-col gap-1.5 pt-1">
           <div class="flex items-baseline gap-2 text-[11.5px] text-v2-text-text-faint">
             <span>{ctx.t("window.history")}</span>
-            <Show when={sinceCompaction() !== undefined ? sinceCompaction() : undefined}>
-              {(count) => (
-                <span class="text-v2-text-text-muted">{ctx.t("window.sinceCompaction", { count: String(count()) })}</span>
-              )}
-            </Show>
+            <span class="text-v2-text-text-muted">
+              {ctx.t("window.sinceCompaction", { count: String(props.turns) })}
+            </span>
             <span class="ms-auto">{ctx.t("window.historyNote")}</span>
           </div>
           <svg

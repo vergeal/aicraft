@@ -3,6 +3,7 @@ import { SessionInbox } from "@aicraft/schema/session-inbox"
 import { PromptInput } from "@aicraft/schema/prompt-input"
 import { Session } from "@aicraft/schema/session"
 import { SessionStats } from "@aicraft/schema/session-stats"
+import { SessionContextWindow } from "@aicraft/schema/session-context-window"
 import { InstructionEntry } from "@aicraft/schema/instruction-entry"
 import { Project } from "@aicraft/schema/project"
 import { DateTimeUtcFromMillis, NonNegativeInt, PositiveInt } from "@aicraft/schema/schema"
@@ -574,6 +575,23 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
           identifier: "experimental.session.wait",
           summary: "Wait for session",
           description: "Wait for a session agent loop to become idle.",
+        }),
+      ),
+    )
+    .add(
+      HttpApiEndpoint.get("session.contextWindow", "/api/experimental/session/:sessionID/context/window", {
+        params: { sessionID: Session.ID },
+        query: Schema.Struct({ maxPoints: NonNegativeInt.pipe(Schema.optional) }),
+        success: Schema.Struct({ data: SessionContextWindow.Info }),
+        error: [SessionNotFoundError],
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "experimental.session.contextWindow",
+          summary: "Read whole-session context totals",
+          description:
+            "Experimental: may change without compatibility guarantees. Totals for the context panel computed by " +
+            "one database aggregate over every message in the session, so the figures do not depend on which " +
+            "transcript page a client has loaded. Never reads message bodies.",
         }),
       ),
     )

@@ -180,6 +180,8 @@ export type SessionStatsToolUsage = {
 
 export type SessionStatsActivity = { date: string; steps: number }
 
+export type SessionContextWindowPoint = { tokens: number; afterCompaction: boolean }
+
 export type InstructionEntryKey = string
 
 export type EventID = string
@@ -1186,6 +1188,17 @@ export type SessionMessageCompactionCompleted = {
 }
 
 export type SessionStatsModelUsage = { model: ModelRef; steps: number; tokens: TokenUsageInfo; cost: MoneyUSD }
+
+export type SessionContextWindowInfo = {
+  messages: number
+  turns: number
+  turnsSinceCompaction: number
+  steps: number
+  tokens: { input: number; output: number; reasoning: number; cacheRead: number; cacheWrite: number }
+  last?: { tokens: number; model: ModelRef }
+  points: Array<SessionContextWindowPoint>
+  aggregated: boolean
+}
 
 export type ProviderSettings = {
   timeout?: number | false
@@ -4245,6 +4258,13 @@ export type ExperimentalSessionWaitInput = { readonly sessionID: string }
 
 export type ExperimentalSessionWaitOutput = void
 
+export type ExperimentalSessionContextWindowInput = {
+  readonly sessionID: string
+  readonly maxPoints?: number | undefined
+}
+
+export type ExperimentalSessionContextWindowOutput = { data: SessionContextWindowInfo }["data"]
+
 export type ExperimentalSessionAdvanceContextInput = { readonly sessionID: string }
 
 export type ExperimentalSessionAdvanceContextOutput = {
@@ -5449,6 +5469,12 @@ export type SessionWaitInput = ExperimentalSessionWaitInput
 
 /** @deprecated Use `ExperimentalSessionWaitOutput`. Removed in the next minor. */
 export type SessionWaitOutput = ExperimentalSessionWaitOutput
+
+/** @deprecated Use `ExperimentalSessionContextWindowInput`. Removed in the next minor. */
+export type SessionContextWindowInput = ExperimentalSessionContextWindowInput
+
+/** @deprecated Use `ExperimentalSessionContextWindowOutput`. Removed in the next minor. */
+export type SessionContextWindowOutput = ExperimentalSessionContextWindowOutput
 
 /** @deprecated Use `ExperimentalSessionAdvanceContextInput`. Removed in the next minor. */
 export type SessionAdvanceContextInput = ExperimentalSessionAdvanceContextInput

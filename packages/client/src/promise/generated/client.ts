@@ -115,6 +115,8 @@ import type {
   ExperimentalSessionSkillOutput,
   ExperimentalSessionWaitInput,
   ExperimentalSessionWaitOutput,
+  ExperimentalSessionContextWindowInput,
+  ExperimentalSessionContextWindowOutput,
   ExperimentalSessionAdvanceContextInput,
   ExperimentalSessionAdvanceContextOutput,
   ExperimentalSessionInstructionsEntryListInput,
@@ -851,6 +853,18 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ),
+        contextWindow: (input: ExperimentalSessionContextWindowInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalSessionContextWindowOutput }>(
+            {
+              method: "GET",
+              path: `/api/experimental/session/${encodeURIComponent(input.sessionID)}/context/window`,
+              query: { maxPoints: input["maxPoints"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
         advanceContext: (input: ExperimentalSessionAdvanceContextInput, requestOptions?: RequestOptions) =>
           request<{ readonly data: ExperimentalSessionAdvanceContextOutput }>(
             {
@@ -3086,6 +3100,8 @@ export function make(options: ClientOptions) {
       skill: client.experimental.session.skill,
       /** @deprecated Use `client.experimental.session.wait`. Removed in the next minor. */
       wait: client.experimental.session.wait,
+      /** @deprecated Use `client.experimental.session.contextWindow`. Removed in the next minor. */
+      contextWindow: client.experimental.session.contextWindow,
       /** @deprecated Use `client.experimental.session.advanceContext`. Removed in the next minor. */
       advanceContext: client.experimental.session.advanceContext,
       /** @deprecated Use `client.experimental.session.instructions`. Removed in the next minor. */

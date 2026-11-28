@@ -60,6 +60,7 @@ import { llmClient } from "./effect/app-node-platform.js"
 import { Snapshot } from "./snapshot.js"
 import { Session } from "./session/session.js"
 import { SessionContextSnapshot } from "./session/context-snapshot.js"
+import { SessionContextWindow } from "./session/context-window.js"
 import { SessionDiff, TurnRangeError } from "./session/diff.js"
 import { LocationServiceMap } from "./location-service-map.js"
 import { FSUtil } from "@aicraft/util/fs-util"
@@ -266,6 +267,14 @@ export interface Interface {
     Effect.Success<ReturnType<typeof SessionContextSnapshot.inspect>>,
     NotFoundError | MessageDecodeError
   >
+  /**
+   * Experimental: whole-Session totals for the context panel, computed by one aggregate in the database.
+   * Separate from `inspectContext` because it never touches the transcript: the panel's figures describe
+   * every message, not the page a client happens to have loaded.
+   */
+  readonly contextWindow: (
+    sessionID: SessionSchema.ID,
+  ) => Effect.Effect<SessionContextWindow.Info, NotFoundError>
   readonly active: Effect.Effect<ReadonlySet<SessionSchema.ID>>
   readonly background: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError>
   readonly resume: (sessionID: SessionSchema.ID) => Effect.Effect<void, NotFoundError | SessionRunner.RunError>
@@ -483,6 +492,10 @@ const layer = Layer.effect(
       inspectContext: Effect.fn("Session.inspectContext")(function* (sessionID) {
         yield* result.get(sessionID)
         return yield* SessionContextSnapshot.inspect(db, sessionID)
+      }),
+      contextWindow: Effect.fn("Session.contextWindow")(function* (sessionID) {
+        yield* result.get(sessionID)
+        return yield* SessionContextWindow.get(db, sessionID)
       }),
       diff: Effect.fn("Session.diff")(function* (input) {
         const session = yield* result.get(input.sessionID)

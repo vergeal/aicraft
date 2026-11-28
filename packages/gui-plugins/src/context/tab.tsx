@@ -1,5 +1,5 @@
 import { Popover } from "@kobalte/core/popover"
-import { createMemo, createSignal, on, onCleanup, onMount, For, Show } from "solid-js"
+import { createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount, For, Show } from "solid-js"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import type { JSX } from "solid-js"
 import { checksum } from "@aicraft/util/encode"
@@ -364,6 +364,38 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
   const info = createMemo(() => (props.session.id ? data().session.get(props.session.id) : undefined))
 
+  // The store holds only the pages the timeline has scrolled to, so every statistic below would describe
+  // the tail of the session rather than the session: the cost, the message count, the prompt-history
+  // chart and the occupancy figures would all move as the reader scrolls up. Pull the whole transcript
+  // once per session, so a number here means the same thing whatever is on screen. A cached panel view
+  // swaps sessions without remounting, which is why this follows the id rather than running on mount.
+  createEffect(
+    on(
+      () => props.session.id,
+      (id) => {
+        if (!id || !data().session.message.more(id)) return
+        void data()
+          .session.message.loadMore(id, { all: true })
+          .catch(() => undefined)
+      },
+      { defer: true },
+    ),
+  )
+
+  // Whole-Session totals, read from the server in one aggregate. This replaces folding the loaded
+  // transcript: the store holds only the pages the timeline has scrolled to, so every figure derived
+  // from it described the tail of the conversation and moved as the reader scrolled up.
+  const [totals] = createResource(
+    () => props.session.id,
+    async (id) => {
+      if (!id) return undefined
+      return await props.session.server.client.experimental.session.contextWindow({ sessionID: id })
+    },
+  )
+
+  /** Rows a panel number should use: the whole Session once the read lands, the loaded page before that. */
+  const scope = createMemo(() => totals())
+
   const messages = createMemo(
     () => {
       const id = props.session.id
@@ -577,7 +609,9 @@ export default function SessionContextTab(props: { session: MountedSession }) {
 
   const perTurnTokens = createMemo(() => {
     const current = context()
-    const count = steps().length
+    // The step count comes from the whole Session, so the per-turn figure does not drift as the
+    // timeline loads older pages; the loaded rows are only a fallback before the read lands.
+    const count = scope()?.steps ?? steps().length
 
     if (!current?.used || !count) return
 
@@ -602,16 +636,21 @@ export default function SessionContextTab(props: { session: MountedSession }) {
   })
 
   // Everything this session spent on the output side. Output and reasoning are not part of
-  // the window's occupancy, so they are summed here instead of filling a bar segment.
-  const spentTokens = createMemo(() =>
-    steps().reduce(
+  // the window's occupancy, so they are summed here instead of filling a bar segment. The whole-Session
+  // totals come from the server aggregate; the loaded rows are only the fallback before it lands.
+  const spentTokens = createMemo(() => {
+    const whole = scope()
+
+    if (whole) return { output: whole.tokens.output, reasoning: whole.tokens.reasoning }
+
+    return steps().reduce(
       (total, step) => ({
         output: total.output + step.tokens.output,
         reasoning: total.reasoning + step.tokens.reasoning,
       }),
       { output: 0, reasoning: 0 },
-    ),
-  )
+    )
+  })
 
   const rateStats = createMemo(() => {
     const rates = steps().flatMap((step) => (step.rate === undefined ? [] : [step.rate]))
@@ -681,7 +720,13 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     )
   })
 
+  // The Session's own size, not the loaded page's: these two numbers were the visible edge of reading
+  // the transcript store, growing as the reader scrolled up.
   const counts = createMemo(() => {
+    const whole = scope()
+
+    if (whole) return { loaded: whole.messages, turns: whole.turns }
+
     const all = messages()
     const user = all.reduce((count, message) => count + (message.type === "user" ? 1 : 0), 0)
 
@@ -973,7 +1018,11 @@ export default function SessionContextTab(props: { session: MountedSession }) {
             </span>
           </div>
 
-          <CompactionChart session={props.session} />
+          <CompactionChart
+            session={props.session}
+            points={scope()?.points ?? []}
+            turns={scope()?.turnsSinceCompaction ?? 0}
+          />
 
           <div class="grid grid-cols-2 overflow-hidden rounded-[10px] border border-v2-border-border-muted bg-v2-border-border-muted gap-px">
             <Tile

@@ -121,6 +121,8 @@ import type {
   ExperimentalSessionSkillOutput,
   ExperimentalSessionWaitInput,
   ExperimentalSessionWaitOutput,
+  ExperimentalSessionContextWindowInput,
+  ExperimentalSessionContextWindowOutput,
   ExperimentalSessionAdvanceContextInput,
   ExperimentalSessionAdvanceContextOutput,
   ExperimentalSessionInstructionsEntryListInput,
@@ -989,6 +991,18 @@ const EndpointExperimentalSessionWait = (raw: RawClient["server.session"]) => (i
     raw["session.wait"]({ params: { sessionID: input["sessionID"] } }).pipe(Effect.mapError(mapClientError)),
   )
 
+const EndpointExperimentalSessionContextWindow =
+  (raw: RawClient["server.session"]) => (input: ExperimentalSessionContextWindowInput) =>
+    preserveEffect<ExperimentalSessionContextWindowOutput>()(
+      raw["session.contextWindow"]({
+        params: { sessionID: input["sessionID"] },
+        query: { maxPoints: input["maxPoints"] },
+      }).pipe(
+        Effect.mapError(mapClientError),
+        Effect.map((value) => value.data),
+      ),
+    )
+
 const EndpointExperimentalSessionAdvanceContext =
   (raw: RawClient["server.session"]) => (input: ExperimentalSessionAdvanceContextInput) =>
     preserveEffect<ExperimentalSessionAdvanceContextOutput>()(
@@ -1044,6 +1058,7 @@ const adaptGroupExperimentalSession = (raw: RawClient["server.session"]) => ({
   export: EndpointExperimentalSessionExport(raw),
   skill: EndpointExperimentalSessionSkill(raw),
   wait: EndpointExperimentalSessionWait(raw),
+  contextWindow: EndpointExperimentalSessionContextWindow(raw),
   advanceContext: EndpointExperimentalSessionAdvanceContext(raw),
   instructions: {
     entry: {
@@ -2324,6 +2339,8 @@ const adaptClient = (raw: RawClient) => {
       skill: client.experimental.session.skill,
       /** @deprecated Use `client.experimental.session.wait`. Removed in the next minor. */
       wait: client.experimental.session.wait,
+      /** @deprecated Use `client.experimental.session.contextWindow`. Removed in the next minor. */
+      contextWindow: client.experimental.session.contextWindow,
       /** @deprecated Use `client.experimental.session.advanceContext`. Removed in the next minor. */
       advanceContext: client.experimental.session.advanceContext,
       /** @deprecated Use `client.experimental.session.instructions`. Removed in the next minor. */

@@ -2317,6 +2317,8 @@ const CONTEXT_LABELS: Record<string, UiI18nOrdinaryKey> = {
   "core/project": "ui.answer.context.project",
   session: "ui.answer.context.session",
   memory: "ui.answer.context.memory",
+  // The save-rules block reports under its own key, which is not the retrieval block above.
+  "memory/protocol": "ui.answer.context.memoryProtocol",
   "core/language": "ui.answer.context.language",
   "core/date": "ui.answer.context.date",
   "core/environment": "ui.answer.context.environment",
@@ -2325,6 +2327,9 @@ const CONTEXT_LABELS: Record<string, UiI18nOrdinaryKey> = {
   "core/skill-guidance": "ui.answer.context.skills",
   "core/codemode": "ui.answer.context.codemode",
   "core/reference-guidance": "ui.answer.context.references",
+  "core/model-identity": "ui.answer.context.modelIdentity",
+  "core/tool-guidance": "ui.answer.context.toolGuidance",
+  "core/tool-economy": "ui.answer.context.toolEconomy",
 }
 
 function FlowIcon(props: { name: IconName }) {

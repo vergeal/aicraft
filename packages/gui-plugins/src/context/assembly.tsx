@@ -41,7 +41,12 @@ type Inspection = {
     readonly messages: ReadonlyArray<{ readonly id: string; readonly type: string; readonly text: string }>
   }>
   readonly notice: ReadonlyArray<string>
-  readonly dynamic: ReadonlyArray<{ readonly layer: string; readonly source: string; readonly bytes: number }>
+  readonly dynamic: ReadonlyArray<{
+    readonly layer: string
+    readonly source: string
+    readonly bytes: number
+    readonly text: string
+  }>
 }
 
 /** One row the panel lists inside a layer: what it is, where it came from, and the text it contributes. */
@@ -52,6 +57,9 @@ type Row = {
   /** The model-visible text. Empty when the layer reports only a size. */
   readonly text: string
 }
+
+/** How often a layer's bytes move: frozen inside an epoch, low-frequency, or per request. */
+type Churn = "frozen" | "low" | "hot"
 
 const LAYERS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8"] as const
 
@@ -181,11 +189,11 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     const data = inspection()
     const snapshot = data?.snapshot
 
-    return LAYERS.map((layer): { layer: string; frozen: boolean; rows: Row[] } => {
+    return LAYERS.map((layer): { layer: string; churn: Churn; rows: Row[] } => {
       if (layer === "L1")
         return {
           layer,
-          frozen: true,
+          churn: "frozen" as const,
           rows: (snapshot?.layers ?? []).map((part) => ({
             name: ctx.t(`assembly.kind.${part.kind}`),
             source: part.source,
@@ -199,7 +207,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
       if (layer === "L2")
         return {
           layer,
-          frozen: true,
+          churn: "frozen" as const,
           rows: (snapshot?.tools ?? []).map((tool) => ({
             name: tool.name,
             source: tool.source,
@@ -216,7 +224,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
 
         return {
           layer,
-          frozen: true,
+          churn: "frozen" as const,
           rows: [...groups].reverse().map((group) => ({
             name: group.label.slice(0, 80) || group.id,
             source: `${group.messages.length} msg · ${group.id}`,
@@ -226,24 +234,43 @@ export default function ContextAssembly(props: { session: MountedSession }) {
         }
       }
 
+      // L4 and L5 are the low-frequency band: state claims and dynamic facts that settle rather
+      // than stream. Their bytes come from the live instruction values, so a notice with content
+      // shows its size instead of a placeholder zero.
       if (layer === "L4")
         return {
           layer,
-          frozen: false,
-          rows: (data?.notice ?? []).map((key) => ({
-            name: key,
-            source: "instruction_ledger",
-            bytes: 0,
-            text: "",
-          })),
+          churn: "low" as const,
+          rows: [
+            ...(data?.notice ?? []).map((key) => ({
+              name: key,
+              source: "instruction_ledger",
+              bytes: 0,
+              text: "",
+            })),
+            ...(data?.dynamic ?? [])
+              .filter((entry) => entry.layer === "L4")
+              .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+          ],
         }
 
+      if (layer === "L5")
+        return {
+          layer,
+          churn: "low" as const,
+          rows: (data?.dynamic ?? [])
+            .filter((entry) => entry.layer === "L5")
+            .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+        }
+
+      // L6 to L8 are the hot band: memory injection, the turn's own input, and tail notices, all
+      // recomputed per request.
       return {
         layer,
-        frozen: false,
+        churn: "hot" as const,
         rows: (data?.dynamic ?? [])
           .filter((entry) => entry.layer === layer)
-          .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: "" })),
+          .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
       }
     })
   })
@@ -253,7 +280,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
 
     return {
       frozen: layers()
-        .filter((entry) => entry.frozen)
+        .filter((entry) => entry.churn === "frozen")
         .flatMap((entry) => entry.rows)
         .reduce((sum, row) => sum + row.bytes, 0),
       total: all.reduce((sum, row) => sum + row.bytes, 0),
@@ -378,11 +405,12 @@ export default function ContextAssembly(props: { session: MountedSession }) {
                   <span
                     class="shrink-0 rounded-[4px] px-1 text-[10.5px]"
                     classList={{
-                      "bg-v2-background-bg-layer-02 text-v2-text-text-muted": entry.frozen,
-                      "bg-v2-state-bg-success text-v2-state-fg-success": !entry.frozen,
+                      "bg-v2-background-bg-layer-02 text-v2-text-text-muted": entry.churn === "frozen",
+                      "bg-v2-background-bg-layer-03 text-v2-text-text-base": entry.churn === "low",
+                      "bg-v2-state-bg-success text-v2-state-fg-success": entry.churn === "hot",
                     }}
                   >
-                    {ctx.t(entry.frozen ? "assembly.frozen" : "assembly.hot")}
+                    {ctx.t(entry.churn === "frozen" ? "assembly.frozen" : entry.churn === "low" ? "assembly.low" : "assembly.hot")}
                   </span>
                   <Show when={entry.rows.length > 0}>
                     <span class="shrink-0 text-[10.5px] tabular-nums text-v2-text-text-faint">

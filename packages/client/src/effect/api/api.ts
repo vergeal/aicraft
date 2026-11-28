@@ -746,7 +746,12 @@ export type ExperimentalSessionAssemblyOutput = {
     readonly messages: ReadonlyArray<{ readonly id: string; readonly type: string; readonly text: string }>
   }>
   readonly notice: ReadonlyArray<string>
-  readonly dynamic: ReadonlyArray<{ readonly layer: string; readonly source: string; readonly bytes: number }>
+  readonly dynamic: ReadonlyArray<{
+    readonly layer: string
+    readonly source: string
+    readonly bytes: number
+    readonly text: string
+  }>
 }
 export type ExperimentalSessionAssemblyOperation<E = never> = (
   input: ExperimentalSessionAssemblyInput,

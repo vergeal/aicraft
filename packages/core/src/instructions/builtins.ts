@@ -56,14 +56,17 @@ const layer = Layer.effect(
             }),
             Instructions.make({
               key: Instructions.Key.make("core/date"),
-              // L5: the day the clock crosses is exactly the dynamic fact §1 names for L5; it must
-              // stay in the hot tail so it never invalidates the cached prefix behind it.
-              layer: "L5",
+              // L1: the date is frozen with the baseline and only moves when a compaction rebakes the
+              // epoch. An L5 date was re-sent on every request and, worse, produced a second notice each
+              // midnight; a model that believes it is a day behind costs less than that churn. The
+              // ISO date is also 19 characters shorter than `toDateString` for the same information.
+              layer: "L4",
               codec: Schema.toCodecJson(Schema.String),
-              read: DateTime.nowAsDate.pipe(Effect.map((date) => date.toDateString())),
+              read: DateTime.now.pipe(Effect.map((date) => DateTime.formatIsoDate(date))),
               render: {
                 initial: (date) => `Today's date: ${date}`,
-                changed: (_previous, date) => `Today's date is now: ${date}`,
+                // Same text as `initial`: a rebake states the current date, it does not narrate the change.
+                changed: (_previous, date) => `Today's date: ${date}`,
               },
             }),
             Instructions.make({

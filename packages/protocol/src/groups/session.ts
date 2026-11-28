@@ -220,7 +220,9 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
             /** L4: instruction keys whose current value differs from the epoch baseline. */
             notice: Schema.Array(Schema.String),
             /** L5/L6/L8 suppliers the assembly declares, by layer. */
-            dynamic: Schema.Array(Schema.Struct({ layer: Schema.String, source: Schema.String, bytes: Schema.Number })),
+            dynamic: Schema.Array(
+              Schema.Struct({ layer: Schema.String, source: Schema.String, bytes: Schema.Number, text: Schema.String }),
+            ),
           }),
         }),
         error: [SessionNotFoundError, UnknownError],

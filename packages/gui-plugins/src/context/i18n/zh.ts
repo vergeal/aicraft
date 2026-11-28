@@ -126,6 +126,7 @@ export default {
   "assembly.agentModel": "{{agent}} · {{model}}",
   "assembly.frozen": "冻结",
   "assembly.hot": "热区",
+  "assembly.low": "低频",
   "assembly.historyRows": "{{count}} 条消息",
   "assembly.noticeRows": "{{count}} 项待结算变更",
   "assembly.frozenTotal": "冻结前缀 {{size}}",

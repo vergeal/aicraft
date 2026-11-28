@@ -133,6 +133,7 @@ export default {
   "assembly.agentModel": "{{agent}} · {{model}}",
   "assembly.frozen": "frozen",
   "assembly.hot": "live",
+  "assembly.low": "low-frequency",
   "assembly.historyRows": "{{count}} messages",
   "assembly.noticeRows": "{{count}} pending changes",
   "assembly.frozenTotal": "Frozen prefix {{size}}",

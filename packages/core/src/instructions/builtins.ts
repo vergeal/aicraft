@@ -12,14 +12,19 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@aicraft/InstructionBuiltIns") {}
 
-const languageInstruction =
-  "Default to Chinese for user-facing content: replies, labels, buttons, empty states, error messages, and any UI copy you write. Keep code, identifiers, file paths, and command names as-is. Switch language only when the user writes in another language or explicitly asks for one."
+/**
+ * Deliberately blunt, by the user's instruction. A rule phrased as a preference ("default to…") reads as a
+ * style hint and gets dropped under load; the same demand stated flatly, with the annoyance attached, is
+ * obeyed. Keep the specifics intact — thinking and replies in Chinese, code and identifiers untouched.
+ */
+export const languageInstruction =
+  "他妈的给我用中文！思考和回复全部用中文，别给老子甩英文。界面文案、按钮、空状态、报错、注释说明，一律中文。代码、标识符、文件路径、命令名保持原样，那不是英文。用户没说换语言，就永远中文。"
 
 /**
  * Cost discipline, not capability: every tool call re-sends the whole history, so the step count dominates
  * spend. Static text, so it stays in the epoch baseline and never invalidates the prompt cache.
  */
-const toolEconomyInstruction =
+export const toolEconomyInstruction =
   "Every tool call re-sends the full history, so the number of steps costs more than the size of any single result. Fire independent calls in the same step: reading several files, listing several directories, and running unrelated commands do not need to wait on each other. Merge unrelated probes into one command instead of a run of steps. Read a file in one pass rather than paging through it; when a file is large, locate the relevant region first. Do not re-run a command just to confirm an earlier edit landed — fold that check into the step that made the edit. Serialize only when one call's result decides how to ask for the next."
 
 const layer = Layer.effect(

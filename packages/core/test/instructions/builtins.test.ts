@@ -42,9 +42,11 @@ describe("InstructionBuiltIns", () => {
 
       expect(initialized.text).toBe(
         [
-          "Default to Chinese for user-facing content: replies, labels, buttons, empty states, error messages, and any UI copy you write. Keep code, identifiers, file paths, and command names as-is. Switch language only when the user writes in another language or explicitly asks for one.",
+          // Referencing the constants asserts what the test is about — these two ride the baseline, in this
+          // order — without pinning the copy, which changes for reasons the ordering does not care about.
+          InstructionBuiltIns.languageInstruction,
           "",
-          "Every tool call re-sends the full history, so the number of steps costs more than the size of any single result. Fire independent calls in the same step: reading several files, listing several directories, and running unrelated commands do not need to wait on each other. Merge unrelated probes into one command instead of a run of steps. Read a file in one pass rather than paging through it; when a file is large, locate the relevant region first. Do not re-run a command just to confirm an earlier edit landed — fold that check into the step that made the edit. Serialize only when one call's result decides how to ask for the next.",
+          InstructionBuiltIns.toolEconomyInstruction,
           "",
           `Today's date: ${localDate(timestamp)}`,
           "",

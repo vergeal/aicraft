@@ -11,7 +11,6 @@ export function render(prompt: string, tools: ReadonlyArray<string>) {
   if (tools.includes("shell")) {
     instructions.push(
       "- Prefer the dedicated tools over shell commands; fall back to shell only when a tool cannot do what is needed.",
-      "- Do not join shell commands with separators such as `echo \"====\";` or `printf '---'`; the output gets cluttered and the conversation reads worse on the user side.",
     )
   }
   if (tools.includes("write")) {

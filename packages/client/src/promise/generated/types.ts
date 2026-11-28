@@ -4148,7 +4148,7 @@ export type ExperimentalSessionAssemblyOutput = {
       started: number
       messages: Array<{ id: string; type: string; text: string }>
     }>
-    notice: Array<string>
+    notice: Array<{ key: string; layer: string; text: string; bytes: number }>
     dynamic: Array<{ layer: string; source: string; bytes: number; text: string }>
   }
 }["data"]

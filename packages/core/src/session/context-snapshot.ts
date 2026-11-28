@@ -7,7 +7,7 @@ import { DateTime, Effect, Option, Schema } from "effect"
 import type { Lineage } from "@aicraft/context"
 import type { Database } from "../database/database.js"
 import { SessionSchema } from "./schema.js"
-import { ContextLineageTable, ContextSnapshotTable, InstructionStateTable } from "./sql.js"
+import { ContextLineageTable, ContextSnapshotTable, InstructionBlobTable, InstructionStateTable } from "./sql.js"
 import { SessionHistory } from "./history.js"
 import { replays } from "./runner/to-llm-message.js"
 import type { SessionMessage } from "./message.js"
@@ -206,10 +206,31 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
     history: [...turns].reverse(),
     // L4: the keys whose current value differs from the epoch baseline. The rendered notices need the
     // instruction sources, which the panel does not have; the diff is what the ledger would settle.
+    // L4: the pending state declarations, keyed, with the value each source currently holds. The key
+    // alone tells a reader that something changed without saying what, which is the one question the
+    // panel exists to answer, so the current value is resolved from the instruction blob table.
     notice: state
-      ? [
-          ...new Set([...Object.keys(state.initial_values), ...Object.keys(state.current_values)]),
-        ].filter((key) => state.initial_values[key] !== state.current_values[key])
+      ? yield* Effect.forEach(
+          [
+            ...new Set([...Object.keys(state.initial_values), ...Object.keys(state.current_values)]),
+          ].filter((key) => state.initial_values[key] !== state.current_values[key]),
+          (key) => {
+            const hash = state.current_values[key]
+            if (hash === undefined)
+              return Effect.succeed({ key, layer: "L4", text: "removed", bytes: 7 })
+            return Effect.gen(function* () {
+              const blob = yield* db
+                .select({ value: InstructionBlobTable.value })
+                .from(InstructionBlobTable)
+                .where(eq(InstructionBlobTable.hash, hash))
+                .get()
+                .pipe(Effect.orDie)
+              // A blob that no longer decodes is still a pending change; name the key without inventing text.
+              const text = blob === undefined ? "unavailable" : String(blob.value)
+              return { key, layer: "L4", text, bytes: encoder.encode(text).length }
+            })
+          },
+        )
       : [],
     // L4–L8 occupancy of the last request that actually went out. Every source the assembler and the
     // context hook reported carries the layer that asked for its bytes, so the audit reads the real

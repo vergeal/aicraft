@@ -40,7 +40,12 @@ type Inspection = {
     readonly started: number
     readonly messages: ReadonlyArray<{ readonly id: string; readonly type: string; readonly text: string }>
   }>
-  readonly notice: ReadonlyArray<string>
+  readonly notice: ReadonlyArray<{
+    readonly key: string
+    readonly layer: string
+    readonly text: string
+    readonly bytes: number
+  }>
   readonly dynamic: ReadonlyArray<{
     readonly layer: string
     readonly source: string
@@ -242,11 +247,13 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           layer,
           churn: "low" as const,
           rows: [
-            ...(data?.notice ?? []).map((key) => ({
-              name: key,
-              source: "instruction_ledger",
-              bytes: 0,
-              text: "",
+            // A pending declaration reads as an L4 row with the value the source holds now: the
+            // key alone would say that something changed without saying what it changed to.
+            ...(data?.notice ?? []).map((notice) => ({
+              name: notice.key,
+              source: "instruction_ledger · pending",
+              bytes: notice.bytes,
+              text: notice.text,
             })),
             ...(data?.dynamic ?? [])
               .filter((entry) => entry.layer === "L4")

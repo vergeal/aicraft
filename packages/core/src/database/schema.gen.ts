@@ -314,6 +314,7 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`pending_advance\` integer DEFAULT false NOT NULL,
           \`parts\` text NOT NULL,
           \`tools\` text DEFAULT '[]' NOT NULL,
+          \`baseline\` text DEFAULT '[]' NOT NULL,
           CONSTRAINT \`fk_context_snapshot_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE
         );
       `)

@@ -67,6 +67,11 @@ interface ResolveInput {
   /** Live L2 declarations; adopted only when this resolve rebuilds the snapshot. */
   readonly tools: ReadonlyArray<ToolDefinition>
   readonly live: ReadonlyArray<VolatilePart>
+  /**
+   * The epoch instruction baseline, as `InstructionState.initial` rendered it. Frozen with the rest of
+   * the prefix: a compaction rebakes it, which is the only time it changes.
+   */
+  readonly baseline?: ReadonlyArray<Instructions.Rendered>
 }
 
 const VolatilePartSchema = Schema.Struct({
@@ -75,6 +80,13 @@ const VolatilePartSchema = Schema.Struct({
 })
 const StoredPartsSchema = Schema.Struct({
   parts: Schema.Array(VolatilePartSchema),
+})
+const StoredBaselineSchema = Schema.Struct({
+  layer: Schema.String,
+  kind: Schema.String,
+  source: Schema.String,
+  bytes: Schema.Number,
+  text: Schema.String,
 })
 const BumpReasonSchema = Schema.Literals(["initial", "advance", "compaction"])
 
@@ -132,8 +144,6 @@ export const resolve = Effect.fn("SessionContextSnapshot.resolve")(function* (
 export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,
-  /** The epoch baseline as `InstructionState.initial` rendered it: one entry per source, with its layer. */
-  initial: ReadonlyArray<Instructions.Rendered> = [],
 ) {
   const row = yield* db
     .select()
@@ -201,22 +211,11 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
           modelID: row.model_id,
           pendingAdvance: row.pending_advance,
           layers: parts(row.parts),
-          // The instruction baseline is L1 (and the codemode catalog L2) but never enters `parts`:
-          // those four volatile segments are only the sections with no other frozen home. Dropping
-          // the baseline here made a compaction, which rebakes it, look like L1 never moved.
-          baseline: initial.flatMap((source) => {
-            const layer = source.layer ?? "L1"
-            if (layer !== "L1" && layer !== "L2") return []
-            return [
-              {
-                layer,
-                kind: "baseline",
-                source: source.key,
-                bytes: encoder.encode(source.text).length,
-                text: source.text,
-              },
-            ]
-          }),
+          // The epoch baseline is L1 (and the codemode catalog L2) but never enters `parts`: those
+          // four volatile segments are only the sections with no other frozen home. It is frozen
+          // here at bake time instead of re-rendered on read, which would replay every instruction
+          // source — MCP flush included — just to open a view.
+          baseline: storedBaseline(row.baseline),
           tools: tools(row.tools),
         }
       : null,
@@ -310,6 +309,29 @@ const toolText = (part: SessionMessage.AssistantTool): string => {
   if (part.state.status === "error") return `${call}\n\nTool error:\n${part.state.error.message}`
   return call
 }
+
+/**
+ * The baseline frozen at bake time, in the shape the panel lists: only the L1/L2 entries, since a
+ * source that declares another layer is reported by the live audit instead.
+ */
+const baselineRows = (rendered: ReadonlyArray<Instructions.Rendered> = []) =>
+  rendered.flatMap((source) => {
+    const layer = source.layer ?? "L1"
+    if (layer !== "L1" && layer !== "L2") return []
+    return [
+      {
+        layer,
+        kind: "baseline",
+        source: source.key,
+        bytes: encoder.encode(source.text).length,
+        text: source.text,
+      },
+    ]
+  })
+
+const decodeStoredBaseline = Schema.decodeUnknownOption(Schema.Array(StoredBaselineSchema))
+
+const storedBaseline = (value: unknown) => Option.getOrUndefined(decodeStoredBaseline(value)) ?? []
 
 /** L1 segments as the panel lists them: one row per frozen part, sized in UTF-8 bytes. */
 const parts = (value: unknown) =>
@@ -435,6 +457,7 @@ const store = Effect.fnUntraced(function* (db: Writer, input: ResolveInput, line
     pending_advance: false,
     parts: { parts },
     tools: input.tools,
+    baseline: baselineRows(input.baseline ?? []),
   }
   yield* db
     .insert(ContextSnapshotTable)

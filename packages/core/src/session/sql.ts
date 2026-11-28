@@ -249,6 +249,16 @@ export const ContextSnapshotTable = sqliteTable("context_snapshot", {
     .notNull()
     .default("[]")
     .$type<ReadonlyArray<unknown>>(),
+  /**
+   * The epoch instruction baseline frozen with the prefix: one entry per rendered source, with its
+   * layer. It lives here rather than in `parts` because it is not a volatile segment — but the panel
+   * needs it, and re-rendering it on read would mean replaying every instruction source (and the MCP
+   * flush behind them) just to open a view.
+   */
+  baseline: text({ mode: "json" })
+    .notNull()
+    .default("[]")
+    .$type<ReadonlyArray<unknown>>(),
 })
 
 /**

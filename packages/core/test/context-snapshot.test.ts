@@ -223,6 +223,14 @@ describe("SessionContextSnapshot", () => {
     Effect.gen(function* () {
       const sessionID = SessionSchema.ID.make("ses_snapshot_baseline_rows")
       const { db } = yield* setup(sessionID)
+      // The baseline is the content a compaction rebakes. It has no volatile part to live in, so a
+      // panel reading `parts` alone showed L1 as two rows; freezing it with the snapshot is what
+      // makes a rebake visible without replaying every instruction source on read.
+      const rendered = (key: string, layer: "L1" | "L2" | "L5", text: string) => ({
+        key: Instructions.Key.make(key),
+        layer,
+        text,
+      })
       yield* SessionContextSnapshot.resolve(db, {
         sessionID,
         baselineEpoch: 0,
@@ -230,20 +238,14 @@ describe("SessionContextSnapshot", () => {
         agentID: "build",
         tools: [],
         live: live("project instructions"),
+        baseline: [
+          rendered("core/instructions", "L1", "project rules"),
+          rendered("core/codemode", "L2", "catalog"),
+          rendered("core/environment", "L5", "env"),
+        ],
       })
 
-      // The baseline is the content a compaction rebakes. It has no volatile part to live in, so the
-      // panel can only see it if `inspect` reports it; listing `parts` alone showed L1 as two rows.
-      const rendered = (key: string, layer: "L1" | "L2" | "L5", text: string) => ({
-        key: Instructions.Key.make(key),
-        layer,
-        text,
-      })
-      const inspected = yield* SessionContextSnapshot.inspect(db, sessionID, [
-        rendered("core/instructions", "L1", "project rules"),
-        rendered("core/codemode", "L2", "catalog"),
-        rendered("core/environment", "L5", "env"),
-      ])
+      const inspected = yield* SessionContextSnapshot.inspect(db, sessionID)
 
       expect(inspected.snapshot?.baseline.map((row) => [row.layer, row.source, row.bytes, row.text])).toEqual([
         ["L1", "core/instructions", 13, "project rules"],

@@ -267,6 +267,9 @@ const layer = Layer.effect(
           // L2 tool declarations are frozen with the prefix: a hit replays the stored array even if
           // the live registry changed (plugin install/unload), keeping system+tools byte-identical.
           tools: loaded.tools.definitions,
+          // Frozen with the prefix: a compaction rebakes it, and that rebake is what the panel must
+          // show as L1 moving. `parts` alone cannot carry it — the baseline is not a volatile segment.
+          baseline: loaded.initial,
           live: SessionModelRequest.volatileParts({
             agent: loaded.agent.info,
             tools: loaded.tools,

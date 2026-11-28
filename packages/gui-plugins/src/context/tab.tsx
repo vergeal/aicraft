@@ -1021,6 +1021,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
           <CompactionChart
             session={props.session}
             points={scope()?.points ?? []}
+            compactions={scope()?.compactions ?? []}
             turns={scope()?.turnsSinceCompaction ?? 0}
           />
 

@@ -826,6 +826,7 @@ export type ExperimentalSessionContextWindowOutput = {
   }
   readonly last?: { readonly tokens: number; readonly model: Model.Ref } | undefined
   readonly points: ReadonlyArray<{ readonly tokens: number; readonly afterCompaction: boolean }>
+  readonly compactions: ReadonlyArray<{ readonly point: number; readonly turns: number }>
   readonly aggregated: boolean
 }
 export type ExperimentalSessionContextWindowOperation<E = never> = (

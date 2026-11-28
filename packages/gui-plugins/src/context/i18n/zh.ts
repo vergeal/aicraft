@@ -17,6 +17,7 @@ export default {
   "window.compositionTools": "工具输出",
   "window.history": "提示词历史",
   "window.sinceCompaction": "距上次压缩已过 {{count}} 轮",
+  "window.compactionRule": "这一次压缩前已过 {{count}} 轮",
   "window.historyNote": "虚线为一次压缩",
   "window.historyAria": "每一步的提示词大小占上下文窗口的比例;虚线标记一次压缩",
   "window.legendOutputReserve": "输出预留",

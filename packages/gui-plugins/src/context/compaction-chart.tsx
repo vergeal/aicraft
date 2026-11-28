@@ -24,6 +24,8 @@ export function CompactionChart(props: {
    * walk the loaded transcript, so it drew only the page a reader had scrolled to.
    */
   points: ReadonlyArray<{ readonly tokens: number; readonly afterCompaction: boolean }>
+  /** Rules to draw, each with the turns the segment it closed had run for. */
+  compactions: ReadonlyArray<{ readonly point: number; readonly turns: number }>
   turns: number
 }) {
   const ctx = usePlugin()
@@ -73,7 +75,11 @@ export function CompactionChart(props: {
     return {
       width: full,
       line: values.map((point, index) => `${x(index).toFixed(1)},${y(point.tokens).toFixed(1)}`).join(" "),
-      marks: values.flatMap((point, index) => (point.afterCompaction && index > 0 ? [x(index)] : [])),
+      // The server reports the rules separately: a boolean on each sampled point vanished whenever the
+      // sample missed the step right after a compaction. Each rule carries the turns its segment ran for.
+      marks: props.compactions
+        .filter((compaction) => compaction.point > 0 && compaction.point <= last)
+        .map((compaction) => ({ x: x(compaction.point), turns: compaction.turns })),
     }
   })
 
@@ -108,15 +114,31 @@ export function CompactionChart(props: {
             />
             <For each={g().marks}>
               {(mark) => (
-                <line
-                  x1={mark}
-                  x2={mark}
-                  y1={PAD - 2}
-                  y2={HEIGHT - PAD + 2}
-                  stroke="var(--v2-border-border-strong)"
-                  stroke-width="1"
-                  stroke-dasharray="2 2"
-                />
+                <>
+                  <line
+                    x1={mark.x}
+                    x2={mark.x}
+                    y1={PAD - 2}
+                    y2={HEIGHT - PAD + 2}
+                    stroke="var(--v2-border-border-strong)"
+                    stroke-width="1"
+                    stroke-dasharray="2 2"
+                  />
+                  {/* A 1px rule is a hard hover target, so an invisible band carries the pointer. The hint
+                      rides the band's own `<title>`: the Kobalte tooltip renders an HTML trigger, which an
+                      SVG line inside a chart cannot host. */}
+                  <line
+                    x1={mark.x}
+                    x2={mark.x}
+                    y1={PAD - 2}
+                    y2={HEIGHT - PAD + 2}
+                    stroke="transparent"
+                    stroke-width="9"
+                    style={{ "pointer-events": "stroke", cursor: "help" }}
+                  >
+                    <title>{ctx.t("window.compactionRule", { count: String(mark.turns) })}</title>
+                  </line>
+                </>
               )}
             </For>
           </svg>

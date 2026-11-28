@@ -80,6 +80,12 @@ export const get = Effect.fn("SessionContextWindow.get")(function* (
 
   const tokens = { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0 }
   const points: Array<ContextWindowShape.Point> = []
+  // Each rule: where it sits in `points`, and how many turns the segment it closed had run for. Recorded
+  // before sampling and remapped through it, because a boolean on the sampled point loses the mark
+  // whenever the sample does not land on it: a 2490-step Session with 9 compactions drew no rules at all
+  // at 240 points. The segment's turn count is what a reader hovering the rule wants: "this stretch of
+  // conversation is what the summariser folded".
+  const compactionAt: Array<{ point: number; turns: number }> = []
   let messages = 0
   let turns = 0
   let steps = 0
@@ -87,11 +93,14 @@ export const get = Effect.fn("SessionContextWindow.get")(function* (
   // Turns counted since the newest completed compaction, which is what the panel reports: the total
   // says how big the Session is, this says how much conversation the next compaction has to react to.
   let turnsSinceCompaction = 0
+  // Turns in the segment the last rule closed, carried to that rule's mark when the next step lands.
+  let turnsInClosedSegment = 0
   for (const row of rows) {
     // The count the panel labels "消息" is every durable row, including the ones this query filters out;
     // a separate scalar count keeps it exact without a second pass over `data`.
     if (row.type === "compaction") {
       afterCompaction = true
+      turnsInClosedSegment = turnsSinceCompaction
       turnsSinceCompaction = 0
       continue
     }
@@ -99,7 +108,8 @@ export const get = Effect.fn("SessionContextWindow.get")(function* (
     if (row.type === "user") {
       turns++
       turnsSinceCompaction++
-      if (afterCompaction) afterCompaction = false
+      // The flag survives this row on purpose: a compaction is always followed by the user message that
+      // opened the next turn, so clearing it here dropped the rule before the step it belongs to.
       continue
     }
     steps++
@@ -109,10 +119,12 @@ export const get = Effect.fn("SessionContextWindow.get")(function* (
     tokens.cacheRead += row.cacheRead ?? 0
     tokens.cacheWrite += row.cacheWrite ?? 0
     if (row.tokens === null) continue
+    if (afterCompaction) compactionAt.push({ point: points.length, turns: turnsInClosedSegment })
     points.push({ tokens: row.tokens, afterCompaction })
     afterCompaction = false
   }
 
+  const sampled = sample(points, compactionAt, maxPoints)
   const last = yield* lastStep(db, sessionID)
   // Every message row, not only the three types above: the panel's "消息" is the Session's size.
   const counted = yield* db
@@ -128,7 +140,9 @@ export const get = Effect.fn("SessionContextWindow.get")(function* (
     steps,
     tokens,
     ...(last === undefined ? {} : { last }),
-    points: capPoints(points, maxPoints),
+    points: sampled.points,
+    /** Positions in `points` where a completed compaction precedes the step, after sampling. */
+    compactions: sampled.compactions,
     aggregated: points.length > maxPoints,
   }
 })
@@ -170,10 +184,27 @@ const lastStep = Effect.fnUntraced(function* (db: Database.Interface["db"], sess
 })
 
 /** Evenly spaced samples, keeping the first and last: the chart's shape survives, its resolution does not. */
-const capPoints = (points: ReadonlyArray<ContextWindowShape.Point>, max: number) => {
-  if (points.length <= max) return [...points]
+const sample = (
+  points: ReadonlyArray<ContextWindowShape.Point>,
+  compactions: ReadonlyArray<{ point: number; turns: number }>,
+  max: number,
+) => {
+  if (points.length <= max) return { points: [...points], compactions: [...compactions] }
   const step = (points.length - 1) / (max - 1)
-  return Array.from({ length: max }, (_, index) => points[Math.round(index * step)]!)
+  // Clamped: floating point can push the last sample one past the end, which encoded as a missing point.
+  const at = (index: number) => Math.min(Math.round(index * step), points.length - 1)
+
+  // Every rule is kept, and its position stays fractional: compactions cluster at the end of a Session,
+  // so rounding each one to its nearest sample stacked four rules on the same pixel. The chart maps a
+  // fractional position across the sampled series and draws the rule between the two steps it closed.
+  const kept = compactions
+    .filter((compaction) => compaction.point > 0)
+    .map((compaction) => ({ point: compaction.point / step, turns: compaction.turns }))
+
+  return {
+    points: Array.from({ length: max }, (_, index) => points[at(index)]!),
+    compactions: kept,
+  }
 }
 
 /** The Session row must exist; a stale panel asks about a Session that may have been deleted. */

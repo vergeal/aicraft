@@ -1197,6 +1197,7 @@ export type SessionContextWindowInfo = {
   tokens: { input: number; output: number; reasoning: number; cacheRead: number; cacheWrite: number }
   last?: { tokens: number; model: ModelRef }
   points: Array<SessionContextWindowPoint>
+  compactions: Array<{ point: number; turns: number }>
   aggregated: boolean
 }
 

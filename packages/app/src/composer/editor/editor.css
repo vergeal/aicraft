@@ -264,6 +264,23 @@
 
 /* Presses keep their fill change; the old scale made every click flash by shrinking the control. */
 
+/* The debug reasoning-replay toggle reads as an on/off state, not a press: a filled pill while it is on, so
+   it never looks like the neighbouring submit or model chips in their resting state. */
+[data-component="composer"] [data-action="composer-replay-reasoning"] {
+  height: 28px;
+  width: 28px;
+  color: var(--v2-icon-icon-muted);
+}
+
+[data-component="composer"]
+  [data-action="composer-replay-reasoning"]:is(:hover, [aria-pressed="true"]) {
+  background-color: var(--v2-overlay-simple-overlay-hover);
+}
+
+[data-component="composer"] [data-action="composer-replay-reasoning"][aria-pressed="true"] {
+  color: var(--v2-icon-icon-accent);
+}
+
 [data-component="composer"]
   [data-slot="composer-controls"]
   :is([data-component="button-v2"], [data-component="icon-button-v2"]):is(

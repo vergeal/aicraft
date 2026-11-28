@@ -43,6 +43,14 @@ export type ComposerEditorView = {
   }
   agent?: ComposerSelectControl
   variant?: ComposerSelectControl
+  /**
+   * Debug: whether this Session replays its completed turns' thinking into the request, and the flip.
+   * Undefined hides the control (a Session that cannot carry the flag, such as the new-session draft).
+   */
+  reasoningReplay?: {
+    on: Accessor<boolean>
+    toggle: () => void
+  }
   submit: {
     available?: Accessor<boolean>
     stopping: Accessor<boolean>

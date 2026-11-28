@@ -13,7 +13,7 @@ import { SessionHistory } from "./history.js"
 import { SessionModelRequest } from "./model-request.js"
 import { ModelRetry } from "../model-retry.js"
 import type { SessionRunnerModel } from "./runner/model.js"
-import type { SessionSchema } from "./schema.js"
+import { SessionSchema } from "./schema.js"
 
 export type Error =
   | AgentNotFoundError
@@ -44,6 +44,7 @@ export const generate = Effect.fn("SessionGenerate.generate")(function* (input: 
       initial: history.initial,
       l4: history.l4,
       messages: history.messages,
+      replayReasoning: SessionSchema.replayReasoning(selection.session.metadata),
     })
     const prepared = yield* context.request.generate({
       session: selection.session,

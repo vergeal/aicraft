@@ -177,7 +177,12 @@ const turnCompleted = (message: SessionMessage.Assistant) =>
     ? message.time.completed !== undefined
     : NORMAL_FINISHES.has(message.finish))
 
-const assistant = (message: SessionMessage.Assistant, model: Model.Ref, providerMetadataKey: string) => {
+const assistant = (
+  message: SessionMessage.Assistant,
+  model: Model.Ref,
+  providerMetadataKey: string,
+  replayReasoning = false,
+) => {
   const sameProvider = message.model.providerID === model.providerID
   const sameModel = sameProvider && message.model.id === model.id
   const reuseProviderMetadata = sameModel && message.error === undefined
@@ -211,10 +216,25 @@ const assistant = (message: SessionMessage.Assistant, model: Model.Ref, provider
     // thinking (Anthropic interleaved-thinking signatures, OpenAI Responses encrypted reasoning), restore
     // only segments carrying provider-bound state here — never plain thinking text. Recorded cassettes do
     // not cover this; verify against real providers before tightening.
-    if (item.type === "reasoning")
+    if (item.type === "reasoning") {
+      // Debug replay: every segment travels as the reasoning part the model produced, so a Session can
+      // be measured with and without its own thinking. A signature is model-scoped proof of generation,
+      // so only the producing model gets it back; an empty segment survives solely when it carries that
+      // state (Anthropic redacted thinking), because empty text alone says nothing.
+      if (replayReasoning) {
+        if (item.text === "" && !(reuseProviderMetadata && item.native !== undefined)) return []
+        return [
+          {
+            type: "reasoning" as const,
+            text: item.text,
+            providerMetadata: reuseProviderMetadata ? providerMetadata(providerMetadataKey, item.native) : undefined,
+          },
+        ]
+      }
       return item === firstReasoning
         ? [{ type: "text", text: [INTERRUPTED_REASONING_NOTE, reasoningTexts.join("\n\n")].join("\n\n") }]
         : []
+    }
     // Call-side metadata is model-scoped proof of generation (Gemini thought
     // signatures, OpenAI encrypted reasoning): only the producing model may
     // replay it.
@@ -267,7 +287,12 @@ const modelSwitched = (message: SessionMessage.ModelSelected, model: Model.Ref):
   return [Message.effort({ effort: to.effort, previous: from.effort })]
 }
 
-function toLLMMessage(message: SessionMessage.Info, model: Model.Ref, providerMetadataKey: string): Message[] {
+function toLLMMessage(
+  message: SessionMessage.Info,
+  model: Model.Ref,
+  providerMetadataKey: string,
+  replayReasoning: boolean,
+): Message[] {
   switch (message.type) {
     case "agent-switched":
     case "idle":
@@ -322,7 +347,7 @@ function toLLMMessage(message: SessionMessage.Info, model: Model.Ref, providerMe
         }),
       ]
     case "assistant":
-      return assistant(message, model, providerMetadataKey)
+      return assistant(message, model, providerMetadataKey, replayReasoning)
     case "compaction": {
       if (message.status !== "completed") return []
       // History selection only keeps native windows the target model can replay.
@@ -351,7 +376,8 @@ export const toLLMMessages = (
   messages: readonly SessionMessage.Info[],
   model: Model.Ref,
   providerMetadataKey: string = model.providerID,
-) => messages.flatMap((message) => toLLMMessage(message, model, providerMetadataKey))
+  replayReasoning = false,
+) => messages.flatMap((message) => toLLMMessage(message, model, providerMetadataKey, replayReasoning))
 
 /**
  * Whether one durable message produces any request content at all — the same question the replay
@@ -364,4 +390,5 @@ export const replays = (message: SessionMessage.Info) =>
     message,
     Model.Ref.make({ providerID: Provider.ID.make("inspect"), id: Model.ID.make("inspect") }),
     "inspect",
+    false,
   ).length > 0

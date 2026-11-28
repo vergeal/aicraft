@@ -183,12 +183,17 @@ export const baseTranscript = (input: {
   readonly messages: ReadonlyArray<SessionMessage.Info>
   /** Frozen parts from the session snapshot; defaults to live values. */
   readonly volatile?: ReadonlyArray<SessionContextSnapshot.VolatilePart>
+  /**
+   * Debug: replay each completed turn's reasoning into the request instead of dropping it
+   * (`SessionMetadata.replaysReasoning`). Off leaves the request byte-identical to the frozen prefix.
+   */
+  readonly replayReasoning?: boolean
 }) => {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
   return {
     providerMetadataKey,
     system: assembleSystem(input.volatile ?? volatileParts({ ...input, catalog: input.model.catalog }), input.initial, input.l4),
-    messages: toLLMMessages(input.messages, input.model.ref, providerMetadataKey),
+    messages: toLLMMessages(input.messages, input.model.ref, providerMetadataKey, input.replayReasoning),
   }
 }
 

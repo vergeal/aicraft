@@ -605,6 +605,20 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
           <Show when={!touch()}>
             <div data-slot="composer-actions" class="flex shrink-0 items-center">
+              <Show when={view.reasoningReplay}>
+                {(control) => (
+                  <Tooltip value={i18n.t("ui.promptInput.replayReasoning")} placement="top">
+                    <IconButton
+                      data-action="composer-replay-reasoning"
+                      aria-pressed={control().on()}
+                      aria-label={i18n.t("ui.promptInput.replayReasoning")}
+                      class="me-1"
+                      icon={<Icon name="outline-brain" />}
+                      onClick={() => control().toggle()}
+                    />
+                  </Tooltip>
+                )}
+              </Show>
               <Show when={props.modelControlsVisible ?? true}>{props.modelControl?.(view.variant)}</Show>
               <Show when={state.mode === "shell"}>
                 <Button

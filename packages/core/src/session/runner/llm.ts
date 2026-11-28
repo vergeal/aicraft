@@ -150,6 +150,8 @@ const layer = Layer.effect(
                         initial: history.initial,
                         project: selected.project,
                         messages: history.messages,
+                        // The manual compaction is a real request; it must be measured the way the runner sends it.
+                        replayReasoning: SessionSchema.replayReasoning(selected.session.metadata),
                       },
                     })
                   }).pipe(
@@ -291,6 +293,7 @@ const layer = Layer.effect(
           sessionPrompt: loaded.session.prompt,
           messages: loaded.messages,
           volatile: snapshot.parts,
+          replayReasoning: loaded.replayReasoning,
         })
         const prepared = yield* context.request
           .primary({

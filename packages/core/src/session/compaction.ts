@@ -1011,6 +1011,9 @@ const transcript = (context: SessionContext.Loaded, messages: ReadonlyArray<Sess
     // its own prefix is discarded with the history it summarizes, so freezing it against the snapshot buys
     // no cache reuse.
     messages,
+    // The estimate must measure the request the runner will actually send, replay included, or a debug
+    // Session would compact far later than its real prompt size warrants.
+    replayReasoning: context.replayReasoning,
   })
 
 /**

@@ -7,7 +7,7 @@ import { DateTime, Effect, Option, Schema } from "effect"
 import type { Lineage } from "@aicraft/context"
 import type { Database } from "../database/database.js"
 import { SessionSchema } from "./schema.js"
-import { ContextLineageTable, ContextSnapshotTable, InstructionBlobTable, InstructionStateTable } from "./sql.js"
+import { ContextLineageTable, ContextSnapshotTable, InstructionBlobTable, InstructionStateTable, SessionTable } from "./sql.js"
 import { SessionHistory } from "./history.js"
 import { replays } from "./runner/to-llm-message.js"
 import { Instructions } from "../instructions/index.js"
@@ -164,15 +164,24 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
     .where(eq(InstructionStateTable.session_id, sessionID))
     .get()
     .pipe(Effect.orDie)
-  // L3: the durable transcript from the newest compaction on — the same rows the next request replays.
+  // L3: the durable transcript from the newest compaction on — the same rows the next request rewrites.
   const history = yield* SessionHistory.load(db, sessionID, "latest")
+  // The debug replay flag changes what the model reads, so the L3 list has to follow it; a session row that
+  // disappeared mid-inspect falls back to the default (no replay).
+  const session = yield* db
+    .select({ metadata: SessionTable.metadata })
+    .from(SessionTable)
+    .where(eq(SessionTable.id, sessionID))
+    .get()
+    .pipe(Effect.orDie)
+  const replayed = SessionSchema.replayReasoning(session?.metadata ?? undefined)
   // L3 is grouped by the user message that opened the turn, and only rows that actually produce
   // request content are listed: these are the bytes the model reads, not the wider durable log.
   const turns = history
     .filter((message) => replays(message))
     .reduce<Array<{ id: string; label: string; started: number; messages: Array<{ type: string; id: string; text: string }> }>>(
       (groups, message) => {
-        const entry = { type: message.type, id: message.id, text: messageText(message) }
+        const entry = { type: message.type, id: message.id, text: messageText(message, replayed) }
         if (message.type === "user") {
           groups.push({
             id: message.id,
@@ -267,12 +276,12 @@ const encoder = new TextEncoder()
 
 /** Mirrors `to-llm-message`: only an unfinished turn keeps its reasoning in the request. */
 const NORMAL_FINISHES = new Set(["stop", "length", "tool-calls", "content-filter"])
-const replayReasoning = (message: SessionMessage.Assistant) =>
+const unfinishedTurn = (message: SessionMessage.Assistant) =>
   message.error !== undefined ||
   (message.finish === undefined ? message.time.completed === undefined : !NORMAL_FINISHES.has(message.finish))
 
 /** Readable text of one durable message, for the panel's L3 list — the same bytes the model reads. */
-const messageText = (message: SessionMessage.Info): string => {
+const messageText = (message: SessionMessage.Info, replayReasoning: boolean): string => {
   if (message.type === "user" || message.type === "synthetic" || message.type === "skill" || message.type === "system")
     return message.text
   // A shell result reaches the model wrapped in this prompt, not as the bare command.
@@ -282,7 +291,8 @@ const messageText = (message: SessionMessage.Info): string => {
     return message.content
       .map((part) => {
         if (part.type === "tool") return toolText(part)
-        if (part.type === "reasoning") return replayReasoning(message) ? part.text : ""
+        // The debug replay keeps a completed turn's thinking too, which is the whole point of turning it on.
+        if (part.type === "reasoning") return replayReasoning || unfinishedTurn(message) ? part.text : ""
         return part.text
       })
       .filter((text) => text !== "")

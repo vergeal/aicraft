@@ -40,6 +40,7 @@ const session: ComposerSession = {
     shell: async () => undefined,
     switchAgent: async () => undefined,
     switchModel: async () => undefined,
+    update: async () => undefined,
     revert: { commit: async () => undefined },
   },
   data: {

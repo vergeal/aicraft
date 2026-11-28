@@ -118,6 +118,7 @@ function session(input: {
   command?: ComposerSession["api"]["command"]
   switchAgent?: ComposerSession["api"]["switchAgent"]
   switchModel?: ComposerSession["api"]["switchModel"]
+  update?: ComposerSession["api"]["update"]
   background?: ComposerSession["background"]
 }): ComposerSession {
   return {
@@ -144,6 +145,7 @@ function session(input: {
           input.calls.push("shell")
         }),
       command: input.command ?? (async () => undefined),
+      update: input.update ?? (async () => undefined),
       revert: {
         commit: async () => {
           input.calls.push("revert-commit")

@@ -7,9 +7,9 @@ import { Location } from "./location.js"
 import { Model } from "./model.js"
 import { Project } from "./project.js"
 import { AbsolutePath, DateTimeUtcFromMillis, optional, RelativePath, statics } from "./schema.js"
+import { SessionMetadata, replaysReasoning } from "./session-metadata.js"
 import { SessionEvent } from "./session-event.js"
 import { SessionID } from "./session-id.js"
-import { SessionMetadata } from "./session-metadata.js"
 import { Money } from "./money.js"
 import { Permission } from "./permission.js"
 import { TokenUsage } from "./token-usage.js"
@@ -22,6 +22,11 @@ export type ID = SessionID
 
 export const Metadata = SessionMetadata
 export type Metadata = SessionMetadata
+
+/** Debug replay of completed turns' reasoning, read from the Session's metadata. */
+export const replayReasoning = replaysReasoning
+
+export { REPLAY_REASONING_KEY } from "./session-metadata.js"
 
 export const Prompt = SessionEvent.Prompt
 export type Prompt = typeof Prompt.Type

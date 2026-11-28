@@ -115,6 +115,14 @@ export function createComposerModel(
 
   const attachments = createMemo(() => prompt.current().filter(isAttachment))
 
+  // The debug replay flag lives on the Session's metadata, so the control reads the same durable state the
+  // runner does and a reload keeps it (see `SessionMetadata.REPLAY_REASONING_KEY`).
+  const replayReasoning = createMemo(() => {
+    if (adapter.kind !== "active-session") return false
+
+    return Session.replayReasoning(data.session.get(adapter.session().id)?.metadata)
+  })
+
   const commentCount = createMemo(() => {
     if (mode() === "shell") return 0
 
@@ -565,6 +573,31 @@ export function createComposerModel(
         },
         keybind: () => command.keybindParts("model.variant.cycle"),
       },
+      // Debug only: a durable Session carries the flag in its metadata, so it survives a reload and stays with
+      // this Session alone. The draft of a new Session has no session row yet, so it offers no control.
+      reasoningReplay:
+        adapter.kind === "active-session"
+          ? {
+              on: () => replayReasoning(),
+              toggle: () => {
+                void adapter
+                  .session()
+                  .api.update({
+                    sessionID: adapter.session().id,
+                    metadata: {
+                      ...(data.session.get(adapter.session().id)?.metadata ?? {}),
+                      [Session.REPLAY_REASONING_KEY]: !replayReasoning(),
+                    },
+                  })
+                  .catch((error) =>
+                    showToast({
+                      title: language.t("prompt.toast.replayReasoningFailed.title"),
+                      description: composerErrorMessage(language, error),
+                    }),
+                  )
+              },
+            }
+          : undefined,
       submit: {
         available,
         stopping,

@@ -2280,6 +2280,7 @@ export const dict = {
   "session.child.status.failed": "失败",
   "session.child.status.interrupted": "已中断",
   "prompt.toast.unqueueable.title": "此提示词无法加入队列",
+  "prompt.toast.replayReasoningFailed.title": "切换思考回放失败",
   "dialog.mcp.search.placeholder": "搜索 MCP",
   "dialog.mcp.search.empty": "未找到 MCP",
   "dialog.mcp.error.title": "MCP 服务器：{{name}}",

@@ -205,6 +205,7 @@ const setup = Effect.fnUntraced(function* (options: { endpoint?: boolean } = {})
         ],
         execute: () => Effect.die("Compaction must never dispatch tools"),
       },
+      replayReasoning: false,
     }
   })
   // Opens the compaction's message as the runner does when it delivers `/compact`.

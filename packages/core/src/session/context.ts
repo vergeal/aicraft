@@ -48,6 +48,8 @@ export interface Loaded {
   readonly project?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
   readonly tools: Tool.Snapshot
+  /** Debug: the Session asks for its completed turns' reasoning back in the request (`SessionMetadata.replaysReasoning`). */
+  readonly replayReasoning: boolean
 }
 
 /**
@@ -214,6 +216,7 @@ const layer = Layer.effect(
         project: (yield* project.get(location.project.id))?.prompt,
         messages: history.entries.map((entry) => entry.message),
         tools: selection.tools,
+        replayReasoning: SessionSchema.replayReasoning(selection.session.metadata),
       }
     })
 

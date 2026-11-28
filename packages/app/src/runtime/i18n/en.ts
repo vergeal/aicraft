@@ -396,6 +396,7 @@ export const dict = {
   "prompt.toast.modelAgentRequired.title": "Select an agent and model",
   "prompt.toast.modelAgentRequired.description": "Choose an agent and model before sending a prompt.",
   "prompt.toast.unqueueable.title": "This prompt cannot be queued",
+  "prompt.toast.replayReasoningFailed.title": "Couldn’t change thinking replay",
   "prompt.toast.worktreeCreateFailed.title": "Failed to create worktree",
   "prompt.toast.sessionCreateFailed.title": "Failed to create session",
   "prompt.toast.shellSendFailed.title": "Failed to send shell command",

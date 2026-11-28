@@ -1058,6 +1058,56 @@ Earlier work
     expect(messages[0]?.content).toEqual([{ type: "text", text: `${REASONING_NOTE}\n\nCompleted summary part` }])
   })
 
+  describe("debug reasoning replay", () => {
+    const completedTurn = (text: string, native?: Record<string, unknown>) =>
+      SessionMessage.Assistant.make({
+        id: id(`assistant-${text}`),
+        type: "assistant",
+        agent: build,
+        model,
+        content: [
+          SessionMessage.AssistantReasoning.make({ type: "reasoning", text, native, time: { created, completed: created } }),
+          SessionMessage.AssistantText.make({ type: "text", text: "Answer" }),
+        ],
+        finish: "stop",
+        time: { created, completed: created },
+      })
+
+    test("keeps a completed turn's reasoning as a reasoning part when the Session asks for replay", () => {
+      const messages = toLLMMessages([completedTurn("Worked it out")], model, model.providerID, true)
+
+      // The reasoning travels as its own part, not merged into the text: the provider puts it back in the
+      // thinking channel where the model produced it.
+      expect(messages[0]?.content).toEqual([
+        { type: "reasoning", text: "Worked it out", providerMetadata: undefined },
+        { type: "text", text: "Answer", providerMetadata: undefined },
+      ])
+    })
+
+    test("replays provider state only to the model that produced it", () => {
+      const other = Model.Ref.make({ id: Model.ID.make("other-model"), providerID: Provider.ID.make("provider") })
+      const turn = completedTurn("Signed thought", { signature: "sig_1" })
+      const providerMetadata = { provider: { signature: "sig_1" } }
+
+      expect(toLLMMessages([turn], model, "provider", true)[0]?.content[0]).toMatchObject({
+        type: "reasoning",
+        providerMetadata,
+      })
+      // A different model never receives another model's signature, but plain thinking text still replays.
+      expect(toLLMMessages([turn], other, "provider", true)[0]?.content[0]).toMatchObject({
+        type: "reasoning",
+        providerMetadata: undefined,
+      })
+    })
+
+    test("leaves the default mapping untouched", () => {
+      // Same reasoning, no native state: without the flag the completed turn drops it entirely.
+      expect(toLLMMessages([completedTurn("Worked it out")], model)[0]?.content).toEqual([
+        { type: "text", text: "Answer", providerMetadata: undefined },
+      ])
+    })
+  })
+
   test("drops model-scoped continuation metadata after a model switch but keeps hosted result payloads", () => {
     const messages = toLLMMessages(
       [

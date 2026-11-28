@@ -417,6 +417,7 @@ it.effect("auto compaction estimates current content against the buffered prompt
         ],
         execute: () => Effect.die("unused"),
       },
+      replayReasoning: false,
     })
     // An automatic compaction that is not due is skipped.
     const due = (context: SessionContext.Loaded, estimate?: SessionCompaction.Estimate) =>
@@ -576,6 +577,7 @@ const loaded = (session: Session.Info, messages: readonly SessionMessage.Info[])
   agent: { id: Agent.defaultID, info: Agent.Info.default(Agent.defaultID) },
   initial: [{ key: Instructions.Key.make("test/session"), text: "Session instructions" }],
   tools: { definitions: [], execute: () => Effect.die("Compaction must not execute tools") },
+  replayReasoning: false,
 })
 
 /** Opens the compaction's message as the runner does when it delivers `/compact`, then compacts. */

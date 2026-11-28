@@ -73,6 +73,10 @@ export type ComposerSession = {
     switchModel: (
       input: Parameters<ServerSDK["api"]["session"]["switchModel"]>[0],
     ) => ReturnType<ServerSDK["api"]["session"]["switchModel"]>
+    /** Writes the Session's durable metadata, which carries the debug reasoning replay flag. */
+    update: (
+      input: Parameters<ServerSDK["api"]["session"]["update"]>[0],
+    ) => ReturnType<ServerSDK["api"]["session"]["update"]>
     revert: {
       commit: (
         input: Parameters<ServerSDK["api"]["session"]["revert"]["commit"]>[0],

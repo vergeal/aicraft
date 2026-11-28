@@ -269,13 +269,31 @@ export const contextSources = (system: ReadonlyArray<SystemPart>): Array<Context
 
 /** Context a hook injected outside the system prefix, reported by the hook event for the transcript. */
 export const hookContextSources = (
-  injected: ReadonlyArray<{ readonly key: string; readonly layer?: string; readonly text: string }> | undefined,
+  injected:
+    | ReadonlyArray<{
+        readonly key: string
+        readonly layer?: string
+        readonly text: string
+        readonly items?: ReadonlyArray<{ readonly name: string; readonly text: string }>
+      }>
+    | undefined,
 ): Array<ContextSource> =>
   (injected ?? []).map((entry) => ({
     key: entry.key,
     ...(entry.layer === undefined ? {} : { layer: entry.layer }),
     chars: entry.text.length,
     text: entry.text,
+    // The records behind a block (each retrieved memory, say): the panel names them instead of
+    // showing only that the block was injected.
+    ...(entry.items?.length
+      ? {
+          items: entry.items.map((item) => ({
+            name: item.name,
+            chars: item.text.length,
+            text: item.text,
+          })),
+        }
+      : {}),
   }))
 
 /**

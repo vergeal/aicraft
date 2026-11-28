@@ -58,6 +58,8 @@ type Inspection = {
     readonly source: string
     readonly bytes: number
     readonly text: string
+    /** The records behind this source, each named by its own id (a retrieved memory's `mem_*`). */
+    readonly items?: ReadonlyArray<{ readonly name: string; readonly bytes: number; readonly text: string }>
   }>
 }
 
@@ -83,6 +85,11 @@ type Row = {
   readonly bytes: number
   /** The model-visible text. Empty when the layer reports only a size. */
   readonly text: string
+  /**
+   * The records this row's bytes are made of, such as the memories one retrieval picked. Each carries
+   * its own id so a reader can name the exact row instead of only seeing that a block was injected.
+   */
+  readonly items?: ReadonlyArray<{ readonly name: string; readonly bytes: number; readonly text: string }>
 }
 
 /** How often a layer's bytes move: frozen inside an epoch, low-frequency, or per request. */
@@ -397,6 +404,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
             type: entry.source,
             bytes: entry.bytes,
             text: entry.text,
+            items: entry.items,
           })),
       }
     })
@@ -448,9 +456,34 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           </span>
         </button>
         <Show when={open()}>
-          <pre class="max-h-[280px] overflow-auto whitespace-pre-wrap break-words border-t border-v2-border-border-muted bg-v2-background-bg-base px-3 py-2 text-[11px] leading-[1.5] text-v2-text-text-muted select-text">
-            {rowProps.row.text}
-          </pre>
+          <div class="border-t border-v2-border-border-muted bg-v2-background-bg-base">
+            {/* The records behind the row, named by their own id: a retrieved memory lists as its
+                `mem_*` so the reader can match it against the memory tool's output and the store. */}
+            <Show when={rowProps.row.items?.length ? rowProps.row.items : undefined}>
+              {(items) => (
+                <div class="flex flex-col divide-y divide-v2-border-border-muted">
+                  <For each={items()}>
+                    {(item) => (
+                      <div class="flex flex-col gap-0.5 px-3 py-1.5">
+                        <div class="flex items-center gap-2">
+                          <span class="min-w-0 truncate font-mono text-[11px] text-v2-text-text-base">{item.name}</span>
+                          <span class="ms-auto shrink-0 text-[11px] tabular-nums text-v2-text-text-faint">
+                            {bytes(item.bytes)}
+                          </span>
+                        </div>
+                        <pre class="max-h-[160px] overflow-auto whitespace-pre-wrap break-words text-[11px] leading-[1.5] text-v2-text-text-muted select-text">
+                          {item.text}
+                        </pre>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              )}
+            </Show>
+            <pre class="max-h-[280px] overflow-auto whitespace-pre-wrap break-words border-t border-v2-border-border-muted px-3 py-2 text-[11px] leading-[1.5] text-v2-text-text-muted select-text">
+              {rowProps.row.text}
+            </pre>
+          </div>
         </Show>
       </div>
     )

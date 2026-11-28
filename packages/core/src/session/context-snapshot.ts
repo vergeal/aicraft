@@ -30,6 +30,10 @@ const SentSource = Schema.Struct({
   layer: Schema.optionalKey(Schema.String),
   chars: Schema.Number,
   text: Schema.String,
+  /** Per-record breakdown of the source, such as each memory a retrieval picked. */
+  items: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ name: Schema.String, chars: Schema.Number, text: Schema.String })),
+  ),
 })
 /**
  * The Step records its sources as `metadata.context`, which is the flat source array — not the
@@ -378,7 +382,10 @@ const tools = (value: unknown) =>
  * audit and belongs to the frozen prefix, which is why it lands in L1.
  */
 const dynamic = (sent: ReadonlyArray<typeof SentSource.Type>) => {
-  const groups = new Map<string, { layer: string; source: string; bytes: number; text: string }>()
+  const groups = new Map<
+    string,
+    { layer: string; source: string; bytes: number; text: string; items: Map<string, { name: string; bytes: number; text: string }> }
+  >()
   for (const entry of sent) {
     const layer = entry.layer ?? "L1"
     // L1-L3 are frozen content the panel reads from the snapshot and the baseline, not from the
@@ -387,13 +394,32 @@ const dynamic = (sent: ReadonlyArray<typeof SentSource.Type>) => {
     const key = `${layer}\u0000${entry.key}`
     const found = groups.get(key)
     if (found === undefined) {
-      groups.set(key, { layer, source: entry.key, bytes: encoder.encode(entry.text).length, text: entry.text })
+      const items = new Map<string, { name: string; bytes: number; text: string }>()
+      for (const item of entry.items ?? [])
+        items.set(item.name, { name: item.name, bytes: encoder.encode(item.text).length, text: item.text })
+      groups.set(key, {
+        layer,
+        source: entry.key,
+        bytes: encoder.encode(entry.text).length,
+        text: entry.text,
+        items,
+      })
       continue
     }
     found.bytes += encoder.encode(entry.text).length
     found.text = found.text === entry.text ? found.text : `${found.text}\n\n${entry.text}`
+    for (const item of entry.items ?? [])
+      found.items.set(item.name, { name: item.name, bytes: encoder.encode(item.text).length, text: item.text })
   }
-  return [...groups.values()]
+  return [...groups.values()].map((group) => ({
+    layer: group.layer,
+    source: group.source,
+    bytes: group.bytes,
+    text: group.text,
+    // The per-record view, in the order the source reported it; an empty map stays absent so a
+    // source without records keeps the wire shape it had.
+    ...(group.items.size > 0 ? { items: [...group.items.values()] } : {}),
+  }))
 }
 
 /**

@@ -280,7 +280,7 @@ export const Plugin = define({
     // system section, so an injection never invalidates the cached history prefix. One lookup
     // per turn: the step loop re-fires this hook with the same last message, and a byte-stable
     // block keeps the provider cache warm across steps. Failures only skip the block.
-    const turns = new Map<string, { key: string; block: string }>()
+    const turns = new Map<string, { key: string; block: string; items: ReadonlyArray<{ name: string; text: string }> }>()
     // The retrieval query is what the user typed, never what the harness injected: instruction
     // synthetics, skill bodies and shell results all arrive with role "user" in the context
     // event, so "last user message" let file prose pose as intent — an AGENTS.md containing a
@@ -322,14 +322,19 @@ export const Plugin = define({
         const project = yield* projectID(event.sessionID)
         const cached = turns.get(sessionKey)
         let block: string
+        let items: ReadonlyArray<{ readonly name: string; readonly text: string }> = []
         if (cached !== undefined && cached.key === key) {
           block = cached.block
+          items = cached.items
         } else {
           const turn = yield* Effect.promise(() => memory.onTurn({ query, scopes: scopesFor(project) }))
           block = turn.injectBlock
+          // The records behind the block, by their own id: cached with the block so the step loop
+          // reports the same list without another retrieval.
+          items = turn.entries.map((entry) => ({ name: entry.id, text: entry.text }))
           yield* service.logTurn(turn.decision, sessionKey)
           if (turns.size > 200) turns.clear()
-          turns.set(sessionKey, { key, block })
+          turns.set(sessionKey, { key, block, items })
         }
         if (block === "") return
         // P3 L6 budget gate (DESIGN §5): the block is the supplier's one entry for this turn.
@@ -343,7 +348,17 @@ export const Plugin = define({
         if (budgeted.truncated) return
         // Report the block as a Step-injected source: the same bytes ride every step of the turn,
         // so the transcript shows one injection row per turn without touching the cached prefix.
-        event.injected = [...(event.injected ?? []), { key: "memory", layer: "L6", text: block }]
+        // `items` carries each retrieved memory's own id, so the panel can name the exact records
+        // behind the block instead of showing only that some memory was retrieved.
+        event.injected = [
+          ...(event.injected ?? []),
+          {
+            key: "memory",
+            layer: "L6",
+            text: block,
+            items,
+          },
+        ]
         event.messages = event.messages.map((message) =>
           message === last && message.role === "user"
             ? new UserMessage({ ...message, content: [...message.content, { type: "text", text: block }] })

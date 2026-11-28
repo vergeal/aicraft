@@ -1324,3 +1324,33 @@ describe("baseTranscript", () => {
     ])
   })
 })
+
+describe("hookContextSources", () => {
+  test("carries each record's own id through to the panel's per-item view", () => {
+    const sources = SessionModelRequest.hookContextSources([
+      {
+        key: "memory",
+        layer: "L6",
+        text: "## Relevant memory\n- a\n- b",
+        items: [
+          { name: "mem_0a1b", text: "a" },
+          { name: "mem_0a1c", text: "b" },
+        ],
+      },
+    ])
+
+    // The panel names the records a retrieval picked, not just the block that carried them.
+    expect(sources[0]?.items).toEqual([
+      { name: "mem_0a1b", chars: 1, text: "a" },
+      { name: "mem_0a1c", chars: 1, text: "b" },
+    ])
+  })
+
+  test("leaves the wire shape alone for a source without records", () => {
+    const sources = SessionModelRequest.hookContextSources([
+      { key: "memory/protocol", layer: "L6", text: "rules" },
+    ])
+
+    expect(sources[0]).toEqual({ key: "memory/protocol", layer: "L6", chars: 5, text: "rules" })
+  })
+})

@@ -237,7 +237,19 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
             ),
             /** L5/L6/L8 suppliers the assembly declares, by layer. */
             dynamic: Schema.Array(
-              Schema.Struct({ layer: Schema.String, source: Schema.String, bytes: Schema.Number, text: Schema.String }),
+              Schema.Struct({
+                layer: Schema.String,
+                source: Schema.String,
+                bytes: Schema.Number,
+                text: Schema.String,
+                /**
+                 * The records behind one source, such as the individual memories a retrieval picked,
+                 * each named by its own `mem_*` id. Absent when the source has no per-record view.
+                 */
+                items: Schema.optionalKey(
+                  Schema.Array(Schema.Struct({ name: Schema.String, bytes: Schema.Number, text: Schema.String })),
+                ),
+              }),
             ),
           }),
         }),

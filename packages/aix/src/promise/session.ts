@@ -45,8 +45,17 @@ export interface SessionContext extends SessionRequest {
    * `layer` names the layer that supplied the bytes (DESIGN §1), so the context audit can size L5–L8
    * instead of lumping hook injections into the frozen prefix. Omit it when the text belongs to the
    * system prefix; the audit then reports the entry without a layer.
+   *
+   * `items` breaks the block into the records behind it, such as the individual memories a retrieval
+   * picked. The panel lists them under the entry so a reader can name the exact row — a `mem_*` id —
+   * instead of only seeing that some memory was retrieved.
    */
-  injected?: Array<{ readonly key: string; readonly layer?: string; readonly text: string }>
+  injected?: Array<{
+    readonly key: string
+    readonly layer?: string
+    readonly text: string
+    readonly items?: ReadonlyArray<{ readonly name: string; readonly text: string }>
+  }>
 }
 
 export interface SessionCompactionResult {

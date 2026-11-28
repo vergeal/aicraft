@@ -763,6 +763,7 @@ export type ExperimentalSessionAssemblyOutput = {
     readonly source: string
     readonly bytes: number
     readonly text: string
+    readonly items?: ReadonlyArray<{ readonly name: string; readonly bytes: number; readonly text: string }>
   }>
 }
 export type ExperimentalSessionAssemblyOperation<E = never> = (

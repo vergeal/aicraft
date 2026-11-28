@@ -45,23 +45,39 @@ export function layout<Key>(
   items: ReadonlyArray<TileInput<Key>>,
   width: number,
   height: number,
+  /**
+   * Floor for a tile's area, in square pixels. A layer at 0.1% of a 640×132 box would otherwise be a
+   * 0.8px sliver: unreadable, and impossible to point at. The floor's cost is taken from the largest
+   * tile, so the shape of the map stays honest — the biggest consumer is still the biggest block.
+   */
+  minArea = 0,
 ): Array<Tile<Key>> {
   const values = items.filter((item) => item.value > 0)
   const total = values.reduce((sum, item) => sum + item.value, 0)
   if (total <= 0 || width <= 0 || height <= 0) return []
 
-  // Work in area units so each tile's area is exactly its share of the box.
-  const scaled = values
-    .map((item) => ({ key: item.key, value: item.value, area: (item.value / total) * width * height }))
+  const area = width * height
+  const exact = values
+    .map((item) => ({ key: item.key, value: item.value, area: (item.value / total) * area }))
     .sort((a, b) => b.area - a.area)
 
+  // Lift the small tiles to the floor and pay for it from the largest one. Only a floor that the box
+  // cannot afford is refused: past that point honest proportions and readable tiles cannot both hold.
+  const lifted = exact.map((item) => (item.area < minArea ? { ...item, area: minArea } : item))
+  const added = lifted.reduce((sum, item, index) => sum + (item.area - exact[index]!.area), 0)
+  const largest = lifted[0]
+  const scaled =
+    added > 0 && largest !== undefined && largest.area - added > minArea
+      ? [{ ...largest, area: largest.area - added }, ...lifted.slice(1)]
+      : exact
+
   const tiles: Array<Tile<Key>> = []
-  let box = { x: 0, y: 0, width, height }
+  let frame = { x: 0, y: 0, width, height }
   let index = 0
 
   while (index < scaled.length) {
     // Grow a row while doing so improves the aspect ratio, then lay the row and shrink the box.
-    const shorter = Math.min(box.width, box.height)
+    const shorter = Math.min(frame.width, frame.height)
     const row: Array<(typeof scaled)[number]> = [scaled[index]!]
     let next = index + 1
     while (next < scaled.length) {
@@ -72,9 +88,9 @@ export function layout<Key>(
     }
 
     const rowArea = row.reduce((sum, item) => sum + item.area, 0)
-    const horizontal = box.width >= box.height
+    const horizontal = frame.width >= frame.height
     // The row takes one full side and extends `thickness` into the box.
-    const thickness = rowArea / (horizontal ? box.height : box.width) || 0
+    const thickness = rowArea / (horizontal ? frame.height : frame.width) || 0
 
     let offset = 0
     for (const item of row) {
@@ -82,8 +98,8 @@ export function layout<Key>(
       if (horizontal) {
         tiles.push({
           key: item.key,
-          x: box.x,
-          y: box.y + offset,
+          x: frame.x,
+          y: frame.y + offset,
           width: thickness,
           height: extent,
           value: item.value,
@@ -91,8 +107,8 @@ export function layout<Key>(
       } else {
         tiles.push({
           key: item.key,
-          x: box.x + offset,
-          y: box.y,
+          x: frame.x + offset,
+          y: frame.y,
           width: extent,
           height: thickness,
           value: item.value,
@@ -101,9 +117,9 @@ export function layout<Key>(
       offset += extent
     }
 
-    box = horizontal
-      ? { x: box.x + thickness, y: box.y, width: box.width - thickness, height: box.height }
-      : { x: box.x, y: box.y + thickness, width: box.width, height: box.height - thickness }
+    frame = horizontal
+      ? { x: frame.x + thickness, y: frame.y, width: frame.width - thickness, height: frame.height }
+      : { x: frame.x, y: frame.y + thickness, width: frame.width, height: frame.height - thickness }
     index = next
   }
 

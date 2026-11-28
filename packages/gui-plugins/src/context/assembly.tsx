@@ -128,6 +128,9 @@ const churnSample = (churn: Churn) =>
 /** The treemap's height. Tall enough for the largest tile to hold a label, short enough to stay a glance. */
 const MAP_HEIGHT = 132
 
+/** The smallest block that can still show `L4` and take a pointer: 44px wide by 22px tall. */
+const MIN_TILE_AREA = 44 * 22
+
 const encoder = new TextEncoder()
 const size = (text: string) => encoder.encode(text).length
 
@@ -516,6 +519,9 @@ export default function ContextAssembly(props: { session: MountedSession }) {
       bands().map((band) => ({ key: band.layer, value: band.bytes })),
       width,
       MAP_HEIGHT,
+      // An 11px-tall tile is not readable and not a target. 44×22 is the smallest block that fits the
+      // two-letter layer label, so that is the floor.
+      MIN_TILE_AREA,
     ).map((tile) => ({
       layer: tile.key,
       x: tile.x,
@@ -692,16 +698,25 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           <div ref={map} class="relative w-full overflow-hidden rounded-[6px] bg-v2-background-bg-layer-02" style={{ height: `${MAP_HEIGHT}px` }}>
             <For each={tiles()}>
               {(tile) => (
+                // The gap is an inset on the paint, not a subtraction from the geometry: shrinking the
+                // box while keeping its origin made sub-pixel tiles push the last column past the edge,
+                // which `overflow-hidden` then cut off.
                 <div
-                  class="absolute flex flex-col justify-end overflow-hidden p-1.5"
+                  class="absolute"
                   style={{
                     left: `${tile.x}px`,
                     top: `${tile.y}px`,
-                    width: `${Math.max(tile.width - 1, 1)}px`,
-                    height: `${Math.max(tile.height - 1, 1)}px`,
+                    width: `${tile.width}px`,
+                    height: `${tile.height}px`,
+                  }}
+                >
+                <div
+                  class="flex h-full w-full flex-col justify-end overflow-hidden p-1.5"
+                  style={{
                     background: layerColor(tile.layer),
-                    // Tiles are painted, not outlined: a border on a 6px tile would eat the tile.
                     "border-radius": "3px",
+                    // Inset by half a pixel on each side so neighbouring tiles read as separate blocks.
+                    "box-shadow": "inset 0 0 0 0.5px var(--v2-background-bg-layer-02)",
                   }}
                   title={`${ctx.t(`assembly.layer.${tile.layer}`)} · ${bytes(tile.bytes)}`}
                 >
@@ -710,6 +725,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
                   <Show when={tile.width > 34 && tile.height > 22}>
                     <span class="text-[10px] font-[590] leading-none text-white/90 tabular-nums">{tile.layer}</span>
                   </Show>
+                </div>
                 </div>
               )}
             </For>

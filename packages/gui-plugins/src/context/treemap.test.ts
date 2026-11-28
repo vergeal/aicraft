@@ -75,6 +75,40 @@ describe("treemap layout", () => {
     }
   })
 
+  test("lifts a sliver to the floor without breaking the total area", () => {
+    // A 0.1% layer is a 0.8px sliver at this size: unreadable and impossible to point at. The floor pays
+    // for it out of the largest tile, so the box stays exactly covered.
+    const floor = 44 * 22
+    const tiles = layout(
+      [
+        { key: "wide", value: 999_000 },
+        { key: "sliver", value: 1_000 },
+      ],
+      W,
+      H,
+      floor,
+    )
+    const byKey = Object.fromEntries(tiles.map((tile) => [tile.key, tile.width * tile.height]))
+
+    expect(byKey.sliver).toBeCloseTo(floor, 4)
+    expect(area(tiles)).toBeCloseTo(W * H, 4)
+    // The big tile is still the big tile.
+    expect(byKey.wide!).toBeGreaterThan(byKey.sliver!)
+  })
+
+  test("declines a floor the box cannot afford", () => {
+    // Twelve tiles that each demand a quarter of the box cannot all be honoured; proportions win.
+    const tiles = layout(
+      Array.from({ length: 12 }, (_, index) => ({ key: `k${index}`, value: 100 })),
+      W,
+      H,
+      W * H * 0.25,
+    )
+
+    expect(area(tiles)).toBeCloseTo(W * H, 4)
+    expect(tiles).toHaveLength(12)
+  })
+
   test("returns nothing for an empty or degenerate box", () => {
     expect(layout([], W, H)).toEqual([])
     expect(layout([{ key: "a", value: 1 }], 0, H)).toEqual([])

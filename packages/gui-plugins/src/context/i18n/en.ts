@@ -169,6 +169,10 @@ export default {
   "assembly.source.core/reference-guidance": "Reference guidance",
   "assembly.source.core/model-identity": "Model identity",
   "assembly.source.memory/protocol": "Memory protocol",
+  "assembly.source.memory": "Memory retrieved this turn",
+  "assembly.source.system": "Agent system prompt",
+  "assembly.source.session": "Session instructions",
+  "assembly.source.core/project": "Project instructions",
 
   "assembly.tool.read": "read · read files",
   "assembly.tool.write": "write · write files",

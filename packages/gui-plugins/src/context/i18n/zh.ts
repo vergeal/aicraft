@@ -163,6 +163,10 @@ export default {
   "assembly.source.core/reference-guidance": "引用说明",
   "assembly.source.core/model-identity": "模型标识",
   "assembly.source.memory/protocol": "记忆机制说明",
+  "assembly.source.memory": "本轮检索到的记忆",
+  "assembly.source.system": "Agent 系统提示词",
+  "assembly.source.session": "会话指令",
+  "assembly.source.core/project": "项目指令",
 
   // 工具名保持英文：模型看到的调用名就是这个，翻译后反而对不上日志与报错。
   "assembly.tool.read": "read · 读文件",

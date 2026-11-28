@@ -96,6 +96,19 @@ const card = "rounded-[10px] border border-v2-border-border-muted bg-v2-backgrou
 const encoder = new TextEncoder()
 const size = (text: string) => encoder.encode(text).length
 
+/**
+ * A row's visible label. `name` is a message key, so an untranslated source resolves to the key
+ * itself — which read as `assembly.source.memory` and told the reader nothing. Fall back to the
+ * machine identity instead: `memory` is at least the identifier the request audit reports, and it
+ * sits beside the source column the operator is matching against.
+ */
+const label = (row: Row, t: (key: string) => string) => {
+  if (row.label === "literal") return row.name
+  const translated = t(row.name)
+
+  return translated === row.name ? row.type : translated
+}
+
 /** Bytes as a short size, since every row here is prompt text. */
 function bytes(value: number): string {
   if (value < 1024) return `${value} B`
@@ -427,7 +440,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
             <Icon name="chevron-right" size="small" class="shrink-0 text-v2-text-text-faint" style={{ transform: open() ? "rotate(90deg)" : undefined }} />
           </Show>
           <span class="min-w-0 truncate text-[11.5px] text-v2-text-text-base">
-            {rowProps.row.label === "literal" ? rowProps.row.name : ctx.t(rowProps.row.name)}
+            {label(rowProps.row, ctx.t)}
           </span>
           <span class="shrink-0 text-[10.5px] text-v2-text-text-faint">{rowProps.row.type}</span>
           <span class="ms-auto shrink-0 text-[11px] tabular-nums text-v2-text-text-faint">

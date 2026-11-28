@@ -11,6 +11,8 @@ import { ContextLineageTable, ContextSnapshotTable, InstructionBlobTable, Instru
 import { SessionHistory } from "./history.js"
 import { replays } from "./runner/to-llm-message.js"
 import { Instructions } from "../instructions/index.js"
+import { ModelIdentity } from "../instructions/model-identity.js"
+import { ProjectInstructions } from "./project-instructions.js"
 import type { SessionMessage } from "./message.js"
 
 type DatabaseService = Database.Interface["db"]
@@ -343,12 +345,21 @@ const decodeStoredBaseline = Schema.decodeUnknownOption(Schema.Array(StoredBasel
 
 const storedBaseline = (value: unknown) => Option.getOrUndefined(decodeStoredBaseline(value)) ?? []
 
-/** L1 segments as the panel lists them: one row per frozen part, sized in UTF-8 bytes. */
+/**
+ * The request-audit source key of one frozen L1 segment. The panel and the Step's own audit have to
+ * agree on the name for the same bytes, so this mapping lives beside the snapshot that stores the parts
+ * rather than being re-derived per reader: the identity block is `core/model-identity`, never a
+ * synthesized `core/identity`, and the project block reports its instruction key.
+ */
+export const partSourceKey = (kind: VolatilePart["kind"]) =>
+  kind === "agent" ? "system" : kind === "project" ? ProjectInstructions.key : kind === "identity" ? ModelIdentity.key : "session"
+
+/** L1 segments as the panel lists them. */
 const parts = (value: unknown) =>
   Option.getOrUndefined(decodeStoredParts(value))?.parts.map((part) => ({
     layer: "L1",
     kind: part.kind,
-    source: part.kind === "agent" ? "system" : `core/${part.kind}`,
+    source: partSourceKey(part.kind),
     bytes: encoder.encode(part.text).length,
     text: part.text,
   })) ?? []

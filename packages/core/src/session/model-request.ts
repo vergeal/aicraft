@@ -42,6 +42,7 @@ import { QuestionTool } from "../tool/plugin/question.js"
 import { Tool } from "../tool.js"
 import { SessionAffinity } from "./affinity.js"
 import type { SessionContextSnapshot } from "./context-snapshot.js"
+import { partSourceKey } from "./context-snapshot.js"
 import { SessionModelTransport } from "./model-transport.js"
 import { ProjectInstructions } from "./project-instructions.js"
 import { SessionRunnerModel } from "./runner/model.js"
@@ -219,10 +220,9 @@ const ContextMetadata = Schema.Struct({
   context: Schema.Struct({ sources: Schema.Array(ContextSource) }),
 })
 
-// Mirrors the source keys the inline assembly used before the parts were snapshotted: the agent prompt reports as
-// "system", the project block under its instruction key, and the session prompt as "session".
-const sourceKey = (kind: SessionContextSnapshot.VolatilePart["kind"]) =>
-  kind === "agent" ? "system" : kind === "project" ? ProjectInstructions.key : kind === "identity" ? ModelIdentity.key : "session"
+// The source keys the audit reports for a frozen part come from the snapshot module, so the panel listing the
+// same bytes cannot drift from the request that sent them.
+const sourceKey = partSourceKey
 
 const contextSource = (key: string, text: string, layer: string = "L1"): ContextSource => ({
   key,

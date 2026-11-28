@@ -139,9 +139,10 @@ export default function ContextAssembly(props: { session: MountedSession }) {
   const PAGE = 10
   const [pageSizes, setPageSizes] = createSignal(new Map<string, number>())
 
-  // A compaction rebakes the baseline: the epoch advances and L1-L3 change wholesale. Keying the read
-  // on that marker makes the panel follow it instead of showing the pre-compaction snapshot until the
-  // reader happens to press refresh.
+  // A completed compaction rebakes the baseline: the epoch advances and L1-L3 change wholesale. Keying
+  // the read on that row makes the panel follow it instead of showing the pre-compaction snapshot until
+  // the reader presses refresh. A manual advance also rebakes, but it writes only lineage and no
+  // message, so there is nothing here to key on; that case still needs the refresh button.
   const rebaked = createMemo(() => {
     const id = props.session.id
     if (!id) return undefined

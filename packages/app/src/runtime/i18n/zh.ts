@@ -2377,7 +2377,9 @@ export const dict = {
   "session.status.context.open": "查看上下文用量",
   "session.status.context.windowLabel": "上下文窗口",
   "session.status.context.windowTokens": "{{tokens}} tokens",
-  "session.status.context.systemTools": "系统 + 工具",
+  // The first segment is the system prompt alone: tool results are their own segment below it, so the
+  // old "系统 + 工具" label described a split the code no longer has.
+  "session.status.context.system": "系统提示词",
   "session.status.context.history": "对话历史",
   "session.status.context.toolResults": "工具结果",
   "session.status.context.output": "输出预留",

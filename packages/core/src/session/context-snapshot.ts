@@ -264,7 +264,10 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
                 .get()
                 .pipe(Effect.orDie)
               // A blob that no longer decodes is still a pending change; name the key without inventing text.
-              const text = blob === undefined ? "unavailable" : String(blob.value)
+              // The stored value is JSON — a Code Mode catalog object, a skill list — so it is rendered as
+              // such: `String(value)` on an object is the literal text "[object Object]", which is what the
+              // panel was showing for every structured L4 source.
+              const text = blob === undefined ? "unavailable" : JSON.stringify(blob.value, undefined, 2)
               return { key, layer: "L4", text, bytes: encoder.encode(text).length }
             })
           },

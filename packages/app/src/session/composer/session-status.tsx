@@ -311,7 +311,7 @@ function ContextBreakdown(props: {
 }
 
 const contextPartLabels = {
-  system: "session.status.context.systemTools",
+  system: "session.status.context.system",
   history: "session.status.context.history",
   toolResults: "session.status.context.toolResults",
   output: "session.status.context.output",

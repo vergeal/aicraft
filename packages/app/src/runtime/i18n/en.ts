@@ -704,7 +704,7 @@ export const dict = {
   "session.status.context.open": "View context usage",
   "session.status.context.windowLabel": "Context Window",
   "session.status.context.windowTokens": "{{tokens}} Tokens",
-  "session.status.context.systemTools": "System + Tools",
+  "session.status.context.system": "System prompt",
   "session.status.context.history": "History",
   "session.status.context.toolResults": "Tool Results",
   "session.status.context.output": "Output Reserve",

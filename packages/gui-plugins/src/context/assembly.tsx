@@ -6,6 +6,7 @@ import { Icon } from "@aicraft/ui/icon"
 import { SegmentedControl, SegmentedControlItem } from "@aicraft/ui/segmented-control"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { Treemap } from "./treemap.js"
+import { RowKey } from "./row-key.js"
 
 /**
  * What the assembly endpoint reports. Kept structural instead of importing the generated client types:
@@ -85,6 +86,12 @@ type Row = {
   readonly label?: "literal"
   /** Machine identity: the stable name a log, error or provider response would show. */
   readonly type: string
+  /**
+   * Which of this layer's lists the row came from. One layer can name the same source twice — a pending
+   * notice and the request's own account of the same block — so identity is the source *and* the list,
+   * never the source alone.
+   */
+  readonly origin?: "notice" | "sent" | "baseline" | "tools" | "part" | "turn"
   readonly bytes: number
   /** The model-visible text. Empty when the layer reports only a size. */
   readonly text: string
@@ -406,29 +413,36 @@ export default function ContextAssembly(props: { session: MountedSession }) {
       // L4 and L5 are the low-frequency band: state claims and dynamic facts that settle rather
       // than stream. Their bytes come from the live instruction values, so a notice with content
       // shows its size instead of a placeholder zero.
-      if (layer === "L4")
+      if (layer === "L4") {
+        // One row per source. The request's own account of what it sent wins, because those are the bytes
+        // the model actually read; a pending notice only adds a source the last request had not carried
+        // yet. Listing both put `core/skill-guidance` and `core/codemode` on the layer twice, which reads
+        // as four different things when it is two.
+        const sent = (data?.dynamic ?? []).filter((entry) => entry.layer === "L4")
+        const carried = new Set(sent.map((entry) => entry.source))
         return {
           layer,
           churn: "low" as const,
           rows: [
-            // A pending declaration reads as an L4 row with the value the source holds now: the
-            // key alone would say that something changed without saying what it changed to.
-            ...(data?.notice ?? []).map((notice) => ({
-              name: `assembly.source.${notice.key}`,
-              type: notice.key,
-              bytes: notice.bytes,
-              text: notice.text,
+            ...sent.map((entry) => ({
+              name: `assembly.source.${entry.source}`,
+              type: entry.source,
+              origin: "sent" as const,
+              bytes: entry.bytes,
+              text: entry.text,
             })),
-            ...(data?.dynamic ?? [])
-              .filter((entry) => entry.layer === "L4")
-              .map((entry) => ({
-                name: `assembly.source.${entry.source}`,
-                type: entry.source,
-                bytes: entry.bytes,
-                text: entry.text,
+            ...(data?.notice ?? [])
+              .filter((notice) => !carried.has(notice.key))
+              .map((notice) => ({
+                name: `assembly.source.${notice.key}`,
+                type: notice.key,
+                origin: "notice" as const,
+                bytes: notice.bytes,
+                text: notice.text,
               })),
           ],
         }
+      }
 
       if (layer === "L5")
         return {
@@ -549,7 +563,8 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     })
   })
 
-  const rowKey = (layer: string, type: string) => `${layer}\u0000${type}`
+  const rowKey = (layer: string, index: number, row: Row) =>
+    RowKey.make({ layer, origin: row.origin, index, source: row.type })
 
   const pageSize = (layer: string) => pageSizes().get(layer) ?? PAGE
   const visibleRows = (layer: string, rows: readonly Row[]) => rows.slice(0, pageSize(layer))
@@ -558,7 +573,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
 
   /** A collapsible row: the header always, its text when opened. */
   const RowView = (rowProps: { layer: string; row: Row; index: number }): JSX.Element => {
-    const key = rowKey(rowProps.layer, rowProps.row.type)
+    const key = rowKey(rowProps.layer, rowProps.index, rowProps.row)
     const open = () => expandedRows().has(key)
     const expandable = () => rowProps.row.text.length > 0
 

@@ -1,8 +1,11 @@
-import { createMemo, createResource, createSignal, For, Show } from "solid-js"
+import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js"
 import type { JSX } from "solid-js"
 import { usePlugin, type MountedSession } from "@aicraft/aix/gui"
 import { useI18n } from "@aicraft/ui/context/i18n"
 import { Icon } from "@aicraft/ui/icon"
+import { SegmentedControl, SegmentedControlItem } from "@aicraft/ui/segmented-control"
+import { createResizeObserver } from "@solid-primitives/resize-observer"
+import { Treemap } from "./treemap.js"
 
 /**
  * What the assembly endpoint reports. Kept structural instead of importing the generated client types:
@@ -100,6 +103,31 @@ const LAYERS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8"] as const
 const sectionLabel = "text-[12px] font-[530] text-v2-text-text-muted"
 const card = "rounded-[10px] border border-v2-border-border-muted bg-v2-background-bg-layer-01"
 
+/**
+ * One hue family per churn, so colour carries the operational meaning rather than decorating: the frozen
+ * prefix is blue-to-cyan (touching it invalidates the provider cache), the low band is amber, the hot tail
+ * is violet-to-rose. Within a family, lightness separates the layers so eight of them stay tellable apart.
+ */
+const LAYER_COLORS: Record<string, string> = {
+  L1: "var(--v2-blue-700)",
+  L2: "var(--v2-blue-600)",
+  L3: "var(--v2-cyan-700)",
+  L4: "var(--v2-yellow-800)",
+  L5: "color-mix(in oklab, var(--v2-yellow-800) 55%, var(--v2-yellow-300))",
+  L6: "var(--v2-purple-500)",
+  L7: "color-mix(in oklab, var(--v2-purple-500) 62%, var(--v2-red-300))",
+  L8: "var(--v2-red-800)",
+}
+
+const layerColor = (layer: string) => LAYER_COLORS[layer] ?? "var(--v2-grey-500)"
+
+/** The legend's sample for a churn: the family's representative, not any one layer in it. */
+const churnSample = (churn: Churn) =>
+  churn === "frozen" ? "var(--v2-blue-600)" : churn === "low" ? "var(--v2-yellow-800)" : "var(--v2-purple-500)"
+
+/** The treemap's height. Tall enough for the largest tile to hold a label, short enough to stay a glance. */
+const MAP_HEIGHT = 132
+
 const encoder = new TextEncoder()
 const size = (text: string) => encoder.encode(text).length
 
@@ -169,7 +197,9 @@ export default function ContextAssembly(props: { session: MountedSession }) {
   const ctx = usePlugin()
   const i18n = useI18n()
   const [expandedRows, setExpandedRows] = createSignal(new Set<string>())
-  const [expandedLayers, setExpandedLayers] = createSignal(new Set(["L1"]))
+  // Every layer starts collapsed: L1 alone is 9 rows and 26 KB of text, which pushed the layers below it
+  // out of view before a reader had decided what to look at.
+  const [expandedLayers, setExpandedLayers] = createSignal(new Set<string>())
   // L3 can hold hundreds of turns; each layer shows a page at a time.
   const PAGE = 10
   const [pageSizes, setPageSizes] = createSignal(new Map<string, number>())
@@ -453,6 +483,66 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     }
   })
 
+  /**
+   * Which face the layer block shows. `map` answers "what is eating the window" at a glance, which is
+   * the question the panel exists for; `detail` is the row-by-row tree a reader drills into. The map is
+   * the default so the answer comes before the tooling.
+   */
+  const [view, setView] = createSignal<"map" | "detail">("map")
+
+  // The side panel is resizable, so the treemap follows its real width instead of an assumed one: the
+  // tiles are laid out in pixels, and a stale width would leave gaps or overflow.
+  let map: HTMLDivElement | undefined
+  const [mapWidth, setMapWidth] = createSignal(0)
+  onMount(() => {
+    if (map) setMapWidth(map.clientWidth)
+  })
+  createResizeObserver(
+    () => map,
+    () => {
+      if (map) setMapWidth(map.clientWidth)
+    },
+  )
+
+  /**
+   * The treemap's tiles, laid out in the panel's current width. A layer with no bytes gets no tile: it
+   * would be a zero-area rectangle, which is either invisible or a lie, so those layers are listed below
+   * the map instead.
+   */
+  const tiles = createMemo(() => {
+    const width = mapWidth()
+    if (width <= 0) return []
+    return Treemap.layout(
+      bands().map((band) => ({ key: band.layer, value: band.bytes })),
+      width,
+      MAP_HEIGHT,
+    ).map((tile) => ({
+      layer: tile.key,
+      x: tile.x,
+      y: tile.y,
+      width: tile.width,
+      height: tile.height,
+      bytes: tile.value,
+    }))
+  })
+
+  /** One band per layer, proportioned by the bytes it contributes to this request. */
+  const bands = createMemo(() => {
+    const all = layers()
+    const total = all.reduce((sum, entry) => sum + entry.rows.reduce((inner, row) => inner + row.bytes, 0), 0)
+
+    return all.map((entry) => {
+      const bytes = entry.rows.reduce((sum, row) => sum + row.bytes, 0)
+      return {
+        layer: entry.layer,
+        bytes,
+        churn: entry.churn,
+        share: total === 0 ? 0 : (bytes / total) * 100,
+        rows: entry.rows.length,
+      }
+    })
+  })
+
   const rowKey = (layer: string, type: string) => `${layer}\u0000${type}`
 
   const pageSize = (layer: string) => pageSizes().get(layer) ?? PAGE
@@ -524,9 +614,18 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     <section class="flex flex-col gap-2.5">
       <div class="flex items-center gap-2">
         <div class={sectionLabel}>{ctx.t("assembly.title")}</div>
+        <SegmentedControl
+          value={view()}
+          // SAFETY: the control's value space is exactly the two items it renders below.
+          onChange={(value) => value && setView(value as "map" | "detail")}
+          class="ms-auto"
+        >
+          <SegmentedControlItem value="map">{ctx.t("assembly.viewMap")}</SegmentedControlItem>
+          <SegmentedControlItem value="detail">{ctx.t("assembly.viewDetail")}</SegmentedControlItem>
+        </SegmentedControl>
         <button
           type="button"
-          class="ms-auto text-[11.5px] text-v2-text-text-accent hover:underline disabled:opacity-50"
+          class="text-[11.5px] text-v2-text-text-accent hover:underline disabled:opacity-50"
           onClick={() => void refetch()}
           disabled={inspection.loading}
         >
@@ -568,7 +667,76 @@ export default function ContextAssembly(props: { session: MountedSession }) {
         )}
       </Show>
 
+      {/* The map: the request as one rectangle, cut into tiles whose areas are the bytes each layer
+          holds. A reader sees which layer owns the window without reading a single number; the tiles that
+          matter are large, and a layer holding nothing gets no tile at all — it is listed below the map
+          instead, because a zero-area block would either be invisible or lie about its share. */}
+      <Show when={view() === "map"}>
+        <div class={`${card} flex flex-col gap-2.5 p-3`}>
+          <div class="flex items-baseline gap-2">
+            <span class="text-[11.5px] tabular-nums text-v2-text-text-muted">
+              {ctx.t("assembly.mapTotal", { size: bytes(totals().total) })}
+            </span>
+            <span class="ms-auto flex items-center gap-3 text-[11px] text-v2-text-text-faint">
+              <For each={[{ churn: "frozen" }, { churn: "low" }, { churn: "hot" }] as const}>
+                {(group) => (
+                  <span class="inline-flex items-center gap-1">
+                    <i class="size-[6px] rounded-[1px]" style={{ background: churnSample(group.churn) }} />
+                    {ctx.t(`assembly.churn.${group.churn}`)}
+                  </span>
+                )}
+              </For>
+            </span>
+          </div>
+
+          <div ref={map} class="relative w-full overflow-hidden rounded-[6px] bg-v2-background-bg-layer-02" style={{ height: `${MAP_HEIGHT}px` }}>
+            <For each={tiles()}>
+              {(tile) => (
+                <div
+                  class="absolute flex flex-col justify-end overflow-hidden p-1.5"
+                  style={{
+                    left: `${tile.x}px`,
+                    top: `${tile.y}px`,
+                    width: `${Math.max(tile.width - 1, 1)}px`,
+                    height: `${Math.max(tile.height - 1, 1)}px`,
+                    background: layerColor(tile.layer),
+                    // Tiles are painted, not outlined: a border on a 6px tile would eat the tile.
+                    "border-radius": "3px",
+                  }}
+                  title={`${ctx.t(`assembly.layer.${tile.layer}`)} · ${bytes(tile.bytes)}`}
+                >
+                  {/* A label only where it fits. Text on a 6px tile would be clipped mid-glyph, so it is
+                      dropped instead of truncated — the legend and the rows below carry the identity. */}
+                  <Show when={tile.width > 34 && tile.height > 22}>
+                    <span class="text-[10px] font-[590] leading-none text-white/90 tabular-nums">{tile.layer}</span>
+                  </Show>
+                </div>
+              )}
+            </For>
+          </div>
+
+          {/* Everything the map cannot draw: layers with no bytes, and the count beside each tile. */}
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-v2-text-text-faint">
+            <For each={bands().filter((band) => band.bytes === 0)}>
+              {(band) => (
+                <span class="inline-flex items-center gap-1 tabular-nums">
+                  <i class="size-[6px] rounded-[1px] opacity-30" style={{ background: layerColor(band.layer) }} />
+                  {band.layer} {ctx.t(`assembly.layer.${band.layer}`)} · 0 B
+                </span>
+              )}
+            </For>
+            <span class="ms-auto tabular-nums">
+              {ctx.t("assembly.mapBreakdown", {
+                layers: String(bands().filter((band) => band.bytes > 0).length),
+                rows: String(bands().reduce((sum, band) => sum + band.rows, 0)),
+              })}
+            </span>
+          </div>
+        </div>
+      </Show>
+
       {/* Layers in assembly order. Each expands to the rows it contributes, and a row expands to its text. */}
+      <Show when={view() === "detail"}>
       <div class={`${card} flex flex-col overflow-hidden`}>
         {/* The lineage root: every prefix version descends from the session's first bake, so the tree
             starts here instead of implying L1 is where the assembly began. */}
@@ -665,6 +833,7 @@ export default function ContextAssembly(props: { session: MountedSession }) {
           }}
         </For>
       </div>
+      </Show>
 
       {/* Genealogy: every version ever built, oldest first. */}
       <Show when={(inspection()?.lineage.length ?? 0) > 0}>

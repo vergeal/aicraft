@@ -217,6 +217,7 @@ const source = {
   "ui.answer.context.toolGuidance": "Tool guidance",
   "ui.answer.context.toolEconomy": "Tool-call economy",
   "ui.answer.context.memoryProtocol": "Memory rules",
+  "ui.answer.context.memoryInjected": "Injected memory",
   "ui.answer.step.joinTwo": "{{first}} and {{second}}",
   "ui.answer.step.sharedPrefix": "",
   "ui.answer.step.comma": ", ",

@@ -283,6 +283,7 @@ export const dict = {
   "ui.answer.context.toolGuidance": "工具使用指引",
   "ui.answer.context.toolEconomy": "工具调用节制",
   "ui.answer.context.memoryProtocol": "记忆规则",
+  "ui.answer.context.memoryInjected": "注入记忆",
   "ui.answer.step.joinTwo": "{{first}}并{{second}}",
   "ui.answer.step.sharedPrefix": "已",
   "ui.answer.step.comma": "、",

@@ -410,6 +410,12 @@ const memoryFlow: SessionMessageInfo[] = [
           key: "memory",
           chars: 96,
           text: "## Relevant memory (retrieved for this turn)\nMay be out of date; where it conflicts with the current request, the current request wins.\n- 用户使用中文交流 (tags: 偏好)",
+          // The retrieval also reports each record by its id. The card shows one memory entry, not one row per
+          // id: the ids are for matching against the store, which is what the context panel is for.
+          items: [
+            { name: "mem_0a1b", chars: 12, text: "用户使用中文交流 (tags: 偏好)" },
+            { name: "mem_0a1c", chars: 18, text: "用户偏好简短回复 (tags: 风格)" },
+          ],
         },
       ],
     },

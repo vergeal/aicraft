@@ -2234,29 +2234,55 @@ function ContextRow(props: {
   }
 
   // A source that breaks down into files lists the files directly; anything else is one entry of its own.
+  //
+  // Memories are the exception. They arrive as records keyed by a `mem_*` id, which is an identifier rather
+  // than a title, and splitting on them produced one expandable row per memory where the model had read a
+  // single section. The card answers "what did this step inject", so it shows one entry holding exactly the
+  // block the model read — `source.text`, header and list included — rendered as markdown. The per-record
+  // breakdown stays in the context panel, which is where an operator matches ids against the store.
   const entries = () =>
     props.sources.flatMap((source) =>
-      source.items && source.items.length > 0
-        ? source.items.map((item, index) => ({
-            key: `${props.cacheKey}:context:${source.key}:${index}`,
-            title: item.name,
-            chars: item.chars,
-            text: item.text,
-          }))
-        : [
+      source.key === "memory" && (source.text ?? "").trim().length > 0
+        ? [
             {
               key: `${props.cacheKey}:context:${source.key}`,
-              title: label(source.key),
+              title: i18n.t("ui.answer.context.memoryInjected"),
               chars: source.chars,
               text: source.text,
             },
-          ],
+          ]
+        : source.items && source.items.length > 0
+          ? source.items.map((item, index) => ({
+              key: `${props.cacheKey}:context:${source.key}:${index}`,
+              title: item.name,
+              chars: item.chars,
+              text: item.text,
+            }))
+          : [
+              {
+                key: `${props.cacheKey}:context:${source.key}`,
+                title: label(source.key),
+                chars: source.chars,
+                text: source.text,
+              },
+            ],
     )
 
   return (
     <DisclosureRow
       title={i18n.t(props.change === "inject" ? "ui.answer.context.inject" : "ui.answer.context.change")}
-      summary={expanded() ? undefined : props.sources.map((source) => label(source.key)).join(i18n.t("ui.answer.step.comma"))}
+      summary={
+        expanded()
+          ? undefined
+          : props.sources
+              .map((source) =>
+                // Match the row it opens: the memory block is titled by what it is, not by its key.
+                source.key === "memory" && (source.text ?? "").trim().length > 0
+                  ? i18n.t("ui.answer.context.memoryInjected")
+                  : label(source.key),
+              )
+              .join(i18n.t("ui.answer.step.comma"))
+      }
       state="ok"
       expanded={expanded()}
       leading={<FlowIcon name="answer-context" />}

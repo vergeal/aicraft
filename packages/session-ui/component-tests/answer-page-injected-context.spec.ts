@@ -47,3 +47,29 @@ story("groups multiple injected contexts into one expandable step", async ({ mou
   await notices.nth(1).locator("[data-disclosure-row]").click()
   await expect(notices.nth(1)).toContainText("第二条规则")
 })
+
+story("shows injected memory as one entry, not one row per record id", async ({ mount }) => {
+  const root = await mount("answer-page--memory-flow")
+
+  await root.locator('[data-slot="answer-fold"] [data-slot="answer-run-header"] button').click()
+
+  const group = root.locator('[data-slot="answer-group"]').first()
+  await group.locator(":scope > button").click()
+
+  const row = group.locator('[data-slot="answer-row"][data-kind="context"]').first()
+  // The collapsed summary is the assertion: it names what was injected. A per-record split lists the ids
+  // here instead, so one name means the block stayed whole.
+  await expect(row).toContainText("Injected memory")
+  await expect(row).not.toContainText("mem_0a1b")
+  await expect(row).not.toContainText("mem_0a1c")
+
+  await row.locator("[data-disclosure-row]").click()
+  const sources = row.locator('[data-slot="answer-context-sources"]')
+  await expect(sources.locator(":scope > *")).toHaveCount(1)
+
+  // Opened, it is the block the model read, rendered as markdown: the section header proves the body is the
+  // real text rather than a list of record ids.
+  await sources.locator("[data-disclosure-row]").click()
+  await expect(sources).toContainText("Relevant memory")
+  await expect(sources).not.toContainText("mem_0a1b")
+})

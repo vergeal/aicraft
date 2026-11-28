@@ -29,6 +29,9 @@ export function CompactionChart(props: {
   turns: number
 }) {
   const ctx = usePlugin()
+  // The rule the pointer is over. A native SVG `<title>` waits out the browser's own tooltip delay, so
+  // the hint is drawn here instead: it appears on pointerenter, with no dwell.
+  const [hovered, setHovered] = createSignal<number | undefined>()
 
   // The side panel is resizable, so the geometry follows the container's real width instead of a fixed viewBox
   // scale, which centers and letterboxes the line once the panel is wider or narrower than the fallback.
@@ -113,20 +116,21 @@ export function CompactionChart(props: {
               stroke-linecap="round"
             />
             <For each={g().marks}>
-              {(mark) => (
+              {(mark, index) => (
                 <>
                   <line
                     x1={mark.x}
                     x2={mark.x}
                     y1={PAD - 2}
                     y2={HEIGHT - PAD + 2}
-                    stroke="var(--v2-border-border-strong)"
+                    stroke={
+                      hovered() === index() ? "var(--v2-text-text-base)" : "var(--v2-border-border-strong)"
+                    }
                     stroke-width="1"
                     stroke-dasharray="2 2"
                   />
-                  {/* A 1px rule is a hard hover target, so an invisible band carries the pointer. The hint
-                      rides the band's own `<title>`: the Kobalte tooltip renders an HTML trigger, which an
-                      SVG line inside a chart cannot host. */}
+                  {/* A 1px rule is a hard hover target, so a 9px invisible band carries the pointer and
+                      opens the hint immediately on entry. */}
                   <line
                     x1={mark.x}
                     x2={mark.x}
@@ -134,13 +138,33 @@ export function CompactionChart(props: {
                     y2={HEIGHT - PAD + 2}
                     stroke="transparent"
                     stroke-width="9"
-                    style={{ "pointer-events": "stroke", cursor: "help" }}
-                  >
-                    <title>{ctx.t("window.compactionRule", { count: String(mark.turns) })}</title>
-                  </line>
+                    // `stroke` alone ignores a fully transparent stroke in some engines; `all` hits the
+                    // band regardless of paint, which is the point of an invisible target.
+                    style={{ "pointer-events": "all", cursor: "help" }}
+                    onPointerEnter={() => setHovered(index())}
+                    onPointerLeave={() => setHovered(undefined)}
+                  />
                 </>
               )}
             </For>
+            {/* The hint for the hovered rule, anchored to its position and clamped inside the plot. */}
+            <Show when={hovered() !== undefined ? g().marks[hovered()!] : undefined}>
+              {(mark) => (
+                <foreignObject
+                  x={Math.min(Math.max(mark().x - 60, 0), Math.max(g().width - 120, 0))}
+                  y={0}
+                  width={120}
+                  height={22}
+                  style={{ "pointer-events": "none" }}
+                >
+                  <div class="flex h-full items-center justify-center">
+                    <span class="rounded-[5px] bg-v2-background-bg-layer-03 px-1.5 py-0.5 text-[10.5px] whitespace-nowrap text-v2-text-text-base shadow-[var(--v2-elevation-floating)]">
+                      {ctx.t("window.compactionRule", { count: String(mark().turns) })}
+                    </span>
+                  </div>
+                </foreignObject>
+              )}
+            </Show>
           </svg>
         </div>
       )}

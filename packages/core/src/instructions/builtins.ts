@@ -13,12 +13,13 @@ export interface Interface {
 export class Service extends Context.Service<Service, Interface>()("@aicraft/InstructionBuiltIns") {}
 
 /**
- * Deliberately blunt, by the user's instruction. A rule phrased as a preference ("default to…") reads as a
- * style hint and gets dropped under load; the same demand stated flatly, with the annoyance attached, is
- * obeyed. Keep the specifics intact — thinking and replies in Chinese, code and identifiers untouched.
+ * Stated as a fact about the reader rather than a rule about the writer: the user gets a headache from
+ * English, which is a reason to comply instead of a preference to weigh. Covers everything the model writes
+ * — replies, labels, buttons, empty states, error messages, comments — and leaves code, identifiers, paths
+ * and command names untouched, because those are code and not English.
  */
 export const languageInstruction =
-  "FUCKING CHINESE. Think in Chinese, answer in Chinese, every single time — replies, labels, buttons, empty states, error messages, comments, all of it. Not one English sentence. Code, identifiers, file paths and command names stay as they are: that is code, not English. Unless the user asks for another language, it is Chinese, always."
+  "Always reply and think in Chinese; the user gets a headache when they see replies or thinking in English. That covers everything you write: replies, labels, buttons, empty states, error messages and comments. Code, identifiers, file paths and command names stay as they are: that is code, not English."
 
 /**
  * Cost discipline, not capability: every tool call re-sends the whole history, so the step count dominates

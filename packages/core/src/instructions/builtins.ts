@@ -56,17 +56,18 @@ const layer = Layer.effect(
             }),
             Instructions.make({
               key: Instructions.Key.make("core/date"),
-              // L1: the date is frozen with the baseline and only moves when a compaction rebakes the
-              // epoch. An L5 date was re-sent on every request and, worse, produced a second notice each
-              // midnight; a model that believes it is a day behind costs less than that churn. The
-              // ISO date is also 19 characters shorter than `toDateString` for the same information.
-              layer: "L4",
+              // L1: the date rides the frozen baseline instead of being re-read per step, so a clock
+              // that crosses midnight cannot rewrite the prefix. The ISO form is also 19 characters
+              // shorter than `toDateString` for the same information.
+              layer: "L1",
               codec: Schema.toCodecJson(Schema.String),
               read: DateTime.now.pipe(Effect.map((date) => DateTime.formatIsoDate(date))),
               render: {
                 initial: (date) => `Today's date: ${date}`,
-                // Same text as `initial`: a rebake states the current date, it does not narrate the change.
-                changed: (_previous, date) => `Today's date: ${date}`,
+                // The baseline stays frozen for the epoch, so a day crossing is stated once as an L4
+                // notice instead of rewriting L1 every step. The next compaction bakes the new date
+                // into the baseline and the notice settles.
+                changed: (_previous, date) => `The date has changed. Today's date: ${date}`,
               },
             }),
             Instructions.make({

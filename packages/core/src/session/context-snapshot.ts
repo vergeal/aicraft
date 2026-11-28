@@ -10,6 +10,7 @@ import { SessionSchema } from "./schema.js"
 import { ContextLineageTable, ContextSnapshotTable, InstructionBlobTable, InstructionStateTable } from "./sql.js"
 import { SessionHistory } from "./history.js"
 import { replays } from "./runner/to-llm-message.js"
+import { Instructions } from "../instructions/index.js"
 import type { SessionMessage } from "./message.js"
 
 type DatabaseService = Database.Interface["db"]
@@ -28,8 +29,13 @@ const SentSource = Schema.Struct({
   chars: Schema.Number,
   text: Schema.String,
 })
+/**
+ * The Step records its sources as `metadata.context`, which is the flat source array — not the
+ * `{ context: { sources } }` envelope the system part carries internally. Decoding the envelope
+ * against a stored message always failed, so every live layer read as empty.
+ */
 const SentContext = Schema.Struct({
-  context: Schema.Struct({ sources: Schema.Array(SentSource) }),
+  context: Schema.Array(SentSource),
 })
 
 /** One of the four volatile system-prefix segments captured at build time. */
@@ -126,6 +132,8 @@ export const resolve = Effect.fn("SessionContextSnapshot.resolve")(function* (
 export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,
+  /** The epoch baseline as `InstructionState.initial` rendered it: one entry per source, with its layer. */
+  initial: ReadonlyArray<Instructions.Rendered> = [],
 ) {
   const row = yield* db
     .select()
@@ -179,7 +187,7 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
   // sources into the Step, so this is the real occupancy rather than a re-derivation of it.
   const sent = history.reduce<ReadonlyArray<typeof SentSource.Type>>((found, message) => {
     const decoded = Option.getOrUndefined(Schema.decodeUnknownOption(SentContext)(message.metadata))
-    return decoded === undefined ? found : decoded.context.sources
+    return decoded === undefined ? found : decoded.context
   }, [])
   return {
     snapshot: row
@@ -193,6 +201,22 @@ export const inspect = Effect.fn("SessionContextSnapshot.inspect")(function* (
           modelID: row.model_id,
           pendingAdvance: row.pending_advance,
           layers: parts(row.parts),
+          // The instruction baseline is L1 (and the codemode catalog L2) but never enters `parts`:
+          // those four volatile segments are only the sections with no other frozen home. Dropping
+          // the baseline here made a compaction, which rebakes it, look like L1 never moved.
+          baseline: initial.flatMap((source) => {
+            const layer = source.layer ?? "L1"
+            if (layer !== "L1" && layer !== "L2") return []
+            return [
+              {
+                layer,
+                kind: "baseline",
+                source: source.key,
+                bytes: encoder.encode(source.text).length,
+                text: source.text,
+              },
+            ]
+          }),
           tools: tools(row.tools),
         }
       : null,
@@ -314,6 +338,8 @@ const dynamic = (sent: ReadonlyArray<typeof SentSource.Type>) => {
   const groups = new Map<string, { layer: string; source: string; bytes: number; text: string }>()
   for (const entry of sent) {
     const layer = entry.layer ?? "L1"
+    // L1-L3 are frozen content the panel reads from the snapshot and the baseline, not from the
+    // request audit; only the live tail (L4 and up) belongs here.
     if (layer === "L1" || layer === "L2" || layer === "L3") continue
     const key = `${layer}\u0000${entry.key}`
     const found = groups.get(key)

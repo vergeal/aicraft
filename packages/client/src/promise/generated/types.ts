@@ -4133,6 +4133,7 @@ export type ExperimentalSessionAssemblyOutput = {
       modelID: string
       pendingAdvance: boolean
       layers: Array<{ layer: string; kind: string; source: string; bytes: number; text: string }>
+      baseline: Array<{ layer: string; kind: string; source: string; bytes: number; text: string }>
       tools: Array<{ name: string; bytes: number; source: string }>
     } | null
     lineage: Array<{

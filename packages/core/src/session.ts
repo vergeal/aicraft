@@ -59,7 +59,10 @@ import { SessionModelTransport } from "./session/model-transport.js"
 import { llmClient } from "./effect/app-node-platform.js"
 import { Snapshot } from "./snapshot.js"
 import { Session } from "./session/session.js"
+import { Instructions } from "./instructions/index.js"
 import { SessionContextSnapshot } from "./session/context-snapshot.js"
+import { SessionContext } from "./session/context.js"
+import { SessionHistory } from "./session/history.js"
 import { SessionDiff, TurnRangeError } from "./session/diff.js"
 import { LocationServiceMap } from "./location-service-map.js"
 import { FSUtil } from "@aicraft/util/fs-util"
@@ -481,8 +484,21 @@ const layer = Layer.effect(
         return yield* store.context(sessionID)
       }),
       inspectContext: Effect.fn("Session.inspectContext")(function* (sessionID) {
-        yield* result.get(sessionID)
-        return yield* SessionContextSnapshot.inspect(db, sessionID)
+        const session = yield* result.get(sessionID)
+        // The epoch baseline is L1/L2 content that never enters the snapshot's `parts`, so it has to be
+        // rendered from the instruction sources — which only the location-scoped context owns.
+        const initial = yield* Effect.scoped(
+          Effect.gen(function* () {
+            const location = yield* locations.contextEffect(session.location)
+            return yield* Effect.gen(function* () {
+              const context = yield* SessionContext.Service
+              const selection = yield* context.select(sessionID)
+              const sent = yield* SessionHistory.entriesForRunner(db, sessionID, selection.instructions, "latest")
+              return sent.initial
+            }).pipe(Effect.provideContext(location))
+          }),
+        ).pipe(Effect.orElseSucceed(() => [] as ReadonlyArray<Instructions.Rendered>))
+        return yield* SessionContextSnapshot.inspect(db, sessionID, initial)
       }),
       diff: Effect.fn("Session.diff")(function* (input) {
         const session = yield* result.get(input.sessionID)

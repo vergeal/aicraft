@@ -25,6 +25,13 @@ type Inspection = {
       readonly bytes: number
       readonly text: string
     }>
+    readonly baseline: ReadonlyArray<{
+      readonly layer: string
+      readonly kind: string
+      readonly source: string
+      readonly bytes: number
+      readonly text: string
+    }>
     readonly tools: ReadonlyArray<{ readonly name: string; readonly bytes: number; readonly source: string }>
   } | null
   readonly lineage: ReadonlyArray<{
@@ -234,16 +241,25 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     const snapshot = data?.snapshot
 
     return LAYERS.map((layer): { layer: string; churn: Churn; rows: Row[] } => {
+      // L1 is the whole frozen prefix: the snapshot's volatile parts plus the instruction baseline.
+      // `parts` only holds the four sections with no other frozen home (agent, identity, project,
+      // session), so listing it alone showed two rows while the request sent 27 KB — and made a
+      // compaction, which rebakes the baseline, look like L1 had not moved at all.
       if (layer === "L1")
         return {
           layer,
           churn: "frozen" as const,
-          rows: (snapshot?.layers ?? []).map((part) => ({
-            name: ctx.t(`assembly.kind.${part.kind}`),
-            source: part.source,
-            bytes: part.bytes,
-            text: part.text,
-          })),
+          rows: [
+            ...(snapshot?.layers ?? []).map((part) => ({
+              name: ctx.t(`assembly.kind.${part.kind}`),
+              source: part.source,
+              bytes: part.bytes,
+              text: part.text,
+            })),
+            ...(snapshot?.baseline ?? [])
+              .filter((entry) => entry.layer === "L1")
+              .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+          ],
         }
 
       // The tool declaration's schema lives in the request, not in a system part, so the panel shows
@@ -252,12 +268,19 @@ export default function ContextAssembly(props: { session: MountedSession }) {
         return {
           layer,
           churn: "frozen" as const,
-          rows: (snapshot?.tools ?? []).map((tool) => ({
-            name: tool.name,
-            source: tool.source,
-            bytes: tool.bytes,
-            text: "",
-          })),
+          rows: [
+            ...(snapshot?.tools ?? []).map((tool) => ({
+              name: tool.name,
+              source: tool.source,
+              bytes: tool.bytes,
+              text: "",
+            })),
+            // The codemode catalog is declared L2 but is instruction text, not a tool declaration, so
+            // it arrives in the baseline rather than in the tool set.
+            ...(snapshot?.baseline ?? [])
+              .filter((entry) => entry.layer === "L2")
+              .map((entry) => ({ name: entry.source, source: entry.source, bytes: entry.bytes, text: entry.text })),
+          ],
         }
 
       if (layer === "L3") {

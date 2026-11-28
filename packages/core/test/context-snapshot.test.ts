@@ -7,10 +7,11 @@ import { LayerNode } from "@aicraft/util/effect/layer-node"
 import { Project } from "@aicraft/core/project"
 import { ProjectTable } from "@aicraft/core/project/sql"
 import { AbsolutePath } from "@aicraft/core/schema"
+import { Instructions } from "@aicraft/core/instructions/index"
 import { InstructionState } from "@aicraft/core/session/instruction-state"
 import { SessionContextSnapshot } from "@aicraft/core/session/context-snapshot"
 import { SessionSchema } from "@aicraft/core/session/schema"
-import { ContextSnapshotTable, SessionTable } from "@aicraft/core/session/sql"
+import { ContextSnapshotTable, SessionMessageTable, SessionTable } from "@aicraft/core/session/sql"
 import { testEffect } from "./lib/effect"
 
 const it = testEffect(AppNodeBuilder.build(LayerNode.group([Database.node])))
@@ -166,6 +167,90 @@ describe("SessionContextSnapshot", () => {
       expect(JSON.stringify(resolved.parts)).toBe(JSON.stringify(parts))
       const row = yield* db.select().from(ContextSnapshotTable).get().pipe(Effect.orDie)
       expect(JSON.stringify(row?.parts.parts)).toBe(JSON.stringify(parts))
+    }),
+  )
+
+  it.effect("reads the live layers from the flat source array a Step stores", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_snapshot_sent_sources")
+      const { db } = yield* setup(sessionID)
+      yield* SessionContextSnapshot.resolve(db, {
+        sessionID,
+        baselineEpoch: 0,
+        modelID: "test/test-model",
+        agentID: "build",
+        tools: [],
+        live: live("project instructions"),
+      })
+      // The Step writes `metadata.context` as the bare source array. Reading it as an envelope
+      // silently decoded to nothing, which zeroed every live layer in the panel.
+      yield* db
+        .insert(SessionMessageTable)
+        .values({
+          id: "msg_sent",
+          session_id: sessionID,
+          type: "assistant",
+          seq: 1,
+          time_created: 1,
+          time_updated: 1,
+          data: {
+            id: "msg_sent",
+            type: "assistant",
+            agent: "build",
+            model: { providerID: "test", id: "test-model" },
+            content: [],
+            time: { created: 1, completed: 2 },
+            metadata: {
+              context: [
+                { key: "core/memory", layer: "L6", chars: 5, text: "hello" },
+                { key: "memory/protocol", layer: "L8", chars: 3, text: "abc" },
+              ],
+            },
+          },
+        } as never)
+        .run()
+        .pipe(Effect.orDie)
+
+      const inspected = yield* SessionContextSnapshot.inspect(db, sessionID)
+      expect(inspected.dynamic).toEqual([
+        { layer: "L6", source: "core/memory", bytes: 5, text: "hello" },
+        { layer: "L8", source: "memory/protocol", bytes: 3, text: "abc" },
+      ])
+    }),
+  )
+
+  it.effect("lists the epoch baseline as L1 and L2 rows beside the volatile parts", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_snapshot_baseline_rows")
+      const { db } = yield* setup(sessionID)
+      yield* SessionContextSnapshot.resolve(db, {
+        sessionID,
+        baselineEpoch: 0,
+        modelID: "test/test-model",
+        agentID: "build",
+        tools: [],
+        live: live("project instructions"),
+      })
+
+      // The baseline is the content a compaction rebakes. It has no volatile part to live in, so the
+      // panel can only see it if `inspect` reports it; listing `parts` alone showed L1 as two rows.
+      const rendered = (key: string, layer: "L1" | "L2" | "L5", text: string) => ({
+        key: Instructions.Key.make(key),
+        layer,
+        text,
+      })
+      const inspected = yield* SessionContextSnapshot.inspect(db, sessionID, [
+        rendered("core/instructions", "L1", "project rules"),
+        rendered("core/codemode", "L2", "catalog"),
+        rendered("core/environment", "L5", "env"),
+      ])
+
+      expect(inspected.snapshot?.baseline.map((row) => [row.layer, row.source, row.bytes, row.text])).toEqual([
+        ["L1", "core/instructions", 13, "project rules"],
+        ["L2", "core/codemode", 7, "catalog"],
+      ])
+      // The volatile parts are still reported separately from the baseline.
+      expect(inspected.snapshot?.layers.map((part) => part.kind)).toEqual(["agent", "project", "session"])
     }),
   )
 

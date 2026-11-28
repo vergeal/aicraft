@@ -16,6 +16,9 @@ export const guidance =
 export const make = (): Instructions.List =>
   Instructions.make({
     key,
+    // L1: constant text with the baseline, so it rides the cached prefix and reports itself as L1 in
+    // the audit like every other baseline source.
+    layer: "L1",
     codec: Schema.toCodecJson(Schema.String),
     read: Effect.succeed("on"),
     render: {

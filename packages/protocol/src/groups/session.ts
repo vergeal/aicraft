@@ -187,6 +187,20 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
                     text: Schema.String,
                   }),
                 ),
+                /**
+                 * The epoch instruction baseline: every rendered source that is L1 or L2 but has no
+                 * volatile part of its own, so it never appears in `layers`. A compaction rebakes this,
+                 * which is why the panel must read it rather than assume L1 only holds the parts.
+                 */
+                baseline: Schema.Array(
+                  Schema.Struct({
+                    layer: Schema.String,
+                    kind: Schema.String,
+                    source: Schema.String,
+                    bytes: Schema.Number,
+                    text: Schema.String,
+                  }),
+                ),
                 /** Frozen L2 tool declarations: name plus its serialized schema size. */
                 tools: Schema.Array(
                   Schema.Struct({ name: Schema.String, bytes: Schema.Number, source: Schema.String }),

@@ -730,6 +730,13 @@ export type ExperimentalSessionAssemblyOutput = {
       readonly bytes: number
       readonly text: string
     }>
+    readonly baseline: ReadonlyArray<{
+      readonly layer: string
+      readonly kind: string
+      readonly source: string
+      readonly bytes: number
+      readonly text: string
+    }>
     readonly tools: ReadonlyArray<{ readonly name: string; readonly bytes: number; readonly source: string }>
   } | null
   readonly lineage: ReadonlyArray<{

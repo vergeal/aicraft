@@ -271,6 +271,23 @@ export default function ContextAssembly(props: { session: MountedSession }) {
     }, [])
   })
 
+  /**
+   * The newest live turn is the one still being built, so it is L7 — this turn's input, which at the
+   * turn's end folds into L3. Listing it under L3 as well would count its bytes twice and make a long
+   * running turn look like settled history.
+   */
+  const currentTurn = createMemo(() => liveTurns().at(-1))
+  const settledTurns = createMemo(() => liveTurns().slice(0, -1))
+
+  /** A turn as one row. Named by the prompt that opened it: ten rows all reading "Turn" says nothing. */
+  const turnRow = (group: { id: string; label: string; messages: Array<{ type: string; text: string }> }): Row => ({
+    name: group.label.slice(0, 80) || ctx.t("assembly.turn"),
+    label: "literal",
+    type: group.id,
+    bytes: group.messages.reduce((sum, message) => sum + size(message.text), 0),
+    text: group.messages.map((message) => `[${message.type}]\n${message.text}`).join("\n\n---\n\n"),
+  })
+
   // One entry per layer, each with the rows that actually contribute to the request.
   const layers = createMemo(() => {
     const data = inspection()
@@ -344,22 +361,12 @@ export default function ContextAssembly(props: { session: MountedSession }) {
       if (layer === "L3") {
         // Newest turn first, and rows that produce no request content are left out: this is the
         // transcript as the model reads it. The turns come from the live message store, so a new
-        // message appears as it arrives instead of at the next manual refresh.
-        const groups = liveTurns()
-
+        // message appears as it arrives instead of at the next manual refresh. The newest turn belongs
+        // to L7 until it settles, so it is excluded here.
         return {
           layer,
           churn: "frozen" as const,
-          rows: [...groups].reverse().map((group) => ({
-            // A turn is identified by the prompt that opened it, not by a generic label: ten rows all
-            // reading "Turn" tells a reader nothing, while the prompt text is what they are scanning
-            // for. The message id stays on the right as the stable identifier.
-            name: group.label.slice(0, 80) || ctx.t("assembly.turn"),
-            label: "literal" as const,
-            type: group.id,
-            bytes: group.messages.reduce((sum, message) => sum + size(message.text), 0),
-            text: group.messages.map((message) => `[${message.type}]\n${message.text}`).join("\n\n---\n\n"),
-          })),
+          rows: [...settledTurns()].reverse().map((group) => turnRow(group)),
         }
       }
 
@@ -404,8 +411,20 @@ export default function ContextAssembly(props: { session: MountedSession }) {
             })),
         }
 
-      // L6 to L8 are the hot band: memory injection, the turn's own input, and tail notices, all
-      // recomputed per request.
+      if (layer === "L7") {
+        // This turn's input as the request sees it: the prompt that opened the turn plus everything the
+        // turn has produced since. It is not the user's text alone — the tool calls and results belong
+        // here too, because at the turn's end the whole group folds into L3.
+        const turn = currentTurn()
+
+        return {
+          layer,
+          churn: "hot" as const,
+          rows: turn ? [turnRow(turn)] : [],
+        }
+      }
+
+      // L6 and L8 are the hot band: memory injection and tail notices, recomputed per request.
       return {
         layer,
         churn: "hot" as const,
@@ -551,6 +570,24 @@ export default function ContextAssembly(props: { session: MountedSession }) {
 
       {/* Layers in assembly order. Each expands to the rows it contributes, and a row expands to its text. */}
       <div class={`${card} flex flex-col overflow-hidden`}>
+        {/* The lineage root: every prefix version descends from the session's first bake, so the tree
+            starts here instead of implying L1 is where the assembly began. */}
+        <Show when={inspection()?.snapshot}>
+          {(snapshot) => (
+            <div class="flex items-center gap-2 px-3 py-2">
+              <span class="w-3 shrink-0" />
+              <span class="min-w-0 truncate text-[11.5px] font-[590] text-v2-text-text-base">
+                {ctx.t("assembly.origin", { version: snapshot().prefixVersion })}
+              </span>
+              <span class="shrink-0 text-[10.5px] tabular-nums text-v2-text-text-faint">
+                {ctx.t("assembly.originEpoch", { epoch: snapshot().epoch })}
+              </span>
+              <span class="ms-auto shrink-0 text-[11px] text-v2-text-text-faint">
+                {ctx.t(`assembly.reason.${snapshot().bumpReason}`)}
+              </span>
+            </div>
+          )}
+        </Show>
         <For each={layers()}>
           {(entry, index) => {
             const open = () => expandedLayers().has(entry.layer)

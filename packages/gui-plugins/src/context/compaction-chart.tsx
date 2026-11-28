@@ -78,6 +78,18 @@ export function CompactionChart(props: { session: MountedSession }) {
     return last ? catalogModel(props.session, last.model)?.model?.limit.context : undefined
   })
 
+  // How many finished steps have run since the newest completed compaction: what the chart's right edge
+  // ends on, stated in words so a reader does not have to count the sawtooth's teeth.
+  const sinceCompaction = createMemo<number | undefined>(() => {
+    const values = points()
+
+    if (values.length === 0) return
+
+    const mark = values.findLastIndex((point) => point.afterCompaction)
+    // No compaction in the loaded window means the whole window is one stretch.
+    return mark === -1 ? values.length : values.length - mark - 1
+  })
+
   const geometry = createMemo(() => {
     const values = points()
     const last = values.length - 1
@@ -110,6 +122,11 @@ export function CompactionChart(props: { session: MountedSession }) {
         <div ref={plot} class="flex flex-col gap-1.5 pt-1">
           <div class="flex items-baseline gap-2 text-[11.5px] text-v2-text-text-faint">
             <span>{ctx.t("window.history")}</span>
+            <Show when={sinceCompaction() !== undefined ? sinceCompaction() : undefined}>
+              {(count) => (
+                <span class="text-v2-text-text-muted">{ctx.t("window.sinceCompaction", { count: String(count()) })}</span>
+              )}
+            </Show>
             <span class="ms-auto">{ctx.t("window.historyNote")}</span>
           </div>
           <svg

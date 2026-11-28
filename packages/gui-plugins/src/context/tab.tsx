@@ -490,6 +490,15 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     const entry = catalogModel(props.session, message.model)
     const used = message.tokens.input + message.tokens.cache.read + message.tokens.cache.write
     const limit = entry?.model?.limit.context
+    // The reply room the next request keeps, as the runner fits it: the model's output allowance, capped
+    // by what the prompt leaves. Mirrors `SessionModelRequest.outputLimit`, which a GUI plugin cannot
+    // import; both sides must agree or the bar shows room the request will not actually get.
+    const outputLimit = (() => {
+      if (!entry?.model || !limit || limit <= 0) return entry?.model?.limit.output ?? 0
+      const requested = Math.min(entry.model.limit.output > 0 ? entry.model.limit.output : 32_000, 256_000)
+      const room = Math.floor(limit * (1 - 0.01)) - used
+      return Math.min(requested, Math.max(1_024, room))
+    })()
 
     return {
       message,
@@ -499,6 +508,7 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       cache: message.tokens.cache.read,
       cacheWrite: message.tokens.cache.write,
       limit,
+      outputLimit,
       pct: limit ? Math.round((used / limit) * 100) : null,
       providerLabel: entry?.provider.name ?? message.model.providerID,
       modelLabel: entry?.model?.name ?? message.model.id,
@@ -751,7 +761,12 @@ export default function SessionContextTab(props: { session: MountedSession }) {
     if (!current?.limit) return
 
     const prompt = Math.min(current.used, current.limit)
-    const output = Math.min(current.tokens.output, current.limit - prompt)
+    // The reply's reservation, not the output already spent: the same formula the runner fits the
+    // request to (`SessionModelRequest.outputLimit`), so the bar shows the room the next reply keeps.
+    const reserve = Math.min(
+      Math.min(current.outputLimit, current.limit),
+      Math.max(current.limit - prompt, 0),
+    )
     const weights = composition()
 
     const part = (key: "System" | "History" | "Tools") =>
@@ -761,8 +776,8 @@ export default function SessionContextTab(props: { session: MountedSession }) {
       system: (part("System") / current.limit) * 100,
       history: (part("History") / current.limit) * 100,
       toolResults: (part("Tools") / current.limit) * 100,
-      output: (output / current.limit) * 100,
-      safety: ((current.limit - prompt - output) / current.limit) * 100,
+      output: (reserve / current.limit) * 100,
+      safety: ((current.limit - prompt - reserve) / current.limit) * 100,
       level: current.pct !== null && current.pct >= 90 ? "danger" : current.pct !== null && current.pct >= 70 ? "warn" : "normal",
     }
   })
